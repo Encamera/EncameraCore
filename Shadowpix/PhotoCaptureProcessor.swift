@@ -6,7 +6,8 @@
 //
 
 import Foundation
-import Photos
+import AVFoundation
+import CoreImage
 
 class PhotoCaptureProcessor: NSObject {
     
@@ -81,31 +82,24 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
     //        MARK: Saves capture to photo library
     func saveToPhotoLibrary(_ photoData: Data) {
         
-        PHPhotoLibrary.requestAuthorization { status in
-            if status == .authorized {
-                PHPhotoLibrary.shared().performChanges({
-                    let options = PHAssetResourceCreationOptions()
-                    let creationRequest = PHAssetCreationRequest.forAsset()
-                    options.uniformTypeIdentifier = self.requestedPhotoSettings.processedFileType.map { $0.rawValue }
-                    creationRequest.addResource(with: .photo, data: photoData, options: options)
-                    
-                    
-                }, completionHandler: { _, error in
-                    if let error = error {
-                        print("Error occurred while saving photo to photo library: \(error)")
-                    }
-                    
-                    DispatchQueue.main.async {
-                        self.completionHandler(self)
-                    }
-                }
-                )
-            } else {
-                DispatchQueue.main.async {
-                    self.completionHandler(self)
-                }
-            }
+        
+        guard let driveURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
+            fatalError("Could not get drive url")
         }
+        guard let encrypted = ChaChaPolyHelpers.encrypt(contentData: photoData) else {
+            fatalError("Could not encrypt image")
+        }
+        do {
+            let time = NSDate().timeIntervalSince1970
+            try encrypted.write(to: driveURL.appendingPathComponent("\(time).shdwpic"))
+        } catch {
+            print(error)
+            fatalError("Could not write to drive url")
+        }
+        DispatchQueue.main.async {
+            self.completionHandler(self)
+        }
+        
     }
     
     /// - Tag: DidFinishCapture
@@ -123,7 +117,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
                 }
                 return
             }
-            
+           
             self.saveToPhotoLibrary(data)
         }
     }

@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  SwiftCamera
+//  Shadowpix
 //
 //  Created by Rolando Rodriguez on 10/15/20.
 //
@@ -78,7 +78,8 @@ struct CameraView: View {
     @StateObject var model = CameraModel()
     
     @State var currentZoomFactor: CGFloat = 1.0
-    
+    @State private var showingKeySelection = false
+
     var captureButton: some View {
         Button(action: {
             model.capturePhoto()
@@ -131,13 +132,25 @@ struct CameraView: View {
                 Color.black.edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    Button(action: {
-                        model.switchFlash()
-                    }, label: {
-                        Image(systemName: model.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
-                            .font(.system(size: 20, weight: .medium, design: .default))
-                    })
-                    .accentColor(model.isFlashOn ? .yellow : .white)
+                    HStack {
+                        Button {
+                            showingKeySelection = true
+                        } label: {
+                            Image(systemName: "key.fill").frame(width: 44, height: 44)
+                        }.sheet(isPresented: $showingKeySelection) {
+                        
+                        } content: {
+                            KeyPickerView()
+                        }.tint(.white)
+                        Spacer()
+                        Button(action: {
+                            model.switchFlash()
+                        }, label: {
+                            Image(systemName: model.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
+                                .font(.system(size: 20, weight: .medium, design: .default))
+                        })
+                        .accentColor(model.isFlashOn ? .yellow : .white)
+                    }.padding()
                     
                     CameraPreview(session: model.session)
                         .gesture(

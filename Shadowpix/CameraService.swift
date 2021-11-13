@@ -1,6 +1,6 @@
 //
 //  CameraService.swift
-//  SwiftCamera
+//  Shadowpix
 //
 //  Created by Rolando Rodriguez on 10/15/20.
 //
@@ -8,7 +8,6 @@
 import Foundation
 import Combine
 import AVFoundation
-import Photos
 import UIKit
 
 //  MARK: Class Camera Service, handles setup of AVFoundation needed for a basic camera app.
@@ -154,7 +153,7 @@ public class CameraService {
             setupResult = .notAuthorized
             
             DispatchQueue.main.async {
-                self.alertError = AlertError(title: "Camera Access", message: "SwiftCamera doesn't have access to use your camera, please update your privacy settings.", primaryButtonTitle: "Settings", secondaryButtonTitle: nil, primaryAction: {
+                self.alertError = AlertError(title: "Camera Access", message: "Shadowpix doesn't have access to use your camera, please update your privacy settings.", primaryButtonTitle: "Settings", secondaryButtonTitle: nil, primaryAction: {
                         UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!,
                                                   options: [:], completionHandler: nil)
                     
@@ -436,7 +435,7 @@ public class CameraService {
                 photoSettings.photoQualityPrioritization = .quality
                 
                 let photoCaptureProcessor = PhotoCaptureProcessor(with: photoSettings, willCapturePhotoAnimation: { [weak self] in
-                    // Tells the UI to flash the screen to signal that SwiftCamera took a photo.
+                    // Tells the UI to flash the screen to signal that Shadowpix took a photo.
                     DispatchQueue.main.async {
                         self?.willCapturePhoto = true
                     }

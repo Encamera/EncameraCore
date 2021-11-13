@@ -1,6 +1,6 @@
 //
 //  CameraService+Enums.swift
-//  SwiftCamera
+//  Shadowpix
 //
 //  Created by Rolando Rodriguez on 10/15/20.
 //

@@ -1,13 +1,13 @@
 //
-//  SwiftCameraUITests.swift
-//  SwiftCameraUITests
+//  ShadowpixUITests.swift
+//  ShadowpixUITests
 //
 //  Created by Rolando Rodriguez on 10/15/20.
 //
 
 import XCTest
 
-class SwiftCameraUITests: XCTestCase {
+class ShadowpixUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
