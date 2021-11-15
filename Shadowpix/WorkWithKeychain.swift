@@ -9,7 +9,7 @@
 import Foundation
 
 enum KeychainError: Error {
-    case noPassword
+    case keychainItemNotFound
     case unexpectedPasswordData
     case unhandledError(status: OSStatus)
 }
@@ -83,10 +83,24 @@ class WorkWithKeychain {
     static public func isKey() -> Bool {
         return keychainCheck(service: keyKeychain.key.rawValue)
     }
+    
+    static public func getKeyObject() -> ImageKey? {
+        guard let keyData = read(service: keyKeychain.key.rawValue),
+              let keyObject = try? JSONDecoder().decode(ImageKey.self, from: keyData) else {
+            return nil
+        }
+        
+        return keyObject
+    }
         
     //return key
     static public func getKey() -> Data? {
-        return read(service: keyKeychain.key.rawValue)
+        
+        guard let keyObject = getKeyObject() else {
+            return nil
+        }
+        
+        return keyObject.keyData
     }
     
     static public func getKeyString() -> String? {
@@ -94,22 +108,17 @@ class WorkWithKeychain {
     }
     
     //save key
-    static public func setKey(key: Data) {
-        write(service: keyKeychain.key.rawValue, data: key)
-    }
-
-    static public func updateKey(key: String) {
-        guard let data = Data(base64Encoded: key) else {
-            print("error saving key")
-            return
+    static public func setKey(key: ImageKey) {
+        clearKeychain()
+        do {
+            let data = try JSONEncoder().encode(key)
+            write(service: keyKeychain.key.rawValue, data: data)
+            ShadowPixState.shared.selectedKey = key
+        } catch {
+            fatalError("Could not set key in keychain")
         }
-        updateKey(key: data)
     }
 
-    
-    static public func updateKey(key: Data) {
-        updateKeychain(service: keyKeychain.key.rawValue, data: key)
-    }
         
     
     // MARK: - Work with Keychein
@@ -129,7 +138,7 @@ class WorkWithKeychain {
             let t = try readKeychain(service: service)
             return (t as! Data)
         } catch  {
-            print("Error read, service=",service)
+            print("Error read, service:", service, error)
             return nil
         }
     }
@@ -145,7 +154,7 @@ class WorkWithKeychain {
         
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status != errSecItemNotFound else { throw KeychainError.noPassword }
+        guard status != errSecItemNotFound else { throw KeychainError.keychainItemNotFound }
         guard status == errSecSuccess else { throw KeychainError.unhandledError(status: status) }
         
         guard let existingItem = item as? [String : Any],
@@ -161,7 +170,7 @@ class WorkWithKeychain {
         do {
             let _ = try setKeychain(service: service, data: data)
         } catch  {
-            print("Error write, service=",service)
+            fatalError("Error write, service=\(String(describing: service))")
         }
     }
     
@@ -206,7 +215,7 @@ class WorkWithKeychain {
         let status = SecItemDelete(query as CFDictionary)
         
         if status != errSecSuccess {
-            print("clearKeychain ERRROR")
+            print("clearKeychain ERROR")
         } else {
             print("clearKeychain OK")
         }

@@ -16,6 +16,7 @@ struct ShadowpixApp: App {
     
     
     @StateObject var viewModel: ViewModel = ViewModel()
+    @State var showGenerateKeySheet: Bool = false
 
     var body: some Scene {
         WindowGroup {
@@ -27,10 +28,23 @@ struct ShadowpixApp: App {
                 }
             }.onOpenURL { url in
                 print(url)
-                
+                self.hasOpenedUrl = false
                 self.viewModel.openedUrl = url
                 self.hasOpenedUrl = true
+            }.onAppear {
+                if let savedKey = WorkWithKeychain.getKeyObject() {
+                    ShadowPixState.shared.selectedKey = savedKey
+                } else {
+                    showGenerateKeySheet = true
+
+                }
             }
+            .sheet(isPresented: $showGenerateKeySheet) {
+
+            } content: {
+                KeyGeneration(isShown: $showGenerateKeySheet)
+            }.environmentObject(ShadowPixState.shared)
+
         }
     }
 }

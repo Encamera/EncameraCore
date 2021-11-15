@@ -20,6 +20,7 @@ final class CameraModel: ObservableObject {
     
     @Published var willCapturePhoto = false
     
+    
     var alertError: AlertError!
     
     var session: AVCaptureSession
@@ -76,7 +77,8 @@ final class CameraModel: ObservableObject {
 
 struct CameraView: View {
     @StateObject var model = CameraModel()
-    
+    @EnvironmentObject var appState: ShadowPixState
+
     @State var currentZoomFactor: CGFloat = 1.0
     @State private var showingKeySelection = false
 
@@ -140,7 +142,7 @@ struct CameraView: View {
                         }.sheet(isPresented: $showingKeySelection) {
                         
                         } content: {
-                            KeyPickerView()
+                            KeyPickerView(isShown: $showingKeySelection).environmentObject(appState)
                         }.tint(.white)
                         Spacer()
                         Button(action: {

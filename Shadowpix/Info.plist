@@ -7,10 +7,16 @@
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleTypeIconFiles</key>
+			<array>
+				<string>file.icon.png</string>
+			</array>
 			<key>CFBundleTypeName</key>
 			<string>ShadowPix Encryped Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Default</string>
+			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>me.freas.shadowpix.shadowpic</string>
@@ -100,6 +106,9 @@
 				</array>
 			</dict>
 		</dict>
+	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
 	</array>
 </dict>
 </plist>

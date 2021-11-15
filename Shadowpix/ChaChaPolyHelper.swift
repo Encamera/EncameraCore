@@ -87,6 +87,10 @@ struct ChaChaPolyHelpers {
         }
         return String(data: data, encoding: .utf8)
     }
+    
+    enum ChaChaPolyHelperError: Error {
+        
+    }
 
     static func decrypt(encryptedContent: Data?) -> UIImage? {
         guard let encryptionKey = getKey() else { return nil }
@@ -96,27 +100,35 @@ struct ChaChaPolyHelpers {
         guard let content = Data(base64Encoded: encryptedContent) else {
             return nil
         }
-        guard let sealedBox = try? ChaChaPoly.SealedBox(combined: content), let data = try? ChaChaPoly.open(sealedBox, using: encryptionKey) else {
+        do {
+            let sealedBox = try ChaChaPoly.SealedBox(combined: content)
+            let data = try ChaChaPoly.open(sealedBox, using: encryptionKey)
+
+            return UIImage(data: data)
+        } catch {
+            
+            print("error decrypting image", String(describing: error))
             return nil
         }
-        return UIImage(data: data)
+        
     }
     
-    static func setKey(keyString: String) {
-        guard let keyData = keyString.data(using: .utf8) else {
-            fatalError("Could not get data from keystring")
-        }
-        let key = SymmetricKey(data: keyData)
-        let save = key.withUnsafeBytes {Data(Array($0))}
-
-        WorkWithKeychain.setKey(key: save)
-    }
+//    static func setKey(keyString: String) {
+//        guard let keyData = Data(base64Encoded: keyString) else {
+//            fatalError("Could not get data from keystring")
+//        }
+//        let key = SymmetricKey(data: keyData)
+//        let save = key.withUnsafeBytes {Data(Array($0))}
+//
+//        WorkWithKeychain.setKey(key: save)
+//    }
     
-    @discardableResult static func generateNewKey() -> SymmetricKey {
+    @discardableResult static func generateNewKey(name: String) throws -> SymmetricKey {
         WorkWithKeychain.clearKeychain()
         let key = createKey()
         let save = key.withUnsafeBytes {Data(Array($0))}
-        WorkWithKeychain.setKey(key: save)
+        let keyObject = ImageKey(keyData: save, name: name)
+        WorkWithKeychain.setKey(key: keyObject)
         return key
     }
     
@@ -124,25 +136,11 @@ struct ChaChaPolyHelpers {
         if let keyData = WorkWithKeychain.getKey() {
             return SymmetricKey(data: keyData)
         }
-        let key = createKey()
-        let save = key.withUnsafeBytes {Data(Array($0))}
-
-        WorkWithKeychain.setKey(key: save)
-        return key
+        return nil
     }
     
     private static func createKey() -> SymmetricKey {
         return SymmetricKey(size: .bits256)
-    }
-    
-    private static func test() {
-        let key = SymmetricKey(size: .bits256)
-        let savedKey = key.withUnsafeBytes {Data(Array($0)).base64EncodedString()}
- 
-        if let keyData = Data(base64Encoded: savedKey) {
-            let retrievedKey = SymmetricKey(data: keyData)
-        }
-
     }
 }
 

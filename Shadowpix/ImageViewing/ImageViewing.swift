@@ -20,12 +20,19 @@ struct ImageViewing: View {
             #if targetEnvironment(simulator)
             return UIImage(named: "background")
             #endif
-            guard let data = try? Data(contentsOf: imageUrl), let decrypted: UIImage = ChaChaPolyHelpers.decrypt(encryptedContent: data) else {
-                print("Could not open image")
+            do {
+                let data = try Data(contentsOf: imageUrl)
+                guard let decrypted: UIImage = ChaChaPolyHelpers.decrypt(encryptedContent: data) else {
+                    print("Could not decrypt image")
+                    return nil
+                }
+                return decrypted
+
+            } catch {
+                print("error opening image", error.localizedDescription)
                 return nil
             }
             
-            return decrypted
         }
     }
     @ObservedObject var viewModel: ViewModel
@@ -33,6 +40,8 @@ struct ImageViewing: View {
         VStack {
             if let imageData = viewModel.decryptImage() {
                 Image(uiImage: imageData).resizable().scaledToFit()
+            } else {
+                
             }
         }
     }
