@@ -7,14 +7,8 @@
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
-			<key>CFBundleTypeIconFiles</key>
-			<array>
-				<string>file.icon.png</string>
-			</array>
 			<key>CFBundleTypeName</key>
 			<string>ShadowPix Encryped Image</string>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
@@ -22,6 +16,7 @@
 				<string>me.freas.shadowpix.shadowpic</string>
 			</array>
 		</dict>
+		<dict/>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
@@ -109,6 +104,29 @@
 	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>ShadowPix Encrypted Image</string>
+			<key>UTTypeIconFiles</key>
+			<array/>
+			<key>UTTypeIdentifier</key>
+			<string>me.freas.shadowpix.shadowpic</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>shdwpic</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-shdwpic</string>
+				</array>
+			</dict>
+		</dict>
 	</array>
 </dict>
 </plist>
