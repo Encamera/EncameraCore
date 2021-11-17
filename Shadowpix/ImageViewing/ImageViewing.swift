@@ -21,7 +21,9 @@ struct ImageViewing: View {
             return UIImage(named: "background")
             #endif
             do {
+                _ = imageUrl.startAccessingSecurityScopedResource()
                 let data = try Data(contentsOf: imageUrl)
+                imageUrl.stopAccessingSecurityScopedResource()
                 guard let decrypted: UIImage = ChaChaPolyHelpers.decrypt(encryptedContent: data) else {
                     print("Could not decrypt image")
                     return nil
@@ -41,7 +43,8 @@ struct ImageViewing: View {
             if let imageData = viewModel.decryptImage() {
                 Image(uiImage: imageData).resizable().scaledToFit()
             } else {
-                
+                Text("Could not decrypt image")
+                    .foregroundColor(.red)
             }
         }
     }

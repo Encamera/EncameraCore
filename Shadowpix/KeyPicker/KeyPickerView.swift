@@ -6,6 +6,29 @@
 //
 
 import SwiftUI
+import CoreImage
+import CoreImage.CIFilterBuiltins
+
+private func generateQRCode(from string: String, size: CGSize) -> UIImage {
+    let context = CIContext()
+    let filter = CIFilter.qrCodeGenerator()
+    
+    let data = Data(string.utf8)
+    filter.setValue(data, forKey: "inputMessage")
+    guard let output = filter.outputImage else {
+        fatalError("no image")
+    }
+    let x = size.width / output.extent.size.width
+    let y = size.height / output.extent.size.height
+
+     let qrCodeImage = output.transformed(by: CGAffineTransform(scaleX: x, y: y))
+        
+        if let qrCodeCGImage = context.createCGImage(qrCodeImage, from: qrCodeImage.extent) {
+            return UIImage(cgImage: qrCodeCGImage)
+        }
+
+    return UIImage(systemName: "xmark") ?? UIImage()
+}
 
 struct KeyPickerView: View {
     
@@ -16,35 +39,74 @@ struct KeyPickerView: View {
     
     @State var isShowingSheetForKeyEntry: Bool = false
     @State var isShowingSheetForNewKey: Bool = false
+    @State var isShowingAlertForClearKey: Bool = false
     @Binding var isShown: Bool
     @EnvironmentObject var appState: ShadowPixState
     
-   
+    
     
     private struct Constants {
         static var outerPadding = 20.0
     }
-    
+    func createQrImage(geo: GeometryProxy) -> some View {
+        var imageView: Image
+        #if targetEnvironment(simulator)
+        imageView = Image(systemName: "lock")
+        #else
+        
+        
+        let keyString = appState.selectedKey?.base64String ?? "None"
+        let image = generateQRCode(from: keyString, size: geo.size)
+        imageView = Image(uiImage: image)
+
+        #endif
+        return AnyView(imageView
+                        .resizable()
+                        .aspectRatio(1.0, contentMode: .fit)
+                        .frame(width: geo.size.width/2.0, height: geo.size.width/2.0))
+    }
     var body: some View {
         NavigationView {
             VStack {
-                Text(appState.selectedKey?.name ?? "no key")
-                    .padding()
+                GeometryReader { geo in
+                    Spacer(minLength: geo.safeAreaInsets.top)
+                    HStack {
+                        Spacer()
+                        createQrImage(geo: geo)
+                        Spacer()
+                    }
+                }
                 HStack {
+                    Text(appState.selectedKey?.name ?? "no key")
+                        .padding()
+                }
+                List {
+                    Button("Copy Key to Clipboard") {
+                        UIPasteboard.general.string = appState.selectedKey?.base64String
+                    }
                     Button("Set key") {
                         isShowingSheetForKeyEntry = true
                     }
-
-                Button("Generate new key") {
-                    isShowingSheetForNewKey = true
-                }.foregroundColor(.blue)
-                    Button("Copy to clipboard") {
-                        UIPasteboard.general.string = appState.selectedKey?.base64String
-                    }.foregroundColor(.blue)
-                }
-                Spacer()
-            }.padding(Constants.outerPadding)
-                .navigationTitle("Key Selection")
+                    Button("Generate new key") {
+                        isShowingSheetForNewKey = true
+                    }
+                    Button {
+                        isShowingAlertForClearKey = true
+                    } label: {
+                        Text("Clear key")
+                            .foregroundColor(.red)
+                    }
+                }.alert(isPresented: $isShowingAlertForClearKey) {
+                    Alert(title: Text("Clear key"), message: Text("Do you really want to clear the current key in the keychain?"), primaryButton:
+                                .cancel(Text("Cancel")) {
+                        isShowingAlertForClearKey = false
+                    }, secondaryButton: .destructive(Text("Clear")) {
+                        WorkWithKeychain.clearKeychain()
+                        appState.selectedKey = nil
+                        isShowingAlertForClearKey = false
+                    })}
+            }
+            .navigationTitle("Key Selection")
             
         }.sheet(isPresented: $isShowingSheetForNewKey) {
             
@@ -56,21 +118,20 @@ struct KeyPickerView: View {
             KeyEntry(isShowing: $isShowingSheetForKeyEntry)
         }.foregroundColor(.blue)
             .onAppear {
-            appState.selectedKey = WorkWithKeychain.getKeyObject()
-        }
-
-
+                appState.selectedKey = WorkWithKeychain.getKeyObject()
+            }
+        
+        
     }
 }
 
 struct KeyPickerView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
             KeyPickerView(isShowingSheetForNewKey: false, isShown: .constant(true))
                 .environmentObject(ShadowPixState())
-        }.preferredColorScheme(.dark)
-//        NavigationView {
-//            KeyPickerView(isShowingSheetForNewKey: false, isShown: .constant(true))
-//        }.preferredColorScheme(.light)
+.preferredColorScheme(.dark)
+            KeyPickerView(isShowingSheetForNewKey: false, isShown: .constant(true))
+                .environmentObject(ShadowPixState())
+            .preferredColorScheme(.light)
     }
 }

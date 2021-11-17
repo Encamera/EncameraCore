@@ -86,15 +86,19 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         guard let driveURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
             fatalError("Could not get drive url")
         }
+
         guard let encrypted = ChaChaPolyHelpers.encrypt(contentData: photoData) else {
             fatalError("Could not encrypt image")
         }
         guard let keyName = ShadowPixState.shared.selectedKey?.name else {
             fatalError("No key name stored")
         }
+        let destURL = driveURL.appendingPathComponent(keyName)
+        try? FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: false, attributes: nil)
+
         do {
             let time = NSDate().timeIntervalSince1970
-            try encrypted.write(to: driveURL.appendingPathComponent("\(time).\(keyName).shdwpic"))
+            try encrypted.write(to: destURL.appendingPathComponent("\(time).\(keyName).shdwpic"))
         } catch {
             print(error)
             fatalError("Could not write to drive url")
