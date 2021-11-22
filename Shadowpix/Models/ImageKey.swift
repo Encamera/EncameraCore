@@ -33,3 +33,7 @@ struct ImageKey: Codable {
     }
     
 }
+
+extension ImageKey: Equatable {
+    
+}

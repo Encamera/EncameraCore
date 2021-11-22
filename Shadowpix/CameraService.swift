@@ -20,6 +20,9 @@ public struct Photo: Identifiable, Equatable {
     public init(id: String = UUID().uuidString, originalData: Data) {
         self.id = id
         self.originalData = originalData
+        
+        
+                          
     }
 }
 
@@ -94,7 +97,7 @@ public class CameraService {
 //    14
     // Communicate with the session and other session objects on this queue.
     private let sessionQueue = DispatchQueue(label: "session queue")
-    
+    private let metadataProcessor = QRCodeCaptureProcessor()
     @objc dynamic var videoDeviceInput: AVCaptureDeviceInput!
     
     // MARK: Device Configuration Properties
@@ -109,7 +112,6 @@ public class CameraService {
     // MARK: KVO and Notifications Properties
     
     private var keyValueObservations = [NSKeyValueObservation]()
-    
     
     public func configure() {
         /*
@@ -196,6 +198,12 @@ public class CameraService {
                 session.commitConfiguration()
                 return
             }
+            guard let audioDevice = AVCaptureDevice.default(for: .audio),
+                      let audioDeviceInput = try? AVCaptureDeviceInput(device: audioDevice) else {
+                          fatalError("could not get audio input")
+                }
+            session.addInput(audioDeviceInput)
+            
             
             let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
             
@@ -217,12 +225,18 @@ public class CameraService {
         }
         
         // Add the photo output.
+        let metadataOutput = AVCaptureMetadataOutput()
+        if session.canAddOutput(metadataOutput) {
+            session.addOutput(metadataOutput)
+            metadataOutput.setMetadataObjectsDelegate(metadataProcessor, queue: .main)
+            metadataOutput.metadataObjectTypes = metadataProcessor.supportedObjectTypes
+        }
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
             
             photoOutput.isHighResolutionCaptureEnabled = true
             photoOutput.maxPhotoQualityPrioritization = .quality
-            
+            photoOutput.isLivePhotoCaptureEnabled = true
         } else {
             print("Could not add photo output to the session")
             setupResult = .configurationFailed
@@ -287,10 +301,10 @@ public class CameraService {
                     // Remove the existing device input first, because AVCaptureSession doesn't support
                     // simultaneous use of the rear and front cameras.
                     self.session.removeInput(self.videoDeviceInput)
-                    
                     if self.session.canAddInput(videoDeviceInput) {
                         self.session.addInput(videoDeviceInput)
                         self.videoDeviceInput = videoDeviceInput
+                        
                     } else {
                         self.session.addInput(self.videoDeviceInput)
                     }
@@ -300,9 +314,9 @@ public class CameraService {
                             connection.preferredVideoStabilizationMode = .auto
                         }
                     }
-                    
                     self.photoOutput.maxPhotoQualityPrioritization = .quality
-                    
+                    self.photoOutput.isLivePhotoCaptureEnabled = true
+
                     self.session.commitConfiguration()
                 } catch {
                     print("Error occurred while creating video device input: \(error)")
@@ -418,6 +432,14 @@ public class CameraService {
                 // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
                 if  self.photoOutput.availablePhotoCodecTypes.contains(.hevc) {
                     photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+                    let destinationURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents")
+                    if let temporaryDirectoryURL = try? FileManager.default.url(for: .itemReplacementDirectory,
+                                                                                   in: .userDomainMask,
+                                                                                   appropriateFor: destinationURL,
+                                                                                   create: true) {
+                        
+                        photoSettings.livePhotoMovieFileURL = temporaryDirectoryURL.appendingPathComponent("livephoto")
+                    }
                 }
                 
                 // Sets the flash option for this capture.

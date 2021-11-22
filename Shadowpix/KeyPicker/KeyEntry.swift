@@ -9,13 +9,26 @@ import SwiftUI
 
 struct KeyEntry: View {
     
-    @State private var keyString = ""
+    @State var keyString = ""
     @Binding var isShowing: Bool
     
+    @State var isShowingAlertForSaveKey: Bool = false
+
     var body: some View {
+        let keyObject: Binding<ImageKey?> = {
+            return Binding {
+                return try? ImageKey(base64String: keyString)
+            } set: {
+                print($0)
+            }
+        }()
         NavigationView {
             VStack {
-                TextField("Enter base64 encoded key", text: $keyString)
+                if let keyObject = keyObject.wrappedValue {
+                    Text("Found key: \(keyObject.name)")
+                }
+                
+                TextEditor(text: $keyString)
                 Spacer()
                 
             }.padding().navigationTitle("Key Entry")
@@ -26,20 +39,33 @@ struct KeyEntry: View {
                         }
                     }
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
-                        if keyString.count > 0, let imageKey = try? ImageKey(base64String: keyString) {
+                        if keyString.count > 0, keyObject.wrappedValue != nil {
                             Button("Save") {
-                                WorkWithKeychain.setKey(key: imageKey)
-                                isShowing = false
-                            }
+                                isShowingAlertForSaveKey = true
+                                }
                         }
                     }
                 }
+        }.onAppear {
+            keyString = keyObject.wrappedValue?.base64String ?? ""
+        }.alert("Are you sure you want to save this key?", isPresented: $isShowingAlertForSaveKey) {
+            Button("Yes", role: .destructive) {
+                guard let keyObject = keyObject.wrappedValue else {
+                    return
+                }
+                WorkWithKeychain.setKey(key: keyObject)
+                ShadowPixState.shared.scannedKey = nil
+                isShowing = false
+            }
+            Button("Cancel", role: .cancel) {
+                isShowingAlertForSaveKey = false
+            }
         }
     }
 }
 
 struct KeyEntry_Previews: PreviewProvider {
     static var previews: some View {
-        KeyEntry(isShowing: .constant(true))
+        KeyEntry( keyString: "eyJrZXlEYXRhIjoiQ00wUjJIdkZkdzczM3pZbGFSKzh2cXd6SW90MitRZjFEbDFZN1FFUE8zYz0iLCJuYW1lIjoidGVzdCJ9", isShowing: .constant(true))
     }
 }

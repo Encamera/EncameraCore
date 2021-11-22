@@ -41,8 +41,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Shadowpix needs access to your camera to capture photo and video</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Capture live photos to be encrypted</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Shadowpix captures photos and saves them into your photo library</string>
+	<string>Shadowpix captures photos and saves them with an encryption key</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.Shadowpix</key>

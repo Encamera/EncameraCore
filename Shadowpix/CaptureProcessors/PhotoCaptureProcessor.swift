@@ -23,6 +23,7 @@ class PhotoCaptureProcessor: NSObject {
     
 //    The actual captured photo's data
     var photoData: Data?
+    var photoId: String?
     
 //    The maximum time lapse before telling UI to show a spinner
     private var maxPhotoProcessingTime: CMTime?
@@ -43,6 +44,8 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
     
     /// - Tag: WillBeginCapture
     func photoOutput(_ output: AVCapturePhotoOutput, willBeginCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
+        photoId = String(describing: NSDate().timeIntervalSince1970)
+
         maxPhotoProcessingTime = resolvedSettings.photoProcessingTimeRange.start + resolvedSettings.photoProcessingTimeRange.duration
     }
     
@@ -79,8 +82,15 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         }
     }
     
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingLivePhotoToMovieFileAt outputFileURL: URL, duration: CMTime, photoDisplayTime: CMTime, resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
+        guard let data = try? Data(contentsOf: outputFileURL) else {
+            fatalError("Could not get live photo data from url")
+        }
+        saveEncryptedToiCloudDrive(data, isLivePhoto: true)
+    }
+    
     //        MARK: Saves capture to photo library
-    func saveToPhotoLibrary(_ photoData: Data) {
+    func saveEncryptedToiCloudDrive(_ photoData: Data, isLivePhoto: Bool = false) {
         
         
         guard let driveURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
@@ -93,12 +103,14 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         guard let keyName = ShadowPixState.shared.selectedKey?.name else {
             fatalError("No key name stored")
         }
+        guard let photoId = photoId else {
+            fatalError("No ID for photo")
+        }
         let destURL = driveURL.appendingPathComponent(keyName)
         try? FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: false, attributes: nil)
 
         do {
-            let time = NSDate().timeIntervalSince1970
-            try encrypted.write(to: destURL.appendingPathComponent("\(time).\(keyName).shdwpic"))
+            try encrypted.write(to: destURL.appendingPathComponent("\(photoId).\(keyName)\(isLivePhoto ? ".live" : "").shdwpic"))
         } catch {
             print(error)
             fatalError("Could not write to drive url")
@@ -125,7 +137,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
                 return
             }
            
-            self.saveToPhotoLibrary(data)
+            self.saveEncryptedToiCloudDrive(data)
         }
     }
 }

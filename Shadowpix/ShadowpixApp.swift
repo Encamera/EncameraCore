@@ -14,9 +14,16 @@ struct ShadowpixApp: App {
         var openedUrl: URL?
     }
     
-    
+    @ObservedObject var state: ShadowPixState = .shared
     @StateObject var viewModel: ViewModel = ViewModel()
     @State var showGenerateKeySheet: Bool = false
+    var showScannedKeySheet: Binding<Bool> = {
+        return Binding {
+            return ShadowPixState.shared.showScannedKeySheet
+        } set: { value in
+            ShadowPixState.shared.showScannedKeySheet = value
+        }
+    }()
 
     var body: some Scene {
         WindowGroup {
@@ -24,7 +31,13 @@ struct ShadowpixApp: App {
                 self.hasOpenedUrl = false
             } content: {
                 if let url = viewModel.openedUrl {
-                    ImageViewing(viewModel: ImageViewing.ViewModel(imageUrl: url))
+                    if url.lastPathComponent.contains(".live") {
+                        MovieViewing(viewModel: MovieViewing.ViewModel(movieUrl: url, filesManager: ShadowPixState.shared.tempFilesManager))
+                    } else {
+                        ImageViewing(viewModel: ImageViewing.ViewModel(imageUrl: url))
+                            .environmentObject(ShadowPixState.shared)
+                    }
+                    
                 }
             }.onOpenURL { url in
                 print(url)
@@ -36,9 +49,16 @@ struct ShadowpixApp: App {
                     ShadowPixState.shared.selectedKey = savedKey
                 } else {
                     showGenerateKeySheet = true
-
                 }
+                
+                
             }
+            .sheet(isPresented: $state.showScannedKeySheet, onDismiss: {
+            }, content: {
+                if let scannedKey = ShadowPixState.shared.scannedKey, let keyString = scannedKey.base64String {
+                    KeyEntry(keyString: keyString, isShowing: $state.showScannedKeySheet)
+                }
+            })
             .sheet(isPresented: $showGenerateKeySheet) {
 
             } content: {

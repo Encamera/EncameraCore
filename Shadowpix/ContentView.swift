@@ -19,22 +19,33 @@ final class CameraModel: ObservableObject {
     @Published var isFlashOn = false
     
     @Published var willCapturePhoto = false
-    
+    @Published var showCameraView = true
     
     var alertError: AlertError!
     
     var session: AVCaptureSession
     
     private var subscriptions = Set<AnyCancellable>()
+    private var cancellables = Set<AnyCancellable>()
     
     init() {
         self.session = service.session
-        
-        service.$photo.sink { [weak self] (photo) in
-            guard let pic = photo else { return }
-            self?.photo = pic
-        }
-        .store(in: &self.subscriptions)
+        NotificationCenter.default
+            .publisher(for: UIApplication.didEnterBackgroundNotification)
+            .sink { _ in
+                self.showCameraView = false
+            }.store(in: &cancellables)
+        NotificationCenter.default
+            .publisher(for: UIApplication.didBecomeActiveNotification)
+            .sink { _ in
+                self.showCameraView = true
+            }.store(in: &cancellables)
+        NotificationCenter.default
+            .publisher(for: UIApplication.willResignActiveNotification)
+            .sink { _ in
+                self.showCameraView = false
+            }.store(in: &cancellables)
+
         
         service.$shouldShowAlertView.sink { [weak self] (val) in
             self?.alertError = self?.service.alertError
@@ -78,10 +89,10 @@ final class CameraModel: ObservableObject {
 struct CameraView: View {
     @StateObject var model = CameraModel()
     @EnvironmentObject var appState: ShadowPixState
-
+    
     @State var currentZoomFactor: CGFloat = 1.0
     @State private var showingKeySelection = false
-
+    
     var captureButton: some View {
         Button(action: {
             model.capturePhoto()
@@ -130,6 +141,7 @@ struct CameraView: View {
     
     var body: some View {
         GeometryReader { reader in
+            
             ZStack {
                 Color.black.edgesIgnoringSafeArea(.all)
                 
@@ -140,7 +152,7 @@ struct CameraView: View {
                         } label: {
                             Image(systemName: "key.fill").frame(width: 44, height: 44)
                         }.sheet(isPresented: $showingKeySelection) {
-                        
+                            
                         } content: {
                             KeyPickerView(isShown: $showingKeySelection).environmentObject(appState)
                         }.tint(.white)
@@ -151,9 +163,8 @@ struct CameraView: View {
                             Image(systemName: model.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
                                 .font(.system(size: 20, weight: .medium, design: .default))
                         })
-                        .accentColor(model.isFlashOn ? .yellow : .white)
+                            .accentColor(model.isFlashOn ? .yellow : .white)
                     }.padding()
-                    
                     CameraPreview(session: model.session)
                         .gesture(
                             DragGesture().onChanged({ (val) in
@@ -189,7 +200,6 @@ struct CameraView: View {
                         )
                         .animation(.easeInOut)
                     
-                    
                     HStack {
                         capturedPhotoThumbnail
                         
@@ -204,6 +214,10 @@ struct CameraView: View {
                     }
                     .padding(.horizontal, 20)
                 }
+            }
+            
+            if model.showCameraView == false {
+                Color.black
             }
         }
     }

@@ -63,12 +63,13 @@ struct KeyPickerView: View {
         return AnyView(imageView
                         .resizable()
                         .aspectRatio(1.0, contentMode: .fit)
-                        .frame(width: geo.size.width/2.0, height: geo.size.width/2.0))
+                        .frame(width: geo.size.width*0.75))
     }
     var body: some View {
         NavigationView {
             VStack {
                 GeometryReader { geo in
+                    
                     Spacer(minLength: geo.safeAreaInsets.top)
                     HStack {
                         Spacer()
@@ -79,6 +80,7 @@ struct KeyPickerView: View {
                 HStack {
                     Text(appState.selectedKey?.name ?? "no key")
                         .padding()
+                        .font(Font.largeTitle)
                 }
                 List {
                     Button("Copy Key to Clipboard") {
@@ -106,7 +108,15 @@ struct KeyPickerView: View {
                         isShowingAlertForClearKey = false
                     })}
             }
-            .navigationTitle("Key Selection")
+            
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button("Close") {
+                        isShown = false
+                    }
+                }
+
+            }
             
         }.sheet(isPresented: $isShowingSheetForNewKey) {
             
@@ -116,11 +126,11 @@ struct KeyPickerView: View {
             isShown = false
         } content: {
             KeyEntry(isShowing: $isShowingSheetForKeyEntry)
-        }.foregroundColor(.blue)
-            .onAppear {
-                appState.selectedKey = WorkWithKeychain.getKeyObject()
-            }
-        
+        }
+        .foregroundColor(.blue)
+        .onAppear {
+            appState.selectedKey = WorkWithKeychain.getKeyObject()
+        }
         
     }
 }
@@ -133,5 +143,6 @@ struct KeyPickerView_Previews: PreviewProvider {
             KeyPickerView(isShowingSheetForNewKey: false, isShown: .constant(true))
                 .environmentObject(ShadowPixState())
             .preferredColorScheme(.light)
+
     }
 }
