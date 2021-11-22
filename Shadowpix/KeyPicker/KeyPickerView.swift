@@ -50,16 +50,14 @@ struct KeyPickerView: View {
     }
     func createQrImage(geo: GeometryProxy) -> some View {
         var imageView: Image
-        #if targetEnvironment(simulator)
-        imageView = Image(systemName: "lock")
-        #else
         
+        if let keyString = appState.selectedKey?.base64String {
+            let image = generateQRCode(from: keyString, size: geo.size)
+            imageView = Image(uiImage: image)
+        } else {
+            imageView = Image(systemName: "lock.slash")
+        }
         
-        let keyString = appState.selectedKey?.base64String ?? "None"
-        let image = generateQRCode(from: keyString, size: geo.size)
-        imageView = Image(uiImage: image)
-
-        #endif
         return AnyView(imageView
                         .resizable()
                         .aspectRatio(1.0, contentMode: .fit)
@@ -83,8 +81,10 @@ struct KeyPickerView: View {
                         .font(Font.largeTitle)
                 }
                 List {
-                    Button("Copy Key to Clipboard") {
-                        UIPasteboard.general.string = appState.selectedKey?.base64String
+                    if appState.selectedKey != nil {
+                        Button("Copy Key to Clipboard") {
+                            UIPasteboard.general.string = appState.selectedKey?.base64String
+                        }
                     }
                     Button("Set key") {
                         isShowingSheetForKeyEntry = true
