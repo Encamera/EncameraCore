@@ -13,7 +13,7 @@ struct KeyGeneration: View {
     @State var keyName: String = ""
     @Binding var isShown: Bool
     @EnvironmentObject var appState: ShadowPixState
-    
+    @FocusState var isFocused: Bool
     var body: some View {
         NavigationView {
             VStack {
@@ -22,6 +22,7 @@ struct KeyGeneration: View {
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
                     .frame(height: 44)
+                    .focused($isFocused)
                 Spacer()
                 
             }.alert("Are you sure you want to generate a new key?", isPresented: $isShowingAlertForNewKey) {
@@ -34,19 +35,31 @@ struct KeyGeneration: View {
                 }
             }
             .toolbar {
-                if keyName.count > 0 {
-                    Button("Save") {
-                        if WorkWithKeychain.getKeyObject() == nil {
-                            saveKey()
-                            isShown = false
-                        } else {
-                            isShowingAlertForNewKey = true
-                        }
-                    }.foregroundColor(.blue)
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isShown = false
+                    }
+                }
+                
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    if keyName.count > 0 {
+                        
+                        Button("Save") {
+                            if WorkWithKeychain.getKeyObject() == nil {
+                                saveKey()
+                                isShown = false
+                            } else {
+                                isShowingAlertForNewKey = true
+                            }
+                        }.foregroundColor(.blue)
+                    }
                 }
             }
             .padding()
             .navigationTitle("Key Generation")
+            .onAppear {
+                isFocused = true
+            }
         }
     }
     

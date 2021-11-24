@@ -7,15 +7,57 @@
 
 import SwiftUI
 import AVFoundation
+import Combine
 
 struct CameraPreview: UIViewRepresentable {
     class VideoPreviewView: UIView {
-        override class var layerClass: AnyClass {
-             AVCaptureVideoPreviewLayer.self
+        
+        
+        var videoPreviewLayer: AVCaptureVideoPreviewLayer? {
+            didSet {
+                removeVideoPreviewLayer()
+                addVideoPreviewLayer()
+            }
         }
         
-        var videoPreviewLayer: AVCaptureVideoPreviewLayer {
-            return layer as! AVCaptureVideoPreviewLayer
+        private func removeVideoPreviewLayer() {
+            videoPreviewLayer?.removeFromSuperlayer()
+        }
+        
+        private func addVideoPreviewLayer() {
+            guard let videoPreviewLayer = videoPreviewLayer else {
+                return
+            }
+
+            layer.addSublayer(videoPreviewLayer)
+            videoPreviewLayer.frame = layer.frame
+        }
+        private var cancellables = Set<AnyCancellable>()
+
+        init() {
+            super.init(frame: .zero)
+            NotificationCenter.default
+                .publisher(for: UIApplication.didEnterBackgroundNotification)
+                .sink { _ in
+                    self.removeVideoPreviewLayer()
+                }.store(in: &cancellables)
+            NotificationCenter.default
+                .publisher(for: Notification.Name.AVCaptureSessionDidStartRunning)
+                .receive(on: DispatchQueue.main)
+                .sink { _ in
+                    self.addVideoPreviewLayer()
+                }.store(in: &cancellables)
+            NotificationCenter.default
+                .publisher(for: UIApplication.willResignActiveNotification)
+                .sink { _ in
+                    self.removeVideoPreviewLayer()
+                }.store(in: &cancellables)
+
+
+        }
+        
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
         }
     }
     
@@ -24,10 +66,11 @@ struct CameraPreview: UIViewRepresentable {
     func makeUIView(context: Context) -> VideoPreviewView {
         let view = VideoPreviewView()
         view.backgroundColor = .black
-        view.videoPreviewLayer.cornerRadius = 0
-        view.videoPreviewLayer.session = session
-        view.videoPreviewLayer.connection?.videoOrientation = .portrait
-        
+        let layer = AVCaptureVideoPreviewLayer()
+        layer.cornerRadius = 0
+        layer.session = session
+        layer.connection?.videoOrientation = .portrait
+        view.videoPreviewLayer = layer
         return view
     }
     

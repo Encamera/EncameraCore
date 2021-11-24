@@ -89,8 +89,32 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         saveEncryptedToiCloudDrive(data, isLivePhoto: true)
     }
     
+    
+    
+    /// - Tag: DidFinishCapture
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
+        if let error = error {
+            print("Error capturing photo: \(error)")
+            DispatchQueue.main.async {
+                self.completionHandler(self)
+            }
+            return
+        } else {
+            guard let data  = photoData else {
+                DispatchQueue.main.async {
+                    self.completionHandler(self)
+                }
+                return
+            }
+           
+            self.saveEncryptedToiCloudDrive(data)
+        }
+    }
+}
+
+extension PhotoCaptureProcessor {
     //        MARK: Saves capture to photo library
-    func saveEncryptedToiCloudDrive(_ photoData: Data, isLivePhoto: Bool = false) {
+    private func saveEncryptedToiCloudDrive(_ photoData: Data, isLivePhoto: Bool = false) {
         
         
         guard let driveURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
@@ -111,6 +135,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
 
         do {
             try encrypted.write(to: destURL.appendingPathComponent("\(photoId).\(keyName)\(isLivePhoto ? ".live" : "").shdwpic"))
+            try ShadowPixState.shared.tempFilesManager.cleanup()
         } catch {
             print(error)
             fatalError("Could not write to drive url")
@@ -119,25 +144,5 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
             self.completionHandler(self)
         }
         
-    }
-    
-    /// - Tag: DidFinishCapture
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
-        if let error = error {
-            print("Error capturing photo: \(error)")
-            DispatchQueue.main.async {
-                self.completionHandler(self)
-            }
-            return
-        } else {
-            guard let data  = photoData else {
-                DispatchQueue.main.async {
-                    self.completionHandler(self)
-                }
-                return
-            }
-           
-            self.saveEncryptedToiCloudDrive(data)
-        }
     }
 }

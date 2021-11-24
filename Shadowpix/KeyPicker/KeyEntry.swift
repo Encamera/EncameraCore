@@ -18,8 +18,8 @@ struct KeyEntry: View {
         let keyObject: Binding<ImageKey?> = {
             return Binding {
                 return try? ImageKey(base64String: keyString)
-            } set: {
-                print($0)
+            } set: { _ in
+                
             }
         }()
         NavigationView {

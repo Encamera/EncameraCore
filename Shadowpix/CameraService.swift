@@ -9,6 +9,7 @@ import Foundation
 import Combine
 import AVFoundation
 import UIKit
+import SwiftUI
 
 //  MARK: Class Camera Service, handles setup of AVFoundation needed for a basic camera app.
 public struct Photo: Identifiable, Equatable {
@@ -79,6 +80,7 @@ public class CameraService {
     @Published public var isCameraUnavailable = true
 //    8.
     @Published public var photo: Photo?
+    
     
 
 //    MARK: Alert properties
@@ -430,16 +432,10 @@ public class CameraService {
                 var photoSettings = AVCapturePhotoSettings()
                 
                 // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
-                if  self.photoOutput.availablePhotoCodecTypes.contains(.hevc) {
+                if self.photoOutput.availablePhotoCodecTypes.contains(.hevc), let destinationUrl = try? ShadowPixState.shared.tempFilesManager.createLivePhotoiCloudMovieCaptureUrl() {
                     photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
-                    let destinationURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents")
-                    if let temporaryDirectoryURL = try? FileManager.default.url(for: .itemReplacementDirectory,
-                                                                                   in: .userDomainMask,
-                                                                                   appropriateFor: destinationURL,
-                                                                                   create: true) {
                         
-                        photoSettings.livePhotoMovieFileURL = temporaryDirectoryURL.appendingPathComponent("livephoto")
-                    }
+                    photoSettings.livePhotoMovieFileURL = destinationUrl
                 }
                 
                 // Sets the flash option for this capture.

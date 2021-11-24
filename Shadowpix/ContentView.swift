@@ -20,6 +20,12 @@ final class CameraModel: ObservableObject {
     
     @Published var willCapturePhoto = false
     @Published var showCameraView = true
+    var cameraStarted: Binding<Bool>?
+//    {
+//        willSet {
+//            service.isSessionRunning = showCameraView
+//        }
+//    }
     
     var alertError: AlertError!
     
@@ -34,16 +40,19 @@ final class CameraModel: ObservableObject {
             .publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { _ in
                 self.showCameraView = false
+                self.service.stop(completion: nil)
             }.store(in: &cancellables)
         NotificationCenter.default
             .publisher(for: UIApplication.didBecomeActiveNotification)
             .sink { _ in
                 self.showCameraView = true
+                self.service.start()
             }.store(in: &cancellables)
         NotificationCenter.default
             .publisher(for: UIApplication.willResignActiveNotification)
             .sink { _ in
                 self.showCameraView = false
+                self.service.stop(completion: nil)
             }.store(in: &cancellables)
 
         
@@ -156,6 +165,7 @@ struct CameraView: View {
                         } content: {
                             KeyPickerView(isShown: $showingKeySelection).environmentObject(appState)
                         }.tint(.white)
+                        Text(appState.selectedKey?.name ?? "No Key")
                         Spacer()
                         Button(action: {
                             model.switchFlash()
@@ -215,7 +225,6 @@ struct CameraView: View {
                     .padding(.horizontal, 20)
                 }
             }
-            
             if model.showCameraView == false {
                 Color.black
             }
