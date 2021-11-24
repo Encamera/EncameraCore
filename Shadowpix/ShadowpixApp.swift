@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import LocalAuthentication
 
 @main
 struct ShadowpixApp: App {
@@ -45,12 +46,25 @@ struct ShadowpixApp: App {
                 self.viewModel.openedUrl = url
                 self.hasOpenedUrl = true
             }.onAppear {
-                if let savedKey = WorkWithKeychain.getKeyObject() {
-                    ShadowPixState.shared.selectedKey = savedKey
-                } else {
-                    showGenerateKeySheet = true
+                let context = LAContext()
+                var error: NSError?
+                guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+                    return
                 }
                 
+                context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Scan face ID") { success, error in
+                    DispatchQueue.main.async {
+                        state.isAuthorized = success
+                        guard success else {
+                            return
+                        }
+                        if let savedKey = WorkWithKeychain.getKeyObject() {
+                            ShadowPixState.shared.selectedKey = savedKey
+                        } else {
+                            showGenerateKeySheet = true
+                        }
+                    }
+                }
                 
             }
             .sheet(isPresented: $state.showScannedKeySheet, onDismiss: {

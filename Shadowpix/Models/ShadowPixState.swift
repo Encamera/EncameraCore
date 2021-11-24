@@ -13,6 +13,11 @@ class ShadowPixState: ObservableObject {
     static var shared = ShadowPixState()
     
     @Published var selectedKey: ImageKey?
+    @Published var isAuthorized: Bool = false {
+        didSet {
+            WorkWithKeychain.isAuthorized = isAuthorized
+        }
+    }
     @Published var scannedKey: ImageKey? {
         didSet {
             if scannedKey != nil {

@@ -153,7 +153,9 @@ struct CameraView: View {
             
             ZStack {
                 Color.black.edgesIgnoringSafeArea(.all)
-                
+                if appState.isAuthorized {
+                    
+                }
                 VStack {
                     HStack {
                         Button {

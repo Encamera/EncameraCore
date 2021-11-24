@@ -29,37 +29,7 @@ class WorkWithKeychain {
 
     }
     
-    
-    //MARK: - Passcode
-    //Return true if the code is in the keychain
-    static public func isPasscode() -> Bool {
-        return keychainCheck(service: keyKeychain.passcode.rawValue)
-    }
-    
-    static public func checkPassCode(passCode: String) -> Bool {
-        passCode.caseInsensitiveCompare(getPassCode()) == .orderedSame
-    }
-    
-    //return personal code
-    static private func getPassCode() -> String {
-        let data = read(service: keyKeychain.passcode.rawValue)
-        let pc = String(data: data!, encoding: .utf8)
-        return pc!
-    }
-    
-    //save personal code
-    static public func setPassCode(passCode: String) {
-        let data = passCode.data(using: .utf8)!
-        write(service: keyKeychain.passcode.rawValue, data: data)
-    }
-    
-    
-    //MARK: - Card info
-    //Return true if the code is in the keychain
-    static public func isKeychain(service: String) -> Bool {
-        return keychainCheck(service: service)
-    }
-    
+    static var isAuthorized: Bool = false
     //return Number info
     static public func getService(key: keyKeychain, addService: String) -> String? {
         let service = key.rawValue + addService
@@ -69,13 +39,6 @@ class WorkWithKeychain {
         }
         let info = String(data: data, encoding: .utf8)
         return info
-    }
-    
-    //save Number info
-    static public func setService(key: keyKeychain, addService: String, data: String) {
-        let service = key.rawValue + addService
-        let data = data.data(using: .utf8)!
-        write(service: service, data: data)
     }
     
     //MARK: - Key
@@ -136,7 +99,7 @@ class WorkWithKeychain {
     static private func read(service: String) -> Data? {
         do {
             let t = try readKeychain(service: service)
-            return (t as! Data)
+            return (t as? Data)
         } catch  {
             print("Error read, service:", service, error)
             return nil
@@ -144,7 +107,9 @@ class WorkWithKeychain {
     }
     
     static private func readKeychain(service: String) throws -> Any? {
-        
+        guard isAuthorized else {
+            return nil
+        }
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                                     kSecAttrAccount as String: keyKeychain.account.rawValue,
                                     kSecAttrService as String: service,
