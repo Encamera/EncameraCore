@@ -21,21 +21,7 @@ struct ImageViewing: View {
             #if targetEnvironment(simulator)
             return UIImage(named: "background")
             #endif
-            do {
-                _ = imageUrl.startAccessingSecurityScopedResource()
-                let data = try Data(contentsOf: imageUrl)
-                imageUrl.stopAccessingSecurityScopedResource()
-                guard let decrypted: UIImage = ChaChaPolyHelpers.decrypt(encryptedContent: data) else {
-                    print("Could not decrypt image")
-                    return nil
-                }
-                return decrypted
-
-            } catch {
-                print("error opening image", error.localizedDescription)
-                return nil
-            }
-            
+            return iCloudFilesManager.getImageAt(url: imageUrl)
         }
     }
     @ObservedObject var viewModel: ViewModel

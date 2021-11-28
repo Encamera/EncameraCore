@@ -49,10 +49,11 @@ struct ShadowpixApp: App {
                 let context = LAContext()
                 var error: NSError?
                 guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+                    state.isAuthorized = false
                     return
                 }
                 
-                context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Scan face ID") { success, error in
+                context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Scan face ID to keep your keys secure.") { success, error in
                     DispatchQueue.main.async {
                         state.isAuthorized = success
                         guard success else {

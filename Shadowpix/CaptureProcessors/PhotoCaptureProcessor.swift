@@ -117,29 +117,10 @@ extension PhotoCaptureProcessor {
     private func saveEncryptedToiCloudDrive(_ photoData: Data, isLivePhoto: Bool = false) {
         
         
-        guard let driveURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
-            fatalError("Could not get drive url")
-        }
-
-        guard let encrypted = ChaChaPolyHelpers.encrypt(contentData: photoData) else {
-            fatalError("Could not encrypt image")
-        }
-        guard let keyName = ShadowPixState.shared.selectedKey?.name else {
-            fatalError("No key name stored")
-        }
         guard let photoId = photoId else {
             fatalError("No ID for photo")
         }
-        let destURL = driveURL.appendingPathComponent(keyName)
-        try? FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: false, attributes: nil)
-
-        do {
-            try encrypted.write(to: destURL.appendingPathComponent("\(photoId).\(keyName)\(isLivePhoto ? ".live" : "").shdwpic"))
-            try ShadowPixState.shared.tempFilesManager.cleanup()
-        } catch {
-            print(error)
-            fatalError("Could not write to drive url")
-        }
+        iCloudFilesManager.saveEncryptedToiCloudDrive(photoData, photoId: photoId)
         DispatchQueue.main.async {
             self.completionHandler(self)
         }
