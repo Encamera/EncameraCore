@@ -7,10 +7,16 @@
 
 import Foundation
 import UIKit
+import Combine
 
 struct iCloudFilesManager {
-    
-    static func getImageAt(url imageUrl: URL) -> UIImage? {
+    private static var cancellables = Set<AnyCancellable>()
+
+    static func getImageAt(url imageUrl: URL) -> DecryptedImage? {
+        guard imageUrl.lastPathComponent.contains(".live") == false else {
+            return nil
+        }
+        
         do {
             _ = imageUrl.startAccessingSecurityScopedResource()
             let data = try Data(contentsOf: imageUrl)
@@ -19,7 +25,7 @@ struct iCloudFilesManager {
                 print("Could not decrypt image")
                 return nil
             }
-            return decrypted
+            return DecryptedImage(image: decrypted)
 
         } catch {
             print("error opening image", error.localizedDescription)
@@ -51,7 +57,7 @@ struct iCloudFilesManager {
         
         let driveUrl = driveUrl(for: key)
             
-        let imageUrl = driveUrl.appendingPathComponent("\(isLivePhoto ? ".live" : "").shdwpic")
+        let imageUrl = driveUrl.appendingPathComponent("\(photoId)\(isLivePhoto ? ".live" : "").shdwpic")
 
         do {
             
@@ -63,21 +69,70 @@ struct iCloudFilesManager {
         }
     }
 
-    static func enumerateImagesFor(key: ImageKey) {
+    static func enumerateImagesFor(key: ImageKey, completion: ([ShadowPixMedia]) -> Void) {
         do {
             let driveUrl = driveUrl(for: key)
-            guard driveUrl.startAccessingSecurityScopedResource() else {
-                fatalError("Could not access security scoped resource")
+            _ = driveUrl.startAccessingSecurityScopedResource()
+            let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
+
+            guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
+                return
             }
-            
-            let enumerator = FileManager.default.enumerator(atPath: driveUrl.absoluteString)
-            
-            enumerator?.forEach({ file in
-                print(file)
-            })
+
+            let imageItems: [ShadowPixMedia] = enumerator.compactMap { item in
+                guard let itemUrl = item as? URL else {
+                    return nil
+                }
+                return itemUrl
+            }.filter { item in
+                return !item.absoluteString.contains(".live")
+            }
+                .sorted { (url1: URL, url2: URL) in
+                guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
+                      let creationDate1 = resourceValues1.creationDate,
+                      let resourceValues2 = try? url2.resourceValues(forKeys: resourceKeys),
+                let creationDate2 = resourceValues2.creationDate else {
+                          return false
+                      }
+                return creationDate1.compare(creationDate2) == .orderedDescending
+            }.compactMap { (itemUrl: URL) in
+                print(itemUrl)
+                return ShadowPixMedia(url: itemUrl)
+            }
+            completion(imageItems)
+            driveUrl.stopAccessingSecurityScopedResource()
             
         } catch {
-            
+            print(error)
         }
+    }
+}
+extension UIImage {
+    func scalePreservingAspectRatio(targetSize: CGSize) -> UIImage {
+        // Determine the scale factor that preserves aspect ratio
+        let widthRatio = targetSize.width / size.width
+        let heightRatio = targetSize.height / size.height
+        
+        let scaleFactor = min(widthRatio, heightRatio)
+        
+        // Compute the new image size that preserves aspect ratio
+        let scaledImageSize = CGSize(
+            width: size.width * scaleFactor,
+            height: size.height * scaleFactor
+        )
+
+        // Draw and return the resized UIImage
+        let renderer = UIGraphicsImageRenderer(
+            size: scaledImageSize
+        )
+
+        let scaledImage = renderer.image { _ in
+            self.draw(in: CGRect(
+                origin: .zero,
+                size: scaledImageSize
+            ))
+        }
+        
+        return scaledImage
     }
 }

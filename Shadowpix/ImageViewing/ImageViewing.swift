@@ -11,35 +11,34 @@ import Photos
 struct ImageViewing: View {
     
     class ViewModel: ObservableObject {
-        var imageUrl: URL
+        @Published var image: ShadowPixMedia
         
-        init(imageUrl: URL) {
-            self.imageUrl = imageUrl
+        init(image: ShadowPixMedia) {
+            self.image = image
         }
         
-        func decryptImage() -> UIImage? {
-            #if targetEnvironment(simulator)
-            return UIImage(named: "background")
-            #endif
-            return iCloudFilesManager.getImageAt(url: imageUrl)
+        func decryptImage() {
+            image.loadImage()
         }
     }
     @ObservedObject var viewModel: ViewModel
     var body: some View {
         VStack {
-            if let imageData = viewModel.decryptImage() {
-                Image(uiImage: imageData).resizable().scaledToFit()
+            if let imageData = viewModel.image.decryptedImage {
+                Image(uiImage: imageData.image).resizable().scaledToFit()
             } else {
                 Text("Could not decrypt image")
                     .foregroundColor(.red)
             }
+        }.onAppear {
+            self.viewModel.decryptImage()
         }
     }
 }
 
 struct ImageViewing_Previews: PreviewProvider {
     static var previews: some View {
-        ImageViewing(viewModel: ImageViewing.ViewModel(imageUrl: Bundle.main.url(forResource: "shadowimage.shdwpic", withExtension: nil)!))
+        ImageViewing(viewModel: ImageViewing.ViewModel(image: ShadowPixMedia(url: Bundle.main.url(forResource: "shadowimage.shdwpic", withExtension: nil)!)))
     }
     
 }

@@ -67,11 +67,8 @@ struct ChaChaPolyHelpers {
             return nil
         }
         return data
-
-//        let sealedBox = try ChaChaPoly.SealedBox(combined: encryptedContent)
-//        return try ChaChaPoly.open(sealedBox, using: encryptionKey)
     }
-
+    
     static func decrypt(encryptedContent: Data?) -> String? {
         guard let encryptionKey = getKey() else { return nil }
        
@@ -112,16 +109,6 @@ struct ChaChaPolyHelpers {
         }
         
     }
-    
-//    static func setKey(keyString: String) {
-//        guard let keyData = Data(base64Encoded: keyString) else {
-//            fatalError("Could not get data from keystring")
-//        }
-//        let key = SymmetricKey(data: keyData)
-//        let save = key.withUnsafeBytes {Data(Array($0))}
-//
-//        WorkWithKeychain.setKey(key: save)
-//    }
     
     @discardableResult static func generateNewKey(name: String) throws -> SymmetricKey {
         WorkWithKeychain.clearKeychain()

@@ -11,7 +11,7 @@ struct KeyEntry: View {
     
     @State var keyString = ""
     @Binding var isShowing: Bool
-    
+    @EnvironmentObject var state: ShadowPixState
     @State var isShowingAlertForSaveKey: Bool = false
 
     var body: some View {
@@ -53,8 +53,8 @@ struct KeyEntry: View {
                 guard let keyObject = keyObject.wrappedValue else {
                     return
                 }
-                WorkWithKeychain.setKey(key: keyObject)
-                ShadowPixState.shared.scannedKey = nil
+                state.selectedKey = keyObject
+                state.scannedKey = nil
                 isShowing = false
             }
             Button("Cancel", role: .cancel) {
@@ -67,5 +67,6 @@ struct KeyEntry: View {
 struct KeyEntry_Previews: PreviewProvider {
     static var previews: some View {
         KeyEntry( keyString: "eyJrZXlEYXRhIjoiQ00wUjJIdkZkdzczM3pZbGFSKzh2cXd6SW90MitRZjFEbDFZN1FFUE8zYz0iLCJuYW1lIjoidGVzdCJ9", isShowing: .constant(true))
+            .environmentObject(ShadowPixState.shared)
     }
 }

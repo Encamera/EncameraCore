@@ -17,7 +17,6 @@ struct ShadowpixApp: App {
     
     @ObservedObject var state: ShadowPixState = .shared
     @StateObject var viewModel: ViewModel = ViewModel()
-    @State var showGenerateKeySheet: Bool = false
     var showScannedKeySheet: Binding<Bool> = {
         return Binding {
             return ShadowPixState.shared.showScannedKeySheet
@@ -28,20 +27,20 @@ struct ShadowpixApp: App {
 
     var body: some Scene {
         WindowGroup {
-            CameraView().sheet(isPresented: $hasOpenedUrl) {
+            MainInterface().sheet(isPresented: $hasOpenedUrl) {
                 self.hasOpenedUrl = false
             } content: {
                 if let url = viewModel.openedUrl {
                     if url.lastPathComponent.contains(".live") {
                         MovieViewing(viewModel: MovieViewing.ViewModel(movieUrl: url, filesManager: ShadowPixState.shared.tempFilesManager))
                     } else {
-                        ImageViewing(viewModel: ImageViewing.ViewModel(imageUrl: url))
+                        let media = ShadowPixMedia(url: url)
+                        ImageViewing(viewModel: ImageViewing.ViewModel(image: media))
                             .environmentObject(ShadowPixState.shared)
                     }
                     
                 }
             }.onOpenURL { url in
-                print(url)
                 self.hasOpenedUrl = false
                 self.viewModel.openedUrl = url
                 self.hasOpenedUrl = true
@@ -61,8 +60,6 @@ struct ShadowpixApp: App {
                         }
                         if let savedKey = WorkWithKeychain.getKeyObject() {
                             ShadowPixState.shared.selectedKey = savedKey
-                        } else {
-                            showGenerateKeySheet = true
                         }
                     }
                 }
@@ -74,11 +71,7 @@ struct ShadowpixApp: App {
                     KeyEntry(keyString: keyString, isShowing: $state.showScannedKeySheet)
                 }
             })
-            .sheet(isPresented: $showGenerateKeySheet) {
-
-            } content: {
-                KeyGeneration(isShown: $showGenerateKeySheet)
-            }.environmentObject(ShadowPixState.shared)
+            .environmentObject(ShadowPixState.shared)
 
         }
     }

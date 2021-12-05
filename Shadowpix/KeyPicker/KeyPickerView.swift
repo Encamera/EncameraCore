@@ -119,13 +119,13 @@ struct KeyPickerView: View {
             }
             
         }.sheet(isPresented: $isShowingSheetForNewKey) {
-            
-        } content: {
-            KeyGeneration(isShown: $isShowingSheetForNewKey).environmentObject(appState)
+            KeyGeneration(isShown: $isShowingSheetForNewKey)
+                .environmentObject(appState)
         }.sheet(isPresented: $isShowingSheetForKeyEntry) {
             isShown = false
         } content: {
             KeyEntry(isShowing: $isShowingSheetForKeyEntry)
+                .environmentObject(appState)
         }
         .foregroundColor(.blue)
         .onAppear {

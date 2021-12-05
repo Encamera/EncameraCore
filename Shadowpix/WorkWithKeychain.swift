@@ -76,7 +76,6 @@ class WorkWithKeychain {
         do {
             let data = try JSONEncoder().encode(key)
             write(service: keyKeychain.key.rawValue, data: data)
-            ShadowPixState.shared.selectedKey = key
         } catch {
             fatalError("Could not set key in keychain")
         }

@@ -10,13 +10,13 @@ import Combine
 import AVFoundation
 
 struct CameraView: View {
-    @StateObject var model = CameraModel()
+    @StateObject private var model = CameraModel()
     @EnvironmentObject var appState: ShadowPixState
+    @Binding var galleryIconTapped: Bool
+    @State private var currentZoomFactor: CGFloat = 1.0
+    @Binding var showingKeySelection: Bool
     
-    @State var currentZoomFactor: CGFloat = 1.0
-    @State private var showingKeySelection = false
-    
-    var captureButton: some View {
+    private var captureButton: some View {
         Button(action: {
             model.capturePhoto()
         }, label: {
@@ -31,7 +31,7 @@ struct CameraView: View {
         })
     }
     
-    var capturedPhotoThumbnail: some View {
+    private var capturedPhotoThumbnail: some View {
         Group {
             Image(systemName: "photo.on.rectangle.angled")
                 
@@ -40,11 +40,14 @@ struct CameraView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .foregroundColor(.white)
                 .animation(.spring())
+                .onTapGesture {
+                    self.galleryIconTapped = true
+                }
         }.frame(width: 60, height: 60)
 
     }
     
-    var flipCameraButton: some View {
+    private var flipCameraButton: some View {
         Button(action: {
             model.flipCamera()
         }, label: {
@@ -71,10 +74,6 @@ struct CameraView: View {
                             showingKeySelection = true
                         } label: {
                             Image(systemName: "key.fill").frame(width: 44, height: 44)
-                        }.sheet(isPresented: $showingKeySelection) {
-                            
-                        } content: {
-                            KeyPickerView(isShown: $showingKeySelection).environmentObject(appState)
                         }.tint(.white)
                         Text(appState.selectedKey?.name ?? "No Key")
                         Spacer()
@@ -145,6 +144,6 @@ struct CameraView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView().environmentObject(ShadowPixState.shared)
+        CameraView(galleryIconTapped: .constant(false), showingKeySelection: .constant(false)).environmentObject(ShadowPixState.shared)
     }
 }
