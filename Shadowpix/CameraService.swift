@@ -10,6 +10,7 @@ import Combine
 import AVFoundation
 import UIKit
 import SwiftUI
+import MediaPlayer
 
 //  MARK: Class Camera Service, handles setup of AVFoundation needed for a basic camera app.
 public struct Photo: Identifiable, Equatable {
@@ -82,6 +83,7 @@ public class CameraService {
     @Published public var photo: Photo?
     
     
+    
 
 //    MARK: Alert properties
     public var alertError: AlertError = AlertError()
@@ -100,6 +102,7 @@ public class CameraService {
     // Communicate with the session and other session objects on this queue.
     private let sessionQueue = DispatchQueue(label: "session queue")
     private let metadataProcessor = QRCodeCaptureProcessor()
+    private var volumeObservation: NSKeyValueObservation?
     @objc dynamic var videoDeviceInput: AVCaptureDeviceInput!
     
     // MARK: Device Configuration Properties
@@ -171,6 +174,28 @@ public class CameraService {
     
     //  MARK: Session Management
     
+    private func configureVolumeButtons() {
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setActive(true)
+        } catch {
+            fatalError("Could not configure audio session \(error.localizedDescription)")
+        }
+
+        volumeObservation = audioSession.observe(\.outputVolume) { [weak self] _, _ in
+            DispatchQueue.main.async {
+                self?.capturePhoto()
+            }
+        }
+        DispatchQueue.main.async {
+            let volumeView = MPVolumeView(frame: .zero)
+            volumeView.layer.opacity = 0.0
+            UIApplication.shared.keyWindow?.addSubview(volumeView)
+        }
+
+
+    }
+    
     // Call this on the session queue.
     /// - Tag: ConfigureSession
     private func configureSession() {
@@ -179,9 +204,8 @@ public class CameraService {
         }
         
         session.beginConfiguration()
-        
         session.sessionPreset = .photo
-        
+        configureVolumeButtons()
         // Add video input.
         do {
             var defaultVideoDevice: AVCaptureDevice?

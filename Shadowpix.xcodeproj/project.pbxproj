@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1916A6E0275402E80068ABCD /* DecryptedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1916A6DF275402E80068ABCD /* DecryptedImage.swift */; };
+		191FF12D275EC83400DED001 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191FF12C275EC83400DED001 /* AuthManager.swift */; };
 		19217E1F273FC5CA009E3850 /* ChaChaPolyHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E1D273FC5C9009E3850 /* ChaChaPolyHelper.swift */; };
 		19217E20273FC5CA009E3850 /* WorkWithKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E1E273FC5C9009E3850 /* WorkWithKeychain.swift */; };
 		19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E22273FD60F009E3850 /* ImageViewing.swift */; };
@@ -53,6 +54,7 @@
 
 /* Begin PBXFileReference section */
 		1916A6DF275402E80068ABCD /* DecryptedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptedImage.swift; sourceTree = "<group>"; };
+		191FF12C275EC83400DED001 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		19217E1D273FC5C9009E3850 /* ChaChaPolyHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChaChaPolyHelper.swift; sourceTree = "<group>"; };
 		19217E1E273FC5C9009E3850 /* WorkWithKeychain.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WorkWithKeychain.swift; sourceTree = "<group>"; };
 		19217E22273FD60F009E3850 /* ImageViewing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewing.swift; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 			children = (
 				195719EA274B8FBF00E93658 /* TempFilesManager.swift */,
 				196AFE82274F858300C809ED /* iCloudFilesManager.swift */,
+				191FF12C275EC83400DED001 /* AuthManager.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -349,6 +352,7 @@
 			files = (
 				1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */,
 				A9FE17B925394F1E00D547C7 /* CameraService.swift in Sources */,
+				191FF12D275EC83400DED001 /* AuthManager.swift in Sources */,
 				195719EB274B8FBF00E93658 /* TempFilesManager.swift in Sources */,
 				A9E6E4EF253B5EA8008B4A33 /* CameraPreview.swift in Sources */,
 				19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */,

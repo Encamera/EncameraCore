@@ -21,10 +21,11 @@ struct ImageViewing: View {
             image.loadImage()
         }
     }
+    @EnvironmentObject var state: ShadowPixState
     @ObservedObject var viewModel: ViewModel
     var body: some View {
         VStack {
-            if let imageData = viewModel.image.decryptedImage {
+            if let imageData = viewModel.image.decryptedImage,  state.isAuthorized {
                 Image(uiImage: imageData.image).resizable().scaledToFit()
             } else {
                 Text("Could not decrypt image")

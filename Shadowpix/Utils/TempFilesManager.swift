@@ -15,6 +15,11 @@ class TempFilesManager {
     private var cancellables = Set<AnyCancellable>()
 
     init() {
+//        let pub1 = NotificationCenter.default
+//            .publisher(for: UIApplication.didFinishLaunchingNotification)
+//        let pub2 = NotificationCenter.default
+//            .publisher(for: UIApplication.willResignActiveNotification)
+//        [pub1, pub2].redu
         NotificationCenter.default
             .publisher(for: UIApplication.didFinishLaunchingNotification)
             .sink { _ in
@@ -25,6 +30,12 @@ class TempFilesManager {
             .sink { _ in
                 try? self.cleanup()
             }.store(in: &cancellables)
+        NotificationCenter.default
+            .publisher(for: UIApplication.didEnterBackgroundNotification)
+            .sink { _ in
+                try? self.cleanup()
+            }.store(in: &cancellables)
+
     }
     
     func createTemporaryMovieUrl() -> URL {

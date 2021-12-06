@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import LocalAuthentication
 
 @main
 struct ShadowpixApp: App {
@@ -24,7 +23,7 @@ struct ShadowpixApp: App {
             ShadowPixState.shared.showScannedKeySheet = value
         }
     }()
-
+    
     var body: some Scene {
         WindowGroup {
             MainInterface().sheet(isPresented: $hasOpenedUrl) {
@@ -44,26 +43,6 @@ struct ShadowpixApp: App {
                 self.hasOpenedUrl = false
                 self.viewModel.openedUrl = url
                 self.hasOpenedUrl = true
-            }.onAppear {
-                let context = LAContext()
-                var error: NSError?
-                guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-                    state.isAuthorized = false
-                    return
-                }
-                
-                context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Scan face ID to keep your keys secure.") { success, error in
-                    DispatchQueue.main.async {
-                        state.isAuthorized = success
-                        guard success else {
-                            return
-                        }
-                        if let savedKey = WorkWithKeychain.getKeyObject() {
-                            ShadowPixState.shared.selectedKey = savedKey
-                        }
-                    }
-                }
-                
             }
             .sheet(isPresented: $state.showScannedKeySheet, onDismiss: {
             }, content: {

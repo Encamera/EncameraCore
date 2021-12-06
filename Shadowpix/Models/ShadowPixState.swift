@@ -7,10 +7,36 @@
 
 import Foundation
 import SwiftUI
+import Combine
+
 
 class ShadowPixState: ObservableObject {
     
     static var shared = ShadowPixState()
+    
+    private(set) var authManager: AuthManager?
+    private var cancellables = Set<AnyCancellable>()
+
+    init() {
+        self.authManager = AuthManager(state: self)
+        NotificationCenter.default
+            .publisher(for: UIApplication.didEnterBackgroundNotification)
+            .sink { _ in
+                self.authManager?.deauthorize()
+            }.store(in: &cancellables)
+        NotificationCenter.default
+            .publisher(for: UIApplication.didBecomeActiveNotification)
+            .sink { _ in
+                self.authManager?.authorize()
+            }.store(in: &cancellables)
+        NotificationCenter.default
+            .publisher(for: UIApplication.willResignActiveNotification)
+            .sink { _ in
+                self.authManager?.deauthorize()
+            }.store(in: &cancellables)
+
+
+    }
     
     @Published var selectedKey: ImageKey? {
         willSet {

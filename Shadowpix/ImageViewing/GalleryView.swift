@@ -64,36 +64,39 @@ struct GalleryView: View {
         let gridItems = [
             GridItem(.adaptive(minimum: 100))
         ]
-        NavigationView {
-            ScrollView {
-
-                NavigationLink("", isActive: $isDisplayingImage) {
-                    if let displayImage = displayImage {
-                        ImageViewing(viewModel: .init(image: displayImage))
-                    } else {
-                        EmptyView()
-                    }
-                }
-                LazyVGrid(columns: gridItems, spacing: 1) {
-                    ForEach(images, id: \.id) { image in
-                        AsyncImage(image) {
-                            Color.gray.frame(width: 50, height: 50)
-                        }.onTapGesture {
-                            self.displayImage = image
-                            self.isDisplayingImage = true
+        if state.isAuthorized {
+            NavigationView {
+                ScrollView {
+                    NavigationLink("", isActive: $isDisplayingImage) {
+                        if let displayImage = displayImage {
+                            ImageViewing(viewModel: .init(image: displayImage))
+                        } else {
+                            EmptyView()
                         }
                     }
-                    
-                }.padding(.horizontal)
-            }.navigationTitle(state.selectedKey?.name ?? "No Key")
-        }
-        .onAppear {
-            guard let key = ShadowPixState.shared.selectedKey else {
-                return
+                    LazyVGrid(columns: gridItems, spacing: 1) {
+                        ForEach(images, id: \.id) { image in
+                            AsyncImage(image) {
+                                Color.gray.frame(width: 50, height: 50)
+                            }.onTapGesture {
+                                self.displayImage = image
+                                self.isDisplayingImage = true
+                            }
+                        }
+                        
+                    }.padding(.horizontal)
+                }.navigationTitle(state.selectedKey?.name ?? "No Key")
             }
-            iCloudFilesManager.enumerateImagesFor(key: key) { images in
-                self.images = images
+            .onAppear {
+                guard let key = ShadowPixState.shared.selectedKey else {
+                    return
+                }
+                iCloudFilesManager.enumerateImagesFor(key: key) { images in
+                    self.images = images
+                }
             }
+        } else {
+            Color.black
         }
     }
 }
