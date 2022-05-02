@@ -23,14 +23,18 @@ class PhotoCaptureProcessor: NSObject {
     
 //    The actual captured photo's data
     var photoData: Data?
-    var photoId: String?
+    var photoId: String
     
 //    The maximum time lapse before telling UI to show a spinner
     private var maxPhotoProcessingTime: CMTime?
         
 //    Init takes multiple closures to be called in each step of the photco capture process
     init(with requestedPhotoSettings: AVCapturePhotoSettings, willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (PhotoCaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void) {
-        
+        photoId = String(describing: NSDate().timeIntervalSince1970)
+
+        if let destinationUrl = try? ShadowPixState.shared.tempFilesManager.createLivePhotoiCloudMovieCaptureUrl(photoId: photoId) {
+            requestedPhotoSettings.livePhotoMovieFileURL = destinationUrl
+        }
         self.requestedPhotoSettings = requestedPhotoSettings
         self.willCapturePhotoAnimation = willCapturePhotoAnimation
         self.completionHandler = completionHandler
@@ -38,13 +42,28 @@ class PhotoCaptureProcessor: NSObject {
     }
 }
 
+extension PhotoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
+    
+    func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
+        
+    }
+    
+    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
+        
+    }
+    
+    
+    
+}
+
 extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
+    
+    
     
     // This extension adopts AVCapturePhotoCaptureDelegate protocol methods.
     
     /// - Tag: WillBeginCapture
     func photoOutput(_ output: AVCapturePhotoOutput, willBeginCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
-        photoId = String(describing: NSDate().timeIntervalSince1970)
 
         maxPhotoProcessingTime = resolvedSettings.photoProcessingTimeRange.start + resolvedSettings.photoProcessingTimeRange.duration
     }
@@ -113,14 +132,12 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
 }
 
 extension PhotoCaptureProcessor {
-    //        MARK: Saves capture to photo library
-    private func saveEncryptedToiCloudDrive(_ photoData: Data, isLivePhoto: Bool = false) {
+
+//    private func save
+    
+    private func saveEncryptedToiCloudDrive(_ photoData: Data, tempUrl: URL? = nil, isLivePhoto: Bool = false) {
         
-        
-        guard let photoId = photoId else {
-            fatalError("No ID for photo")
-        }
-        iCloudFilesManager.saveEncryptedToiCloudDrive(photoData, photoId: photoId)
+        iCloudFilesManager.saveEncryptedToiCloudDrive(photoData, photoId: photoId, isLivePhoto: isLivePhoto)
         DispatchQueue.main.async {
             self.completionHandler(self)
         }

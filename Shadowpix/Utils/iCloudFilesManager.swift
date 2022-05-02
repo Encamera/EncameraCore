@@ -44,8 +44,15 @@ struct iCloudFilesManager {
         return destURL
     }
     
-    static func saveEncryptedToiCloudDrive(_ photoData: Data, photoId: String, isLivePhoto: Bool = false) {
+    static func encryptAndMoveToiCloudDrive(sourceUrl: URL, photoId: String, isLivePhoto: Bool = false) {
         
+        guard let photoData = try? Data(contentsOf: sourceUrl) else {
+            fatalError("Could not get data from url")
+        }
+        saveEncryptedToiCloudDrive(photoData, photoId: photoId)
+    }
+    
+    static func saveEncryptedToiCloudDrive(_ photoData: Data, photoId: String, isLivePhoto: Bool = false) {
         
 
         guard let encrypted = ChaChaPolyHelpers.encrypt(contentData: photoData) else {
@@ -62,7 +69,6 @@ struct iCloudFilesManager {
         do {
             
             try encrypted.write(to: imageUrl)
-            try ShadowPixState.shared.tempFilesManager.cleanup()
         } catch {
             print(error)
             fatalError("Could not write to drive url")

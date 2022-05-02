@@ -111,9 +111,10 @@ public class CameraService {
     // MARK: Capturing Photos
     
     private let photoOutput = AVCapturePhotoOutput()
+    private let movieOutput = AVCaptureMovieFileOutput()
     
     private var inProgressPhotoCaptureDelegates = [Int64: PhotoCaptureProcessor]()
-    
+    private var inProgressVideoCaptureDelegates = [Int64: VideoCaptureProcessor]()
     // MARK: KVO and Notifications Properties
     
     private var keyValueObservations = [NSKeyValueObservation]()
@@ -192,12 +193,21 @@ public class CameraService {
             volumeView.layer.opacity = 0.0
             UIApplication.shared.keyWindow?.addSubview(volumeView)
         }
-
-
     }
     
     // Call this on the session queue.
     /// - Tag: ConfigureSession
+    
+    private func configureVideoSession() {
+        if setupResult != .success {
+            return
+        }
+        
+        session.beginConfiguration()
+        session.sessionPreset = .hd4K3840x2160
+        
+    }
+    
     private func configureSession() {
         if setupResult != .success {
             return
@@ -232,7 +242,7 @@ public class CameraService {
             
             
             let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
-            
+
             if session.canAddInput(videoDeviceInput) {
                 session.addInput(videoDeviceInput)
                 self.videoDeviceInput = videoDeviceInput
@@ -268,6 +278,12 @@ public class CameraService {
             setupResult = .configurationFailed
             session.commitConfiguration()
             return
+        }
+        
+        if session.canAddOutput(movieOutput) {
+            session.addOutput(movieOutput)
+
+            
         }
         
         session.commitConfiguration()
@@ -444,75 +460,113 @@ public class CameraService {
     
     //    MARK: Capture Photo
     
+    public func startCapturingVideo() {
+        guard self.setupResult != .configurationFailed else {
+            return
+        }
+        sessionQueue.async {
+            if let photoOutputConnection = self.photoOutput.connection(with: .video) {
+                photoOutputConnection.videoOrientation = .portrait
+            }
+
+            let videoCaptureProcessor = VideoCaptureProcessor(completion: {
+                self.inProgressVideoCaptureDelegates.removeAll()
+            })
+            self.inProgressVideoCaptureDelegates[1] = videoCaptureProcessor
+            self.movieOutput.startRecording(to: TempFilesManager().createTemporaryMovieUrl(), recordingDelegate: videoCaptureProcessor)
+        }
+    }
+    
+    public func stopCapturingVideo() {
+        guard self.setupResult != .configurationFailed else {
+            return
+        }
+        sessionQueue.async {
+            self.movieOutput.stopRecording()
+        }
+        
+
+    }
+    
+    public func toggleVideoCapture() {
+        if movieOutput.isRecording == true {
+            stopCapturingVideo()
+        } else {
+            startCapturingVideo()
+        }
+    }
+    
     /// - Tag: CapturePhoto
     public func capturePhoto() {
-        if self.setupResult != .configurationFailed {
-            self.isCameraButtonDisabled = true
-            
-            sessionQueue.async {
-                if let photoOutputConnection = self.photoOutput.connection(with: .video) {
-                    photoOutputConnection.videoOrientation = .portrait
-                }
-                var photoSettings = AVCapturePhotoSettings()
-                
-                // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
-                if self.photoOutput.availablePhotoCodecTypes.contains(.hevc), let destinationUrl = try? ShadowPixState.shared.tempFilesManager.createLivePhotoiCloudMovieCaptureUrl() {
-                    photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
-                        
-                    photoSettings.livePhotoMovieFileURL = destinationUrl
-                }
-                
-                // Sets the flash option for this capture.
-                if self.videoDeviceInput.device.isFlashAvailable {
-                    photoSettings.flashMode = self.flashMode
-                }
-                
-                photoSettings.isHighResolutionPhotoEnabled = true
-                
-                // Sets the preview thumbnail pixel format
-                if !photoSettings.__availablePreviewPhotoPixelFormatTypes.isEmpty {
-                    photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: photoSettings.__availablePreviewPhotoPixelFormatTypes.first!]
-                }
-                
-                photoSettings.photoQualityPrioritization = .quality
-                
-                let photoCaptureProcessor = PhotoCaptureProcessor(with: photoSettings, willCapturePhotoAnimation: { [weak self] in
-                    // Tells the UI to flash the screen to signal that Shadowpix took a photo.
-                    DispatchQueue.main.async {
-                        self?.willCapturePhoto = true
-                    }
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        self?.willCapturePhoto = false
-                    }
-                    
-                }, completionHandler: { [weak self] (photoCaptureProcessor) in
-                    // When the capture is complete, remove a reference to the photo capture delegate so it can be deallocated.
-                    if let data = photoCaptureProcessor.photoData {
-                        self?.photo = Photo(originalData: data)
-                        print("passing photo")
-                    } else {
-                        print("No photo data")
-                    }
-                    
-                    self?.isCameraButtonDisabled = false
-                    
-                    self?.sessionQueue.async {
-                        self?.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = nil
-                    }
-                }, photoProcessingHandler: { [weak self] animate in
-                    // Animates a spinner while photo is processing
-                    if animate {
-                        self?.shouldShowSpinner = true
-                    } else {
-                        self?.shouldShowSpinner = false
-                    }
-                })
-                
-                // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
-                self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor
-                self.photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureProcessor)
+        toggleVideoCapture()
+        return
+        guard self.setupResult != .configurationFailed else {
+            return
+        }
+        self.isCameraButtonDisabled = true
+        
+        sessionQueue.async {
+            if let photoOutputConnection = self.photoOutput.connection(with: .video) {
+                photoOutputConnection.videoOrientation = .portrait
             }
+            var photoSettings = AVCapturePhotoSettings()
+            
+            // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
+            if self.photoOutput.availablePhotoCodecTypes.contains(.hevc) {
+                photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+                
+            }
+            
+            // Sets the flash option for this capture.
+            if self.videoDeviceInput.device.isFlashAvailable {
+                photoSettings.flashMode = self.flashMode
+            }
+            
+            photoSettings.isHighResolutionPhotoEnabled = true
+            
+            // Sets the preview thumbnail pixel format
+            if !photoSettings.__availablePreviewPhotoPixelFormatTypes.isEmpty {
+                photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: photoSettings.__availablePreviewPhotoPixelFormatTypes.first!]
+            }
+            
+            photoSettings.photoQualityPrioritization = .quality
+            
+            let photoCaptureProcessor = PhotoCaptureProcessor(with: photoSettings, willCapturePhotoAnimation: { [weak self] in
+                // Tells the UI to flash the screen to signal that Shadowpix took a photo.
+                DispatchQueue.main.async {
+                    self?.willCapturePhoto = true
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    self?.willCapturePhoto = false
+                }
+                
+            }, completionHandler: { [weak self] (photoCaptureProcessor) in
+                // When the capture is complete, remove a reference to the photo capture delegate so it can be deallocated.
+                if let data = photoCaptureProcessor.photoData {
+                    self?.photo = Photo(originalData: data)
+                    print("passing photo")
+                } else {
+                    print("No photo data")
+                }
+                
+                self?.isCameraButtonDisabled = false
+                
+                self?.sessionQueue.async {
+                    self?.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = nil
+                }
+            }, photoProcessingHandler: { [weak self] animate in
+                // Animates a spinner while photo is processing
+                if animate {
+                    self?.shouldShowSpinner = true
+                } else {
+                    self?.shouldShowSpinner = false
+                }
+            })
+            
+            // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
+            self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor
+            self.photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureProcessor)
         }
     }
 }

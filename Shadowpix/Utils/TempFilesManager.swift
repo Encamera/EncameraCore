@@ -40,18 +40,18 @@ class TempFilesManager {
     
     func createTemporaryMovieUrl() -> URL {
         let movieUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
-            isDirectory: true).appendingPathComponent("currentMovie.mov")
+            isDirectory: true).appendingPathComponent(NSUUID().uuidString + "_currentMovie.mov")
         createdTempFiles.insert(movieUrl)
         return movieUrl
     }
     
-    func createLivePhotoiCloudMovieCaptureUrl() throws -> URL {
+    func createLivePhotoiCloudMovieCaptureUrl(photoId: String) throws -> URL {
         let destinationURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents")
         let temporaryDirectoryURL = try FileManager.default.url(for: .itemReplacementDirectory,
                                                                    in: .userDomainMask,
                                                                    appropriateFor: destinationURL,
                                                                    create: true)
-        let url = temporaryDirectoryURL.appendingPathComponent("livephoto")
+        let url = temporaryDirectoryURL.appendingPathComponent("\(photoId).livephoto")
         createdTempFiles.insert(url)
         return url
 
@@ -61,18 +61,24 @@ class TempFilesManager {
         try? cleanup()
     }
     
-    func cleanup() throws {
+    func deleteItem(at url: URL) {
         var undeletedFiles = createdTempFiles
-        createdTempFiles.forEach { url in
-            do {
-                try FileManager.default.removeItem(at: url)
-                print("Deleted file at \(url.absoluteString)")
-                undeletedFiles.remove(url)
-            } catch {
-                print("Could not delete item at url: \(url)", error)
-            }
+
+        do {
+            try FileManager.default.removeItem(at: url)
+            print("Deleted file at \(url.absoluteString)")
+            undeletedFiles.remove(url)
+        } catch {
+            print("Could not delete item at url: \(url)", error)
         }
         createdTempFiles = undeletedFiles
+    }
+    
+    func cleanup() throws {
+        let filesToDelete = createdTempFiles
+        filesToDelete.forEach { url in
+            deleteItem(at: url)
+        }
     }
     
 }
