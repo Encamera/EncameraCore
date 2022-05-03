@@ -446,73 +446,74 @@ public class CameraService {
     
     /// - Tag: CapturePhoto
     public func capturePhoto() {
-        if self.setupResult != .configurationFailed {
-            self.isCameraButtonDisabled = true
-            
-            sessionQueue.async {
-                if let photoOutputConnection = self.photoOutput.connection(with: .video) {
-                    photoOutputConnection.videoOrientation = .portrait
-                }
-                var photoSettings = AVCapturePhotoSettings()
-                
-                // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
-                if self.photoOutput.availablePhotoCodecTypes.contains(.hevc), let destinationUrl = try? ShadowPixState.shared.tempFilesManager.createLivePhotoiCloudMovieCaptureUrl() {
-                    photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
-                        
-                    photoSettings.livePhotoMovieFileURL = destinationUrl
-                }
-                
-                // Sets the flash option for this capture.
-                if self.videoDeviceInput.device.isFlashAvailable {
-                    photoSettings.flashMode = self.flashMode
-                }
-                
-                photoSettings.isHighResolutionPhotoEnabled = true
-                
-                // Sets the preview thumbnail pixel format
-                if !photoSettings.__availablePreviewPhotoPixelFormatTypes.isEmpty {
-                    photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: photoSettings.__availablePreviewPhotoPixelFormatTypes.first!]
-                }
-                
-                photoSettings.photoQualityPrioritization = .quality
-                
-                let photoCaptureProcessor = PhotoCaptureProcessor(with: photoSettings, willCapturePhotoAnimation: { [weak self] in
-                    // Tells the UI to flash the screen to signal that Shadowpix took a photo.
-                    DispatchQueue.main.async {
-                        self?.willCapturePhoto = true
-                    }
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        self?.willCapturePhoto = false
-                    }
-                    
-                }, completionHandler: { [weak self] (photoCaptureProcessor) in
-                    // When the capture is complete, remove a reference to the photo capture delegate so it can be deallocated.
-                    if let data = photoCaptureProcessor.photoData {
-                        self?.photo = Photo(originalData: data)
-                        print("passing photo")
-                    } else {
-                        print("No photo data")
-                    }
-                    
-                    self?.isCameraButtonDisabled = false
-                    
-                    self?.sessionQueue.async {
-                        self?.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = nil
-                    }
-                }, photoProcessingHandler: { [weak self] animate in
-                    // Animates a spinner while photo is processing
-                    if animate {
-                        self?.shouldShowSpinner = true
-                    } else {
-                        self?.shouldShowSpinner = false
-                    }
-                })
-                
-                // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
-                self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor
-                self.photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureProcessor)
+        guard self.setupResult != .configurationFailed else {
+            return
+        }
+        self.isCameraButtonDisabled = true
+        
+        sessionQueue.async {
+            if let photoOutputConnection = self.photoOutput.connection(with: .video) {
+                photoOutputConnection.videoOrientation = .portrait
             }
+            var photoSettings = AVCapturePhotoSettings()
+            
+            // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
+            if self.photoOutput.availablePhotoCodecTypes.contains(.hevc), let destinationUrl = try? ShadowPixState.shared.tempFilesManager.createLivePhotoiCloudMovieCaptureUrl() {
+                photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+                
+                photoSettings.livePhotoMovieFileURL = destinationUrl
+            }
+            
+            // Sets the flash option for this capture.
+            if self.videoDeviceInput.device.isFlashAvailable {
+                photoSettings.flashMode = self.flashMode
+            }
+            
+            photoSettings.isHighResolutionPhotoEnabled = true
+            
+            // Sets the preview thumbnail pixel format
+            if !photoSettings.__availablePreviewPhotoPixelFormatTypes.isEmpty {
+                photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: photoSettings.__availablePreviewPhotoPixelFormatTypes.first!]
+            }
+            
+            photoSettings.photoQualityPrioritization = .quality
+            
+            let photoCaptureProcessor = PhotoCaptureProcessor(with: photoSettings, willCapturePhotoAnimation: { [weak self] in
+                // Tells the UI to flash the screen to signal that Shadowpix took a photo.
+                DispatchQueue.main.async {
+                    self?.willCapturePhoto = true
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    self?.willCapturePhoto = false
+                }
+                
+            }, completionHandler: { [weak self] (photoCaptureProcessor) in
+                // When the capture is complete, remove a reference to the photo capture delegate so it can be deallocated.
+                if let data = photoCaptureProcessor.photoData {
+                    self?.photo = Photo(originalData: data)
+                    print("passing photo")
+                } else {
+                    print("No photo data")
+                }
+                
+                self?.isCameraButtonDisabled = false
+                
+                self?.sessionQueue.async {
+                    self?.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = nil
+                }
+            }, photoProcessingHandler: { [weak self] animate in
+                // Animates a spinner while photo is processing
+                if animate {
+                    self?.shouldShowSpinner = true
+                } else {
+                    self?.shouldShowSpinner = false
+                }
+            })
+            
+            // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
+            self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor
+            self.photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureProcessor)
         }
     }
 }
