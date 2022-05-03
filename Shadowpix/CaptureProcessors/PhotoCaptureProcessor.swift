@@ -42,20 +42,6 @@ class PhotoCaptureProcessor: NSObject {
     }
 }
 
-extension PhotoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
-    
-    func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
-        
-    }
-    
-    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        
-    }
-    
-    
-    
-}
-
 extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
     
     

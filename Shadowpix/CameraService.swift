@@ -280,11 +280,11 @@ public class CameraService {
             return
         }
         
-        if session.canAddOutput(movieOutput) {
-            session.addOutput(movieOutput)
-
-            
-        }
+//        if session.canAddOutput(movieOutput) {
+//            session.addOutput(movieOutput)
+//
+//            
+//        }
         
         session.commitConfiguration()
         
@@ -498,8 +498,6 @@ public class CameraService {
     
     /// - Tag: CapturePhoto
     public func capturePhoto() {
-        toggleVideoCapture()
-        return
         guard self.setupResult != .configurationFailed else {
             return
         }
