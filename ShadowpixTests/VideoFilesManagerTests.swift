@@ -33,8 +33,6 @@ class VideoFilesManagerTests: XCTestCase {
     func testDecryptVideo() throws {
         
         let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
-//        let sourceUrl = TempFilesManager().createTemporaryMovieUrl()
-//        try FileManager.default.copyItem(at: url, to: sourceUrl)
         let destinationUrl = TempFilesManager().createTemporaryMovieUrl()
         let key = Sodium().secretStream.xchacha20poly1305.key()
         let handler = VideoFileProcessor(sourceURL: sourceUrl, destinationURL: destinationUrl, key: key)
@@ -43,7 +41,6 @@ class VideoFilesManagerTests: XCTestCase {
         handler.encryptVideo { (url, error) in
             XCTAssertNil(error)
             encryptedURL = url
-            XCTAssertTrue(FileManager.default.fileExists(atPath: url!.path))
             encryptExpectation.fulfill()
         }
         waitForExpectations(timeout: 10)
@@ -56,6 +53,7 @@ class VideoFilesManagerTests: XCTestCase {
         let decryptHandler = VideoFileProcessor(sourceURL: unwrappedURL, destinationURL: unencryptedDestination, key: key)
         decryptHandler.decryptVideo { (url, error) in
             print("decrypted file:", url!)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: url!.path))
             decryptExpectation.fulfill()
         }
 

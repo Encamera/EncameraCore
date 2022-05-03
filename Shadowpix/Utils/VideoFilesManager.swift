@@ -138,7 +138,7 @@ struct VideoFileProcessor {
             chunkedOperation(sourceFileHandle: sourceFileHandle,
                              destinationFileHandle: destinationFileHandle,
                              operation: { (bytes, isFinal) in
-                let (message, tag) = streamDec.pull(cipherText: bytes)!
+                let (message, _) = streamDec.pull(cipherText: bytes)!
                 return Data(message)
             },
                              blockSize: Int(blockSize),
