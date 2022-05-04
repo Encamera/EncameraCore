@@ -51,8 +51,6 @@ struct SnapCarousel: View {
     @EnvironmentObject var UIState: UIStateModel
     
     var body: some View {
-        let spacing: CGFloat = 16
-        let widthOfHiddenCards: CGFloat = 32
         let cardHeight: CGFloat = 279
         
         let items = [
@@ -63,22 +61,18 @@ struct SnapCarousel: View {
         
         return Canvas {
             Carousel(
-                numberOfItems: CGFloat(items.count),
-                spacing: spacing,
-                widthOfHiddenCards: widthOfHiddenCards
+                numberOfItems: CGFloat(items.count)
             ) {
                 ForEach(items, id: \.self.id) { item in
                     Item(
                         _id: Int(item.id),
-                        spacing: spacing,
-                        widthOfHiddenCards: widthOfHiddenCards,
                         cardHeight: cardHeight
                     ) {
                         Text("\(item.name)")
                     }
                     .foregroundColor(Color.red)
                     .background(Color.orange)
-                    .cornerRadius(8)
+                    .cornerRadius(UIState.cardWidth)
                     .shadow(color: Color("shadow1"), radius: 4, x: 0, y: 4)
                     .transition(AnyTransition.slide)
                     .animation(.spring())
@@ -96,40 +90,44 @@ struct Card: Decodable, Hashable, Identifiable {
 public class UIStateModel: ObservableObject {
     @Published var activeCard: Int = 0
     @Published var screenDrag: Float = 0.0
+    var viewportSize: CGFloat = 200
+    var visibleWidthOfHiddenCard: CGFloat = 20
+    var spacing: CGFloat = 16
+    var cardWidth: CGFloat {
+        viewportSize - (visibleWidthOfHiddenCard*2) - (spacing*2)
+    }
+    var snapTolerance: CGFloat = 50
+    var heightShrink: CGFloat = 0.70
+    var cardHeight: CGFloat = 60
 }
 
 struct Carousel<Items: View>: View {
     
     let items: Items
     let numberOfItems: CGFloat
-    let spacing: CGFloat
-    let widthOfHiddenCards: CGFloat
-    let totalSpacing: CGFloat
-    let cardWidth: CGFloat
     
     @GestureState var isDetectingLongPress = false
     
     @EnvironmentObject var UIState: UIStateModel
     
+    private var totalSpacing: CGFloat {
+        (numberOfItems - 1) * UIState.spacing
+    }
+    
     @inlinable public init(
         numberOfItems: CGFloat,
-        spacing: CGFloat,
-        widthOfHiddenCards: CGFloat,
         @ViewBuilder _ items: () -> Items
     ) {
         self.items = items()
         self.numberOfItems = numberOfItems
-        self.spacing = spacing
-        self.widthOfHiddenCards = widthOfHiddenCards
-        self.totalSpacing = (numberOfItems - 1) * spacing
-        self.cardWidth = UIScreen.main.bounds.width - (widthOfHiddenCards*2) - (spacing*2)
     }
     
+    
     var body: some View {
-        let totalCanvasWidth: CGFloat = (cardWidth * numberOfItems) + totalSpacing
-        let xOffsetToShift = (totalCanvasWidth - UIScreen.main.bounds.width) / 2
-        let leftPadding = widthOfHiddenCards + spacing
-        let totalPossibleMovement = cardWidth + spacing
+        let totalCanvasWidth: CGFloat = (UIState.cardWidth * numberOfItems) + totalSpacing
+        let xOffsetToShift = (totalCanvasWidth - UIState.viewportSize) / 2
+        let leftPadding = UIState.visibleWidthOfHiddenCard + UIState.spacing
+        let totalPossibleMovement = UIState.cardWidth + UIState.spacing
         
         let activeOffset: Float = Float(xOffsetToShift + leftPadding - (totalPossibleMovement * CGFloat(UIState.activeCard)))
         let nextOffset: Float = Float(xOffsetToShift + leftPadding - (totalPossibleMovement * CGFloat(UIState.activeCard) + 1))
@@ -140,7 +138,7 @@ struct Carousel<Items: View>: View {
             calcOffset = activeOffset + UIState.screenDrag
         }
         
-        return HStack(alignment: .center, spacing: spacing) {
+        return HStack(alignment: .center, spacing: UIState.spacing) {
             items
         }
         .offset(x: CGFloat(calcOffset), y: 0)
@@ -149,11 +147,11 @@ struct Carousel<Items: View>: View {
         }.onEnded { value in
             self.UIState.screenDrag = 0
             
-            if value.translation.width < -50 {
+            if value.translation.width < -UIState.snapTolerance {
                 self.UIState.activeCard = self.UIState.activeCard + 1
             }
             
-            if value.translation.width > 50 {
+            if value.translation.width > UIState.snapTolerance {
                 self.UIState.activeCard = self.UIState.activeCard - 1
             }
         })
@@ -172,37 +170,31 @@ struct Canvas<Content: View>: View {
     var body: some View {
         content
             .frame(minWidth: 0.0, maxWidth: .infinity, minHeight: 0, alignment: .center)
-            .background(Color.white.edgesIgnoringSafeArea(.all))
+            .background(Color.clear.edgesIgnoringSafeArea(.all))
     }
 }
 
 struct Item<Content: View>: View {
     
     @EnvironmentObject var UIState: UIStateModel
-    let cardWidth: CGFloat
-    let cardHeight: CGFloat
     
     var _id: Int
     var content: Content
     
     @inlinable public init(
         _id: Int,
-        spacing: CGFloat,
-        widthOfHiddenCards: CGFloat,
         cardHeight: CGFloat,
         @ViewBuilder _ content: () -> Content
     ) {
         self.content = content()
-        self.cardWidth = UIScreen.main.bounds.width - (widthOfHiddenCards*2) - (spacing*2)
-        self.cardHeight = cardHeight
         self._id = _id
     }
     
     var body: some View {
         content
             .frame(
-                width: cardWidth,
-                height: _id == UIState.activeCard ? cardHeight : cardHeight - 60,
+                width: UIState.cardWidth,
+                height: _id == UIState.activeCard ? UIState.cardHeight : UIState.cardHeight*UIState.heightShrink,
                 alignment: .center
             )
     }
@@ -215,33 +207,3 @@ struct SnapCarousel_Previews: PreviewProvider {
     }
 }
 
-//struct CameraModePicker: View {
-//
-//    @State var pointValue: String = ""
-//
-//    var body: some View {
-//        ScrollViewReader { scrollView in
-////            ScrollView(axes: .horizontal, offsetChanged: { point in
-////
-////            }) {
-////                HStack(spacing: 20) {
-////                    Spacer()
-////                    Text("Photo")
-////                    Text("Video")
-////                }
-////            }.background(Color.orange)
-//        }
-//    }
-//}
-//
-//struct CameraModePicker_Previews: PreviewProvider {
-//    static var previews: some View {
-//        HStack {
-//            Spacer()
-//            CameraModePicker()
-//            Spacer()
-//        }
-//
-//
-//    }
-//}
