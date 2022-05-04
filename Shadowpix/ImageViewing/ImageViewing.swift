@@ -40,6 +40,7 @@ struct ImageViewing: View {
 struct ImageViewing_Previews: PreviewProvider {
     static var previews: some View {
         ImageViewing(viewModel: ImageViewing.ViewModel(image: ShadowPixMedia(url: Bundle.main.url(forResource: "shadowimage.shdwpic", withExtension: nil)!)))
+            .environmentObject(ShadowPixState.shared)
     }
     
 }

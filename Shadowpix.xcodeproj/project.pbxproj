@@ -27,6 +27,8 @@
 		19665C462742542A00DA8578 /* KeyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19665C452742542A00DA8578 /* KeyEntry.swift */; };
 		196AFE81274F83D100C809ED /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE80274F83D100C809ED /* GalleryView.swift */; };
 		196AFE83274F858300C809ED /* iCloudFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE82274F858300C809ED /* iCloudFilesManager.swift */; };
+		1978F9772822476D00D16FD4 /* shadowimage.shdwpic in Resources */ = {isa = PBXBuildFile; fileRef = 1978F9762822476D00D16FD4 /* shadowimage.shdwpic */; };
+		1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1978F9782822486000D16FD4 /* CameraModePicker.swift */; };
 		197C19202754F8840001C818 /* ShadowPixMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197C191F2754F8840001C818 /* ShadowPixMedia.swift */; };
 		1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF12753E9D300E41BFD /* CameraModel.swift */; };
 		1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF42753EA3F00E41BFD /* MainInterface.swift */; };
@@ -78,6 +80,8 @@
 		19665C452742542A00DA8578 /* KeyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyEntry.swift; sourceTree = "<group>"; };
 		196AFE80274F83D100C809ED /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		196AFE82274F858300C809ED /* iCloudFilesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudFilesManager.swift; sourceTree = "<group>"; };
+		1978F9762822476D00D16FD4 /* shadowimage.shdwpic */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shadowimage.shdwpic; sourceTree = "<group>"; };
+		1978F9782822486000D16FD4 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
 		197C191F2754F8840001C818 /* ShadowPixMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowPixMedia.swift; sourceTree = "<group>"; };
 		1994ABF12753E9D300E41BFD /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		1994ABF42753EA3F00E41BFD /* MainInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterface.swift; sourceTree = "<group>"; };
@@ -195,6 +199,7 @@
 			isa = PBXGroup;
 			children = (
 				A9FE17862539494300D547C7 /* CameraView.swift */,
+				1978F9782822486000D16FD4 /* CameraModePicker.swift */,
 				1994ABF12753E9D300E41BFD /* CameraModel.swift */,
 			);
 			path = CameraView;
@@ -258,6 +263,7 @@
 		A9FE178A2539494700D547C7 /* Preview Content */ = {
 			isa = PBXGroup;
 			children = (
+				1978F9762822476D00D16FD4 /* shadowimage.shdwpic */,
 				A9FE178B2539494700D547C7 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
@@ -362,6 +368,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1978F9772822476D00D16FD4 /* shadowimage.shdwpic in Resources */,
 				A9FE178C2539494700D547C7 /* Preview Assets.xcassets in Resources */,
 				A9FE17892539494700D547C7 /* Assets.xcassets in Resources */,
 			);
@@ -411,6 +418,7 @@
 				A9FE17852539494300D547C7 /* ShadowpixApp.swift in Sources */,
 				196AFE81274F83D100C809ED /* GalleryView.swift in Sources */,
 				197C19202754F8840001C818 /* ShadowPixMedia.swift in Sources */,
+				1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */,
 				195719E7274B8BE300E93658 /* MovieViewing.swift in Sources */,
 				A9FE17B725394F1E00D547C7 /* CameraService+Enums.swift in Sources */,
 			);
