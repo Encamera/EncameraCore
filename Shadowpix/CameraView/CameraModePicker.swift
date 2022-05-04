@@ -6,57 +6,20 @@
 //
 
 import SwiftUI
-//
-//private struct ScrollViewOffsetPreferenceKey: PreferenceKey {
-//    static var defaultValue: CGPoint = .zero
-//    static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) {
-//
-//    }
-//}
-//
-//struct ScrollView<Content: View>: View {
-//    let axes: Axis.Set
-//    let showsIndicators: Bool
-//    let offsetChanged: (CGPoint) -> Void
-//    let content: Content
-//
-//    init(
-//        axes: Axis.Set = .vertical,
-//        showsIndicators: Bool = true,
-//        offsetChanged: @escaping (CGPoint) -> Void = { _ in },
-//        @ViewBuilder content: () -> Content
-//    ) {
-//        self.axes = axes
-//        self.showsIndicators = showsIndicators
-//        self.offsetChanged = offsetChanged
-//        self.content = content()
-//    }
-//
-//    var body: some View {
-//        SwiftUI.ScrollView(axes, showsIndicators: showsIndicators) {
-//            GeometryReader { geo in
-//                Color.clear.preference(key: ScrollViewOffsetPreferenceKey.self, value: geo.frame(in: .named("scrollView")).origin)
-//            }.frame(width: 0, height: 0)
-//            content
-//        }
-//        .coordinateSpace(name: "scrollView")
-//        .onPreferenceChange(ScrollViewOffsetPreferenceKey.self, perform: offsetChanged)
-//
-//    }
-//
-//}
+
 // based off of https://gist.github.com/xtabbas/97b44b854e1315384b7d1d5ccce20623
 struct SnapCarousel: View {
     
     @EnvironmentObject var UIState: UIStateModel
     
+    
+    
     var body: some View {
         let cardHeight: CGFloat = 279
         
         let items = [
-            Card(id: 0, name: "Photo"),
-            Card(id: 1, name: "Video"),
-            Card(id: 2, name: "Time Lapse")
+            Card(id: 0, name: "camera.circle"),
+            Card(id: 1, name: "video.circle")
         ]
         
         return Canvas {
@@ -68,14 +31,14 @@ struct SnapCarousel: View {
                         _id: Int(item.id),
                         cardHeight: cardHeight
                     ) {
-                        Text("\(item.name)")
+                        Image(systemName: item.name)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                        
                     }
-                    .foregroundColor(Color.red)
-                    .background(Color.orange)
-                    .cornerRadius(UIState.cardWidth)
-                    .shadow(color: Color("shadow1"), radius: 4, x: 0, y: 4)
+                    .foregroundColor(Color.black)
                     .transition(AnyTransition.slide)
-                    .animation(.spring())
+                    .animation(.spring(), value: UIState.screenDrag)
                 }
             }
         }
@@ -98,7 +61,7 @@ public class UIStateModel: ObservableObject {
     }
     var snapTolerance: CGFloat = 50
     var heightShrink: CGFloat = 0.70
-    var cardHeight: CGFloat = 60
+    var cardHeight: CGFloat = 100
 }
 
 struct Carousel<Items: View>: View {
@@ -191,10 +154,12 @@ struct Item<Content: View>: View {
     }
     
     var body: some View {
+        let transformScale = _id == UIState.activeCard ? 1.0 : UIState.heightShrink
         content
+            .scaleEffect(transformScale)
             .frame(
                 width: UIState.cardWidth,
-                height: _id == UIState.activeCard ? UIState.cardHeight : UIState.cardHeight*UIState.heightShrink,
+                height: UIState.cardHeight,
                 alignment: .center
             )
     }
