@@ -53,6 +53,8 @@ struct CameraView: View {
         })
     }
     
+    private let cameraModePickerViewModel = CameraModePickerViewModel()
+    
     var body: some View {
         GeometryReader { reader in
             
@@ -118,7 +120,13 @@ struct CameraView: View {
                         
                         Spacer()
                         
-                        captureButton
+                        CameraModePicker(viewModel: cameraModePickerViewModel)
+                            .environmentObject(CameraModeStateModel())
+                            .onChange(of: cameraModePickerViewModel.activeItem) { newValue in
+                                appState.cameraMode = newValue
+                            }
+                            .clipped()
+                            
                         
                         Spacer()
                         

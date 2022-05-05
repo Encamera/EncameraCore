@@ -38,6 +38,8 @@ class ShadowPixState: ObservableObject {
 
     }
     
+    @Published var cameraMode: CameraMode = .photo
+    
     @Published var selectedKey: ImageKey? {
         willSet {
             guard let newKey = newValue else {

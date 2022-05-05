@@ -7,38 +7,61 @@
 
 import SwiftUI
 
+enum CameraMode: Int, CaseIterable {
+    case photo
+    case video
+    
+    
+    var systemImageName: String {
+        switch self {
+        case .video:
+            return "video.circle"
+        case .photo:
+            return "camera.circle"
+        }
+    }
+    
+    var activeBackgroundColor: Color {
+        switch self {
+        case .video:
+            return .red
+        case .photo:
+            return .white
+        }
+    }
+}
+
+class CameraModePickerViewModel: ObservableObject {
+    @Published var activeItem: CameraMode = .photo
+}
+
 // based off of https://gist.github.com/xtabbas/97b44b854e1315384b7d1d5ccce20623
-struct SnapCarousel: View {
+struct CameraModePicker: View {
     
-    @EnvironmentObject var UIState: UIStateModel
+    @EnvironmentObject var UIState: CameraModeStateModel
     
-    
+    var viewModel: CameraModePickerViewModel
     
     var body: some View {
         let cardHeight: CGFloat = 279
         
-        let items = [
-            Card(id: 0, name: "camera.circle"),
-            Card(id: 1, name: "video.circle")
-        ]
-        
         return Canvas {
             Carousel(
-                numberOfItems: CGFloat(items.count)
+                numberOfItems: CGFloat(CameraMode.allCases.count)
             ) {
-                ForEach(items, id: \.self.id) { item in
+                ForEach(CameraMode.allCases, id: \.rawValue) { item in
                     Item(
-                        _id: Int(item.id),
+                        _id: item.rawValue,
                         cardHeight: cardHeight
                     ) {
-                        Image(systemName: item.name)
+                        Image(systemName: item.systemImageName)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                         
                     }
-                    .foregroundColor(Color.black)
+                    .foregroundColor(Color.white)
                     .transition(AnyTransition.slide)
-                    .animation(.spring(), value: UIState.screenDrag)
+                    .animation(.spring())
                 }
             }
         }
@@ -50,8 +73,16 @@ struct Card: Decodable, Hashable, Identifiable {
     var name: String = ""
 }
 
-public class UIStateModel: ObservableObject {
-    @Published var activeCard: Int = 0
+public class CameraModeStateModel: ObservableObject {
+    var activeIndex: Int {
+        get {
+            activeItem.rawValue
+        }
+        set {
+            activeItem = CameraMode(rawValue: newValue)!
+        }
+    }
+    @Published var activeItem: CameraMode = .photo
     @Published var screenDrag: Float = 0.0
     var viewportSize: CGFloat = 200
     var visibleWidthOfHiddenCard: CGFloat = 20
@@ -71,7 +102,7 @@ struct Carousel<Items: View>: View {
     
     @GestureState var isDetectingLongPress = false
     
-    @EnvironmentObject var UIState: UIStateModel
+    @EnvironmentObject var UIState: CameraModeStateModel
     
     private var totalSpacing: CGFloat {
         (numberOfItems - 1) * UIState.spacing
@@ -92,8 +123,8 @@ struct Carousel<Items: View>: View {
         let leftPadding = UIState.visibleWidthOfHiddenCard + UIState.spacing
         let totalPossibleMovement = UIState.cardWidth + UIState.spacing
         
-        let activeOffset: Float = Float(xOffsetToShift + leftPadding - (totalPossibleMovement * CGFloat(UIState.activeCard)))
-        let nextOffset: Float = Float(xOffsetToShift + leftPadding - (totalPossibleMovement * CGFloat(UIState.activeCard) + 1))
+        let activeOffset: Float = Float(xOffsetToShift + leftPadding - (totalPossibleMovement * CGFloat(UIState.activeIndex)))
+        let nextOffset: Float = Float(xOffsetToShift + leftPadding - (totalPossibleMovement * CGFloat(UIState.activeIndex) + 1))
         
         var calcOffset = activeOffset
         
@@ -111,11 +142,11 @@ struct Carousel<Items: View>: View {
             self.UIState.screenDrag = 0
             
             if value.translation.width < -UIState.snapTolerance {
-                self.UIState.activeCard = self.UIState.activeCard + 1
+                self.UIState.activeIndex = self.UIState.activeIndex + 1
             }
             
             if value.translation.width > UIState.snapTolerance {
-                self.UIState.activeCard = self.UIState.activeCard - 1
+                self.UIState.activeIndex = self.UIState.activeIndex - 1
             }
         })
     }
@@ -124,7 +155,7 @@ struct Carousel<Items: View>: View {
 
 struct Canvas<Content: View>: View {
     let content: Content
-    @EnvironmentObject var UIState: UIStateModel
+    @EnvironmentObject var UIState: CameraModeStateModel
     
     @inlinable init(@ViewBuilder _ content: () -> Content) {
         self.content = content()
@@ -139,7 +170,7 @@ struct Canvas<Content: View>: View {
 
 struct Item<Content: View>: View {
     
-    @EnvironmentObject var UIState: UIStateModel
+    @EnvironmentObject var UIState: CameraModeStateModel
     
     var _id: Int
     var content: Content
@@ -154,7 +185,7 @@ struct Item<Content: View>: View {
     }
     
     var body: some View {
-        let transformScale = _id == UIState.activeCard ? 1.0 : UIState.heightShrink
+        let transformScale = _id == UIState.activeIndex ? 1.0 : UIState.heightShrink
         content
             .scaleEffect(transformScale)
             .frame(
@@ -167,8 +198,9 @@ struct Item<Content: View>: View {
 
 struct SnapCarousel_Previews: PreviewProvider {
     static var previews: some View {
-        SnapCarousel()
-            .environmentObject(UIStateModel())
+        CameraModePicker(viewModel: CameraModePickerViewModel())
+            .background(Color.black)
+            .environmentObject(CameraModeStateModel())
     }
 }
 
