@@ -13,13 +13,13 @@ import SwiftUI
 import MediaPlayer
 
 //  MARK: Class Camera Service, handles setup of AVFoundation needed for a basic camera app.
-public struct Photo: Identifiable, Equatable {
+struct Photo: Identifiable, Equatable {
 //    The ID of the captured photo
-    public var id: String
+    var id: String
 //    Data representation of the captured photo
-    public var originalData: Data
+    var originalData: Data
     
-    public init(id: String = UUID().uuidString, originalData: Data) {
+    init(id: String = UUID().uuidString, originalData: Data) {
         self.id = id
         self.originalData = originalData
         
@@ -28,15 +28,15 @@ public struct Photo: Identifiable, Equatable {
     }
 }
 
-public struct AlertError {
-    public var title: String = ""
-    public var message: String = ""
-    public var primaryButtonTitle = "Accept"
-    public var secondaryButtonTitle: String?
-    public var primaryAction: (() -> ())?
-    public var secondaryAction: (() -> ())?
+struct AlertError {
+    var title: String = ""
+    var message: String = ""
+    var primaryButtonTitle = "Accept"
+    var secondaryButtonTitle: String?
+    var primaryAction: (() -> ())?
+    var secondaryAction: (() -> ())?
     
-    public init(title: String = "", message: String = "", primaryButtonTitle: String = "Accept", secondaryButtonTitle: String? = nil, primaryAction: (() -> ())? = nil, secondaryAction: (() -> ())? = nil) {
+    init(title: String = "", message: String = "", primaryButtonTitle: String = "Accept", secondaryButtonTitle: String? = nil, primaryAction: (() -> ())? = nil, secondaryAction: (() -> ())? = nil) {
         self.title = title
         self.message = message
         self.primaryAction = primaryAction
@@ -46,60 +46,52 @@ public struct AlertError {
 }
 
 extension Photo {
-    public var compressedData: Data? {
+    var compressedData: Data? {
         ImageResizer(targetWidth: 800).resize(data: originalData)?.jpegData(compressionQuality: 0.5)
     }
-    public var thumbnailData: Data? {
+    var thumbnailData: Data? {
         ImageResizer(targetWidth: 100).resize(data: originalData)?.jpegData(compressionQuality: 0.5)
     }
-    public var thumbnailImage: UIImage? {
+    var thumbnailImage: UIImage? {
         guard let data = thumbnailData else { return nil }
         return UIImage(data: data)
     }
-    public var image: UIImage? {
+    var image: UIImage? {
         guard let data = compressedData else { return nil }
         return UIImage(data: data)
     }
 }
 
-public class CameraService {
+enum CameraMode: Int {
+    case photo
+    case video
+}
+
+class CameraService {
     typealias PhotoCaptureSessionID = String
     
-//    MARK: Observed Properties UI must react to
-    
-//    1.
-    @Published public var flashMode: AVCaptureDevice.FlashMode = .off
-//    2.
-    @Published public var shouldShowAlertView = false
-//    3.
-    @Published public var shouldShowSpinner = false
-//    4.
-    @Published public var willCapturePhoto = false
-//    5.
-    @Published public var isCameraButtonDisabled = true
-//    6.
-    @Published public var isCameraUnavailable = true
-//    8.
-    @Published public var photo: Photo?
-    
-    
+    @Published var flashMode: AVCaptureDevice.FlashMode = .off
+    @Published var shouldShowAlertView = false
+    @Published var shouldShowSpinner = false
+    @Published var willCapturePhoto = false
+    @Published var isCameraButtonDisabled = true
+    @Published var isCameraUnavailable = true
+    @Published var photo: Photo?
+    @Published var isRecordingVideo = false
+    @Published var mode: CameraMode = .photo
     
 
 //    MARK: Alert properties
-    public var alertError: AlertError = AlertError()
+    var alertError: AlertError = AlertError()
     
 // MARK: Session Management Properties
     
-//    9
-    public let session = AVCaptureSession()
-//    10
+    let session = AVCaptureSession()
     var isSessionRunning = false
-//    12
     var isConfigured = false
-//    13
     var setupResult: SessionSetupResult = .success
-//    14
-    // Communicate with the session and other session objects on this queue.
+    
+    private var cancellables: [AnyCancellable] = []
     private let sessionQueue = DispatchQueue(label: "session queue")
     private let metadataProcessor = QRCodeCaptureProcessor()
     private var volumeObservation: NSKeyValueObservation?
@@ -119,7 +111,7 @@ public class CameraService {
     
     private var keyValueObservations = [NSKeyValueObservation]()
     
-    public func configure() {
+    func configure() {
         /*
          Setup the capture session.
          In general, it's not safe to mutate an AVCaptureSession or any of its
@@ -131,12 +123,13 @@ public class CameraService {
          that the main queue isn't blocked, which keeps the UI responsive.
          */
         sessionQueue.async {
-            self.configureSession()
+            self.initialSessionConfiguration()
         }
+        
     }
     
     //        MARK: Checks for user's permisions
-    public func checkForPermissions() {
+    func checkForPermissions() {
       
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
@@ -208,15 +201,46 @@ public class CameraService {
         
     }
     
-    private func configureSession() {
-        if setupResult != .success {
-            return
+    private func addPhotoOutputToSession() throws {
+        if session.canAddOutput(photoOutput) {
+            session.addOutput(photoOutput)
+            
+            photoOutput.isHighResolutionCaptureEnabled = true
+            photoOutput.maxPhotoQualityPrioritization = .quality
+            photoOutput.isLivePhotoCaptureEnabled = true
+        } else {
+            throw SetupError.couldNotAddPhotoOutputToSession
         }
-        
-        session.beginConfiguration()
-        session.sessionPreset = .photo
-        configureVolumeButtons()
-        // Add video input.
+    }
+    
+    private func removePhotoOutputFromSession() {
+        session.removeOutput(photoOutput)
+    }
+    
+    private func addVideoOutputToSession() throws {
+        if session.canAddOutput(movieOutput) {
+            session.addOutput(movieOutput)
+        } else {
+            throw SetupError.couldNotAddVideoInputToSession
+        }
+    }
+    
+    private func removeVideoOutputFromSession() {
+        session.removeOutput(movieOutput)
+    }
+    
+    private func addMetadataOutputToSession() throws {
+        let metadataOutput = AVCaptureMetadataOutput()
+        if session.canAddOutput(metadataOutput) {
+            session.addOutput(metadataOutput)
+            metadataOutput.setMetadataObjectsDelegate(metadataProcessor, queue: .main)
+            metadataOutput.metadataObjectTypes = metadataProcessor.supportedObjectTypes
+        } else {
+            throw SetupError.couldNotAddMetadataOutputToSession
+        }
+    }
+    
+    private func setupCaptureDevice() throws {
         do {
             var defaultVideoDevice: AVCaptureDevice?
             
@@ -229,14 +253,11 @@ public class CameraService {
             }
             
             guard let videoDevice = defaultVideoDevice else {
-                print("Default video device is unavailable.")
-                setupResult = .configurationFailed
-                session.commitConfiguration()
-                return
+                throw SetupError.defaultVideoDeviceUnavailable
             }
             guard let audioDevice = AVCaptureDevice.default(for: .audio),
                       let audioDeviceInput = try? AVCaptureDeviceInput(device: audioDevice) else {
-                          fatalError("could not get audio input")
+                throw SetupError.defaultAudioDeviceUnavailable
                 }
             session.addInput(audioDeviceInput)
             
@@ -248,55 +269,59 @@ public class CameraService {
                 self.videoDeviceInput = videoDeviceInput
                 
             } else {
-                print("Couldn't add video device input to the session.")
-                setupResult = .configurationFailed
-                session.commitConfiguration()
-                return
+                throw SetupError.couldNotAddVideoInputToSession
             }
         } catch {
-            print("Couldn't create video device input: \(error)")
-            setupResult = .configurationFailed
-            session.commitConfiguration()
+            throw SetupError.couldNotCreateVideoDeviceInput(avFoundationError: error)
+        }
+    }
+    
+    private func initialSessionConfiguration() {
+        if setupResult != .success {
             return
         }
         
-        // Add the photo output.
-        let metadataOutput = AVCaptureMetadataOutput()
-        if session.canAddOutput(metadataOutput) {
-            session.addOutput(metadataOutput)
-            metadataOutput.setMetadataObjectsDelegate(metadataProcessor, queue: .main)
-            metadataOutput.metadataObjectTypes = metadataProcessor.supportedObjectTypes
-        }
-        if session.canAddOutput(photoOutput) {
-            session.addOutput(photoOutput)
-            
-            photoOutput.isHighResolutionCaptureEnabled = true
-            photoOutput.maxPhotoQualityPrioritization = .quality
-            photoOutput.isLivePhotoCaptureEnabled = true
-        } else {
-            print("Could not add photo output to the session")
+        session.beginConfiguration()
+        session.sessionPreset = .photo
+        configureVolumeButtons()
+        do {
+            try setupCaptureDevice()
+            try addMetadataOutputToSession()
+            try addPhotoOutputToSession()
+            self.isConfigured = true
+        } catch {
+            print(error)
             setupResult = .configurationFailed
-            session.commitConfiguration()
-            return
         }
-        
-//        if session.canAddOutput(movieOutput) {
-//            session.addOutput(movieOutput)
-//
-//            
-//        }
-        
         session.commitConfiguration()
         
-        self.isConfigured = true
-        
+        $mode.dropFirst().sink { [weak self] newMode in
+            print(newMode)
+            self?.sessionQueue.async {
+                do {
+                    switch newMode {
+                    case .photo:
+                        self?.removeVideoOutputFromSession()
+                        try self?.addPhotoOutputToSession()
+                    case .video:
+                        self?.removePhotoOutputFromSession()
+                        try self?.addVideoOutputToSession()
+                    }
+                    
+                } catch {
+                    print("Could not switch to mode \(newMode)", error)
+                    self?.setupResult = .configurationFailed
+                }
+            }
+        }.store(in: &cancellables)
+
         self.start()
     }
  
     //  MARK: Device Configuration
     
     /// - Tag: ChangeCamera
-    public func changeCamera() {
+    func changeCamera() {
         //        MARK: Here disable all camera operation related buttons due to configuration is due upon and must not be interrupted
         DispatchQueue.main.async {
             self.isCameraButtonDisabled = true
@@ -372,9 +397,7 @@ public class CameraService {
         }
     }
     
-    public func focus(at focusPoint: CGPoint){
-//        let focusPoint = self.videoPreviewLayer.captureDevicePointConverted(fromLayerPoint: point)
-
+    func focus(at focusPoint: CGPoint){
         let device = self.videoDeviceInput.device
         do {
             try device.lockForConfiguration()
@@ -393,7 +416,7 @@ public class CameraService {
     
     /// - Tag: Stop capture session
     
-    public func stop(completion: (() -> ())? = nil) {
+    func stop(completion: (() -> ())? = nil) {
         sessionQueue.async {
             if self.isSessionRunning {
                 if self.setupResult == .success {
@@ -414,7 +437,7 @@ public class CameraService {
     
     /// - Tag: Start capture session
     
-    public func start() {
+    func start() {
 //        We use our capture session queue to ensure our UI runs smoothly on the main thread.
         sessionQueue.async {
             if !self.isSessionRunning && self.isConfigured {
@@ -444,7 +467,7 @@ public class CameraService {
         }
     }
     
-    public func set(zoom: CGFloat){
+    func set(zoom: CGFloat){
         let factor = zoom < 1 ? 1 : zoom
         let device = self.videoDeviceInput.device
         
@@ -460,7 +483,7 @@ public class CameraService {
     
     //    MARK: Capture Photo
     
-    public func startCapturingVideo() {
+    private func startCapturingVideo() {
         guard self.setupResult != .configurationFailed else {
             return
         }
@@ -477,7 +500,7 @@ public class CameraService {
         }
     }
     
-    public func stopCapturingVideo() {
+    private func stopCapturingVideo() {
         guard self.setupResult != .configurationFailed else {
             return
         }
@@ -488,7 +511,7 @@ public class CameraService {
 
     }
     
-    public func toggleVideoCapture() {
+    func toggleVideoCapture() {
         if movieOutput.isRecording == true {
             stopCapturingVideo()
         } else {
@@ -497,7 +520,7 @@ public class CameraService {
     }
     
     /// - Tag: CapturePhoto
-    public func capturePhoto() {
+    func capturePhoto() {
         guard self.setupResult != .configurationFailed else {
             return
         }

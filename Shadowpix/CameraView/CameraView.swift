@@ -8,10 +8,11 @@ struct CameraView: View {
     @Binding var galleryIconTapped: Bool
     @State private var currentZoomFactor: CGFloat = 1.0
     @Binding var showingKeySelection: Bool
+    @State var cameraModeStateModel = CameraModeStateModel()
     
     private var captureButton: some View {
         Button(action: {
-            model.capturePhoto()
+            model.captureButtonPressed()
         }, label: {
             Circle()
                 .foregroundColor(.white)
@@ -53,8 +54,29 @@ struct CameraView: View {
         })
     }
     
-    private let cameraModePickerViewModel = CameraModePickerViewModel()
-    
+    private var bottomButtonPanel: some View {
+        HStack {
+            capturedPhotoThumbnail
+            
+            Spacer()
+            
+            CameraModePicker()
+                .onReceive(cameraModeStateModel.$selectedMode) { newValue in
+                    model.selectedCameraMode = newValue
+                }
+                .onChange(of: model.isRecordingVideo, perform: { newValue in
+                    cameraModeStateModel.isModeActive = newValue
+                })
+                .environmentObject(cameraModeStateModel)
+
+                .clipped()
+            Spacer()
+            flipCameraButton
+        }
+        .padding(.horizontal, 20)
+
+    }
+        
     var body: some View {
         GeometryReader { reader in
             
@@ -114,26 +136,7 @@ struct CameraView: View {
                             }
                         )
                         .animation(.easeInOut)
-                    
-                    HStack {
-                        capturedPhotoThumbnail
-                        
-                        Spacer()
-                        
-                        CameraModePicker(viewModel: cameraModePickerViewModel)
-                            .environmentObject(CameraModeStateModel())
-                            .onChange(of: cameraModePickerViewModel.activeItem) { newValue in
-                                appState.cameraMode = newValue
-                            }
-                            .clipped()
-                            
-                        
-                        Spacer()
-                        
-                        flipCameraButton
-                        
-                    }
-                    .padding(.horizontal, 20)
+                    bottomButtonPanel
                 }
             }
             if model.showCameraView == false {
