@@ -3,16 +3,23 @@ import Combine
 import AVFoundation
 
 struct CameraView: View {
-    @StateObject private var model = CameraModel()
+    @StateObject private var cameraModel: CameraModel = CameraModel()
     @EnvironmentObject var appState: ShadowPixState
     @Binding var galleryIconTapped: Bool
     @State private var currentZoomFactor: CGFloat = 1.0
     @Binding var showingKeySelection: Bool
-    @State var cameraModeStateModel = CameraModeStateModel()
+    @State var cameraModeStateModel: CameraModeStateModel
+    
+    init(galleryIconTapped: Binding<Bool>, showingKeySelection: Binding<Bool>) {
+        
+        self._galleryIconTapped = galleryIconTapped
+        self._showingKeySelection = showingKeySelection
+        self.cameraModeStateModel = CameraModeStateModel()
+    }
     
     private var captureButton: some View {
         Button(action: {
-            model.captureButtonPressed()
+            cameraModel.captureButtonPressed()
         }, label: {
             Circle()
                 .foregroundColor(.white)
@@ -23,6 +30,10 @@ struct CameraView: View {
                         .frame(width: 65, height: 65, alignment: .center)
                 )
         })
+    }
+    
+    private func captureAction() {
+        cameraModel.captureButtonPressed()
     }
     
     private var capturedPhotoThumbnail: some View {
@@ -43,7 +54,7 @@ struct CameraView: View {
     
     private var flipCameraButton: some View {
         Button(action: {
-            model.flipCamera()
+            cameraModel.flipCamera()
         }, label: {
             Circle()
                 .foregroundColor(Color.gray.opacity(0.2))
@@ -60,11 +71,13 @@ struct CameraView: View {
             
             Spacer()
             
-            CameraModePicker()
+            CameraModePicker(pressedAction: { mode in
+                captureAction()
+            })
                 .onReceive(cameraModeStateModel.$selectedMode) { newValue in
-                    model.selectedCameraMode = newValue
+                    cameraModel.selectedCameraMode = newValue
                 }
-                .onChange(of: model.isRecordingVideo, perform: { newValue in
+                .onChange(of: cameraModel.isRecordingVideo, perform: { newValue in
                     cameraModeStateModel.isModeActive = newValue
                 })
                 .environmentObject(cameraModeStateModel)
@@ -95,14 +108,14 @@ struct CameraView: View {
                         Text(appState.selectedKey?.name ?? "No Key")
                         Spacer()
                         Button(action: {
-                            model.switchFlash()
+                            cameraModel.switchFlash()
                         }, label: {
-                            Image(systemName: model.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
+                            Image(systemName: cameraModel.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
                                 .font(.system(size: 20, weight: .medium, design: .default))
                         })
-                            .accentColor(model.isFlashOn ? .yellow : .white)
+                            .accentColor(cameraModel.isFlashOn ? .yellow : .white)
                     }.padding()
-                    CameraPreview(session: model.session)
+                    CameraPreview(session: cameraModel.session)
                         .gesture(
                             DragGesture().onChanged({ (val) in
                                 //  Only accept vertical drag
@@ -116,21 +129,21 @@ struct CameraView: View {
                                     //  Store the newly calculated zoom factor
                                     currentZoomFactor = zoomFactor
                                     //  Sets the zoom factor to the capture device session
-                                    model.zoom(with: zoomFactor)
+                                    cameraModel.zoom(with: zoomFactor)
                                 }
                             })
                         )
                         .onAppear {
-                            model.configure()
+                            cameraModel.configure()
                         }
-                        .alert(isPresented: $model.showAlertError, content: {
-                            Alert(title: Text(model.alertError.title), message: Text(model.alertError.message), dismissButton: .default(Text(model.alertError.primaryButtonTitle), action: {
-                                model.alertError.primaryAction?()
+                        .alert(isPresented: $cameraModel.showAlertError, content: {
+                            Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
+                                cameraModel.alertError.primaryAction?()
                             }))
                         })
                         .overlay(
                             Group {
-                                if model.willCapturePhoto {
+                                if cameraModel.willCapturePhoto {
                                     Color.black
                                 }
                             }
@@ -139,7 +152,7 @@ struct CameraView: View {
                     bottomButtonPanel
                 }
             }
-            if model.showCameraView == false {
+            if cameraModel.showCameraView == false {
                 Color.black
             }
         }

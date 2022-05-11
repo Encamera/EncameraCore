@@ -11,6 +11,14 @@ enum CameraModeSelection: Int, CaseIterable {
     case photo
     case video
     
+    var cameraMode: CameraMode {
+        switch self {
+        case .photo:
+            return .photo
+        case .video:
+            return .video
+        }
+    }
     
     var systemImageName: String {
         switch self {
@@ -38,7 +46,7 @@ class CameraModePickerViewModel: ObservableObject {
 struct CameraModePicker: View {
     
     @EnvironmentObject var stateModel: CameraModeStateModel
-        
+    var pressedAction: (CameraMode) -> Void
     var body: some View {
         let cardHeight: CGFloat = 279
         
@@ -49,7 +57,10 @@ struct CameraModePicker: View {
                 ForEach(CameraModeSelection.allCases, id: \.rawValue) { item in
                     Item(
                         _id: item.rawValue,
-                        cardHeight: cardHeight
+                        cardHeight: cardHeight,
+                        pressedAction: {
+                            pressedAction(item.cameraMode)
+                        }
                     ) {
                         Image(systemName: item.systemImageName)
                             .resizable()
@@ -82,6 +93,8 @@ public class CameraModeStateModel: ObservableObject {
     @Published var isModeActive: Bool = false
     @Published var selectedMode: CameraMode = .photo
     @Published var screenDrag: Float = 0.0
+    
+//    var pressedAction: (CameraMode) -> Void
     var viewportSize: CGFloat = 200
     var visibleWidthOfHiddenCard: CGFloat = 20
     var spacing: CGFloat = 16
@@ -91,6 +104,10 @@ public class CameraModeStateModel: ObservableObject {
     var snapTolerance: CGFloat = 50
     var heightShrink: CGFloat = 0.70
     var cardHeight: CGFloat = 100
+    
+//    init(pressedAction: @escaping (CameraMode) -> Void) {
+//        self.pressedAction = pressedAction
+//    }
 }
 
 struct Carousel<Items: View>: View {
@@ -172,13 +189,16 @@ struct Item<Content: View>: View {
     
     var _id: Int
     var content: Content
+    var pressedAction: () -> Void
     
     @inlinable public init(
         _id: Int,
         cardHeight: CGFloat,
+        pressedAction: @escaping () -> Void,
         @ViewBuilder _ content: () -> Content
     ) {
         self.content = content()
+        self.pressedAction = pressedAction
         self._id = _id
     }
     
@@ -192,12 +212,17 @@ struct Item<Content: View>: View {
                 alignment: .center
             )
             .background(stateModel.isModeActive ? Color.red : Color.clear)
+            .onTapGesture {
+                pressedAction()
+            }
     }
 }
 
 struct SnapCarousel_Previews: PreviewProvider {
     static var previews: some View {
-        CameraModePicker()
+        CameraModePicker(pressedAction: {mode in
+            
+        })
             .background(Color.black)
             .environmentObject(CameraModeStateModel())
     }

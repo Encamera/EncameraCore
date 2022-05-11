@@ -22,6 +22,7 @@ final class CameraModel: ObservableObject {
     @Published var willCapturePhoto = false
     @Published var showCameraView = true
     @Published var selectedCameraMode: CameraMode = .photo
+    
     var alertError: AlertError!
     
     var session: AVCaptureSession
