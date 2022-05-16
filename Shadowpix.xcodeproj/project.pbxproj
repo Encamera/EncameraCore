@@ -17,6 +17,7 @@
 		19217E29273FD620009E3850 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E28273FD620009E3850 /* AppConstants.swift */; };
 		19217E2D273FE452009E3850 /* ImageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2B273FE452009E3850 /* ImageKey.swift */; };
 		19217E2E273FE452009E3850 /* ShadowPixState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2C273FE452009E3850 /* ShadowPixState.swift */; };
+		193ECDA4282EE7E2004F143D /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193ECDA3282EE7E2004F143D /* Enums.swift */; };
 		195719E7274B8BE300E93658 /* MovieViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195719E6274B8BE300E93658 /* MovieViewing.swift */; };
 		195719EB274B8FBF00E93658 /* TempFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195719EA274B8FBF00E93658 /* TempFilesManager.swift */; };
 		195719EE274BA4B400E93658 /* QRCodeCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195719ED274BA4B400E93658 /* QRCodeCaptureProcessor.swift */; };
@@ -34,6 +35,7 @@
 		1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF42753EA3F00E41BFD /* MainInterface.swift */; };
 		1994ABF72753EAEF00E41BFD /* MainInterfaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */; };
 		19959440280D209900AEFA6D /* VideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1995943F280D209900AEFA6D /* VideoCaptureProcessor.swift */; };
+		19B6D052282B354500DC07F8 /* MediaGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6D051282B354500DC07F8 /* MediaGalleryView.swift */; };
 		19DC647427441D10004CCE1B /* ButtonViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DC647327441D10004CCE1B /* ButtonViewModifier.swift */; };
 		19DCCD572741AF6700DB487B /* KeyGeneration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DCCD562741AF6700DB487B /* KeyGeneration.swift */; };
 		19DCCD592741C2E200DB487B /* ChaChaPolyHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DCCD582741C2E200DB487B /* ChaChaPolyHelperTests.swift */; };
@@ -71,6 +73,8 @@
 		19217E28273FD620009E3850 /* AppConstants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		19217E2B273FE452009E3850 /* ImageKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageKey.swift; sourceTree = "<group>"; };
 		19217E2C273FE452009E3850 /* ShadowPixState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShadowPixState.swift; sourceTree = "<group>"; };
+		193ECDA3282EE7E2004F143D /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
+		193ECDA5282EE8C6004F143D /* ImageViewingUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewingUseCase.swift; sourceTree = "<group>"; };
 		195719E6274B8BE300E93658 /* MovieViewing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieViewing.swift; sourceTree = "<group>"; };
 		195719EA274B8FBF00E93658 /* TempFilesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempFilesManager.swift; sourceTree = "<group>"; };
 		195719ED274BA4B400E93658 /* QRCodeCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeCaptureProcessor.swift; sourceTree = "<group>"; };
@@ -87,6 +91,7 @@
 		1994ABF42753EA3F00E41BFD /* MainInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterface.swift; sourceTree = "<group>"; };
 		1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterfaceViewModel.swift; sourceTree = "<group>"; };
 		1995943F280D209900AEFA6D /* VideoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCaptureProcessor.swift; sourceTree = "<group>"; };
+		19B6D051282B354500DC07F8 /* MediaGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGalleryView.swift; sourceTree = "<group>"; };
 		19DC647327441D10004CCE1B /* ButtonViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonViewModifier.swift; sourceTree = "<group>"; };
 		19DCCD562741AF6700DB487B /* KeyGeneration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyGeneration.swift; sourceTree = "<group>"; };
 		19DCCD582741C2E200DB487B /* ChaChaPolyHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChaChaPolyHelperTests.swift; sourceTree = "<group>"; };
@@ -140,7 +145,9 @@
 			children = (
 				19217E22273FD60F009E3850 /* ImageViewing.swift */,
 				196AFE80274F83D100C809ED /* GalleryView.swift */,
+				193ECDA5282EE8C6004F143D /* ImageViewingUseCase.swift */,
 				195719E6274B8BE300E93658 /* MovieViewing.swift */,
+				19B6D051282B354500DC07F8 /* MediaGalleryView.swift */,
 			);
 			path = ImageViewing;
 			sourceTree = "<group>";
@@ -170,6 +177,7 @@
 				19217E2C273FE452009E3850 /* ShadowPixState.swift */,
 				1916A6DF275402E80068ABCD /* DecryptedImage.swift */,
 				197C191F2754F8840001C818 /* ShadowPixMedia.swift */,
+				193ECDA3282EE7E2004F143D /* Enums.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -401,6 +409,7 @@
 				19DCCD572741AF6700DB487B /* KeyGeneration.swift in Sources */,
 				19217E20273FC5CA009E3850 /* WorkWithKeychain.swift in Sources */,
 				19217E2E273FE452009E3850 /* ShadowPixState.swift in Sources */,
+				19B6D052282B354500DC07F8 /* MediaGalleryView.swift in Sources */,
 				19DC647427441D10004CCE1B /* ButtonViewModifier.swift in Sources */,
 				A9FE17BB25394F1E00D547C7 /* CameraService+Extensions.swift in Sources */,
 				196AFE83274F858300C809ED /* iCloudFilesManager.swift in Sources */,
@@ -410,6 +419,7 @@
 				19959440280D209900AEFA6D /* VideoCaptureProcessor.swift in Sources */,
 				1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */,
 				19217E26273FD616009E3850 /* KeyPickerView.swift in Sources */,
+				193ECDA4282EE7E2004F143D /* Enums.swift in Sources */,
 				195719EE274BA4B400E93658 /* QRCodeCaptureProcessor.swift in Sources */,
 				19217E2D273FE452009E3850 /* ImageKey.swift in Sources */,
 				A9FE17872539494300D547C7 /* CameraView.swift in Sources */,

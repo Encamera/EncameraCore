@@ -54,50 +54,55 @@ struct AsyncImage<Placeholder: View>: View {
     }
 }
 
+class GalleryViewModel: ObservableObject {
+    @Published var pathInfo: iCloudFilesDirectoryModel
+    
+    init(pathInfo: iCloudFilesDirectoryModel) {
+        self.pathInfo = pathInfo
+    }
+}
+
 struct GalleryView: View {
     
     @EnvironmentObject var state: ShadowPixState
-    @State var images: [ShadowPixMedia] = []
+    @State private var images: [ShadowPixMedia] = []
     @State var displayImage: ShadowPixMedia?
     @State var isDisplayingImage: Bool = false
+    @ObservedObject var viewModel: GalleryViewModel
+    var fileEnumerator: FileEnumerator
+
+    
     var body: some View {
         let gridItems = [
             GridItem(.adaptive(minimum: 100))
         ]
-        if state.isAuthorized {
-            NavigationView {
-                ScrollView {
-                    NavigationLink("", isActive: $isDisplayingImage) {
-                        if let displayImage = displayImage {
-                            ImageViewing(viewModel: .init(image: displayImage))
-                        } else {
-                            EmptyView()
+        NavigationView {
+            ScrollView {
+                NavigationLink("", isActive: $isDisplayingImage) {
+                    if let displayImage = displayImage {
+                        ImageViewing(viewModel: .init(image: displayImage))
+                    } else {
+                        EmptyView()
+                    }
+                }
+                LazyVGrid(columns: gridItems, spacing: 1) {
+                    ForEach(images, id: \.id) { image in
+                        AsyncImage(image) {
+                            Color.gray.frame(width: 50, height: 50)
+                        }.onTapGesture {
+                            self.displayImage = image
+                            self.isDisplayingImage = true
                         }
                     }
-                    LazyVGrid(columns: gridItems, spacing: 1) {
-                        ForEach(images, id: \.id) { image in
-                            AsyncImage(image) {
-                                Color.gray.frame(width: 50, height: 50)
-                            }.onTapGesture {
-                                self.displayImage = image
-                                self.isDisplayingImage = true
-                            }
-                        }
-                        
-                    }.padding(.horizontal)
-                }.navigationTitle(state.selectedKey?.name ?? "No Key")
-            }
-            .onAppear {
-                guard let key = ShadowPixState.shared.selectedKey else {
-                    return
-                }
-                iCloudFilesManager.enumerateImagesFor(key: key) { images in
-                    self.images = images
-                }
-            }
-        } else {
-            Color.black
+                    
+                }.padding(.horizontal)
+            }.navigationTitle(state.selectedKey?.name ?? "No Key")
         }
+        .onReceive(viewModel.$pathInfo, perform: { x in
+            fileEnumerator.enumerateImages(directoryModel: x) { images in
+                self.images = images
+            }
+        })
     }
 }
 
@@ -105,14 +110,13 @@ struct GalleryView_Previews: PreviewProvider {
     static var items: [ShadowPixMedia] {
         return (0...10).map { item in
             let id = "\(item)"
-//            let image = DecryptedImage(image: UIImage(systemName: "lock")!)
+            //            let image = DecryptedImage(image: UIImage(systemName: "lock")!)
             let media = ShadowPixMedia(url: URL(string: id)!)
             
             return media
         }
     }
     static var previews: some View {
-//        Color.orange
-        GalleryView(images: items).environmentObject(ShadowPixState.shared)
+        GalleryView(viewModel: GalleryViewModel(pathInfo: iCloudFilesDirectoryModel(subdirectory: "", keyName: "")), fileEnumerator: iCloudFilesEnumerator())
     }
 }

@@ -75,44 +75,69 @@ struct iCloudFilesManager {
         }
     }
 
-    static func enumerateImagesFor(key: ImageKey, completion: ([ShadowPixMedia]) -> Void) {
-        do {
-            let driveUrl = driveUrl(for: key)
-            _ = driveUrl.startAccessingSecurityScopedResource()
-            let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
 
-            guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
-                return
-            }
+}
 
-            let imageItems: [ShadowPixMedia] = enumerator.compactMap { item in
-                guard let itemUrl = item as? URL else {
-                    return nil
-                }
-                return itemUrl
-            }.filter { item in
-                return !item.absoluteString.contains(".live")
+protocol FileEnumerator {
+    func enumerateImages(directoryModel: iCloudFilesDirectoryModel, completion: ([ShadowPixMedia]) -> Void)
+}
+
+protocol DirectoryModel {
+    var driveURL: URL { get }
+}
+
+struct iCloudFilesDirectoryModel: DirectoryModel {
+    let subdirectory: String
+    let keyName: String
+
+    var driveURL: URL {
+        guard let driveURL = FileManager.default
+            .url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
+            fatalError("Could not get drive url")
+        }
+        
+        let destURL = driveURL.appendingPathComponent(keyName)
+            .appendingPathComponent(subdirectory)
+        try? FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: false, attributes: nil)
+        return destURL
+    }
+}
+
+struct iCloudFilesEnumerator: FileEnumerator {
+        
+    func enumerateImages(directoryModel: iCloudFilesDirectoryModel, completion: ([ShadowPixMedia]) -> Void) {
+        let driveUrl = directoryModel.driveURL
+        _ = driveUrl.startAccessingSecurityScopedResource()
+        let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
+        
+        guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
+            return
+        }
+        
+        let imageItems: [ShadowPixMedia] = enumerator.compactMap { item in
+            guard let itemUrl = item as? URL else {
+                return nil
             }
-                .sorted { (url1: URL, url2: URL) in
+            return itemUrl
+        }
+            .sorted { (url1: URL, url2: URL) in
                 guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
                       let creationDate1 = resourceValues1.creationDate,
                       let resourceValues2 = try? url2.resourceValues(forKeys: resourceKeys),
-                let creationDate2 = resourceValues2.creationDate else {
-                          return false
-                      }
+                      let creationDate2 = resourceValues2.creationDate else {
+                    return false
+                }
                 return creationDate1.compare(creationDate2) == .orderedDescending
             }.compactMap { (itemUrl: URL) in
                 print(itemUrl)
                 return ShadowPixMedia(url: itemUrl)
             }
-            completion(imageItems)
-            driveUrl.stopAccessingSecurityScopedResource()
-            
-        } catch {
-            print(error)
-        }
+        completion(imageItems)
+        driveUrl.stopAccessingSecurityScopedResource()
+        
     }
 }
+
 extension UIImage {
     func scalePreservingAspectRatio(targetSize: CGSize) -> UIImage {
         // Determine the scale factor that preserves aspect ratio
@@ -140,5 +165,76 @@ extension UIImage {
         }
         
         return scaledImage
+    }
+}
+
+class iCloudFilesSubscription<S: Subscriber>: Subscription where S.Input == [URL], S.Failure == Error {
+    
+    enum iCloudFilesError: Error {
+        case createEnumeratorFailed
+    }
+    
+    private let driveUrl: URL
+    private var subscriber: S?
+    
+    init(driveUrl: URL, subscriber: S) {
+        self.driveUrl = driveUrl
+        self.subscriber = subscriber
+    }
+    
+    func request(_ demand: Subscribers.Demand) {
+        guard demand > 0 else {
+            return
+        }
+        
+        do {
+            _ = driveUrl.startAccessingSecurityScopedResource()
+            let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
+            
+            guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
+                throw iCloudFilesError.createEnumeratorFailed
+            }
+                        
+            let imageItems: [URL] = enumerator.compactMap { item in
+                guard let itemUrl = item as? URL else {
+                    return nil
+                }
+                return itemUrl
+            }.sorted { (url1: URL, url2: URL) in
+                guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
+                      let creationDate1 = resourceValues1.creationDate,
+                      let resourceValues2 = try? url2.resourceValues(forKeys: resourceKeys),
+                      let creationDate2 = resourceValues2.creationDate else {
+                    return false
+                }
+                return creationDate1.compare(creationDate2) == .orderedDescending
+            }
+            let newDemand = subscriber?.receive(imageItems)
+            print(newDemand!)
+            subscriber?.receive(completion: .finished)
+        } catch let error {
+            subscriber?.receive(completion: .failure(error))
+
+        }
+    }
+    
+    func cancel() {
+        subscriber = nil
+    }
+    
+}
+
+struct iCloudFilesPublisher: Publisher {
+    
+    typealias Output = [URL]
+    typealias Failure = Error
+    
+    let driveURL: URL
+    
+    func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, [URL] == S.Input {
+        
+        let subscription = iCloudFilesSubscription(driveUrl: driveURL, subscriber: subscriber)
+        
+        subscriber.receive(subscription: subscription)
     }
 }

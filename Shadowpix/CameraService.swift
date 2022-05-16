@@ -62,10 +62,7 @@ extension Photo {
     }
 }
 
-enum CameraMode: Int {
-    case photo
-    case video
-}
+
 
 class CameraService {
     typealias PhotoCaptureSessionID = String

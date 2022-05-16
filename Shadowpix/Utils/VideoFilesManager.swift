@@ -7,8 +7,84 @@
 
 import Foundation
 import Sodium
+import Combine
 
-struct VideoFileProcessor {
+
+enum VideoFilesManagerError: Error {
+    case keyError
+    case encryptError
+    case sourceFileAccessError
+}
+
+enum Constants {
+    static let defaultBlockSize: Int = 1024
+}
+
+class ChunkedProcessingSubscription<S: Subscriber>: Subscription where S.Input == ([UInt8], Bool), S.Failure == Error {
+    
+    
+    
+    private let sourceFileHandle: FileHandle
+    private let blockSize: Int = Constants.defaultBlockSize
+    private var subscriber: S?
+    
+    init(sourceFileHandle: FileHandle, subscriber: S) {
+        self.subscriber = subscriber
+        self.sourceFileHandle = sourceFileHandle
+    }
+    
+    func request(_ demand: Subscribers.Demand) {
+        guard demand > 0 else {
+            return
+        }
+            
+        do {
+            
+            guard var data = try sourceFileHandle.read(upToCount: blockSize) else {
+                subscriber?.receive(completion: .failure(VideoFilesManagerError.sourceFileAccessError))
+                return
+            }
+            var byteArray = [UInt8](repeating: 0, count: data.count)
+            
+            data.copyBytes(to: &byteArray, count: data.count)
+            //optimize var usage in this loop
+            while true {
+                let final = byteArray.count < blockSize
+                subscriber?.receive((byteArray, final))
+                guard let nextChunk = try sourceFileHandle.read(upToCount: blockSize) else {
+                    break
+                }
+                data = nextChunk
+                byteArray = [UInt8](repeating: 0, count: data.count)
+                data.copyBytes(to: &byteArray, count: data.count)
+            }
+            sourceFileHandle.closeFile()
+            subscriber?.receive(completion: .finished)
+            print("File reading complete")
+            
+        } catch let error as NSError {
+            subscriber?.receive(completion: .failure(error))
+        }
+    }
+    
+    func cancel() {
+        try? sourceFileHandle.close()
+    }
+}
+
+struct ChunkedProcessingPublisher: Publisher {
+    typealias Output = ([UInt8], Bool)
+    typealias Failure = Error
+    
+    let sourceFileHandle: FileHandle
+    
+    func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, ([UInt8], Bool) == S.Input {
+        let subscription = ChunkedProcessingSubscription(sourceFileHandle: sourceFileHandle, subscriber: subscriber)
+        subscriber.receive(subscription: subscription)
+    }
+}
+
+class VideoFileProcessor {
     
     enum VideoFilesManagerError: Error {
         case keyError
@@ -21,7 +97,12 @@ struct VideoFileProcessor {
     let destinationURL: URL
     let key: Array<UInt8>
     
-//    private let header: SecretStream.XChaCha20Poly1305.Header?
+    init(key: Array<UInt8>, sourceURL: URL, destinationURL: URL) {
+        self.key = key
+        self.sourceURL = sourceURL
+        self.destinationURL = destinationURL
+    }
+    
     private let sodium = Sodium()
     
     private enum Constants {
@@ -62,8 +143,6 @@ struct VideoFileProcessor {
                 data.copyBytes(to: &byteArray, count: data.count)
                 
             }
-            
-            //close outputFileHandle after reading data complete.
             sourceFileHandle.closeFile()
             completion(destinationURL, nil)
             print("File reading complete")
@@ -74,13 +153,13 @@ struct VideoFileProcessor {
         }
 
     }
+    var cancellables = Set<AnyCancellable>()
     
-    func encryptVideo(completion: @escaping (URL?, VideoFilesManagerError?) -> Void) {
+    func encryptVideo() -> AnyPublisher<URL, VideoFilesManagerError> {
                 
         guard let streamEnc = sodium.secretStream.xchacha20poly1305.initPush(secretKey: key) else {
             print("Could not create stream with key")
-            completion(nil, .keyError)
-            return
+            return Fail(error: VideoFilesManagerError.encryptError).eraseToAnyPublisher()
         }
         print("encrypting", key, streamEnc.header())
         //open file for reading.
@@ -99,15 +178,27 @@ struct VideoFileProcessor {
                     try! destinationFileHandle.write(contentsOf: Data(cipherTextLength))
                     writeBlockSizeOperation = nil
             }
-            chunkedOperation(sourceFileHandle: sourceFileHandle,
-                             destinationFileHandle: destinationFileHandle,
-                             operation: { (bytes, isFinal) in
-                let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
-                writeBlockSizeOperation?(message)
-                return Data(message)
-            }, completion: completion)
-        } catch {
+            return Future { [weak self] completion in
+                guard let self = self else {
+                    return
+                }
+                ChunkedProcessingPublisher(sourceFileHandle: sourceFileHandle)
+                    .map({ (bytes, isFinal)  -> Data in
+                        let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
+                        writeBlockSizeOperation?(message)
+                        return Data(message)
+                    }).sink { [weak self] data in
+                        guard let self = self else {
+                            return
+                        }
+                        completion(.success(self.destinationURL))
+                    } receiveValue: { data in
+                        try? destinationFileHandle.write(contentsOf: data)
+                    }.store(in: &self.cancellables)
+            }.eraseToAnyPublisher()
             
+        } catch {
+            return Fail(error: VideoFilesManagerError.sourceFileAccessError).eraseToAnyPublisher()
         }
     }
     

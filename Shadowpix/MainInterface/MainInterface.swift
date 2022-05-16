@@ -19,7 +19,7 @@ struct MainInterface: View {
                     KeyPickerView(isShown: $model.showingKeySelection)
                         .environmentObject(appState)
                 }.sheet(isPresented: $model.showGalleryView) {
-                    GalleryView().environmentObject(appState)
+//                    GalleryView().environmentObject(appState)
                 }
         }
     }
