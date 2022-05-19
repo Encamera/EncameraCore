@@ -16,6 +16,7 @@ struct ImageKey: Codable {
     var keyData: Data
     var name: String
     
+    
     init(keyData: Data, name: String) {
         self.keyData = keyData
         self.name = name

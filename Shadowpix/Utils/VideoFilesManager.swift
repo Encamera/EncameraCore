@@ -25,11 +25,13 @@ class ChunkedProcessingSubscription<S: Subscriber>: Subscription where S.Input =
     
     
     private let sourceFileHandle: FileHandle
-    private let blockSize: Int = Constants.defaultBlockSize
+    private let blockSize: Int
     private var subscriber: S?
     
-    init(sourceFileHandle: FileHandle, subscriber: S) {
+    
+    init(sourceFileHandle: FileHandle, blockSize: Int, subscriber: S) {
         self.subscriber = subscriber
+        self.blockSize = blockSize
         self.sourceFileHandle = sourceFileHandle
     }
     
@@ -77,9 +79,15 @@ struct ChunkedProcessingPublisher: Publisher {
     typealias Failure = Error
     
     let sourceFileHandle: FileHandle
+    let blockSize: Int
+    
+    init(sourceFileHandle: FileHandle, blockSize: Int = Constants.defaultBlockSize) {
+        self.sourceFileHandle = sourceFileHandle
+        self.blockSize = blockSize
+    }
     
     func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, ([UInt8], Bool) == S.Input {
-        let subscription = ChunkedProcessingSubscription(sourceFileHandle: sourceFileHandle, subscriber: subscriber)
+        let subscription = ChunkedProcessingSubscription(sourceFileHandle: sourceFileHandle, blockSize: blockSize, subscriber: subscriber)
         subscriber.receive(subscription: subscription)
     }
 }
@@ -89,6 +97,7 @@ class VideoFileProcessor {
     enum VideoFilesManagerError: Error {
         case keyError
         case encryptError
+        case decryptError
         case sourceFileAccessError
     }
     
@@ -202,8 +211,7 @@ class VideoFileProcessor {
         }
     }
     
-    func decryptVideo(completion: @escaping (URL?, VideoFilesManagerError?) -> Void) {
-        
+    func decryptVideo() -> AnyPublisher<URL, VideoFilesManagerError> {
         
         
         do {
@@ -222,20 +230,23 @@ class VideoFileProcessor {
             
             guard let streamDec = sodium.secretStream.xchacha20poly1305.initPull(secretKey: key, header: headerBuffer) else {
                 print("Could not create stream with key")
-                completion(nil, .keyError)
-                return
+                return Fail(error: VideoFilesManagerError.keyError).eraseToAnyPublisher()
             }
-            
-            chunkedOperation(sourceFileHandle: sourceFileHandle,
-                             destinationFileHandle: destinationFileHandle,
-                             operation: { (bytes, isFinal) in
-                let (message, _) = streamDec.pull(cipherText: bytes)!
-                return Data(message)
-            },
-                             blockSize: Int(blockSize),
-                             completion: completion)
+            return Future { completion in
+                
+                ChunkedProcessingPublisher(sourceFileHandle: sourceFileHandle, blockSize: Int(blockSize)).map { (bytes, _) -> Data in
+                    let (message, _) = streamDec.pull(cipherText: bytes)!
+                    return Data(message)
+                }.sink { [weak self] signal in
+                    guard let self = self else { return }
+                    completion(.success(self.destinationURL))
+                } receiveValue: { data in
+                    try? destinationFileHandle.write(contentsOf: data)
+                }.store(in: &self.cancellables)
+
+            }.eraseToAnyPublisher()
         } catch {
-            
+            return Fail(error: VideoFilesManagerError.decryptError).eraseToAnyPublisher()
         }
     }
     
