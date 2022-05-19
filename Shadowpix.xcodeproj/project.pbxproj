@@ -23,7 +23,7 @@
 		195719EE274BA4B400E93658 /* QRCodeCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195719ED274BA4B400E93658 /* QRCodeCaptureProcessor.swift */; };
 		1961BCBE281B081E00D7BE92 /* Clibsodium in Frameworks */ = {isa = PBXBuildFile; productRef = 1961BCBD281B081E00D7BE92 /* Clibsodium */; };
 		1961BCC0281B081E00D7BE92 /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 1961BCBF281B081E00D7BE92 /* Sodium */; };
-		1961BCC2281B08CE00D7BE92 /* VideoFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1961BCC1281B08CE00D7BE92 /* VideoFilesManager.swift */; };
+		1961BCC2281B08CE00D7BE92 /* SecretFileHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1961BCC1281B08CE00D7BE92 /* SecretFileHandler.swift */; };
 		1961BCC4281F9DFA00D7BE92 /* VideoFilesManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1961BCC3281F9DFA00D7BE92 /* VideoFilesManagerTests.swift */; };
 		19665C462742542A00DA8578 /* KeyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19665C452742542A00DA8578 /* KeyEntry.swift */; };
 		196AFE81274F83D100C809ED /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE80274F83D100C809ED /* GalleryView.swift */; };
@@ -39,6 +39,7 @@
 		19DC647427441D10004CCE1B /* ButtonViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DC647327441D10004CCE1B /* ButtonViewModifier.swift */; };
 		19DCCD572741AF6700DB487B /* KeyGeneration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DCCD562741AF6700DB487B /* KeyGeneration.swift */; };
 		19DCCD592741C2E200DB487B /* ChaChaPolyHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DCCD582741C2E200DB487B /* ChaChaPolyHelperTests.swift */; };
+		19FD5D5A2835D29B008D75AA /* ChunkedFilesProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FD5D592835D29B008D75AA /* ChunkedFilesProcessing.swift */; };
 		A9E6E4EF253B5EA8008B4A33 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E6E4EE253B5EA8008B4A33 /* CameraPreview.swift */; };
 		A9FE17852539494300D547C7 /* ShadowpixApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9FE17842539494300D547C7 /* ShadowpixApp.swift */; };
 		A9FE17872539494300D547C7 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9FE17862539494300D547C7 /* CameraView.swift */; };
@@ -79,7 +80,7 @@
 		195719EA274B8FBF00E93658 /* TempFilesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempFilesManager.swift; sourceTree = "<group>"; };
 		195719ED274BA4B400E93658 /* QRCodeCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeCaptureProcessor.swift; sourceTree = "<group>"; };
 		195BCA74273FC2BC00E7D764 /* Shadowpix.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Shadowpix.entitlements; sourceTree = "<group>"; };
-		1961BCC1281B08CE00D7BE92 /* VideoFilesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFilesManager.swift; sourceTree = "<group>"; };
+		1961BCC1281B08CE00D7BE92 /* SecretFileHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretFileHandler.swift; sourceTree = "<group>"; };
 		1961BCC3281F9DFA00D7BE92 /* VideoFilesManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFilesManagerTests.swift; sourceTree = "<group>"; };
 		19665C452742542A00DA8578 /* KeyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyEntry.swift; sourceTree = "<group>"; };
 		196AFE80274F83D100C809ED /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
@@ -95,6 +96,7 @@
 		19DC647327441D10004CCE1B /* ButtonViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonViewModifier.swift; sourceTree = "<group>"; };
 		19DCCD562741AF6700DB487B /* KeyGeneration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyGeneration.swift; sourceTree = "<group>"; };
 		19DCCD582741C2E200DB487B /* ChaChaPolyHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChaChaPolyHelperTests.swift; sourceTree = "<group>"; };
+		19FD5D592835D29B008D75AA /* ChunkedFilesProcessing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChunkedFilesProcessing.swift; sourceTree = "<group>"; };
 		A9E6E4EE253B5EA8008B4A33 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
 		A9FE17812539494300D547C7 /* Shadowpix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shadowpix.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A9FE17842539494300D547C7 /* ShadowpixApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowpixApp.swift; sourceTree = "<group>"; };
@@ -188,7 +190,8 @@
 				195719EA274B8FBF00E93658 /* TempFilesManager.swift */,
 				196AFE82274F858300C809ED /* iCloudFilesManager.swift */,
 				191FF12C275EC83400DED001 /* AuthManager.swift */,
-				1961BCC1281B08CE00D7BE92 /* VideoFilesManager.swift */,
+				1961BCC1281B08CE00D7BE92 /* SecretFileHandler.swift */,
+				19FD5D592835D29B008D75AA /* ChunkedFilesProcessing.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -397,6 +400,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				19FD5D5A2835D29B008D75AA /* ChunkedFilesProcessing.swift in Sources */,
 				1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */,
 				A9FE17B925394F1E00D547C7 /* CameraService.swift in Sources */,
 				191FF12D275EC83400DED001 /* AuthManager.swift in Sources */,
@@ -405,7 +409,7 @@
 				19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */,
 				19665C462742542A00DA8578 /* KeyEntry.swift in Sources */,
 				1916A6E0275402E80068ABCD /* DecryptedImage.swift in Sources */,
-				1961BCC2281B08CE00D7BE92 /* VideoFilesManager.swift in Sources */,
+				1961BCC2281B08CE00D7BE92 /* SecretFileHandler.swift in Sources */,
 				19DCCD572741AF6700DB487B /* KeyGeneration.swift in Sources */,
 				19217E20273FC5CA009E3850 /* WorkWithKeychain.swift in Sources */,
 				19217E2E273FE452009E3850 /* ShadowPixState.swift in Sources */,
