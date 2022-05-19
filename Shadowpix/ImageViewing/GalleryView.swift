@@ -22,30 +22,32 @@ struct LocalImageView: View {
     }
 }
 
-struct AsyncImage<Placeholder: View>: View {
+struct AsyncImage<Placeholder: View, Enumerator: FileEnumerator>: View {
     
     private var placeholder: Placeholder
-    @ObservedObject private var image: ShadowPixMedia
+    private var loader: Enumerator
+    @ObservedObject private var media: ShadowPixMedia
     
-    init(_ image: ShadowPixMedia, placeholder: () -> Placeholder) {
+    init(_ media: ShadowPixMedia, loader: Enumerator, placeholder: () -> Placeholder) {
+        self.loader = loader
         self.placeholder = placeholder()
-        self.image = image
+        self.media = media
     }
     
     var body: some View {
         
         content.onAppear {
-            image.loadImage()
+            loader.loadMediaPreview(for: media)
         }
     }
     
     private var content: some View {
         Group {
-            if let decrypted = image.decryptedImage?.image {
+            // need separate view for holding preview
+            if let decrypted = media.decryptedImage?.image {
                 Image(uiImage: decrypted)
                     .resizable()
                     .clipped()
-                    .background(Color.orange)
                     .aspectRatio(contentMode:.fit)
             } else {
                 placeholder
@@ -54,29 +56,27 @@ struct AsyncImage<Placeholder: View>: View {
     }
 }
 
-class GalleryViewModel: ObservableObject {
-    @Published var pathInfo: iCloudFilesDirectoryModel
+class GalleryViewModel<Enumerator: FileEnumerator>: ObservableObject {
+    @Published var fileEnumerator: Enumerator
     
-    init(pathInfo: iCloudFilesDirectoryModel) {
-        self.pathInfo = pathInfo
+    init(fileEnumerator: Enumerator) {
+        self.fileEnumerator = fileEnumerator
     }
 }
 
-struct GalleryView: View {
+struct GalleryView<Enumerator: FileEnumerator>: View {
     
     @EnvironmentObject var state: ShadowPixState
     @State private var images: [ShadowPixMedia] = []
     @State var displayImage: ShadowPixMedia?
     @State var isDisplayingImage: Bool = false
-    @ObservedObject var viewModel: GalleryViewModel
-    var fileEnumerator: FileEnumerator
+    @ObservedObject var viewModel: GalleryViewModel<Enumerator>
 
     
     var body: some View {
         let gridItems = [
             GridItem(.adaptive(minimum: 100))
         ]
-        NavigationView {
             ScrollView {
                 NavigationLink("", isActive: $isDisplayingImage) {
                     if let displayImage = displayImage {
@@ -87,7 +87,7 @@ struct GalleryView: View {
                 }
                 LazyVGrid(columns: gridItems, spacing: 1) {
                     ForEach(images, id: \.id) { image in
-                        AsyncImage(image) {
+                        AsyncImage(image, loader: viewModel.fileEnumerator) {
                             Color.gray.frame(width: 50, height: 50)
                         }.onTapGesture {
                             self.displayImage = image
@@ -96,27 +96,53 @@ struct GalleryView: View {
                     }
                     
                 }.padding(.horizontal)
-            }.navigationTitle(state.selectedKey?.name ?? "No Key")
-        }
-        .onReceive(viewModel.$pathInfo, perform: { x in
-            fileEnumerator.enumerateImages(directoryModel: x) { images in
+            }
+        .onReceive(viewModel.$fileEnumerator, perform: { x in
+            viewModel.fileEnumerator.enumerateImages { images in
                 self.images = images
             }
         })
+        .onAppear {
+            viewModel.fileEnumerator.enumerateImages { images in
+                self.images = images
+            }
+        }.edgesIgnoringSafeArea(.all)
     }
 }
 
 struct GalleryView_Previews: PreviewProvider {
-    static var items: [ShadowPixMedia] {
-        return (0...10).map { item in
-            let id = "\(item)"
-            //            let image = DecryptedImage(image: UIImage(systemName: "lock")!)
-            let media = ShadowPixMedia(url: URL(string: id)!)
+    private class DemoFileEnumerator: FileEnumerator {
+        func loadMediaPreview(for media: ShadowPixMedia) {
+            media.decryptedImage = DecryptedImage(image: UIImage(systemName: "photo.fill")!)
+        }
+        
+        required init(directoryModel: DemoDirectoryModel) {
             
-            return media
+        }
+        
+        
+        func enumerateImages(completion: ([ShadowPixMedia]) -> Void) {
+            completion((0...10).map { _ in
+                ShadowPixMedia(url: URL(fileURLWithPath: ""))
+            })
+            
         }
     }
+    
+    private class DemoDirectoryModel: DirectoryModel {
+        required init(subdirectory: String = "", keyName: String = "") {
+            
+        }
+        
+        let subdirectory = ""
+        let keyName = ""
+        
+        var driveURL: URL {
+            URL(fileURLWithPath: "")
+        }
+    }
+
     static var previews: some View {
-        GalleryView(viewModel: GalleryViewModel(pathInfo: iCloudFilesDirectoryModel(subdirectory: "", keyName: "")), fileEnumerator: iCloudFilesEnumerator())
+        GalleryView(viewModel: GalleryViewModel(fileEnumerator: DemoFileEnumerator(directoryModel: DemoDirectoryModel()))).environmentObject(ShadowPixState.shared)
     }
 }

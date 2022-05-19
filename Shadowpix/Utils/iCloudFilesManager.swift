@@ -79,10 +79,18 @@ struct iCloudFilesManager {
 }
 
 protocol FileEnumerator {
-    func enumerateImages(directoryModel: iCloudFilesDirectoryModel, completion: ([ShadowPixMedia]) -> Void)
+    
+    associatedtype DirModel: DirectoryModel
+    
+    init(directoryModel: DirModel)
+    
+    func enumerateImages(completion: ([ShadowPixMedia]) -> Void)
+    func loadMediaPreview(for media: ShadowPixMedia)
 }
 
 protocol DirectoryModel {
+    
+    init(subdirectory: String, keyName: String)
     var driveURL: URL { get }
 }
 
@@ -105,7 +113,17 @@ struct iCloudFilesDirectoryModel: DirectoryModel {
 
 struct iCloudFilesEnumerator: FileEnumerator {
         
-    func enumerateImages(directoryModel: iCloudFilesDirectoryModel, completion: ([ShadowPixMedia]) -> Void) {
+    var directoryModel: iCloudFilesDirectoryModel
+    
+    init(directoryModel: iCloudFilesDirectoryModel) {
+        self.directoryModel = directoryModel
+    }
+    
+    func loadMediaPreview(for media: ShadowPixMedia) {
+        media.decryptedImage = getImageAt(url: media.url)
+    }
+    
+    func enumerateImages(completion: ([ShadowPixMedia]) -> Void) {
         let driveUrl = directoryModel.driveURL
         _ = driveUrl.startAccessingSecurityScopedResource()
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
@@ -136,6 +154,29 @@ struct iCloudFilesEnumerator: FileEnumerator {
         driveUrl.stopAccessingSecurityScopedResource()
         
     }
+    
+    private func getImageAt(url imageUrl: URL) -> DecryptedImage? {
+        guard imageUrl.lastPathComponent.contains(".live") == false else {
+            return nil
+        }
+        
+        do {
+            _ = imageUrl.startAccessingSecurityScopedResource()
+            let data = try Data(contentsOf: imageUrl)
+            imageUrl.stopAccessingSecurityScopedResource()
+            guard let decrypted: UIImage = ChaChaPolyHelpers.decrypt(encryptedContent: data) else {
+                print("Could not decrypt image")
+                return nil
+            }
+            return DecryptedImage(image: decrypted)
+
+        } catch {
+            print("error opening image", error.localizedDescription)
+            return nil
+        }
+
+    }
+
 }
 
 extension UIImage {
