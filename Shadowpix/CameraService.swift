@@ -76,7 +76,7 @@ class CameraService {
     @Published var photo: Photo?
     @Published var isRecordingVideo = false
     @Published var mode: CameraMode = .photo
-    
+    @Published var scannedKey: ImageKey?
 
 //    MARK: Alert properties
     var alertError: AlertError = AlertError()
@@ -90,7 +90,7 @@ class CameraService {
     
     private var cancellables: [AnyCancellable] = []
     private let sessionQueue = DispatchQueue(label: "session queue")
-    private let metadataProcessor = QRCodeCaptureProcessor()
+    private lazy var metadataProcessor = QRCodeCaptureProcessor()
     private var volumeObservation: NSKeyValueObservation?
     @objc dynamic var videoDeviceInput: AVCaptureDeviceInput!
     
@@ -119,6 +119,7 @@ class CameraService {
          take a long time. Dispatch session setup to the sessionQueue, so
          that the main queue isn't blocked, which keeps the UI responsive.
          */
+        scannedKey = metadataProcessor.lastValidKeyObject
         sessionQueue.async {
             self.initialSessionConfiguration()
         }
@@ -580,7 +581,7 @@ class CameraService {
                 } else {
                     self?.shouldShowSpinner = false
                 }
-            })
+            }, tempFilesManager: TempFilesManager())
             
             // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
             self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor

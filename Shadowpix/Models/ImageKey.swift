@@ -13,13 +13,12 @@ enum ImageKeyEncodingError: Error {
 
 struct ImageKey: Codable {
     
-    var keyData: Data
     var name: String
+    var keyBytes: Array<UInt8>
     
-    
-    init(keyData: Data, name: String) {
-        self.keyData = keyData
+    init(name: String, keyBytes: Array<UInt8>) {
         self.name = name
+        self.keyBytes = keyBytes
     }
     
     init(base64String: String) throws {

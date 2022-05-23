@@ -29,10 +29,10 @@ class PhotoCaptureProcessor: NSObject {
     private var maxPhotoProcessingTime: CMTime?
         
 //    Init takes multiple closures to be called in each step of the photco capture process
-    init(with requestedPhotoSettings: AVCapturePhotoSettings, willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (PhotoCaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void) {
+    init(with requestedPhotoSettings: AVCapturePhotoSettings, willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (PhotoCaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, tempFilesManager: TempFilesManager) {
         photoId = String(describing: NSDate().timeIntervalSince1970)
 
-        if let destinationUrl = try? ShadowPixState.shared.tempFilesManager.createLivePhotoiCloudMovieCaptureUrl(photoId: photoId) {
+        if let destinationUrl = try? tempFilesManager.createLivePhotoiCloudMovieCaptureUrl(photoId: photoId) {
             requestedPhotoSettings.livePhotoMovieFileURL = destinationUrl
         }
         self.requestedPhotoSettings = requestedPhotoSettings
@@ -105,7 +105,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
             }
             return
         } else {
-            guard let data  = photoData else {
+            guard let data = photoData else {
                 DispatchQueue.main.async {
                     self.completionHandler(self)
                 }
@@ -123,7 +123,7 @@ extension PhotoCaptureProcessor {
     
     private func saveEncryptedToiCloudDrive(_ photoData: Data, tempUrl: URL? = nil, isLivePhoto: Bool = false) {
         
-        iCloudFilesManager.saveEncryptedToiCloudDrive(photoData, photoId: photoId, isLivePhoto: isLivePhoto)
+//        iCloudFilesManager.saveEncryptedToiCloudDrive(photoData, photoId: photoId, isLivePhoto: isLivePhoto)
         DispatchQueue.main.async {
             self.completionHandler(self)
         }

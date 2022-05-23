@@ -12,17 +12,17 @@ struct ShadowpixApp: App {
     @State var hasOpenedUrl: Bool = false
     class ViewModel: ObservableObject {
         var openedUrl: URL?
+        var state: ShadowPixState = ShadowPixState()
     }
     
-    @ObservedObject var state: ShadowPixState = .shared
-    @StateObject var viewModel: ViewModel = ViewModel()
-    var showScannedKeySheet: Binding<Bool> = {
-        return Binding {
-            return ShadowPixState.shared.showScannedKeySheet
-        } set: { value in
-            ShadowPixState.shared.showScannedKeySheet = value
-        }
-    }()
+    @ObservedObject var viewModel: ViewModel = ViewModel()
+//    lazy var showScannedKeySheet: Binding<Bool> = {
+//        return Binding {
+//            return viewModel.state.showScannedKeySheet
+//        } set: { value in
+//            viewModel.state.showScannedKeySheet = value
+//        }
+//    }()
     
     var body: some Scene {
         WindowGroup {
@@ -30,13 +30,12 @@ struct ShadowpixApp: App {
                 self.hasOpenedUrl = false
             } content: {
                 if let url = viewModel.openedUrl {
-                    if url.lastPathComponent.contains(".live") {
-                        MovieViewing(viewModel: MovieViewing.ViewModel(movieUrl: url, filesManager: ShadowPixState.shared.tempFilesManager))
-                    } else {
-                        let media = ShadowPixMedia(url: url)
-                        ImageViewing(viewModel: ImageViewing.ViewModel(image: media))
-                            .environmentObject(ShadowPixState.shared)
-                    }
+//                    if url.lastPathComponent.contains(".live") {
+//                        MovieViewing(viewModel: MovieViewing.ViewModel(movieUrl: url, filesManager: state.tempFilesManager))
+//                    } else {
+                    let media = EncryptedMedia(sourceURL: url, mediaType: .photo)
+                    ImageViewing(viewModel: ImageViewing.ViewModel(image: media, state: viewModel.state))
+//                    }
                     
                 }
             }.onOpenURL { url in
@@ -44,13 +43,13 @@ struct ShadowpixApp: App {
                 self.viewModel.openedUrl = url
                 self.hasOpenedUrl = true
             }
-            .sheet(isPresented: $state.showScannedKeySheet, onDismiss: {
-            }, content: {
-                if let scannedKey = ShadowPixState.shared.scannedKey, let keyString = scannedKey.base64String {
-                    KeyEntry(keyString: keyString, isShowing: $state.showScannedKeySheet)
-                }
-            })
-            .environmentObject(ShadowPixState.shared)
+//            .sheet(isPresented: $state.showScannedKeySheet, onDismiss: {
+//            }, content: {
+//                if let scannedKey = ShadowPixState.shared.scannedKey, let keyString = scannedKey.base64String {
+//                    KeyEntry(keyString: keyString, isShowing: $state.showScannedKeySheet)
+//                }
+//            })
+//            .environmentObject(state)
 
         }
     }

@@ -103,9 +103,13 @@ struct KeyPickerView: View {
                                 .cancel(Text("Cancel")) {
                         isShowingAlertForClearKey = false
                     }, secondaryButton: .destructive(Text("Clear")) {
-                        WorkWithKeychain.clearKeychain()
-                        appState.selectedKey = nil
-                        isShowingAlertForClearKey = false
+                        do {
+                            try appState.keyManager.clearStoredKeys()
+                            appState.selectedKey = nil
+                            isShowingAlertForClearKey = false
+                        } catch {
+                            print("Error clearing keychain", error)
+                        }
                     })}
             }
             
@@ -128,9 +132,6 @@ struct KeyPickerView: View {
                 .environmentObject(appState)
         }
         .foregroundColor(.blue)
-        .onAppear {
-            appState.selectedKey = WorkWithKeychain.getKeyObject()
-        }
         
     }
 }

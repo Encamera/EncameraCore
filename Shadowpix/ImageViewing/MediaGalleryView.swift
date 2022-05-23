@@ -8,18 +8,17 @@
 import SwiftUI
 
 class MediaGalleryViewModel: ObservableObject {
-    @Published var selectedMediaType: MediaType = .photos
+    @Published var selectedMediaType: MediaType = .photo
 }
 
-struct MediaGalleryView<Enumerator: FileEnumerator>: View {
+struct MediaGalleryView: View {
     
     @State var viewModel: MediaGalleryViewModel
-    @State var selectedMediaType: MediaType = .photos
+    @State var selectedMediaType: MediaType = .photo
     @EnvironmentObject var state: ShadowPixState
-    @State var fileEnumerator: Enumerator
     
     var body: some View {
-        let galleryViewModel = GalleryViewModel(fileEnumerator: fileEnumerator)
+        let galleryViewModel = GalleryViewModel(fileEnumerator: state.fileHandler!)
         VStack {
             Picker("Media Type", selection: $selectedMediaType) {
                 ForEach(MediaType.allCases, id: \.rawValue) { type in
@@ -27,8 +26,9 @@ struct MediaGalleryView<Enumerator: FileEnumerator>: View {
                 }
             }.pickerStyle(.segmented)
                 .onChange(of: selectedMediaType) { newValue in
-                    let directoryModel = Enumerator.DirModel(subdirectory: newValue.path, keyName: "")
-                    self.fileEnumerator = Enumerator(directoryModel: directoryModel)
+//                    let directoryModel = iCloudFilesDirectoryModel(subdirectory: newValue.path, keyName: "")
+//
+//                    self.fileEnumerator = F(directoryModel: directoryModel, key: state.selectedKey)
                 }
             GalleryView(viewModel: galleryViewModel)
         }
@@ -36,40 +36,10 @@ struct MediaGalleryView<Enumerator: FileEnumerator>: View {
 }
 
 struct MediaGalleryView_Previews: PreviewProvider {
-    
-    private class DemoFileEnumerator: FileEnumerator {
-        func loadMediaPreview(for media: ShadowPixMedia) {
-            media.decryptedImage = DecryptedImage(image: UIImage(systemName: "photo.fill")!)
-        }
-        
-        required init(directoryModel: DemoDirectoryModel) {
-            
-        }
-        
-        
-        func enumerateImages(completion: ([ShadowPixMedia]) -> Void) {
-            completion((0...10).map { _ in
-                ShadowPixMedia(url: URL(fileURLWithPath: ""))
-            })
-            
-        }
-    }
-    
-    private class DemoDirectoryModel: DirectoryModel {
-        required init(subdirectory: String = "", keyName: String = "") {
-            
-        }
-        
-        let subdirectory = ""
-        let keyName = ""
-        
-        var driveURL: URL {
-            URL(fileURLWithPath: "")
-        }
-    }
+
     
     static var previews: some View {
-        MediaGalleryView(viewModel: MediaGalleryViewModel(), fileEnumerator: DemoFileEnumerator(directoryModel: DemoDirectoryModel()))
-            .environmentObject(ShadowPixState.shared)
+        MediaGalleryView(viewModel: MediaGalleryViewModel())
+            .environmentObject(ShadowPixState())
     }
 }

@@ -67,6 +67,6 @@ struct KeyEntry: View {
 struct KeyEntry_Previews: PreviewProvider {
     static var previews: some View {
         KeyEntry( keyString: "eyJrZXlEYXRhIjoiQ00wUjJIdkZkdzczM3pZbGFSKzh2cXd6SW90MitRZjFEbDFZN1FFUE8zYz0iLCJuYW1lIjoidGVzdCJ9", isShowing: .constant(true))
-            .environmentObject(ShadowPixState.shared)
+            .environmentObject(ShadowPixState(fileHandler: DemoFileEnumerator()))
     }
 }

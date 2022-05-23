@@ -22,13 +22,13 @@ struct LocalImageView: View {
     }
 }
 
-struct AsyncImage<Placeholder: View, Enumerator: FileEnumerator>: View {
+struct AsyncImage<Placeholder: View>: View {
     
     private var placeholder: Placeholder
-    private var loader: Enumerator
+    private var loader: FileReader
     @ObservedObject private var media: ShadowPixMedia
     
-    init(_ media: ShadowPixMedia, loader: Enumerator, placeholder: () -> Placeholder) {
+    init(_ media: ShadowPixMedia, loader: FileReader, placeholder: () -> Placeholder) {
         self.loader = loader
         self.placeholder = placeholder()
         self.media = media
@@ -56,21 +56,21 @@ struct AsyncImage<Placeholder: View, Enumerator: FileEnumerator>: View {
     }
 }
 
-class GalleryViewModel<Enumerator: FileEnumerator>: ObservableObject {
-    @Published var fileEnumerator: Enumerator
+class GalleryViewModel: ObservableObject {
+    @Published var fileEnumerator: FileAccess
     
-    init(fileEnumerator: Enumerator) {
+    init(fileEnumerator: FileAccess) {
         self.fileEnumerator = fileEnumerator
     }
 }
 
-struct GalleryView<Enumerator: FileEnumerator>: View {
+struct GalleryView: View {
     
     @EnvironmentObject var state: ShadowPixState
     @State private var images: [ShadowPixMedia] = []
     @State var displayImage: ShadowPixMedia?
     @State var isDisplayingImage: Bool = false
-    @ObservedObject var viewModel: GalleryViewModel<Enumerator>
+    @ObservedObject var viewModel: GalleryViewModel
 
     
     var body: some View {
@@ -78,13 +78,13 @@ struct GalleryView<Enumerator: FileEnumerator>: View {
             GridItem(.adaptive(minimum: 100))
         ]
             ScrollView {
-                NavigationLink("", isActive: $isDisplayingImage) {
-                    if let displayImage = displayImage {
-                        ImageViewing(viewModel: .init(image: displayImage))
-                    } else {
-                        EmptyView()
-                    }
-                }
+//                NavigationLink("", isActive: $isDisplayingImage) {
+//                    if let displayImage = displayImage {
+//                        ImageViewing(viewModel: .init(image: displayImage))
+//                    } else {
+//                        EmptyView()
+//                    }
+//                }
                 LazyVGrid(columns: gridItems, spacing: 1) {
                     ForEach(images, id: \.id) { image in
                         AsyncImage(image, loader: viewModel.fileEnumerator) {
@@ -98,12 +98,12 @@ struct GalleryView<Enumerator: FileEnumerator>: View {
                 }.padding(.horizontal)
             }
         .onReceive(viewModel.$fileEnumerator, perform: { x in
-            viewModel.fileEnumerator.enumerateImages { images in
+            viewModel.fileEnumerator.enumerateMedia { images in
                 self.images = images
             }
         })
         .onAppear {
-            viewModel.fileEnumerator.enumerateImages { images in
+            viewModel.fileEnumerator.enumerateMedia { images in
                 self.images = images
             }
         }.edgesIgnoringSafeArea(.all)
@@ -111,38 +111,9 @@ struct GalleryView<Enumerator: FileEnumerator>: View {
 }
 
 struct GalleryView_Previews: PreviewProvider {
-    private class DemoFileEnumerator: FileEnumerator {
-        func loadMediaPreview(for media: ShadowPixMedia) {
-            media.decryptedImage = DecryptedImage(image: UIImage(systemName: "photo.fill")!)
-        }
-        
-        required init(directoryModel: DemoDirectoryModel) {
-            
-        }
-        
-        
-        func enumerateImages(completion: ([ShadowPixMedia]) -> Void) {
-            completion((0...10).map { _ in
-                ShadowPixMedia(url: URL(fileURLWithPath: ""))
-            })
-            
-        }
-    }
-    
-    private class DemoDirectoryModel: DirectoryModel {
-        required init(subdirectory: String = "", keyName: String = "") {
-            
-        }
-        
-        let subdirectory = ""
-        let keyName = ""
-        
-        var driveURL: URL {
-            URL(fileURLWithPath: "")
-        }
-    }
 
     static var previews: some View {
-        GalleryView(viewModel: GalleryViewModel(fileEnumerator: DemoFileEnumerator(directoryModel: DemoDirectoryModel()))).environmentObject(ShadowPixState.shared)
+        let enumerator = DemoFileEnumerator(directoryModel: DemoDirectoryModel(), key: nil)
+        GalleryView(viewModel: GalleryViewModel(fileEnumerator: enumerator)).environmentObject(ShadowPixState(fileHandler: enumerator))
     }
 }

@@ -34,12 +34,6 @@ struct AuthManager {
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Scan face ID to keep your keys secure.") { success, error in
             DispatchQueue.main.async {
                 state.isAuthorized = success
-                guard success else {
-                    return
-                }
-                if let savedKey = WorkWithKeychain.getKeyObject() {
-                    ShadowPixState.shared.selectedKey = savedKey
-                }
             }
         }
     }

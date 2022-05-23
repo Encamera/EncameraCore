@@ -14,4 +14,8 @@ struct DecryptedImage: Identifiable {
     var id: Int {
         return image.hashValue
     }
+    
+    init(data: Data) {
+        self.image = UIImage(data: data)!
+    }
 }

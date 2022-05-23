@@ -27,6 +27,6 @@ struct MainInterface: View {
 
 struct MainInterface_Previews: PreviewProvider {
     static var previews: some View {
-        MainInterface().environmentObject(ShadowPixState.shared)
+        MainInterface().environmentObject(ShadowPixState())
     }
 }

@@ -8,17 +8,14 @@
 import Foundation
 enum MediaType: Int, CaseIterable {
     case video
-    case photos
-    case decrypted
+    case photo
     
     var title: String {
         switch self {
         case .video:
             return "Video"
-        case .photos:
-            return "Photos"
-        case .decrypted:
-            return "Decrypted"
+        case .photo:
+            return "Photo"
         }
     }
     
@@ -26,10 +23,8 @@ enum MediaType: Int, CaseIterable {
         switch self {
         case .video:
             return "video"
-        case .photos:
+        case .photo:
             return "photo"
-        case .decrypted:
-            return "decrypted"
         }
     }
 }

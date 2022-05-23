@@ -12,12 +12,14 @@ import Combine
 
 class ShadowPixState: ObservableObject {
     
-    static var shared = ShadowPixState()
     
     private(set) var authManager: AuthManager?
+    var keyManager: KeyManager
+    var fileHandler: FileAccess?
     private var cancellables = Set<AnyCancellable>()
-
+    
     init() {
+        self.keyManager = KeychainKeyManager()
         self.authManager = AuthManager(state: self)
         NotificationCenter.default
             .publisher(for: UIApplication.didEnterBackgroundNotification)
@@ -35,24 +37,17 @@ class ShadowPixState: ObservableObject {
                 self.authManager?.deauthorize()
             }.store(in: &cancellables)
 
+    }
+
+    convenience init(fileHandler: FileAccess) {
+        self.init()
+        self.fileHandler = fileHandler
 
     }
     
     @Published var cameraMode: CameraMode = .photo
-    
-    @Published var selectedKey: ImageKey? {
-        willSet {
-            guard let newKey = newValue else {
-                return
-            }
-            WorkWithKeychain.setKey(key: newKey)
-        }
-    }
-    @Published var isAuthorized: Bool = false {
-        didSet {
-            WorkWithKeychain.isAuthorized = isAuthorized
-        }
-    }
+    @Published var selectedKey: ImageKey?
+    @Published var isAuthorized: Bool = false
     @Published var scannedKey: ImageKey? {
         didSet {
             if scannedKey != nil {

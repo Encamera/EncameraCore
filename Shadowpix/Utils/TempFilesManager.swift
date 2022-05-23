@@ -38,6 +38,12 @@ class TempFilesManager {
 
     }
     
+    static func createTempURL(media: MediaDescribing) -> URL {
+        return URL(fileURLWithPath: NSTemporaryDirectory(),
+                          isDirectory: true).appendingPathComponent(NSUUID().uuidString + media.mediaType.path)
+
+    }
+    
     func createTemporaryMovieUrl() -> URL {
         let movieUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
             isDirectory: true).appendingPathComponent(NSUUID().uuidString + "_currentMovie.mov")

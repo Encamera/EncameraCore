@@ -9,91 +9,6 @@ import Foundation
 import UIKit
 import Combine
 
-struct iCloudFilesManager {
-    private static var cancellables = Set<AnyCancellable>()
-
-    static func getImageAt(url imageUrl: URL) -> DecryptedImage? {
-        guard imageUrl.lastPathComponent.contains(".live") == false else {
-            return nil
-        }
-        
-        do {
-            _ = imageUrl.startAccessingSecurityScopedResource()
-            let data = try Data(contentsOf: imageUrl)
-            imageUrl.stopAccessingSecurityScopedResource()
-            guard let decrypted: UIImage = ChaChaPolyHelpers.decrypt(encryptedContent: data) else {
-                print("Could not decrypt image")
-                return nil
-            }
-            return DecryptedImage(image: decrypted)
-
-        } catch {
-            print("error opening image", error.localizedDescription)
-            return nil
-        }
-
-    }
-    
-    private static func driveUrl(for key: ImageKey) -> URL {
-        guard let driveURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
-            fatalError("Could not get drive url")
-        }
-        
-        let destURL = driveURL.appendingPathComponent(key.name)
-        try? FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: false, attributes: nil)
-        return destURL
-    }
-    
-    static func encryptAndMoveToiCloudDrive(sourceUrl: URL, photoId: String, isLivePhoto: Bool = false) {
-        
-        guard let photoData = try? Data(contentsOf: sourceUrl) else {
-            fatalError("Could not get data from url")
-        }
-        saveEncryptedToiCloudDrive(photoData, photoId: photoId)
-    }
-    
-    static func saveEncryptedToiCloudDrive(_ photoData: Data, photoId: String, isLivePhoto: Bool = false) {
-        
-
-        guard let encrypted = ChaChaPolyHelpers.encrypt(contentData: photoData) else {
-            fatalError("Could not encrypt image")
-        }
-        guard let key = ShadowPixState.shared.selectedKey else {
-            fatalError("No key stored")
-        }
-        
-        let driveUrl = driveUrl(for: key)
-            
-        let imageUrl = driveUrl.appendingPathComponent("\(photoId)\(isLivePhoto ? ".live" : "").shdwpic")
-
-        do {
-            
-            try encrypted.write(to: imageUrl)
-        } catch {
-            print(error)
-            fatalError("Could not write to drive url")
-        }
-    }
-
-
-}
-
-protocol FileEnumerator {
-    
-    associatedtype DirModel: DirectoryModel
-    
-    init(directoryModel: DirModel)
-    
-    func enumerateImages(completion: ([ShadowPixMedia]) -> Void)
-    func loadMediaPreview(for media: ShadowPixMedia)
-}
-
-protocol DirectoryModel {
-    
-    init(subdirectory: String, keyName: String)
-    var driveURL: URL { get }
-}
-
 struct iCloudFilesDirectoryModel: DirectoryModel {
     let subdirectory: String
     let keyName: String
@@ -111,19 +26,22 @@ struct iCloudFilesDirectoryModel: DirectoryModel {
     }
 }
 
-struct iCloudFilesEnumerator: FileEnumerator {
-        
-    var directoryModel: iCloudFilesDirectoryModel
+class iCloudFilesEnumerator: FileEnumerator {
     
-    init(directoryModel: iCloudFilesDirectoryModel) {
+    enum iCloudError: Error {
+        case invalidURL
+        case general
+    }
+    
+    var directoryModel: DirectoryModel
+    var key: ImageKey!
+    private var cancellables: [AnyCancellable] = []
+    
+    required init(directoryModel: DirectoryModel, key: ImageKey?) {
         self.directoryModel = directoryModel
+        self.key = key
     }
-    
-    func loadMediaPreview(for media: ShadowPixMedia) {
-        media.decryptedImage = getImageAt(url: media.url)
-    }
-    
-    func enumerateImages(completion: ([ShadowPixMedia]) -> Void) {
+        func enumerateMedia(completion: ([ShadowPixMedia]) -> Void) {
         let driveUrl = directoryModel.driveURL
         _ = driveUrl.startAccessingSecurityScopedResource()
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
@@ -154,28 +72,59 @@ struct iCloudFilesEnumerator: FileEnumerator {
         driveUrl.stopAccessingSecurityScopedResource()
         
     }
-    
-    private func getImageAt(url imageUrl: URL) -> DecryptedImage? {
-        guard imageUrl.lastPathComponent.contains(".live") == false else {
-            return nil
-        }
-        
-        do {
-            _ = imageUrl.startAccessingSecurityScopedResource()
-            let data = try Data(contentsOf: imageUrl)
-            imageUrl.stopAccessingSecurityScopedResource()
-            guard let decrypted: UIImage = ChaChaPolyHelpers.decrypt(encryptedContent: data) else {
-                print("Could not decrypt image")
-                return nil
-            }
-            return DecryptedImage(image: decrypted)
 
-        } catch {
-            print("error opening image", error.localizedDescription)
-            return nil
-        }
+}
+
+extension iCloudFilesEnumerator: FileReader {
+    func loadMedia(media: MediaDescribing) -> AnyPublisher<CleartextMedia, Never> {
+        return getMediaAt(url: media.sourceURL!).replaceError(with: CleartextMedia(mediaType: .photo)).eraseToAnyPublisher()
+    }
+    
+    
+    func loadMediaPreview(for media: ShadowPixMedia) {
+        
+        //make this actually scale down the image
+//        getMediaAt(url: media.url).sink { completion in
+//
+//        } receiveValue: { value in
+//            media.decryptedImage = value
+//        }.store(in: &cancellables)
 
     }
+
+    
+    private func getMediaAt(url imageUrl: URL) -> AnyPublisher<CleartextMedia, Error> {
+        _ = imageUrl.startAccessingSecurityScopedResource()
+        return SecretInMemoryFileHander(sourceURL: imageUrl, keyBytes: key.keyBytes).decryptInMemory().mapError({ error in
+            iCloudError.general
+        }).eraseToAnyPublisher()
+    }
+}
+
+extension iCloudFilesEnumerator: FileWriter {
+    
+    func save(media: CleartextMedia) -> AnyPublisher<EncryptedMedia, Error> {
+        let tempURL = TempFilesManager.createTempURL(media: media)
+        let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: tempURL)
+        return Future { [weak self] completion in
+            guard let self = self else { return }
+            fileHandler.encryptFile().sink { fileCompletion in
+
+                switch fileCompletion {
+
+                case .finished:
+                    break
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            } receiveValue: { encrypted in
+                completion(.success(encrypted))
+            }.store(in: &self.cancellables)
+        }.eraseToAnyPublisher()
+
+    }
+    
+    
 
 }
 

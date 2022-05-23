@@ -22,7 +22,7 @@ class ShadowPixMedia: ObservableObject, Identifiable {
 extension ShadowPixMedia {
     func loadImage() {
         #if targetEnvironment(simulator)
-        decryptedImage = DecryptedImage(image: UIImage(systemName: "lock")!)
+        decryptedImage = DecryptedImage(data: UIImage(systemName: "lock")!.pngData()!)
         #else
         decryptedImage = iCloudFilesManager.getImageAt(url: url)
         #endif
