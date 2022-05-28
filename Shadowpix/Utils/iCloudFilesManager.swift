@@ -77,7 +77,12 @@ class iCloudFilesEnumerator: FileEnumerator {
 
 extension iCloudFilesEnumerator: FileReader {
     func loadMedia(media: MediaDescribing) -> AnyPublisher<CleartextMedia, Never> {
-        return getMediaAt(url: media.sourceURL!).replaceError(with: CleartextMedia(mediaType: .photo)).eraseToAnyPublisher()
+        if let encrypted = media as? EncryptedMedia {
+            
+        return decryptMedia(encrypted: encrypted).replaceError(with: CleartextMedia(mediaType: .unknown)).eraseToAnyPublisher()
+        } else {
+            fatalError()
+        }
     }
     
     
@@ -93,9 +98,13 @@ extension iCloudFilesEnumerator: FileReader {
     }
 
     
-    private func getMediaAt(url imageUrl: URL) -> AnyPublisher<CleartextMedia, Error> {
-        _ = imageUrl.startAccessingSecurityScopedResource()
-        return SecretInMemoryFileHander(sourceURL: imageUrl, keyBytes: key.keyBytes).decryptInMemory().mapError({ error in
+    private func decryptMedia(encrypted: EncryptedMedia) -> AnyPublisher<CleartextMedia, Error> {
+        guard let sourceURL = encrypted.sourceURL else {
+            return Fail(error: iCloudError.invalidURL)
+                .eraseToAnyPublisher()
+        }
+        _ = sourceURL.startAccessingSecurityScopedResource()
+        return SecretInMemoryFileHander(sourceMedia: encrypted, keyBytes: key.keyBytes).decryptInMemory().mapError({ error in
             iCloudError.general
         }).eraseToAnyPublisher()
     }

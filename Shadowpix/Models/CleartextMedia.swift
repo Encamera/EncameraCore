@@ -11,4 +11,5 @@ struct CleartextMedia: MediaDescribing {
     var mediaType: MediaType
     var sourceURL: URL?
     var data: Data?
+    
 }

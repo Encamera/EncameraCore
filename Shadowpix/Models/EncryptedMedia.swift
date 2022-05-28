@@ -10,5 +10,14 @@ import Foundation
 struct EncryptedMedia: MediaDescribing {
     var sourceURL: URL?
     var data: Data?
-    var mediaType: MediaType
+    var mediaType: MediaType = .unknown
+    
+    init(sourceURL: URL) {
+        self.sourceURL = sourceURL
+        for type in MediaType.allCases.filter({$0 == .unknown}) {
+            if sourceURL.lastPathComponent.contains(type.fileDescription) {
+                mediaType = type
+            }
+        }
+    }
 }

@@ -9,6 +9,7 @@ import Foundation
 enum MediaType: Int, CaseIterable {
     case video
     case photo
+    case unknown
     
     var title: String {
         switch self {
@@ -16,6 +17,8 @@ enum MediaType: Int, CaseIterable {
             return "Video"
         case .photo:
             return "Photo"
+        case .unknown:
+            fatalError()
         }
     }
     
@@ -25,6 +28,20 @@ enum MediaType: Int, CaseIterable {
             return "video"
         case .photo:
             return "photo"
+        case .unknown:
+            fatalError()
+        }
+    }
+    
+    var fileDescription: String {
+        switch self {
+            
+        case .video:
+            return "video"
+        case .photo:
+            return "image"
+        case .unknown:
+            return ""
         }
     }
 }

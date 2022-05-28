@@ -11,4 +11,6 @@ protocol MediaDescribing {
     var mediaType: MediaType { get }
     var sourceURL: URL? { get }
     var data: Data? { get }
+
 }
+

@@ -21,7 +21,7 @@ enum SecretFilesError: Error {
 protocol SecretFileHandler {
     
     
-    var sourceURL: URL { get }
+    var sourceMedia: MediaDescribing { get }
     var keyBytes: Array<UInt8> { get }
     var sodium: Sodium { get }
 }
@@ -33,7 +33,10 @@ extension SecretFileHandler {
     }
     
     func decryptPublisher() -> AnyPublisher<Data, Error> {
-        
+        guard let sourceURL = sourceMedia.sourceURL else {
+            return Fail(error: SecretFilesError.decryptError)
+                .eraseToAnyPublisher()
+        }
         do {
             let sourceFileHandle = try FileHandle(forReadingFrom: sourceURL)
             let headerBytes = try sourceFileHandle.read(upToCount: 24)
@@ -61,14 +64,14 @@ extension SecretFileHandler {
 }
 
 class SecretInMemoryFileHander: SecretFileHandler {
-    var sourceURL: URL
+    var sourceMedia: MediaDescribing
     
     var keyBytes: Array<UInt8> = []
     
     var cancellables = Set<AnyCancellable>()
 
-    init(sourceURL: URL, keyBytes: Array<UInt8>) {
-        self.sourceURL = sourceURL
+    init(sourceMedia: MediaDescribing, keyBytes: Array<UInt8>) {
+        self.sourceMedia = sourceMedia
         self.keyBytes = keyBytes
     }
     
@@ -91,13 +94,13 @@ class SecretDiskFileHandler: SecretFileHandler {
     
    
     
-    let sourceURL: URL
+    let sourceMedia: MediaDescribing
     let destinationURL: URL
     let keyBytes: Array<UInt8>
     
     init(keyBytes: Array<UInt8>, source: MediaDescribing, destinationURL: URL? = nil) {
         self.keyBytes = keyBytes
-        self.sourceURL = source.sourceURL!
+        self.sourceMedia = source
         self.destinationURL = destinationURL ?? TempFilesManager.createTempURL(media: source)
     }
     
@@ -112,7 +115,14 @@ class SecretDiskFileHandler: SecretFileHandler {
                 
         guard let streamEnc = sodium.secretStream.xchacha20poly1305.initPush(secretKey: keyBytes) else {
             print("Could not create stream with key")
-            return Fail(error: SecretFilesError.encryptError).eraseToAnyPublisher()
+            return Fail(error: SecretFilesError.encryptError)
+                .eraseToAnyPublisher()
+        }
+        
+        guard let sourceURL = sourceMedia.sourceURL else {
+            print("Could not get sourceURL")
+            return Fail(error: SecretFilesError.encryptError)
+                .eraseToAnyPublisher()
         }
         print("encrypting", keyBytes, streamEnc.header())
         //open file for reading.
@@ -144,7 +154,7 @@ class SecretDiskFileHandler: SecretFileHandler {
                         switch signal {
 
                         case .finished:
-                            let media = EncryptedMedia(sourceURL: self.destinationURL, mediaType: .video)
+                            let media = EncryptedMedia(sourceURL: self.destinationURL)
                             completion(.success(media))
                         case .failure(_):
                             completion(.failure(SecretFilesError.encryptError))
@@ -188,48 +198,6 @@ class SecretDiskFileHandler: SecretFileHandler {
             }.eraseToAnyPublisher()
         } catch {
             return Fail(error: SecretFilesError.destinationFileAccessError).eraseToAnyPublisher()
-        }
-        
-        do {
-            let sourceFileHandle = try FileHandle(forReadingFrom: sourceURL)
-            FileManager.default.createFile(atPath: destinationURL.path, contents: nil)
-            let destinationFileHandle = try FileHandle(forWritingTo: destinationURL)
-            let headerBytes = try sourceFileHandle.read(upToCount: 24)
-            var headerBuffer = [UInt8](repeating: 0, count: 24)
-            headerBytes?.copyBytes(to: &headerBuffer, count: 24)
-            print("decrypting", keyBytes, headerBuffer)
-            
-            let blockSizeInfo = try sourceFileHandle.read(upToCount: 8)
-            let blockSize: UInt32 = blockSizeInfo!.withUnsafeBytes({ $0.load(as: UInt32.self)
-            })
-            
-            
-            guard let streamDec = sodium.secretStream.xchacha20poly1305.initPull(secretKey: keyBytes, header: headerBuffer) else {
-                print("Could not create stream with key")
-                return Fail(error: SecretFilesError.keyError).eraseToAnyPublisher()
-            }
-            return Future { completion in
-                
-                ChunkedFileProcessingPublisher(sourceFileHandle: sourceFileHandle, blockSize: Int(blockSize)).map { (bytes, _) -> Data in
-                    let (message, _) = streamDec.pull(cipherText: bytes)!
-                    return Data(message)
-                }.sink { signal in
-                    switch signal {
-                        
-                    case .finished:
-                        let media = CleartextMedia(mediaType: .video, sourceURL: self.destinationURL)
-                        completion(.success(media))
-                    case .failure(_):
-                        completion(.failure(SecretFilesError.decryptError))
-                    }
-                    
-                } receiveValue: { data in
-                    try? destinationFileHandle.write(contentsOf: data)
-                }.store(in: &self.cancellables)
-
-            }.eraseToAnyPublisher()
-        } catch {
-            return Fail(error: SecretFilesError.decryptError).eraseToAnyPublisher()
         }
     }
     

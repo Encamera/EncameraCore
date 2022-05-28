@@ -17,7 +17,7 @@ class DemoFileEnumerator: FileAccess {
     }
     
     func save(media: CleartextMedia) -> AnyPublisher<EncryptedMedia, Error> {
-        return Just(EncryptedMedia(sourceURL: nil, data: nil, mediaType: .video)).setFailureType(to: Error.self).eraseToAnyPublisher()
+        return Just(EncryptedMedia(sourceURL: URL(fileURLWithPath: ""))).setFailureType(to: Error.self).eraseToAnyPublisher()
 
     }
     

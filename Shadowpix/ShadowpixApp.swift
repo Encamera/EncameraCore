@@ -33,7 +33,7 @@ struct ShadowpixApp: App {
 //                    if url.lastPathComponent.contains(".live") {
 //                        MovieViewing(viewModel: MovieViewing.ViewModel(movieUrl: url, filesManager: state.tempFilesManager))
 //                    } else {
-                    let media = EncryptedMedia(sourceURL: url, mediaType: .photo)
+                    let media = EncryptedMedia(sourceURL: url)
                     ImageViewing(viewModel: ImageViewing.ViewModel(image: media, state: viewModel.state))
 //                    }
                     
@@ -49,7 +49,7 @@ struct ShadowpixApp: App {
 //                    KeyEntry(keyString: keyString, isShowing: $state.showScannedKeySheet)
 //                }
 //            })
-//            .environmentObject(state)
+            .environmentObject(viewModel.state)
 
         }
     }
