@@ -20,8 +20,9 @@ enum SecretFilesError: Error {
 
 protocol SecretFileHandler {
     
+    associatedtype SourceMediaType: MediaDescribing
     
-    var sourceMedia: MediaDescribing { get }
+    var sourceMedia: SourceMediaType { get }
     var keyBytes: Array<UInt8> { get }
     var sodium: Sodium { get }
 }
@@ -33,18 +34,17 @@ extension SecretFileHandler {
     }
     
     func decryptPublisher() -> AnyPublisher<Data, Error> {
-        guard let sourceURL = sourceMedia.sourceURL else {
-            return Fail(error: SecretFilesError.decryptError)
-                .eraseToAnyPublisher()
-        }
+        
+        let fileHandler = FileLikeHandler(media: sourceMedia, blockSize: 1024)
+        
         do {
-            let sourceFileHandle = try FileHandle(forReadingFrom: sourceURL)
-            let headerBytes = try sourceFileHandle.read(upToCount: 24)
+            
+            let headerBytes = try fileHandler.read(upToCount: 24)
             var headerBuffer = [UInt8](repeating: 0, count: 24)
             headerBytes?.copyBytes(to: &headerBuffer, count: 24)
             print("decrypting", keyBytes, headerBuffer)
             
-            let blockSizeInfo = try sourceFileHandle.read(upToCount: 8)
+            let blockSizeInfo = try fileHandler.read(upToCount: 8)
             let blockSize: UInt32 = blockSizeInfo!.withUnsafeBytes({ $0.load(as: UInt32.self)
             })
             
@@ -53,7 +53,7 @@ extension SecretFileHandler {
                 print("Could not create stream with key")
                 return Fail(error: SecretFilesError.keyError).eraseToAnyPublisher()
             }
-            return ChunkedFileProcessingPublisher(sourceFileHandle: sourceFileHandle, blockSize: Int(blockSize)).map { (bytes, _) -> Data in
+            return ChunkedFileProcessingPublisher(sourceFileHandle: fileHandler, blockSize: Int(blockSize)).map { (bytes, _) -> Data in
                    let (message, _) = streamDec.pull(cipherText: bytes)!
                    return Data(message)
             }.eraseToAnyPublisher()
@@ -63,42 +63,42 @@ extension SecretFileHandler {
     }
 }
 
-class SecretInMemoryFileHander: SecretFileHandler {
-    var sourceMedia: MediaDescribing
-    
+class SecretInMemoryFileHander<T: MediaDescribing>: SecretFileHandler {
+    var sourceMedia: T
+
     var keyBytes: Array<UInt8> = []
-    
+
     var cancellables = Set<AnyCancellable>()
 
-    init(sourceMedia: MediaDescribing, keyBytes: Array<UInt8>) {
+    init(sourceMedia: T, keyBytes: Array<UInt8>) {
         self.sourceMedia = sourceMedia
         self.keyBytes = keyBytes
     }
-    
-    func decryptInMemory() -> AnyPublisher<CleartextMedia, SecretFilesError> {
-        
+
+    func decryptInMemory() -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> {
+
         return Future { completion in
             self.decryptPublisher().reduce(Data()) { accum, next in
                 accum + next
             }.sink { complete in
                 completion(.failure(SecretFilesError.decryptError))
             } receiveValue: { data in
-                let image = CleartextMedia(mediaType: .photo, data: data)
+                let image = CleartextMedia(source: data)
                 completion(.success(image))
             }.store(in: &self.cancellables)
         }.eraseToAnyPublisher()
     }
 }
 
-class SecretDiskFileHandler: SecretFileHandler {
+class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler where T.MediaSource == URL {
     
    
     
-    let sourceMedia: MediaDescribing
+    let sourceMedia: T
     let destinationURL: URL
     let keyBytes: Array<UInt8>
     
-    init(keyBytes: Array<UInt8>, source: MediaDescribing, destinationURL: URL? = nil) {
+    init(keyBytes: Array<UInt8>, source: T, destinationURL: URL? = nil) {
         self.keyBytes = keyBytes
         self.sourceMedia = source
         self.destinationURL = destinationURL ?? TempFilesManager.createTempURL(media: source)
@@ -106,9 +106,7 @@ class SecretDiskFileHandler: SecretFileHandler {
     
     var cancellables = Set<AnyCancellable>()
 
-    private enum Constants {
-        static let defaultBlockSize: Int = 1024
-    }
+    private let defaultBlockSize: Int = 1024
     
     
     func encryptFile() -> AnyPublisher<EncryptedMedia, SecretFilesError> {
@@ -118,34 +116,25 @@ class SecretDiskFileHandler: SecretFileHandler {
             return Fail(error: SecretFilesError.encryptError)
                 .eraseToAnyPublisher()
         }
-        
-        guard let sourceURL = sourceMedia.sourceURL else {
-            print("Could not get sourceURL")
-            return Fail(error: SecretFilesError.encryptError)
-                .eraseToAnyPublisher()
-        }
-        print("encrypting", keyBytes, streamEnc.header())
-        //open file for reading.
+        let sourceFile = FileLikeHandler(media: sourceMedia, blockSize: 1024)
         do {
-            let sourceFileHandle = try FileHandle(forReadingFrom: sourceURL)
-            FileManager.default.createFile(atPath: destinationURL.path, contents: nil)
-            let destinationFileHandle = try FileHandle(forWritingTo: destinationURL)
+            try sourceFile.prepareIfDoesNotExist()
             let header = streamEnc.header()
-            try destinationFileHandle.write(contentsOf: Data(header))
+            try sourceFile.write(contentsOf: Data(header))
             var writeBlockSizeOperation: (([UInt8]) -> Void)?
             writeBlockSizeOperation = { cipherText in
                 
                 let cipherTextLength = withUnsafeBytes(of: cipherText.count) {
                         Array($0)
                     }
-                    try! destinationFileHandle.write(contentsOf: Data(cipherTextLength))
+                    try! sourceFile.write(contentsOf: Data(cipherTextLength))
                     writeBlockSizeOperation = nil
             }
             return Future { [weak self] completion in
                 guard let self = self else {
                     return
                 }
-                ChunkedFileProcessingPublisher(sourceFileHandle: sourceFileHandle)
+                ChunkedFileProcessingPublisher(sourceFileHandle: sourceFile)
                     .map({ (bytes, isFinal)  -> Data in
                         let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
                         writeBlockSizeOperation?(message)
@@ -154,13 +143,13 @@ class SecretDiskFileHandler: SecretFileHandler {
                         switch signal {
 
                         case .finished:
-                            let media = EncryptedMedia(sourceURL: self.destinationURL)
+                            let media = EncryptedMedia(source: self.destinationURL)
                             completion(.success(media))
                         case .failure(_):
                             completion(.failure(SecretFilesError.encryptError))
                         }
                     } receiveValue: { data in
-                        try? destinationFileHandle.write(contentsOf: data)
+                        try? sourceFile.write(contentsOf: data)
                     }.store(in: &self.cancellables)
             }.eraseToAnyPublisher()
             
@@ -172,25 +161,26 @@ class SecretDiskFileHandler: SecretFileHandler {
    
     
     
-    func decryptFile() -> AnyPublisher<CleartextMedia, SecretFilesError> {
+    func decryptFile() -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> {
         
         do {
-            FileManager.default.createFile(atPath: destinationURL.path, contents: nil)
-            let destinationFileHandle = try FileHandle(forWritingTo: destinationURL)
+            let fileHandler = FileLikeHandler(media: sourceMedia, blockSize: 1024)
+            try fileHandler.prepareIfDoesNotExist()
+            
 
             return Future { completion in
                 self.decryptPublisher()
                     .sink { recieveCompletion in
                         switch recieveCompletion {
                         case .finished:
-                            let media = CleartextMedia(mediaType: .photo, sourceURL: self.destinationURL)
+                            let media = CleartextMedia(source: self.destinationURL)
                             completion(.success(media))
                         case .failure(_):
                             completion(.failure(SecretFilesError.decryptError))
                         }
                 } receiveValue: { data in
                     do {
-                        try destinationFileHandle.write(contentsOf: data)
+                        try fileHandler.write(contentsOf: data)
                     } catch {
                         completion(.failure(SecretFilesError.destinationFileAccessError))
                     }
@@ -200,11 +190,4 @@ class SecretDiskFileHandler: SecretFileHandler {
             return Fail(error: SecretFilesError.destinationFileAccessError).eraseToAnyPublisher()
         }
     }
-    
-    private func chunkedRead(operation: @escaping (Data) -> (Data)) {
-        
-        
-        
-    }
-    
 }

@@ -9,17 +9,35 @@ import Foundation
 import UIKit
 import Combine
 
-
+enum DemoError: Error {
+    case general
+}
 
 class DemoFileEnumerator: FileAccess {
-    func loadMedia(media: MediaDescribing) -> AnyPublisher<CleartextMedia, Never> {
-        return Just(CleartextMedia(mediaType: .photo)).eraseToAnyPublisher()
+    required init(key: ImageKey?) {
+        
     }
     
-    func save(media: CleartextMedia) -> AnyPublisher<EncryptedMedia, Error> {
-        return Just(EncryptedMedia(sourceURL: URL(fileURLWithPath: ""))).setFailureType(to: Error.self).eraseToAnyPublisher()
+    func loadMediaPreview<T>(for media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> where T : MediaDescribing {
+        return Just(CleartextMedia(source: Data())).setFailureType(to: SecretFilesError.self).eraseToAnyPublisher()
 
     }
+    
+    func loadMedia<T>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> where T : MediaDescribing {
+        return Just(CleartextMedia(source: URL(fileURLWithPath: ""))).setFailureType(to: SecretFilesError.self).eraseToAnyPublisher()
+    }
+    
+    func loadMedia<T>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> where T : MediaDescribing {
+        return Just(CleartextMedia(source: Data())).setFailureType(to: SecretFilesError.self).eraseToAnyPublisher()
+
+    }
+    
+    func save<T>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError> where T : MediaSourcing {
+        fatalError()
+    }
+    
+    
+    typealias MediaTypeHandling = Data
     
     
     let directoryModel = DemoDirectoryModel()
@@ -32,24 +50,17 @@ class DemoFileEnumerator: FileAccess {
     required init(directoryModel: DirectoryModel, key: ImageKey?) {
         
     }
-    
-    
-    func loadMediaPreview(for media: ShadowPixMedia) {
-        media.decryptedImage = DecryptedImage(data: UIImage(systemName: "photo.fill")!.pngData()!)
-    }
+
     
     required init(directoryModel: DemoDirectoryModel, key: ImageKey?) {
         
     }
     
-    func save(media: CleartextMedia) -> AnyPublisher<ShadowPixMedia, Error> {
-        return Just(ShadowPixMedia(url: URL(fileURLWithPath: ""))).setFailureType(to: Error.self).eraseToAnyPublisher()
-    }
-    
-    func enumerateMedia(completion: ([ShadowPixMedia]) -> Void) {
-        completion((0...10).map { _ in
-            ShadowPixMedia(url: URL(fileURLWithPath: ""))
-        })
+    func enumerateMedia<T: MediaDescribing>(completion: ([T]) -> Void) {
+        fatalError()
+//        completion((0...10).map { _ in
+//            T(source: T.MediaSource())
+//        })
         
     }
 }

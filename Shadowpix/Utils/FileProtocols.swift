@@ -18,16 +18,22 @@ protocol FileEnumerator {
         
     init(directoryModel: DirectoryModel, key: ImageKey?)
     
-    func enumerateMedia(completion: ([ShadowPixMedia]) -> Void)
+    func enumerateMedia<T: MediaDescribing>(completion: ([T]) -> Void) where T.MediaSource == URL
 }
 
 protocol FileReader {
-    func loadMediaPreview(for media: ShadowPixMedia)
-    func loadMedia(media: MediaDescribing) -> AnyPublisher<CleartextMedia, Never>
+    
+//    associatedtype MediaTypeHandling: MediaSourcing
+    init(directoryModel: DirectoryModel, key: ImageKey?)
+    init(key: ImageKey?)
+    func loadMediaPreview<T: MediaDescribing>(for media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError>
+    func loadMedia<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError>
+    func loadMedia<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError>
 }
 
 protocol FileWriter {
-    func save(media: CleartextMedia) -> AnyPublisher<EncryptedMedia, Error>
+        
+    func save<T: Hashable>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError>
 }
 
 protocol FileAccess: FileEnumerator, FileReader, FileWriter {

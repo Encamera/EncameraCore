@@ -7,17 +7,25 @@
 
 import Foundation
 
-struct EncryptedMedia: MediaDescribing {
-    var sourceURL: URL?
-    var data: Data?
+class EncryptedMedia: MediaDescribing, ObservableObject {
+    typealias MediaSource = URL
+    
     var mediaType: MediaType = .unknown
     
-    init(sourceURL: URL) {
-        self.sourceURL = sourceURL
+    var source: URL
+    
+    required init(source: URL) {
+        self.source = source
         for type in MediaType.allCases.filter({$0 == .unknown}) {
-            if sourceURL.lastPathComponent.contains(type.fileDescription) {
+            if source.lastPathComponent.contains(type.fileDescription) {
                 mediaType = type
             }
         }
+    }
+}
+
+extension EncryptedMedia: Identifiable {
+    var id: some Hashable {
+        return source.hashValue
     }
 }

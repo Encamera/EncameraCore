@@ -10,18 +10,18 @@ import AVKit
 import Combine
 
 
-struct MovieViewing: View {
+struct MovieViewing<T: MediaDescribing>: View  where T.MediaSource == URL {
         
     
     class ViewModel: ObservableObject {
         
-        var encrypedFileRef: EncryptedMedia
-        var fileHandler: SecretDiskFileHandler
+        var encrypedFileRef: T
+        var fileHandler: SecretDiskFileHandler<T>
         private var cancellables = Set<AnyCancellable>()
 
-        @Published var decryptedFileRef: CleartextMedia?
+        @Published var decryptedFileRef: CleartextMedia<URL>?
         
-        init(selectedKey: ImageKey, fileRef: EncryptedMedia) {
+        init(selectedKey: ImageKey, fileRef: T) {
             self.encrypedFileRef = fileRef
             self.fileHandler = SecretDiskFileHandler(keyBytes: selectedKey.keyBytes, source: fileRef)
         }
@@ -61,7 +61,7 @@ struct MovieViewing: View {
     @ObservedObject var viewModel: ViewModel
     var body: some View {
         VStack {
-            if let movieUrl = viewModel.decryptedFileRef?.sourceURL {
+            if let movieUrl = viewModel.decryptedFileRef?.source {
                 let player = AVPlayer(url: movieUrl)
                 VideoPlayer(player: player)
             } else {

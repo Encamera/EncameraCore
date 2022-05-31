@@ -33,8 +33,9 @@ struct ShadowpixApp: App {
 //                    if url.lastPathComponent.contains(".live") {
 //                        MovieViewing(viewModel: MovieViewing.ViewModel(movieUrl: url, filesManager: state.tempFilesManager))
 //                    } else {
-                    let media = EncryptedMedia(sourceURL: url)
-                    ImageViewing(viewModel: ImageViewing.ViewModel(image: media, state: viewModel.state))
+                    let media = EncryptedMedia(source: url)
+                    
+                    ImageViewing<EncryptedMedia, iCloudFilesEnumerator>(viewModel: ImageViewing.ViewModel(image: media, state: viewModel.state))
 //                    }
                     
                 }

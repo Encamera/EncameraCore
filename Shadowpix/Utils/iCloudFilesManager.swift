@@ -33,7 +33,7 @@ class iCloudFilesEnumerator: FileEnumerator {
         case general
     }
     
-    var directoryModel: DirectoryModel
+    var directoryModel: DirectoryModel!
     var key: ImageKey!
     private var cancellables: [AnyCancellable] = []
     
@@ -41,7 +41,12 @@ class iCloudFilesEnumerator: FileEnumerator {
         self.directoryModel = directoryModel
         self.key = key
     }
-        func enumerateMedia(completion: ([ShadowPixMedia]) -> Void) {
+
+    required init(key: ImageKey?) {
+        self.key = key
+    }
+    
+    func enumerateMedia<T: MediaDescribing>(completion: ([T]) -> Void) where T.MediaSource == URL  {
         let driveUrl = directoryModel.driveURL
         _ = driveUrl.startAccessingSecurityScopedResource()
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
@@ -50,7 +55,7 @@ class iCloudFilesEnumerator: FileEnumerator {
             return
         }
         
-        let imageItems: [ShadowPixMedia] = enumerator.compactMap { item in
+        let imageItems: [T] = enumerator.compactMap { item in
             guard let itemUrl = item as? URL else {
                 return nil
             }
@@ -66,7 +71,7 @@ class iCloudFilesEnumerator: FileEnumerator {
                 return creationDate1.compare(creationDate2) == .orderedDescending
             }.compactMap { (itemUrl: URL) in
                 print(itemUrl)
-                return ShadowPixMedia(url: itemUrl)
+                return T(source: itemUrl)
             }
         completion(imageItems)
         driveUrl.stopAccessingSecurityScopedResource()
@@ -76,45 +81,57 @@ class iCloudFilesEnumerator: FileEnumerator {
 }
 
 extension iCloudFilesEnumerator: FileReader {
-    func loadMedia(media: MediaDescribing) -> AnyPublisher<CleartextMedia, Never> {
+   
+    func loadMediaPreview<T: MediaDescribing>(for media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> {
+        return loadMedia(media: media)
+    }
+    
+    func loadMedia<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> {
         if let encrypted = media as? EncryptedMedia {
             
-        return decryptMedia(encrypted: encrypted).replaceError(with: CleartextMedia(mediaType: .unknown)).eraseToAnyPublisher()
+            return decryptMedia(encrypted: encrypted).eraseToAnyPublisher()
         } else {
             fatalError()
         }
     }
     
-    
-    func loadMediaPreview(for media: ShadowPixMedia) {
-        
-        //make this actually scale down the image
-//        getMediaAt(url: media.url).sink { completion in
-//
-//        } receiveValue: { value in
-//            media.decryptedImage = value
-//        }.store(in: &cancellables)
-
-    }
-
-    
-    private func decryptMedia(encrypted: EncryptedMedia) -> AnyPublisher<CleartextMedia, Error> {
-        guard let sourceURL = encrypted.sourceURL else {
-            return Fail(error: iCloudError.invalidURL)
-                .eraseToAnyPublisher()
+    func loadMedia<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> {
+        if let encrypted = media as? EncryptedMedia {
+            let decryptedPublisher = decryptMedia(encrypted: encrypted) as AnyPublisher<CleartextMedia<URL>, SecretFilesError>
+            return decryptedPublisher.eraseToAnyPublisher()
+        } else if let cleartext = media as? CleartextMedia<URL> {
+            return Just(cleartext).setFailureType(to: SecretFilesError.self).eraseToAnyPublisher()
         }
+        
+        fatalError()
+    }
+    private func decryptMedia(encrypted: EncryptedMedia) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> {
+        
+        let sourceURL = encrypted.source
+        
         _ = sourceURL.startAccessingSecurityScopedResource()
-        return SecretInMemoryFileHander(sourceMedia: encrypted, keyBytes: key.keyBytes).decryptInMemory().mapError({ error in
-            iCloudError.general
-        }).eraseToAnyPublisher()
+        return SecretInMemoryFileHander(sourceMedia: encrypted, keyBytes: key.keyBytes).decryptInMemory()
+        
+    }
+    
+    private func decryptMedia(encrypted: EncryptedMedia) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> {
+
+        let sourceURL = encrypted.source
+        
+        _ = sourceURL.startAccessingSecurityScopedResource()
+        return SecretDiskFileHandler(keyBytes: key.keyBytes, source: encrypted).decryptFile().eraseToAnyPublisher()
     }
 }
 
 extension iCloudFilesEnumerator: FileWriter {
     
-    func save(media: CleartextMedia) -> AnyPublisher<EncryptedMedia, Error> {
+    
+    func save<T: MediaSourcing>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError> {
+        guard let diskMedia = media as? CleartextMedia<URL> else {
+            fatalError()
+        }
         let tempURL = TempFilesManager.createTempURL(media: media)
-        let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: tempURL)
+        let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: diskMedia, destinationURL: tempURL)
         return Future { [weak self] completion in
             guard let self = self else { return }
             fileHandler.encryptFile().sink { fileCompletion in
@@ -132,9 +149,10 @@ extension iCloudFilesEnumerator: FileWriter {
         }.eraseToAnyPublisher()
 
     }
-    
-    
+}
 
+extension iCloudFilesEnumerator: FileAccess {
+    
 }
 
 extension UIImage {

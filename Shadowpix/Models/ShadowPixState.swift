@@ -15,7 +15,7 @@ class ShadowPixState: ObservableObject {
     
     private(set) var authManager: AuthManager?
     var keyManager: KeyManager
-    var fileHandler: FileAccess?
+    var fileHandler: iCloudFilesEnumerator?
     private var cancellables = Set<AnyCancellable>()
     
     init() {
@@ -39,7 +39,7 @@ class ShadowPixState: ObservableObject {
 
     }
 
-    convenience init(fileHandler: FileAccess) {
+    convenience init(fileHandler: iCloudFilesEnumerator) {
         self.init()
         self.fileHandler = fileHandler
 

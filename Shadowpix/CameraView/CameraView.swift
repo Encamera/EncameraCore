@@ -161,6 +161,6 @@ struct CameraView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(galleryIconTapped: .constant(false), showingKeySelection: .constant(false)).environmentObject(ShadowPixState(fileHandler: DemoFileEnumerator()))
+        CameraView(galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
     }
 }

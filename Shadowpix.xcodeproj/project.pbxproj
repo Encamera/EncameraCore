@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		1911319E281F9FC100542281 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = 1911319D281F9FC100542281 /* test.mov */; };
-		1916A6E0275402E80068ABCD /* DecryptedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1916A6DF275402E80068ABCD /* DecryptedImage.swift */; };
 		191FF12D275EC83400DED001 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191FF12C275EC83400DED001 /* AuthManager.swift */; };
 		19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E22273FD60F009E3850 /* ImageViewing.swift */; };
 		19217E26273FD616009E3850 /* KeyPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E25273FD616009E3850 /* KeyPickerView.swift */; };
@@ -28,7 +27,6 @@
 		196AFE83274F858300C809ED /* iCloudFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE82274F858300C809ED /* iCloudFilesManager.swift */; };
 		1978F9772822476D00D16FD4 /* shadowimage.shdwpic in Resources */ = {isa = PBXBuildFile; fileRef = 1978F9762822476D00D16FD4 /* shadowimage.shdwpic */; };
 		1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1978F9782822486000D16FD4 /* CameraModePicker.swift */; };
-		197C19202754F8840001C818 /* ShadowPixMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197C191F2754F8840001C818 /* ShadowPixMedia.swift */; };
 		1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF12753E9D300E41BFD /* CameraModel.swift */; };
 		1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF42753EA3F00E41BFD /* MainInterface.swift */; };
 		1994ABF72753EAEF00E41BFD /* MainInterfaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */; };
@@ -68,7 +66,6 @@
 
 /* Begin PBXFileReference section */
 		1911319D281F9FC100542281 /* test.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = test.mov; sourceTree = "<group>"; };
-		1916A6DF275402E80068ABCD /* DecryptedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptedImage.swift; sourceTree = "<group>"; };
 		191FF12C275EC83400DED001 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		19217E1E273FC5C9009E3850 /* WorkWithKeychain.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WorkWithKeychain.swift; sourceTree = "<group>"; };
 		19217E22273FD60F009E3850 /* ImageViewing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewing.swift; sourceTree = "<group>"; };
@@ -88,7 +85,6 @@
 		196AFE82274F858300C809ED /* iCloudFilesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudFilesManager.swift; sourceTree = "<group>"; };
 		1978F9762822476D00D16FD4 /* shadowimage.shdwpic */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shadowimage.shdwpic; sourceTree = "<group>"; };
 		1978F9782822486000D16FD4 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
-		197C191F2754F8840001C818 /* ShadowPixMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowPixMedia.swift; sourceTree = "<group>"; };
 		1994ABF12753E9D300E41BFD /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		1994ABF42753EA3F00E41BFD /* MainInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterface.swift; sourceTree = "<group>"; };
 		1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterfaceViewModel.swift; sourceTree = "<group>"; };
@@ -183,8 +179,6 @@
 			children = (
 				19217E2B273FE452009E3850 /* ImageKey.swift */,
 				19217E2C273FE452009E3850 /* ShadowPixState.swift */,
-				1916A6DF275402E80068ABCD /* DecryptedImage.swift */,
-				197C191F2754F8840001C818 /* ShadowPixMedia.swift */,
 				19FD5D5B2835D91F008D75AA /* CleartextMedia.swift */,
 				19FD5D5D2835D927008D75AA /* EncryptedMedia.swift */,
 				19FD5D5F2835DB0D008D75AA /* MediaDescribing.swift */,
@@ -428,7 +422,6 @@
 				19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */,
 				19FD5D5C2835D91F008D75AA /* CleartextMedia.swift in Sources */,
 				19665C462742542A00DA8578 /* KeyEntry.swift in Sources */,
-				1916A6E0275402E80068ABCD /* DecryptedImage.swift in Sources */,
 				19FD5D632835EAF9008D75AA /* DemoFileHelpers.swift in Sources */,
 				1961BCC2281B08CE00D7BE92 /* SecretFileHandler.swift in Sources */,
 				19DCCD572741AF6700DB487B /* KeyGeneration.swift in Sources */,
@@ -454,7 +447,6 @@
 				196AFE81274F83D100C809ED /* GalleryView.swift in Sources */,
 				19FD5D672835F12E008D75AA /* KeyManager.swift in Sources */,
 				19FD5D652835EED6008D75AA /* FileProtocols.swift in Sources */,
-				197C19202754F8840001C818 /* ShadowPixMedia.swift in Sources */,
 				1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */,
 				195719E7274B8BE300E93658 /* MovieViewing.swift in Sources */,
 				A9FE17B725394F1E00D547C7 /* CameraService+Enums.swift in Sources */,

@@ -6,52 +6,57 @@
 //
 
 import SwiftUI
+import Combine
 
-struct LocalImageView: View {
+struct AsyncImage<Placeholder: View, T: MediaDescribing>: View where T.MediaSource == URL {
     
-    var imageModel: ShadowPixMedia
-    
-    var body: some View {
-        Group {
-            if let image = imageModel.decryptedImage?.image {
-                Image(uiImage: image)
+    class ViewModel: ObservableObject {
+        private var loader: FileReader
+        private var targetMedia: T
+        private var cancellables = Set<AnyCancellable>()
+        @Published var cleartextMedia: CleartextMedia<Data>?
+        
+        init(targetMedia: T, loader: FileReader) {
+            self.targetMedia = targetMedia
+            self.loader = loader
+        }
+        
+        func loadPreview() {
+            loader.loadMediaPreview(for: targetMedia).sink { completion in
+                
+            } receiveValue: { media in
+                self.cleartextMedia = media
             }
-        }.onAppear {
-            imageModel.loadImage()
         }
     }
-}
-
-struct AsyncImage<Placeholder: View>: View {
     
     private var placeholder: Placeholder
-    private var loader: FileReader
-    @ObservedObject private var media: ShadowPixMedia
+    private var viewModel: ViewModel
     
-    init(_ media: ShadowPixMedia, loader: FileReader, placeholder: () -> Placeholder) {
-        self.loader = loader
+    init(viewModel: ViewModel, placeholder: () -> Placeholder) {
+        self.viewModel = viewModel
         self.placeholder = placeholder()
-        self.media = media
     }
+
     
     var body: some View {
         
         content.onAppear {
-            loader.loadMediaPreview(for: media)
+            viewModel.loadPreview()
         }
     }
     
     private var content: some View {
         Group {
             // need separate view for holding preview
-            if let decrypted = media.decryptedImage?.image {
-                Image(uiImage: decrypted)
-                    .resizable()
-                    .clipped()
-                    .aspectRatio(contentMode:.fit)
-            } else {
+//            if let decrypted = viewModel.cleartextMedia?.data {
+//                Image(uiImage: decrypted)
+//                    .resizable()
+//                    .clipped()
+//                    .aspectRatio(contentMode:.fit)
+//            } else {
                 placeholder
-            }
+//            }
         }
     }
 }
@@ -67,8 +72,8 @@ class GalleryViewModel: ObservableObject {
 struct GalleryView: View {
     
     @EnvironmentObject var state: ShadowPixState
-    @State private var images: [ShadowPixMedia] = []
-    @State var displayImage: ShadowPixMedia?
+    @State private var images: [EncryptedMedia] = []
+    @State var displayImage: EncryptedMedia?
     @State var isDisplayingImage: Bool = false
     @ObservedObject var viewModel: GalleryViewModel
 
@@ -87,7 +92,7 @@ struct GalleryView: View {
 //                }
                 LazyVGrid(columns: gridItems, spacing: 1) {
                     ForEach(images, id: \.id) { image in
-                        AsyncImage(image, loader: viewModel.fileEnumerator) {
+                        AsyncImage(viewModel: .init(targetMedia: image, loader: viewModel.fileEnumerator)) {
                             Color.gray.frame(width: 50, height: 50)
                         }.onTapGesture {
                             self.displayImage = image
@@ -114,6 +119,6 @@ struct GalleryView_Previews: PreviewProvider {
 
     static var previews: some View {
         let enumerator = DemoFileEnumerator(directoryModel: DemoDirectoryModel(), key: nil)
-        GalleryView(viewModel: GalleryViewModel(fileEnumerator: enumerator)).environmentObject(ShadowPixState(fileHandler: enumerator))
+        GalleryView(viewModel: GalleryViewModel(fileEnumerator: enumerator))
     }
 }

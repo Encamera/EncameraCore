@@ -9,27 +9,32 @@ import SwiftUI
 import Photos
 import Combine
 
-struct ImageViewing: View {
+struct ImageViewing<M: MediaDescribing, F: FileReader>: View {
     
     class ViewModel: ObservableObject {
-        @Published var image: MediaDescribing
+        @Published var cleartextImage: CleartextMedia<Data>?
+        var sourceImage: M
         var state: ShadowPixState
+        var fileAccess: F
         private var cancellables = Set<AnyCancellable>()
-        init(image: EncryptedMedia, state: ShadowPixState) {
-            self.image = image
+        init(image: M, state: ShadowPixState) {
+            self.sourceImage = image
             self.state = state
+            self.fileAccess = F(key: state.selectedKey)
         }
         
         func decryptImage() {
-            state.fileHandler?.loadMedia(media: image).sink { media in
-                self.image = media
-            }.store(in: &cancellables)
+            fileAccess.loadMedia(media: sourceImage).sink(receiveCompletion: { completion in
+                
+            }, receiveValue: { media in
+                self.cleartextImage = media
+            }).store(in: &cancellables)
         }
     }
     @ObservedObject var viewModel: ViewModel
     var body: some View {
         VStack {
-            if let imageData = viewModel.image.data,  viewModel.state.isAuthorized, let image = UIImage(data: imageData) {
+            if let imageData = viewModel.cleartextImage?.source,   viewModel.state.isAuthorized, let image = UIImage(data: imageData) {
                 Image(uiImage: image).resizable().scaledToFit()
             } else {
                 Text("Could not decrypt image")

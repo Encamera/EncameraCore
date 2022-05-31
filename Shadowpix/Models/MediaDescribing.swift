@@ -7,10 +7,33 @@
 
 import Foundation
 
-protocol MediaDescribing {
-    var mediaType: MediaType { get }
-    var sourceURL: URL? { get }
-    var data: Data? { get }
-
+protocol MediaReference {
+    
 }
 
+protocol MediaSourcing: Hashable {
+    
+}
+
+extension Data: MediaSourcing {
+    
+}
+
+extension URL: MediaSourcing {
+    
+}
+
+protocol MediaDescribing {
+    
+    associatedtype MediaSource: MediaSourcing
+        
+    var source: MediaSource { get }
+    var mediaType: MediaType { get }
+    init(source: MediaSource)
+}
+
+extension MediaDescribing {
+    var id: Int {
+        source.hashValue
+    }
+}
