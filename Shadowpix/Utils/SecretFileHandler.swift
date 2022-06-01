@@ -35,7 +35,7 @@ extension SecretFileHandler {
     
     func decryptPublisher() -> AnyPublisher<Data, Error> {
         
-        let fileHandler = FileLikeHandler(media: sourceMedia, blockSize: 1024)
+        let fileHandler = FileLikeHandler(media: sourceMedia, blockSize: 1024, mode: .reading)
         
         do {
             
@@ -116,25 +116,27 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler where T.Media
             return Fail(error: SecretFilesError.encryptError)
                 .eraseToAnyPublisher()
         }
-        let sourceFile = FileLikeHandler(media: sourceMedia, blockSize: 1024)
+        let destinationMedia = EncryptedMedia(source: destinationURL, type: .video)
+        let destinationHandler = FileLikeHandler(media: destinationMedia, blockSize: 1024, mode: .writing)
+        let sourceHandler = FileLikeHandler(media: sourceMedia, blockSize: 1024, mode: .reading)
         do {
-            try sourceFile.prepareIfDoesNotExist()
+            try destinationHandler.prepareIfDoesNotExist()
             let header = streamEnc.header()
-            try sourceFile.write(contentsOf: Data(header))
+            try destinationHandler.write(contentsOf: Data(header))
             var writeBlockSizeOperation: (([UInt8]) -> Void)?
             writeBlockSizeOperation = { cipherText in
                 
                 let cipherTextLength = withUnsafeBytes(of: cipherText.count) {
                         Array($0)
                     }
-                    try! sourceFile.write(contentsOf: Data(cipherTextLength))
+                    try! destinationHandler.write(contentsOf: Data(cipherTextLength))
                     writeBlockSizeOperation = nil
             }
             return Future { [weak self] completion in
                 guard let self = self else {
                     return
                 }
-                ChunkedFileProcessingPublisher(sourceFileHandle: sourceFile)
+                ChunkedFileProcessingPublisher(sourceFileHandle: sourceHandler)
                     .map({ (bytes, isFinal)  -> Data in
                         let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
                         writeBlockSizeOperation?(message)
@@ -149,7 +151,7 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler where T.Media
                             completion(.failure(SecretFilesError.encryptError))
                         }
                     } receiveValue: { data in
-                        try? sourceFile.write(contentsOf: data)
+                        try? destinationHandler.write(contentsOf: data)
                     }.store(in: &self.cancellables)
             }.eraseToAnyPublisher()
             
@@ -164,8 +166,9 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler where T.Media
     func decryptFile() -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> {
         
         do {
-            let fileHandler = FileLikeHandler(media: sourceMedia, blockSize: 1024)
-            try fileHandler.prepareIfDoesNotExist()
+            let destinationMedia = CleartextMedia(source: self.destinationURL)
+            let destinationHandler = FileLikeHandler(media: destinationMedia, blockSize: 1024, mode: .writing)
+            try destinationHandler.prepareIfDoesNotExist()
             
 
             return Future { completion in
@@ -180,7 +183,7 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler where T.Media
                         }
                 } receiveValue: { data in
                     do {
-                        try fileHandler.write(contentsOf: data)
+                        try destinationHandler.write(contentsOf: data)
                     } catch {
                         completion(.failure(SecretFilesError.destinationFileAccessError))
                     }

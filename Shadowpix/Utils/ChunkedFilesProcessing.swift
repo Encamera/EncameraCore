@@ -21,17 +21,31 @@ protocol FileLikeBlockReader  {
     func read(upToCount: Int) throws -> Data?
     func write(contentsOf data: Data) throws
 }
+
+enum BlockIOMode {
+    case reading
+    case writing
+}
+
 private let blockSize = 1024
 
 class DiskBlockReader: FileLikeBlockReader {
     var source: URL
     private var fileHandle: FileHandle?
     private var blockSize: Int
+    private var mode: BlockIOMode
 
-    init(source: URL, blockSize: Int) {
+    init(source: URL, blockSize: Int, mode: BlockIOMode) {
         self.source = source
         self.blockSize = blockSize
-        fileHandle = try? FileHandle(forReadingFrom: source)
+        self.mode = mode
+        switch mode {
+        case .reading:
+            fileHandle = try? FileHandle(forReadingFrom: source)
+        case .writing:
+            fileHandle = try? FileHandle(forWritingTo: source)
+        }
+        
     }
     
     func readNextBlock() throws -> Data? {
@@ -47,8 +61,10 @@ class DiskBlockReader: FileLikeBlockReader {
     }
     
     func prepareIfDoesNotExist() throws {
-        FileManager.default.createFile(atPath: source.path, contents: nil)
-        fileHandle = try FileHandle(forWritingTo: source)
+        if FileManager.default.fileExists(atPath: source.path) == false && mode == .writing {
+            FileManager.default.createFile(atPath: source.path, contents: nil)
+            fileHandle = try FileHandle(forWritingTo: source)
+        }
     }
     
     func write(contentsOf data: Data) throws {
@@ -93,12 +109,12 @@ class FileLikeHandler<T: MediaDescribing>: FileLikeBlockReader {
     
     private var reader: FileLikeBlockReader
     
-    init(media: T, blockSize: Int) {
+    init(media: T, blockSize: Int, mode: BlockIOMode) {
         switch media.source {
         case let source where source is Data:
             self.reader = DataBlockReader(source: source as! Data, blockSize: blockSize)
         case let source where media.source is URL:
-            self.reader = DiskBlockReader(source: source as! URL, blockSize: blockSize)
+            self.reader = DiskBlockReader(source: source as! URL, blockSize: blockSize, mode: mode)
         default:
             fatalError()
         }
@@ -148,7 +164,6 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
         }
             
         do {
-            
             var data = try sourceFileHandle.read(upToCount: blockSize)!
             var byteArray = [UInt8](repeating: 0, count: data.count)
             
@@ -168,7 +183,7 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
             subscriber?.receive(completion: .finished)
             print("File reading complete")
             
-        } catch let error as NSError {
+        } catch {
             subscriber?.receive(completion: .failure(error))
         }
     }

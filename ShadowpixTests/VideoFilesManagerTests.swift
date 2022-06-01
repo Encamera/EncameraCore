@@ -22,7 +22,7 @@ class VideoFilesManagerTests: XCTestCase {
 //        try FileManager.default.copyItem(at: url, to: sourceUrl)
         let destinationUrl = TempFilesManager().createTemporaryMovieUrl()
         let key = Sodium().secretStream.xchacha20poly1305.key()
-        let handler = SecretDiskFileHandler(keyBytes: key, source: CleartextMedia(mediaType: .photo, sourceURL: sourceUrl), destinationURL: destinationUrl)
+        let handler = SecretDiskFileHandler(keyBytes: key, source: CleartextMedia(source: sourceUrl), destinationURL: destinationUrl)
         let expectation = expectation(description: "video")
         handler.encryptFile().sink { completion in
             switch completion {
@@ -34,7 +34,7 @@ class VideoFilesManagerTests: XCTestCase {
                 expectation.fulfill()
             }
         } receiveValue: { media in
-            XCTAssertTrue(FileManager.default.fileExists(atPath: media.sourceURL!.path))
+            XCTAssertTrue(FileManager.default.fileExists(atPath: media.source.path))
             expectation.fulfill()
         }.store(in: &cancellables)
 
@@ -47,7 +47,7 @@ class VideoFilesManagerTests: XCTestCase {
         let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
         let destinationUrl = TempFilesManager().createTemporaryMovieUrl()
         let key = Sodium().secretStream.xchacha20poly1305.key()
-        let handler = SecretDiskFileHandler(keyBytes: key, source: EncryptedMedia(sourceURL: sourceUrl), destinationURL: destinationUrl)
+        let handler = SecretDiskFileHandler(keyBytes: key, source: EncryptedMedia(source: sourceUrl), destinationURL: destinationUrl)
         let encryptExpectation = expectation(description: "encrypt video")
         var encryptedMedia: EncryptedMedia?
         handler.encryptFile().sink { completion in
@@ -63,8 +63,8 @@ class VideoFilesManagerTests: XCTestCase {
         print(unwrappedDecryptedMedia)
         let decryptExpectation = expectation(description: "decrypt video")
         
-        let unencryptedDestination = TempFilesManager().createTemporaryMovieUrl()
-        let decryptHandler = SecretDiskFileHandler(keyBytes: key, source: unwrappedDecryptedMedia, destinationURL: unencryptedDestination)
+        let cleartextDestination = TempFilesManager().createTemporaryMovieUrl()
+        let decryptHandler = SecretDiskFileHandler(keyBytes: key, source: unwrappedDecryptedMedia, destinationURL: cleartextDestination)
         decryptHandler.decryptFile().sink { completion in
             switch completion {
                 
@@ -76,7 +76,7 @@ class VideoFilesManagerTests: XCTestCase {
             }
             
         } receiveValue: { media in
-            let decryptedURL = try! XCTUnwrap(media.sourceURL)
+            let decryptedURL = try! XCTUnwrap(media.source)
             XCTAssertTrue(FileManager.default.fileExists(atPath: decryptedURL.path))
             print("decrypted file:", decryptedURL)
             decryptExpectation.fulfill()

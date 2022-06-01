@@ -40,7 +40,7 @@ class TempFilesManager {
     
     static func createTempURL<T: MediaDescribing>(media: T) -> URL {
         return URL(fileURLWithPath: NSTemporaryDirectory(),
-                          isDirectory: true).appendingPathComponent(NSUUID().uuidString + media.mediaType.path)
+                          isDirectory: true).appendingPathComponent("\(NSUUID().uuidString).\(media.mediaType.fileExtension)")
 
     }
     

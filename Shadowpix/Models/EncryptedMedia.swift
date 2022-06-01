@@ -14,13 +14,14 @@ class EncryptedMedia: MediaDescribing, ObservableObject {
     
     var source: URL
     
+    convenience init(source: URL, type: MediaType) {
+        self.init(source: source)
+        self.mediaType = type
+    }
+    
     required init(source: URL) {
         self.source = source
-        for type in MediaType.allCases.filter({$0 == .unknown}) {
-            if source.lastPathComponent.contains(type.fileDescription) {
-                mediaType = type
-            }
-        }
+        self.mediaType = MediaType.typeFromExtension(string: source.pathExtension)
     }
 }
 

@@ -17,11 +17,10 @@ struct CleartextMedia<T: MediaSourcing>: MediaDescribing {
     
     init(source: T) {
         self.source = source
-//        for type in MediaType.allCases.filter({$0 == .unknown}) {
-//            if sourceURL.lastPathComponent.contains(type.fileDescription) {
-//                mediaType = type
-//            }
-//        }
+        guard let urlSource = source as? URL else {
+            return
+        }
+        mediaType = MediaType.typeFromExtension(string: urlSource.pathExtension)
     }
 }
 
