@@ -10,12 +10,12 @@ struct CameraView: View {
     @Binding var showingKeySelection: Bool
     @State var cameraModeStateModel: CameraModeStateModel
     
-    init(state: ShadowPixState, galleryIconTapped: Binding<Bool>, showingKeySelection: Binding<Bool>) {
+    init(keyManager: KeyManager, galleryIconTapped: Binding<Bool>, showingKeySelection: Binding<Bool>) {
         
         self._galleryIconTapped = galleryIconTapped
         self._showingKeySelection = showingKeySelection
         self.cameraModeStateModel = CameraModeStateModel()
-        self.cameraModel = CameraModel(key: state.$selectedKey)
+        self.cameraModel = CameraModel(key: keyManager.keyPublisher)
     }
     
     private var captureButton: some View {
@@ -95,10 +95,7 @@ struct CameraView: View {
         GeometryReader { reader in
             
             ZStack {
-                Color.black.edgesIgnoringSafeArea(.all)
-                if appState.isAuthorized {
-                    
-                }
+            
                 VStack {
                     HStack {
                         Button {
@@ -106,7 +103,7 @@ struct CameraView: View {
                         } label: {
                             Image(systemName: "key.fill").frame(width: 44, height: 44)
                         }.tint(.white)
-                        Text(appState.selectedKey?.name ?? "No Key")
+                        Text(appState.keyManager.currentKey?.name ?? "No Key")
                         Spacer()
                         Button(action: {
                             cameraModel.switchFlash()
@@ -162,6 +159,6 @@ struct CameraView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(state: ShadowPixState(), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
+        CameraView(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
     }
 }

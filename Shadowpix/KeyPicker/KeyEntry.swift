@@ -6,13 +6,29 @@
 //
 
 import SwiftUI
+import Combine
 
 struct KeyEntry: View {
     
-    @State var keyString = ""
-    @Binding var isShowing: Bool
+    class ViewModel: ObservableObject {
+        var keyManager: KeyManager
+        var isShowing: Binding<Bool>
+        init(keyManager: KeyManager, isShowing: Binding<Bool>) {
+            self.keyManager = keyManager
+            self.isShowing = isShowing
+        }
+    }
+    
+    @State private var keyString = ""
+    
     @EnvironmentObject var state: ShadowPixState
     @State var isShowingAlertForSaveKey: Bool = false
+    
+    private var viewModel: ViewModel
+    
+    init(viewModel: ViewModel) {
+        self.viewModel = viewModel
+    }
 
     var body: some View {
         let keyObject: Binding<ImageKey?> = {
@@ -35,7 +51,7 @@ struct KeyEntry: View {
                 .toolbar {
                     ToolbarItemGroup(placement: .navigationBarLeading) {
                         Button("Cancel") {
-                            isShowing = false
+                            viewModel.isShowing = .constant(false)
                         }
                     }
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -53,9 +69,8 @@ struct KeyEntry: View {
                 guard let keyObject = keyObject.wrappedValue else {
                     return
                 }
-                state.selectedKey = keyObject
-                state.scannedKey = nil
-                isShowing = false
+                viewModel.keyManager.currentKey = keyObject
+                viewModel.isShowing = .constant(false)
             }
             Button("Cancel", role: .cancel) {
                 isShowingAlertForSaveKey = false
@@ -66,6 +81,6 @@ struct KeyEntry: View {
 
 struct KeyEntry_Previews: PreviewProvider {
     static var previews: some View {
-        KeyEntry( keyString: "eyJrZXlEYXRhIjoiQ00wUjJIdkZkdzczM3pZbGFSKzh2cXd6SW90MitRZjFEbDFZN1FFUE8zYz0iLCJuYW1lIjoidGVzdCJ9", isShowing: .constant(true))
+        KeyEntry(viewModel: KeyEntry.ViewModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), isShowing: .constant(true)))
     }
 }

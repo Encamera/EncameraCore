@@ -109,7 +109,7 @@ class CameraService {
     private var cancellables = Set<AnyCancellable>()
     private var key: ImageKey?
     
-    init(key: Published<ImageKey?>.Publisher) {
+    init(key: AnyPublisher<ImageKey?, Never>) {
         key.sink { key in
             guard let key = key else {
                 return

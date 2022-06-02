@@ -60,8 +60,7 @@ struct KeyGeneration: View {
     
     func saveKey() {
         do {
-            let newKey = try appState.keyManager.generateNewKey(name: keyName)
-            appState.selectedKey = newKey
+            try appState.keyManager.generateNewKey(name: keyName)
         } catch {
             print("Could not generate new key")
         }

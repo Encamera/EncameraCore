@@ -13,7 +13,7 @@ struct MainInterface: View {
     @EnvironmentObject var appState: ShadowPixState
     var body: some View {
         ZStack(alignment: .top) {
-            CameraView(state: appState, galleryIconTapped: $model.showGalleryView, showingKeySelection: $model.showingKeySelection)
+            CameraView(keyManager: appState.keyManager, galleryIconTapped: $model.showGalleryView, showingKeySelection: $model.showingKeySelection)
                 .environmentObject(appState)
                 .sheet(isPresented: $model.showingKeySelection) {
                     KeyPickerView(isShown: $model.showingKeySelection)

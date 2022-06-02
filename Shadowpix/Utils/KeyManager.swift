@@ -19,11 +19,13 @@ enum KeyManagerError: Error {
 
 protocol KeyManager {
     
+    init(isAuthorized: AnyPublisher<Bool, Never>)
+    
     var isAuthorized: AnyPublisher<Bool, Never> { get }
     var currentKey: ImageKey? { get set }
     var keyPublisher: AnyPublisher<ImageKey?, Never> { get }
     func clearStoredKeys() throws
-    func generateNewKey(name: String) throws -> ImageKey
+    func generateNewKey(name: String) throws
 }
 
 class KeychainKeyManager: ObservableObject, KeyManager {
@@ -32,28 +34,28 @@ class KeychainKeyManager: ObservableObject, KeyManager {
     private var authorized: Bool = false
     private var cancellables = Set<AnyCancellable>()
     
-    var currentKey: ImageKey?
+    var currentKey: ImageKey? {
+        didSet {
+            keySubject.send(currentKey)
+        }
+    }
     var keyPublisher: AnyPublisher<ImageKey?, Never> {
         keySubject.eraseToAnyPublisher()
     }
     
     private var keySubject: PassthroughSubject<ImageKey?, Never> = .init()
     
-    init(isAuthorized: AnyPublisher<Bool, Never>) {
+    required init(isAuthorized: AnyPublisher<Bool, Never>) {
         self.isAuthorized = isAuthorized
         
         self.isAuthorized.sink { newValue in
             self.authorized = newValue
-            self.keySubject.send(try? self.getKey())
+            try? self.getKey()
         }.store(in: &cancellables)
-        
-        self.keySubject.sink { key in
-            self.currentKey = key
-        }.store(in: &cancellables)
-        
+
     }
     
-    private func getKey() throws -> ImageKey {
+    private func getKey() throws {
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
@@ -74,7 +76,7 @@ class KeychainKeyManager: ObservableObject, KeyManager {
         }
         let keyObject = try JSONDecoder().decode(ImageKey.self, from: data)
         
-        return keyObject
+        currentKey = keyObject
 
     }
     
@@ -93,9 +95,10 @@ class KeychainKeyManager: ObservableObject, KeyManager {
         if status != errSecSuccess {
             throw KeyManagerError.deleteKeychainItemsFailed
         }
+        currentKey = nil
     }
     
-    func generateNewKey(name: String) throws -> ImageKey {
+    func generateNewKey(name: String) throws {
         
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
@@ -113,7 +116,7 @@ class KeychainKeyManager: ObservableObject, KeyManager {
             throw
             KeyManagerError.unhandledError
         }
-        return key
+        currentKey = key
 
     }
     

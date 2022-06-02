@@ -32,11 +32,6 @@ private func generateQRCode(from string: String, size: CGSize) -> UIImage {
 
 struct KeyPickerView: View {
     
-    //    class ViewModel: ObservableObject {
-    //        @Published var
-    //    }
-    
-    
     @State var isShowingSheetForKeyEntry: Bool = false
     @State var isShowingSheetForNewKey: Bool = false
     @State var isShowingAlertForClearKey: Bool = false
@@ -51,7 +46,7 @@ struct KeyPickerView: View {
     func createQrImage(geo: GeometryProxy) -> some View {
         var imageView: Image
         
-        if let keyString = appState.selectedKey?.base64String {
+        if let keyString = appState.keyManager.currentKey?.base64String {
             let image = generateQRCode(from: keyString, size: geo.size)
             imageView = Image(uiImage: image)
         } else {
@@ -76,14 +71,14 @@ struct KeyPickerView: View {
                     }
                 }
                 HStack {
-                    Text(appState.selectedKey?.name ?? "no key")
+                    Text(appState.keyManager.currentKey?.name ?? "no key")
                         .padding()
                         .font(Font.largeTitle)
                 }
                 List {
-                    if appState.selectedKey != nil {
+                    if appState.keyManager.currentKey != nil {
                         Button("Copy Key to Clipboard") {
-                            UIPasteboard.general.string = appState.selectedKey?.base64String
+                            UIPasteboard.general.string = appState.keyManager.currentKey?.base64String
                         }
                     }
                     Button("Set key") {
@@ -105,7 +100,6 @@ struct KeyPickerView: View {
                     }, secondaryButton: .destructive(Text("Clear")) {
                         do {
                             try appState.keyManager.clearStoredKeys()
-                            appState.selectedKey = nil
                             isShowingAlertForClearKey = false
                         } catch {
                             print("Error clearing keychain", error)
@@ -128,7 +122,7 @@ struct KeyPickerView: View {
         }.sheet(isPresented: $isShowingSheetForKeyEntry) {
             isShown = false
         } content: {
-            KeyEntry(isShowing: $isShowingSheetForKeyEntry)
+            KeyEntry(viewModel: KeyEntry.ViewModel(keyManager: appState.keyManager, isShowing: $isShowingSheetForNewKey))
                 .environmentObject(appState)
         }
         .foregroundColor(.blue)

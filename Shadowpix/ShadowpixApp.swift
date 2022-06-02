@@ -35,7 +35,7 @@ struct ShadowpixApp: App {
 //                    } else {
                     let media = EncryptedMedia(source: url)
                     
-                    ImageViewing<EncryptedMedia, iCloudFilesEnumerator>(viewModel: ImageViewing.ViewModel(image: media, state: viewModel.state))
+                    ImageViewing<EncryptedMedia, iCloudFilesEnumerator>(viewModel: ImageViewing.ViewModel(image: media, keyManager: viewModel.state.keyManager))
 //                    }
                     
                 }

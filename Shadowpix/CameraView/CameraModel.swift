@@ -12,7 +12,7 @@ import UIKit
 
 final class CameraModel: ObservableObject {
     private let service: CameraService
-    var key: Published<ImageKey?>.Publisher
+    var key: AnyPublisher<ImageKey?, Never>
     @Published var photo: Photo!
     
     @Published var showAlertError = false
@@ -29,7 +29,7 @@ final class CameraModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     
-    init(key: Published<ImageKey?>.Publisher) {
+    init(key: AnyPublisher<ImageKey?, Never>) {
         self.key = key
         self.service = CameraService(key: self.key)
         self.session = service.session

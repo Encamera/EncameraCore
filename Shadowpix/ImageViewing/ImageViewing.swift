@@ -14,13 +14,13 @@ struct ImageViewing<M: MediaDescribing, F: FileReader>: View {
     class ViewModel: ObservableObject {
         @Published var cleartextImage: CleartextMedia<Data>?
         var sourceImage: M
-        var state: ShadowPixState
+        var keyManager: KeyManager
         var fileAccess: F
         private var cancellables = Set<AnyCancellable>()
-        init(image: M, state: ShadowPixState) {
+        init(image: M, keyManager: KeyManager) {
             self.sourceImage = image
-            self.state = state
-            self.fileAccess = F(key: state.selectedKey)
+            self.keyManager = keyManager
+            self.fileAccess = F(key: keyManager.currentKey)
         }
         
         func decryptImage() {
@@ -34,7 +34,7 @@ struct ImageViewing<M: MediaDescribing, F: FileReader>: View {
     @ObservedObject var viewModel: ViewModel
     var body: some View {
         VStack {
-            if let imageData = viewModel.cleartextImage?.source,   viewModel.state.isAuthorized, let image = UIImage(data: imageData) {
+            if let imageData = viewModel.cleartextImage?.source, let image = UIImage(data: imageData) {
                 Image(uiImage: image).resizable().scaledToFit()
             } else {
                 Text("Could not decrypt image")
