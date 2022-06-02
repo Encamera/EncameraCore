@@ -15,7 +15,6 @@ class ShadowPixState: ObservableObject {
     
     private(set) var authManager: AuthManager
     var keyManager: KeyManager!
-    var fileHandler: iCloudFilesEnumerator?
     private var cancellables = Set<AnyCancellable>()
     @Published var cameraMode: CameraMode = .photo
     @Published var scannedKey: ImageKey? {
@@ -32,7 +31,7 @@ class ShadowPixState: ObservableObject {
             }
         }
     }
-    var tempFilesManager: TempFilesManager = TempFilesManager()
+    var tempFilesManager: TempFilesManager = TempFilesManager.shared
 
     init() {
         
@@ -53,12 +52,6 @@ class ShadowPixState: ObservableObject {
 //            .sink { _ in
 //                self.authManager?.deauthorize()
 //            }.store(in: &cancellables)
-
-    }
-
-    convenience init(fileHandler: iCloudFilesEnumerator) {
-        self.init()
-        self.fileHandler = fileHandler
 
     }
     

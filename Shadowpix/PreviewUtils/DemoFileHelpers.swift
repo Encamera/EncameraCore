@@ -14,6 +14,10 @@ enum DemoError: Error {
 }
 
 class DemoFileEnumerator: FileAccess {
+    func createTempURL(for mediaType: MediaType) -> URL {
+        return URL(fileURLWithPath: "")
+    }
+    
     required init(key: ImageKey?) {
         
     }
@@ -55,8 +59,7 @@ class DemoFileEnumerator: FileAccess {
     required init(directoryModel: DemoDirectoryModel, key: ImageKey?) {
         
     }
-    
-    func enumerateMedia<T: MediaDescribing>(completion: ([T]) -> Void) {
+    func enumerateMedia<T>(for directory: DirectoryModel, completion: ([T]) -> Void) where T : MediaDescribing, T.MediaSource == URL {
         fatalError()
 //        completion((0...10).map { _ in
 //            T(source: T.MediaSource())

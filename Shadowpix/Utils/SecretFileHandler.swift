@@ -101,7 +101,7 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler where T.Media
     init(keyBytes: Array<UInt8>, source: T, destinationURL: URL? = nil) {
         self.keyBytes = keyBytes
         self.sourceMedia = source
-        self.destinationURL = destinationURL ?? TempFilesManager.createTempURL(media: source)
+        self.destinationURL = destinationURL ?? TempFilesManager.shared.createTempURL(for: source.mediaType)
     }
     
     var cancellables = Set<AnyCancellable>()

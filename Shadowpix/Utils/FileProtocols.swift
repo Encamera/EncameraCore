@@ -16,15 +16,14 @@ protocol DirectoryModel {
 
 protocol FileEnumerator {
         
-    init(directoryModel: DirectoryModel, key: ImageKey?)
+    init(key: ImageKey?)
     
-    func enumerateMedia<T: MediaDescribing>(completion: ([T]) -> Void) where T.MediaSource == URL
+    func enumerateMedia<T: MediaDescribing>(for directory: DirectoryModel, completion: ([T]) -> Void) where T.MediaSource == URL
 }
 
 protocol FileReader {
     
 //    associatedtype MediaTypeHandling: MediaSourcing
-    init(directoryModel: DirectoryModel, key: ImageKey?)
     init(key: ImageKey?)
     func loadMediaPreview<T: MediaDescribing>(for media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError>
     func loadMedia<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError>
@@ -33,6 +32,7 @@ protocol FileReader {
 
 protocol FileWriter {
         
+    func createTempURL(for mediaType: MediaType) -> URL
     func save<T: Hashable>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError>
 }
 

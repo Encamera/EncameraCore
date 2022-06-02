@@ -26,7 +26,7 @@ struct ShadowpixApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MainInterface().sheet(isPresented: $hasOpenedUrl) {
+            MainInterface(viewModel: MainInterfaceViewModel(keyManager: viewModel.state.keyManager)).sheet(isPresented: $hasOpenedUrl) {
                 self.hasOpenedUrl = false
             } content: {
                 if let url = viewModel.openedUrl {

@@ -10,12 +10,12 @@ struct CameraView: View {
     @Binding var showingKeySelection: Bool
     @State var cameraModeStateModel: CameraModeStateModel
     
-    init(keyManager: KeyManager, galleryIconTapped: Binding<Bool>, showingKeySelection: Binding<Bool>) {
+    init(viewModel: CameraModel, galleryIconTapped: Binding<Bool>, showingKeySelection: Binding<Bool>) {
         
         self._galleryIconTapped = galleryIconTapped
         self._showingKeySelection = showingKeySelection
         self.cameraModeStateModel = CameraModeStateModel()
-        self.cameraModel = CameraModel(key: keyManager.keyPublisher)
+        self.cameraModel = viewModel
     }
     
     private var captureButton: some View {
@@ -159,6 +159,7 @@ struct CameraView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
+        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), fileWriter: DemoFileEnumerator()), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
+        
     }
 }

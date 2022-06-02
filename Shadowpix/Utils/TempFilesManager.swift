@@ -13,7 +13,7 @@ class TempFilesManager {
     
     private var createdTempFiles = Set<URL>()
     private var cancellables = Set<AnyCancellable>()
-
+    static var shared: TempFilesManager = TempFilesManager()
     init() {
 //        let pub1 = NotificationCenter.default
 //            .publisher(for: UIApplication.didFinishLaunchingNotification)
@@ -38,28 +38,11 @@ class TempFilesManager {
 
     }
     
-    static func createTempURL<T: MediaDescribing>(media: T) -> URL {
-        return URL(fileURLWithPath: NSTemporaryDirectory(),
-                          isDirectory: true).appendingPathComponent("\(NSUUID().uuidString).\(media.mediaType.fileExtension)")
-
-    }
-    
-    func createTemporaryMovieUrl() -> URL {
-        let movieUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
-                           isDirectory: true).appendingPathComponent("\(NSUUID().uuidString). \(MediaType.video.fileExtension)")
-        createdTempFiles.insert(movieUrl)
-        return movieUrl
-    }
-    
-    func createLivePhotoiCloudMovieCaptureUrl(photoId: String) throws -> URL {
-        let destinationURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents")
-        let temporaryDirectoryURL = try FileManager.default.url(for: .itemReplacementDirectory,
-                                                                   in: .userDomainMask,
-                                                                   appropriateFor: destinationURL,
-                                                                   create: true)
-        let url = temporaryDirectoryURL.appendingPathComponent("\(photoId).livephoto")
-        createdTempFiles.insert(url)
-        return url
+    func createTempURL(for mediaType: MediaType) -> URL {
+        let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
+                           isDirectory: true).appendingPathComponent("\(NSUUID().uuidString). \(mediaType.fileExtension)")
+        createdTempFiles.insert(tempUrl)
+        return tempUrl
 
     }
     
@@ -68,6 +51,10 @@ class TempFilesManager {
     }
     
     func deleteItem(at url: URL) {
+        guard createdTempFiles.contains(url) else {
+            print("Created temp files doesn't contain \(url.absoluteString)")
+            return
+        }
         var undeletedFiles = createdTempFiles
 
         do {

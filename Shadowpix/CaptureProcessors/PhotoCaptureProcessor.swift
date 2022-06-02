@@ -9,15 +9,16 @@ import Foundation
 import AVFoundation
 import CoreImage
 
-class PhotoCaptureProcessor: NSObject {
+class PhotoCaptureProcessor: NSObject, CaptureProcessor {
+    
     
     lazy var context = CIContext()
 
-    private(set) var requestedPhotoSettings: AVCapturePhotoSettings
+    private(set) var requestedPhotoSettings: AVCapturePhotoSettings!
     
     private let willCapturePhotoAnimation: () -> Void
     
-    private let completionHandler: (PhotoCaptureProcessor) -> Void
+    private let completionHandler: (CaptureProcessor) -> Void
     
     private let photoProcessingHandler: (Bool) -> Void
     
@@ -29,13 +30,22 @@ class PhotoCaptureProcessor: NSObject {
     private var maxPhotoProcessingTime: CMTime?
         
 //    Init takes multiple closures to be called in each step of the photco capture process
-    init(with requestedPhotoSettings: AVCapturePhotoSettings, willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (PhotoCaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, tempFilesManager: TempFilesManager) {
+    
+    convenience init(with requestedPhotoSettings: AVCapturePhotoSettings, willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
+        self.init(
+            willCapturePhotoAnimation: willCapturePhotoAnimation,
+            completionHandler: completionHandler,
+            photoProcessingHandler: photoProcessingHandler,
+            fileWriter: fileWriter,
+            key: key
+        )
+        self.requestedPhotoSettings = requestedPhotoSettings
+        self.requestedPhotoSettings.livePhotoMovieFileURL = fileWriter.createTempURL(for: .video)
+    }
+    
+    required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
         photoId = String(describing: NSDate().timeIntervalSince1970)
 
-        if let destinationUrl = try? tempFilesManager.createLivePhotoiCloudMovieCaptureUrl(photoId: photoId) {
-            requestedPhotoSettings.livePhotoMovieFileURL = destinationUrl
-        }
-        self.requestedPhotoSettings = requestedPhotoSettings
         self.willCapturePhotoAnimation = willCapturePhotoAnimation
         self.completionHandler = completionHandler
         self.photoProcessingHandler = photoProcessingHandler
@@ -88,6 +98,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
     }
     
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingLivePhotoToMovieFileAt outputFileURL: URL, duration: CMTime, photoDisplayTime: CMTime, resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
+        
         guard let data = try? Data(contentsOf: outputFileURL) else {
             fatalError("Could not get live photo data from url")
         }

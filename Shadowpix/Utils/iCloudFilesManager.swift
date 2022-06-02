@@ -32,22 +32,17 @@ class iCloudFilesEnumerator: FileEnumerator {
         case invalidURL
         case general
     }
-    
-    var directoryModel: DirectoryModel!
     var key: ImageKey!
     private var cancellables: [AnyCancellable] = []
-    
-    required init(directoryModel: DirectoryModel, key: ImageKey?) {
-        self.directoryModel = directoryModel
-        self.key = key
-    }
+    private var tempFileManager: TempFilesManager
 
     required init(key: ImageKey?) {
         self.key = key
+        self.tempFileManager = TempFilesManager.shared
     }
     
-    func enumerateMedia<T: MediaDescribing>(completion: ([T]) -> Void) where T.MediaSource == URL  {
-        let driveUrl = directoryModel.driveURL
+    func enumerateMedia<T: MediaDescribing>(for directory: DirectoryModel, completion: ([T]) -> Void) where T.MediaSource == URL  {
+        let driveUrl = directory.driveURL
         _ = driveUrl.startAccessingSecurityScopedResource()
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
         
@@ -125,12 +120,15 @@ extension iCloudFilesEnumerator: FileReader {
 
 extension iCloudFilesEnumerator: FileWriter {
     
+    func createTempURL(for mediaType: MediaType) -> URL {
+        tempFileManager.createTempURL(for: mediaType)
+    }
     
     func save<T: MediaSourcing>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError> {
         guard let diskMedia = media as? CleartextMedia<URL> else {
             fatalError()
         }
-        let tempURL = TempFilesManager.createTempURL(media: media)
+        let tempURL = self.tempFileManager.createTempURL(for: media.mediaType)
         let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: diskMedia, destinationURL: tempURL)
         return Future { [weak self] completion in
             guard let self = self else { return }

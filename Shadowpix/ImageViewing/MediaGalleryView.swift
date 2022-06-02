@@ -11,10 +11,12 @@ class MediaGalleryViewModel: ObservableObject {
     @Published var selectedMediaType: MediaType = .photo
     @Published var directory: DirectoryModel
     @Published var fileAccess: FileAccess
+    @Published var key: ImageKey?
     
     init(directory: DirectoryModel, key: ImageKey?) {
         self.directory = directory
-        self.fileAccess = iCloudFilesEnumerator(directoryModel: directory, key: key)
+        self.key = key
+        self.fileAccess = iCloudFilesEnumerator(key: key)
     }
 }
 
@@ -30,7 +32,7 @@ struct MediaGalleryView: View {
     }
     
     var body: some View {
-        let galleryViewModel = GalleryViewModel(fileEnumerator: viewModel.fileAccess)
+        let galleryViewModel = GalleryViewModel(sourceDirectory: self.viewModel.directory, key: self.viewModel.key)
         VStack {
             Picker("Media Type", selection: $selectedMediaType) {
                 ForEach(MediaType.allCases, id: \.rawValue) { type in

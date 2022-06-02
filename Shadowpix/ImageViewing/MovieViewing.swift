@@ -10,7 +10,7 @@ import AVKit
 import Combine
 
 
-struct MovieViewing<T: MediaDescribing>: View  where T.MediaSource == URL {
+struct MovieViewing<T: MediaDescribing>: View where T.MediaSource == URL {
         
     
     class ViewModel: ObservableObject {
@@ -34,28 +34,6 @@ struct MovieViewing<T: MediaDescribing>: View  where T.MediaSource == URL {
             }.store(in: &cancellables)
 
         }
-        
-        
-//        func decryptMovie() -> URL? {
-//            do {
-//                _ = movieUrl.startAccessingSecurityScopedResource()
-//                let data = try Data(contentsOf: movieUrl)
-//                movieUrl.stopAccessingSecurityScopedResource()
-//                guard let decrypted: Data = ChaChaPolyHelpers.decrypt(encryptedContent: data) else {
-//                    print("Could not decrypt image")
-//                    return nil
-//                }
-//                let movieUrl = filesManager.createTemporaryMovieUrl()
-//                try decrypted.write(to: movieUrl)
-//                return movieUrl
-//
-//            } catch {
-//                print("error opening movie", error.localizedDescription)
-//                return nil
-//            }
-//
-//        }
-        
         
     }
     @ObservedObject var viewModel: ViewModel

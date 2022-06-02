@@ -73,7 +73,6 @@ class CameraService {
     @Published var willCapturePhoto = false
     @Published var isCameraButtonDisabled = true
     @Published var isCameraUnavailable = true
-    @Published var photo: Photo?
     @Published var isRecordingVideo = false
     @Published var mode: CameraMode = .photo
     @Published var scannedKey: ImageKey?
@@ -107,15 +106,12 @@ class CameraService {
     
     private var keyValueObservations = [NSKeyValueObservation]()
     private var cancellables = Set<AnyCancellable>()
-    private var key: ImageKey?
+    private var keyManager: KeyManager
+    private var fileWriter: FileWriter
     
-    init(key: AnyPublisher<ImageKey?, Never>) {
-        key.sink { key in
-            guard let key = key else {
-                return
-            }
-            self.key = key
-        }.store(in: &cancellables)
+    init(keyManager: KeyManager, fileWriter: FileWriter) {
+        self.fileWriter = fileWriter
+        self.keyManager = keyManager
     }
     
     func configure() {
@@ -492,19 +488,24 @@ class CameraService {
     //    MARK: Capture Photo
     
     private func startCapturingVideo() {
-        guard self.setupResult != .configurationFailed, let key = self.key else {
+        guard self.setupResult != .configurationFailed, let key = self.keyManager.currentKey else {
+            print("Could not start capturing video")
             return
         }
         sessionQueue.async {
             if let photoOutputConnection = self.photoOutput.connection(with: .video) {
                 photoOutputConnection.videoOrientation = .portrait
             }
-
-            let videoCaptureProcessor = VideoCaptureProcessor(key: key, completion: {
-                self.inProgressVideoCaptureDelegates.removeAll()
-            })
+            let videoCaptureProcessor = VideoCaptureProcessor(willCapturePhotoAnimation: {
+                
+            }, completionHandler: { processor in
+                
+            }, photoProcessingHandler: { done in
+                
+            }, fileWriter: self.fileWriter, key: key)
+            
             self.inProgressVideoCaptureDelegates[1] = videoCaptureProcessor
-            self.movieOutput.startRecording(to: TempFilesManager().createTemporaryMovieUrl(), recordingDelegate: videoCaptureProcessor)
+            self.movieOutput.startRecording(to: self.fileWriter.createTempURL(for: .video), recordingDelegate: videoCaptureProcessor)
         }
     }
     
@@ -529,7 +530,8 @@ class CameraService {
     
     /// - Tag: CapturePhoto
     func capturePhoto() {
-        guard self.setupResult != .configurationFailed else {
+        guard self.setupResult != .configurationFailed, let key = self.keyManager.currentKey else {
+            print("Could not capture photo")
             return
         }
         self.isCameraButtonDisabled = true
@@ -572,13 +574,9 @@ class CameraService {
                 
             }, completionHandler: { [weak self] (photoCaptureProcessor) in
                 // When the capture is complete, remove a reference to the photo capture delegate so it can be deallocated.
-                if let data = photoCaptureProcessor.photoData {
-                    self?.photo = Photo(originalData: data)
-                    print("passing photo")
-                } else {
-                    print("No photo data")
+                guard let photoCaptureProcessor = photoCaptureProcessor as? PhotoCaptureProcessor else {
+                    return
                 }
-                
                 self?.isCameraButtonDisabled = false
                 
                 self?.sessionQueue.async {
@@ -591,7 +589,7 @@ class CameraService {
                 } else {
                     self?.shouldShowSpinner = false
                 }
-            }, tempFilesManager: TempFilesManager())
+            }, fileWriter: self.fileWriter, key: key)
             
             // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
             self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor

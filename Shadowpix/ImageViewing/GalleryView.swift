@@ -62,16 +62,16 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View where T.MediaSour
 }
 
 class GalleryViewModel: ObservableObject {
-    @Published var fileEnumerator: FileAccess
-    
-    init(fileEnumerator: FileAccess) {
-        self.fileEnumerator = fileEnumerator
+    @Published var sourceDirectory: DirectoryModel
+    var fileEnumerator: FileAccess
+    init(sourceDirectory: DirectoryModel, key: ImageKey?) {
+        self.sourceDirectory = sourceDirectory
+        self.fileEnumerator = iCloudFilesEnumerator(key: key) // come back to make this erased to protocol
     }
 }
 
 struct GalleryView: View {
     
-    @EnvironmentObject var state: ShadowPixState
     @State private var images: [EncryptedMedia] = []
     @State var displayImage: EncryptedMedia?
     @State var isDisplayingImage: Bool = false
@@ -102,23 +102,23 @@ struct GalleryView: View {
                     
                 }.padding(.horizontal)
             }
-        .onReceive(viewModel.$fileEnumerator, perform: { x in
-            viewModel.fileEnumerator.enumerateMedia { images in
+        .onReceive(viewModel.$sourceDirectory, perform: { directory in
+            viewModel.fileEnumerator.enumerateMedia(for: directory) { images in
                 self.images = images
             }
         })
         .onAppear {
-            viewModel.fileEnumerator.enumerateMedia { images in
+            viewModel.fileEnumerator.enumerateMedia(for: viewModel.sourceDirectory) { images in
                 self.images = images
             }
         }.edgesIgnoringSafeArea(.all)
     }
 }
 
-struct GalleryView_Previews: PreviewProvider {
-
-    static var previews: some View {
-        let enumerator = DemoFileEnumerator(directoryModel: DemoDirectoryModel(), key: nil)
-        GalleryView(viewModel: GalleryViewModel(fileEnumerator: enumerator))
-    }
-}
+//struct GalleryView_Previews: PreviewProvider {
+//
+//    static var previews: some View {
+//        let enumerator = DemoFileEnumerator(directoryModel: DemoDirectoryModel(), key: nil)
+//        GalleryView(viewModel: GalleryViewModel(fileEnumerator: enumerator))
+//    }
+//}
