@@ -88,7 +88,6 @@ class CameraService {
     var isConfigured = false
     var setupResult: SessionSetupResult = .success
     
-    private var cancellables: [AnyCancellable] = []
     private let sessionQueue = DispatchQueue(label: "session queue")
     private lazy var metadataProcessor = QRCodeCaptureProcessor()
     private var volumeObservation: NSKeyValueObservation?
@@ -107,6 +106,17 @@ class CameraService {
     // MARK: KVO and Notifications Properties
     
     private var keyValueObservations = [NSKeyValueObservation]()
+    private var cancellables = Set<AnyCancellable>()
+    private var key: ImageKey?
+    
+    init(key: Published<ImageKey?>.Publisher) {
+        key.sink { key in
+            guard let key = key else {
+                return
+            }
+            self.key = key
+        }.store(in: &cancellables)
+    }
     
     func configure() {
         /*
@@ -482,7 +492,7 @@ class CameraService {
     //    MARK: Capture Photo
     
     private func startCapturingVideo() {
-        guard self.setupResult != .configurationFailed else {
+        guard self.setupResult != .configurationFailed, let key = self.key else {
             return
         }
         sessionQueue.async {
@@ -490,7 +500,7 @@ class CameraService {
                 photoOutputConnection.videoOrientation = .portrait
             }
 
-            let videoCaptureProcessor = VideoCaptureProcessor(completion: {
+            let videoCaptureProcessor = VideoCaptureProcessor(key: key, completion: {
                 self.inProgressVideoCaptureDelegates.removeAll()
             })
             self.inProgressVideoCaptureDelegates[1] = videoCaptureProcessor

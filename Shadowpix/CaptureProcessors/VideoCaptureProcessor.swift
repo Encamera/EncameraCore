@@ -7,19 +7,19 @@
 
 import Foundation
 import AVFoundation
+import Combine
 
 class VideoCaptureProcessor: NSObject {
     
 //    private let captureSettings: AVCapturePhotoSettings
-    
+    private let fileHandler: iCloudFilesEnumerator
+    private var cancellables = Set<AnyCancellable>()
     private let completion: () -> (Void)
  
-    init(completion: @escaping ()->(Void)) {
+    init(key: ImageKey, completion: @escaping ()->(Void)) {
+        let directory = iCloudFilesDirectoryModel(subdirectory: MediaType.video.path, keyName: key.name)
+        self.fileHandler = iCloudFilesEnumerator(directoryModel: directory, key: key)
         self.completion = completion
-    }
-    
-    deinit {
-        
     }
     
 }
@@ -27,7 +27,14 @@ class VideoCaptureProcessor: NSObject {
 extension VideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         print(outputFileURL)
-        completion()
+        let cleartextVideo = CleartextMedia(source: outputFileURL)
+        fileHandler.save(media: cleartextVideo).sink { result in
+            self.completion()
+        } receiveValue: { media in
+            
+        }.store(in: &cancellables)
+
+        
     }
     
     

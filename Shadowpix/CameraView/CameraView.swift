@@ -3,18 +3,19 @@ import Combine
 import AVFoundation
 
 struct CameraView: View {
-    @StateObject private var cameraModel: CameraModel = CameraModel()
+    @ObservedObject private var cameraModel: CameraModel
     @EnvironmentObject var appState: ShadowPixState
     @Binding var galleryIconTapped: Bool
     @State private var currentZoomFactor: CGFloat = 1.0
     @Binding var showingKeySelection: Bool
     @State var cameraModeStateModel: CameraModeStateModel
     
-    init(galleryIconTapped: Binding<Bool>, showingKeySelection: Binding<Bool>) {
+    init(state: ShadowPixState, galleryIconTapped: Binding<Bool>, showingKeySelection: Binding<Bool>) {
         
         self._galleryIconTapped = galleryIconTapped
         self._showingKeySelection = showingKeySelection
         self.cameraModeStateModel = CameraModeStateModel()
+        self.cameraModel = CameraModel(key: state.$selectedKey)
     }
     
     private var captureButton: some View {
@@ -161,6 +162,6 @@ struct CameraView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
+        CameraView(state: ShadowPixState(), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
     }
 }

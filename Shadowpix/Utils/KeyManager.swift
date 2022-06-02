@@ -7,6 +7,7 @@
 
 import Foundation
 import Sodium
+import Combine
 
 enum KeyManagerError: Error {
     case deleteKeychainItemsFailed
@@ -18,19 +19,42 @@ enum KeyManagerError: Error {
 
 protocol KeyManager {
     
-    var isAuthorized: Bool { get }
-    
-    func getKey() throws -> ImageKey
+    var isAuthorized: AnyPublisher<Bool, Never> { get }
+    var currentKey: ImageKey? { get set }
+    var keyPublisher: AnyPublisher<ImageKey?, Never> { get }
     func clearStoredKeys() throws
     func generateNewKey(name: String) throws -> ImageKey
 }
 
-struct KeychainKeyManager: KeyManager {
+class KeychainKeyManager: ObservableObject, KeyManager {
     
-    var isAuthorized: Bool = false
+    var isAuthorized: AnyPublisher<Bool, Never>
+    private var authorized: Bool = false
+    private var cancellables = Set<AnyCancellable>()
     
-    func getKey() throws -> ImageKey {
-        guard isAuthorized == true else {
+    var currentKey: ImageKey?
+    var keyPublisher: AnyPublisher<ImageKey?, Never> {
+        keySubject.eraseToAnyPublisher()
+    }
+    
+    private var keySubject: PassthroughSubject<ImageKey?, Never> = .init()
+    
+    init(isAuthorized: AnyPublisher<Bool, Never>) {
+        self.isAuthorized = isAuthorized
+        
+        self.isAuthorized.sink { newValue in
+            self.authorized = newValue
+            self.keySubject.send(try? self.getKey())
+        }.store(in: &cancellables)
+        
+        self.keySubject.sink { key in
+            self.currentKey = key
+        }.store(in: &cancellables)
+        
+    }
+    
+    private func getKey() throws -> ImageKey {
+        guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
         let query: [String: Any] = [kSecClass as String: kSecClassKey,
@@ -56,7 +80,7 @@ struct KeychainKeyManager: KeyManager {
     
     func clearStoredKeys() throws {
         
-        guard isAuthorized == true else {
+        guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
         
@@ -73,7 +97,7 @@ struct KeychainKeyManager: KeyManager {
     
     func generateNewKey(name: String) throws -> ImageKey {
         
-        guard isAuthorized == true else {
+        guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
         

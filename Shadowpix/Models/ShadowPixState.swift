@@ -14,13 +14,14 @@ class ShadowPixState: ObservableObject {
     
     
     private(set) var authManager: AuthManager?
-    var keyManager: KeyManager
+    var keyManager: KeyManager!
     var fileHandler: iCloudFilesEnumerator?
     private var cancellables = Set<AnyCancellable>()
     
     init() {
-        self.keyManager = KeychainKeyManager()
+        
         self.authManager = AuthManager(state: self)
+        self.keyManager = KeychainKeyManager(isAuthorized: self.$isAuthorized.eraseToAnyPublisher())
         NotificationCenter.default
             .publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { _ in
@@ -31,11 +32,11 @@ class ShadowPixState: ObservableObject {
             .sink { _ in
                 self.authManager?.authorize()
             }.store(in: &cancellables)
-        NotificationCenter.default
-            .publisher(for: UIApplication.willResignActiveNotification)
-            .sink { _ in
-                self.authManager?.deauthorize()
-            }.store(in: &cancellables)
+//        NotificationCenter.default
+//            .publisher(for: UIApplication.willResignActiveNotification)
+//            .sink { _ in
+//                self.authManager?.deauthorize()
+//            }.store(in: &cancellables)
 
     }
 

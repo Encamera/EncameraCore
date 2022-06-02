@@ -41,19 +41,14 @@ struct KeyGeneration: View {
                     }
                 }
                 
-//                ToolbarItemGroup(placement: .navigationBarTrailing) {
-//                    if keyName.count > 0 {
-//
-//                        Button("Save") {
-//                            if WorkWithKeychain.getKeyObject() == nil {
-//                                saveKey()
-//                                isShown = false
-//                            } else {
-//                                isShowingAlertForNewKey = true
-//                            }
-//                        }.foregroundColor(.blue)
-//                    }
-//                }
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    if keyName.count > 0 {
+
+                        Button("Save") {
+                            isShowingAlertForNewKey = true
+                        }.foregroundColor(.blue)
+                    }
+                }
             }
             .padding()
             .navigationTitle("Key Generation")

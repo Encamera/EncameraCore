@@ -11,8 +11,8 @@ import Combine
 import UIKit
 
 final class CameraModel: ObservableObject {
-    private let service = CameraService()
-    
+    private let service: CameraService
+    var key: Published<ImageKey?>.Publisher
     @Published var photo: Photo!
     
     @Published var showAlertError = false
@@ -29,8 +29,12 @@ final class CameraModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     
-    init() {
+    init(key: Published<ImageKey?>.Publisher) {
+        self.key = key
+        self.service = CameraService(key: self.key)
         self.session = service.session
+        
+        
         NotificationCenter.default
             .publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { _ in
