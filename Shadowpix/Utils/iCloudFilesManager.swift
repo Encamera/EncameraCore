@@ -21,12 +21,16 @@ struct iCloudFilesDirectoryModel: DirectoryModel {
         
         let destURL = driveURL.appendingPathComponent(keyName)
             .appendingPathComponent(subdirectory)
-        try? FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: false, attributes: nil)
+        do {
+            try FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            print("could not create directory \(error.localizedDescription)")
+        }
         return destURL
     }
     
     func driveURLForNewMedia<T: MediaSourcing>(_ media: CleartextMedia<T>) -> URL {
-        let filename = "\(NSUUID().uuidString).\(media.mediaType.fileExtension)"
+        let filename = "\(media.id).\(media.mediaType.fileExtension).shdwpic"
         return driveURL.appendingPathComponent(filename)
     }
 }
@@ -83,10 +87,11 @@ class iCloudFilesEnumerator: FileEnumerator {
 extension iCloudFilesEnumerator: FileReader {
    
     func loadMediaPreview<T: MediaDescribing>(for media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> {
-        return loadMedia(media: media)
+        return loadMediaInMemory(media: media)
     }
     
-    func loadMedia<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> {
+    func loadMediaInMemory<T>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> where T : MediaDescribing {
+        
         if let encrypted = media as? EncryptedMedia {
             
             return decryptMedia(encrypted: encrypted).eraseToAnyPublisher()
@@ -94,8 +99,7 @@ extension iCloudFilesEnumerator: FileReader {
             fatalError()
         }
     }
-    
-    func loadMedia<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> {
+    func loadMediaToURL<T>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> where T : MediaDescribing {
         if let encrypted = media as? EncryptedMedia {
             let decryptedPublisher = decryptMedia(encrypted: encrypted) as AnyPublisher<CleartextMedia<URL>, SecretFilesError>
             return decryptedPublisher.eraseToAnyPublisher()
@@ -142,8 +146,8 @@ extension iCloudFilesEnumerator: FileReader {
 
 extension iCloudFilesEnumerator: FileWriter {
     
-    func createTempURL(for mediaType: MediaType) -> URL {
-        tempFileManager.createTempURL(for: mediaType)
+    func createTempURL(for mediaType: MediaType, id: String) -> URL {
+        tempFileManager.createTempURL(for: mediaType, id: id)
     }
     
     func save<T: MediaSourcing>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError> {

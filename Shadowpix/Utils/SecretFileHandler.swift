@@ -101,7 +101,7 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler {
     init(keyBytes: Array<UInt8>, source: T, destinationURL: URL? = nil) {
         self.keyBytes = keyBytes
         self.sourceMedia = source
-        self.destinationURL = destinationURL ?? TempFilesManager.shared.createTempURL(for: source.mediaType)
+        self.destinationURL = destinationURL ?? TempFilesManager.shared.createTempURL(for: source.mediaType, id: source.id)
     }
     
     var cancellables = Set<AnyCancellable>()
@@ -116,7 +116,9 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler {
             return Fail(error: SecretFilesError.encryptError)
                 .eraseToAnyPublisher()
         }
-        let destinationMedia = EncryptedMedia(source: destinationURL, type: .video)
+        guard let destinationMedia = EncryptedMedia(source: destinationURL, type: .video) else {
+            return Fail(error: .sourceFileAccessError).eraseToAnyPublisher()
+        }
         let destinationHandler = FileLikeHandler(media: destinationMedia, blockSize: 1024, mode: .writing)
         let sourceHandler = FileLikeHandler(media: sourceMedia, blockSize: 1024, mode: .reading)
         do {
@@ -145,7 +147,10 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler {
                         switch signal {
 
                         case .finished:
-                            let media = EncryptedMedia(source: self.destinationURL)
+                            guard let media = EncryptedMedia(source: self.destinationURL) else {
+                                completion(.failure(.sourceFileAccessError))
+                                return
+                            }
                             completion(.success(media))
                         case .failure(_):
                             completion(.failure(SecretFilesError.encryptError))

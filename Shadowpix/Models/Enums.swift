@@ -11,15 +11,42 @@ enum MediaType: Int, CaseIterable {
     case photo
     case unknown
     
-    static func typeFromExtension(string: String) -> MediaType {
-        switch string {
-        case "mov":
-            return .video
-        case "jpg", "png", "jpeg":
-            return .photo
+    static func typeFromMedia<T: MediaDescribing>(source: T) -> MediaType {
+        
+        switch source {
+        case let media as CleartextMedia<Data>:
+            return typeFrom(media: media)
+        case let media as CleartextMedia<URL>:
+            return typeFrom(media: media)
+        case let media as EncryptedMedia:
+            return typeFrom(media: media)
+        
         default:
             return .unknown
         }
+        
+    }
+    
+    private static func typeFrom(media: EncryptedMedia) -> MediaType {
+        
+        let trimmed = media.source.deletingPathExtension()
+        return typeFromURL(trimmed)
+    }
+    
+    private static func typeFrom(media: CleartextMedia<URL>) -> MediaType {
+        return typeFromURL(media.source)
+    }
+    
+    private static func typeFromURL(_ url: URL) -> MediaType {
+        let fileExtension = url.pathExtension
+        guard let type = self.allCases.filter({$0.fileExtension == fileExtension}).first else {
+            return .unknown
+        }
+        return type
+    }
+    
+    private static func typeFrom(media: CleartextMedia<Data>) -> MediaType {
+        return .photo
     }
     
     var fileExtension: String {

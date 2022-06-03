@@ -259,6 +259,7 @@ class CameraService {
             guard let videoDevice = defaultVideoDevice else {
                 throw SetupError.defaultVideoDeviceUnavailable
             }
+            videoDevice.configureDesiredFrameRate(30)
             guard let audioDevice = AVCaptureDevice.default(for: .audio),
                       let audioDeviceInput = try? AVCaptureDeviceInput(device: audioDevice) else {
                 throw SetupError.defaultAudioDeviceUnavailable
@@ -488,10 +489,12 @@ class CameraService {
     //    MARK: Capture Photo
     
     private func startCapturingVideo() {
+        
         guard self.setupResult != .configurationFailed, let key = self.keyManager.currentKey else {
             print("Could not start capturing video")
             return
         }
+        isRecordingVideo = true
         sessionQueue.async {
             if let photoOutputConnection = self.photoOutput.connection(with: .video) {
                 photoOutputConnection.videoOrientation = .portrait
@@ -505,11 +508,12 @@ class CameraService {
             }, fileWriter: self.fileWriter, key: key)
             
             self.inProgressVideoCaptureDelegates[1] = videoCaptureProcessor
-            self.movieOutput.startRecording(to: self.fileWriter.createTempURL(for: .video), recordingDelegate: videoCaptureProcessor)
+            self.movieOutput.startRecording(to: self.fileWriter.createTempURL(for: .video, id: videoCaptureProcessor.videoId), recordingDelegate: videoCaptureProcessor)
         }
     }
     
     private func stopCapturingVideo() {
+        isRecordingVideo = false
         guard self.setupResult != .configurationFailed else {
             return
         }
@@ -555,11 +559,6 @@ class CameraService {
             
             photoSettings.isHighResolutionPhotoEnabled = true
             
-            // Sets the preview thumbnail pixel format
-            if !photoSettings.__availablePreviewPhotoPixelFormatTypes.isEmpty {
-                photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: photoSettings.__availablePreviewPhotoPixelFormatTypes.first!]
-            }
-            
             photoSettings.photoQualityPrioritization = .quality
             
             let photoCaptureProcessor = PhotoCaptureProcessor(with: photoSettings, willCapturePhotoAnimation: { [weak self] in
@@ -596,4 +595,36 @@ class CameraService {
             self.photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureProcessor)
         }
     }
+}
+
+extension AVCaptureDevice {
+
+    /// http://stackoverflow.com/questions/21612191/set-a-custom-avframeraterange-for-an-avcapturesession#27566730
+    func configureDesiredFrameRate(_ desiredFrameRate: Int) {
+
+        var isFPSSupported = false
+
+        do {
+
+            if let videoSupportedFrameRateRanges = activeFormat.videoSupportedFrameRateRanges as? [AVFrameRateRange] {
+                for range in videoSupportedFrameRateRanges {
+                    if (range.maxFrameRate >= Double(desiredFrameRate) && range.minFrameRate <= Double(desiredFrameRate)) {
+                        isFPSSupported = true
+                        break
+                    }
+                }
+            }
+
+            if isFPSSupported {
+                try lockForConfiguration()
+                activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: Int32(desiredFrameRate))
+                activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(desiredFrameRate))
+                unlockForConfiguration()
+            }
+
+        } catch {
+            print("lockForConfiguration error: \(error.localizedDescription)")
+        }
+    }
+
 }

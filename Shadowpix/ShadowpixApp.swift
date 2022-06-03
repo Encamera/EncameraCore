@@ -9,8 +9,8 @@ import SwiftUI
 
 @main
 struct ShadowpixApp: App {
-    @State var hasOpenedUrl: Bool = false
     class ViewModel: ObservableObject {
+        @Published var hasOpenedURL: Bool = false
         var openedUrl: URL?
         var state: ShadowPixState = ShadowPixState()
     }
@@ -26,23 +26,26 @@ struct ShadowpixApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MainInterface(viewModel: MainInterfaceViewModel(keyManager: viewModel.state.keyManager)).sheet(isPresented: $hasOpenedUrl) {
-                self.hasOpenedUrl = false
+            MainInterface(viewModel: MainInterfaceViewModel(keyManager: viewModel.state.keyManager)).sheet(isPresented: $viewModel.hasOpenedURL) {
+                self.viewModel.hasOpenedURL = false
             } content: {
-                if let url = viewModel.openedUrl {
-//                    if url.lastPathComponent.contains(".live") {
-//                        MovieViewing(viewModel: MovieViewing.ViewModel(movieUrl: url, filesManager: state.tempFilesManager))
-//                    } else {
-                    let media = EncryptedMedia(source: url)
+                if let url = viewModel.openedUrl, let media = EncryptedMedia(source: url), viewModel.state.authManager.isAuthorized {
+                    switch media.mediaType {
+                    case .photo:
+                        ImageViewing<EncryptedMedia, iCloudFilesEnumerator>(viewModel: ImageViewingViewModel(image: media, keyManager: viewModel.state.keyManager))
+                    case .video:
+                        MovieViewing<EncryptedMedia, iCloudFilesEnumerator>(viewModel: MovieViewingViewModel(image: media, keyManager: viewModel.state.keyManager))
+                    case .unknown:
+                        EmptyView()
+                    }
                     
-                    ImageViewing<EncryptedMedia, iCloudFilesEnumerator>(viewModel: ImageViewing.ViewModel(image: media, keyManager: viewModel.state.keyManager))
 //                    }
                     
                 }
             }.onOpenURL { url in
-                self.hasOpenedUrl = false
+                self.viewModel.hasOpenedURL = false
                 self.viewModel.openedUrl = url
-                self.hasOpenedUrl = true
+                self.viewModel.hasOpenedURL = true
             }
 //            .sheet(isPresented: $state.showScannedKeySheet, onDismiss: {
 //            }, content: {

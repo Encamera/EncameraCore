@@ -38,11 +38,11 @@ class PhotoCaptureProcessor: NSObject, CaptureProcessor {
             key: key
         )
         self.requestedPhotoSettings = requestedPhotoSettings
-        self.requestedPhotoSettings.livePhotoMovieFileURL = fileWriter.createTempURL(for: .video)
+        self.requestedPhotoSettings.livePhotoMovieFileURL = fileWriter.createTempURL(for: .video, id: self.photoId)
     }
     
     required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
-        photoId = String(describing: NSDate().timeIntervalSince1970)
+        photoId = NSUUID().uuidString
         self.fileWriter = fileWriter
         self.willCapturePhotoAnimation = willCapturePhotoAnimation
         self.completionHandler = completionHandler
@@ -100,7 +100,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         guard let data = try? Data(contentsOf: outputFileURL) else {
             fatalError("Could not get live photo data from url")
         }
-        let media = CleartextMedia(source: data, mediaType: .video)
+        let media = CleartextMedia(source: data, mediaType: .video, id: photoId)
         
         fileWriter.save(media: media)
             .receive(on: DispatchQueue.main)
@@ -130,7 +130,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
                 }
                 return
             }
-            let media = CleartextMedia(source: data, mediaType: .photo)
+            let media = CleartextMedia(source: data, mediaType: .photo, id: photoId)
             fileWriter.save(media: media).receive(on: DispatchQueue.main).sink(receiveCompletion: { completion in
                 
             }) { saved in

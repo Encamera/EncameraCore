@@ -14,7 +14,7 @@ enum DemoError: Error {
 }
 
 class DemoFileEnumerator: FileAccess {
-    func createTempURL(for mediaType: MediaType) -> URL {
+    func createTempURL(for mediaType: MediaType, id: String) -> URL {
         return URL(fileURLWithPath: "")
     }
     
@@ -27,11 +27,11 @@ class DemoFileEnumerator: FileAccess {
 
     }
     
-    func loadMedia<T>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> where T : MediaDescribing {
+    func loadMediaToURL<T>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> where T : MediaDescribing {
         return Just(CleartextMedia(source: URL(fileURLWithPath: ""))).setFailureType(to: SecretFilesError.self).eraseToAnyPublisher()
     }
     
-    func loadMedia<T>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> where T : MediaDescribing {
+    func loadMediaInMemory<T>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> where T : MediaDescribing {
         return Just(CleartextMedia(source: Data())).setFailureType(to: SecretFilesError.self).eraseToAnyPublisher()
 
     }

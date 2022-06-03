@@ -11,22 +11,20 @@ class EncryptedMedia: MediaDescribing, ObservableObject {
     typealias MediaSource = URL
     
     var mediaType: MediaType = .unknown
-    
+    var id: String
     var source: URL
     
-    convenience init(source: URL, type: MediaType) {
+    convenience init?(source: URL, type: MediaType) {
         self.init(source: source)
         self.mediaType = type
     }
     
-    required init(source: URL) {
+    required init?(source: URL) {
         self.source = source
-        self.mediaType = MediaType.typeFromExtension(string: source.pathExtension)
-    }
-}
-
-extension EncryptedMedia: Identifiable {
-    var id: some Hashable {
-        return source.hashValue
+        guard let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first?.uppercased() else {
+            return nil
+        }
+        self.id = id
+        self.mediaType = MediaType.typeFromMedia(source: self)
     }
 }

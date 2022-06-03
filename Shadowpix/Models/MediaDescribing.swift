@@ -29,7 +29,8 @@ protocol MediaDescribing {
         
     var source: MediaSource { get }
     var mediaType: MediaType { get }
-    init(source: MediaSource)
+    var id: String { get }
+    init?(source: MediaSource)
 }
 
 extension MediaDescribing {

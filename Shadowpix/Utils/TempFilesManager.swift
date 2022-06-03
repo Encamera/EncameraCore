@@ -25,11 +25,11 @@ class TempFilesManager {
             .sink { _ in
                 try? self.cleanup()
             }.store(in: &cancellables)
-        NotificationCenter.default
-            .publisher(for: UIApplication.willResignActiveNotification)
-            .sink { _ in
-                try? self.cleanup()
-            }.store(in: &cancellables)
+//        NotificationCenter.default
+//            .publisher(for: UIApplication.willResignActiveNotification)
+//            .sink { _ in
+//                try? self.cleanup()
+//            }.store(in: &cancellables)
         NotificationCenter.default
             .publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { _ in
@@ -38,9 +38,9 @@ class TempFilesManager {
 
     }
     
-    func createTempURL(for mediaType: MediaType) -> URL {
+    func createTempURL(for mediaType: MediaType, id: String) -> URL {
         let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
-                           isDirectory: true).appendingPathComponent("\(NSUUID().uuidString). \(mediaType.fileExtension)")
+                          isDirectory: true).appendingPathComponent(id).appendingPathExtension(mediaType.fileExtension)
         createdTempFiles.insert(tempUrl)
         return tempUrl
 

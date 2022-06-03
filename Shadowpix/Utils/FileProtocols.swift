@@ -26,13 +26,13 @@ protocol FileReader {
 //    associatedtype MediaTypeHandling: MediaSourcing
     init(key: ImageKey?)
     func loadMediaPreview<T: MediaDescribing>(for media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError>
-    func loadMedia<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError>
-    func loadMedia<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError>
+    func loadMediaToURL<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError>
+    func loadMediaInMemory<T: MediaDescribing>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError>
 }
 
 protocol FileWriter {
         
-    func createTempURL(for mediaType: MediaType) -> URL
+    func createTempURL(for mediaType: MediaType, id: String) -> URL
     func save<T: Hashable>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError>
 }
 

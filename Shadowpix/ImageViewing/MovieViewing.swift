@@ -10,37 +10,38 @@ import AVKit
 import Combine
 
 
-struct MovieViewing<T: MediaDescribing>: View where T.MediaSource == URL {
+class MovieViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: ObservableObject, MediaViewingViewModel {
+    @Published var decryptedFileRef: CleartextMedia<URL>?
+    var sourceMedia: SourceType
+    var keyManager: KeyManager
+    var fileAccess: Reader
+    private var cancellables = Set<AnyCancellable>()
+    required init(image: SourceType, keyManager: KeyManager) {
+        self.sourceMedia = image
+        self.keyManager = keyManager
+        self.fileAccess = Reader(key: keyManager.currentKey)
+    }
+    
+    func decrypt() {
+        
+            fileAccess.loadMediaToURL(media: sourceMedia).sink(receiveCompletion: { completion in
+                print(completion)
+            }, receiveValue: { decrypted in
+                self.decryptedFileRef = decrypted
+            }).store(in: &cancellables)
+    }
+}
+
+struct MovieViewing<M: MediaDescribing, F: FileReader>: View where M.MediaSource == URL {
         
     
-    class ViewModel: ObservableObject {
-        
-        var encrypedFileRef: T
-        var fileHandler: SecretDiskFileHandler<T>
-        private var cancellables = Set<AnyCancellable>()
-
-        @Published var decryptedFileRef: CleartextMedia<URL>?
-        
-        init(selectedKey: ImageKey, fileRef: T) {
-            self.encrypedFileRef = fileRef
-            self.fileHandler = SecretDiskFileHandler(keyBytes: selectedKey.keyBytes, source: fileRef)
-        }
-        
-        func decrypt() {
-            fileHandler.decryptFile().sink { signal in
-                
-            } receiveValue: { media in
-                self.decryptedFileRef = media
-            }.store(in: &cancellables)
-
-        }
-        
-    }
-    @ObservedObject var viewModel: ViewModel
+    
+    @ObservedObject var viewModel: MovieViewingViewModel<M, F>
     var body: some View {
         VStack {
             if let movieUrl = viewModel.decryptedFileRef?.source {
                 let player = AVPlayer(url: movieUrl)
+                
                 VideoPlayer(player: player)
             } else {
                 Text("Could not decrypt movie")

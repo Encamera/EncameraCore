@@ -15,14 +15,36 @@ class VideoFilesManagerTests: XCTestCase {
     
     var cancellables: [AnyCancellable] = []
     
+    func testEncryptInMemory() throws {
+        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpeg")!
+        let sourceData = try Data(contentsOf: sourceUrl)
+        let key = Sodium().secretStream.xchacha20poly1305.key()
+        let handler = SecretDiskFileHandler(keyBytes: key, source: CleartextMedia(source: sourceData))
+        let expectation = expectation(description: "video")
+        handler.encryptFile().sink { completion in
+            switch completion {
+                
+            case .finished:
+                return
+            case .failure(_):
+                XCTFail()
+                expectation.fulfill()
+            }
+        } receiveValue: { media in
+            XCTAssertTrue(FileManager.default.fileExists(atPath: media.source.path))
+            expectation.fulfill()
+        }.store(in: &cancellables)
+
+        
+        waitForExpectations(timeout: 10)
+
+    }
+    
     func testEncryptVideo() throws {
         
         let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
-//        let sourceUrl = TempFilesManager().createTemporaryMovieUrl()
-//        try FileManager.default.copyItem(at: url, to: sourceUrl)
-        let destinationUrl = TempFilesManager().createTemporaryMovieUrl()
         let key = Sodium().secretStream.xchacha20poly1305.key()
-        let handler = SecretDiskFileHandler(keyBytes: key, source: CleartextMedia(source: sourceUrl), destinationURL: destinationUrl)
+        let handler = SecretDiskFileHandler(keyBytes: key, source: CleartextMedia(source: sourceUrl))
         let expectation = expectation(description: "video")
         handler.encryptFile().sink { completion in
             switch completion {
@@ -45,9 +67,9 @@ class VideoFilesManagerTests: XCTestCase {
     func testDecryptVideo() throws {
         
         let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
-        let destinationUrl = TempFilesManager().createTemporaryMovieUrl()
         let key = Sodium().secretStream.xchacha20poly1305.key()
-        let handler = SecretDiskFileHandler(keyBytes: key, source: EncryptedMedia(source: sourceUrl), destinationURL: destinationUrl)
+        let encrypted = try XCTUnwrap(EncryptedMedia(source: sourceUrl))
+        let handler = SecretDiskFileHandler(keyBytes: key, source: encrypted)
         let encryptExpectation = expectation(description: "encrypt video")
         var encryptedMedia: EncryptedMedia?
         handler.encryptFile().sink { completion in
@@ -63,8 +85,7 @@ class VideoFilesManagerTests: XCTestCase {
         print(unwrappedDecryptedMedia)
         let decryptExpectation = expectation(description: "decrypt video")
         
-        let cleartextDestination = TempFilesManager().createTemporaryMovieUrl()
-        let decryptHandler = SecretDiskFileHandler(keyBytes: key, source: unwrappedDecryptedMedia, destinationURL: cleartextDestination)
+        let decryptHandler = SecretDiskFileHandler(keyBytes: key, source: unwrappedDecryptedMedia)
         decryptHandler.decryptFile().sink { completion in
             switch completion {
                 

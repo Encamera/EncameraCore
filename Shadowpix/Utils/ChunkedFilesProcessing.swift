@@ -61,10 +61,14 @@ class DiskBlockReader: FileLikeBlockReader {
     }
     
     func prepareIfDoesNotExist() throws {
-        if FileManager.default.fileExists(atPath: source.path) == false && mode == .writing {
-            FileManager.default.createFile(atPath: source.path, contents: nil)
-            fileHandle = try FileHandle(forWritingTo: source)
+        
+        guard mode == .writing else {
+            return
         }
+        if FileManager.default.fileExists(atPath: source.path) == false {
+            FileManager.default.createFile(atPath: source.path, contents: "".data(using: .utf8))
+        }
+        fileHandle = try FileHandle(forWritingTo: source)
     }
     
     func write(contentsOf data: Data) throws {
@@ -86,8 +90,12 @@ class DataBlockReader: FileLikeBlockReader {
     }
     
     func read(upToCount count: Int) throws -> Data? {
-        let reduced = source.advanced(by: count)
-        let block = source.subdata(in: 0..<count)
+        let next = count > source.count ? source.count : count
+        if next == 0 {
+            return nil
+        }
+        let reduced = source.advanced(by: next)
+        let block = source.subdata(in: 0..<next)
         source = reduced
         return block
     }

@@ -13,18 +13,25 @@ struct CleartextMedia<T: MediaSourcing>: MediaDescribing {
     
     var source: T
     var mediaType: MediaType = .unknown
+    var id: String
     
-    init(source: T, mediaType: MediaType) {
+    init(source: T, mediaType: MediaType, id: String) {
         self.init(source: source)
         self.mediaType = mediaType
+        self.id = id
     }
     
     init(source: T) {
         self.source = source
-        guard let urlSource = source as? URL else {
-            return
+        if let source = source as? URL {
+            self.id = source.deletingPathExtension().lastPathComponent
+        } else if source is Data {
+            self.id = NSUUID().uuidString
+        } else {
+            fatalError()
         }
-        mediaType = MediaType.typeFromExtension(string: urlSource.pathExtension)
+        mediaType = MediaType.typeFromMedia(source: self)
+        
     }
 }
 
