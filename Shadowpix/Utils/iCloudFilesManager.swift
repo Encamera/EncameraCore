@@ -24,6 +24,11 @@ struct iCloudFilesDirectoryModel: DirectoryModel {
         try? FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: false, attributes: nil)
         return destURL
     }
+    
+    func driveURLForNewMedia<T: MediaSourcing>(_ media: CleartextMedia<T>) -> URL {
+        let filename = "\(NSUUID().uuidString).\(media.mediaType.fileExtension)"
+        return driveURL.appendingPathComponent(filename)
+    }
 }
 
 class iCloudFilesEnumerator: FileEnumerator {
@@ -114,7 +119,24 @@ extension iCloudFilesEnumerator: FileReader {
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
-        return SecretDiskFileHandler(keyBytes: key.keyBytes, source: encrypted).decryptFile().eraseToAnyPublisher()
+        return Future { completion in
+            SecretDiskFileHandler(keyBytes: self.key.keyBytes, source: encrypted).decryptFile()
+                .sink(receiveCompletion: { signal in
+                    
+            sourceURL.stopAccessingSecurityScopedResource()
+                    switch signal {
+                        
+                    case .finished:
+                        break
+                    case .failure(let error):
+                        completion(.failure(error))
+                    }
+                    
+        }, receiveValue: { url in
+            completion(.success(url))
+        }).store(in: &self.cancellables)
+            
+        }.eraseToAnyPublisher()
     }
 }
 
@@ -125,17 +147,15 @@ extension iCloudFilesEnumerator: FileWriter {
     }
     
     func save<T: MediaSourcing>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError> {
-        guard let diskMedia = media as? CleartextMedia<URL> else {
-            fatalError()
-        }
-        let tempURL = self.tempFileManager.createTempURL(for: media.mediaType)
-        let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: diskMedia, destinationURL: tempURL)
+        
+        let destinationURL = iCloudFilesDirectoryModel(subdirectory: media.mediaType.path, keyName: key.name).driveURLForNewMedia(media)
+        let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
         return Future { [weak self] completion in
             guard let self = self else { return }
             fileHandler.encryptFile().sink { fileCompletion in
-
+                
                 switch fileCompletion {
-
+                    
                 case .finished:
                     break
                 case .failure(let error):
@@ -145,7 +165,7 @@ extension iCloudFilesEnumerator: FileWriter {
                 completion(.success(encrypted))
             }.store(in: &self.cancellables)
         }.eraseToAnyPublisher()
-
+        
     }
 }
 

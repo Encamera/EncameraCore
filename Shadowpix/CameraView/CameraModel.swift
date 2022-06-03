@@ -12,7 +12,6 @@ import UIKit
 
 final class CameraModel: ObservableObject {
     private let service: CameraService
-    @Published var photo: Photo!
     
     @Published var showAlertError = false
     

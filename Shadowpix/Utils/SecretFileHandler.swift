@@ -90,7 +90,7 @@ class SecretInMemoryFileHander<T: MediaDescribing>: SecretFileHandler {
     }
 }
 
-class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler where T.MediaSource == URL {
+class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler {
     
    
     

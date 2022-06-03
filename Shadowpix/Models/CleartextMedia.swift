@@ -14,6 +14,10 @@ struct CleartextMedia<T: MediaSourcing>: MediaDescribing {
     var source: T
     var mediaType: MediaType = .unknown
     
+    init(source: T, mediaType: MediaType) {
+        self.init(source: source)
+        self.mediaType = mediaType
+    }
     
     init(source: T) {
         self.source = source

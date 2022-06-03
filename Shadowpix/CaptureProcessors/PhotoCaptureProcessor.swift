@@ -8,6 +8,7 @@
 import Foundation
 import AVFoundation
 import CoreImage
+import Combine
 
 class PhotoCaptureProcessor: NSObject, CaptureProcessor {
     
@@ -22,14 +23,11 @@ class PhotoCaptureProcessor: NSObject, CaptureProcessor {
     
     private let photoProcessingHandler: (Bool) -> Void
     
-//    The actual captured photo's data
     var photoData: Data?
     var photoId: String
-    
-//    The maximum time lapse before telling UI to show a spinner
     private var maxPhotoProcessingTime: CMTime?
-        
-//    Init takes multiple closures to be called in each step of the photco capture process
+    private var fileWriter: FileWriter
+    private var cancellables = Set<AnyCancellable>()
     
     convenience init(with requestedPhotoSettings: AVCapturePhotoSettings, willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
         self.init(
@@ -45,7 +43,7 @@ class PhotoCaptureProcessor: NSObject, CaptureProcessor {
     
     required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
         photoId = String(describing: NSDate().timeIntervalSince1970)
-
+        self.fileWriter = fileWriter
         self.willCapturePhotoAnimation = willCapturePhotoAnimation
         self.completionHandler = completionHandler
         self.photoProcessingHandler = photoProcessingHandler
@@ -102,7 +100,17 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         guard let data = try? Data(contentsOf: outputFileURL) else {
             fatalError("Could not get live photo data from url")
         }
-        saveEncryptedToiCloudDrive(data, isLivePhoto: true)
+        let media = CleartextMedia(source: data, mediaType: .video)
+        
+        fileWriter.save(media: media)
+            .receive(on: DispatchQueue.main)
+            .sink { completion in
+            
+        } receiveValue: { saved in
+            print("Saved live photo to \(saved.source)")
+            self.completionHandler(self)
+        }.store(in: &cancellables)
+
     }
     
     
@@ -122,22 +130,13 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
                 }
                 return
             }
-           
-            self.saveEncryptedToiCloudDrive(data)
+            let media = CleartextMedia(source: data, mediaType: .photo)
+            fileWriter.save(media: media).receive(on: DispatchQueue.main).sink(receiveCompletion: { completion in
+                
+            }) { saved in
+                print("Saved photo to \(saved.source)")
+                self.completionHandler(self)
+            }.store(in: &cancellables)
         }
-    }
-}
-
-extension PhotoCaptureProcessor {
-
-//    private func save
-    
-    private func saveEncryptedToiCloudDrive(_ photoData: Data, tempUrl: URL? = nil, isLivePhoto: Bool = false) {
-        
-//        iCloudFilesManager.saveEncryptedToiCloudDrive(photoData, photoId: photoId, isLivePhoto: isLivePhoto)
-        DispatchQueue.main.async {
-            self.completionHandler(self)
-        }
-        
     }
 }
