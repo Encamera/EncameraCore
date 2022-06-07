@@ -29,6 +29,10 @@ enum CameraModeSelection: Int, CaseIterable {
         }
     }
     
+    var activeImageName: String {
+        return self.systemImageName + ".fill"
+    }
+    
     var activeBackgroundColor: Color {
         switch self {
         case .video:
@@ -62,8 +66,12 @@ struct CameraModePicker: View {
                             pressedAction(item.cameraMode)
                         }
                     ) {
-                        Image(systemName: item.systemImageName)
+                        let itemActive = stateModel.isModeActive && item.rawValue == stateModel.activeIndex
+                        let imageName = itemActive ? item.activeImageName : item.systemImageName
+                        let foreground = itemActive ? Color.red : Color.white
+                        Image(systemName: imageName)
                             .resizable()
+                            .foregroundColor(foreground)
                             .aspectRatio(contentMode: .fit)
                         
                     }
@@ -148,8 +156,14 @@ struct Carousel<Items: View>: View {
         }
         .offset(x: CGFloat(calcOffset), y: 0)
         .gesture(DragGesture().updating($isDetectingLongPress) { currentState, gestureState, transaction in
+            guard self.stateModel.isModeActive == false else {
+                return
+            }
             self.stateModel.screenDrag = Float(currentState.translation.width)
         }.onEnded { value in
+            guard self.stateModel.isModeActive == false else {
+                return
+            }
             self.stateModel.screenDrag = 0
             
             if value.translation.width < -stateModel.snapTolerance {
@@ -199,9 +213,7 @@ struct Item<Content: View>: View {
     }
     
     var body: some View {
-        let transformScale = _id == stateModel.activeIndex ? 1.0 : stateModel.heightShrink
         ZStack {
-            
             main
             .onTapGesture {
                 pressedAction()
@@ -212,20 +224,13 @@ struct Item<Content: View>: View {
     var main: AnyView {
         let transformScale = _id == stateModel.activeIndex ? 1.0 : stateModel.heightShrink
         
-        var view = content
+        return AnyView(content
             .scaleEffect(transformScale)
             .frame(
                 width: stateModel.cardWidth,
                 height: stateModel.cardHeight,
                 alignment: .center
-            )
-        
-        if stateModel.isModeActive {
-            return AnyView(view.background(stateModel.isModeActive && _id == stateModel.activeIndex ? Color.red : Color.clear)
-                .background(in: Circle()))
-        }
-        
-        return AnyView(view)
+            ))
     }
 }
 
