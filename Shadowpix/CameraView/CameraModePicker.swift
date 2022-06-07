@@ -34,7 +34,7 @@ enum CameraModeSelection: Int, CaseIterable {
         case .video:
             return .red
         case .photo:
-            return .white
+            return .red
         }
     }
 }
@@ -104,10 +104,6 @@ public class CameraModeStateModel: ObservableObject {
     var snapTolerance: CGFloat = 50
     var heightShrink: CGFloat = 0.70
     var cardHeight: CGFloat = 100
-    
-//    init(pressedAction: @escaping (CameraMode) -> Void) {
-//        self.pressedAction = pressedAction
-//    }
 }
 
 struct Carousel<Items: View>: View {
@@ -204,27 +200,49 @@ struct Item<Content: View>: View {
     
     var body: some View {
         let transformScale = _id == stateModel.activeIndex ? 1.0 : stateModel.heightShrink
-        content
+        ZStack {
+            
+            main
+            .onTapGesture {
+                pressedAction()
+            }
+        }
+    }
+    
+    var main: AnyView {
+        let transformScale = _id == stateModel.activeIndex ? 1.0 : stateModel.heightShrink
+        
+        var view = content
             .scaleEffect(transformScale)
             .frame(
                 width: stateModel.cardWidth,
                 height: stateModel.cardHeight,
                 alignment: .center
             )
-            .background(stateModel.isModeActive ? Color.red : Color.clear)
-            .onTapGesture {
-                pressedAction()
-            }
+        
+        if stateModel.isModeActive {
+            return AnyView(view.background(stateModel.isModeActive && _id == stateModel.activeIndex ? Color.red : Color.clear)
+                .background(in: Circle()))
+        }
+        
+        return AnyView(view)
     }
 }
 
 struct SnapCarousel_Previews: PreviewProvider {
+    static var model: CameraModeStateModel {
+        let model = CameraModeStateModel()
+        model.activeIndex = 1
+        model.isModeActive = true
+        return model
+    }
     static var previews: some View {
+        
         CameraModePicker(pressedAction: {mode in
             
         })
             .background(Color.black)
-            .environmentObject(CameraModeStateModel())
+            .environmentObject(model)
     }
 }
 

@@ -43,11 +43,9 @@ class iCloudFilesEnumerator: FileEnumerator {
     }
     var key: ImageKey!
     private var cancellables: [AnyCancellable] = []
-    private var tempFileManager: TempFilesManager
 
     required init(key: ImageKey?) {
         self.key = key
-        self.tempFileManager = TempFilesManager.shared
     }
     
     func enumerateMedia<T: MediaDescribing>(for directory: DirectoryModel, completion: ([T]) -> Void) where T.MediaSource == URL  {
@@ -146,9 +144,6 @@ extension iCloudFilesEnumerator: FileReader {
 
 extension iCloudFilesEnumerator: FileWriter {
     
-    func createTempURL(for mediaType: MediaType, id: String) -> URL {
-        tempFileManager.createTempURL(for: mediaType, id: id)
-    }
     
     func save<T: MediaSourcing>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError> {
         

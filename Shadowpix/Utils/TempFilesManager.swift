@@ -14,7 +14,8 @@ class TempFilesManager {
     private var createdTempFiles = Set<URL>()
     private var cancellables = Set<AnyCancellable>()
     static var shared: TempFilesManager = TempFilesManager()
-    init() {
+    
+    private init() {
 //        let pub1 = NotificationCenter.default
 //            .publisher(for: UIApplication.didFinishLaunchingNotification)
 //        let pub2 = NotificationCenter.default
@@ -48,6 +49,10 @@ class TempFilesManager {
     
     deinit {
         try? cleanup()
+    }
+    
+    func delete<T: MediaDescribing>(media: T) where T.MediaSource == URL {
+        deleteItem(at: media.source)
     }
     
     func deleteItem(at url: URL) {

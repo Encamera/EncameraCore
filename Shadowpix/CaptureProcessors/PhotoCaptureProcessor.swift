@@ -38,7 +38,7 @@ class PhotoCaptureProcessor: NSObject, CaptureProcessor {
             key: key
         )
         self.requestedPhotoSettings = requestedPhotoSettings
-        self.requestedPhotoSettings.livePhotoMovieFileURL = fileWriter.createTempURL(for: .video, id: self.photoId)
+        self.requestedPhotoSettings.livePhotoMovieFileURL = TempFilesManager.shared.createTempURL(for: .video, id: self.photoId)
     }
     
     required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
@@ -105,7 +105,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         fileWriter.save(media: media)
             .receive(on: DispatchQueue.main)
             .sink { completion in
-            
+                TempFilesManager.shared.deleteItem(at: outputFileURL)
         } receiveValue: { saved in
             print("Saved live photo to \(saved.source)")
             self.completionHandler(self)

@@ -32,7 +32,6 @@ protocol FileReader {
 
 protocol FileWriter {
         
-    func createTempURL(for mediaType: MediaType, id: String) -> URL
     func save<T: Hashable>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError>
 }
 

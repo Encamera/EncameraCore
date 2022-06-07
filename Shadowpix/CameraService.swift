@@ -300,24 +300,24 @@ class CameraService {
         }
         session.commitConfiguration()
         
-        $mode.dropFirst().sink { [weak self] newMode in
+        $mode.dropFirst().receive(on: sessionQueue).sink { [weak self] newMode in
             print(newMode)
-            self?.sessionQueue.async {
-                do {
-                    switch newMode {
-                    case .photo:
-                        self?.removeVideoOutputFromSession()
-                        try self?.addPhotoOutputToSession()
-                    case .video:
-                        self?.removePhotoOutputFromSession()
-                        try self?.addVideoOutputToSession()
-                    }
-                    
-                } catch {
-                    print("Could not switch to mode \(newMode)", error)
-                    self?.setupResult = .configurationFailed
+            
+            do {
+                switch newMode {
+                case .photo:
+                    self?.removeVideoOutputFromSession()
+                    try self?.addPhotoOutputToSession()
+                case .video:
+                    self?.removePhotoOutputFromSession()
+                    try self?.addVideoOutputToSession()
                 }
+                
+            } catch {
+                print("Could not switch to mode \(newMode)", error)
+                self?.setupResult = .configurationFailed
             }
+            
         }.store(in: &cancellables)
 
         self.start()
@@ -508,7 +508,7 @@ class CameraService {
             }, fileWriter: self.fileWriter, key: key)
             
             self.inProgressVideoCaptureDelegates[1] = videoCaptureProcessor
-            self.movieOutput.startRecording(to: self.fileWriter.createTempURL(for: .video, id: videoCaptureProcessor.videoId), recordingDelegate: videoCaptureProcessor)
+            self.movieOutput.startRecording(to: TempFilesManager.shared.createTempURL(for: .video, id: videoCaptureProcessor.videoId), recordingDelegate: videoCaptureProcessor)
         }
     }
     
