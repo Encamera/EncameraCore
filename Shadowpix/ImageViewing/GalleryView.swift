@@ -61,18 +61,29 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View where T.MediaSour
 
 class GalleryViewModel: ObservableObject {
     @Published var sourceDirectory: DirectoryModel
+
+    @Published var displayMedia: EncryptedMedia?
+    @Published var isDisplayingMedia: Bool = false
+    @Published var images: [EncryptedMedia] = []
+    
     var fileAccess: FileAccess
-    init(sourceDirectory: DirectoryModel, fileAccess: FileAccess) {
+    var keyManager: KeyManager
+    
+    init(sourceDirectory: DirectoryModel, fileAccess: FileAccess, keyManager: KeyManager) {
         self.sourceDirectory = sourceDirectory
         self.fileAccess = fileAccess
+        self.keyManager = keyManager
+    }
+    
+    func enumerateMedia() {
+        fileAccess.enumerateMedia(for: sourceDirectory) { images in
+            self.images = images
+        }
     }
 }
 
 struct GalleryView: View {
     
-    @State private var images: [EncryptedMedia] = []
-    @State var displayImage: EncryptedMedia?
-    @State var isDisplayingImage: Bool = false
     @ObservedObject var viewModel: GalleryViewModel
     
     
@@ -81,34 +92,36 @@ struct GalleryView: View {
             GridItem(.adaptive(minimum: 100))
         ]
         ScrollView {
-            //                NavigationLink("", isActive: $isDisplayingImage) {
-            //                    if let displayImage = displayImage {
-            //                        ImageViewing(viewModel: .init(image: displayImage))
-            //                    } else {
-            //                        EmptyView()
-            //                    }
-            //                }
+            
+            NavigationLink("", isActive: $viewModel.isDisplayingMedia, destination: {
+                if let media = viewModel.displayMedia {
+                    if media.mediaType == .photo {
+                        ImageViewing(viewModel: ImageViewingViewModel<EncryptedMedia, iCloudFilesEnumerator> .init(image: media, keyManager: viewModel.keyManager))
+                    } else {
+                        EmptyView()
+                    }
+                } else {
+                    EmptyView()
+                }
+                
+            })
             LazyVGrid(columns: gridItems, spacing: 1) {
-                ForEach(images, id: \.id) { image in
+                ForEach(viewModel.images, id: \.id) { image in
                     AsyncImage(viewModel: .init(targetMedia: image, loader: viewModel.fileAccess)) {
                         Color.gray
                     }.onTapGesture {
-                        self.displayImage = image
-                        self.isDisplayingImage = true
+                        self.viewModel.displayMedia = image
+                        self.viewModel.isDisplayingMedia = true
                     }
                 }
                 
             }.padding(.horizontal)
         }
         .onReceive(viewModel.$sourceDirectory, perform: { directory in
-            viewModel.fileAccess.enumerateMedia(for: directory) { images in
-                self.images = images
-            }
+            viewModel.enumerateMedia()
         })
         .onAppear {
-            viewModel.fileAccess.enumerateMedia(for: viewModel.sourceDirectory) { images in
-                self.images = images
-            }
+            viewModel.enumerateMedia()
         }.edgesIgnoringSafeArea(.all)
     }
 }
@@ -117,6 +130,6 @@ struct GalleryView_Previews: PreviewProvider {
     
     static var previews: some View {
         let enumerator = DemoFileEnumerator(directoryModel: DemoDirectoryModel(), key: nil)
-        GalleryView(viewModel: GalleryViewModel(sourceDirectory: DemoDirectoryModel(), fileAccess: DemoFileEnumerator()))
+        GalleryView(viewModel: GalleryViewModel(sourceDirectory: DemoDirectoryModel(), fileAccess: DemoFileEnumerator(), keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher())))
     }
 }

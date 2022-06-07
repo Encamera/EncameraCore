@@ -140,6 +140,22 @@ extension iCloudFilesEnumerator: FileReader {
             
         }.eraseToAnyPublisher()
     }
+    
+//    private func createThumbnail<T: MediaDescribing>(for media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> {
+//        if let encrypted = media as? EncryptedMedia {
+//            decryptMedia(encrypted: encrypted).sink { completion in
+//
+//            } receiveValue: { (decrypted: CleartextMedia<Data>) in
+//                let resizer = ImageResizer(targetWidth: 150)
+//                guard let resized = resizer.resize(data: decrypted.source)?.pngData() else {
+//                    return
+//                }
+//                let thumb = CleartextMedia(source: resized)
+//                save(media: <#T##CleartextMedia<MediaSourcing>#>)
+//            }
+//
+//        }
+//    }
 }
 
 extension iCloudFilesEnumerator: FileWriter {

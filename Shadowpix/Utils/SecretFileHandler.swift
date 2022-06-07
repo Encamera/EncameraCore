@@ -53,8 +53,10 @@ extension SecretFileHandler {
                 print("Could not create stream with key")
                 return Fail(error: SecretFilesError.keyError).eraseToAnyPublisher()
             }
-            return ChunkedFileProcessingPublisher(sourceFileHandle: fileHandler, blockSize: Int(blockSize)).map { (bytes, _) -> Data in
-                   let (message, _) = streamDec.pull(cipherText: bytes)!
+            return ChunkedFileProcessingPublisher(sourceFileHandle: fileHandler, blockSize: Int(blockSize)).tryMap { (bytes, _) -> Data in
+                guard let (message, _) = streamDec.pull(cipherText: bytes) else {
+                    throw SecretFilesError.decryptError
+                }
                    return Data(message)
             }.eraseToAnyPublisher()
         } catch {

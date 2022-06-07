@@ -32,7 +32,7 @@ struct MediaGalleryView<F: FileAccess>: View {
     }
     
     var body: some View {
-        let galleryViewModel = GalleryViewModel(sourceDirectory: viewModel.directory, fileAccess: viewModel.fileAccess)
+        let galleryViewModel = GalleryViewModel(sourceDirectory: viewModel.directory, fileAccess: viewModel.fileAccess, keyManager: state.keyManager)
         VStack {
             Picker("Media Type", selection: $selectedMediaType) {
                 ForEach(MediaType.displayCases, id: \.rawValue) { type in
