@@ -36,5 +36,5 @@ protocol FileWriter {
 }
 
 protocol FileAccess: FileEnumerator, FileReader, FileWriter {
-    
+    init(key: ImageKey?)
 }

@@ -11,6 +11,10 @@ enum MediaType: Int, CaseIterable {
     case photo
     case unknown
     
+    static var displayCases: [MediaType] {
+        self.allCases.filter({$0 != .unknown})
+    }
+    
     static func typeFromMedia<T: MediaDescribing>(source: T) -> MediaType {
         
         switch source {

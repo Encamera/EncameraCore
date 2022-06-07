@@ -60,10 +60,11 @@ class DemoFileEnumerator: FileAccess {
         
     }
     func enumerateMedia<T>(for directory: DirectoryModel, completion: ([T]) -> Void) where T : MediaDescribing, T.MediaSource == URL {
-        fatalError()
-//        completion((0...10).map { _ in
-//            T(source: T.MediaSource())
-//        })
+        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
+        
+        completion((0...10).map { _ in
+            T(source: url)!
+        })
         
     }
 }

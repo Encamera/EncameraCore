@@ -21,7 +21,7 @@ class EncryptedMedia: MediaDescribing, ObservableObject {
     
     required init?(source: URL) {
         self.source = source
-        guard let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first?.uppercased() else {
+        guard let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first?.lowercased() else {
             return nil
         }
         self.id = id

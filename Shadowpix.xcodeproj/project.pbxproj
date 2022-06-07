@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		19109389284FF8C1000F40A8 /* image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 193237202849EA680074CE8A /* image.jpg */; };
 		1911319E281F9FC100542281 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = 1911319D281F9FC100542281 /* test.mov */; };
 		191FF12D275EC83400DED001 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191FF12C275EC83400DED001 /* AuthManager.swift */; };
 		19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E22273FD60F009E3850 /* ImageViewing.swift */; };
@@ -15,7 +16,7 @@
 		19217E2D273FE452009E3850 /* ImageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2B273FE452009E3850 /* ImageKey.swift */; };
 		19217E2E273FE452009E3850 /* ShadowPixState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2C273FE452009E3850 /* ShadowPixState.swift */; };
 		1932371F28494BF60074CE8A /* CaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1932371E28494BF60074CE8A /* CaptureProcessor.swift */; };
-		193237212849EA680074CE8A /* image.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 193237202849EA680074CE8A /* image.jpeg */; };
+		193237212849EA680074CE8A /* image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 193237202849EA680074CE8A /* image.jpg */; };
 		193237232849EEE80074CE8A /* MediaTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193237222849EEE80074CE8A /* MediaTypeTests.swift */; };
 		193ECDA4282EE7E2004F143D /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193ECDA3282EE7E2004F143D /* Enums.swift */; };
 		195719E7274B8BE300E93658 /* MovieViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195719E6274B8BE300E93658 /* MovieViewing.swift */; };
@@ -76,7 +77,7 @@
 		19217E2B273FE452009E3850 /* ImageKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageKey.swift; sourceTree = "<group>"; };
 		19217E2C273FE452009E3850 /* ShadowPixState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShadowPixState.swift; sourceTree = "<group>"; };
 		1932371E28494BF60074CE8A /* CaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureProcessor.swift; sourceTree = "<group>"; };
-		193237202849EA680074CE8A /* image.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = image.jpeg; sourceTree = "<group>"; };
+		193237202849EA680074CE8A /* image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = image.jpg; sourceTree = "<group>"; };
 		193237222849EEE80074CE8A /* MediaTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTypeTests.swift; sourceTree = "<group>"; };
 		193ECDA3282EE7E2004F143D /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		195719E6274B8BE300E93658 /* MovieViewing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieViewing.swift; sourceTree = "<group>"; };
@@ -145,7 +146,7 @@
 		1911319C281F9FA900542281 /* TestData */ = {
 			isa = PBXGroup;
 			children = (
-				193237202849EA680074CE8A /* image.jpeg */,
+				193237202849EA680074CE8A /* image.jpg */,
 				1911319D281F9FC100542281 /* test.mov */,
 			);
 			path = TestData;
@@ -402,6 +403,7 @@
 				1978F9772822476D00D16FD4 /* shadowimage.shdwpic in Resources */,
 				A9FE178C2539494700D547C7 /* Preview Assets.xcassets in Resources */,
 				A9FE17892539494700D547C7 /* Assets.xcassets in Resources */,
+				19109389284FF8C1000F40A8 /* image.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -409,7 +411,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				193237212849EA680074CE8A /* image.jpeg in Resources */,
+				193237212849EA680074CE8A /* image.jpg in Resources */,
 				1911319E281F9FC100542281 /* test.mov in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

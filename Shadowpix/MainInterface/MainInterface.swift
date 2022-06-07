@@ -28,6 +28,7 @@ struct MainInterface: View {
                     KeyPickerView(isShown: $model.showingKeySelection)
                         .environmentObject(appState)
                 }.sheet(isPresented: $model.showGalleryView) {
+                    MediaGalleryView<iCloudFilesEnumerator>(viewModel: MediaGalleryViewModel(directory: iCloudFilesDirectoryModel(subdirectory: MediaType.photo.path, keyName: key.name), key: key))
 //                    GalleryView().environmentObject(appState)
                 }
             } else {
