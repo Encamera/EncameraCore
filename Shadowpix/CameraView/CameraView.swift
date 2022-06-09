@@ -157,9 +157,9 @@ struct CameraView: View {
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), fileWriter: DemoFileEnumerator()), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
-        
-    }
-}
+//struct ContentView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: CameraService()), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
+//        
+//    }
+//}

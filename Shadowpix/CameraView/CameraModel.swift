@@ -13,6 +13,10 @@ import UIKit
 final class CameraModel: ObservableObject {
     private let service: CameraService
     
+    var session: AVCaptureSession {
+        service.session
+    }
+    
     @Published var showAlertError = false
     
     @Published var isFlashOn = false
@@ -23,20 +27,17 @@ final class CameraModel: ObservableObject {
     
     var alertError: AlertError!
     
-    var session: AVCaptureSession
     
     private var cancellables = Set<AnyCancellable>()
     
-    init(keyManager: KeyManager, fileWriter: FileWriter) {
-        self.service = CameraService(keyManager: keyManager, fileWriter: fileWriter)
-        self.session = service.session
+    init(keyManager: KeyManager, cameraService: CameraService) {
+        self.service = cameraService
         
         
         NotificationCenter.default
             .publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { _ in
                 self.showCameraView = false
-                self.service.stop(completion: nil)
             }.store(in: &cancellables)
         NotificationCenter.default
             .publisher(for: UIApplication.didBecomeActiveNotification)
@@ -47,8 +48,8 @@ final class CameraModel: ObservableObject {
         NotificationCenter.default
             .publisher(for: UIApplication.willResignActiveNotification)
             .sink { _ in
+                self.service.stop()
                 self.showCameraView = false
-                self.service.stop(completion: nil)
             }.store(in: &cancellables)
 
         

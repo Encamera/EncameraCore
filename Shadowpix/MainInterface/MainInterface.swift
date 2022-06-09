@@ -20,17 +20,17 @@ struct MainInterface: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            if let key = appState.keyManager.currentKey {
-                let fileWriter = iCloudFilesEnumerator(key: key)
-            CameraView(viewModel: CameraModel(keyManager: appState.keyManager, fileWriter: fileWriter), galleryIconTapped: $model.showGalleryView, showingKeySelection: $model.showingKeySelection)
-                .environmentObject(appState)
-                .sheet(isPresented: $model.showingKeySelection) {
-                    KeyPickerView(isShown: $model.showingKeySelection)
-                        .environmentObject(appState)
-                }.sheet(isPresented: $model.showGalleryView) {
-                    MediaGalleryView<iCloudFilesEnumerator>(viewModel: MediaGalleryViewModel(directory: iCloudFilesDirectoryModel(subdirectory: MediaType.photo.path, keyName: key.name), key: key))
-//                    GalleryView().environmentObject(appState)
-                }
+            if let key = appState.keyManager.currentKey, let cameraService = model.cameraService {
+                let cameraModel = CameraModel(keyManager: appState.keyManager, cameraService: cameraService)
+                CameraView(viewModel: cameraModel, galleryIconTapped: $model.showGalleryView, showingKeySelection: $model.showingKeySelection)
+                    .environmentObject(appState)
+                    .sheet(isPresented: $model.showingKeySelection) {
+                        KeyPickerView(isShown: $model.showingKeySelection)
+                            .environmentObject(appState)
+                    }.sheet(isPresented: $model.showGalleryView) {
+                        MediaGalleryView<iCloudFilesEnumerator>(viewModel: MediaGalleryViewModel(directory: iCloudFilesDirectoryModel(subdirectory: MediaType.photo.path, keyName: key.name), key: key))
+                        //                    GalleryView().environmentObject(appState)
+                    }
             } else {
                 KeyPickerView(isShowingSheetForKeyEntry: false, isShowingSheetForNewKey: false, isShowingAlertForClearKey: false, isShown: Binding(get: {
                     self.hasKey

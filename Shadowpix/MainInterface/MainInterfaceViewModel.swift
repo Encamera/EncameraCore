@@ -15,10 +15,14 @@ class MainInterfaceViewModel: ObservableObject {
     @Published var showingKeySelection = false
     @Published var hasKey = false
     private var cancellables = Set<AnyCancellable>()
+    @Published var cameraService: CameraService?
     init(keyManager: KeyManager) {
+        self.cameraService = CameraService(keyManager: keyManager)
+
         keyManager.keyPublisher.sink { key in
             self.hasKey = key != nil
-
+            let fileWriter = iCloudFilesEnumerator(key: key)
+            self.cameraService?.fileWriter = fileWriter
         }.store(in: &cancellables)
     }
 //    init() {
