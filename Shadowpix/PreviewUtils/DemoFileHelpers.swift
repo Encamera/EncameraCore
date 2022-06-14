@@ -14,30 +14,32 @@ enum DemoError: Error {
 }
 
 class DemoFileEnumerator: FileAccess {
+    func saveThumbnail(media: CleartextMedia<Data>) async throws -> EncryptedMedia {
+        EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
+    }
+    
+    func loadMediaToURL<T>(media: T) async throws -> CleartextMedia<URL> where T : MediaDescribing {
+        CleartextMedia(source: URL(fileURLWithPath: ""))
+    }
+    
+    func loadMediaInMemory<T>(media: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+        CleartextMedia(source: Data())
+    }
+    
+    func save<T>(media: CleartextMedia<T>) async throws -> EncryptedMedia where T : MediaSourcing {
+        EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
+    }
+    
+    func loadMediaPreview<T>(for media: T) async -> CleartextMedia<Data> where T : MediaDescribing {
+        return CleartextMedia<Data>(source: Data())
+    }
+    
     func createTempURL(for mediaType: MediaType, id: String) -> URL {
         return URL(fileURLWithPath: "")
     }
     
     required init(key: ImageKey?) {
         
-    }
-    
-    func loadMediaPreview<T>(for media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> where T : MediaDescribing {
-        return Just(CleartextMedia(source: Data())).setFailureType(to: SecretFilesError.self).eraseToAnyPublisher()
-
-    }
-    
-    func loadMediaToURL<T>(media: T) -> AnyPublisher<CleartextMedia<URL>, SecretFilesError> where T : MediaDescribing {
-        return Just(CleartextMedia(source: URL(fileURLWithPath: ""))).setFailureType(to: SecretFilesError.self).eraseToAnyPublisher()
-    }
-    
-    func loadMediaInMemory<T>(media: T) -> AnyPublisher<CleartextMedia<Data>, SecretFilesError> where T : MediaDescribing {
-        return Just(CleartextMedia(source: Data())).setFailureType(to: SecretFilesError.self).eraseToAnyPublisher()
-
-    }
-    
-    func save<T>(media: CleartextMedia<T>) -> AnyPublisher<EncryptedMedia, SecretFilesError> where T : MediaSourcing {
-        fatalError()
     }
     
     
@@ -59,12 +61,12 @@ class DemoFileEnumerator: FileAccess {
     required init(directoryModel: DemoDirectoryModel, key: ImageKey?) {
         
     }
-    func enumerateMedia<T>(for directory: DirectoryModel, completion: ([T]) -> Void) where T : MediaDescribing, T.MediaSource == URL {
-        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
+    func enumerateMedia<T>(for directory: DirectoryModel) async -> [T] where T : MediaDescribing, T.MediaSource == URL {
+         let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
-        completion((0...10).map { _ in
+        return (0...10).map { _ in
             T(source: url)!
-        })
+        }
         
     }
 }
@@ -77,7 +79,10 @@ class DemoDirectoryModel: DirectoryModel {
     let subdirectory = ""
     let keyName = ""
     
+    private var tempFileManager = TempFilesManager()
+    
     var driveURL: URL {
-        URL(fileURLWithPath: "")
+        URL(fileURLWithPath: NSTemporaryDirectory(),
+                          isDirectory: true)
     }
 }

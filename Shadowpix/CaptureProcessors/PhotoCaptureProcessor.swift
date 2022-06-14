@@ -101,15 +101,12 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
             fatalError("Could not get live photo data from url")
         }
         let media = CleartextMedia(source: data, mediaType: .video, id: photoId)
-        
-        fileWriter.save(media: media)
-            .receive(on: DispatchQueue.main)
-            .sink { completion in
-                TempFilesManager.shared.deleteItem(at: outputFileURL)
-        } receiveValue: { saved in
-            print("Saved live photo to \(saved.source)")
+        Task {
+            _ = try await fileWriter.save(media: media)
+                
+            TempFilesManager.shared.deleteItem(at: outputFileURL)
             self.completionHandler(self)
-        }.store(in: &cancellables)
+        }
 
     }
     
@@ -131,12 +128,10 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
                 return
             }
             let media = CleartextMedia(source: data, mediaType: .photo, id: photoId)
-            fileWriter.save(media: media).receive(on: DispatchQueue.main).sink(receiveCompletion: { completion in
-                
-            }) { saved in
-                print("Saved photo to \(saved.source)")
+            Task {
+                try await fileWriter.save(media: media)
                 self.completionHandler(self)
-            }.store(in: &cancellables)
+            }
         }
     }
 }

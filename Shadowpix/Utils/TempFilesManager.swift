@@ -15,7 +15,7 @@ class TempFilesManager {
     private var cancellables = Set<AnyCancellable>()
     static var shared: TempFilesManager = TempFilesManager()
     
-    private init() {
+    init() {
 //        let pub1 = NotificationCenter.default
 //            .publisher(for: UIApplication.didFinishLaunchingNotification)
 //        let pub2 = NotificationCenter.default

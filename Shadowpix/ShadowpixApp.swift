@@ -32,14 +32,12 @@ struct ShadowpixApp: App {
                 if let url = viewModel.openedUrl, let media = EncryptedMedia(source: url), viewModel.state.authManager.isAuthorized {
                     switch media.mediaType {
                     case .photo:
-                        ImageViewing<EncryptedMedia, iCloudFilesEnumerator>(viewModel: ImageViewingViewModel(image: media, keyManager: viewModel.state.keyManager))
+                        ImageViewing<EncryptedMedia, DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: ImageViewingViewModel(image: media, keyManager: viewModel.state.keyManager))
                     case .video:
-                        MovieViewing<EncryptedMedia, iCloudFilesEnumerator>(viewModel: MovieViewingViewModel(image: media, keyManager: viewModel.state.keyManager))
-                    case .unknown:
+                        MovieViewing<EncryptedMedia, DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: MovieViewingViewModel(image: media, keyManager: viewModel.state.keyManager))
+                    case .thumbnail, .unknown:
                         EmptyView()
                     }
-                    
-//                    }
                     
                 }
             }.onOpenURL { url in

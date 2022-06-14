@@ -7,12 +7,14 @@
 
 import Foundation
 enum MediaType: Int, CaseIterable {
-    case video
+    
     case photo
+    case video
+    case thumbnail
     case unknown
     
     static var displayCases: [MediaType] {
-        self.allCases.filter({$0 != .unknown})
+        self.allCases.filter({$0 != .unknown && $0 != .thumbnail})
     }
     
     static func typeFromMedia<T: MediaDescribing>(source: T) -> MediaType {
@@ -61,6 +63,8 @@ enum MediaType: Int, CaseIterable {
             return "jpg"
         case .unknown:
             return "unknown"
+        case .thumbnail:
+            return "thmb"
         }
     }
     
@@ -71,7 +75,9 @@ enum MediaType: Int, CaseIterable {
         case .photo:
             return "Photo"
         case .unknown:
-            fatalError()
+            return "Unknown"
+        case .thumbnail:
+            return "Thumbnail"
         }
     }
     
@@ -83,6 +89,8 @@ enum MediaType: Int, CaseIterable {
             return "photo"
         case .unknown:
             fatalError()
+        case .thumbnail:
+            return "thumb"
         }
     }
     
@@ -95,6 +103,8 @@ enum MediaType: Int, CaseIterable {
             return "image"
         case .unknown:
             return ""
+        case .thumbnail:
+            return "thumbnail"
         }
     }
 }

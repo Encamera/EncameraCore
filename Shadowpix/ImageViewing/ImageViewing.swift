@@ -21,7 +21,7 @@ protocol MediaViewingViewModel {
     
     init(image: SourceType, keyManager: KeyManager)
     
-    func decrypt()
+    func decrypt() async
 }
 
 class ImageViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: ObservableObject, MediaViewingViewModel {
@@ -36,13 +36,9 @@ class ImageViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: Ob
         self.fileAccess = Reader(key: keyManager.currentKey)
     }
     
-    func decrypt() {
-        
-            fileAccess.loadMediaInMemory(media: sourceMedia).sink(receiveCompletion: { completion in
-                
-            }, receiveValue: { decrypted in
-                self.decryptedFileRef = decrypted
-            }).store(in: &cancellables)
+    @MainActor
+    func decrypt() async {
+        self.decryptedFileRef = try? await fileAccess.loadMediaInMemory(media: sourceMedia)
     }
 }
 
@@ -59,7 +55,9 @@ struct ImageViewing<M: MediaDescribing, F: FileReader>: View {
                     .foregroundColor(.red)
             }
         }.onAppear {
-            self.viewModel.decrypt()
+            Task {
+                await viewModel.decrypt()
+            }
         }
     }
 }

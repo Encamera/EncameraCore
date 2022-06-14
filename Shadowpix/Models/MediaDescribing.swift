@@ -31,10 +31,12 @@ protocol MediaDescribing {
     var mediaType: MediaType { get }
     var id: String { get }
     init?(source: MediaSource)
+    init(source: MediaSource, mediaType: MediaType, id: String)
 }
 
-extension MediaDescribing {
-    var id: Int {
-        source.hashValue
+extension MediaDescribing where MediaSource == URL {
+    
+    var thumbnailURL: URL {
+        source.appendingPathExtension(MediaType.thumbnail.fileExtension)
     }
 }

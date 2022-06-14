@@ -22,13 +22,12 @@ class MovieViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: Ob
         self.fileAccess = Reader(key: keyManager.currentKey)
     }
     
-    func decrypt() {
-        
-            fileAccess.loadMediaToURL(media: sourceMedia).sink(receiveCompletion: { completion in
-                print(completion)
-            }, receiveValue: { decrypted in
-                self.decryptedFileRef = decrypted
-            }).store(in: &cancellables)
+    func decrypt() async {
+        do {
+            decryptedFileRef = try await fileAccess.loadMediaToURL(media: sourceMedia)
+        } catch {
+            print(error)
+        }
     }
 }
 
@@ -48,7 +47,9 @@ struct MovieViewing<M: MediaDescribing, F: FileReader>: View where M.MediaSource
                     .foregroundColor(.red)
             }
         }.onAppear {
-            viewModel.decrypt()
+            Task {
+                await viewModel.decrypt()
+            }
         }
         
     }

@@ -14,6 +14,12 @@ class EncryptedMedia: MediaDescribing, ObservableObject {
     var id: String
     var source: URL
     
+    required init(source: URL, mediaType: MediaType, id: String) {
+        self.source = source
+        self.mediaType = mediaType
+        self.id = id
+    }
+    
     convenience init?(source: URL, type: MediaType) {
         self.init(source: source)
         self.mediaType = type
