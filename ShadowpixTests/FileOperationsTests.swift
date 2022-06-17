@@ -133,4 +133,21 @@ class FileOperationsTests: XCTestCase {
         print(thumbnail)
     }
     
+    func testCreateMediaAndEnumerate() async throws {
+        
+        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
+
+        let key = Sodium().secretStream.xchacha20poly1305.key()
+        let imageKey = ImageKey(name: "testMov", keyBytes: key)
+        let fileAccess = DiskFileAccess<DemoDirectoryModel>(key: imageKey)
+        
+        let sourceMedia = CleartextMedia(source: sourceUrl)
+        for i in 0...10 {
+            let encrypted = try await fileAccess.save(media: sourceMedia)
+        }
+        
+        let thumbs = try await fileAccess.loadThumbnails(for: <#T##DirectoryModel#>)
+
+    }
+    
 }

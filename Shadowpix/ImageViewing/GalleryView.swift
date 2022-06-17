@@ -8,7 +8,7 @@
 import SwiftUI
 import Combine
 
-struct AsyncImage<Placeholder: View, T: MediaDescribing>: View where T.MediaSource == URL {
+struct AsyncImage<Placeholder: View, T: MediaDescribing>: View {
     
     class ViewModel: ObservableObject {
         private var loader: FileReader
@@ -23,7 +23,7 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View where T.MediaSour
         
         func loadPreview() async {
             do {
-                cleartextMedia = try await loader.loadMediaPreview(for: targetMedia)
+                cleartextMedia = try await loader.loadMediaInMemory(media: targetMedia)
             } catch {
                 print(error)
             }
@@ -66,7 +66,7 @@ class GalleryViewModel: ObservableObject {
 
     @Published var displayMedia: EncryptedMedia?
     @Published var isDisplayingMedia: Bool = false
-    @Published var mediaThumbnails: [EncryptedMedia] = []
+    @Published var media: [CleartextMedia<Data>] = []
     
     var fileAccess: FileAccess
     var keyManager: KeyManager
@@ -78,7 +78,16 @@ class GalleryViewModel: ObservableObject {
     }
     
     func enumerateMedia() async {
-        self.mediaThumbnails = await fileAccess.enumerateMedia(for: sourceDirectory)
+        Task {
+            
+            self.media = try await self.fileAccess.loadThumbnails(for: self.sourceDirectory)
+        }
+        
+    }
+    
+    func loadThumbnailFor(media: EncryptedMedia) async throws -> CleartextMedia<Data> {
+        let thumb = try await fileAccess.loadMediaPreview(for: media)
+        return thumb
     }
 }
 
@@ -96,7 +105,7 @@ struct GalleryView: View {
             NavigationLink("", isActive: $viewModel.isDisplayingMedia, destination: {
                 if let media = viewModel.displayMedia {
                     if media.mediaType == .photo {
-                        ImageViewing(viewModel: ImageViewingViewModel<EncryptedMedia, DiskFileAccess<iCloudFilesDirectoryModel>> .init(image: media, keyManager: viewModel.keyManager))
+                        ImageViewing(viewModel: ImageViewingViewModel<EncryptedMedia, DiskFileAccess<iCloudFilesDirectoryModel>> .init(media: media, keyManager: viewModel.keyManager))
                     } else {
                         EmptyView()
                     }
@@ -106,15 +115,9 @@ struct GalleryView: View {
                 
             })
             LazyVGrid(columns: gridItems, spacing: 1) {
-                ForEach(viewModel.mediaThumbnails, id: \.id) { image in
-                    AsyncImage(viewModel: .init(targetMedia: image, loader: viewModel.fileAccess)) {
-                        Color.gray
-                    }.onTapGesture {
-                        self.viewModel.displayMedia = image
-                        self.viewModel.isDisplayingMedia = true
-                    }
+                ForEach(viewModel.media, id: \.id) { image in
+                    thumbFor(media: image)
                 }
-                
             }.padding(.horizontal)
         }
         .onReceive(viewModel.$sourceDirectory, perform: { directory in

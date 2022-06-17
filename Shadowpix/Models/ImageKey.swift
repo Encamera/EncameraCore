@@ -11,9 +11,11 @@ enum ImageKeyEncodingError: Error {
     case invalidBase64Data
 }
 
+typealias KeyName = String
+
 struct ImageKey: Codable {
     
-    var name: String
+    var name: KeyName
     var keyBytes: Array<UInt8>
     
     init(name: String, keyBytes: Array<UInt8>) {

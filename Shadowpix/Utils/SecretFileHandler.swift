@@ -60,6 +60,7 @@ extension SecretFileHandler {
                    return Data(message)
             }.eraseToAnyPublisher()
         } catch {
+            print("Error decrypting \(error)")
             return Fail(error: SecretFilesError.decryptError).eraseToAnyPublisher()
         }
     }
@@ -92,8 +93,8 @@ class SecretInMemoryFileHander<T: MediaDescribing>: SecretFileHandler {
                     continuation.resume(throwing: SecretFilesError.decryptError)
                 }
                 
-            } receiveValue: { data in
-                let image = CleartextMedia(source: data)
+            } receiveValue: { [self] data in
+                let image = CleartextMedia(source: data, mediaType: self.sourceMedia.mediaType, id: self.sourceMedia.id)
                 continuation.resume(returning: image)
             }.store(in: &self.cancellables)
         }

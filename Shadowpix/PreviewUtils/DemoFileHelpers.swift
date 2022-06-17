@@ -14,6 +14,14 @@ enum DemoError: Error {
 }
 
 class DemoFileEnumerator: FileAccess {
+    required init(key: ImageKey) {
+        
+    }
+    
+    func loadThumbnails<T>(for: DirectoryModel) async -> [T] where T : MediaDescribing, T.MediaSource == Data {
+        []
+    }
+    
     func saveThumbnail(media: CleartextMedia<Data>) async throws -> EncryptedMedia {
         EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
     }
@@ -72,8 +80,17 @@ class DemoFileEnumerator: FileAccess {
 }
 
 class DemoDirectoryModel: DirectoryModel {
-    required init(subdirectory: String = "", keyName: String = "") {
-        
+    var baseURL: URL
+    
+    var thumbnailDirectory: URL
+    
+    required init(keyName: KeyName) {
+        self.baseURL = URL(fileURLWithPath: "")
+        self.thumbnailDirectory = URL(fileURLWithPath: "")
+    }
+    
+    convenience init() {
+        self.init(keyName: "")
     }
     
     let subdirectory = ""

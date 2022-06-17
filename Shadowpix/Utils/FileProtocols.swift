@@ -8,40 +8,64 @@
 import Foundation
 import Combine
 
-protocol DirectoryModel {
+protocol DirectoryModel { // please rename this, not representative of what it does
+    var baseURL: URL { get }
+    var keyName: KeyName { get }
+    var thumbnailDirectory: URL { get }
+ 
+    init(keyName: KeyName)
+    func initializeDirectories() throws
     
-    init(subdirectory: String, keyName: String)
-    var driveURL: URL { get }
+    
 }
 
 extension DirectoryModel {
+    
+    func initializeDirectories() throws {
+        if FileManager.default.fileExists(atPath: thumbnailDirectory.path) == false {
+            try FileManager.default.createDirectory(atPath: thumbnailDirectory.path, withIntermediateDirectories: true)
+        }
+
+        do {
+            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            print("could not create directory \(error.localizedDescription)")
+        }
+
+    }
+    
+    func pathContainingMediaOf(type: MediaType) -> URL {
+        return baseURL.appendingPathComponent(type.path)
+    }
+    
     func driveURLForNewMedia<T: MediaSourcing>(_ media: CleartextMedia<T>) -> URL {
         let filename = "\(media.id).\(media.mediaType.fileExtension).shdwpic"
-        return driveURL.appendingPathComponent(filename)
+        return baseURL.appendingPathComponent(filename)
+    }
+    
+    func thumbnailFor<T: MediaDescribing>(media: T) throws -> EncryptedMedia {
+        let thumbnailURL = try thumbnailURLForMedia(media)
+        let media = EncryptedMedia(source: thumbnailURL, mediaType: .thumbnail, id: media.id)
+        return media
     }
     
     func thumbnailURLForMedia<T: MediaDescribing>(_ media: T) throws -> URL {
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        let documentsDirectory = paths[0]
-        let thumbnailDirectory = documentsDirectory.appendingPathComponent("thumbs")
         let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(MediaType.thumbnail.path)")
-        if FileManager.default.fileExists(atPath: thumbnailPath.path) == false {
-            try FileManager.default.createDirectory(atPath: thumbnailDirectory.path, withIntermediateDirectories: true)
-        }
         return thumbnailPath
     }
 }
 
 protocol FileEnumerator {
         
-    init(key: ImageKey?)
+    init(key: ImageKey)
     
     func enumerateMedia<T: MediaDescribing>(for directory: DirectoryModel) async -> [T] where T.MediaSource == URL
+    func loadThumbnails(for sourceDirectory: DirectoryModel) async throws -> [CleartextMedia<Data>]
 }
 
 protocol FileReader {
     
-    init(key: ImageKey?)
+    init(key: ImageKey)
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> where T.MediaSource == URL
     func loadMediaToURL<T: MediaDescribing>(media: T) async throws -> CleartextMedia<URL>
     func loadMediaInMemory<T: MediaDescribing>(media: T) async throws -> CleartextMedia<Data>
@@ -54,5 +78,5 @@ protocol FileWriter {
 }
 
 protocol FileAccess: FileEnumerator, FileReader, FileWriter {
-    init(key: ImageKey?)
+    init(key: ImageKey)
 }

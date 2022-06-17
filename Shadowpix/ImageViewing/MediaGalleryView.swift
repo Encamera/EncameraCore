@@ -12,9 +12,8 @@ class MediaGalleryViewModel<F: FileAccess, D: DirectoryModel>: ObservableObject 
     @Published var directory: D
     @Published var fileAccess: F
     @Published var key: ImageKey?
-    var cancellables = Set<AnyCancellable>()
-
-    init(directory: D, key: ImageKey?) {
+    
+    init(directory: D, key: ImageKey) {
         self.directory = directory
         self.key = key
         self.fileAccess = F(key: key)
@@ -47,19 +46,18 @@ struct MediaGalleryView<F: FileAccess, D: DirectoryModel>: View {
                 guard let keyName = state.keyManager.currentKey?.name else {
                     return
                 }
-                print(D(subdirectory: newValue.path, keyName: keyName))
-                self.viewModel.directory = D(subdirectory: newValue.path, keyName: keyName)
+                self.viewModel.directory = D( keyName: keyName)
             })
             GalleryView(viewModel: galleryViewModel)
         }
     }
 }
-
-struct MediaGalleryView_Previews: PreviewProvider {
-
-    
-    static var previews: some View {
-        MediaGalleryView(viewModel: MediaGalleryViewModel<DemoFileEnumerator, DemoDirectoryModel>(directory: DemoDirectoryModel(), key: nil))
-            .environmentObject(ShadowPixState())
-    }
-}
+//
+//struct MediaGalleryView_Previews: PreviewProvider {
+//
+//    
+//    static var previews: some View {
+//        MediaGalleryView(viewModel: MediaGalleryViewModel<DemoFileEnumerator, DemoDirectoryModel>(key: nil))
+//            .environmentObject(ShadowPixState())
+//    }
+//}

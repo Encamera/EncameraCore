@@ -21,6 +21,9 @@ class MainInterfaceViewModel: ObservableObject {
 
         keyManager.keyPublisher.sink { key in
             self.hasKey = key != nil
+            guard let key = key else {
+                return
+            }
             let fileWriter = DiskFileAccess<iCloudFilesDirectoryModel>(key: key)
             self.cameraService?.fileWriter = fileWriter
         }.store(in: &cancellables)

@@ -11,23 +11,31 @@ import Combine
 
 
 class MovieViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: ObservableObject, MediaViewingViewModel {
+    var fileAccess: Reader?
+    
     @Published var decryptedFileRef: CleartextMedia<URL>?
+    
+    var error: MediaViewingError?
+    
+    
     var sourceMedia: SourceType
     var keyManager: KeyManager
-    var fileAccess: Reader
-    private var cancellables = Set<AnyCancellable>()
-    required init(image: SourceType, keyManager: KeyManager) {
-        self.sourceMedia = image
+
+    required init(media: SourceType, keyManager: KeyManager) {
+        self.sourceMedia = media
         self.keyManager = keyManager
-        self.fileAccess = Reader(key: keyManager.currentKey)
+        if let key = keyManager.currentKey {
+            self.fileAccess = Reader(key: key)
+        } else {
+            self.error = .noKeyAvailable
+        }
     }
     
-    func decrypt() async {
-        do {
-            decryptedFileRef = try await fileAccess.loadMediaToURL(media: sourceMedia)
-        } catch {
-            print(error)
+    func decrypt() async throws -> CleartextMedia<URL> {
+        guard let fileAccess = fileAccess else {
+            throw MediaViewingError.fileAccessNotAvailable
         }
+        return try await fileAccess.loadMediaToURL(media: sourceMedia)
     }
 }
 
@@ -48,7 +56,7 @@ struct MovieViewing<M: MediaDescribing, F: FileReader>: View where M.MediaSource
             }
         }.onAppear {
             Task {
-                await viewModel.decrypt()
+                await viewModel.decryptAndSet()
             }
         }
         

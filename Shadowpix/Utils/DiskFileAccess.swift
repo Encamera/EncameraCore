@@ -11,27 +11,31 @@ import Combine
 import AVFoundation
 
 struct iCloudFilesDirectoryModel: DirectoryModel {
-    let subdirectory: String
-    let keyName: String
+    var thumbnailDirectory: URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        let documentsDirectory = paths[0]
+        let thumbnailDirectory = documentsDirectory.appendingPathComponent("thumbs")
+        return thumbnailDirectory
+    }
     
-    var driveURL: URL {
+    let keyName: KeyName
+    
+    var baseURL: URL {
         guard let driveURL = FileManager.default
             .url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
             fatalError("Could not get drive url")
         }
         
         let destURL = driveURL.appendingPathComponent(keyName)
-            .appendingPathComponent(subdirectory)
-        do {
-            try FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: true, attributes: nil)
-        } catch {
-            print("could not create directory \(error.localizedDescription)")
-        }
         return destURL
     }
-    
-    
 }
+
+//struct ThumbnailDirectoryModel: DirectoryModel {
+//    var targetURL: URL
+//
+//
+//}
 
 class DiskFileAccess<D: DirectoryModel>: FileEnumerator {
     
@@ -39,16 +43,28 @@ class DiskFileAccess<D: DirectoryModel>: FileEnumerator {
         case invalidURL
         case general
     }
-    var key: ImageKey!
-    private var cancellables: [AnyCancellable] = []
-    
-    required init(key: ImageKey?) {
+    var key: ImageKey
+        
+    private let directoryModel: D
+    required init(key: ImageKey) {
         self.key = key
+        self.directoryModel = D(keyName: key.name)
     }
+    
+    func loadThumbnails(for sourceDirectory: DirectoryModel) async throws -> [CleartextMedia<Data>] {
+        let mediaList: [EncryptedMedia] = await enumerateMedia(for: sourceDirectory)
+        var thumbnails: [CleartextMedia<Data>] = []
+        for media in mediaList {
+            let thumb = try await loadMediaPreview(for: media)
+            thumbnails.append(thumb)
+        }
+        return thumbnails
+    }
+    
     
     func enumerateMedia<T>(for directory: DirectoryModel) async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not truly async, should be though
         
-        let driveUrl = directory.driveURL
+        let driveUrl = directory.baseURL
         _ = driveUrl.startAccessingSecurityScopedResource()
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
         
@@ -71,10 +87,8 @@ class DiskFileAccess<D: DirectoryModel>: FileEnumerator {
                 }
                 return creationDate1.compare(creationDate2) == .orderedDescending
             }.compactMap { (itemUrl: URL) in
-                print(itemUrl)
                 return T(source: itemUrl)
             }
-        print(imageItems.map({$0.mediaType}))
         driveUrl.stopAccessingSecurityScopedResource()
         return imageItems
     }
@@ -85,7 +99,7 @@ extension DiskFileAccess: FileReader {
     
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> where T.MediaSource == URL {
             
-            let thumbnailPath = try D(subdirectory: media.mediaType.path, keyName: key.name).thumbnailURLForMedia(media)
+            let thumbnailPath = try directoryModel.thumbnailURLForMedia(media)
             let thumb = T(source: thumbnailPath, mediaType: .thumbnail, id: media.id)
             
         do {
@@ -133,7 +147,7 @@ extension DiskFileAccess: FileReader {
         return decrypted
         
     }
-    func generateThumbnailFromVideo(at path: URL) -> UIImage? {
+    private func generateThumbnailFromVideo(at path: URL) -> UIImage? {
         do {
             let asset = AVURLAsset(url: path, options: nil)
             let imgGenerator = AVAssetImageGenerator(asset: asset)
@@ -153,16 +167,12 @@ extension DiskFileAccess: FileReader {
             throw SecretFilesError.createThumbnailError
         }
         
-        var thumbnailData: Data
+        var thumbnailSourceData: Data
             switch encrypted.mediaType {
                 
             case .photo:
                 let decrypted: CleartextMedia<Data> = try await self.decryptMedia(encrypted: encrypted)
-                let resizer = ImageResizer(targetWidth: 50)
-                guard let data = resizer.resize(data: decrypted.source)?.pngData() else {
-                    fatalError()
-                }
-                thumbnailData = data
+                thumbnailSourceData = decrypted.source
                 
             case .video:
                 let decrypted: CleartextMedia<URL> = try await self.decryptMedia(encrypted: encrypted)
@@ -170,10 +180,15 @@ extension DiskFileAccess: FileReader {
                       let data = thumb.pngData() else {
                     fatalError()
                 }
-                thumbnailData = data
+                thumbnailSourceData = data
             case .thumbnail, .unknown:
                 fatalError()
             }
+        let resizer = ImageResizer(targetWidth: 50)
+        guard let thumbnailData = resizer.resize(data: thumbnailSourceData)?.pngData() else {
+            fatalError()
+        }
+
         
         let cleartextThumb = CleartextMedia(source: thumbnailData, mediaType: .thumbnail, id: encrypted.id)
         try await self.saveThumbnail(media: cleartextThumb)
@@ -185,14 +200,14 @@ extension DiskFileAccess: FileReader {
 extension DiskFileAccess: FileWriter {
     
     @discardableResult func saveThumbnail(media: CleartextMedia<Data>) async throws -> EncryptedMedia {
-        let destinationURL = try D(subdirectory: media.mediaType.path, keyName: key.name).thumbnailURLForMedia(media)
+        let destinationURL = try directoryModel.thumbnailURLForMedia(media)
         let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
         return try await fileHandler.encryptFile()
 
     }
     
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia {
-        let destinationURL = D(subdirectory: media.mediaType.path, keyName: key.name).driveURLForNewMedia(media)
+        let destinationURL = directoryModel.driveURLForNewMedia(media)
         let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
         return try await fileHandler.encryptFile()
         
@@ -230,75 +245,5 @@ extension UIImage {
         }
         
         return scaledImage
-    }
-}
-
-class iCloudFilesSubscription<S: Subscriber>: Subscription where S.Input == [URL], S.Failure == Error {
-    
-    enum iCloudFilesError: Error {
-        case createEnumeratorFailed
-    }
-    
-    private let driveUrl: URL
-    private var subscriber: S?
-    
-    init(driveUrl: URL, subscriber: S) {
-        self.driveUrl = driveUrl
-        self.subscriber = subscriber
-    }
-    
-    func request(_ demand: Subscribers.Demand) {
-        guard demand > 0 else {
-            return
-        }
-        
-        do {
-            let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
-            
-            guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
-                throw iCloudFilesError.createEnumeratorFailed
-            }
-            
-            let imageItems: [URL] = enumerator.compactMap { item in
-                guard let itemUrl = item as? URL else {
-                    return nil
-                }
-                return itemUrl
-            }.sorted { (url1: URL, url2: URL) in
-                guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
-                      let creationDate1 = resourceValues1.creationDate,
-                      let resourceValues2 = try? url2.resourceValues(forKeys: resourceKeys),
-                      let creationDate2 = resourceValues2.creationDate else {
-                    return false
-                }
-                return creationDate1.compare(creationDate2) == .orderedDescending
-            }
-            let newDemand = subscriber?.receive(imageItems)
-            print(newDemand!)
-            subscriber?.receive(completion: .finished)
-        } catch let error {
-            subscriber?.receive(completion: .failure(error))
-            
-        }
-    }
-    
-    func cancel() {
-        subscriber = nil
-    }
-    
-}
-
-struct iCloudFilesPublisher: Publisher {
-    
-    typealias Output = [URL]
-    typealias Failure = Error
-    
-    let driveURL: URL
-    
-    func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, [URL] == S.Input {
-        
-        let subscription = iCloudFilesSubscription(driveUrl: driveURL, subscriber: subscriber)
-        
-        subscriber.receive(subscription: subscription)
     }
 }

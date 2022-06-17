@@ -28,7 +28,7 @@ struct MainInterface: View {
                         KeyPickerView(isShown: $model.showingKeySelection)
                             .environmentObject(appState)
                     }.sheet(isPresented: $model.showGalleryView) {
-                        MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>, iCloudFilesDirectoryModel>(viewModel: MediaGalleryViewModel(directory: iCloudFilesDirectoryModel(subdirectory: MediaType.photo.path, keyName: key.name), key: key))
+                        MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>, iCloudFilesDirectoryModel>(viewModel: MediaGalleryViewModel(directory: iCloudFilesDirectoryModel(keyName: key.name), key: key))
                     }
             } else {
                 KeyPickerView(isShowingSheetForKeyEntry: false, isShowingSheetForNewKey: false, isShowingAlertForClearKey: false, isShown: Binding(get: {

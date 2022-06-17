@@ -9,36 +9,63 @@ import SwiftUI
 import Photos
 import Combine
 
-protocol MediaViewingViewModel {
+enum MediaViewingError: Error {
+    case noKeyAvailable
+    case fileAccessNotAvailable
+    case decryptError(wrapped: Error)
+}
+
+protocol MediaViewingViewModel: AnyObject {
     
     associatedtype SourceType = MediaDescribing
-    associatedtype Reader = FileReader
+    associatedtype TargetT: MediaSourcing
+    associatedtype Reader: FileReader
     
     
     var sourceMedia: SourceType { get set }
     var keyManager: KeyManager { get set }
-    var fileAccess: Reader { get set }
+    var fileAccess: Reader? { get set }
+    var error: MediaViewingError? { get set }
+
+    var decryptedFileRef: CleartextMedia<TargetT>? { get set }
+    init(media: SourceType, keyManager: KeyManager)
     
-    init(image: SourceType, keyManager: KeyManager)
-    
-    func decrypt() async
+    func decrypt() async throws -> CleartextMedia<TargetT>
+}
+
+extension MediaViewingViewModel {
+    @MainActor
+    func decryptAndSet() async {
+        do {
+            self.decryptedFileRef = try await decrypt()
+        } catch {
+            self.error = .decryptError(wrapped: error)
+        }
+    }
 }
 
 class ImageViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: ObservableObject, MediaViewingViewModel {
     @Published var decryptedFileRef: CleartextMedia<Data>?
     var sourceMedia: SourceType
     var keyManager: KeyManager
-    var fileAccess: Reader
-    private var cancellables = Set<AnyCancellable>()
-    required init(image: SourceType, keyManager: KeyManager) {
-        self.sourceMedia = image
+    var fileAccess: Reader?
+    var error: MediaViewingError?
+
+    required init(media: SourceType, keyManager: KeyManager) {
+        self.sourceMedia = media
         self.keyManager = keyManager
-        self.fileAccess = Reader(key: keyManager.currentKey)
+        if let key = keyManager.currentKey {
+            self.fileAccess = Reader(key: key)
+        } else {
+            self.error = .noKeyAvailable
+        }
     }
     
-    @MainActor
-    func decrypt() async {
-        self.decryptedFileRef = try? await fileAccess.loadMediaInMemory(media: sourceMedia)
+    func decrypt() async throws -> CleartextMedia<Data> {
+        guard let fileAccess = fileAccess else {
+            throw MediaViewingError.fileAccessNotAvailable
+        }
+        return try await fileAccess.loadMediaInMemory(media: sourceMedia)
     }
 }
 
@@ -56,7 +83,7 @@ struct ImageViewing<M: MediaDescribing, F: FileReader>: View {
             }
         }.onAppear {
             Task {
-                await viewModel.decrypt()
+                await viewModel.decryptAndSet()
             }
         }
     }
