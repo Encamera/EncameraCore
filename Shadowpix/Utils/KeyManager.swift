@@ -22,7 +22,7 @@ protocol KeyManager {
     init(isAuthorized: AnyPublisher<Bool, Never>)
     
     var isAuthorized: AnyPublisher<Bool, Never> { get }
-    var currentKey: ImageKey? { get set }
+    var currentKey: ImageKey! { get set }
     var keyPublisher: AnyPublisher<ImageKey?, Never> { get }
     func clearStoredKeys() throws
     func generateNewKey(name: String) throws
@@ -34,7 +34,7 @@ class KeychainKeyManager: ObservableObject, KeyManager {
     private var authorized: Bool = false
     private var cancellables = Set<AnyCancellable>()
     
-    var currentKey: ImageKey? {
+    var currentKey: ImageKey! {
         didSet {
             keySubject.send(currentKey)
         }

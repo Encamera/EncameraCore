@@ -40,8 +40,6 @@ class MovieViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: Ob
 }
 
 struct MovieViewing<M: MediaDescribing, F: FileReader>: View where M.MediaSource == URL {
-        
-    
     
     @ObservedObject var viewModel: MovieViewingViewModel<M, F>
     var body: some View {

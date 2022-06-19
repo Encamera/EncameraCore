@@ -20,7 +20,9 @@ struct MainInterface: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            if let key = appState.keyManager.currentKey, let cameraService = model.cameraService {
+            if appState.keyManager.currentKey != nil,
+                let cameraService = model.cameraService {
+                
                 let cameraModel = CameraModel(keyManager: appState.keyManager, cameraService: cameraService)
                 CameraView(viewModel: cameraModel, galleryIconTapped: $model.showGalleryView, showingKeySelection: $model.showingKeySelection)
                     .environmentObject(appState)
@@ -28,7 +30,7 @@ struct MainInterface: View {
                         KeyPickerView(isShown: $model.showingKeySelection)
                             .environmentObject(appState)
                     }.sheet(isPresented: $model.showGalleryView) {
-                        MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>, iCloudFilesDirectoryModel>(viewModel: MediaGalleryViewModel(directory: iCloudFilesDirectoryModel(keyName: key.name), key: key))
+                        MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: MediaGalleryViewModel(keyManager: appState.keyManager))
                     }
             } else {
                 KeyPickerView(isShowingSheetForKeyEntry: false, isShowingSheetForNewKey: false, isShowingAlertForClearKey: false, isShown: Binding(get: {

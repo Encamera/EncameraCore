@@ -49,22 +49,26 @@ class DiskFileAccess<D: DirectoryModel>: FileEnumerator {
     required init(key: ImageKey) {
         self.key = key
         self.directoryModel = D(keyName: key.name)
+        try! self.directoryModel.initializeDirectories()
     }
     
-    func loadThumbnails(for sourceDirectory: DirectoryModel) async throws -> [CleartextMedia<Data>] {
-        let mediaList: [EncryptedMedia] = await enumerateMedia(for: sourceDirectory)
-        var thumbnails: [CleartextMedia<Data>] = []
-        for media in mediaList {
-            let thumb = try await loadMediaPreview(for: media)
-            thumbnails.append(thumb)
-        }
-        return thumbnails
-    }
+//    func loadThumbnails(for sourceDirectory: DirectoryModel) async throws -> [CleartextMedia<Data>] {
+//        let mediaList: [EncryptedMedia] = await enumerateMedia(for: sourceDirectory)
+//        var thumbnails: [CleartextMedia<Data>] = []
+//        for media in mediaList {
+//            guard let thumb = try? await loadMediaPreview(for: media) else {
+//                print("Could not load preview for \(media.source)")
+//                continue
+//            }
+//            thumbnails.append(thumb)
+//        }
+//        return thumbnails
+//    }
     
     
-    func enumerateMedia<T>(for directory: DirectoryModel) async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not truly async, should be though
+    func enumerateMedia<T>(for type: MediaType) async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not truly async, should be though
         
-        let driveUrl = directory.baseURL
+        let driveUrl = directoryModel.pathContainingMediaOf(type: type)
         _ = driveUrl.startAccessingSecurityScopedResource()
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
         
@@ -90,6 +94,7 @@ class DiskFileAccess<D: DirectoryModel>: FileEnumerator {
                 return T(source: itemUrl)
             }
         driveUrl.stopAccessingSecurityScopedResource()
+        print("Enumerated: \(imageItems)")
         return imageItems
     }
     
@@ -178,11 +183,11 @@ extension DiskFileAccess: FileReader {
                 let decrypted: CleartextMedia<URL> = try await self.decryptMedia(encrypted: encrypted)
                 guard let thumb = self.generateThumbnailFromVideo(at: decrypted.source),
                       let data = thumb.pngData() else {
-                    fatalError()
+                    throw SecretFilesError.createVideoThumbnailError
                 }
                 thumbnailSourceData = data
             case .thumbnail, .unknown:
-                fatalError()
+                throw SecretFilesError.fileTypeError
             }
         let resizer = ImageResizer(targetWidth: 50)
         guard let thumbnailData = resizer.resize(data: thumbnailSourceData)?.pngData() else {

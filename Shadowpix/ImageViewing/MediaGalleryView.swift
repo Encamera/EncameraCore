@@ -8,47 +8,39 @@
 import SwiftUI
 import Combine
 
-class MediaGalleryViewModel<F: FileAccess, D: DirectoryModel>: ObservableObject {
-    @Published var directory: D
+class MediaGalleryViewModel<F: FileAccess>: ObservableObject {
     @Published var fileAccess: F
-    @Published var key: ImageKey?
-    
-    init(directory: D, key: ImageKey) {
-        self.directory = directory
-        self.key = key
-        self.fileAccess = F(key: key)
+    @Published var keyManager: KeyManager
+
+    init(keyManager: KeyManager) {
         
+        self.keyManager = keyManager
+        self.fileAccess = F(key: keyManager.currentKey)
     }
 }
 
-struct MediaGalleryView<F: FileAccess, D: DirectoryModel>: View {
-    @State var selectedMediaType: MediaType = .photo
+struct MediaGalleryView<F: FileAccess>: View {
 
-    @State var viewModel: MediaGalleryViewModel<F, D>
-    @EnvironmentObject var state: ShadowPixState
-    
-    
-    init(viewModel: MediaGalleryViewModel<F, D>) {
+    @State var viewModel: MediaGalleryViewModel<F>
+    @State var selectedMediaType: MediaType
+    @State var displayMedia: EncryptedMedia?
+    var displayBinding: Binding<Bool> = .constant(false)
+    init(viewModel: MediaGalleryViewModel<F>) {
         self.viewModel = viewModel
+        self.selectedMediaType = .photo
     }
     
     var body: some View {
-        let galleryViewModel = GalleryViewModel(sourceDirectory: viewModel.directory, fileAccess: viewModel.fileAccess, keyManager: state.keyManager)
-        VStack {
-            Picker("Media Type", selection: $selectedMediaType) {
-                ForEach(MediaType.displayCases, id: \.self) { type in
-                    Text(type.title).tag(type)
+        NavigationView {
+            VStack {
+                Picker("Media Type", selection: $selectedMediaType) {
+                    ForEach(MediaType.displayCases, id: \.self) { type in
+                        Text(type.title).tag(type)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: selectedMediaType, perform: { newValue in
-                print("selected media type \(newValue)")
-                guard let keyName = state.keyManager.currentKey?.name else {
-                    return
-                }
-                self.viewModel.directory = D( keyName: keyName)
-            })
-            GalleryView(viewModel: galleryViewModel)
+                .pickerStyle(.segmented)
+                GalleryView(viewModel: .init(fileAccess: viewModel.fileAccess, keyManager: viewModel.keyManager, mediaType: $selectedMediaType, displayMedia: $displayMedia))
+            }.navigationBarHidden(true)
         }
     }
 }
@@ -57,7 +49,7 @@ struct MediaGalleryView<F: FileAccess, D: DirectoryModel>: View {
 //
 //    
 //    static var previews: some View {
-//        MediaGalleryView(viewModel: MediaGalleryViewModel<DemoFileEnumerator, DemoDirectoryModel>(key: nil))
+//        MediaGalleryView(viewModel: MediaGalleryViewModel<DemoFileEnumerator, DemoDirectoryModel>(directory: DemoDirectoryModel(), key: ImageKey(name: "test", keyBytes: [])))
 //            .environmentObject(ShadowPixState())
 //    }
 //}

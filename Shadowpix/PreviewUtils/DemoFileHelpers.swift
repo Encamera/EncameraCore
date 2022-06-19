@@ -14,6 +14,7 @@ enum DemoError: Error {
 }
 
 class DemoFileEnumerator: FileAccess {
+    
     required init(key: ImageKey) {
         
     }
@@ -39,7 +40,9 @@ class DemoFileEnumerator: FileAccess {
     }
     
     func loadMediaPreview<T>(for media: T) async -> CleartextMedia<Data> where T : MediaDescribing {
-        return CleartextMedia<Data>(source: Data())
+        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
+        let data = try! Data(contentsOf: url)
+        return CleartextMedia<Data>(source: data)
     }
     
     func createTempURL(for mediaType: MediaType, id: String) -> URL {
@@ -69,11 +72,11 @@ class DemoFileEnumerator: FileAccess {
     required init(directoryModel: DemoDirectoryModel, key: ImageKey?) {
         
     }
-    func enumerateMedia<T>(for directory: DirectoryModel) async -> [T] where T : MediaDescribing, T.MediaSource == URL {
+    func enumerateMedia<T>(for: MediaType) async -> [T] where T : MediaDescribing, T.MediaSource == URL {
          let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
-        return (0...10).map { _ in
-            T(source: url)!
+        return (0...10).map { val in
+            T(source: url, mediaType: .photo, id: "\(val)")
         }
         
     }
@@ -85,8 +88,10 @@ class DemoDirectoryModel: DirectoryModel {
     var thumbnailDirectory: URL
     
     required init(keyName: KeyName) {
-        self.baseURL = URL(fileURLWithPath: "")
-        self.thumbnailDirectory = URL(fileURLWithPath: "")
+        self.baseURL = URL(fileURLWithPath: NSTemporaryDirectory(),
+                           isDirectory: true).appendingPathExtension("base")
+        self.thumbnailDirectory = URL(fileURLWithPath: NSTemporaryDirectory(),
+                                      isDirectory: true).appendingPathExtension("thumbs")
     }
     
     convenience init() {
@@ -98,8 +103,4 @@ class DemoDirectoryModel: DirectoryModel {
     
     private var tempFileManager = TempFilesManager()
     
-    var driveURL: URL {
-        URL(fileURLWithPath: NSTemporaryDirectory(),
-                          isDirectory: true)
-    }
 }

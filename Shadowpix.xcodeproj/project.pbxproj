@@ -32,6 +32,7 @@
 		196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE82274F858300C809ED /* DiskFileAccess.swift */; };
 		1978F9772822476D00D16FD4 /* shadowimage.shdwpic in Resources */ = {isa = PBXBuildFile; fileRef = 1978F9762822476D00D16FD4 /* shadowimage.shdwpic */; };
 		1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1978F9782822486000D16FD4 /* CameraModePicker.swift */; };
+		19874B45285D253A001C2D06 /* AsyncImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19874B44285D253A001C2D06 /* AsyncImage.swift */; };
 		1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF12753E9D300E41BFD /* CameraModel.swift */; };
 		1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF42753EA3F00E41BFD /* MainInterface.swift */; };
 		1994ABF72753EAEF00E41BFD /* MainInterfaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */; };
@@ -94,6 +95,7 @@
 		196AFE82274F858300C809ED /* DiskFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskFileAccess.swift; sourceTree = "<group>"; };
 		1978F9762822476D00D16FD4 /* shadowimage.shdwpic */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shadowimage.shdwpic; sourceTree = "<group>"; };
 		1978F9782822486000D16FD4 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
+		19874B44285D253A001C2D06 /* AsyncImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncImage.swift; sourceTree = "<group>"; };
 		1994ABF12753E9D300E41BFD /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		1994ABF42753EA3F00E41BFD /* MainInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterface.swift; sourceTree = "<group>"; };
 		1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterfaceViewModel.swift; sourceTree = "<group>"; };
@@ -160,6 +162,7 @@
 			children = (
 				19217E22273FD60F009E3850 /* ImageViewing.swift */,
 				196AFE80274F83D100C809ED /* GalleryView.swift */,
+				19874B44285D253A001C2D06 /* AsyncImage.swift */,
 				195719E6274B8BE300E93658 /* MovieViewing.swift */,
 				19B6D051282B354500DC07F8 /* MediaGalleryView.swift */,
 			);
@@ -448,6 +451,7 @@
 				196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */,
 				A9FE17B825394F1E00D547C7 /* ImageResizer.swift in Sources */,
 				A9FE17BA25394F1E00D547C7 /* PhotoCaptureProcessor.swift in Sources */,
+				19874B45285D253A001C2D06 /* AsyncImage.swift in Sources */,
 				19959440280D209900AEFA6D /* VideoCaptureProcessor.swift in Sources */,
 				1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */,
 				19FD5D602835DB0D008D75AA /* MediaDescribing.swift in Sources */,

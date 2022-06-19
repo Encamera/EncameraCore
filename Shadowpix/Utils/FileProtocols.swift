@@ -15,8 +15,6 @@ protocol DirectoryModel { // please rename this, not representative of what it d
  
     init(keyName: KeyName)
     func initializeDirectories() throws
-    
-    
 }
 
 extension DirectoryModel {
@@ -59,8 +57,8 @@ protocol FileEnumerator {
         
     init(key: ImageKey)
     
-    func enumerateMedia<T: MediaDescribing>(for directory: DirectoryModel) async -> [T] where T.MediaSource == URL
-    func loadThumbnails(for sourceDirectory: DirectoryModel) async throws -> [CleartextMedia<Data>]
+    func enumerateMedia<T: MediaDescribing>(for type: MediaType) async -> [T] where T.MediaSource == URL
+//    func loadThumbnails(for type: MediaType) async throws -> [CleartextMedia<Data>]
 }
 
 protocol FileReader {

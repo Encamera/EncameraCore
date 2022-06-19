@@ -13,10 +13,14 @@ import Combine
 enum SecretFilesError: Error {
     case keyError
     case encryptError
+//    case decryptError(wrapped: Error)
+
     case decryptError
     case sourceFileAccessError
     case destinationFileAccessError
     case createThumbnailError
+    case createVideoThumbnailError
+    case fileTypeError
 }
 
 protocol SecretFileHandler {

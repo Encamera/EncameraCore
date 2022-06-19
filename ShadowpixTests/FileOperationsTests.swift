@@ -14,7 +14,8 @@ import Combine
 class FileOperationsTests: XCTestCase {
     
     var cancellables: [AnyCancellable] = []
-    
+    let tempFiles = TempFilesManager()
+
     override func setUp() {
         
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
@@ -37,10 +38,9 @@ class FileOperationsTests: XCTestCase {
     }
     
     func testEncryptInMemory() async throws {
-        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
-        let sourceData = try Data(contentsOf: sourceUrl)
+        let sourceMedia = try createNewDataImageMedia()
         let key = Sodium().secretStream.xchacha20poly1305.key()
-        let handler = SecretDiskFileHandler(keyBytes: key, source: CleartextMedia(source: sourceData))
+        let handler = SecretDiskFileHandler(keyBytes: key, source: sourceMedia)
         let encrypted = try await handler.encryptFile()
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))
 
@@ -48,19 +48,19 @@ class FileOperationsTests: XCTestCase {
     
     func testEncryptVideo() async throws {
         
-        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
+        
+        let sourceMedia = try createNewMovieFile()
         let key = Sodium().secretStream.xchacha20poly1305.key()
-        let handler = SecretDiskFileHandler(keyBytes: key, source: CleartextMedia(source: sourceUrl))
+        let handler = SecretDiskFileHandler(keyBytes: key, source: sourceMedia)
         let encrypted = try await handler.encryptFile()
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))
     }
     
     func testDecryptVideo() async throws {
         
-        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
+        let sourceMedia = try createNewMovieFile()
         let key = Sodium().secretStream.xchacha20poly1305.key()
-        let cleartext = try XCTUnwrap(EncryptedMedia(source: sourceUrl))
-        let handler = SecretDiskFileHandler(keyBytes: key, source: cleartext)
+        let handler = SecretDiskFileHandler(keyBytes: key, source: sourceMedia)
         let encrypted = try await handler.encryptFile()
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))
         let decryptHandler = SecretDiskFileHandler(keyBytes: key, source: encrypted)
@@ -82,7 +82,7 @@ class FileOperationsTests: XCTestCase {
         
         let media = try XCTUnwrap(EncryptedMedia(source: sourceUrl))
         
-        let directory = DemoDirectoryModel(subdirectory: MediaType.photo.path, keyName: "test")
+        let directory = iCloudFilesDirectoryModel(keyName: "test")
         let url = try directory.thumbnailURLForMedia(media)
         
         let components = Array(url.absoluteString.split(separator: "/").reversed())
@@ -92,14 +92,12 @@ class FileOperationsTests: XCTestCase {
     }
     
     func testCreatePhotoThumbnailAndSave() async throws {
-        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
 
         let key = Sodium().secretStream.xchacha20poly1305.key()
         let imageKey = ImageKey(name: "test", keyBytes: key)
         let fileAccess = DiskFileAccess<DemoDirectoryModel>(key: imageKey)
         
-        let sourceMedia = CleartextMedia(source: sourceUrl)
-        
+        let sourceMedia = try createNewImageMedia()
         let encrypted = try await fileAccess.save(media: sourceMedia)
 
         let thumbnail = try await fileAccess.loadMediaPreview(for: encrypted)
@@ -113,13 +111,13 @@ class FileOperationsTests: XCTestCase {
     }
     
     func testCreateVideoThumbnailAndSave() async throws {
-        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
-
+        let sourceMedia = try createNewMovieFile()
         let key = Sodium().secretStream.xchacha20poly1305.key()
         let imageKey = ImageKey(name: "testMov", keyBytes: key)
+
+
         let fileAccess = DiskFileAccess<DemoDirectoryModel>(key: imageKey)
         
-        let sourceMedia = CleartextMedia(source: sourceUrl)
         
         let encrypted = try await fileAccess.save(media: sourceMedia)
 
@@ -135,19 +133,52 @@ class FileOperationsTests: XCTestCase {
     
     func testCreateMediaAndEnumerate() async throws {
         
-        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
-
+        
         let key = Sodium().secretStream.xchacha20poly1305.key()
         let imageKey = ImageKey(name: "testMov", keyBytes: key)
         let fileAccess = DiskFileAccess<DemoDirectoryModel>(key: imageKey)
         
-        let sourceMedia = CleartextMedia(source: sourceUrl)
-        for i in 0...10 {
+        var savedMedia: [EncryptedMedia] = []
+        for _ in 0...10 {
+            let sourceMedia = try createNewMovieFile()
             let encrypted = try await fileAccess.save(media: sourceMedia)
+            
+            savedMedia.append(encrypted)
         }
         
-        let thumbs = try await fileAccess.loadThumbnails(for: <#T##DirectoryModel#>)
+        let thumbs = try await fileAccess.loadThumbnails(for: DemoDirectoryModel())
+        let image = try XCTUnwrap(UIImage(data:thumbs[0].source))
+        XCTAssertEqual(image.size.width, 150)
+        XCTAssertEqual(thumbs.count, savedMedia.count)
+    }
+    
+    
+    private func createNewMovieFile() throws -> CleartextMedia<URL> {
+        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "test", withExtension: "mov")!
 
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        let documentsDirectory = paths[0]
+        let tempURL = documentsDirectory.appendingPathComponent(NSUUID().uuidString).appendingPathExtension("mov")
+        try FileManager.default.copyItem(at: sourceUrl, to: tempURL)
+        let sourceMedia = CleartextMedia(source: tempURL)
+
+        return sourceMedia
+    }
+    
+    private func createNewImageMedia() throws -> CleartextMedia<URL> {
+        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
+        let sourceMedia = CleartextMedia(source: sourceUrl)
+        return sourceMedia
+        
+        
+    }
+    
+    
+    private func createNewDataImageMedia() throws -> CleartextMedia<Data> {
+        let sourceUrl = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
+        let sourceData = try Data(contentsOf: sourceUrl)
+        let sourceMedia = CleartextMedia(source: sourceData)
+        return sourceMedia
     }
     
 }
