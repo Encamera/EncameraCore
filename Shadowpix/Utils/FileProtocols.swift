@@ -38,7 +38,7 @@ extension DirectoryModel {
     
     func driveURLForNewMedia<T: MediaSourcing>(_ media: CleartextMedia<T>) -> URL {
         let filename = "\(media.id).\(media.mediaType.fileExtension).shdwpic"
-        return baseURL.appendingPathComponent(filename)
+        return baseURL.appendingPathComponent(media.mediaType.path).appendingPathComponent(filename)
     }
     
     func thumbnailFor<T: MediaDescribing>(media: T) throws -> EncryptedMedia {
