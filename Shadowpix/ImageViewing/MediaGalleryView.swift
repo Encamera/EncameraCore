@@ -23,8 +23,7 @@ struct MediaGalleryView<F: FileAccess>: View {
 
     @State var viewModel: MediaGalleryViewModel<F>
     @State var selectedMediaType: MediaType
-    @State var displayMedia: EncryptedMedia?
-    var displayBinding: Binding<Bool> = .constant(false)
+
     init(viewModel: MediaGalleryViewModel<F>) {
         self.viewModel = viewModel
         self.selectedMediaType = .photo
@@ -39,7 +38,11 @@ struct MediaGalleryView<F: FileAccess>: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                GalleryView(viewModel: .init(fileAccess: viewModel.fileAccess, keyManager: viewModel.keyManager, mediaType: $selectedMediaType, displayMedia: $displayMedia))
+                GalleryView(viewModel: .init(
+                    fileAccess: viewModel.fileAccess,
+                    keyManager: viewModel.keyManager,
+                    mediaType: $selectedMediaType
+                ))
             }.navigationBarHidden(true)
         }
     }

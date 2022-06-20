@@ -44,14 +44,10 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
         GeometryReader { geo in
             let frame = geo.frame(in: .local)
             let side = frame.height
-            content.onAppear {
-                Task {
-                    await viewModel.loadPreview()
-                }
-            }
+            content
             .scaledToFill()
-                .position(x: frame.midX, y: frame.midY)
-                .frame(width: side, height: side)
+            .position(x: frame.midX, y: frame.midY)
+            .frame(width: side, height: side)
         }
     }
     
@@ -63,7 +59,9 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
                 .clipped()
                 .aspectRatio(contentMode:.fit)
         } else {
-            placeholder
+            placeholder.task {
+                await viewModel.loadPreview()
+            }
         }
     }
 }

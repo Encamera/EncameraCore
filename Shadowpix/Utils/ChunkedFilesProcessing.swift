@@ -14,7 +14,7 @@ enum Constants {
 }
 
 
-class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Subscription where S.Input == ([UInt8], Bool), S.Failure == Error {
+class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Subscription where S.Input == ([UInt8], Double, Bool), S.Failure == Error {
     
  
     enum ChunkedFilesError: Error {
@@ -24,7 +24,7 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
     private let sourceFileHandle: FileLikeHandler<T>
     private let blockSize: Int
     private var subscriber: S?
-    
+
     
     init(sourceFileHandle: FileLikeHandler<T>, blockSize: Int, subscriber: S) {
         self.subscriber = subscriber
@@ -43,9 +43,13 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
             
             data.copyBytes(to: &byteArray, count: data.count)
             //optimize var usage in this loop
+            var byteCount: UInt64 = 0
             while true {
                 let final = byteArray.count < blockSize
-                subscriber?.receive((byteArray, final))
+                byteCount += UInt64(byteArray.count)
+                let progress = Double(byteCount) / Double(sourceFileHandle.size)
+                
+                subscriber?.receive((byteArray, progress, final))
                 guard let nextChunk = try? sourceFileHandle.read(upToCount: blockSize) else {
                     break
                 }
@@ -68,18 +72,19 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
 }
 
 struct ChunkedFileProcessingPublisher<T: MediaDescribing>: Publisher {
-    typealias Output = ([UInt8], Bool)
+    typealias Output = ([UInt8], Double, Bool)
     typealias Failure = Error
     
     let sourceFileHandle: FileLikeHandler<T>
     let blockSize: Int
-    
-    init(sourceFileHandle: FileLikeHandler<T>, blockSize: Int = Constants.defaultBlockSize) {
+        
+    init(sourceFileHandle: FileLikeHandler<T>,
+         blockSize: Int = Constants.defaultBlockSize) {
         self.sourceFileHandle = sourceFileHandle
         self.blockSize = blockSize
     }
     
-    func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, ([UInt8], Bool) == S.Input {
+    func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, ([UInt8], Double, Bool) == S.Input {
         let subscription = ChunkedFilesProcessingSubscription(sourceFileHandle: sourceFileHandle, blockSize: blockSize, subscriber: subscriber)
         subscriber.receive(subscription: subscription)
     }

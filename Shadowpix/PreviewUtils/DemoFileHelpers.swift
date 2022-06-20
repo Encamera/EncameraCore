@@ -15,9 +15,9 @@ enum DemoError: Error {
 
 class DemoFileEnumerator: FileAccess {
     
-    required init(key: ImageKey) {
-        
-    }
+    
+    var media: [EncryptedMedia]
+    
     
     func loadThumbnails<T>(for: DirectoryModel) async -> [T] where T : MediaDescribing, T.MediaSource == Data {
         []
@@ -40,18 +40,15 @@ class DemoFileEnumerator: FileAccess {
     }
     
     func loadMediaPreview<T>(for media: T) async -> CleartextMedia<Data> where T : MediaDescribing {
-        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
-        let data = try! Data(contentsOf: url)
+        let source = media.source as! URL
+        let data = try! Data(contentsOf: source)
         return CleartextMedia<Data>(source: data)
     }
     
     func createTempURL(for mediaType: MediaType, id: String) -> URL {
         return URL(fileURLWithPath: "")
     }
-    
-    required init(key: ImageKey?) {
-        
-    }
+
     
     
     typealias MediaTypeHandling = Data
@@ -59,26 +56,42 @@ class DemoFileEnumerator: FileAccess {
     
     let directoryModel = DemoDirectoryModel()
     
-    
-    init() {
+    required init(key: ImageKey) {
+        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
-    }
-    
-    required init(directoryModel: DirectoryModel, key: ImageKey?) {
+        media = (0..<5).map { val in
+            EncryptedMedia(source: url, mediaType: .photo, id: "\(val)")
+        }
         
-    }
+        let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
+        
+        media += (0..<5).map { val in
+            EncryptedMedia(source: dog, mediaType: .photo, id: "\(val)")
+        }
+        
+        media.shuffle()
 
-    
-    required init(directoryModel: DemoDirectoryModel, key: ImageKey?) {
-        
     }
+    
+    convenience init() {
+        self.init(key: ImageKey(name: "", keyBytes: []))
+    }
+    
     func enumerateMedia<T>(for: MediaType) async -> [T] where T : MediaDescribing, T.MediaSource == URL {
-         let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
+         
+        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
-        return (0...10).map { val in
+        var retVal = (0..<5).map { val in
             T(source: url, mediaType: .photo, id: "\(val)")
         }
         
+        let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
+        
+        retVal += (0..<5).map { val in
+            T(source: dog, mediaType: .photo, id: "\(val)")
+        }
+        
+        return retVal.shuffled()
     }
 }
 

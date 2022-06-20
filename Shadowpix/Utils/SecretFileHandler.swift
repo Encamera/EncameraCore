@@ -27,21 +27,29 @@ protocol SecretFileHandler {
     
     associatedtype SourceMediaType: MediaDescribing
     
+    var progress: AnyPublisher<Double, Never> { get }
     var sourceMedia: SourceMediaType { get }
     var keyBytes: Array<UInt8> { get }
     var sodium: Sodium { get }
 }
 
-extension SecretFileHandler {
+private protocol SecretFileHandlerInt: SecretFileHandler {
+    var progressSubject: PassthroughSubject<Double, Never> { get }
+}
+
+extension SecretFileHandlerInt {
+    
+    var progress: AnyPublisher<Double, Never> {
+        progressSubject.eraseToAnyPublisher()
+    }
     
     var sodium: Sodium {
         Sodium()
     }
     
+    
     func decryptPublisher() -> AnyPublisher<Data, Error> {
-        
-        
-        
+
         do {
             let fileHandler = try FileLikeHandler(media: sourceMedia, blockSize: 1024, mode: .reading)
             let headerBytes = try fileHandler.read(upToCount: 24)
@@ -57,10 +65,12 @@ extension SecretFileHandler {
                 print("Could not create stream with key")
                 return Fail(error: SecretFilesError.keyError).eraseToAnyPublisher()
             }
-            return ChunkedFileProcessingPublisher(sourceFileHandle: fileHandler, blockSize: Int(blockSize)).tryMap { (bytes, _) -> Data in
+            
+            return ChunkedFileProcessingPublisher(sourceFileHandle: fileHandler, blockSize: Int(blockSize)).tryMap { (bytes, progress, _) -> Data in
                 guard let (message, _) = streamDec.pull(cipherText: bytes) else {
                     throw SecretFilesError.decryptError
                 }
+                progressSubject.send(progress)
                    return Data(message)
             }.eraseToAnyPublisher()
         } catch {
@@ -70,13 +80,14 @@ extension SecretFileHandler {
     }
 }
 
-class SecretInMemoryFileHander<T: MediaDescribing>: SecretFileHandler {
+class SecretInMemoryFileHander<T: MediaDescribing>: SecretFileHandlerInt {
     var sourceMedia: T
 
     var keyBytes: Array<UInt8> = []
 
     var cancellables = Set<AnyCancellable>()
-
+    fileprivate var progressSubject = PassthroughSubject<Double, Never>()
+    
     init(sourceMedia: T, keyBytes: Array<UInt8>) {
         self.sourceMedia = sourceMedia
         self.keyBytes = keyBytes
@@ -105,13 +116,13 @@ class SecretInMemoryFileHander<T: MediaDescribing>: SecretFileHandler {
     }
 }
 
-class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler {
+class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     
-   
-    
+
     let sourceMedia: T
     let destinationURL: URL
     let keyBytes: Array<UInt8>
+    fileprivate var progressSubject = PassthroughSubject<Double, Never>()
     
     init(keyBytes: Array<UInt8>, source: T, destinationURL: URL? = nil) {
         self.keyBytes = keyBytes
@@ -152,9 +163,10 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandler {
             return try await withCheckedThrowingContinuation { continuation in
                 
                 ChunkedFileProcessingPublisher(sourceFileHandle: sourceHandler)
-                    .map({ (bytes, isFinal)  -> Data in
+                    .map({ (bytes, progress, isFinal)  -> Data in
                         let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
                         writeBlockSizeOperation?(message)
+                        self.progressSubject.send(progress)
                         return Data(message)
                     }).sink { signal in
                         switch signal {

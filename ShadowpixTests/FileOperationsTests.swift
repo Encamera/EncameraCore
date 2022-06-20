@@ -41,6 +41,10 @@ class FileOperationsTests: XCTestCase {
         let sourceMedia = try createNewDataImageMedia()
         let key = Sodium().secretStream.xchacha20poly1305.key()
         let handler = SecretDiskFileHandler(keyBytes: key, source: sourceMedia)
+        
+        handler.progress.sink { progress in
+            print("Progress: \(progress)")
+        }.store(in: &cancellables)
         let encrypted = try await handler.encryptFile()
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))
 
@@ -131,26 +135,26 @@ class FileOperationsTests: XCTestCase {
         print(thumbnail)
     }
     
-    func testCreateMediaAndEnumerate() async throws {
-        
-        
-        let key = Sodium().secretStream.xchacha20poly1305.key()
-        let imageKey = ImageKey(name: "testMov", keyBytes: key)
-        let fileAccess = DiskFileAccess<DemoDirectoryModel>(key: imageKey)
-        
-        var savedMedia: [EncryptedMedia] = []
-        for _ in 0...10 {
-            let sourceMedia = try createNewMovieFile()
-            let encrypted = try await fileAccess.save(media: sourceMedia)
-            
-            savedMedia.append(encrypted)
-        }
-        
-        let thumbs = try await fileAccess.loadThumbnails(for: DemoDirectoryModel())
-        let image = try XCTUnwrap(UIImage(data:thumbs[0].source))
-        XCTAssertEqual(image.size.width, 150)
-        XCTAssertEqual(thumbs.count, savedMedia.count)
-    }
+//    func testCreateMediaAndEnumerate() async throws {
+//
+//
+//        let key = Sodium().secretStream.xchacha20poly1305.key()
+//        let imageKey = ImageKey(name: "testMov", keyBytes: key)
+//        let fileAccess = DiskFileAccess<DemoDirectoryModel>(key: imageKey)
+//
+//        var savedMedia: [EncryptedMedia] = []
+//        for _ in 0...10 {
+//            let sourceMedia = try createNewMovieFile()
+//            let encrypted = try await fileAccess.save(media: sourceMedia)
+//
+//            savedMedia.append(encrypted)
+//        }
+//
+//        let thumbs = try await fileAccess.loadThumbnails(for: DemoDirectoryModel())
+//        let image = try XCTUnwrap(UIImage(data:thumbs[0].source))
+//        XCTAssertEqual(image.size.width, 150)
+//        XCTAssertEqual(thumbs.count, savedMedia.count)
+//    }
     
     
     private func createNewMovieFile() throws -> CleartextMedia<URL> {

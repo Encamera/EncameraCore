@@ -52,20 +52,6 @@ class DiskFileAccess<D: DirectoryModel>: FileEnumerator {
         try! self.directoryModel.initializeDirectories()
     }
     
-//    func loadThumbnails(for sourceDirectory: DirectoryModel) async throws -> [CleartextMedia<Data>] {
-//        let mediaList: [EncryptedMedia] = await enumerateMedia(for: sourceDirectory)
-//        var thumbnails: [CleartextMedia<Data>] = []
-//        for media in mediaList {
-//            guard let thumb = try? await loadMediaPreview(for: media) else {
-//                print("Could not load preview for \(media.source)")
-//                continue
-//            }
-//            thumbnails.append(thumb)
-//        }
-//        return thumbnails
-//    }
-    
-    
     func enumerateMedia<T>(for type: MediaType) async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not truly async, should be though
         
         let driveUrl = directoryModel.pathContainingMediaOf(type: type)
@@ -94,7 +80,6 @@ class DiskFileAccess<D: DirectoryModel>: FileEnumerator {
                 return T(source: itemUrl)
             }
         driveUrl.stopAccessingSecurityScopedResource()
-        print("Enumerated: \(imageItems)")
         return imageItems
     }
     
@@ -137,7 +122,8 @@ extension DiskFileAccess: FileReader {
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
-        let decrypted = try await SecretInMemoryFileHander(sourceMedia: encrypted, keyBytes: key.keyBytes).decryptInMemory()
+        let fileHandler = SecretInMemoryFileHander(sourceMedia: encrypted, keyBytes: key.keyBytes)
+        let decrypted = try await fileHandler.decryptInMemory()
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
     }
@@ -147,7 +133,8 @@ extension DiskFileAccess: FileReader {
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
-        let decrypted = try await SecretDiskFileHandler(keyBytes: self.key.keyBytes, source: encrypted).decryptFile()
+        let fileHandler = SecretDiskFileHandler(keyBytes: self.key.keyBytes, source: encrypted)
+        let decrypted = try await fileHandler.decryptFile()
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
         
