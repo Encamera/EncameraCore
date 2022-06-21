@@ -15,46 +15,38 @@ struct KeyGeneration: View {
     @EnvironmentObject var appState: ShadowPixState
     @FocusState var isFocused: Bool
     var body: some View {
-        NavigationView {
-            VStack {
-                
-                TextField("Key Name", text: $keyName, prompt: Text("Key Name"))
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                    .frame(height: 44)
-                    .focused($isFocused)
-                Spacer()
-                
-            }.alert("Are you sure you want to generate a new key?", isPresented: $isShowingAlertForNewKey) {
-                Button("Yes", role: .destructive) {
-                    saveKey()
-                    isShown = false
-                }
-                Button("Cancel", role: .cancel) {
-                    isShowingAlertForNewKey = false
+        VStack {
+            
+            TextField("Key Name", text: $keyName, prompt: Text("Key Name"))
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .frame(height: 44)
+                .focused($isFocused)
+            Spacer()
+            
+        }.alert("Are you sure you want to generate a new key?", isPresented: $isShowingAlertForNewKey) {
+            Button("Yes", role: .destructive) {
+                saveKey()
+                isShown = false
+            }
+            Button("Cancel", role: .cancel) {
+                isShowingAlertForNewKey = false
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                if keyName.count > 0 {
+                    
+                    Button("Save") {
+                        isShowingAlertForNewKey = true
+                    }.foregroundColor(.blue)
                 }
             }
-            .toolbar {
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        isShown = false
-                    }
-                }
-                
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    if keyName.count > 0 {
-
-                        Button("Save") {
-                            isShowingAlertForNewKey = true
-                        }.foregroundColor(.blue)
-                    }
-                }
-            }
-            .padding()
-            .navigationTitle("Key Generation")
-            .onAppear {
-                isFocused = true
-            }
+        }
+        .padding()
+        .navigationTitle("Key Generation")
+        .onAppear {
+            isFocused = true
         }
     }
     
@@ -62,7 +54,7 @@ struct KeyGeneration: View {
         do {
             try appState.keyManager.generateNewKey(name: keyName)
         } catch {
-            print("Could not generate new key")
+            print("Could not generate new key", error)
         }
     }
 }

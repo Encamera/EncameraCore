@@ -14,7 +14,8 @@ class TempFilesManager {
     private var createdTempFiles = Set<URL>()
     private var cancellables = Set<AnyCancellable>()
     static var shared: TempFilesManager = TempFilesManager()
-    
+    private let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
+                              isDirectory: true)
     init() {
 //        let pub1 = NotificationCenter.default
 //            .publisher(for: UIApplication.didFinishLaunchingNotification)
@@ -40,10 +41,9 @@ class TempFilesManager {
     }
     
     func createTempURL(for mediaType: MediaType, id: String) -> URL {
-        let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
-                          isDirectory: true).appendingPathComponent(id).appendingPathExtension(mediaType.fileExtension)
-        createdTempFiles.insert(tempUrl)
-        return tempUrl
+        let path = tempUrl.appendingPathComponent(id).appendingPathExtension(mediaType.fileExtension)
+        createdTempFiles.insert(path)
+        return path
 
     }
     
@@ -73,9 +73,17 @@ class TempFilesManager {
     }
     
     func cleanup() throws {
-        let filesToDelete = createdTempFiles
-        filesToDelete.forEach { url in
-            deleteItem(at: url)
+        guard let enumerator = FileManager.default.enumerator(atPath: tempUrl.path) else {
+            return
+        }
+        try enumerator.compactMap { item in
+            guard let itemUrl = item as? URL else {
+                return nil
+            }
+            return itemUrl
+        }
+        .forEach { file in
+            try FileManager.default.removeItem(at: file)
         }
     }
     

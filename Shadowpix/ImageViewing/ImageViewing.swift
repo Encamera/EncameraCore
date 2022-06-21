@@ -42,6 +42,14 @@ extension MediaViewingViewModel {
             self.error = .decryptError(wrapped: error)
         }
     }
+    
+    func cleanup() {
+        do {
+            try decryptedFileRef?.delete()
+        } catch {
+            print("Could not delete file ref \(error)")
+        }
+    }
 }
 
 class ImageViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: ObservableObject, MediaViewingViewModel {
@@ -87,6 +95,9 @@ struct ImageViewing<M: MediaDescribing, F: FileReader>: View {
             Task {
                 await viewModel.decryptAndSet()
             }
+        }
+        .onDisappear {
+            viewModel.cleanup()
         }
     }
 }

@@ -84,9 +84,14 @@ struct KeyPickerView: View {
                     Button("Set key") {
                         isShowingSheetForKeyEntry = true
                     }
-                    Button("Generate new key") {
-                        isShowingSheetForNewKey = true
+                    NavigationLink {
+                        KeyGeneration(isShown: $isShowingSheetForNewKey)
+                            .environmentObject(appState)
+                    } label: {
+                        Text("Generate new key")
                     }
+
+                    
                     Button {
                         isShowingAlertForClearKey = true
                     } label: {
@@ -117,8 +122,7 @@ struct KeyPickerView: View {
             }
             
         }.sheet(isPresented: $isShowingSheetForNewKey) {
-            KeyGeneration(isShown: $isShowingSheetForNewKey)
-                .environmentObject(appState)
+            
         }.sheet(isPresented: $isShowingSheetForKeyEntry) {
             isShown = false
         } content: {
