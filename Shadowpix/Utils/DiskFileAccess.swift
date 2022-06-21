@@ -31,13 +31,7 @@ struct iCloudFilesDirectoryModel: DirectoryModel {
     }
 }
 
-//struct ThumbnailDirectoryModel: DirectoryModel {
-//    var targetURL: URL
-//
-//
-//}
-
-class DiskFileAccess<D: DirectoryModel>: FileEnumerator {
+actor DiskFileAccess<D: DirectoryModel>: FileEnumerator {
     
     enum iCloudError: Error {
         case invalidURL
@@ -45,8 +39,10 @@ class DiskFileAccess<D: DirectoryModel>: FileEnumerator {
     }
     var key: ImageKey
         
+    private var cancellables = Set<AnyCancellable>()
+
     private let directoryModel: D
-    required init(key: ImageKey) {
+    init(key: ImageKey) {
         self.key = key
         self.directoryModel = D(keyName: key.name)
         try! self.directoryModel.initializeDirectories()
@@ -93,51 +89,56 @@ extension DiskFileAccess: FileReader {
             let thumb = T(source: thumbnailPath, mediaType: .thumbnail, id: media.id)
             
         do {
-            let existingThumb = try await loadMediaInMemory(media: thumb)
+            let existingThumb = try await loadMediaInMemory(media: thumb) { _ in }
             return existingThumb
         } catch {
             return try await self.createThumbnail(for: media)
         }
     }
     
-    func loadMediaInMemory<T>(media: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+    func loadMediaInMemory<T: MediaDescribing>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> {
         
         if let encrypted = media as? EncryptedMedia {
-            return try await decryptMedia(encrypted: encrypted)
+            return try await decryptMedia(encrypted: encrypted, progress: progress)
         } else {
             fatalError()
         }
     }
-    func loadMediaToURL<T>(media: T) async throws -> CleartextMedia<URL> where T : MediaDescribing {
+    
+    func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> {
         if let encrypted = media as? EncryptedMedia {
-             return try await decryptMedia(encrypted: encrypted)
+             return try await decryptMedia(encrypted: encrypted, progress: progress)
         } else if let cleartext = media as? CleartextMedia<URL> {
             return cleartext
         }
         
         fatalError()
     }
-    private func decryptMedia(encrypted: EncryptedMedia) async throws -> CleartextMedia<Data> {
+    private func decryptMedia(encrypted: EncryptedMedia, progress: (Double) -> Void) async throws -> CleartextMedia<Data> {
         
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
-        let fileHandler = SecretInMemoryFileHander(sourceMedia: encrypted, keyBytes: key.keyBytes)
-        let decrypted = try await fileHandler.decryptInMemory()
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted)
+        
+        let decrypted: CleartextMedia<Data> = try await fileHandler.decrypt()
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
     }
     
-    private func decryptMedia(encrypted: EncryptedMedia) async throws -> CleartextMedia<URL> {
-        
+    private func decryptMedia(encrypted: EncryptedMedia, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> {
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
-        let fileHandler = SecretDiskFileHandler(keyBytes: self.key.keyBytes, source: encrypted)
-        let decrypted = try await fileHandler.decryptFile()
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted)
+        fileHandler.progress
+            .receive(on: DispatchQueue.main)
+            .sink { percent in
+            progress(percent)
+        }.store(in: &cancellables)
+        let decrypted: CleartextMedia<URL> = try await fileHandler.decrypt()
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
-        
     }
     private func generateThumbnailFromVideo(at path: URL) -> UIImage? {
         do {
@@ -163,11 +164,11 @@ extension DiskFileAccess: FileReader {
             switch encrypted.mediaType {
                 
             case .photo:
-                let decrypted: CleartextMedia<Data> = try await self.decryptMedia(encrypted: encrypted)
+                let decrypted: CleartextMedia<Data> = try await self.decryptMedia(encrypted: encrypted) { _ in }
                 thumbnailSourceData = decrypted.source
                 
             case .video:
-                let decrypted: CleartextMedia<URL> = try await self.decryptMedia(encrypted: encrypted)
+                let decrypted: CleartextMedia<URL> = try await self.decryptMedia(encrypted: encrypted) { _ in }
                 guard let thumb = self.generateThumbnailFromVideo(at: decrypted.source),
                       let data = thumb.pngData() else {
                     throw SecretFilesError.createVideoThumbnailError
@@ -193,15 +194,14 @@ extension DiskFileAccess: FileWriter {
     
     @discardableResult func saveThumbnail(media: CleartextMedia<Data>) async throws -> EncryptedMedia {
         let destinationURL = try directoryModel.thumbnailURLForMedia(media)
-        let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
-        return try await fileHandler.encryptFile()
-
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
+        return try await fileHandler.encrypt()
     }
     
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia {
         let destinationURL = directoryModel.driveURLForNewMedia(media)
-        let fileHandler = SecretDiskFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
-        return try await fileHandler.encryptFile()
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
+        return try await fileHandler.encrypt()
         
     }
 }

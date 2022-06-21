@@ -65,7 +65,9 @@ class ImageViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: Ob
         guard let fileAccess = fileAccess else {
             throw MediaViewingError.fileAccessNotAvailable
         }
-        return try await fileAccess.loadMediaInMemory(media: sourceMedia)
+        return try await fileAccess.loadMediaInMemory(media: sourceMedia) { progress in
+            
+        }
     }
 }
 

@@ -12,7 +12,6 @@ protocol FileLikeBlockReader  {
     var size: UInt64 { get }
     
     func prepareIfDoesNotExist() throws
-    func readNextBlock() throws -> Data?
     func closeReader() throws
     func read(upToCount: Int) throws -> Data?
     func write(contentsOf data: Data) throws

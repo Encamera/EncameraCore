@@ -16,6 +16,8 @@ enum DemoError: Error {
 class DemoFileEnumerator: FileAccess {
     
     
+    
+    
     var media: [EncryptedMedia]
     
     
@@ -27,11 +29,12 @@ class DemoFileEnumerator: FileAccess {
         EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
     }
     
-    func loadMediaToURL<T>(media: T) async throws -> CleartextMedia<URL> where T : MediaDescribing {
+    func loadMediaToURL<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
+
         CleartextMedia(source: URL(fileURLWithPath: ""))
     }
     
-    func loadMediaInMemory<T>(media: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+    func loadMediaInMemory<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
         CleartextMedia(source: Data())
     }
     
@@ -115,5 +118,34 @@ class DemoDirectoryModel: DirectoryModel {
     let keyName = ""
     
     private var tempFileManager = TempFilesManager()
+    
+}
+
+class DemoKeyManager: KeyManager {
+    
+    convenience init() {
+        self.init(isAuthorized: Just(true).eraseToAnyPublisher())
+    }
+    
+    required init(isAuthorized: AnyPublisher<Bool, Never>) {
+        self.isAuthorized = isAuthorized
+        self.currentKey = ImageKey(name: "test", keyBytes: [])
+        self.keyPublisher = PassthroughSubject<ImageKey?, Never>().eraseToAnyPublisher()
+    }
+    
+    var isAuthorized: AnyPublisher<Bool, Never>
+    
+    var currentKey: ImageKey!
+    
+    var keyPublisher: AnyPublisher<ImageKey?, Never>
+    
+    func clearStoredKeys() throws {
+        
+    }
+    
+    func generateNewKey(name: String) throws {
+        
+    }
+    
     
 }

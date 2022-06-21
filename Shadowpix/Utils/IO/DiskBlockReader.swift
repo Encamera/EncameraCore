@@ -12,7 +12,6 @@ class DiskBlockReader: FileLikeBlockReader {
     
     var source: URL
     private var fileHandle: FileHandle?
-    private var blockSize: Int
     private var mode: BlockIOMode
     
     var size: UInt64 {
@@ -22,9 +21,8 @@ class DiskBlockReader: FileLikeBlockReader {
         return attributes[FileAttributeKey.size] as! UInt64
     }
 
-    init(source: URL, blockSize: Int, mode: BlockIOMode) throws {
+    init(source: URL, mode: BlockIOMode) throws {
         self.source = source
-        self.blockSize = blockSize
         self.mode = mode
         switch mode {
         case .reading:
@@ -32,10 +30,6 @@ class DiskBlockReader: FileLikeBlockReader {
         case .writing:
             fileHandle = try? FileHandle(forWritingTo: source)
         }
-    }
-    
-    func readNextBlock() throws -> Data? {
-        return try read(upToCount: blockSize)
     }
     
     func read(upToCount count: Int) throws -> Data? {

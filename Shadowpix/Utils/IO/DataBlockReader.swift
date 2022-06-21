@@ -11,19 +11,13 @@ class DataBlockReader: FileLikeBlockReader {
     
     
     private var source: Data
-    private var blockSize: Int
     
     var size: UInt64 {
         return UInt64(source.count)
     }
     
-    init(source: Data, blockSize: Int) {
+    init(source: Data) {
         self.source = source
-        self.blockSize = blockSize
-    }
-    
-    func readNextBlock() throws -> Data? {
-        return try read(upToCount: blockSize)
     }
     
     func read(upToCount count: Int) throws -> Data? {

@@ -16,12 +16,12 @@ class FileLikeHandler<T: MediaDescribing>: FileLikeBlockReader {
         reader.size
     }
     
-    init(media: T, blockSize: Int, mode: BlockIOMode) throws {
+    init(media: T, mode: BlockIOMode) throws {
         switch media.source {
         case let source where source is Data:
-            self.reader = DataBlockReader(source: source as! Data, blockSize: blockSize)
+            self.reader = DataBlockReader(source: source as! Data)
         case let source where media.source is URL:
-            self.reader = try DiskBlockReader(source: source as! URL, blockSize: blockSize, mode: mode)
+            self.reader = try DiskBlockReader(source: source as! URL, mode: mode)
         default:
             fatalError()
         }
@@ -31,11 +31,6 @@ class FileLikeHandler<T: MediaDescribing>: FileLikeBlockReader {
     func read(upToCount: Int) throws -> Data? {
         try reader.read(upToCount: upToCount)
     }
-    
-    func readNextBlock() throws -> Data? {
-        try reader.readNextBlock()
-    }
-    
     func closeReader() throws {
         try reader.closeReader()
     }

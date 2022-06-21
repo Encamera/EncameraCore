@@ -224,9 +224,17 @@
 			path = IO;
 			sourceTree = "<group>";
 		};
+		1935322E286112F300964A01 /* SecretFileHandlers */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = SecretFileHandlers;
+			sourceTree = "<group>";
+		};
 		195719E9274B8FB100E93658 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				1935322E286112F300964A01 /* SecretFileHandlers */,
 				19FD5D662835F12E008D75AA /* KeyManager.swift */,
 				195719EA274B8FBF00E93658 /* TempFilesManager.swift */,
 				196AFE82274F858300C809ED /* DiskFileAccess.swift */,

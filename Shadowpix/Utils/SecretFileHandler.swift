@@ -13,8 +13,6 @@ import Combine
 enum SecretFilesError: Error {
     case keyError
     case encryptError
-//    case decryptError(wrapped: Error)
-
     case decryptError
     case sourceFileAccessError
     case destinationFileAccessError
@@ -23,7 +21,8 @@ enum SecretFilesError: Error {
     case fileTypeError
 }
 
-protocol SecretFileHandler {
+
+protocol SecretFileHandling {
     
     associatedtype SourceMediaType: MediaDescribing
     
@@ -31,9 +30,12 @@ protocol SecretFileHandler {
     var sourceMedia: SourceMediaType { get }
     var keyBytes: Array<UInt8> { get }
     var sodium: Sodium { get }
+    func encrypt() async throws -> EncryptedMedia
+    func decrypt<T: MediaSourcing>() async throws -> CleartextMedia<T>
+
 }
 
-private protocol SecretFileHandlerInt: SecretFileHandler {
+private protocol SecretFileHandlerInt: SecretFileHandling {
     var progressSubject: PassthroughSubject<Double, Never> { get }
 }
 
@@ -51,15 +53,15 @@ extension SecretFileHandlerInt {
     func decryptPublisher() -> AnyPublisher<Data, Error> {
 
         do {
-            let fileHandler = try FileLikeHandler(media: sourceMedia, blockSize: 1024, mode: .reading)
-            let headerBytes = try fileHandler.read(upToCount: 24)
-            var headerBuffer = [UInt8](repeating: 0, count: 24)
-            headerBytes?.copyBytes(to: &headerBuffer, count: 24)
+            let fileHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)
+            let headerBytesCount = 24
+            let headerBytes = try fileHandler.read(upToCount: headerBytesCount)
+            var headerBuffer = [UInt8](repeating: 0, count: headerBytesCount)
+            headerBytes?.copyBytes(to: &headerBuffer, count: headerBytesCount)
             
             let blockSizeInfo = try fileHandler.read(upToCount: 8)
             let blockSize: UInt32 = blockSizeInfo!.withUnsafeBytes({ $0.load(as: UInt32.self)
             })
-            
             
             guard let streamDec = sodium.secretStream.xchacha20poly1305.initPull(secretKey: keyBytes, header: headerBuffer) else {
                 print("Could not create stream with key")
@@ -80,43 +82,24 @@ extension SecretFileHandlerInt {
     }
 }
 
-class SecretInMemoryFileHander<T: MediaDescribing>: SecretFileHandlerInt {
-    var sourceMedia: T
+//class SecretInMemoryFileHander<T: MediaDescribing>: SecretFileHandlerInt {
+//
+//    var sourceMedia: T
+//
+//    var keyBytes: Array<UInt8> = []
+//
+//    var cancellables = Set<AnyCancellable>()
+//    fileprivate var progressSubject = PassthroughSubject<Double, Never>()
+//
+//    init(sourceMedia: T, keyBytes: Array<UInt8>) {
+//        self.sourceMedia = sourceMedia
+//        self.keyBytes = keyBytes
+//    }
+//
+//
+//}
 
-    var keyBytes: Array<UInt8> = []
-
-    var cancellables = Set<AnyCancellable>()
-    fileprivate var progressSubject = PassthroughSubject<Double, Never>()
-    
-    init(sourceMedia: T, keyBytes: Array<UInt8>) {
-        self.sourceMedia = sourceMedia
-        self.keyBytes = keyBytes
-    }
-
-    func decryptInMemory() async throws -> CleartextMedia<Data>  {
-
-        return try await withCheckedThrowingContinuation { continuation in
-            
-            self.decryptPublisher().reduce(Data()) { accum, next in
-                accum + next
-            }.sink { complete in
-                switch complete {
-                    
-                case .finished:
-                    break
-                case .failure(_):
-                    continuation.resume(throwing: SecretFilesError.decryptError)
-                }
-                
-            } receiveValue: { [self] data in
-                let image = CleartextMedia(source: data, mediaType: self.sourceMedia.mediaType, id: self.sourceMedia.id)
-                continuation.resume(returning: image)
-            }.store(in: &self.cancellables)
-        }
-    }
-}
-
-class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
+class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     
 
     let sourceMedia: T
@@ -132,10 +115,22 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     
     var cancellables = Set<AnyCancellable>()
 
-    private let defaultBlockSize: Int = 1024
+    private let defaultBlockSize: Int = 20480
+        
+    func decrypt<T>() async throws -> CleartextMedia<T> where T : MediaSourcing {
+        switch T.self {
+        case is URL.Type:
+            return try await decryptFile() as! CleartextMedia<T>
+        case is Data.Type:
+            return try await decryptInMemory() as! CleartextMedia<T>
+        default:
+            fatalError()
+        }
+    }
     
     
-    func encryptFile() async throws -> EncryptedMedia {
+    
+    func encrypt() async throws -> EncryptedMedia {
                 
         guard let streamEnc = sodium.secretStream.xchacha20poly1305.initPush(secretKey: keyBytes) else {
             print("Could not create stream with key")
@@ -145,8 +140,8 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             throw SecretFilesError.sourceFileAccessError
         }
         do {
-            let destinationHandler = try FileLikeHandler(media: destinationMedia, blockSize: 1024, mode: .writing)
-            let sourceHandler = try FileLikeHandler(media: sourceMedia, blockSize: 1024, mode: .reading)
+            let destinationHandler = try FileLikeHandler(media: destinationMedia, mode: .writing)
+            let sourceHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)
 
             try destinationHandler.prepareIfDoesNotExist()
             let header = streamEnc.header()
@@ -162,7 +157,7 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             }
             return try await withCheckedThrowingContinuation { continuation in
                 
-                ChunkedFileProcessingPublisher(sourceFileHandle: sourceHandler)
+                ChunkedFileProcessingPublisher(sourceFileHandle: sourceHandler, blockSize: defaultBlockSize)
                     .map({ (bytes, progress, isFinal)  -> Data in
                         let message = streamEnc.push(message: bytes, tag: isFinal ? .FINAL : .MESSAGE)!
                         writeBlockSizeOperation?(message)
@@ -192,13 +187,37 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     }
     
    
+}
+
+private extension SecretFileHandler {
     
+    private func decryptInMemory() async throws -> CleartextMedia<Data>  {
+
+        return try await withCheckedThrowingContinuation { continuation in
+            
+            self.decryptPublisher().reduce(Data()) { accum, next in
+                accum + next
+            }.sink { complete in
+                switch complete {
+                    
+                case .finished:
+                    break
+                case .failure(_):
+                    continuation.resume(throwing: SecretFilesError.decryptError)
+                }
+                
+            } receiveValue: { [self] data in
+                let image = CleartextMedia(source: data, mediaType: self.sourceMedia.mediaType, id: self.sourceMedia.id)
+                continuation.resume(returning: image)
+            }.store(in: &self.cancellables)
+        }
+    }
     
-    func decryptFile() async throws -> CleartextMedia<URL> {
+    private func decryptFile() async throws -> CleartextMedia<URL> {
         
         do {
             let destinationMedia = CleartextMedia(source: self.destinationURL)
-            let destinationHandler = try FileLikeHandler(media: destinationMedia, blockSize: 1024, mode: .writing)
+            let destinationHandler = try FileLikeHandler(media: destinationMedia, mode: .writing)
             try destinationHandler.prepareIfDoesNotExist()
             
 
@@ -226,4 +245,6 @@ class SecretDiskFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             throw SecretFilesError.destinationFileAccessError
         }
     }
+
 }
+

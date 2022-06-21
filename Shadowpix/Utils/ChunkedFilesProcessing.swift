@@ -9,11 +9,6 @@ import Foundation
 import Combine
 import SwiftUI
 
-enum Constants {
-    static let defaultBlockSize: Int = 1024
-}
-
-
 class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Subscription where S.Input == ([UInt8], Double, Bool), S.Failure == Error {
     
  
@@ -38,7 +33,10 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
         }
             
         do {
-            var data = try sourceFileHandle.read(upToCount: blockSize)!
+            guard var data = try sourceFileHandle.read(upToCount: blockSize) else {
+                subscriber?.receive(completion: .failure(ChunkedFilesError.sourceFileAccessError))
+                return
+            }
             var byteArray = [UInt8](repeating: 0, count: data.count)
             
             data.copyBytes(to: &byteArray, count: data.count)
@@ -58,9 +56,7 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
                 data.copyBytes(to: &byteArray, count: data.count)
             }
             try sourceFileHandle.closeReader()
-            subscriber?.receive(completion: .finished)
-            print("File reading complete")
-            
+            subscriber?.receive(completion: .finished)            
         } catch {
             subscriber?.receive(completion: .failure(error))
         }
@@ -79,7 +75,7 @@ struct ChunkedFileProcessingPublisher<T: MediaDescribing>: Publisher {
     let blockSize: Int
         
     init(sourceFileHandle: FileLikeHandler<T>,
-         blockSize: Int = Constants.defaultBlockSize) {
+         blockSize: Int) {
         self.sourceFileHandle = sourceFileHandle
         self.blockSize = blockSize
     }
