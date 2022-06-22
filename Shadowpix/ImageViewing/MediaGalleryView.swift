@@ -32,16 +32,9 @@ struct MediaGalleryView<F: FileAccess>: View {
     var body: some View {
         NavigationView {
             VStack {
-                Picker("Media Type", selection: $selectedMediaType) {
-                    ForEach(MediaType.displayCases, id: \.self) { type in
-                        Text(type.title).tag(type)
-                    }
-                }
-                .pickerStyle(.segmented)
                 GalleryView(viewModel: .init(
                     fileAccess: viewModel.fileAccess,
-                    keyManager: viewModel.keyManager,
-                    mediaType: $selectedMediaType
+                    keyManager: viewModel.keyManager
                 ))
             }.navigationBarHidden(true)
         }

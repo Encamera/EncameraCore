@@ -15,9 +15,6 @@ enum DemoError: Error {
 
 class DemoFileEnumerator: FileAccess {
     
-    
-    
-    
     var media: [EncryptedMedia]
     
     
@@ -25,8 +22,8 @@ class DemoFileEnumerator: FileAccess {
         []
     }
     
-    func saveThumbnail(media: CleartextMedia<Data>) async throws -> EncryptedMedia {
-        EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
+    func saveThumbnail<T>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+        fatalError()
     }
     
     func loadMediaToURL<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
@@ -80,7 +77,7 @@ class DemoFileEnumerator: FileAccess {
         self.init(key: ImageKey(name: "", keyBytes: []))
     }
     
-    func enumerateMedia<T>(for: MediaType) async -> [T] where T : MediaDescribing, T.MediaSource == URL {
+    func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
          
         let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
@@ -99,6 +96,8 @@ class DemoFileEnumerator: FileAccess {
 }
 
 class DemoDirectoryModel: DirectoryModel {
+    var keyName: KeyName = "testSuite"
+    
     var baseURL: URL
     
     var thumbnailDirectory: URL
@@ -114,11 +113,25 @@ class DemoDirectoryModel: DirectoryModel {
         self.init(keyName: "")
     }
     
-    let subdirectory = ""
-    let keyName = ""
     
-    private var tempFileManager = TempFilesManager()
-    
+    func deleteAllFiles() throws {
+       try  [baseURL, thumbnailDirectory].forEach { url in
+            guard let enumerator = FileManager.default.enumerator(atPath: url.path) else {
+                return
+            }
+            try enumerator.compactMap { item in
+                guard let itemUrl = item as? URL else {
+                    return nil
+                }
+                return itemUrl
+            }
+            .forEach { (file: URL) in
+                try FileManager.default.removeItem(at: file)
+                print("Deleted file at \(file)")
+            }
+        }
+    }
+        
 }
 
 class DemoKeyManager: KeyManager {

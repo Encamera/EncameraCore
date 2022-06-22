@@ -103,7 +103,7 @@ class KeychainKeyManager: ObservableObject, KeyManager {
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
-        try clearStoredKeys()
+        try? clearStoredKeys()
         let bytes = Sodium().secretStream.xchacha20poly1305.key()
         let key = ImageKey(name: name, keyBytes: bytes)
         let data = try JSONEncoder().encode(key)

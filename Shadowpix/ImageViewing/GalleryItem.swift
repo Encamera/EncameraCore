@@ -44,6 +44,6 @@ struct GalleryItem_Previews: PreviewProvider {
 
     static var previews: some View {
 //        GalleryItem(fileAccess: fileAccess, keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), media: fileAccess.media.randomElement()!)
-        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), mediaType: .constant(.photo)))
+        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher())))
     }
 }

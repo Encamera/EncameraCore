@@ -81,19 +81,6 @@ enum MediaType: Int, CaseIterable {
         }
     }
     
-    var path: String {
-        switch self {
-        case .video:
-            return "video"
-        case .photo:
-            return "photo"
-        case .unknown:
-            fatalError()
-        case .thumbnail:
-            return "thumb"
-        }
-    }
-    
     var fileDescription: String {
         switch self {
             

@@ -24,38 +24,33 @@ extension DirectoryModel {
             try FileManager.default.createDirectory(atPath: thumbnailDirectory.path, withIntermediateDirectories: true)
         }
 
-        do {
-            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true, attributes: nil)
-        } catch {
-            print("could not create directory \(error.localizedDescription)")
+        if FileManager.default.fileExists(atPath: baseURL.path) == false {
+            
+            do {
+                try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true, attributes: nil)
+            } catch {
+                print("could not create directory \(error.localizedDescription)")
+            }
+            
         }
 
-    }
-    
-    func pathContainingMediaOf(type: MediaType) -> URL {
-        return baseURL.appendingPathComponent(type.path)
     }
     
     func driveURLForNewMedia<T: MediaSourcing>(_ media: CleartextMedia<T>) -> URL {
         let filename = "\(media.id).\(media.mediaType.fileExtension).shdwpic"
-        let mediaPath = baseURL.appendingPathComponent(media.mediaType.path)
-        do {
-            try FileManager.default.createDirectory(at: mediaPath, withIntermediateDirectories: true, attributes: nil)
-        } catch {
-            print("could not create directory \(error.localizedDescription)")
-        }
+        
 
-        return mediaPath.appendingPathComponent(filename)
+        return baseURL.appendingPathComponent(filename)
     }
     
-    func thumbnailFor<T: MediaDescribing>(media: T) throws -> EncryptedMedia {
-        let thumbnailURL = try thumbnailURLForMedia(media)
+    func thumbnailFor<T: MediaDescribing>(media: T) -> EncryptedMedia {
+        let thumbnailURL = thumbnailURLForMedia(media)
         let media = EncryptedMedia(source: thumbnailURL, mediaType: .thumbnail, id: media.id)
         return media
     }
     
-    func thumbnailURLForMedia<T: MediaDescribing>(_ media: T) throws -> URL {
-        let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(MediaType.thumbnail.path)")
+    func thumbnailURLForMedia<T: MediaDescribing>(_ media: T) -> URL {
+        let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(media.mediaType.fileExtension).\(MediaType.thumbnail.fileExtension)")
         return thumbnailPath
     }
 }
@@ -63,7 +58,7 @@ extension DirectoryModel {
 protocol FileEnumerator {
         
     init(key: ImageKey)
-    func enumerateMedia<T: MediaDescribing>(for type: MediaType) async -> [T] where T.MediaSource == URL
+    func enumerateMedia<T: MediaDescribing>() async -> [T] where T.MediaSource == URL
 }
 
 protocol FileReader {
@@ -77,7 +72,7 @@ protocol FileReader {
 protocol FileWriter {
         
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia
-    @discardableResult func saveThumbnail(media: CleartextMedia<Data>) async throws -> EncryptedMedia
+    @discardableResult func saveThumbnail<T: MediaDescribing>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data>
 }
 
 protocol FileAccess: FileEnumerator, FileReader, FileWriter {

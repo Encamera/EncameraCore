@@ -568,7 +568,6 @@ class CameraService {
             
             photoSettings.isHighResolutionPhotoEnabled = true
             
-            photoSettings.photoQualityPrioritization = .quality
             guard let fileWriter = self.fileWriter else {
                 print("No file writer found")
                 return

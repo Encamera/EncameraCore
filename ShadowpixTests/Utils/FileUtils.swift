@@ -1,0 +1,45 @@
+//
+//  FileUtils.swift
+//  ShadowpixTests
+//
+//  Created by Alexander Freas on 22.06.22.
+//
+
+import Foundation
+@testable import Shadowpix
+
+class FileUtils {
+    static func createNewMovieFile() throws -> CleartextMedia<URL> {
+        let sourceUrl = Bundle(for: self).url(forResource: "test", withExtension: "mov")!
+        
+        let tempURL = TempFilesManager.shared.createTempURL(for: .video, id: NSUUID().uuidString)
+        try! FileManager.default.copyItem(at: sourceUrl, to: tempURL)
+        let sourceMedia = CleartextMedia(source: tempURL)
+        
+        return sourceMedia
+    }
+    
+    static func createNewImageMedia() throws -> CleartextMedia<URL> {
+        let sourceUrl = Bundle(for: self).url(forResource: "image", withExtension: "jpg")!
+        
+        
+        let tempURL = TempFilesManager.shared.createTempURL(for: .photo, id: NSUUID().uuidString)
+        try! FileManager.default.copyItem(at: sourceUrl, to: tempURL)
+        let sourceMedia = CleartextMedia(source: tempURL)
+        
+        return sourceMedia
+        
+    }
+    
+    static func createNewDataImageMedia(id: String? = nil) throws -> CleartextMedia<Data> {
+        let sourceUrl = Bundle(for: self).url(forResource: "image", withExtension: "jpg")!
+        let sourceData = try Data(contentsOf: sourceUrl)
+        if let id = id {
+            let sourceMedia = CleartextMedia(source: sourceData, mediaType: .photo, id: id)
+            return sourceMedia
+        }
+        let sourceMedia = CleartextMedia(source: sourceData)
+        return sourceMedia
+    }
+    
+}

@@ -48,9 +48,9 @@ actor DiskFileAccess<D: DirectoryModel>: FileEnumerator {
         try! self.directoryModel.initializeDirectories()
     }
     
-    func enumerateMedia<T>(for type: MediaType) async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not truly async, should be though
+    func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not truly async, should be though
         
-        let driveUrl = directoryModel.pathContainingMediaOf(type: type)
+        let driveUrl = directoryModel.baseURL
         _ = driveUrl.startAccessingSecurityScopedResource()
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
         
@@ -183,8 +183,7 @@ extension DiskFileAccess: FileReader {
         }
 
         
-        let cleartextThumb = CleartextMedia(source: thumbnailData, mediaType: .thumbnail, id: encrypted.id)
-        try await self.saveThumbnail(media: cleartextThumb)
+        let cleartextThumb = try await self.saveThumbnail(data: thumbnailData, sourceMedia: media)
         return cleartextThumb
         
     }
@@ -192,17 +191,21 @@ extension DiskFileAccess: FileReader {
 
 extension DiskFileAccess: FileWriter {
     
-    @discardableResult func saveThumbnail(media: CleartextMedia<Data>) async throws -> EncryptedMedia {
-        let destinationURL = try directoryModel.thumbnailURLForMedia(media)
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
-        return try await fileHandler.encrypt()
+    @discardableResult func saveThumbnail<T: MediaDescribing>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data> {
+        let destinationURL = try directoryModel.thumbnailURLForMedia(sourceMedia)
+        let cleartextThumb = CleartextMedia(source: data, mediaType: .thumbnail, id: sourceMedia.id)
+
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextThumb, destinationURL: destinationURL)
+        try await fileHandler.encrypt()
+        return cleartextThumb
     }
     
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia {
         let destinationURL = directoryModel.driveURLForNewMedia(media)
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
-        return try await fileHandler.encrypt()
-        
+        let encrypted = try await fileHandler.encrypt()
+        try media.delete()
+        return encrypted
     }
 }
 

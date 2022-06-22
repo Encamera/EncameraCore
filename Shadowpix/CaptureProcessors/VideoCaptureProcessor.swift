@@ -29,11 +29,8 @@ extension VideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
         
         let cleartextVideo = CleartextMedia(source: outputFileURL, mediaType: .video, id: videoId)
         Task {
-            let media = try await fileHandler.save(media: cleartextVideo)
-            TempFilesManager.shared.deleteItem(at: outputFileURL) // a bit hacky, the temp file is created in CameraService so should be initiated here
-            
+            try await fileHandler.save(media: cleartextVideo)
             self.completion(self)
-            print("Saved video to \(media.source.absoluteString)")
         }
     }
     

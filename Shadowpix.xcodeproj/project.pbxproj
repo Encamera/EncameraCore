@@ -23,6 +23,8 @@
 		1935322B2860F08800964A01 /* DiskBlockReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1935322A2860F08800964A01 /* DiskBlockReader.swift */; };
 		1935322D2860F25500964A01 /* FileLikeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1935322C2860F25500964A01 /* FileLikeHandler.swift */; };
 		19353233286266CD00964A01 /* KeyList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19353232286266CD00964A01 /* KeyList.swift */; };
+		193532352862F29400964A01 /* FileAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193532342862F29400964A01 /* FileAccessTests.swift */; };
+		193532382862FECB00964A01 /* FileUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193532372862FECB00964A01 /* FileUtils.swift */; };
 		193ECDA4282EE7E2004F143D /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193ECDA3282EE7E2004F143D /* Enums.swift */; };
 		195719E7274B8BE300E93658 /* MovieViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195719E6274B8BE300E93658 /* MovieViewing.swift */; };
 		195719EB274B8FBF00E93658 /* TempFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195719EA274B8FBF00E93658 /* TempFilesManager.swift */; };
@@ -47,6 +49,8 @@
 		19BFEEB92860561000CA2B74 /* dog.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 19BFEEB62860519400CA2B74 /* dog.jpg */; };
 		19DC647427441D10004CCE1B /* ButtonViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DC647327441D10004CCE1B /* ButtonViewModifier.swift */; };
 		19DCCD572741AF6700DB487B /* KeyGeneration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DCCD562741AF6700DB487B /* KeyGeneration.swift */; };
+		19F768D228636FDD008F4BD3 /* DirectoryModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F768D128636FDD008F4BD3 /* DirectoryModelTests.swift */; };
+		19F768D428637607008F4BD3 /* TempFilesManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F768D328637607008F4BD3 /* TempFilesManagerTests.swift */; };
 		19FD5D5A2835D29B008D75AA /* ChunkedFilesProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FD5D592835D29B008D75AA /* ChunkedFilesProcessing.swift */; };
 		19FD5D5C2835D91F008D75AA /* CleartextMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FD5D5B2835D91F008D75AA /* CleartextMedia.swift */; };
 		19FD5D5E2835D927008D75AA /* EncryptedMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FD5D5D2835D927008D75AA /* EncryptedMedia.swift */; };
@@ -94,6 +98,8 @@
 		1935322A2860F08800964A01 /* DiskBlockReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskBlockReader.swift; sourceTree = "<group>"; };
 		1935322C2860F25500964A01 /* FileLikeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileLikeHandler.swift; sourceTree = "<group>"; };
 		19353232286266CD00964A01 /* KeyList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyList.swift; sourceTree = "<group>"; };
+		193532342862F29400964A01 /* FileAccessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileAccessTests.swift; sourceTree = "<group>"; };
+		193532372862FECB00964A01 /* FileUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileUtils.swift; sourceTree = "<group>"; };
 		193ECDA3282EE7E2004F143D /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		195719E6274B8BE300E93658 /* MovieViewing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieViewing.swift; sourceTree = "<group>"; };
 		195719EA274B8FBF00E93658 /* TempFilesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempFilesManager.swift; sourceTree = "<group>"; };
@@ -117,6 +123,8 @@
 		19DC647327441D10004CCE1B /* ButtonViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonViewModifier.swift; sourceTree = "<group>"; };
 		19DCCD562741AF6700DB487B /* KeyGeneration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyGeneration.swift; sourceTree = "<group>"; };
 		19DCCD582741C2E200DB487B /* ChaChaPolyHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChaChaPolyHelperTests.swift; sourceTree = "<group>"; };
+		19F768D128636FDD008F4BD3 /* DirectoryModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryModelTests.swift; sourceTree = "<group>"; };
+		19F768D328637607008F4BD3 /* TempFilesManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempFilesManagerTests.swift; sourceTree = "<group>"; };
 		19FD5D592835D29B008D75AA /* ChunkedFilesProcessing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChunkedFilesProcessing.swift; sourceTree = "<group>"; };
 		19FD5D5B2835D91F008D75AA /* CleartextMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleartextMedia.swift; sourceTree = "<group>"; };
 		19FD5D5D2835D927008D75AA /* EncryptedMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptedMedia.swift; sourceTree = "<group>"; };
@@ -241,6 +249,14 @@
 			path = KeyOperationsList;
 			sourceTree = "<group>";
 		};
+		193532362862FEC100964A01 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				193532372862FECB00964A01 /* FileUtils.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
 		195719E9274B8FB100E93658 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
@@ -354,12 +370,16 @@
 		A9FE17952539494700D547C7 /* ShadowpixTests */ = {
 			isa = PBXGroup;
 			children = (
+				193532362862FEC100964A01 /* Utils */,
 				1911319C281F9FA900542281 /* TestData */,
 				19DCCD582741C2E200DB487B /* ChaChaPolyHelperTests.swift */,
 				A9FE17962539494700D547C7 /* ShadowpixTests.swift */,
 				A9FE17982539494700D547C7 /* Info.plist */,
 				1961BCC3281F9DFA00D7BE92 /* FileOperationsTests.swift */,
+				19F768D128636FDD008F4BD3 /* DirectoryModelTests.swift */,
 				193237222849EEE80074CE8A /* MediaTypeTests.swift */,
+				193532342862F29400964A01 /* FileAccessTests.swift */,
+				19F768D328637607008F4BD3 /* TempFilesManagerTests.swift */,
 			);
 			path = ShadowpixTests;
 			sourceTree = "<group>";
@@ -529,8 +549,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				1961BCC4281F9DFA00D7BE92 /* FileOperationsTests.swift in Sources */,
+				193532352862F29400964A01 /* FileAccessTests.swift in Sources */,
 				193237232849EEE80074CE8A /* MediaTypeTests.swift in Sources */,
+				19F768D228636FDD008F4BD3 /* DirectoryModelTests.swift in Sources */,
 				A9FE17972539494700D547C7 /* ShadowpixTests.swift in Sources */,
+				19F768D428637607008F4BD3 /* TempFilesManagerTests.swift in Sources */,
+				193532382862FECB00964A01 /* FileUtils.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

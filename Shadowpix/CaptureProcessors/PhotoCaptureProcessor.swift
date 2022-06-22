@@ -97,14 +97,9 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
     
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingLivePhotoToMovieFileAt outputFileURL: URL, duration: CMTime, photoDisplayTime: CMTime, resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
         
-        guard let data = try? Data(contentsOf: outputFileURL) else {
-            fatalError("Could not get live photo data from url")
-        }
-        let media = CleartextMedia(source: data, mediaType: .video, id: photoId)
+        let media = CleartextMedia(source: outputFileURL, mediaType: .video, id: photoId)
         Task {
             _ = try await fileWriter.save(media: media)
-                
-            TempFilesManager.shared.deleteItem(at: outputFileURL)
             self.completionHandler(self)
         }
 
