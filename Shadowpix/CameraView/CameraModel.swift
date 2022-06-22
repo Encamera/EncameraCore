@@ -68,8 +68,8 @@ final class CameraModel: ObservableObject {
             self?.willCapturePhoto = val
         }
         .store(in: &self.cancellables)
-        self.$selectedCameraMode.sink { [weak self] newMode in
-            self?.service.mode = newMode
+        self.$selectedCameraMode.dropFirst().sink { [weak self] newMode in
+            self?.service.cameraMode = newMode
         }
         .store(in: &self.cancellables)
         service.$isRecordingVideo.sink { [weak self] capturing in

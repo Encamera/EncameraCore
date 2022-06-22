@@ -74,7 +74,7 @@ class CameraService {
     @Published var isCameraButtonDisabled = true // should be removed and subscribed to on cameraview
     @Published var isCameraUnavailable = true
     @Published var isRecordingVideo = false
-    @Published var mode: CameraMode = .photo
+    @Published var cameraMode: CameraMode = .photo
     @Published var scannedKey: ImageKey?
 
 //    MARK: Alert properties
@@ -156,23 +156,23 @@ class CameraService {
     //  MARK: Session Management
     
     private func configureVolumeButtons() {
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setActive(true)
-        } catch {
-            fatalError("Could not configure audio session \(error.localizedDescription)")
-        }
-
-        volumeObservation = audioSession.observe(\.outputVolume) { [weak self] _, _ in
-            DispatchQueue.main.async {
-                self?.capturePhoto()
-            }
-        }
-        DispatchQueue.main.async {
-            let volumeView = MPVolumeView(frame: .zero)
-            volumeView.layer.opacity = 0.0
-            UIApplication.shared.keyWindow?.addSubview(volumeView)
-        }
+//        let audioSession = AVAudioSession.sharedInstance()
+//        do {
+//            try audioSession.setActive(true)
+//        } catch {
+//            fatalError("Could not configure audio session \(error.localizedDescription)")
+//        }
+//
+//        volumeObservation = audioSession.observe(\.outputVolume) { [weak self] _, _ in
+//            DispatchQueue.main.async {
+//                self?.capturePhoto()
+//            }
+//        }
+//        DispatchQueue.main.async {
+//            let volumeView = MPVolumeView(frame: .zero)
+//            volumeView.layer.opacity = 0.0
+//            UIApplication.shared.keyWindow?.addSubview(volumeView)
+//        }
     }
     
     /// Add photo output to session
@@ -283,8 +283,8 @@ class CameraService {
             setupResult = .configurationFailed
         }
         
-        $mode.dropFirst().receive(on: sessionQueue).sink { [weak self] newMode in
-            print(newMode)
+        $cameraMode.dropFirst().receive(on: sessionQueue).sink { [weak self] newMode in
+            print("new mode", newMode)
             self?.configureForMode(targetMode: newMode)
         }.store(in: &cancellables)
 
@@ -422,7 +422,7 @@ class CameraService {
             }
             switch self.setupResult {
             case .success:
-                self.configureForMode(targetMode: self.mode)
+                self.configureForMode(targetMode: self.cameraMode)
                 self.session.startRunning()
                 guard self.session.isRunning else {
                     print("Session is not running")

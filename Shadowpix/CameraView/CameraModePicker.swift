@@ -20,25 +20,12 @@ enum CameraModeSelection: Int, CaseIterable {
         }
     }
     
-    var systemImageName: String {
+    var title: String {
         switch self {
-        case .video:
-            return "video.circle"
         case .photo:
-            return "camera.circle"
-        }
-    }
-    
-    var activeImageName: String {
-        return self.systemImageName + ".fill"
-    }
-    
-    var activeBackgroundColor: Color {
-        switch self {
+            return "PHOTO"
         case .video:
-            return .red
-        case .photo:
-            return .red
+            return "VIDEO"
         }
     }
 }
@@ -66,13 +53,10 @@ struct CameraModePicker: View {
                             pressedAction(item.cameraMode)
                         }
                     ) {
-                        let itemActive = stateModel.isModeActive && item.rawValue == stateModel.activeIndex
-                        let imageName = itemActive ? item.activeImageName : item.systemImageName
-                        let foreground = itemActive ? Color.red : Color.white
-                        Image(systemName: imageName)
-                            .resizable()
+                        let itemActive = item.rawValue == stateModel.activeIndex
+                        let foreground = itemActive ? Color.yellow : Color.white
+                        Text(item.title)
                             .foregroundColor(foreground)
-                            .aspectRatio(contentMode: .fit)
                         
                     }
                     .foregroundColor(Color.white)
@@ -111,7 +95,7 @@ public class CameraModeStateModel: ObservableObject {
     }
     var snapTolerance: CGFloat = 50
     var heightShrink: CGFloat = 0.70
-    var cardHeight: CGFloat = 100
+    var cardHeight: CGFloat = 40
 }
 
 struct Carousel<Items: View>: View {

@@ -22,25 +22,30 @@ struct CameraView: View {
         Button(action: {
             cameraModel.captureButtonPressed()
         }, label: {
-            Circle()
-                .foregroundColor(.white)
-                .frame(width: 80, height: 80, alignment: .center)
-                .overlay(
-                    Circle()
-                        .stroke(Color.black.opacity(0.8), lineWidth: 2)
-                        .frame(width: 65, height: 65, alignment: .center)
-                )
+            if cameraModel.isRecordingVideo {
+                Circle()
+                    .foregroundColor(.red)
+                    .frame(width: 80, height: 80, alignment: .center)
+            } else {
+                Circle()
+                    .foregroundColor(.white)
+                    .frame(width: 80, height: 80, alignment: .center)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.black.opacity(0.8), lineWidth: 2)
+                            .frame(width: 65, height: 65, alignment: .center)
+                    )
+            }
         })
     }
     
     private func captureAction() {
         cameraModel.captureButtonPressed()
     }
-    
+        
     private var capturedPhotoThumbnail: some View {
         Group {
             Image(systemName: "photo.on.rectangle.angled")
-                
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -59,7 +64,7 @@ struct CameraView: View {
         }, label: {
             Circle()
                 .foregroundColor(Color.gray.opacity(0.2))
-                .frame(width: 45, height: 45, alignment: .center)
+                .frame(width: 60, height: 60, alignment: .center)
                 .overlay(
                     Image(systemName: "camera.rotate.fill")
                         .foregroundColor(.white))
@@ -67,99 +72,103 @@ struct CameraView: View {
     }
     
     private var bottomButtonPanel: some View {
-        HStack {
-            capturedPhotoThumbnail
-            
-            Spacer()
-            
+        VStack {
             CameraModePicker(pressedAction: { mode in
-                captureAction()
             })
-                .onReceive(cameraModeStateModel.$selectedMode) { newValue in
-                    cameraModel.selectedCameraMode = newValue
-                }
-                .onChange(of: cameraModel.isRecordingVideo, perform: { newValue in
-                    cameraModeStateModel.isModeActive = newValue
-                })
-                .environmentObject(cameraModeStateModel)
-
-                .clipped()
-            Spacer()
-            flipCameraButton
+            .onReceive(cameraModeStateModel.$selectedMode) { newValue in
+                cameraModel.selectedCameraMode = newValue
+            }
+            .environmentObject(cameraModeStateModel)
+            HStack {
+                capturedPhotoThumbnail
+                    
+                captureButton
+                    .frame(maxWidth: .infinity)
+                flipCameraButton
+            }
+            .padding(.horizontal, 20)
         }
-        .padding(.horizontal, 20)
-
     }
-        
-    var body: some View {
+    
+    private var cameraPreview: some View {
         GeometryReader { reader in
-            
-            ZStack {
-            
-                VStack {
-                    HStack {
-                        Button {
-                            showingKeySelection = true
-                        } label: {
-                            Image(systemName: "key.fill").frame(width: 44, height: 44)
-                        }.tint(.white)
-                        Text(appState.keyManager.currentKey?.name ?? "No Key")
-                        Spacer()
-                        Button(action: {
-                            cameraModel.switchFlash()
-                        }, label: {
-                            Image(systemName: cameraModel.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
-                                .font(.system(size: 20, weight: .medium, design: .default))
-                        })
-                            .accentColor(cameraModel.isFlashOn ? .yellow : .white)
-                    }.padding()
-                    CameraPreview(session: cameraModel.session)
-                        .gesture(
-                            DragGesture().onChanged({ (val) in
-                                //  Only accept vertical drag
-                                if abs(val.translation.height) > abs(val.translation.width) {
-                                    //  Get the percentage of vertical screen space covered by drag
-                                    let percentage: CGFloat = -(val.translation.height / reader.size.height)
-                                    //  Calculate new zoom factor
-                                    let calc = currentZoomFactor + percentage
-                                    //  Limit zoom factor to a maximum of 5x and a minimum of 1x
-                                    let zoomFactor: CGFloat = min(max(calc, 1), 5)
-                                    //  Store the newly calculated zoom factor
-                                    currentZoomFactor = zoomFactor
-                                    //  Sets the zoom factor to the capture device session
-                                    cameraModel.zoom(with: zoomFactor)
-                                }
-                            })
-                        )
-                        .onAppear {
-                            cameraModel.configure()
+            CameraPreview(session: cameraModel.session)
+                .gesture(
+                    DragGesture().onChanged({ (val) in
+                        //  Only accept vertical drag
+                        if abs(val.translation.height) > abs(val.translation.width) {
+                            //  Get the percentage of vertical screen space covered by drag
+                            let percentage: CGFloat = -(val.translation.height / reader.size.height)
+                            //  Calculate new zoom factor
+                            let calc = currentZoomFactor + percentage
+                            //  Limit zoom factor to a maximum of 5x and a minimum of 1x
+                            let zoomFactor: CGFloat = min(max(calc, 1), 5)
+                            //  Store the newly calculated zoom factor
+                            currentZoomFactor = zoomFactor
+                            //  Sets the zoom factor to the capture device session
+                            cameraModel.zoom(with: zoomFactor)
                         }
-                        .alert(isPresented: $cameraModel.showAlertError, content: {
-                            Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
-                                cameraModel.alertError.primaryAction?()
-                            }))
-                        })
-                        .overlay(
-                            Group {
-                                if cameraModel.willCapturePhoto {
-                                    Color.black
-                                }
-                            }
-                        )
-                        .animation(.easeInOut)
-                    bottomButtonPanel
+                    })
+                )
+                .onAppear {
+                    cameraModel.configure()
                 }
+                .alert(isPresented: $cameraModel.showAlertError, content: {
+                    Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
+                        cameraModel.alertError.primaryAction?()
+                    }))
+                })
+                .overlay(
+                    Group {
+                        if cameraModel.willCapturePhoto {
+                            Color.black
+                        }
+                    }
+                )
+                .animation(.easeInOut)
+        }
+    }
+
+    private var topBar: some View {
+        HStack {
+            Button {
+                showingKeySelection = true
+            } label: {
+                Image(systemName: "key.fill").frame(width: 44, height: 44)
             }
-            if cameraModel.showCameraView == false {
-                Color.black
-            }
+            Text(appState.keyManager.currentKey?.name ?? "No Key")
+            Spacer()
+            Button(action: {
+                cameraModel.switchFlash()
+            }, label: {
+                Image(systemName: cameraModel.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
+                    .font(.system(size: 20, weight: .medium, design: .default))
+            })
+            
+            .accentColor(cameraModel.isFlashOn ? .yellow : .white)
+        }.padding().tint(.white).foregroundColor(.white)
+    }
+    
+    var body: some View {
+        ZStack {
+            VStack {
+                topBar
+                cameraPreview
+                bottomButtonPanel
+            }.background(Color.black)
+        }
+        if cameraModel.showCameraView == false {
+            Color.black
         }
     }
 }
 
-//struct ContentView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: CameraService()), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
-//        
-//    }
-//}
+#if DEBUG
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: CameraService(keyManager: DemoKeyManager())), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
+            .environmentObject(ShadowPixState())
+        
+    }
+}
+#endif
