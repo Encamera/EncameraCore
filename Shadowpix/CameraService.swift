@@ -186,12 +186,9 @@ class CameraService {
         
         try swapOutput(with: photoOutput)
         session.sessionPreset = .photo
-
-        if session.isRunning == false {
-            photoOutput.maxPhotoQualityPrioritization = .quality
-            photoOutput.isLivePhotoCaptureEnabled = true
-            photoOutput.isHighResolutionCaptureEnabled = true
-        }
+        photoOutput.maxPhotoQualityPrioritization = .quality
+        photoOutput.isLivePhotoCaptureEnabled = true
+        photoOutput.isHighResolutionCaptureEnabled = true
         currentCaptureOutput = photoOutput
         
     }
@@ -425,8 +422,6 @@ class CameraService {
             }
             switch self.setupResult {
             case .success:
-                
-                
                 self.configureForMode(targetMode: self.mode)
                 self.session.startRunning()
                 guard self.session.isRunning else {
@@ -437,8 +432,6 @@ class CameraService {
                     self.isCameraButtonDisabled = false
                     self.isCameraUnavailable = false
                 }
-
-                
             case .configurationFailed, .notAuthorized:
                 print("Application not authorized to use camera")
                 

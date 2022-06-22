@@ -129,7 +129,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     
     
     
-    func encrypt() async throws -> EncryptedMedia {
+    @discardableResult func encrypt() async throws -> EncryptedMedia {
                 
         guard let streamEnc = sodium.secretStream.xchacha20poly1305.initPush(secretKey: keyBytes) else {
             print("Could not create stream with key")

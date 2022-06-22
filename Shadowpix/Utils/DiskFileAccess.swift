@@ -155,12 +155,12 @@ extension DiskFileAccess: FileReader {
         }
     }
 
-    private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> {
-        guard let encrypted = media as? EncryptedMedia else {
-            throw SecretFilesError.createThumbnailError
-        }
+    @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> {
+        
         
         var thumbnailSourceData: Data
+        if let encrypted = media as? EncryptedMedia {
+            
             switch encrypted.mediaType {
                 
             case .photo:
@@ -177,6 +177,29 @@ extension DiskFileAccess: FileReader {
             case .thumbnail, .unknown:
                 throw SecretFilesError.fileTypeError
             }
+        } else if let cleartext = media as? CleartextMedia<URL> {
+            switch cleartext.mediaType {
+            case .photo:
+                thumbnailSourceData = try Data(contentsOf: cleartext.source)
+            case .video:
+                guard let thumb = self.generateThumbnailFromVideo(at: cleartext.source),
+                      let data = thumb.pngData() else {
+                    throw SecretFilesError.createVideoThumbnailError
+                }
+                thumbnailSourceData = data
+            case .thumbnail, .unknown:
+                throw SecretFilesError.fileTypeError
+            }
+        } else if let cleartext = media as? CleartextMedia<Data> {
+            switch cleartext.mediaType {
+            case .photo:
+                thumbnailSourceData = cleartext.source
+            case .video, .thumbnail, .unknown:
+                throw SecretFilesError.fileTypeError
+            }
+        } else {
+            fatalError()
+        }
         let resizer = ImageResizer(targetWidth: 50)
         guard let thumbnailData = resizer.resize(data: thumbnailSourceData)?.pngData() else {
             fatalError()
@@ -192,7 +215,7 @@ extension DiskFileAccess: FileReader {
 extension DiskFileAccess: FileWriter {
     
     @discardableResult func saveThumbnail<T: MediaDescribing>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data> {
-        let destinationURL = try directoryModel.thumbnailURLForMedia(sourceMedia)
+        let destinationURL = directoryModel.thumbnailURLForMedia(sourceMedia)
         let cleartextThumb = CleartextMedia(source: data, mediaType: .thumbnail, id: sourceMedia.id)
 
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextThumb, destinationURL: destinationURL)
@@ -204,6 +227,7 @@ extension DiskFileAccess: FileWriter {
         let destinationURL = directoryModel.driveURLForNewMedia(media)
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
         let encrypted = try await fileHandler.encrypt()
+        try await createThumbnail(for: media)
         try media.delete()
         return encrypted
     }
