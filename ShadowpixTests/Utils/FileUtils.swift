@@ -9,10 +9,13 @@ import Foundation
 @testable import Shadowpix
 
 class FileUtils {
+    
+    static var tempFilesManager = TempFilesManager(subdirectory: "test_suite")
+        
     static func createNewMovieFile() throws -> CleartextMedia<URL> {
         let sourceUrl = Bundle(for: self).url(forResource: "test", withExtension: "mov")!
         
-        let tempURL = TempFilesManager.shared.createTempURL(for: .video, id: NSUUID().uuidString)
+        let tempURL = tempFilesManager.createTempURL(for: .video, id: NSUUID().uuidString)
         try! FileManager.default.copyItem(at: sourceUrl, to: tempURL)
         let sourceMedia = CleartextMedia(source: tempURL)
         
@@ -23,7 +26,7 @@ class FileUtils {
         let sourceUrl = Bundle(for: self).url(forResource: "image", withExtension: "jpg")!
         
         
-        let tempURL = TempFilesManager.shared.createTempURL(for: .photo, id: NSUUID().uuidString)
+        let tempURL = tempFilesManager.createTempURL(for: .photo, id: NSUUID().uuidString)
         try! FileManager.default.copyItem(at: sourceUrl, to: tempURL)
         let sourceMedia = CleartextMedia(source: tempURL)
         

@@ -22,7 +22,7 @@ class FileAccessTests: XCTestCase {
         let key = Sodium().secretStream.xchacha20poly1305.key()
         imageKey = ImageKey(name: "testSuite", keyBytes: key)
         fileHandler = DiskFileAccess<DemoDirectoryModel>(key: imageKey)
-
+        try FileUtils.tempFilesManager.cleanup()
     }
     
     
@@ -48,12 +48,11 @@ class FileAccessTests: XCTestCase {
         let encrypted = try await fileHandler.save(media: movieFile)
         
         let thumbURL = directoryModel.thumbnailURLForMedia(encrypted)
-        
-        XCTAssertFalse(FileManager.default.fileExists(atPath: thumbURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: thumbURL.path))
         
         _ = try await fileHandler.loadMediaPreview(for: encrypted)
         
-        XCTAssertTrue(FileManager.default.fileExists(atPath: thumbURL.path))
+        
         
     }
     
@@ -67,9 +66,6 @@ class FileAccessTests: XCTestCase {
         
         let movieThumbURL = directoryModel.thumbnailURLForMedia(encryptedMovie)
         let imageThumbURL = directoryModel.thumbnailURLForMedia(encryptedImage)
-
-        XCTAssertFalse(FileManager.default.fileExists(atPath: movieThumbURL.path))
-        XCTAssertFalse(FileManager.default.fileExists(atPath: imageThumbURL.path))
         
         _ = try await fileHandler.loadMediaPreview(for: encryptedMovie)
         _ = try await fileHandler.loadMediaPreview(for: encryptedImage)

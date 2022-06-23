@@ -33,11 +33,14 @@
 		1961BCC0281B081E00D7BE92 /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 1961BCBF281B081E00D7BE92 /* Sodium */; };
 		1961BCC2281B08CE00D7BE92 /* SecretFileHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1961BCC1281B08CE00D7BE92 /* SecretFileHandler.swift */; };
 		1961BCC4281F9DFA00D7BE92 /* FileOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1961BCC3281F9DFA00D7BE92 /* FileOperationsTests.swift */; };
+		19631A352864404400B95FD3 /* MultipleKeyKeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A342864404400B95FD3 /* MultipleKeyKeychainManager.swift */; };
 		19665C462742542A00DA8578 /* KeyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19665C452742542A00DA8578 /* KeyEntry.swift */; };
 		196AFE81274F83D100C809ED /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE80274F83D100C809ED /* GalleryView.swift */; };
 		196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE82274F858300C809ED /* DiskFileAccess.swift */; };
 		1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1978F9782822486000D16FD4 /* CameraModePicker.swift */; };
 		19874B45285D253A001C2D06 /* AsyncImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19874B44285D253A001C2D06 /* AsyncImage.swift */; };
+		1990154B2863BA3F00520082 /* KeySelectionList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990154A2863BA3F00520082 /* KeySelectionList.swift */; };
+		1990154D2863BA8400520082 /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990154C2863BA8400520082 /* KeychainTests.swift */; };
 		1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF12753E9D300E41BFD /* CameraModel.swift */; };
 		1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF42753EA3F00E41BFD /* MainInterface.swift */; };
 		1994ABF72753EAEF00E41BFD /* MainInterfaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */; };
@@ -106,11 +109,14 @@
 		195BCA74273FC2BC00E7D764 /* Shadowpix.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Shadowpix.entitlements; sourceTree = "<group>"; };
 		1961BCC1281B08CE00D7BE92 /* SecretFileHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretFileHandler.swift; sourceTree = "<group>"; };
 		1961BCC3281F9DFA00D7BE92 /* FileOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperationsTests.swift; sourceTree = "<group>"; };
+		19631A342864404400B95FD3 /* MultipleKeyKeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipleKeyKeychainManager.swift; sourceTree = "<group>"; };
 		19665C452742542A00DA8578 /* KeyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyEntry.swift; sourceTree = "<group>"; };
 		196AFE80274F83D100C809ED /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		196AFE82274F858300C809ED /* DiskFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskFileAccess.swift; sourceTree = "<group>"; };
 		1978F9782822486000D16FD4 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
 		19874B44285D253A001C2D06 /* AsyncImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncImage.swift; sourceTree = "<group>"; };
+		1990154A2863BA3F00520082 /* KeySelectionList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionList.swift; sourceTree = "<group>"; };
+		1990154C2863BA8400520082 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
 		1994ABF12753E9D300E41BFD /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		1994ABF42753EA3F00E41BFD /* MainInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterface.swift; sourceTree = "<group>"; };
 		1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterfaceViewModel.swift; sourceTree = "<group>"; };
@@ -196,6 +202,7 @@
 				19217E25273FD616009E3850 /* KeyPickerView.swift */,
 				19665C452742542A00DA8578 /* KeyEntry.swift */,
 				19DCCD562741AF6700DB487B /* KeyGeneration.swift */,
+				1990154A2863BA3F00520082 /* KeySelectionList.swift */,
 			);
 			path = KeyPicker;
 			sourceTree = "<group>";
@@ -260,6 +267,7 @@
 			children = (
 				1935322E286112F300964A01 /* SecretFileHandlers */,
 				19FD5D662835F12E008D75AA /* KeyManager.swift */,
+				19631A342864404400B95FD3 /* MultipleKeyKeychainManager.swift */,
 				195719EA274B8FBF00E93658 /* TempFilesManager.swift */,
 				196AFE82274F858300C809ED /* DiskFileAccess.swift */,
 				19FD5D642835EED6008D75AA /* FileProtocols.swift */,
@@ -377,6 +385,7 @@
 				193237222849EEE80074CE8A /* MediaTypeTests.swift */,
 				193532342862F29400964A01 /* FileAccessTests.swift */,
 				19F768D328637607008F4BD3 /* TempFilesManagerTests.swift */,
+				1990154C2863BA8400520082 /* KeychainTests.swift */,
 			);
 			path = ShadowpixTests;
 			sourceTree = "<group>";
@@ -506,12 +515,14 @@
 				1961BCC2281B08CE00D7BE92 /* SecretFileHandler.swift in Sources */,
 				19DCCD572741AF6700DB487B /* KeyGeneration.swift in Sources */,
 				19217E2E273FE452009E3850 /* ShadowPixState.swift in Sources */,
+				19631A352864404400B95FD3 /* MultipleKeyKeychainManager.swift in Sources */,
 				19B6D052282B354500DC07F8 /* MediaGalleryView.swift in Sources */,
 				19DC647427441D10004CCE1B /* ButtonViewModifier.swift in Sources */,
 				A9FE17BB25394F1E00D547C7 /* CameraService+Extensions.swift in Sources */,
 				196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */,
 				193532292860F03C00964A01 /* DataBlockReader.swift in Sources */,
 				A9FE17B825394F1E00D547C7 /* ImageResizer.swift in Sources */,
+				1990154B2863BA3F00520082 /* KeySelectionList.swift in Sources */,
 				A9FE17BA25394F1E00D547C7 /* PhotoCaptureProcessor.swift in Sources */,
 				19353233286266CD00964A01 /* KeyList.swift in Sources */,
 				19BFEEB52860503D00CA2B74 /* GalleryItem.swift in Sources */,
@@ -549,6 +560,7 @@
 				193237232849EEE80074CE8A /* MediaTypeTests.swift in Sources */,
 				19F768D228636FDD008F4BD3 /* DirectoryModelTests.swift in Sources */,
 				A9FE17972539494700D547C7 /* ShadowpixTests.swift in Sources */,
+				1990154D2863BA8400520082 /* KeychainTests.swift in Sources */,
 				19F768D428637607008F4BD3 /* TempFilesManagerTests.swift in Sources */,
 				193532382862FECB00964A01 /* FileUtils.swift in Sources */,
 			);
@@ -743,6 +755,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = pe.rry.ShadowpixTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Shadowpix.app/Shadowpix";
@@ -765,6 +778,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = pe.rry.ShadowpixTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Shadowpix.app/Shadowpix";

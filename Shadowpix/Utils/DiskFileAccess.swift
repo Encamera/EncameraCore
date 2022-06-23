@@ -84,10 +84,11 @@ actor DiskFileAccess<D: DirectoryModel>: FileEnumerator {
 extension DiskFileAccess: FileReader {
     
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> where T.MediaSource == URL {
-            
-            let thumbnailPath = try directoryModel.thumbnailURLForMedia(media)
-            let thumb = T(source: thumbnailPath, mediaType: .thumbnail, id: media.id)
-            
+        
+        let thumbnailPath = directoryModel.thumbnailURLForMedia(media)
+        print(thumbnailPath)
+        let thumb = T(source: thumbnailPath, mediaType: .thumbnail, id: media.id)
+        
         do {
             let existingThumb = try await loadMediaInMemory(media: thumb) { _ in }
             return existingThumb

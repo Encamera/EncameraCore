@@ -15,6 +15,7 @@ enum KeyManagerError: Error {
     case notAuthorizedError
     case notFound
     case dataError
+    case keyExists
 }
 
 protocol KeyManager {

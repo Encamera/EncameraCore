@@ -27,10 +27,10 @@ class EncryptedMedia: MediaDescribing, ObservableObject {
     
     required init?(source: URL) {
         self.source = source
-        guard let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first?.lowercased() else {
+        guard let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first else {
             return nil
         }
-        self.id = id
+        self.id = String(id)
         self.mediaType = MediaType.typeFromMedia(source: self)
     }
 }

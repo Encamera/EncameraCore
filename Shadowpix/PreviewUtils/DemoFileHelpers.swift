@@ -135,6 +135,10 @@ class DemoDirectoryModel: DirectoryModel {
 }
 
 class DemoKeyManager: KeyManager {
+    func storedKeys() throws -> [ImageKey] {
+        return []
+    }
+    
     
     convenience init() {
         self.init(isAuthorized: Just(true).eraseToAnyPublisher())

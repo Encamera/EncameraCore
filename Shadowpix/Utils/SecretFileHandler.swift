@@ -76,6 +76,7 @@ extension SecretFileHandlerInt {
                    return Data(message)
             }.eraseToAnyPublisher()
         } catch {
+            print("error decrypting", error)
             return Fail(error: SecretFilesError.decryptError).eraseToAnyPublisher()
         }
     }

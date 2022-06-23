@@ -14,14 +14,14 @@ import Combine
 class FileOperationsTests: XCTestCase {
     
     var cancellables: [AnyCancellable] = []
-    let tempFiles = TempFilesManager()
+    let tempFiles = TempFilesManager(subdirectory: "FileOperationsTests")
     private var key: Array<UInt8>!
 
     private let directoryModel = DemoDirectoryModel()
 
     override func setUp() {
         key = Sodium().secretStream.xchacha20poly1305.key()
-        try? TempFilesManager.shared.cleanup()
+        try! tempFiles.cleanup()
     }
     
     func testEncryptInMemory() async throws {

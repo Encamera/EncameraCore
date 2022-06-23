@@ -151,12 +151,14 @@ struct CameraView: View {
     
     var body: some View {
         ZStack {
+            cameraPreview
+
             VStack {
                 topBar
-                cameraPreview
+                Spacer()
                 bottomButtonPanel
-            }.background(Color.black)
-        }
+            }
+        }.background(Color.black)
         if cameraModel.showCameraView == false {
             Color.black
         }

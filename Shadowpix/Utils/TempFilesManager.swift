@@ -14,8 +14,15 @@ class TempFilesManager {
 
     private var createdTempFiles = Set<URL>()
     private var cancellables = Set<AnyCancellable>()
-    private let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
+    private var tempUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
                               isDirectory: true)
+    
+    init(subdirectory: String) {
+        self.tempUrl = URL(fileURLWithPath: NSTemporaryDirectory(),
+                           isDirectory: true).appendingPathComponent(subdirectory)
+        try! FileManager.default.createDirectory(at: tempUrl, withIntermediateDirectories: true)
+    }
+    
     init() {
         NotificationCenter.default
             .publisher(for: UIApplication.didFinishLaunchingNotification)
