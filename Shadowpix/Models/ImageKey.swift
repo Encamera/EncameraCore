@@ -20,6 +20,7 @@ struct ImageKey: Codable {
     var creationDate: Date
     private static let keyPrefix = "com.shadowpix.key."
 
+    @available(*, deprecated, message: "Use init with creation date")
     init(name: String, keyBytes: Array<UInt8>) {
         self.name = name
         self.keyBytes = keyBytes

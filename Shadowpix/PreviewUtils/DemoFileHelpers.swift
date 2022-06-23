@@ -135,6 +135,18 @@ class DemoDirectoryModel: DirectoryModel {
 }
 
 class DemoKeyManager: KeyManager {
+    func deleteKey(by name: KeyName) throws {
+        
+    }
+    
+    func setActiveKey(_ name: KeyName) throws {
+        
+    }
+    
+    func generateNewKey(name: String) throws -> ImageKey {
+        return try ImageKey(base64String: "")
+    }
+    
     func storedKeys() throws -> [ImageKey] {
         return []
     }

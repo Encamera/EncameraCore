@@ -51,9 +51,6 @@ class FileAccessTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: thumbURL.path))
         
         _ = try await fileHandler.loadMediaPreview(for: encrypted)
-        
-        
-        
     }
     
     func testLivePhotoMovieAndStillAreSaved() async throws {

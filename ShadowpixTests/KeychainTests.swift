@@ -54,5 +54,31 @@ class KeychainTests: XCTestCase {
         XCTAssertEqual(storedKeys.first!.name, "test1_key")
     }
     
+    func testGenerateNewKeySetsCurrentKey() throws {
+        
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
+
+        XCTAssertEqual(keyManager.currentKey, newKey)
+    }
     
+    func testDeleteKeyUnsetsCurrentKey() throws {
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
+
+        try keyManager.deleteKey(by: newKey.name)
+        
+        XCTAssertNil(keyManager.currentKey)
+    }
+    
+    func testGenerateMutipleNewKeysSetsFirstKeyAsCurrentKey() throws {
+        
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
+        try keyManager.generateNewKey(name: "test2_key")
+        XCTAssertEqual(keyManager.currentKey, newKey)
+    }
+    
+    func testGeneratingNewKeyWithExistingNameThrowsError() throws {
+        try keyManager.generateNewKey(name: "test1_key")
+        XCTAssertThrowsError(try keyManager.generateNewKey(name: "test1_key"))
+        
+    }
 }

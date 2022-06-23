@@ -32,31 +32,16 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         self.isAuthorized.sink { newValue in
             self.authorized = newValue
-            try? self.getKey()
+            if self.authorized == true {
+                try? self.getKey()
+            }
         }.store(in: &cancellables)
 
     }
     
     private func getKey() throws {
-        guard authorized == true else {
-            throw KeyManagerError.notAuthorizedError
-        }
-        let query: [String: Any] = [kSecClass as String: kSecClassKey,
-                                    kSecAttrLabel as String: "currentKey",
-                                    kSecMatchLimit as String: kSecMatchLimitOne,
-                                    kSecReturnData as String: true,
-                                    kSecReturnAttributes as String: true]
-        
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status != errSecItemNotFound else { throw KeyManagerError.notFound }
-        guard status == errSecSuccess else { throw KeyManagerError.unhandledError }
-        
-        guard let existingItem = item as? [String : Any],
-            let data = existingItem[kSecValueData as String] as? Data else {
-                throw KeyManagerError.dataError
-        }
-        let keyObject = try JSONDecoder().decode(ImageKey.self, from: data)
+       
+        let keyObject = try getActiveKey()
         
         currentKey = keyObject
 
@@ -79,7 +64,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         currentKey = nil
     }
     
-    func generateNewKey(name: String) throws {
+    @discardableResult func generateNewKey(name: String) throws-> ImageKey {
         
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
@@ -87,14 +72,28 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         let bytes = Sodium().secretStream.xchacha20poly1305.key()
         let key = ImageKey(name: name, keyBytes: bytes, creationDate: Date())
+        var setNewKeyToCurrent: Bool
+        do {
+            let storedKeys = try storedKeys()
+            setNewKeyToCurrent = storedKeys.count == 0
+        } catch {
+            setNewKeyToCurrent = true
+        }
         let query = key.keychainQueryDict
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw KeyManagerError.unhandledError
         }
+        if setNewKeyToCurrent {
+            currentKey = key
+        }
+        return key
     }
     
     func storedKeys() throws -> [ImageKey] {
+        guard authorized == true else {
+            throw KeyManagerError.notAuthorizedError
+        }
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecReturnData as String: true,
@@ -123,18 +122,26 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func deleteKey(by name: KeyName) throws {
-        
+        guard authorized == true else {
+            throw KeyManagerError.notAuthorizedError
+        }
         let key = try getKey(by: name)
         let query = key.keychainQueryDict
         let status = SecItemDelete(query as CFDictionary)
         if status != errSecSuccess {
             throw KeyManagerError.deleteKeychainItemsFailed
         }
-
+        if currentKey.name == key.name {
+            currentKey = nil
+        }
     }
     
     func setActiveKey(_ name: KeyName) throws {
+        guard authorized == true else {
+            throw KeyManagerError.notAuthorizedError
+        }
         UserDefaults.standard.set(name, forKey: "currentKey")
+        currentKey = try getActiveKey()
     }
     
     func getActiveKey() throws -> ImageKey {
@@ -145,6 +152,9 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func getKey(by keyName: KeyName) throws -> ImageKey {
+        guard authorized == true else {
+            throw KeyManagerError.notAuthorizedError
+        }
         let keychainKeyName = ImageKey.keychainNameEntry(keyName: keyName)
         let query: [String: Any] = [kSecClass as String: kSecClassKey,
                                     kSecMatchLimit as String: kSecMatchLimitOne,

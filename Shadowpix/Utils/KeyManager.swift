@@ -26,10 +26,28 @@ protocol KeyManager {
     var currentKey: ImageKey! { get set }
     var keyPublisher: AnyPublisher<ImageKey?, Never> { get }
     func clearStoredKeys() throws
-    func generateNewKey(name: String) throws
+    func storedKeys() throws -> [ImageKey]
+    func deleteKey(by name: KeyName) throws
+    func setActiveKey(_ name: KeyName) throws
+    @discardableResult func generateNewKey(name: String) throws-> ImageKey
 }
 
 class KeychainKeyManager: ObservableObject, KeyManager {
+    func storedKeys() throws -> [ImageKey] {
+        []
+
+    }
+    
+    func deleteKey(by name: KeyName) throws {
+        
+    }
+    
+    func setActiveKey(_ name: KeyName) throws {
+        
+    }
+    
+    
+    
     
     var isAuthorized: AnyPublisher<Bool, Never>
     private var authorized: Bool = false
@@ -99,7 +117,7 @@ class KeychainKeyManager: ObservableObject, KeyManager {
         currentKey = nil
     }
     
-    func generateNewKey(name: String) throws {
+    func generateNewKey(name: String) throws -> ImageKey {
         
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
@@ -118,7 +136,7 @@ class KeychainKeyManager: ObservableObject, KeyManager {
             KeyManagerError.unhandledError
         }
         currentKey = key
-
+        return key
     }
     
 }
