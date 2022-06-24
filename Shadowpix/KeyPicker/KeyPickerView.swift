@@ -20,33 +20,63 @@ private func generateQRCode(from string: String, size: CGSize) -> UIImage {
     }
     let x = size.width / output.extent.size.width
     let y = size.height / output.extent.size.height
-
-     let qrCodeImage = output.transformed(by: CGAffineTransform(scaleX: x, y: y))
-        
-        if let qrCodeCGImage = context.createCGImage(qrCodeImage, from: qrCodeImage.extent) {
-            return UIImage(cgImage: qrCodeCGImage)
-        }
-
+    
+    let qrCodeImage = output.transformed(by: CGAffineTransform(scaleX: x, y: y))
+    
+    if let qrCodeCGImage = context.createCGImage(qrCodeImage, from: qrCodeImage.extent) {
+        return UIImage(cgImage: qrCodeCGImage)
+    }
+    
     return UIImage(systemName: "xmark") ?? UIImage()
+}
+
+class KeyViewerViewModel: ObservableObject {
+    
+    enum KeyViewerError {
+        case couldNotSetKeychain
+    }
+    
+    @Published var keyManager: KeyManager
+    @Published var isShowingAlertForClearKey: Bool = false
+    @Published var keyViewerError: KeyViewerError?
+    var key: ImageKey
+    
+    init(keyManager: KeyManager, key: ImageKey) {
+        self.keyManager = keyManager
+        self.key = key
+    }
+    
+    func setActive() {
+        do {
+            try keyManager.setActiveKey(key.name)
+        } catch {
+            keyViewerError = .couldNotSetKeychain
+        }
+    }
+    
+    func deleteKey() {
+        do {
+            try keyManager.deleteKey(key)
+            isShowingAlertForClearKey = false
+        } catch {
+            print("Error clearing keychain", error)
+        }
+    }
 }
 
 struct KeyPickerView: View {
     
-    @State var isShowingSheetForKeyEntry: Bool = false
-    @State var isShowingSheetForNewKey: Bool = false
     @State var isShowingAlertForClearKey: Bool = false
-    @Binding var isShown: Bool
-    @EnvironmentObject var appState: ShadowPixState
-    
-    
-    
+    @ObservedObject var viewModel: KeyViewerViewModel
+    @Environment(\.dismiss) var dismiss
+
     private struct Constants {
         static var outerPadding = 20.0
     }
     func createQrImage(geo: GeometryProxy) -> some View {
         var imageView: Image
         
-        if let keyString = appState.keyManager.currentKey?.base64String {
+        if let keyString = viewModel.key.base64String {
             let image = generateQRCode(from: keyString, size: geo.size)
             imageView = Image(uiImage: image)
         } else {
@@ -54,9 +84,9 @@ struct KeyPickerView: View {
         }
         
         return AnyView(imageView
-                        .resizable()
-                        .aspectRatio(1.0, contentMode: .fit)
-                        .frame(width: geo.size.width*0.75))
+            .resizable()
+            .aspectRatio(1.0, contentMode: .fit)
+            .frame(width: geo.size.width*0.75))
     }
     var body: some View {
         NavigationView {
@@ -71,77 +101,41 @@ struct KeyPickerView: View {
                     }
                 }
                 HStack {
-                    Text(appState.keyManager.currentKey?.name ?? "no key")
+                    Text(viewModel.key.name)
                         .padding()
                         .font(Font.largeTitle)
                 }
                 List {
-                    if appState.keyManager.currentKey != nil {
-                        Button("Copy Key to Clipboard") {
-                            UIPasteboard.general.string = appState.keyManager.currentKey?.base64String
-                        }
+                    Button("Set Active") {
+                        viewModel.setActive()
+                        dismiss()
                     }
-                    Button("Set key") {
-                        isShowingSheetForKeyEntry = true
+                    Button("Copy Key to Clipboard") {
+                        UIPasteboard.general.string = viewModel.key.base64String
                     }
-                    NavigationLink {
-                        KeyGeneration(isShown: $isShowingSheetForNewKey)
-                            .environmentObject(appState)
-                    } label: {
-                        Text("Generate new key")
-                    }
-
-                    
                     Button {
                         isShowingAlertForClearKey = true
                     } label: {
-                        Text("Clear key")
+                        Text("Delete")
                             .foregroundColor(.red)
                     }
-                }.alert(isPresented: $isShowingAlertForClearKey) {
-                    Alert(title: Text("Clear key"), message: Text("Do you really want to clear the current key in the keychain?"), primaryButton:
-                                .cancel(Text("Cancel")) {
-                        isShowingAlertForClearKey = false
-                    }, secondaryButton: .destructive(Text("Clear")) {
-                        do {
-                            try appState.keyManager.clearStoredKeys()
-                            isShowingAlertForClearKey = false
-                        } catch {
-                            print("Error clearing keychain", error)
-                        }
-                    })}
-            }
-            
-            .toolbar {
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    Button("Close") {
-                        isShown = false
-                    }
                 }
-
-            }
-            
-        }.sheet(isPresented: $isShowingSheetForNewKey) {
-            
-        }.sheet(isPresented: $isShowingSheetForKeyEntry) {
-            isShown = false
-        } content: {
-            KeyEntry(viewModel: KeyEntry.ViewModel(keyManager: appState.keyManager, isShowing: $isShowingSheetForNewKey))
-                .environmentObject(appState)
-        }
-        .foregroundColor(.blue)
-        
+                
+            }.alert(isPresented: $isShowingAlertForClearKey) {
+                Alert(title: Text("Clear key"), message: Text("Do you really want to clear the current key in the keychain?"), primaryButton:
+                        .cancel(Text("Cancel")) {
+                            isShowingAlertForClearKey = false
+                        }, secondaryButton: .destructive(Text("Clear")) {
+                            viewModel.deleteKey()
+                            dismiss()
+                        })}
+        }.foregroundColor(.blue)
     }
 }
 
 struct KeyPickerView_Previews: PreviewProvider {
     static var previews: some View {
-            KeyPickerView(isShowingSheetForNewKey: false, isShown: .constant(true))
-                .environmentObject(ShadowPixState())
-.preferredColorScheme(.dark)
-            KeyPickerView(isShowingSheetForNewKey: false, isShown: .constant(true))
-                .environmentObject(ShadowPixState())
-            .preferredColorScheme(.light)
-
+        KeyPickerView(viewModel: .init(keyManager: DemoKeyManager(), key: ImageKey(name: "whoop", keyBytes: [], creationDate: Date())))
+            .preferredColorScheme(.dark)
     }
 }

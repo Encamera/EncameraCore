@@ -31,6 +31,7 @@ class AuthManager: ObservableObject {
         
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Scan face ID to keep your keys secure.") { success, error in
             DispatchQueue.main.async {
+                
                 self.isAuthorized = success
             }
         }

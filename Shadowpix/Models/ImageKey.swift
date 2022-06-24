@@ -9,6 +9,7 @@ import Foundation
 
 enum ImageKeyEncodingError: Error {
     case invalidBase64Data
+    case invalidKeychainItemData
 }
 
 typealias KeyName = String
@@ -41,9 +42,12 @@ struct ImageKey: Codable {
     }
     
     init(keychainItem: [String: Any]) throws {
-        let keyData = keychainItem[kSecValueData as String] as! Data
-        let nameData = keychainItem[kSecAttrApplicationTag as String] as! Data
-        let creationDate = keychainItem[kSecAttrCreationDate as String] as! Date
+        guard
+            let keyData = keychainItem[kSecValueData as String] as? Data,
+            let nameData = keychainItem[kSecAttrLabel as String] as? Data,
+            let creationDate = keychainItem[kSecAttrCreationDate as String] as? Date else {
+            throw ImageKeyEncodingError.invalidKeychainItemData
+        }
         let name = ImageKey.keyName(from: nameData)
 
         let keyBytes = try keyData.withUnsafeBytes({ (body: UnsafeRawBufferPointer) throws -> [UInt8] in
@@ -55,7 +59,7 @@ struct ImageKey: Codable {
     var keychainQueryDict: [String: Any] {
         [
             kSecClass as String: kSecClassKey,
-            kSecAttrApplicationTag as String: ImageKey.keychainNameEntry(keyName: name).data(using: .utf8)!,
+            kSecAttrLabel as String: name.data(using: .utf8)!,
             kSecAttrCreationDate as String: creationDate,
             kSecValueData as String: Data(keyBytes)
         ]
@@ -78,4 +82,7 @@ struct ImageKey: Codable {
 
 extension ImageKey: Equatable {
     
+    static func ==(lhs: ImageKey, rhs: ImageKey) -> Bool {
+        return lhs.name == rhs.name && lhs.keyBytes == rhs.keyBytes
+    }
 }

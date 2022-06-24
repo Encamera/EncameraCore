@@ -36,7 +36,7 @@ class ShadowPixState: ObservableObject {
     init() {
         
         self.authManager = AuthManager()
-        self.keyManager = KeychainKeyManager(isAuthorized: self.authManager.$isAuthorized.eraseToAnyPublisher())
+        self.keyManager = MultipleKeyKeychainManager(isAuthorized: self.authManager.$isAuthorized.eraseToAnyPublisher())
         NotificationCenter.default
             .publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { _ in
@@ -47,12 +47,6 @@ class ShadowPixState: ObservableObject {
             .sink { _ in
                 self.authManager.authorize()
             }.store(in: &cancellables)
-//        NotificationCenter.default
-//            .publisher(for: UIApplication.willResignActiveNotification)
-//            .sink { _ in
-//                self.authManager?.deauthorize()
-//            }.store(in: &cancellables)
-
     }
     
 }

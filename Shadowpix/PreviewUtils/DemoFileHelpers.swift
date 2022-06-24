@@ -135,6 +135,23 @@ class DemoDirectoryModel: DirectoryModel {
 }
 
 class DemoKeyManager: KeyManager {
+    func deleteKey(_ key: ImageKey) throws {
+        
+    }
+    
+    func save(key: ImageKey) throws {
+        
+    }
+    
+    var currentKey: ImageKey?
+    
+    func setActiveKey(_ name: KeyName?) throws {
+        
+    }
+    
+    
+    var storedKeysValue: [ImageKey] = []
+    
     func deleteKey(by name: KeyName) throws {
         
     }
@@ -148,7 +165,7 @@ class DemoKeyManager: KeyManager {
     }
     
     func storedKeys() throws -> [ImageKey] {
-        return []
+        return storedKeysValue
     }
     
     
@@ -163,9 +180,7 @@ class DemoKeyManager: KeyManager {
     }
     
     var isAuthorized: AnyPublisher<Bool, Never>
-    
-    var currentKey: ImageKey!
-    
+        
     var keyPublisher: AnyPublisher<ImageKey?, Never>
     
     func clearStoredKeys() throws {

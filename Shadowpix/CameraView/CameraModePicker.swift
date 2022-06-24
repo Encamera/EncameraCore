@@ -111,7 +111,7 @@ struct Carousel<Items: View>: View {
         (numberOfItems - 1) * stateModel.spacing
     }
     
-    @inlinable public init(
+    init(
         numberOfItems: CGFloat,
         @ViewBuilder _ items: () -> Items
     ) {
@@ -166,7 +166,7 @@ struct Canvas<Content: View>: View {
     let content: Content
     @EnvironmentObject var stateModel: CameraModeStateModel
     
-    @inlinable init(@ViewBuilder _ content: () -> Content) {
+    init(@ViewBuilder _ content: () -> Content) {
         self.content = content()
     }
     
@@ -185,7 +185,7 @@ struct Item<Content: View>: View {
     var content: Content
     var pressedAction: () -> Void
     
-    @inlinable public init(
+    init(
         _id: Int,
         cardHeight: CGFloat,
         pressedAction: @escaping () -> Void,

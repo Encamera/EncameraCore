@@ -12,10 +12,8 @@ struct KeyEntry: View {
     
     class ViewModel: ObservableObject {
         var keyManager: KeyManager
-        var isShowing: Binding<Bool>
         init(keyManager: KeyManager, isShowing: Binding<Bool>) {
             self.keyManager = keyManager
-            self.isShowing = isShowing
         }
     }
     
@@ -49,11 +47,6 @@ struct KeyEntry: View {
                 
             }.padding().navigationTitle("Key Entry")
                 .toolbar {
-                    ToolbarItemGroup(placement: .navigationBarLeading) {
-                        Button("Cancel") {
-                            viewModel.isShowing = .constant(false)
-                        }
-                    }
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
                         if keyString.count > 0, keyObject.wrappedValue != nil {
                             Button("Save") {
@@ -69,8 +62,7 @@ struct KeyEntry: View {
                 guard let keyObject = keyObject.wrappedValue else {
                     return
                 }
-                viewModel.keyManager.currentKey = keyObject
-                viewModel.isShowing = .constant(false)
+                try? viewModel.keyManager.save(key: keyObject)
             }
             Button("Cancel", role: .cancel) {
                 isShowingAlertForSaveKey = false

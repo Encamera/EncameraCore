@@ -9,13 +9,15 @@ import SwiftUI
 import Combine
 
 class MediaGalleryViewModel<F: FileAccess>: ObservableObject {
-    @Published var fileAccess: F
+    @Published var fileAccess: F!
     @Published var keyManager: KeyManager
 
     init(keyManager: KeyManager) {
         
         self.keyManager = keyManager
-        self.fileAccess = F(key: keyManager.currentKey)
+        if let currentKey = keyManager.currentKey {
+            self.fileAccess = F(key: currentKey)
+        }
     }
 }
 

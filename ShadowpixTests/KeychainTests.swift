@@ -44,9 +44,9 @@ class KeychainTests: XCTestCase {
     
     func testDeleteKeyByName() throws {
         try keyManager.generateNewKey(name: "test1_key")
-        try keyManager.generateNewKey(name: "test2_key")
+        let key = try keyManager.generateNewKey(name: "test2_key")
 
-        try keyManager.deleteKey(by: "test2_key")
+        try keyManager.deleteKey(key)
         
         let storedKeys = try keyManager.storedKeys()
 
@@ -64,7 +64,7 @@ class KeychainTests: XCTestCase {
     func testDeleteKeyUnsetsCurrentKey() throws {
         let newKey = try keyManager.generateNewKey(name: "test1_key")
 
-        try keyManager.deleteKey(by: newKey.name)
+        try keyManager.deleteKey(newKey)
         
         XCTAssertNil(keyManager.currentKey)
     }
@@ -81,4 +81,27 @@ class KeychainTests: XCTestCase {
         XCTAssertThrowsError(try keyManager.generateNewKey(name: "test1_key"))
         
     }
+    
+    func testInitSetsCurrentKeyIfAuthorized() throws {
+        
+        let key = try keyManager.generateNewKey(name: "test1_key")
+        try keyManager.setActiveKey(key.name)
+        let subject = PassthroughSubject<Bool, Never>()
+        let newManager = MultipleKeyKeychainManager(isAuthorized: subject.eraseToAnyPublisher())
+        subject.send(true)
+        
+        XCTAssertEqual(newManager.currentKey, key)
+        
+    }
+    
+    func testInitDoesNotSetCurrentKeyIfNotAuthorized() throws {
+        
+        try keyManager.generateNewKey(name: "test1_key")
+
+        let newManager = MultipleKeyKeychainManager(isAuthorized: Just(false).eraseToAnyPublisher())
+        
+        XCTAssertNil(newManager.currentKey)
+        
+    }
+
 }

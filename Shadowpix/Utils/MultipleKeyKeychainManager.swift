@@ -9,14 +9,17 @@ import Foundation
 import Sodium
 import Combine
 
-
+private enum KeychainConstants {
+    static let applicationTag = "com.shadowpix.key"
+    static let currentKey = "currentKey"
+}
 
 class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     var isAuthorized: AnyPublisher<Bool, Never>
     private var authorized: Bool = false
     private var cancellables = Set<AnyCancellable>()
-    var currentKey: ImageKey! {
+    private (set) var currentKey: ImageKey?  {
         didSet {
             keySubject.send(currentKey)
         }
@@ -44,7 +47,6 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let keyObject = try getActiveKey()
         
         currentKey = keyObject
-
     }
     
     func clearStoredKeys() throws {
@@ -72,6 +74,11 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         let bytes = Sodium().secretStream.xchacha20poly1305.key()
         let key = ImageKey(name: name, keyBytes: bytes, creationDate: Date())
+        try save(key: key)
+        return key
+    }
+    
+    func save(key: ImageKey) throws {
         var setNewKeyToCurrent: Bool
         do {
             let storedKeys = try storedKeys()
@@ -79,15 +86,13 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         } catch {
             setNewKeyToCurrent = true
         }
-        let query = key.keychainQueryDict
+        let query = key.keychainQueryDictForKeychain
         let status = SecItemAdd(query as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw KeyManagerError.unhandledError
-        }
+        try checkStatus(status: status)
         if setNewKeyToCurrent {
             currentKey = key
         }
-        return key
+
     }
     
     func storedKeys() throws -> [ImageKey] {
@@ -102,18 +107,17 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess else {
-            throw KeyManagerError.unhandledError
-        }
+        try checkStatus(status: status)
+
 
         guard let keychainItems = item as? [[String: Any]] else {
             throw KeyManagerError.dataError
         }
-        let keys = try keychainItems.map { keychainItem -> ImageKey in
+        let keys = keychainItems.compactMap { keychainItem -> ImageKey? in
             do {
                 return try ImageKey(keychainItem: keychainItem)
             } catch {
-                throw KeyManagerError.dataError
+                return nil
             }
         }.sorted(by: {
             $1.creationDate.compare($0.creationDate) == .orderedDescending
@@ -121,31 +125,38 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         return keys
     }
     
-    func deleteKey(by name: KeyName) throws {
+    func deleteKey(_ key: ImageKey) throws {
+        
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
-        let key = try getKey(by: name)
-        let query = key.keychainQueryDict
+        let key = try getKey(by: key.name)
+        let query = key.keychainQueryDictForKeychain
         let status = SecItemDelete(query as CFDictionary)
-        if status != errSecSuccess {
-            throw KeyManagerError.deleteKeychainItemsFailed
-        }
-        if currentKey.name == key.name {
-            currentKey = nil
+        try checkStatus(status: status, defaultError: .deleteKeychainItemsFailed)
+        if currentKey?.name == key.name {
+            try setActiveKey(nil)
         }
     }
     
-    func setActiveKey(_ name: KeyName) throws {
+    func setActiveKey(_ name: KeyName?) throws {
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
-        UserDefaults.standard.set(name, forKey: "currentKey")
-        currentKey = try getActiveKey()
+        guard let name = name else {
+            UserDefaults.standard.removeObject(forKey: KeychainConstants.currentKey)
+            return
+        }
+
+        guard let key = try? getKey(by: name) else {
+            throw KeyManagerError.notFound
+        }
+        UserDefaults.standard.set(key.name, forKey: KeychainConstants.currentKey)
+        currentKey = key
     }
     
     func getActiveKey() throws -> ImageKey {
-        guard let activeKeyName = UserDefaults.standard.value(forKey: "currentKey") as? String else {
+        guard let activeKeyName = UserDefaults.standard.value(forKey: KeychainConstants.currentKey) as? String else {
             throw KeyManagerError.notFound
         }
         return try getKey(by: activeKeyName)
@@ -155,17 +166,17 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
-        let keychainKeyName = ImageKey.keychainNameEntry(keyName: keyName)
+        
         let query: [String: Any] = [kSecClass as String: kSecClassKey,
                                     kSecMatchLimit as String: kSecMatchLimitOne,
                                     kSecReturnData as String: true,
                                     kSecReturnAttributes as String: true,
-                                    kSecAttrApplicationTag as String: keychainKeyName]
+                                    kSecAttrLabel as String: keyName]
         
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status != errSecItemNotFound else { throw KeyManagerError.notFound }
-        guard status == errSecSuccess else { throw KeyManagerError.unhandledError }
+        try checkStatus(status: status)
+
         guard let keychainItem = item as? [String: Any]
                else {
             throw KeyManagerError.dataError
@@ -173,5 +184,27 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let key = try ImageKey(keychainItem: keychainItem)
         return key
 
+    }
+}
+
+private extension MultipleKeyKeychainManager {
+    func checkStatus(status: OSStatus, defaultError: KeyManagerError = .unhandledError) throws {
+        switch status {
+        case errSecItemNotFound:
+            throw KeyManagerError.notFound
+        case errSecSuccess:
+            break
+        default:
+            throw defaultError
+        }
+    }
+}
+
+private extension ImageKey {
+    
+    var keychainQueryDictForKeychain: [String: Any] {
+        var query = keychainQueryDict
+        query[kSecAttrApplicationLabel as String] = "\(KeychainConstants.applicationTag).\(name)"
+        return query
     }
 }

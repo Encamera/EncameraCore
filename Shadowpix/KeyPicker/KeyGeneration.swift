@@ -7,38 +7,49 @@
 
 import SwiftUI
 
-struct KeyGeneration: View {
+class KeyGenerationViewModel: ObservableObject {
+    @Published var keyName: String = ""
+    @Published var keyManagerError: KeyManagerError?
+    var keyManager: KeyManager
     
-    @State var isShowingAlertForNewKey: Bool = false
-    @State var keyName: String = ""
-    @Binding var isShown: Bool
-    @EnvironmentObject var appState: ShadowPixState
+    init(keyManager: KeyManager) {
+        self.keyManager = keyManager
+    }
+    
+    func saveKey() {
+        do {
+            try keyManager.generateNewKey(name: keyName)
+        } catch {
+            guard let keyError = error as? KeyManagerError else {
+                return
+            }
+            self.keyManagerError = keyError
+        }
+    }
+}
+
+struct KeyGeneration: View {
+    @ObservedObject var viewModel: KeyGenerationViewModel
     @FocusState var isFocused: Bool
+    @Environment(\.dismiss) var dismiss
+
     var body: some View {
         VStack {
             
-            TextField("Key Name", text: $keyName, prompt: Text("Key Name"))
+            TextField("Key Name", text: $viewModel.keyName, prompt: Text("Key Name"))
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .frame(height: 44)
                 .focused($isFocused)
             Spacer()
             
-        }.alert("Are you sure you want to generate a new key?", isPresented: $isShowingAlertForNewKey) {
-            Button("Yes", role: .destructive) {
-                saveKey()
-                isShown = false
-            }
-            Button("Cancel", role: .cancel) {
-                isShowingAlertForNewKey = false
-            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
-                if keyName.count > 0 {
+                if viewModel.keyName.count > 0 {
                     
                     Button("Save") {
-                        isShowingAlertForNewKey = true
+                        saveKey()
                     }.foregroundColor(.blue)
                 }
             }
@@ -51,16 +62,13 @@ struct KeyGeneration: View {
     }
     
     func saveKey() {
-        do {
-            try appState.keyManager.generateNewKey(name: keyName)
-        } catch {
-            print("Could not generate new key", error)
-        }
+        viewModel.saveKey()
+        dismiss()
     }
 }
 
 struct KeyGeneration_Previews: PreviewProvider {
     static var previews: some View {
-        KeyGeneration(isShown: .constant(true))
+        KeyGeneration(viewModel: .init(keyManager: DemoKeyManager()))
     }
 }

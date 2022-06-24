@@ -23,16 +23,25 @@ protocol KeyManager {
     init(isAuthorized: AnyPublisher<Bool, Never>)
     
     var isAuthorized: AnyPublisher<Bool, Never> { get }
-    var currentKey: ImageKey! { get set }
+    var currentKey: ImageKey? { get }
     var keyPublisher: AnyPublisher<ImageKey?, Never> { get }
     func clearStoredKeys() throws
     func storedKeys() throws -> [ImageKey]
-    func deleteKey(by name: KeyName) throws
-    func setActiveKey(_ name: KeyName) throws
+    func deleteKey(_ key: ImageKey) throws
+    func setActiveKey(_ name: KeyName?) throws
+    func save(key: ImageKey) throws
     @discardableResult func generateNewKey(name: String) throws-> ImageKey
 }
 
 class KeychainKeyManager: ObservableObject, KeyManager {
+    func deleteKey(_ key: ImageKey) throws {
+        
+    }
+    
+    func save(key: ImageKey) throws {
+        
+    }
+    
     func storedKeys() throws -> [ImageKey] {
         []
 
@@ -42,7 +51,7 @@ class KeychainKeyManager: ObservableObject, KeyManager {
         
     }
     
-    func setActiveKey(_ name: KeyName) throws {
+    func setActiveKey(_ name: KeyName?) throws {
         
     }
     
@@ -53,7 +62,7 @@ class KeychainKeyManager: ObservableObject, KeyManager {
     private var authorized: Bool = false
     private var cancellables = Set<AnyCancellable>()
     
-    var currentKey: ImageKey! {
+    var currentKey: ImageKey? {
         didSet {
             keySubject.send(currentKey)
         }
@@ -106,8 +115,7 @@ class KeychainKeyManager: ObservableObject, KeyManager {
         }
         
         let query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: "currentKey"
+            kSecClass as String: kSecClassKey
         ]
         
         let status = SecItemDelete(query as CFDictionary)

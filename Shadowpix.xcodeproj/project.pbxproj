@@ -34,6 +34,10 @@
 		1961BCC2281B08CE00D7BE92 /* SecretFileHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1961BCC1281B08CE00D7BE92 /* SecretFileHandler.swift */; };
 		1961BCC4281F9DFA00D7BE92 /* FileOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1961BCC3281F9DFA00D7BE92 /* FileOperationsTests.swift */; };
 		19631A352864404400B95FD3 /* MultipleKeyKeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A342864404400B95FD3 /* MultipleKeyKeychainManager.swift */; };
+		19631A372865113300B95FD3 /* KeySelectionCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A362865113300B95FD3 /* KeySelectionCell.swift */; };
+		19631A3A286514E500B95FD3 /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A382865141600B95FD3 /* DateUtils.swift */; };
+		19631A3C286514F200B95FD3 /* DateUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A3B286514F200B95FD3 /* DateUtilsTests.swift */; };
+		19631A3E286596B100B95FD3 /* AddKeyCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A3D286596B100B95FD3 /* AddKeyCell.swift */; };
 		19665C462742542A00DA8578 /* KeyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19665C452742542A00DA8578 /* KeyEntry.swift */; };
 		196AFE81274F83D100C809ED /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE80274F83D100C809ED /* GalleryView.swift */; };
 		196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE82274F858300C809ED /* DiskFileAccess.swift */; };
@@ -110,6 +114,10 @@
 		1961BCC1281B08CE00D7BE92 /* SecretFileHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretFileHandler.swift; sourceTree = "<group>"; };
 		1961BCC3281F9DFA00D7BE92 /* FileOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperationsTests.swift; sourceTree = "<group>"; };
 		19631A342864404400B95FD3 /* MultipleKeyKeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipleKeyKeychainManager.swift; sourceTree = "<group>"; };
+		19631A362865113300B95FD3 /* KeySelectionCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionCell.swift; sourceTree = "<group>"; };
+		19631A382865141600B95FD3 /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
+		19631A3B286514F200B95FD3 /* DateUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtilsTests.swift; sourceTree = "<group>"; };
+		19631A3D286596B100B95FD3 /* AddKeyCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddKeyCell.swift; sourceTree = "<group>"; };
 		19665C452742542A00DA8578 /* KeyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyEntry.swift; sourceTree = "<group>"; };
 		196AFE80274F83D100C809ED /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		196AFE82274F858300C809ED /* DiskFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskFileAccess.swift; sourceTree = "<group>"; };
@@ -203,6 +211,8 @@
 				19665C452742542A00DA8578 /* KeyEntry.swift */,
 				19DCCD562741AF6700DB487B /* KeyGeneration.swift */,
 				1990154A2863BA3F00520082 /* KeySelectionList.swift */,
+				19631A362865113300B95FD3 /* KeySelectionCell.swift */,
+				19631A3D286596B100B95FD3 /* AddKeyCell.swift */,
 			);
 			path = KeyPicker;
 			sourceTree = "<group>";
@@ -265,6 +275,7 @@
 		195719E9274B8FB100E93658 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				19631A382865141600B95FD3 /* DateUtils.swift */,
 				1935322E286112F300964A01 /* SecretFileHandlers */,
 				19FD5D662835F12E008D75AA /* KeyManager.swift */,
 				19631A342864404400B95FD3 /* MultipleKeyKeychainManager.swift */,
@@ -386,6 +397,7 @@
 				193532342862F29400964A01 /* FileAccessTests.swift */,
 				19F768D328637607008F4BD3 /* TempFilesManagerTests.swift */,
 				1990154C2863BA8400520082 /* KeychainTests.swift */,
+				19631A3B286514F200B95FD3 /* DateUtilsTests.swift */,
 			);
 			path = ShadowpixTests;
 			sourceTree = "<group>";
@@ -501,6 +513,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				19631A372865113300B95FD3 /* KeySelectionCell.swift in Sources */,
 				19FD5D5A2835D29B008D75AA /* ChunkedFilesProcessing.swift in Sources */,
 				1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */,
 				A9FE17B925394F1E00D547C7 /* CameraService.swift in Sources */,
@@ -531,6 +544,7 @@
 				1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */,
 				19FD5D602835DB0D008D75AA /* MediaDescribing.swift in Sources */,
 				19217E26273FD616009E3850 /* KeyPickerView.swift in Sources */,
+				19631A3E286596B100B95FD3 /* AddKeyCell.swift in Sources */,
 				193ECDA4282EE7E2004F143D /* Enums.swift in Sources */,
 				195719EE274BA4B400E93658 /* QRCodeCaptureProcessor.swift in Sources */,
 				1935322B2860F08800964A01 /* DiskBlockReader.swift in Sources */,
@@ -539,6 +553,7 @@
 				19FD5D5E2835D927008D75AA /* EncryptedMedia.swift in Sources */,
 				19217E29273FD620009E3850 /* AppConstants.swift in Sources */,
 				1994ABF72753EAEF00E41BFD /* MainInterfaceViewModel.swift in Sources */,
+				19631A3A286514E500B95FD3 /* DateUtils.swift in Sources */,
 				A9FE17852539494300D547C7 /* ShadowpixApp.swift in Sources */,
 				196AFE81274F83D100C809ED /* GalleryView.swift in Sources */,
 				19FD5D672835F12E008D75AA /* KeyManager.swift in Sources */,
@@ -561,6 +576,7 @@
 				19F768D228636FDD008F4BD3 /* DirectoryModelTests.swift in Sources */,
 				A9FE17972539494700D547C7 /* ShadowpixTests.swift in Sources */,
 				1990154D2863BA8400520082 /* KeychainTests.swift in Sources */,
+				19631A3C286514F200B95FD3 /* DateUtilsTests.swift in Sources */,
 				19F768D428637607008F4BD3 /* TempFilesManagerTests.swift in Sources */,
 				193532382862FECB00964A01 /* FileUtils.swift in Sources */,
 			);
