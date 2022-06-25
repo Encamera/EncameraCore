@@ -89,7 +89,6 @@ struct KeyPickerView: View {
             .frame(width: geo.size.width*0.75))
     }
     var body: some View {
-        NavigationView {
             VStack {
                 GeometryReader { geo in
                     
@@ -121,7 +120,9 @@ struct KeyPickerView: View {
                     }
                 }
                 
-            }.alert(isPresented: $isShowingAlertForClearKey) {
+            }
+            .foregroundColor(.blue)
+            .alert(isPresented: $isShowingAlertForClearKey) {
                 Alert(title: Text("Clear key"), message: Text("Do you really want to clear the current key in the keychain?"), primaryButton:
                         .cancel(Text("Cancel")) {
                             isShowingAlertForClearKey = false
@@ -129,7 +130,7 @@ struct KeyPickerView: View {
                             viewModel.deleteKey()
                             dismiss()
                         })}
-        }.foregroundColor(.blue)
+        
     }
 }
 

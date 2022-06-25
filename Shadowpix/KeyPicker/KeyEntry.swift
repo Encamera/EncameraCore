@@ -27,7 +27,7 @@ struct KeyEntry: View {
     init(viewModel: ViewModel) {
         self.viewModel = viewModel
     }
-
+    
     var body: some View {
         let keyObject: Binding<ImageKey?> = {
             return Binding {
@@ -36,38 +36,36 @@ struct KeyEntry: View {
                 
             }
         }()
-        NavigationView {
-            VStack {
-                if let keyObject = keyObject.wrappedValue {
-                    Text("Found key: \(keyObject.name)")
-                }
-                
-                TextEditor(text: $keyString)
-                Spacer()
-                
-            }.padding().navigationTitle("Key Entry")
-                .toolbar {
-                    ToolbarItemGroup(placement: .navigationBarTrailing) {
-                        if keyString.count > 0, keyObject.wrappedValue != nil {
-                            Button("Save") {
-                                isShowingAlertForSaveKey = true
-                                }
+        VStack {
+            if let keyObject = keyObject.wrappedValue {
+                Text("Found key: \(keyObject.name)")
+            }
+            
+            TextEditor(text: $keyString)
+            Spacer()
+            
+        }.padding().navigationTitle("Key Entry")
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    if keyString.count > 0, keyObject.wrappedValue != nil {
+                        Button("Save") {
+                            isShowingAlertForSaveKey = true
                         }
                     }
                 }
-        }.onAppear {
-            keyString = keyObject.wrappedValue?.base64String ?? ""
-        }.alert("Are you sure you want to save this key?", isPresented: $isShowingAlertForSaveKey) {
-            Button("Yes", role: .destructive) {
-                guard let keyObject = keyObject.wrappedValue else {
-                    return
+            }.onAppear {
+                keyString = keyObject.wrappedValue?.base64String ?? ""
+            }.alert("Are you sure you want to save this key?", isPresented: $isShowingAlertForSaveKey) {
+                Button("Yes", role: .destructive) {
+                    guard let keyObject = keyObject.wrappedValue else {
+                        return
+                    }
+                    try? viewModel.keyManager.save(key: keyObject)
                 }
-                try? viewModel.keyManager.save(key: keyObject)
+                Button("Cancel", role: .cancel) {
+                    isShowingAlertForSaveKey = false
+                }
             }
-            Button("Cancel", role: .cancel) {
-                isShowingAlertForSaveKey = false
-            }
-        }
     }
 }
 

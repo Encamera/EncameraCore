@@ -30,6 +30,7 @@ class KeySelectionListViewModel: ObservableObject {
     func loadKeys() {
         do {
             keys = try keyManager.storedKeys()
+            activeKey = keyManager.currentKey
             selectionError = nil
         } catch {
             selectionError = .loadKeysError

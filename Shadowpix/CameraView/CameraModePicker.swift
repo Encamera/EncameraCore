@@ -79,7 +79,7 @@ public class CameraModeStateModel: ObservableObject {
             selectedMode.rawValue
         }
         set {
-            selectedMode = CameraMode(rawValue: newValue)!
+                selectedMode = CameraMode(rawValue: newValue)!
         }
     }
     @Published var isModeActive: Bool = false

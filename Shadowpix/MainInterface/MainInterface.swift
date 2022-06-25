@@ -13,13 +13,14 @@ struct MainInterface: View {
     @ObservedObject private var model: MainInterfaceViewModel
     @EnvironmentObject var appState: ShadowPixState
     @State var showGalleryView: Bool = false
+
     init(viewModel: MainInterfaceViewModel) {
         self.model = viewModel
     }
     
     var body: some View {
         ZStack(alignment: .top) {
-            if appState.keyManager.currentKey != nil,
+            if model.showCameraInterface,
                 let cameraService = model.cameraService {
                 let _ = Self._printChanges()
 
@@ -32,8 +33,7 @@ struct MainInterface: View {
                         MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: MediaGalleryViewModel(keyManager: appState.keyManager))
                     }
             } else {
-                KeySelectionList(viewModel: .init(keyManager: appState.keyManager))
-
+                Color.black
             }
         }
     }

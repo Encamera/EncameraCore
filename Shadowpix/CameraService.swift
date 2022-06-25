@@ -76,10 +76,12 @@ class CameraService {
     @Published var isRecordingVideo = false
     @Published var cameraMode: CameraMode = .photo
     @Published var scannedKey: ImageKey?
+    private var sessionStarted = false
 
+    
 //    MARK: Alert properties
     var alertError: AlertError = AlertError()
-    
+
 // MARK: Session Management Properties
     
     let session = AVCaptureSession()
@@ -285,7 +287,7 @@ class CameraService {
         
         $cameraMode.dropFirst().receive(on: sessionQueue).sink { [weak self] newMode in
             print("new mode", newMode)
-            self?.configureForMode(targetMode: newMode)
+                self?.configureForMode(targetMode: newMode)
         }.store(in: &cancellables)
 
         self.start()
@@ -360,6 +362,7 @@ class CameraService {
                         connection.preferredVideoStabilizationMode = .auto
                     }
                 }
+                self.configureForMode(targetMode: self.cameraMode)
                 
             } catch {
                 print("Error occurred while creating video device input: \(error)")
@@ -412,11 +415,10 @@ class CameraService {
     }
     
     /// - Tag: Start capture session
-    
     func start() {
 //        We use our capture session queue to ensure our UI runs smoothly on the main thread.
         sessionQueue.async {
-            guard !self.session.isRunning else {
+            guard !self.sessionStarted else {
                 print("Session is running already or is not configured")
                 return
             }
@@ -424,6 +426,7 @@ class CameraService {
             case .success:
                 self.configureForMode(targetMode: self.cameraMode)
                 self.session.startRunning()
+                self.sessionStarted = true
                 guard self.session.isRunning else {
                     print("Session is not running")
                     return

@@ -16,13 +16,6 @@ struct ShadowpixApp: App {
     }
     
     @ObservedObject var viewModel: ViewModel = ViewModel()
-//    lazy var showScannedKeySheet: Binding<Bool> = {
-//        return Binding {
-//            return viewModel.state.showScannedKeySheet
-//        } set: { value in
-//            viewModel.state.showScannedKeySheet = value
-//        }
-//    }()
     
     var body: some Scene {
         WindowGroup {
@@ -45,12 +38,6 @@ struct ShadowpixApp: App {
                 self.viewModel.openedUrl = url
                 self.viewModel.hasOpenedURL = true
             }
-//            .sheet(isPresented: $state.showScannedKeySheet, onDismiss: {
-//            }, content: {
-//                if let scannedKey = ShadowPixState.shared.scannedKey, let keyString = scannedKey.base64String {
-//                    KeyEntry(keyString: keyString, isShowing: $state.showScannedKeySheet)
-//                }
-//            })
             .environmentObject(viewModel.state)
 
         }

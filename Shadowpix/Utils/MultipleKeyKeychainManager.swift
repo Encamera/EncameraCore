@@ -36,7 +36,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         self.isAuthorized.sink { newValue in
             self.authorized = newValue
             if self.authorized == true {
-                try? self.getKey()
+                try! self.getKey()
             }
         }.store(in: &cancellables)
 
