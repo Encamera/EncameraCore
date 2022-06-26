@@ -418,7 +418,7 @@ class CameraService {
     func start() {
 //        We use our capture session queue to ensure our UI runs smoothly on the main thread.
         sessionQueue.async {
-            guard !self.sessionStarted else {
+            guard !self.session.isRunning else {
                 print("Session is running already or is not configured")
                 return
             }
@@ -426,7 +426,6 @@ class CameraService {
             case .success:
                 self.configureForMode(targetMode: self.cameraMode)
                 self.session.startRunning()
-                self.sessionStarted = true
                 guard self.session.isRunning else {
                     print("Session is not running")
                     return
@@ -499,7 +498,8 @@ class CameraService {
                 print("No file writer found")
                 return
             }
-
+            self.toggleTorch(on: self.flashMode == .on)
+            
             let videoCaptureProcessor = VideoCaptureProcessor(willCapturePhotoAnimation: {
                 
             }, completionHandler: { processor in
@@ -513,12 +513,14 @@ class CameraService {
                 print("Could not start video, current capture session is not AVCaptureMovieFileOutput")
                 return
             }
+            
             videoCaptureOutput.startRecording(to: TempFilesManager.shared.createTempURL(for: .video, id: videoCaptureProcessor.videoId), recordingDelegate: videoCaptureProcessor)
         }
     }
     
     private func stopCapturingVideo() {
         isRecordingVideo = false
+        toggleTorch(on: false)
         guard self.setupResult != .configurationFailed else {
             return
         }
@@ -537,6 +539,27 @@ class CameraService {
         }
     }
     
+    private func toggleTorch(on: Bool) {
+        guard let device = AVCaptureDevice.default(for: .video) else { return }
+
+        if device.hasTorch {
+            do {
+                try device.lockForConfiguration()
+
+                if on == true {
+                    device.torchMode = .on
+                } else {
+                    device.torchMode = .off
+                }
+
+                device.unlockForConfiguration()
+            } catch {
+                print("Torch could not be used")
+            }
+        } else {
+            print("Torch is not available")
+        }
+    }
     /// - Tag: CapturePhoto
     func capturePhoto() {
         guard self.setupResult != .configurationFailed, let key = self.keyManager.currentKey else {
