@@ -15,9 +15,9 @@ class MainInterfaceViewModel: ObservableObject {
     @Published var showingKeySelection = false
     @Published var showCameraInterface = false
     private var cancellables = Set<AnyCancellable>()
-    @Published var cameraService: CameraService?
+    @Published var cameraService: CameraServicable?
     init(keyManager: KeyManager) {
-        self.cameraService = CameraService(keyManager: keyManager)
+        self.cameraService = CameraService(keyManager: keyManager, model: CameraServiceModel())
 
         keyManager.keyPublisher.sink { key in
             guard let key = key else {

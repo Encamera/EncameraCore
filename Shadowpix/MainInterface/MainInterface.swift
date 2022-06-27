@@ -26,6 +26,7 @@ struct MainInterface: View {
 
                 let cameraModel = CameraModel(keyManager: appState.keyManager, cameraService: cameraService)
                 CameraView(viewModel: cameraModel, galleryIconTapped: $showGalleryView, showingKeySelection: $model.showingKeySelection)
+                    
                     .environmentObject(appState)
                     .sheet(isPresented: $model.showingKeySelection) {
                         KeySelectionList(viewModel: .init(keyManager: appState.keyManager))

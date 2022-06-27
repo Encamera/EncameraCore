@@ -151,8 +151,8 @@ struct CameraView: View {
     
     var body: some View {
         ZStack {
-            cameraPreview
-
+//            cameraPreview
+//                .edgesIgnoringSafeArea(.all)
             VStack {
                 topBar
                 Spacer()
@@ -168,7 +168,7 @@ struct CameraView: View {
 #if DEBUG
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: CameraService(keyManager: DemoKeyManager())), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
+        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: CameraService(keyManager: DemoKeyManager(), model: CameraServiceModel())), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
             .environmentObject(ShadowPixState())
         
     }

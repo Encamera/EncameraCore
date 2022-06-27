@@ -11,7 +11,7 @@ import Combine
 import UIKit
 
 final class CameraModel: ObservableObject {
-    private let service: CameraService
+    private let service: CameraServicable
     
     var session: AVCaptureSession {
         service.session
@@ -30,7 +30,7 @@ final class CameraModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     
-    init(keyManager: KeyManager, cameraService: CameraService) {
+    init(keyManager: KeyManager, cameraService: CameraServicable) {
         self.service = cameraService
         
         
@@ -53,26 +53,26 @@ final class CameraModel: ObservableObject {
             }.store(in: &cancellables)
 
         
-        service.$shouldShowAlertView.sink { [weak self] (val) in
+        service.model.$shouldShowAlertView.sink { [weak self] (val) in
             self?.alertError = self?.service.alertError
             self?.showAlertError = val
         }
         .store(in: &self.cancellables)
         
-        service.$flashMode.sink { [weak self] (mode) in
+        service.model.$flashMode.sink { [weak self] (mode) in
             self?.isFlashOn = mode == .on
         }
         .store(in: &self.cancellables)
         
-        service.$willCapturePhoto.sink { [weak self] (val) in
+        service.model.$willCapturePhoto.sink { [weak self] (val) in
             self?.willCapturePhoto = val
         }
         .store(in: &self.cancellables)
         self.$selectedCameraMode.dropFirst().sink { [weak self] newMode in
-            self?.service.cameraMode = newMode
+            self?.service.model.cameraMode = newMode
         }
         .store(in: &self.cancellables)
-        service.$isRecordingVideo.sink { [weak self] capturing in
+        service.model.$isRecordingVideo.sink { [weak self] capturing in
             self?.isRecordingVideo = capturing
         }
         .store(in: &self.cancellables)
@@ -101,6 +101,6 @@ final class CameraModel: ObservableObject {
     }
     
     func switchFlash() {
-        service.flashMode = service.flashMode == .on ? .off : .on
+        service.model.flashMode = service.model.flashMode == .on ? .off : .on
     }
 }
