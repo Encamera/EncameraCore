@@ -45,15 +45,19 @@ struct CameraView: View {
         
     private var capturedPhotoThumbnail: some View {
         Group {
-            Image(systemName: "photo.on.rectangle.angled")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .foregroundColor(.white)
-                .animation(.spring())
-                .onTapGesture {
-                    self.galleryIconTapped = true
-                }
+            if let thumbnail = cameraModel.thumbnailImage {
+                Image(uiImage: thumbnail)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .foregroundColor(.white)
+                    .animation(.spring())
+                    .onTapGesture {
+                        self.galleryIconTapped = true
+                    }
+            } else {
+                Color.red
+            }
         }.frame(width: 60, height: 60)
 
     }
@@ -180,7 +184,7 @@ struct CameraView: View {
 #if DEBUG
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: DemoCameraService(keyManager: DemoKeyManager(), model: CameraServiceModel())), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
+        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: DemoCameraService(keyManager: DemoKeyManager(), model: CameraServiceModel()), fileReader: DemoFileEnumerator()), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
             .environmentObject(ShadowPixState())
         
     }

@@ -25,16 +25,16 @@ final class CameraModel: ObservableObject {
     @Published var showCameraView = true
     @Published var isLivePhotoEnabled = true
     @Published var selectedCameraMode: CameraMode = .photo
-    
+    @Published var thumbnailImage: UIImage?
     var alertError: AlertError!
-    
+    private var fileReader: FileReader & FileEnumerator
     
     private var cancellables = Set<AnyCancellable>()
     
-    init(keyManager: KeyManager, cameraService: CameraServicable) {
+    init(keyManager: KeyManager, cameraService: CameraServicable, fileReader: FileReader & FileEnumerator) {
         self.service = cameraService
         
-        
+        self.fileReader = fileReader
         NotificationCenter.default
             .publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { _ in
@@ -53,7 +53,7 @@ final class CameraModel: ObservableObject {
                 self.showCameraView = false
             }.store(in: &cancellables)
 
-        
+            
         service.model.$shouldShowAlertView.sink { [weak self] (val) in
             self?.alertError = self?.service.alertError
             self?.showAlertError = val
@@ -86,6 +86,21 @@ final class CameraModel: ObservableObject {
     func configure() {
         service.checkForPermissions()
         service.configure()
+        Task {
+            let media: [EncryptedMedia] = await self.fileReader.enumerateMedia()
+            guard let firstMedia = media.first else {
+                self.thumbnailImage = nil
+                return
+            }
+            let cleartextThumb = try await self.fileReader.loadMediaPreview(for: firstMedia)
+            guard let thumbnail = UIImage(data: cleartextThumb.source) else {
+                self.thumbnailImage = nil
+                return
+            }
+            await MainActor.run(body: {
+                self.thumbnailImage = thumbnail
+            })
+        }
     }
     
     func captureButtonPressed() {

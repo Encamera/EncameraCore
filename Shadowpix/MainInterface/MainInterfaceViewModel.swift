@@ -14,6 +14,7 @@ class MainInterfaceViewModel: ObservableObject {
     @Published var showGalleryView: Bool = false
     @Published var showingKeySelection = false
     @Published var showCameraInterface = false
+    @Published var fileAccess: FileAccess?
     private var cancellables = Set<AnyCancellable>()
     @Published var cameraService: CameraServicable?
     init(keyManager: KeyManager) {
@@ -28,6 +29,7 @@ class MainInterfaceViewModel: ObservableObject {
             }
             let fileWriter = DiskFileAccess<iCloudFilesDirectoryModel>(key: key)
             self.cameraService?.fileWriter = fileWriter
+            self.fileAccess = fileWriter
         }.store(in: &cancellables)
     }
 //    init() {

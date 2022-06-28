@@ -21,10 +21,10 @@ struct MainInterface: View {
     var body: some View {
         ZStack(alignment: .top) {
             if model.showCameraInterface,
-                let cameraService = model.cameraService {
+               let cameraService = model.cameraService, let fileAccess = model.fileAccess {
                 let _ = Self._printChanges()
-
-                let cameraModel = CameraModel(keyManager: appState.keyManager, cameraService: cameraService)
+                
+                let cameraModel = CameraModel(keyManager: appState.keyManager, cameraService: cameraService, fileReader: fileAccess)
                 CameraView(viewModel: cameraModel, galleryIconTapped: $showGalleryView, showingKeySelection: $model.showingKeySelection)
                     
                     .environmentObject(appState)
