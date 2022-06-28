@@ -30,7 +30,16 @@ enum CameraModeSelection: Int, CaseIterable {
     }
 }
 
-class CameraModePickerViewModel: ObservableObject {
+private enum Constants {
+    static let viewportSize: CGFloat = 200
+    static let visibleWidthOfHiddenCard: CGFloat = 20
+    static let spacing: CGFloat = 16
+    static var cardWidth: CGFloat {
+        viewportSize - (visibleWidthOfHiddenCard*2) - (spacing*2)
+    }
+    static let snapTolerance: CGFloat = 50
+    static let heightShrink: CGFloat = 0.70
+    static let cardHeight: CGFloat = 60
 }
 
 // based off of https://gist.github.com/xtabbas/97b44b854e1315384b7d1d5ccce20623
@@ -39,7 +48,6 @@ struct CameraModePicker: View {
     @EnvironmentObject var stateModel: CameraModeStateModel
     var pressedAction: (CameraMode) -> Void
     var body: some View {
-        let cardHeight: CGFloat = 279
         
         return Canvas {
             Carousel(
@@ -48,7 +56,7 @@ struct CameraModePicker: View {
                 ForEach(CameraModeSelection.allCases, id: \.rawValue) { item in
                     Item(
                         _id: item.rawValue,
-                        cardHeight: cardHeight,
+                        cardHeight: Constants.cardHeight,
                         pressedAction: {
                             pressedAction(item.cameraMode)
                         }
@@ -87,18 +95,10 @@ public class CameraModeStateModel: ObservableObject {
     @Published var screenDrag: Float = 0.0
     
 //    var pressedAction: (CameraMode) -> Void
-    var viewportSize: CGFloat = 200
-    var visibleWidthOfHiddenCard: CGFloat = 20
-    var spacing: CGFloat = 16
-    var cardWidth: CGFloat {
-        viewportSize - (visibleWidthOfHiddenCard*2) - (spacing*2)
-    }
-    var snapTolerance: CGFloat = 50
-    var heightShrink: CGFloat = 0.70
-    var cardHeight: CGFloat = 40
+
 }
 
-struct Carousel<Items: View>: View {
+private struct Carousel<Items: View>: View {
     
     let items: Items
     let numberOfItems: CGFloat
@@ -108,7 +108,7 @@ struct Carousel<Items: View>: View {
     @EnvironmentObject var stateModel: CameraModeStateModel
     
     private var totalSpacing: CGFloat {
-        (numberOfItems - 1) * stateModel.spacing
+        (numberOfItems - 1) * Constants.spacing
     }
     
     init(
@@ -121,10 +121,10 @@ struct Carousel<Items: View>: View {
     
     
     var body: some View {
-        let totalCanvasWidth: CGFloat = (stateModel.cardWidth * numberOfItems) + totalSpacing
-        let xOffsetToShift = (totalCanvasWidth - stateModel.viewportSize) / 2
-        let leftPadding = stateModel.visibleWidthOfHiddenCard + stateModel.spacing
-        let totalPossibleMovement = stateModel.cardWidth + stateModel.spacing
+        let totalCanvasWidth: CGFloat = (Constants.cardWidth * numberOfItems) + totalSpacing
+        let xOffsetToShift = (totalCanvasWidth - Constants.viewportSize) / 2
+        let leftPadding = Constants.visibleWidthOfHiddenCard + Constants.spacing
+        let totalPossibleMovement = Constants.cardWidth + Constants.spacing
         
         let activeOffset: Float = Float(xOffsetToShift + leftPadding - (totalPossibleMovement * CGFloat(stateModel.activeIndex)))
         let nextOffset: Float = Float(xOffsetToShift + leftPadding - (totalPossibleMovement * CGFloat(stateModel.activeIndex) + 1))
@@ -135,7 +135,7 @@ struct Carousel<Items: View>: View {
             calcOffset = activeOffset + stateModel.screenDrag
         }
         
-        return HStack(alignment: .center, spacing: stateModel.spacing) {
+        return HStack(alignment: .center, spacing: Constants.spacing) {
             items
         }
         .offset(x: CGFloat(calcOffset), y: 0)
@@ -150,11 +150,11 @@ struct Carousel<Items: View>: View {
             }
             self.stateModel.screenDrag = 0
             
-            if value.translation.width < -stateModel.snapTolerance {
+            if value.translation.width < -Constants.snapTolerance {
                 self.stateModel.activeIndex = self.stateModel.activeIndex + 1
             }
             
-            if value.translation.width > stateModel.snapTolerance {
+            if value.translation.width > Constants.snapTolerance {
                 self.stateModel.activeIndex = min(max(0, self.stateModel.activeIndex - 1), Int(self.numberOfItems))
             }
         })
@@ -162,7 +162,7 @@ struct Carousel<Items: View>: View {
     
 }
 
-struct Canvas<Content: View>: View {
+private struct Canvas<Content: View>: View {
     let content: Content
     @EnvironmentObject var stateModel: CameraModeStateModel
     
@@ -177,7 +177,7 @@ struct Canvas<Content: View>: View {
     }
 }
 
-struct Item<Content: View>: View {
+private struct Item<Content: View>: View {
     
     @EnvironmentObject var stateModel: CameraModeStateModel
     
@@ -200,28 +200,28 @@ struct Item<Content: View>: View {
         ZStack {
             main
             .onTapGesture {
-                pressedAction()
+                stateModel.activeIndex = _id
             }
         }
     }
     
     var main: AnyView {
-        let transformScale = _id == stateModel.activeIndex ? 1.0 : stateModel.heightShrink
+        let transformScale = _id == stateModel.activeIndex ? 1.0 : Constants.heightShrink
         
         return AnyView(content
             .scaleEffect(transformScale)
             .frame(
-                width: stateModel.cardWidth,
-                height: stateModel.cardHeight,
+                width: Constants.cardWidth,
+                height: Constants.cardHeight,
                 alignment: .center
             ))
     }
 }
 
-struct SnapCarousel_Previews: PreviewProvider {
+struct CameraModePicker_Previews: PreviewProvider {
     static var model: CameraModeStateModel {
         let model = CameraModeStateModel()
-        model.activeIndex = 1
+        model.activeIndex = 0
         model.isModeActive = true
         return model
     }

@@ -74,10 +74,8 @@ class CameraServiceModel: ObservableObject {
     @Published var scannedKey: ImageKey?
 }
 
-
 class CameraService: CameraServicable {
     typealias PhotoCaptureSessionID = String
-    
 
     
 //    MARK: Alert properties
