@@ -29,7 +29,13 @@ class PhotoCaptureProcessor: NSObject, CaptureProcessor {
     private var fileWriter: FileWriter
     private var cancellables = Set<AnyCancellable>()
     
-    convenience init(with requestedPhotoSettings: AVCapturePhotoSettings, willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
+    convenience init(with requestedPhotoSettings: AVCapturePhotoSettings,
+                     willCapturePhotoAnimation: @escaping () -> Void,
+                     completionHandler: @escaping (CaptureProcessor) -> Void,
+                     photoProcessingHandler: @escaping (Bool) -> Void,
+                     livePhotoEnabled: Bool,
+                     fileWriter: FileWriter,
+                     key: ImageKey) {
         self.init(
             willCapturePhotoAnimation: willCapturePhotoAnimation,
             completionHandler: completionHandler,
@@ -38,7 +44,9 @@ class PhotoCaptureProcessor: NSObject, CaptureProcessor {
             key: key
         )
         self.requestedPhotoSettings = requestedPhotoSettings
-        self.requestedPhotoSettings.livePhotoMovieFileURL = TempFilesManager.shared.createTempURL(for: .video, id: self.photoId)
+        if livePhotoEnabled {
+            self.requestedPhotoSettings.livePhotoMovieFileURL = TempFilesManager.shared.createTempURL(for: .video, id: self.photoId)
+        }
     }
     
     required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {

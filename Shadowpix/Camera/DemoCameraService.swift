@@ -14,7 +14,7 @@ class DemoCameraService: CameraServicable {
     }
     
     var model: CameraServiceModel = CameraServiceModel()
-    
+    var isLivePhotoEnabled: Bool = false
     func stop() {
         
     }

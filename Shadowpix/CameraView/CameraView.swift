@@ -131,6 +131,7 @@ struct CameraView: View {
 
     private var topBar: some View {
         HStack {
+            
             Button {
                 showingKeySelection = true
             } label: {
@@ -138,6 +139,17 @@ struct CameraView: View {
             }
             Text(appState.keyManager.currentKey?.name ?? "No Key")
             Spacer()
+            if cameraModel.selectedCameraMode == .photo {
+                Button {
+                    cameraModel.isLivePhotoEnabled.toggle()
+                } label: {
+                    if cameraModel.isLivePhotoEnabled {
+                        Image(systemName: "livephoto")
+                    } else {
+                        Image(systemName: "livephoto.slash")
+                    }
+                }.frame(maxWidth: 100)
+            }
             Button(action: {
                 cameraModel.switchFlash()
             }, label: {
@@ -151,8 +163,8 @@ struct CameraView: View {
     
     var body: some View {
         ZStack {
-//            cameraPreview
-//                .edgesIgnoringSafeArea(.all)
+            cameraPreview
+                .edgesIgnoringSafeArea(.all)
             VStack {
                 topBar
                 Spacer()
@@ -168,7 +180,7 @@ struct CameraView: View {
 #if DEBUG
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: CameraService(keyManager: DemoKeyManager(), model: CameraServiceModel())), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
+        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: DemoCameraService(keyManager: DemoKeyManager(), model: CameraServiceModel())), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
             .environmentObject(ShadowPixState())
         
     }

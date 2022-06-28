@@ -86,6 +86,14 @@ class CameraService: CameraServicable {
 // MARK: Session Management Properties
     var fileWriter: FileWriter?
     let session = AVCaptureSession()
+    var isLivePhotoEnabled: Bool = true {
+        didSet {
+            guard model.cameraMode == .photo else {
+                return
+            }
+            try? addPhotoOutputToSession()
+        }
+    }
     private var setupResult: SessionSetupResult = .success
     
     private let sessionQueue = DispatchQueue(label: "Shadowpix session queue")
@@ -397,7 +405,7 @@ class CameraService: CameraServicable {
                 } else {
                     self?.model.shouldShowSpinner = false
                 }
-            }, fileWriter: fileWriter, key: key)
+            }, livePhotoEnabled: self.isLivePhotoEnabled, fileWriter: fileWriter, key: key)
             
             // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
             self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor
@@ -446,10 +454,9 @@ private extension CameraService {
         try swapOutput(with: photoOutput)
         session.sessionPreset = .photo
         photoOutput.maxPhotoQualityPrioritization = .quality
-        photoOutput.isLivePhotoCaptureEnabled = true
+        photoOutput.isLivePhotoCaptureEnabled = isLivePhotoEnabled
         photoOutput.isHighResolutionCaptureEnabled = true
         currentCaptureOutput = photoOutput
-        
     }
     
     private func addVideoOutputToSession() throws {

@@ -11,7 +11,7 @@ import Combine
 import UIKit
 
 final class CameraModel: ObservableObject {
-    private let service: CameraServicable
+    private var service: CameraServicable
     
     var session: AVCaptureSession {
         service.session
@@ -23,6 +23,7 @@ final class CameraModel: ObservableObject {
     @Published var isRecordingVideo = false
     @Published var willCapturePhoto = false
     @Published var showCameraView = true
+    @Published var isLivePhotoEnabled = true
     @Published var selectedCameraMode: CameraMode = .photo
     
     var alertError: AlertError!
@@ -76,6 +77,10 @@ final class CameraModel: ObservableObject {
             self?.isRecordingVideo = capturing
         }
         .store(in: &self.cancellables)
+        
+        $isLivePhotoEnabled.dropFirst().sink { enabled in
+            self.service.isLivePhotoEnabled = enabled
+        }.store(in: &cancellables)
     }
     
     func configure() {
