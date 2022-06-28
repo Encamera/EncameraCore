@@ -92,7 +92,7 @@ struct CameraView: View {
     
     private var cameraPreview: some View {
         GeometryReader { reader in
-            CameraPreview(session: cameraModel.session)
+            CameraPreview(session: cameraModel.session, modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
                 .gesture(
                     DragGesture().onChanged({ (val) in
                         //  Only accept vertical drag
