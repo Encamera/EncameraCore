@@ -11,13 +11,13 @@ import Combine
 
 class VideoCaptureProcessor: NSObject, CaptureProcessor {
     
-    private let fileHandler: DiskFileAccess<iCloudFilesDirectoryModel>
+    private let fileHandler: FileWriter
     private var cancellables = Set<AnyCancellable>()
     private let completion: (CaptureProcessor) -> (Void)
     let videoId = NSUUID().uuidString
  
     required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
-        self.fileHandler = DiskFileAccess<iCloudFilesDirectoryModel>(key: key)
+        self.fileHandler = fileWriter
         self.completion = completionHandler
     }
     
