@@ -39,7 +39,7 @@ struct GalleryView: View {
         ScrollView {
             LazyVGrid(columns: gridItems, spacing: 1) {
                 ForEach(viewModel.media, id: \.gridID) { mediaItem in
-                    GalleryItem(fileAccess: viewModel.fileAccess, keyManager: viewModel.keyManager, media: mediaItem)
+                    GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem)
                 }
             }
         }
@@ -55,6 +55,6 @@ struct GalleryView_Previews: PreviewProvider {
 
     static var previews: some View {
 
-        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher())))
+        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher())))
     }
 }

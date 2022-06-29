@@ -12,7 +12,6 @@ import Combine
 struct GalleryItem: View {
     
     var fileAccess: FileAccess
-    var keyManager: KeyManager
     var media: EncryptedMedia
     @State private var isActive: Bool = false
     
@@ -20,9 +19,9 @@ struct GalleryItem: View {
         NavigationLink(isActive: $isActive, destination: {
             switch media.mediaType {
             case .photo:
-                ImageViewing(viewModel: ImageViewingViewModel<EncryptedMedia, DiskFileAccess<iCloudFilesDirectoryModel>> .init(media: media, keyManager: keyManager))
+                ImageViewing(viewModel: ImageViewingViewModel<EncryptedMedia>.init(media: media, fileAccess: fileAccess))
             case .video:
-                MovieViewing<EncryptedMedia, DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: .init(media: media, keyManager: keyManager))
+                MovieViewing<EncryptedMedia>(viewModel: .init(media: media, fileAccess: fileAccess))
             default:
                 EmptyView()
             }
@@ -44,6 +43,6 @@ struct GalleryItem_Previews: PreviewProvider {
 
     static var previews: some View {
 //        GalleryItem(fileAccess: fileAccess, keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), media: fileAccess.media.randomElement()!)
-        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher())))
+        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher())))
     }
 }
