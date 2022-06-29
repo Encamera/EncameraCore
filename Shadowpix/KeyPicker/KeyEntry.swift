@@ -19,7 +19,6 @@ struct KeyEntry: View {
     
     @State private var keyString = ""
     
-    @EnvironmentObject var state: ShadowPixState
     @State var isShowingAlertForSaveKey: Bool = false
     
     private var viewModel: ViewModel
@@ -71,6 +70,6 @@ struct KeyEntry: View {
 
 struct KeyEntry_Previews: PreviewProvider {
     static var previews: some View {
-        KeyEntry(viewModel: KeyEntry.ViewModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), isShowing: .constant(true)))
+        KeyEntry(viewModel: KeyEntry.ViewModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()), isShowing: .constant(true)))
     }
 }
