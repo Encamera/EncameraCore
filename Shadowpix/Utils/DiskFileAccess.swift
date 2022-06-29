@@ -86,7 +86,6 @@ extension DiskFileAccess: FileReader {
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> where T.MediaSource == URL {
         
         let thumbnailPath = directoryModel.thumbnailURLForMedia(media)
-        print(thumbnailPath)
         let thumb = T(source: thumbnailPath, mediaType: .thumbnail, id: media.id)
         
         do {
