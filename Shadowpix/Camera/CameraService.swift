@@ -513,9 +513,10 @@ private extension CameraService {
                 throw SetupError.defaultVideoDeviceUnavailable
             }
             guard let audioDevice = AVCaptureDevice.default(for: .audio),
-                      let audioDeviceInput = try? AVCaptureDeviceInput(device: audioDevice) else {
-                throw SetupError.defaultAudioDeviceUnavailable
-                }
+                  let audioDeviceInput = try? AVCaptureDeviceInput(device: audioDevice), session.canAddInput(audioDeviceInput) else {
+                      throw SetupError.defaultAudioDeviceUnavailable
+                  }
+            
             session.addInput(audioDeviceInput)
             
             
