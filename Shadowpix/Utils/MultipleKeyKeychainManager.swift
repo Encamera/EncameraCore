@@ -21,6 +21,11 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     private var cancellables = Set<AnyCancellable>()
     private (set) var currentKey: ImageKey?  {
         didSet {
+            if let key = currentKey {
+                UserDefaults.standard.set(key.name, forKey: KeychainConstants.currentKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: KeychainConstants.currentKey)
+            }
             keySubject.send(currentKey)
         }
     }
@@ -36,7 +41,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         self.isAuthorized.sink { newValue in
             self.authorized = newValue
             if self.authorized == true {
-                try! self.getKey()
+                try? self.getKey()
             }
         }.store(in: &cancellables)
 
@@ -144,14 +149,13 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
             throw KeyManagerError.notAuthorizedError
         }
         guard let name = name else {
-            UserDefaults.standard.removeObject(forKey: KeychainConstants.currentKey)
+            currentKey = nil
             return
         }
 
         guard let key = try? getKey(by: name) else {
             throw KeyManagerError.notFound
         }
-        UserDefaults.standard.set(key.name, forKey: KeychainConstants.currentKey)
         currentKey = key
     }
     
