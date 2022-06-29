@@ -12,7 +12,6 @@ struct MainInterface: View {
     
     @ObservedObject private var model: MainInterfaceViewModel
     @EnvironmentObject var appState: ShadowPixState
-    @State var showGalleryView: Bool = false
 
     init(viewModel: MainInterfaceViewModel) {
         self.model = viewModel
@@ -20,19 +19,14 @@ struct MainInterface: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            if model.showCameraInterface,
-               let cameraService = model.cameraService, let fileAccess = model.fileAccess {
-                let _ = Self._printChanges()
+            if
+//                model.showCameraInterface,
+               let cameraService = model.cameraService,
+               let fileAccess = appState.fileAccess {
                 
-                let cameraModel = CameraModel(keyManager: appState.keyManager, cameraService: cameraService, fileReader: fileAccess)
-                CameraView(viewModel: cameraModel, galleryIconTapped: $showGalleryView, showingKeySelection: $model.showingKeySelection)
-                    
+                CameraView(viewModel: .init(keyManager: appState.keyManager, authManager: appState.authManager, cameraService: cameraService, fileReader: fileAccess))
                     .environmentObject(appState)
-                    .sheet(isPresented: $model.showingKeySelection) {
-                        KeySelectionList(viewModel: .init(keyManager: appState.keyManager))
-                    }.sheet(isPresented: $showGalleryView) {
-                        MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: MediaGalleryViewModel(keyManager: appState.keyManager))
-                    }
+                    
             } else {
                 Color.black
             }
@@ -42,6 +36,6 @@ struct MainInterface: View {
 
 struct MainInterface_Previews: PreviewProvider {
     static var previews: some View {
-        MainInterface(viewModel: MainInterfaceViewModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()))).environmentObject(ShadowPixState())
+        MainInterface(viewModel: MainInterfaceViewModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()))).environmentObject(ShadowPixState())
     }
 }
