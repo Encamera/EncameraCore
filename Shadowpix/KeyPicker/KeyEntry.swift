@@ -6,14 +6,27 @@
 //
 
 import SwiftUI
+import Combine
 
 struct KeyEntry: View {
     
-    @State var keyString = ""
-    @Binding var isShowing: Bool
-    @EnvironmentObject var state: ShadowPixState
+    class ViewModel: ObservableObject {
+        var keyManager: KeyManager
+        init(keyManager: KeyManager, isShowing: Binding<Bool>) {
+            self.keyManager = keyManager
+        }
+    }
+    
+    @State private var keyString = ""
+    
     @State var isShowingAlertForSaveKey: Bool = false
-
+    
+    private var viewModel: ViewModel
+    
+    init(viewModel: ViewModel) {
+        self.viewModel = viewModel
+    }
+    
     var body: some View {
         let keyObject: Binding<ImageKey?> = {
             return Binding {
@@ -22,51 +35,41 @@ struct KeyEntry: View {
                 
             }
         }()
-        NavigationView {
-            VStack {
-                if let keyObject = keyObject.wrappedValue {
-                    Text("Found key: \(keyObject.name)")
-                }
-                
-                TextEditor(text: $keyString)
-                Spacer()
-                
-            }.padding().navigationTitle("Key Entry")
-                .toolbar {
-                    ToolbarItemGroup(placement: .navigationBarLeading) {
-                        Button("Cancel") {
-                            isShowing = false
-                        }
-                    }
-                    ToolbarItemGroup(placement: .navigationBarTrailing) {
-                        if keyString.count > 0, keyObject.wrappedValue != nil {
-                            Button("Save") {
-                                isShowingAlertForSaveKey = true
-                                }
+        VStack {
+            if let keyObject = keyObject.wrappedValue {
+                Text("Found key: \(keyObject.name)")
+            }
+            
+            TextEditor(text: $keyString)
+            Spacer()
+            
+        }.padding().navigationTitle("Key Entry")
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    if keyString.count > 0, keyObject.wrappedValue != nil {
+                        Button("Save") {
+                            isShowingAlertForSaveKey = true
                         }
                     }
                 }
-        }.onAppear {
-            keyString = keyObject.wrappedValue?.base64String ?? ""
-        }.alert("Are you sure you want to save this key?", isPresented: $isShowingAlertForSaveKey) {
-            Button("Yes", role: .destructive) {
-                guard let keyObject = keyObject.wrappedValue else {
-                    return
+            }.onAppear {
+                keyString = keyObject.wrappedValue?.base64String ?? ""
+            }.alert("Are you sure you want to save this key?", isPresented: $isShowingAlertForSaveKey) {
+                Button("Yes", role: .destructive) {
+                    guard let keyObject = keyObject.wrappedValue else {
+                        return
+                    }
+                    try? viewModel.keyManager.save(key: keyObject)
                 }
-                state.selectedKey = keyObject
-                state.scannedKey = nil
-                isShowing = false
+                Button("Cancel", role: .cancel) {
+                    isShowingAlertForSaveKey = false
+                }
             }
-            Button("Cancel", role: .cancel) {
-                isShowingAlertForSaveKey = false
-            }
-        }
     }
 }
 
 struct KeyEntry_Previews: PreviewProvider {
     static var previews: some View {
-        KeyEntry( keyString: "eyJrZXlEYXRhIjoiQ00wUjJIdkZkdzczM3pZbGFSKzh2cXd6SW90MitRZjFEbDFZN1FFUE8zYz0iLCJuYW1lIjoidGVzdCJ9", isShowing: .constant(true))
-            .environmentObject(ShadowPixState.shared)
+        KeyEntry(viewModel: KeyEntry.ViewModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()), isShowing: .constant(true)))
     }
 }

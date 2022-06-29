@@ -6,113 +6,55 @@
 //
 
 import SwiftUI
+import Combine
 
-struct LocalImageView: View {
+@MainActor
+class GalleryViewModel: ObservableObject {
     
-    var imageModel: ShadowPixMedia
+    @Published var isDisplayingMedia: Bool = false
+    @Published var media: [EncryptedMedia] = []
+    var cancellables = Set<AnyCancellable>()
+    var fileAccess: FileAccess
+    var keyManager: KeyManager
     
-    var body: some View {
-        Group {
-            if let image = imageModel.decryptedImage?.image {
-                Image(uiImage: image)
-            }
-        }.onAppear {
-            imageModel.loadImage()
-        }
-    }
-}
-
-struct AsyncImage<Placeholder: View>: View {
-    
-    private var placeholder: Placeholder
-    @ObservedObject private var image: ShadowPixMedia
-    
-    init(_ image: ShadowPixMedia, placeholder: () -> Placeholder) {
-        self.placeholder = placeholder()
-        self.image = image
+    init(fileAccess: FileAccess, keyManager: KeyManager) {
+        self.fileAccess = fileAccess
+        self.keyManager = keyManager
     }
     
-    var body: some View {
-        
-        content.onAppear {
-            image.loadImage()
-        }
-    }
     
-    private var content: some View {
-        Group {
-            if let decrypted = image.decryptedImage?.image {
-                Image(uiImage: decrypted)
-                    .resizable()
-                    .clipped()
-                    .background(Color.orange)
-                    .aspectRatio(contentMode:.fit)
-            } else {
-                placeholder
-            }
-        }
+    func enumerateMedia() async {
+        self.media = await fileAccess.enumerateMedia()
     }
 }
 
 struct GalleryView: View {
     
-    @EnvironmentObject var state: ShadowPixState
-    @State var images: [ShadowPixMedia] = []
-    @State var displayImage: ShadowPixMedia?
-    @State var isDisplayingImage: Bool = false
+    @ObservedObject var viewModel: GalleryViewModel
+    
     var body: some View {
         let gridItems = [
-            GridItem(.adaptive(minimum: 100))
+            GridItem(.adaptive(minimum: 100), spacing: 1)
         ]
-        if state.isAuthorized {
-            NavigationView {
-                ScrollView {
-                    NavigationLink("", isActive: $isDisplayingImage) {
-                        if let displayImage = displayImage {
-                            ImageViewing(viewModel: .init(image: displayImage))
-                        } else {
-                            EmptyView()
-                        }
-                    }
-                    LazyVGrid(columns: gridItems, spacing: 1) {
-                        ForEach(images, id: \.id) { image in
-                            AsyncImage(image) {
-                                Color.gray.frame(width: 50, height: 50)
-                            }.onTapGesture {
-                                self.displayImage = image
-                                self.isDisplayingImage = true
-                            }
-                        }
-                        
-                    }.padding(.horizontal)
-                }.navigationTitle(state.selectedKey?.name ?? "No Key")
-            }
-            .onAppear {
-                guard let key = ShadowPixState.shared.selectedKey else {
-                    return
-                }
-                iCloudFilesManager.enumerateImagesFor(key: key) { images in
-                    self.images = images
+        ScrollView {
+            LazyVGrid(columns: gridItems, spacing: 1) {
+                ForEach(viewModel.media, id: \.gridID) { mediaItem in
+                    GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem)
                 }
             }
-        } else {
-            Color.black
         }
+        .task {
+            await viewModel.enumerateMedia()
+        }
+        .edgesIgnoringSafeArea(.all)
+        
     }
 }
 
 struct GalleryView_Previews: PreviewProvider {
-    static var items: [ShadowPixMedia] {
-        return (0...10).map { item in
-            let id = "\(item)"
-//            let image = DecryptedImage(image: UIImage(systemName: "lock")!)
-            let media = ShadowPixMedia(url: URL(string: id)!)
-            
-            return media
-        }
-    }
+
     static var previews: some View {
-//        Color.orange
-        GalleryView(images: items).environmentObject(ShadowPixState.shared)
+
+        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher())))
     }
 }

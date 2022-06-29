@@ -7,13 +7,14 @@
 
 import Foundation
 import AVFoundation
+import Combine
 
 class QRCodeCaptureProcessor: NSObject {
     var supportedObjectTypes: [AVMetadataObject.ObjectType] {
         return [.qr]
     }
     
-    var lastValidKeyObject: ImageKey?
+    @Published var lastValidKeyObject: ImageKey?
     
 }
 
@@ -25,7 +26,6 @@ extension QRCodeCaptureProcessor: AVCaptureMetadataOutputObjectsDelegate {
                 return
             }
             lastValidKeyObject = keyObject
-            ShadowPixState.shared.scannedKey = keyObject
             print(keyObject)
             
         }

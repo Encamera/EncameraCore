@@ -10,6 +10,9 @@ import AVFoundation
 import Combine
 
 struct CameraPreview: UIViewRepresentable {
+    
+    
+    
     class VideoPreviewView: UIView {
         
         
@@ -28,14 +31,23 @@ struct CameraPreview: UIViewRepresentable {
             guard let videoPreviewLayer = videoPreviewLayer else {
                 return
             }
-
+            
             layer.addSublayer(videoPreviewLayer)
             videoPreviewLayer.frame = layer.frame
         }
         private var cancellables = Set<AnyCancellable>()
 
-        init() {
+        init(modePublisher: AnyPublisher<CameraMode, Never>) {
             super.init(frame: .zero)
+            modePublisher.dropFirst().sink { mode in
+                switch mode {
+                    
+                case .photo:
+                    self.videoPreviewLayer?.videoGravity = .resizeAspect
+                case .video:
+                    self.videoPreviewLayer?.videoGravity = .resizeAspectFill
+                }
+            }.store(in: &cancellables)
             NotificationCenter.default
                 .publisher(for: UIApplication.didEnterBackgroundNotification)
                 .sink { _ in
@@ -62,9 +74,10 @@ struct CameraPreview: UIViewRepresentable {
     }
     
     let session: AVCaptureSession
+    let modePublisher: AnyPublisher<CameraMode, Never>
     
     func makeUIView(context: Context) -> VideoPreviewView {
-        let view = VideoPreviewView()
+        let view = VideoPreviewView(modePublisher: self.modePublisher)
         view.backgroundColor = .black
         let layer = AVCaptureVideoPreviewLayer()
         layer.cornerRadius = 0
@@ -81,7 +94,7 @@ struct CameraPreview: UIViewRepresentable {
 
 struct CameraPreview_Previews: PreviewProvider {
     static var previews: some View {
-        CameraPreview(session: AVCaptureSession())
+        CameraPreview(session: AVCaptureSession(), modePublisher: Just(.video).eraseToAnyPublisher())
             .frame(height: 300)
     }
 }

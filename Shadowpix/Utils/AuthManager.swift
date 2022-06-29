@@ -8,38 +8,31 @@
 import Foundation
 import LocalAuthentication
 
-struct AuthManager {
+class AuthManager: ObservableObject {
     
-    private var state: ShadowPixState
     
-    init(state: ShadowPixState) {
-        self.state = state
-    }
+    @Published var isAuthorized: Bool = false
+    
 
     func deauthorize() {
-        state.isAuthorized = false
+        isAuthorized = false
     }
     
     func authorize() {
         let context = LAContext()
         var error: NSError?
-        guard state.isAuthorized == false else {
+        guard isAuthorized == false else {
             return
         }
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            state.isAuthorized = false
+            isAuthorized = false
             return
         }
         
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Scan face ID to keep your keys secure.") { success, error in
             DispatchQueue.main.async {
-                state.isAuthorized = success
-                guard success else {
-                    return
-                }
-                if let savedKey = WorkWithKeychain.getKeyObject() {
-                    ShadowPixState.shared.selectedKey = savedKey
-                }
+                
+                self.isAuthorized = success
             }
         }
     }

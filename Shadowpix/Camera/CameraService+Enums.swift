@@ -30,6 +30,15 @@ extension CameraService {
         case configurationFailed
     }
     
+    enum SetupError: Error {
+        case defaultVideoDeviceUnavailable
+        case defaultAudioDeviceUnavailable
+        case couldNotAddVideoInputToSession
+        case couldNotCreateVideoDeviceInput(avFoundationError: Error)
+        case couldNotAddPhotoOutputToSession
+        case couldNotAddMetadataOutputToSession
+    }
+    
     enum CaptureMode: Int {
         case photo = 0
         case movie = 1

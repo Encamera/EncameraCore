@@ -6,27 +6,36 @@
 //
 
 import SwiftUI
+import Combine
 
 struct MainInterface: View {
     
-    @StateObject private var model = MainInterfaceViewModel()
+    @ObservedObject private var model: MainInterfaceViewModel
     @EnvironmentObject var appState: ShadowPixState
+
+    init(viewModel: MainInterfaceViewModel) {
+        self.model = viewModel
+    }
+    
     var body: some View {
         ZStack(alignment: .top) {
-            CameraView(galleryIconTapped: $model.showGalleryView, showingKeySelection: $model.showingKeySelection)
-                .environmentObject(appState)
-                .sheet(isPresented: $model.showingKeySelection) {
-                    KeyPickerView(isShown: $model.showingKeySelection)
-                        .environmentObject(appState)
-                }.sheet(isPresented: $model.showGalleryView) {
-                    GalleryView().environmentObject(appState)
-                }
+            if
+//                model.showCameraInterface,
+               let cameraService = model.cameraService,
+               let fileAccess = appState.fileAccess {
+                
+                CameraView(viewModel: .init(keyManager: appState.keyManager, authManager: appState.authManager, cameraService: cameraService, fileReader: fileAccess))
+                    .environmentObject(appState)
+                    
+            } else {
+                Color.black
+            }
         }
     }
 }
 
 struct MainInterface_Previews: PreviewProvider {
     static var previews: some View {
-        MainInterface().environmentObject(ShadowPixState.shared)
+        MainInterface(viewModel: MainInterfaceViewModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()))).environmentObject(ShadowPixState())
     }
 }

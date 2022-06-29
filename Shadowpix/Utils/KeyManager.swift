@@ -1,0 +1,34 @@
+//
+//  KeyManager.swift
+//  Shadowpix
+//
+//  Created by Alexander Freas on 19.05.22.
+//
+
+import Foundation
+import Sodium
+import Combine
+
+enum KeyManagerError: Error {
+    case deleteKeychainItemsFailed
+    case unhandledError
+    case notAuthorizedError
+    case notFound
+    case dataError
+    case keyExists
+}
+
+protocol KeyManager {
+    
+    init(isAuthorized: AnyPublisher<Bool, Never>)
+    
+    var isAuthorized: AnyPublisher<Bool, Never> { get }
+    var currentKey: ImageKey? { get }
+    var keyPublisher: AnyPublisher<ImageKey?, Never> { get }
+    func clearStoredKeys() throws
+    func storedKeys() throws -> [ImageKey]
+    func deleteKey(_ key: ImageKey) throws
+    func setActiveKey(_ name: KeyName?) throws
+    func save(key: ImageKey) throws
+    @discardableResult func generateNewKey(name: String) throws-> ImageKey
+}

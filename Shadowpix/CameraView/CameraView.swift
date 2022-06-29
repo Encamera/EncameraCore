@@ -1,149 +1,193 @@
-//
-//  ContentView.swift
-//  Shadowpix
-//
-//  Created by Rolando Rodriguez on 10/15/20.
-//
-
 import SwiftUI
 import Combine
 import AVFoundation
 
 struct CameraView: View {
-    @StateObject private var model = CameraModel()
-    @EnvironmentObject var appState: ShadowPixState
-    @Binding var galleryIconTapped: Bool
+    @ObservedObject private var cameraModel: CameraModel
     @State private var currentZoomFactor: CGFloat = 1.0
-    @Binding var showingKeySelection: Bool
+    @State var cameraModeStateModel: CameraModeStateModel
+    
+    init(viewModel: CameraModel) {
+        self.cameraModeStateModel = CameraModeStateModel()
+        self.cameraModel = viewModel
+    }
     
     private var captureButton: some View {
         Button(action: {
-            model.capturePhoto()
+            cameraModel.captureButtonPressed()
         }, label: {
-            Circle()
-                .foregroundColor(.white)
-                .frame(width: 80, height: 80, alignment: .center)
-                .overlay(
-                    Circle()
-                        .stroke(Color.black.opacity(0.8), lineWidth: 2)
-                        .frame(width: 65, height: 65, alignment: .center)
-                )
+            if cameraModel.isRecordingVideo {
+                Circle()
+                    .foregroundColor(.red)
+                    .frame(width: 80, height: 80, alignment: .center)
+            } else {
+                Circle()
+                    .foregroundColor(.white)
+                    .frame(width: 80, height: 80, alignment: .center)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.black.opacity(0.8), lineWidth: 2)
+                            .frame(width: 65, height: 65, alignment: .center)
+                    )
+            }
         })
     }
     
+    private func captureAction() {
+        cameraModel.captureButtonPressed()
+    }
+        
     private var capturedPhotoThumbnail: some View {
         Group {
-            Image(systemName: "photo.on.rectangle.angled")
-                
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .foregroundColor(.white)
-                .animation(.spring())
-                .onTapGesture {
-                    self.galleryIconTapped = true
-                }
+            if let thumbnail = cameraModel.thumbnailImage {
+                Image(uiImage: thumbnail)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .foregroundColor(.white)
+                    .animation(.spring())
+                    .onTapGesture {
+                        cameraModel.showGalleryView = true
+                    }
+            } else {
+                Color.clear
+            }
         }.frame(width: 60, height: 60)
 
     }
     
     private var flipCameraButton: some View {
         Button(action: {
-            model.flipCamera()
+            cameraModel.flipCamera()
         }, label: {
             Circle()
                 .foregroundColor(Color.gray.opacity(0.2))
-                .frame(width: 45, height: 45, alignment: .center)
+                .frame(width: 60, height: 60, alignment: .center)
                 .overlay(
                     Image(systemName: "camera.rotate.fill")
                         .foregroundColor(.white))
         })
     }
     
-    var body: some View {
+    private var bottomButtonPanel: some View {
+        VStack {
+            CameraModePicker(pressedAction: { mode in
+            })
+            .onReceive(cameraModeStateModel.$selectedMode) { newValue in
+                cameraModel.selectedCameraMode = newValue
+            }
+            .environmentObject(cameraModeStateModel)
+            HStack {
+                capturedPhotoThumbnail
+                    
+                captureButton
+                    .frame(maxWidth: .infinity)
+                flipCameraButton
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    private var cameraPreview: some View {
         GeometryReader { reader in
-            
-            ZStack {
-                Color.black.edgesIgnoringSafeArea(.all)
-                if appState.isAuthorized {
-                    
-                }
-                VStack {
-                    HStack {
-                        Button {
-                            showingKeySelection = true
-                        } label: {
-                            Image(systemName: "key.fill").frame(width: 44, height: 44)
-                        }.tint(.white)
-                        Text(appState.selectedKey?.name ?? "No Key")
-                        Spacer()
-                        Button(action: {
-                            model.switchFlash()
-                        }, label: {
-                            Image(systemName: model.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
-                                .font(.system(size: 20, weight: .medium, design: .default))
-                        })
-                            .accentColor(model.isFlashOn ? .yellow : .white)
-                    }.padding()
-                    CameraPreview(session: model.session)
-                        .gesture(
-                            DragGesture().onChanged({ (val) in
-                                //  Only accept vertical drag
-                                if abs(val.translation.height) > abs(val.translation.width) {
-                                    //  Get the percentage of vertical screen space covered by drag
-                                    let percentage: CGFloat = -(val.translation.height / reader.size.height)
-                                    //  Calculate new zoom factor
-                                    let calc = currentZoomFactor + percentage
-                                    //  Limit zoom factor to a maximum of 5x and a minimum of 1x
-                                    let zoomFactor: CGFloat = min(max(calc, 1), 5)
-                                    //  Store the newly calculated zoom factor
-                                    currentZoomFactor = zoomFactor
-                                    //  Sets the zoom factor to the capture device session
-                                    model.zoom(with: zoomFactor)
-                                }
-                            })
-                        )
-                        .onAppear {
-                            model.configure()
+            CameraPreview(session: cameraModel.session, modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
+                .gesture(
+                    DragGesture().onChanged({ (val) in
+                        //  Only accept vertical drag
+                        if abs(val.translation.height) > abs(val.translation.width) {
+                            //  Get the percentage of vertical screen space covered by drag
+                            let percentage: CGFloat = -(val.translation.height / reader.size.height)
+                            //  Calculate new zoom factor
+                            let calc = currentZoomFactor + percentage
+                            //  Limit zoom factor to a maximum of 5x and a minimum of 1x
+                            let zoomFactor: CGFloat = min(max(calc, 1), 5)
+                            //  Store the newly calculated zoom factor
+                            currentZoomFactor = zoomFactor
+                            //  Sets the zoom factor to the capture device session
+                            cameraModel.zoom(with: zoomFactor)
                         }
-                        .alert(isPresented: $model.showAlertError, content: {
-                            Alert(title: Text(model.alertError.title), message: Text(model.alertError.message), dismissButton: .default(Text(model.alertError.primaryButtonTitle), action: {
-                                model.alertError.primaryAction?()
-                            }))
-                        })
-                        .overlay(
-                            Group {
-                                if model.willCapturePhoto {
-                                    Color.black
-                                }
-                            }
-                        )
-                        .animation(.easeInOut)
-                    
-                    HStack {
-                        capturedPhotoThumbnail
-                        
-                        Spacer()
-                        
-                        captureButton
-                        
-                        Spacer()
-                        
-                        flipCameraButton
-                        
+                    })
+                )
+                .alert(isPresented: $cameraModel.showAlertError, content: {
+                    Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
+                        cameraModel.alertError.primaryAction?()
+                    }))
+                })
+                .overlay(
+                    Group {
+                        if cameraModel.willCapturePhoto {
+                            Color.black
+                        }
                     }
-                    .padding(.horizontal, 20)
-                }
+                )
+                .animation(.easeInOut)
+        }
+    }
+
+    private var topBar: some View {
+        HStack {
+            
+            Button {
+                cameraModel.showingKeySelection = true
+            } label: {
+                Image(systemName: "key.fill").frame(width: 44, height: 44)
             }
-            if model.showCameraView == false {
-                Color.black
+            Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
+            Spacer()
+            if cameraModel.selectedCameraMode == .photo {
+                Button {
+                    cameraModel.isLivePhotoEnabled.toggle()
+                } label: {
+                    if cameraModel.isLivePhotoEnabled {
+                        Image(systemName: "livephoto")
+                    } else {
+                        Image(systemName: "livephoto.slash")
+                    }
+                }.frame(maxWidth: 100)
             }
+            Button(action: {
+                cameraModel.switchFlash()
+            }, label: {
+                Image(systemName: cameraModel.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
+                    .font(.system(size: 20, weight: .medium, design: .default))
+            })
+            
+            .accentColor(cameraModel.isFlashOn ? .yellow : .white)
+        }.padding().tint(.white).foregroundColor(.white)
+    }
+    
+    var body: some View {
+        ZStack {
+            cameraPreview
+                .edgesIgnoringSafeArea(.all)
+            VStack {
+                topBar
+                Spacer()
+                bottomButtonPanel
+            }
+        }
+        .background(Color.black)
+        .sheet(isPresented: $cameraModel.showingKeySelection) {
+            KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
+        }.sheet(isPresented: $cameraModel.showGalleryView) {
+            MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager))
+        }
+        .onAppear {
+            cameraModel.configure()
+            cameraModel.loadThumbnail()
+        }
+        if cameraModel.showCameraView == false {
+            Color.black
         }
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        CameraView(galleryIconTapped: .constant(false), showingKeySelection: .constant(false)).environmentObject(ShadowPixState.shared)
-    }
-}
+//#if DEBUG
+//struct ContentView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        CameraView(viewModel: CameraModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: DemoCameraService(keyManager: DemoKeyManager(), model: CameraServiceModel()), fileReader: DemoFileEnumerator()))
+//            .environmentObject(ShadowPixState())
+//        
+//    }
+//}
+//#endif
