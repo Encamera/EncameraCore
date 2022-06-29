@@ -19,16 +19,13 @@ protocol MediaViewingViewModel: AnyObject {
     
     associatedtype SourceType = MediaDescribing
     associatedtype TargetT: MediaSourcing
-    associatedtype Reader: FileReader
-    
     
     var sourceMedia: SourceType { get set }
-    var keyManager: KeyManager { get set }
-    var fileAccess: Reader? { get set }
+    var fileAccess: FileAccess? { get set }
     var error: MediaViewingError? { get set }
 
     var decryptedFileRef: CleartextMedia<TargetT>? { get set }
-    init(media: SourceType, keyManager: KeyManager)
+    init(media: SourceType, fileAccess: FileAccess)
     
     func decrypt() async throws -> CleartextMedia<TargetT>
 }
@@ -52,21 +49,15 @@ extension MediaViewingViewModel {
     }
 }
 
-class ImageViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: ObservableObject, MediaViewingViewModel {
+class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject, MediaViewingViewModel {
     @Published var decryptedFileRef: CleartextMedia<Data>?
     var sourceMedia: SourceType
-    var keyManager: KeyManager
-    var fileAccess: Reader?
+    var fileAccess: FileAccess?
     var error: MediaViewingError?
 
-    required init(media: SourceType, keyManager: KeyManager) {
+    required init(media: SourceType, fileAccess: FileAccess) {
         self.sourceMedia = media
-        self.keyManager = keyManager
-        if let key = keyManager.currentKey {
-            self.fileAccess = Reader(key: key)
-        } else {
-            self.error = .noKeyAvailable
-        }
+        self.fileAccess = fileAccess
     }
     
     func decrypt() async throws -> CleartextMedia<Data> {
@@ -79,10 +70,10 @@ class ImageViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: Ob
     }
 }
 
-struct ImageViewing<M: MediaDescribing, F: FileReader>: View {
+struct ImageViewing<M: MediaDescribing>: View {
     
     
-    @ObservedObject var viewModel: ImageViewingViewModel<M, F>
+    @ObservedObject var viewModel: ImageViewingViewModel<M>
     var body: some View {
         VStack {
             if let imageData = viewModel.decryptedFileRef?.source, let image = UIImage(data: imageData) {

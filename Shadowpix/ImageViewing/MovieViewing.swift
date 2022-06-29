@@ -9,8 +9,8 @@ import SwiftUI
 import AVKit
 import Combine
 
-class MovieViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: ObservableObject, MediaViewingViewModel {
-    var fileAccess: Reader?
+class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, MediaViewingViewModel {
+    var fileAccess: FileAccess?
     
     @Published var decryptedFileRef: CleartextMedia<URL>?
     
@@ -20,16 +20,10 @@ class MovieViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: Ob
     
     
     var sourceMedia: SourceType
-    var keyManager: KeyManager
 
-    required init(media: SourceType, keyManager: KeyManager) {
+    required init(media: SourceType, fileAccess: FileAccess) {
         self.sourceMedia = media
-        self.keyManager = keyManager
-        if let key = keyManager.currentKey {
-            self.fileAccess = Reader(key: key)
-        } else {
-            self.error = .noKeyAvailable
-        }
+        self.fileAccess = fileAccess
     }
     
     @MainActor
@@ -43,9 +37,9 @@ class MovieViewingViewModel<SourceType: MediaDescribing, Reader: FileReader>: Ob
     }
 }
 
-struct MovieViewing<M: MediaDescribing, F: FileReader>: View where M.MediaSource == URL {
+struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
     @State var progress = 0.0
-    @ObservedObject var viewModel: MovieViewingViewModel<M, F>
+    @ObservedObject var viewModel: MovieViewingViewModel<M>
     
     let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
@@ -74,9 +68,9 @@ struct MovieViewing<M: MediaDescribing, F: FileReader>: View where M.MediaSource
 //
 struct MovieViewing_Previews: PreviewProvider {
     static var previews: some View {
-        MovieViewing<EncryptedMedia, DiskFileAccess<DemoDirectoryModel>>(progress: 20.0, viewModel: .init(media: EncryptedMedia(source: URL(fileURLWithPath: ""),
+        MovieViewing<EncryptedMedia>(progress: 20.0, viewModel: .init(media: EncryptedMedia(source: URL(fileURLWithPath: ""),
                                                                             mediaType: .video,
                                                                             id: "234"),
-                                                      keyManager: DemoKeyManager(isAuthorized: Just(true).eraseToAnyPublisher())))
+                                                      fileAccess: DemoFileEnumerator()))
     }
 }
