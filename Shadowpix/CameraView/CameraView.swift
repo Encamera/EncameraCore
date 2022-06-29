@@ -108,9 +108,6 @@ struct CameraView: View {
                         }
                     })
                 )
-                .onAppear {
-                    cameraModel.configure()
-                }
                 .alert(isPresented: $cameraModel.showAlertError, content: {
                     Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
                         cameraModel.alertError.primaryAction?()
@@ -168,7 +165,17 @@ struct CameraView: View {
                 Spacer()
                 bottomButtonPanel
             }
-        }.background(Color.black)
+        }
+        .background(Color.black)
+        .sheet(isPresented: $cameraModel.showingKeySelection) {
+            KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
+        }.sheet(isPresented: $cameraModel.showGalleryView) {
+            MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager))
+        }
+        .onAppear {
+            cameraModel.configure()
+            cameraModel.loadThumbnail()
+        }
         if cameraModel.showCameraView == false {
             Color.black
         }

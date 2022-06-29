@@ -40,6 +40,8 @@ final class CameraModel: ObservableObject {
         self.service = cameraService
         self.keyManager = keyManager
         self.fileReader = fileReader
+        self.authManager = authManager
+
         NotificationCenter.default
             .publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { _ in
@@ -57,7 +59,6 @@ final class CameraModel: ObservableObject {
                 self.service.stop()
                 self.showCameraView = false
             }.store(in: &cancellables)
-        self.authManager = authManager
             
         service.model.$shouldShowAlertView.sink { [weak self] (val) in
             self?.alertError = self?.service.alertError
