@@ -74,7 +74,7 @@ class DemoFileEnumerator: FileAccess {
     }
     
     convenience init() {
-        self.init(key: ImageKey(name: "", keyBytes: []))
+        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()))
     }
     
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
@@ -175,7 +175,7 @@ class DemoKeyManager: KeyManager {
     
     required init(isAuthorized: AnyPublisher<Bool, Never>) {
         self.isAuthorized = isAuthorized
-        self.currentKey = ImageKey(name: "test", keyBytes: [])
+        self.currentKey = ImageKey(name: "test", keyBytes: [], creationDate: Date())
         self.keyPublisher = PassthroughSubject<ImageKey?, Never>().eraseToAnyPublisher()
     }
     
