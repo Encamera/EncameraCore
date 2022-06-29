@@ -26,14 +26,19 @@ final class CameraModel: ObservableObject {
     @Published var isLivePhotoEnabled = true
     @Published var selectedCameraMode: CameraMode = .photo
     @Published var thumbnailImage: UIImage?
+    @Published var showGalleryView: Bool = false
+    @Published var showingKeySelection = false
+    var authManager: AuthManager
+    var keyManager: KeyManager
     var alertError: AlertError!
     private var fileReader: FileReader & FileEnumerator
     
+    
     private var cancellables = Set<AnyCancellable>()
     
-    init(keyManager: KeyManager, cameraService: CameraServicable, fileReader: FileReader & FileEnumerator) {
+    init(keyManager: KeyManager, authManager: AuthManager, cameraService: CameraServicable, fileReader: FileReader & FileEnumerator) {
         self.service = cameraService
-        
+        self.keyManager = keyManager
         self.fileReader = fileReader
         NotificationCenter.default
             .publisher(for: UIApplication.didEnterBackgroundNotification)
@@ -52,7 +57,7 @@ final class CameraModel: ObservableObject {
                 self.service.stop()
                 self.showCameraView = false
             }.store(in: &cancellables)
-
+        self.authManager = authManager
             
         service.model.$shouldShowAlertView.sink { [weak self] (val) in
             self?.alertError = self?.service.alertError
@@ -81,11 +86,16 @@ final class CameraModel: ObservableObject {
         $isLivePhotoEnabled.dropFirst().sink { enabled in
             self.service.isLivePhotoEnabled = enabled
         }.store(in: &cancellables)
+        
+        loadThumbnail()
     }
     
     func configure() {
         service.checkForPermissions()
         service.configure()
+    }
+    
+    func loadThumbnail() {
         Task {
             let media: [EncryptedMedia] = await self.fileReader.enumerateMedia()
             guard let firstMedia = media.first else {
