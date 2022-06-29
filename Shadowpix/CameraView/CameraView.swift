@@ -4,16 +4,10 @@ import AVFoundation
 
 struct CameraView: View {
     @ObservedObject private var cameraModel: CameraModel
-    @EnvironmentObject var appState: ShadowPixState
-    @Binding var galleryIconTapped: Bool
     @State private var currentZoomFactor: CGFloat = 1.0
-    @Binding var showingKeySelection: Bool
     @State var cameraModeStateModel: CameraModeStateModel
     
-    init(viewModel: CameraModel, galleryIconTapped: Binding<Bool>, showingKeySelection: Binding<Bool>) {
-        
-        self._galleryIconTapped = galleryIconTapped
-        self._showingKeySelection = showingKeySelection
+    init(viewModel: CameraModel) {
         self.cameraModeStateModel = CameraModeStateModel()
         self.cameraModel = viewModel
     }
@@ -53,10 +47,10 @@ struct CameraView: View {
                     .foregroundColor(.white)
                     .animation(.spring())
                     .onTapGesture {
-                        self.galleryIconTapped = true
+                        cameraModel.showGalleryView = true
                     }
             } else {
-                Color.red
+                Color.clear
             }
         }.frame(width: 60, height: 60)
 
@@ -137,11 +131,11 @@ struct CameraView: View {
         HStack {
             
             Button {
-                showingKeySelection = true
+                cameraModel.showingKeySelection = true
             } label: {
                 Image(systemName: "key.fill").frame(width: 44, height: 44)
             }
-            Text(appState.keyManager.currentKey?.name ?? "No Key")
+            Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
             Spacer()
             if cameraModel.selectedCameraMode == .photo {
                 Button {
@@ -181,12 +175,12 @@ struct CameraView: View {
     }
 }
 
-#if DEBUG
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: DemoCameraService(keyManager: DemoKeyManager(), model: CameraServiceModel()), fileReader: DemoFileEnumerator()), galleryIconTapped: .constant(false), showingKeySelection: .constant(false))
-            .environmentObject(ShadowPixState())
-        
-    }
-}
-#endif
+//#if DEBUG
+//struct ContentView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        CameraView(viewModel: CameraModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: DemoCameraService(keyManager: DemoKeyManager(), model: CameraServiceModel()), fileReader: DemoFileEnumerator()))
+//            .environmentObject(ShadowPixState())
+//        
+//    }
+//}
+//#endif
