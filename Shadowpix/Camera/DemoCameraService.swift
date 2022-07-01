@@ -7,13 +7,14 @@
 
 import Foundation
 import AVFoundation
+import Combine
 
 class DemoCameraService: CameraServicable {
-    required init(keyManager: KeyManager, model: CameraServiceModel) {
+    required init(model: CameraServiceModel) {
         
     }
     
-    var model: CameraServiceModel = CameraServiceModel()
+    var model: CameraServiceModel = CameraServiceModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()), fileWriter: DemoFileEnumerator())
     var isLivePhotoEnabled: Bool = false
     func stop() {
         
@@ -43,9 +44,6 @@ class DemoCameraService: CameraServicable {
     
     var session: AVCaptureSession = AVCaptureSession()
     
-    required init(keyManager: KeyManager) {
-        
-    }
     
     func configure() {
         

@@ -45,8 +45,8 @@
 		19874B45285D253A001C2D06 /* AsyncImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19874B44285D253A001C2D06 /* AsyncImage.swift */; };
 		1990154B2863BA3F00520082 /* KeySelectionList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990154A2863BA3F00520082 /* KeySelectionList.swift */; };
 		1990154D2863BA8400520082 /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990154C2863BA8400520082 /* KeychainTests.swift */; };
+		19902B39286F46F300165C94 /* CameraConfigurationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19902B38286F46F300165C94 /* CameraConfigurationService.swift */; };
 		1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF12753E9D300E41BFD /* CameraModel.swift */; };
-		1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF42753EA3F00E41BFD /* MainInterface.swift */; };
 		1994ABF72753EAEF00E41BFD /* MainInterfaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */; };
 		19959440280D209900AEFA6D /* VideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1995943F280D209900AEFA6D /* VideoCaptureProcessor.swift */; };
 		19B6D052282B354500DC07F8 /* MediaGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6D051282B354500DC07F8 /* MediaGalleryView.swift */; };
@@ -127,6 +127,7 @@
 		19874B44285D253A001C2D06 /* AsyncImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncImage.swift; sourceTree = "<group>"; };
 		1990154A2863BA3F00520082 /* KeySelectionList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionList.swift; sourceTree = "<group>"; };
 		1990154C2863BA8400520082 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
+		19902B38286F46F300165C94 /* CameraConfigurationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraConfigurationService.swift; sourceTree = "<group>"; };
 		1994ABF12753E9D300E41BFD /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		1994ABF42753EA3F00E41BFD /* MainInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterface.swift; sourceTree = "<group>"; };
 		1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterfaceViewModel.swift; sourceTree = "<group>"; };
@@ -331,6 +332,7 @@
 				A9FE17B225394F1C00D547C7 /* CameraService+Enums.swift */,
 				A9FE17B625394F1E00D547C7 /* CameraService+Extensions.swift */,
 				A9FE17B425394F1D00D547C7 /* CameraService.swift */,
+				19902B38286F46F300165C94 /* CameraConfigurationService.swift */,
 				19CB675528690DC2003FBC98 /* CameraServicable.swift */,
 				19CB675828690F09003FBC98 /* DemoCameraService.swift */,
 			);
@@ -529,7 +531,6 @@
 			files = (
 				19631A372865113300B95FD3 /* KeySelectionCell.swift in Sources */,
 				19FD5D5A2835D29B008D75AA /* ChunkedFilesProcessing.swift in Sources */,
-				1994ABF52753EA3F00E41BFD /* MainInterface.swift in Sources */,
 				A9FE17B925394F1E00D547C7 /* CameraService.swift in Sources */,
 				191FF12D275EC83400DED001 /* AuthManager.swift in Sources */,
 				195719EB274B8FBF00E93658 /* TempFilesManager.swift in Sources */,
@@ -578,6 +579,7 @@
 				195719E7274B8BE300E93658 /* MovieViewing.swift in Sources */,
 				191671BB2857BDC500842F25 /* FileLikeBlockReader.swift in Sources */,
 				A9FE17B725394F1E00D547C7 /* CameraService+Enums.swift in Sources */,
+				19902B39286F46F300165C94 /* CameraConfigurationService.swift in Sources */,
 				1935322D2860F25500964A01 /* FileLikeHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

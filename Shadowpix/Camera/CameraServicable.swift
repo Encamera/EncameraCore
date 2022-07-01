@@ -12,10 +12,9 @@ protocol CameraServicable {
 
     var model: CameraServiceModel { get set }
     var alertError: AlertError { get set }
-    var fileWriter: FileWriter? { get set }
     var session: AVCaptureSession { get }
     var isLivePhotoEnabled: Bool { get set }
-    init(keyManager: KeyManager, model: CameraServiceModel)
+    init(model: CameraServiceModel)
     func configure()
     func checkForPermissions()
     func changeCamera()

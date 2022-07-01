@@ -72,6 +72,13 @@ class CameraServiceModel: ObservableObject {
     @Published var isRecordingVideo = false
     @Published var cameraMode: CameraMode = .photo
     @Published var scannedKey: ImageKey?
+    var keyManager: KeyManager
+    var fileWriter: FileWriter?
+    
+    init(keyManager: KeyManager, fileWriter: FileWriter?) {
+        self.keyManager = keyManager
+        self.fileWriter = fileWriter
+    }
 }
 
 class CameraService: CameraServicable {
@@ -82,7 +89,6 @@ class CameraService: CameraServicable {
     var alertError: AlertError = AlertError()
 
 // MARK: Session Management Properties
-    var fileWriter: FileWriter?
     let session = AVCaptureSession()
     var isLivePhotoEnabled: Bool = true {
         didSet {
@@ -109,11 +115,10 @@ class CameraService: CameraServicable {
     private var inProgressPhotoCaptureDelegates = [Int64: PhotoCaptureProcessor]()
     private var inProgressVideoCaptureDelegates = [Int64: VideoCaptureProcessor]()
     private var cancellables = Set<AnyCancellable>()
-    private var keyManager: KeyManager
     @ObservedObject var model: CameraServiceModel
     
-    required init(keyManager: KeyManager, model: CameraServiceModel) {
-        self.keyManager = keyManager
+    required init(model: CameraServiceModel) {
+        
         self.model = model
     }
     
@@ -346,7 +351,7 @@ class CameraService: CameraServicable {
     
     /// - Tag: CapturePhoto
     func capturePhoto() {
-        guard self.setupResult != .configurationFailed, let key = self.keyManager.currentKey else {
+        guard self.setupResult != .configurationFailed, let key = self.model.keyManager.currentKey else {
             print("Could not capture photo")
             return
         }
@@ -371,7 +376,7 @@ class CameraService: CameraServicable {
             
             photoSettings.isHighResolutionPhotoEnabled = true
             
-            guard let fileWriter = self.fileWriter else {
+            guard let fileWriter = self.model.fileWriter else {
                 print("No file writer found")
                 return
             }
@@ -582,7 +587,7 @@ private extension CameraService {
     private func startCapturingVideo() {
         
         guard self.setupResult != .configurationFailed,
-                let key = self.keyManager.currentKey else {
+              let key = self.model.keyManager.currentKey else {
             print("Could not start capturing video")
             return
         }
@@ -591,7 +596,7 @@ private extension CameraService {
             if let photoOutputConnection = self.currentCaptureOutput?.connection(with: .video) {
                 photoOutputConnection.videoOrientation = .portrait
             }
-            guard let fileWriter = self.fileWriter else {
+            guard let fileWriter = self.model.fileWriter else {
                 print("No file writer found")
                 return
             }

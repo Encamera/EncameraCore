@@ -13,10 +13,14 @@ class MainInterfaceViewModel: ObservableObject {
     
     @Published var showCameraInterface = false
     private var cancellables = Set<AnyCancellable>()
-    var cameraService: CameraServicable?
-    init(keyManager: KeyManager) {
-        self.cameraService = CameraService(keyManager: keyManager, model: CameraServiceModel())
-        keyManager.keyPublisher.sink { key in
+    @Published var cameraService: CameraService?
+    var keyManager: KeyManager
+    init(keyManager: KeyManager, fileWriter: FileWriter?) {
+        if let fileWriter = fileWriter {
+            self.cameraService = CameraService(model: CameraServiceModel(keyManager: keyManager, fileWriter: fileWriter))
+        }
+        self.keyManager = keyManager
+         keyManager.keyPublisher.sink { key in
             self.showCameraInterface = key != nil
         }.store(in: &cancellables)
     }
