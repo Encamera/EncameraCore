@@ -137,7 +137,6 @@
 		19B6D051282B354500DC07F8 /* MediaGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGalleryView.swift; sourceTree = "<group>"; };
 		19BFEEB42860503D00CA2B74 /* GalleryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryItem.swift; sourceTree = "<group>"; };
 		19BFEEB62860519400CA2B74 /* dog.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = dog.jpg; sourceTree = "<group>"; };
-		19CB675528690DC2003FBC98 /* CameraServicable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraServicable.swift; sourceTree = "<group>"; };
 		19CB675828690F09003FBC98 /* DemoCameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoCameraService.swift; sourceTree = "<group>"; };
 		19DC647327441D10004CCE1B /* ButtonViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonViewModifier.swift; sourceTree = "<group>"; };
 		19DCCD562741AF6700DB487B /* KeyGeneration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyGeneration.swift; sourceTree = "<group>"; };
@@ -163,7 +162,6 @@
 		A9FE17982539494700D547C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A9FE17B225394F1C00D547C7 /* CameraService+Enums.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CameraService+Enums.swift"; sourceTree = "<group>"; };
 		A9FE17B325394F1D00D547C7 /* ImageResizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
-		A9FE17B425394F1D00D547C7 /* CameraService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraService.swift; sourceTree = "<group>"; };
 		A9FE17B525394F1E00D547C7 /* PhotoCaptureProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoCaptureProcessor.swift; sourceTree = "<group>"; };
 		A9FE17B625394F1E00D547C7 /* CameraService+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CameraService+Extensions.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -335,10 +333,8 @@
 			children = (
 				A9FE17B225394F1C00D547C7 /* CameraService+Enums.swift */,
 				A9FE17B625394F1E00D547C7 /* CameraService+Extensions.swift */,
-				A9FE17B425394F1D00D547C7 /* CameraService.swift */,
 				19902B402873809200165C94 /* AlertError.swift */,
 				19902B38286F46F300165C94 /* CameraConfigurationService.swift */,
-				19CB675528690DC2003FBC98 /* CameraServicable.swift */,
 				19CB675828690F09003FBC98 /* DemoCameraService.swift */,
 			);
 			path = Camera;
