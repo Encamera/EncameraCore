@@ -19,7 +19,7 @@ struct ShadowpixApp: App {
         private var cancellables = Set<AnyCancellable>()
         @Published var cameraMode: CameraMode = .photo
         var cameraService: CameraConfigurationService
-        var cameraServiceModel = CameraConfigurationService.CameraConfigurationServiceModel()
+        var cameraServiceModel = CameraConfigurationServiceModel()
         var tempFilesManager: TempFilesManager = TempFilesManager.shared
 
         init() {

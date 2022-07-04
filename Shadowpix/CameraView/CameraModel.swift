@@ -23,7 +23,6 @@ final class CameraModel: ObservableObject {
     @Published var isRecordingVideo = false
     @Published var willCapturePhoto = false
     @Published var showCameraView = true
-    @Published var isLivePhotoEnabled = true
     @Published var selectedCameraMode: CameraMode = .photo
     @Published var thumbnailImage: UIImage?
     @Published var showGalleryView: Bool = false
@@ -82,17 +81,11 @@ final class CameraModel: ObservableObject {
 //        .store(in: &self.cancellables)
         self.$selectedCameraMode.dropFirst().sink { newMode in
             Task {
-                 await self.service.model.cameraMode = newMode
+                 await self.service.configureForMode(targetMode: newMode)
             }
         }
         .store(in: &self.cancellables)
-        
-        $isLivePhotoEnabled.dropFirst().sink { enabled in
-            Task {
-                await self.service.model.isLivePhotoEnabled = enabled
-            }
-        }.store(in: &cancellables)
-        
+                
         loadThumbnail()
     }
     
@@ -118,7 +111,7 @@ final class CameraModel: ObservableObject {
         switch selectedCameraMode {
         case .photo:
             let photoProcessor = try await service.createPhotoProcessor()
-            let photoObject = try await photoProcessor.takePhoto(livePhotoEnabled: isLivePhotoEnabled)
+            let photoObject = try await photoProcessor.takePhoto(livePhotoEnabled: false)
             if let photo = photoObject.photo {
                 try await fileAccess.save(media: photo)
             }

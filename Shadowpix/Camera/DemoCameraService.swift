@@ -9,77 +9,48 @@ import Foundation
 import AVFoundation
 import Combine
 
-class DemoCameraService: CameraServicable {
-    required init(model: CameraServiceModel) {
+class DemoCameraService: CameraConfigurationServicable {
+    var session: AVCaptureSession
+    
+    var model: CameraConfigurationServiceModel
+    
+    required init(model: CameraConfigurationServiceModel) {
+        self.model = .init()
+        self.session = AVCaptureSession()
+    }
+    
+    func configure() async {
         
     }
     
-    var model: CameraServiceModel = CameraServiceModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()), fileWriter: DemoFileEnumerator())
-    var isLivePhotoEnabled: Bool = false
-    func stop() {
+    func checkForPermissions() async {
         
     }
     
-    var flashMode: AVCaptureDevice.FlashMode = .on
-    
-    var shouldShowAlertView: Bool = false
-    
-    var shouldShowSpinner: Bool = false
-    
-    var willCapturePhoto: Bool = false
-    
-    var isCameraButtonDisabled: Bool = false
-    
-    var isCameraUnavailable: Bool = false
-    
-    var isRecordingVideo: Bool = false
-    
-    var cameraMode: CameraMode = .photo
-    
-    var scannedKey: ImageKey?
-    
-    var alertError: AlertError = AlertError()
-    
-    var fileWriter: FileWriter?
-    
-    var session: AVCaptureSession = AVCaptureSession()
-    
-    
-    func configure() {
+    func stop() async {
         
     }
     
-    func checkForPermissions() {
+    func start() async {
         
     }
     
-    func changeCamera() {
+    func focus(at focusPoint: CGPoint) async {
         
     }
     
-    func focus(at focusPoint: CGPoint) {
+    func set(zoom: CGFloat) async {
         
     }
     
-    func stop(completion: (() -> ())?) {
+    func changeCamera() async {
         
     }
     
-    func start() {
+    func configureForMode(targetMode: CameraMode) async {
         
     }
     
-    func set(zoom: CGFloat) {
-        
-    }
-    
-    func toggleVideoCapture() {
-        
-    }
-    
-    func capturePhoto() {
-        
-    }
     
     
 }

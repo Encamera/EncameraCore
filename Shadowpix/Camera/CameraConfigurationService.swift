@@ -9,7 +9,6 @@ import Foundation
 import AVFoundation
 import Combine
 
-extension CameraConfigurationService {
     enum LivePhotoMode {
         case on
         case off
@@ -45,32 +44,41 @@ extension CameraConfigurationService {
         case photo = 0
         case movie = 1
     }
+
+
+protocol CameraConfigurationServicable {
+    var session: AVCaptureSession { get }
+    var model: CameraConfigurationServiceModel { get }
+    init(model: CameraConfigurationServiceModel)
+    func configure() async
+    func checkForPermissions() async
+    func stop() async
+    func start() async
+    func focus(at focusPoint: CGPoint) async
+    func set(zoom: CGFloat) async
+    func changeCamera() async
+    func configureForMode(targetMode: CameraMode) async
 }
 
 
+class CameraConfigurationServiceModel {
+    var alertError: AlertError = AlertError()
+    @Published var cameraMode: CameraMode = .photo
+    var flashMode: AVCaptureDevice.FlashMode = .off
+    var setupResult: SessionSetupResult = .notDetermined
+}
 
-
-actor CameraConfigurationService {
-    class CameraConfigurationServiceModel {
-        var isLivePhotoEnabled = true
-        @Published var cameraMode: CameraMode = .photo
-        var flashMode: AVCaptureDevice.FlashMode = .off
-        var setupResult: SessionSetupResult = .notDetermined
-    }
-    let session = AVCaptureSession()
+actor CameraConfigurationService: CameraConfigurationServicable {
     
+    let session = AVCaptureSession()
+    let model: CameraConfigurationServiceModel
+
     private lazy var metadataProcessor = QRCodeCaptureProcessor()
+    private var movieOutput: AVCaptureMovieFileOutput?
+    private var photoOutput: AVCapturePhotoOutput?
     private var volumeObservation: NSKeyValueObservation?
     private var videoDeviceInput: AVCaptureDeviceInput?
-    
-    // MARK: Device Configuration Properties
     private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTrueDepthCamera], mediaType: .video, position: .unspecified)
-    
-    // MARK: Capturing Photos
-    
-    private var currentCaptureOutput: AVCaptureOutput?
-    var model: CameraConfigurationServiceModel
-    
     private var cancellables = Set<AnyCancellable>()
     
     init(model: CameraConfigurationServiceModel) {
@@ -78,11 +86,13 @@ actor CameraConfigurationService {
         
     }
     
-    func configure() {
+    func configure() async {
         model.$cameraMode.dropFirst().sink { mode in
-            self.configureForMode(targetMode: mode)
+            Task {
+                await self.configureForMode(targetMode: mode)
+            }
         }.store(in: &cancellables)
-        self.initialSessionConfiguration()
+        await self.initialSessionConfiguration()
     }
     
     func checkForPermissions() async {
@@ -102,7 +112,7 @@ actor CameraConfigurationService {
     }
     
     
-    func stop() {
+    func stop() async {
         guard self.session.isRunning, self.model.setupResult == .success else {
             print("Could not stop session, isSessionRunning: \(self.session.isRunning), model.setupResult: \(model.setupResult)")
             return
@@ -110,14 +120,14 @@ actor CameraConfigurationService {
         self.session.stopRunning()
     }
     
-    func start() {
+    func start() async {
         guard !self.session.isRunning else {
             print("Session is running already or is not configured")
             return
         }
         switch self.model.setupResult {
         case .success:
-            self.configureForMode(targetMode: self.model.cameraMode)
+            await self.configureForMode(targetMode: self.model.cameraMode)
             self.session.startRunning()
             guard self.session.isRunning else {
                 print("Session is not running")
@@ -128,7 +138,7 @@ actor CameraConfigurationService {
         }
     }
     
-    func focus(at focusPoint: CGPoint) {
+    func focus(at focusPoint: CGPoint) async {
         guard let device = self.videoDeviceInput?.device else {
             print("Trying to focus, video device is nil")
             return
@@ -149,7 +159,7 @@ actor CameraConfigurationService {
     }
     
     
-    func set(zoom: CGFloat) {
+    func set(zoom: CGFloat) async {
         guard let device = videoDeviceInput?.device else {
             print("Could not get device for zooming")
             return
@@ -166,7 +176,7 @@ actor CameraConfigurationService {
         }
     }
     
-    func changeCamera() {
+    func changeCamera() async {
         
         guard let currentVideoDevice = self.videoDeviceInput?.device else {
             print("Current video device is nil")
@@ -221,12 +231,12 @@ actor CameraConfigurationService {
                 self.session.addInput(videoDeviceInput)
             }
             
-            if let connection = self.currentCaptureOutput?.connection(with: .video) {
+            if let connection = self.photoOutput?.connection(with: .video) {
                 if connection.isVideoStabilizationSupported {
                     connection.preferredVideoStabilizationMode = .auto
                 }
             }
-            self.configureForMode(targetMode: self.model.cameraMode)
+            await self.configureForMode(targetMode: self.model.cameraMode)
             
         } catch {
             print("Error occurred while creating video device input: \(error)")
@@ -234,13 +244,28 @@ actor CameraConfigurationService {
         
     }
     
+    func configureForMode(targetMode: CameraMode) async {
+        do {
+            switch targetMode {
+            case .photo:
+                try self.addPhotoOutputToSession()
+            case .video:
+                try self.addVideoOutputToSession()
+            }
+            
+        } catch {
+            print("Could not switch to mode \(targetMode)", error)
+            self.model.setupResult = .configurationFailed
+        }
+        
+    }
     
 }
 
 extension CameraConfigurationService {
     
     func createVideoProcessor() throws -> AsyncVideoCaptureProcessor {
-        guard let videoOutput = self.currentCaptureOutput as? AVCaptureMovieFileOutput else {
+        guard let videoOutput = self.movieOutput else {
             fatalError()
         }
         return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
@@ -252,13 +277,13 @@ extension CameraConfigurationService {
             fatalError()
         }
         
-        if let photoOutputConnection = self.currentCaptureOutput?.connection(with: .video) {
+        if let photoOutputConnection = self.photoOutput?.connection(with: .video) {
             photoOutputConnection.videoOrientation = .portrait
         }
         var photoSettings = AVCapturePhotoSettings()
         
         // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
-        if let photoOutput = self.currentCaptureOutput as? AVCapturePhotoOutput, photoOutput.availablePhotoCodecTypes.contains(.hevc) {
+        if let photoOutput = self.photoOutput, photoOutput.availablePhotoCodecTypes.contains(.hevc) {
             photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
         }
         
@@ -269,7 +294,7 @@ extension CameraConfigurationService {
         }
         
         photoSettings.isHighResolutionPhotoEnabled = true
-        guard let photoOutput = self.currentCaptureOutput as? AVCapturePhotoOutput else {
+        guard let photoOutput = self.photoOutput else {
             fatalError()
         }
         
@@ -313,18 +338,21 @@ private extension CameraConfigurationService {
         guard session.canAddOutput(photoOutput) else {
             return
         }
+        if let videoOutput = movieOutput {
+            session.removeOutput(videoOutput)
+        }
         session.sessionPreset = .photo
-        try swapOutput(with: photoOutput)
+        session.addOutput(photoOutput)
 
         photoOutput.maxPhotoQualityPrioritization = .quality
         photoOutput.isHighResolutionCaptureEnabled = true
-        photoOutput.isLivePhotoCaptureEnabled = model.isLivePhotoEnabled
 
-        currentCaptureOutput = photoOutput
+        self.photoOutput = photoOutput
     }
     
     private func addVideoOutputToSession() throws {
-        
+        print("Calling addVideoOutputToSession")
+
         session.beginConfiguration()
         defer {
             session.commitConfiguration()
@@ -332,23 +360,22 @@ private extension CameraConfigurationService {
         session.sessionPreset = .hd4K3840x2160
         let movieOutput = AVCaptureMovieFileOutput()
         
-        try swapOutput(with: movieOutput)
-        
+        session.addOutput(movieOutput)
         
         session.commitConfiguration()
         
     }
     
-    private func swapOutput(with output: AVCaptureOutput) throws {
-        if let currentCaptureOutput = currentCaptureOutput {
-            session.removeOutput(currentCaptureOutput)
-        }
-        guard session.canAddOutput(output) else {
-            throw SetupError.couldNotAddVideoInputToSession
-        }
-        session.addOutput(output)
-        currentCaptureOutput = output
-    }
+//    private func swapOutput(with output: AVCaptureOutput) throws {
+//        if let currentCaptureOutput = currentCaptureOutput {
+//            session.removeOutput(currentCaptureOutput)
+//        }
+//        guard session.canAddOutput(output) else {
+//            throw SetupError.couldNotAddVideoInputToSession
+//        }
+//        session.addOutput(output)
+//        currentCaptureOutput = output
+//    }
     
     
     private func addMetadataOutputToSession() throws {
@@ -401,7 +428,7 @@ private extension CameraConfigurationService {
         }
     }
     
-    private func initialSessionConfiguration() {
+    private func initialSessionConfiguration() async {
         guard model.setupResult == .success else {
             return
         }
@@ -416,7 +443,7 @@ private extension CameraConfigurationService {
             model.setupResult = .configurationFailed
         }
         
-        self.start()
+        await self.start()
     }
     
     private func toggleTorch(on: Bool) {
@@ -441,20 +468,5 @@ private extension CameraConfigurationService {
         }
     }
     
-    private func configureForMode(targetMode: CameraMode) {
-        do {
-            switch targetMode {
-            case .photo:
-                try self.addPhotoOutputToSession()
-            case .video:
-                try self.addVideoOutputToSession()
-            }
-            
-        } catch {
-            print("Could not switch to mode \(targetMode)", error)
-            self.model.setupResult = .configurationFailed
-        }
-        
-    }
     
 }

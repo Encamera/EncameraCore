@@ -138,17 +138,6 @@ struct CameraView: View {
             }
             Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
             Spacer()
-            if cameraModel.selectedCameraMode == .photo {
-                Button {
-                    cameraModel.isLivePhotoEnabled.toggle()
-                } label: {
-                    if cameraModel.isLivePhotoEnabled {
-                        Image(systemName: "livephoto")
-                    } else {
-                        Image(systemName: "livephoto.slash")
-                    }
-                }.frame(maxWidth: 100)
-            }
             Button(action: {
                 cameraModel.switchFlash()
             }, label: {
