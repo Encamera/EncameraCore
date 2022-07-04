@@ -408,7 +408,7 @@ class CameraService: CameraServicable {
                 } else {
                     self?.model.shouldShowSpinner = false
                 }
-            }, livePhotoEnabled: self.isLivePhotoEnabled, fileWriter: fileWriter, key: key)
+            }, livePhotoEnabled: self.isLivePhotoEnabled, fileWriter: fileWriter)
             
             // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
             self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor
@@ -586,8 +586,7 @@ private extension CameraService {
     
     private func startCapturingVideo() {
         
-        guard self.setupResult != .configurationFailed,
-              let key = self.model.keyManager.currentKey else {
+        guard self.setupResult != .configurationFailed else {
             print("Could not start capturing video")
             return
         }
@@ -608,7 +607,7 @@ private extension CameraService {
                 
             }, photoProcessingHandler: { done in
                 
-            }, fileWriter: fileWriter, key: key)
+            }, fileWriter: fileWriter)
             
             self.inProgressVideoCaptureDelegates[1] = videoCaptureProcessor
             guard let videoCaptureOutput = self.currentCaptureOutput as? AVCaptureMovieFileOutput else {

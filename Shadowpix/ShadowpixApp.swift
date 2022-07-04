@@ -18,12 +18,13 @@ struct ShadowpixApp: App {
         private(set) var authManager: AuthManager
         private var cancellables = Set<AnyCancellable>()
         @Published var cameraMode: CameraMode = .photo
-        @Published var cameraService: CameraService?
-
+        var cameraService: CameraConfigurationService
+        var cameraServiceModel = CameraConfigurationService.CameraConfigurationServiceModel()
         var tempFilesManager: TempFilesManager = TempFilesManager.shared
 
         init() {
             
+            self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = AuthManager()
             self.keyManager = MultipleKeyKeychainManager(isAuthorized: self.authManager.$isAuthorized.eraseToAnyPublisher())
             self.keyManager.keyPublisher.sink { newKey in
@@ -31,7 +32,6 @@ struct ShadowpixApp: App {
                     return
                 }
                 let fileAccess = DiskFileAccess<iCloudFilesDirectoryModel>(key: key)
-                self.cameraService = CameraService(model: CameraServiceModel(keyManager: self.keyManager, fileWriter: fileAccess))
                 self.fileAccess = fileAccess
             }.store(in: &cancellables)
             
@@ -52,8 +52,8 @@ struct ShadowpixApp: App {
     
     var body: some Scene {
         WindowGroup {
-            if let fileAccess = viewModel.fileAccess, let cameraService = viewModel.cameraService {
-            CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: cameraService, fileReader: fileAccess))
+            if let fileAccess = viewModel.fileAccess {
+                CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess))
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     self.viewModel.hasOpenedURL = false
                 } content: {
@@ -71,7 +71,8 @@ struct ShadowpixApp: App {
                     }
                     
                 }
-            }.onOpenURL { url in
+            }
+                .onOpenURL { url in
                 self.viewModel.hasOpenedURL = false
                 self.viewModel.openedUrl = url
                 self.viewModel.hasOpenedURL = true

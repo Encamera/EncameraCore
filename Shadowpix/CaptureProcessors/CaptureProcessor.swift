@@ -13,6 +13,5 @@ protocol CaptureProcessor {
         willCapturePhotoAnimation: @escaping () -> Void,
         completionHandler: @escaping (CaptureProcessor) -> Void,
         photoProcessingHandler: @escaping (Bool) -> Void,
-        fileWriter: FileWriter,
-        key: ImageKey)
+        fileWriter: FileWriter)
 }

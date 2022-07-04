@@ -11,7 +11,7 @@ import Combine
 import UIKit
 
 final class CameraModel: ObservableObject {
-    private var service: CameraServicable
+    var service: CameraConfigurationService
     
     var session: AVCaptureSession {
         service.session
@@ -31,15 +31,15 @@ final class CameraModel: ObservableObject {
     var authManager: AuthManager
     var keyManager: KeyManager
     var alertError: AlertError!
-    private var fileReader: FileReader & FileEnumerator
+    private var fileAccess: FileAccess
     
     
     private var cancellables = Set<AnyCancellable>()
     
-    init(keyManager: KeyManager, authManager: AuthManager, cameraService: CameraServicable, fileReader: FileReader & FileEnumerator) {
+    init(keyManager: KeyManager, authManager: AuthManager, cameraService: CameraConfigurationService, fileAccess: FileAccess) {
         self.service = cameraService
         self.keyManager = keyManager
-        self.fileReader = fileReader
+        self.fileAccess = fileAccess
         self.authManager = authManager
 
         NotificationCenter.default
@@ -49,61 +49,61 @@ final class CameraModel: ObservableObject {
             }.store(in: &cancellables)
         NotificationCenter.default
             .publisher(for: UIApplication.didBecomeActiveNotification)
+            .dropFirst()
             .sink { _ in
+                Task {
+                    await self.service.start()
+                }
                 self.showCameraView = true
-                self.service.start()
             }.store(in: &cancellables)
         NotificationCenter.default
             .publisher(for: UIApplication.willResignActiveNotification)
             .sink { _ in
-                self.service.stop()
+                Task {
+                    await self.service.stop()
+                }
                 self.showCameraView = false
             }.store(in: &cancellables)
             
-        service.model.$shouldShowAlertView.sink { [weak self] (val) in
-            self?.alertError = self?.service.alertError
-            self?.showAlertError = val
-        }
-        .store(in: &self.cancellables)
+//        service.model.$shouldShowAlertView.sink { [weak self] (val) in
+//            self?.alertError = self?.service.alertError
+//            self?.showAlertError = val
+//        }
+//        .store(in: &self.cancellables)
+//
+//        service.model.$flashMode.sink { [weak self] (mode) in
+//            self?.isFlashOn = mode == .on
+//        }
+//        .store(in: &self.cancellables)
         
-        service.model.$flashMode.sink { [weak self] (mode) in
-            self?.isFlashOn = mode == .on
-        }
-        .store(in: &self.cancellables)
-        
-        service.model.$willCapturePhoto.sink { [weak self] (val) in
-            self?.willCapturePhoto = val
-        }
-        .store(in: &self.cancellables)
-        self.$selectedCameraMode.dropFirst().sink { [weak self] newMode in
-            self?.service.model.cameraMode = newMode
-        }
-        .store(in: &self.cancellables)
-        service.model.$isRecordingVideo.sink { [weak self] capturing in
-            self?.isRecordingVideo = capturing
+//        service.model.$willCapturePhoto.sink { [weak self] (val) in
+//            self?.willCapturePhoto = val
+//        }
+//        .store(in: &self.cancellables)
+        self.$selectedCameraMode.dropFirst().sink { newMode in
+            Task {
+                 await self.service.model.cameraMode = newMode
+            }
         }
         .store(in: &self.cancellables)
         
         $isLivePhotoEnabled.dropFirst().sink { enabled in
-            self.service.isLivePhotoEnabled = enabled
+            Task {
+                await self.service.model.isLivePhotoEnabled = enabled
+            }
         }.store(in: &cancellables)
         
         loadThumbnail()
     }
     
-    func configure() {
-        service.checkForPermissions()
-        service.configure()
-    }
-    
     func loadThumbnail() {
         Task {
-            let media: [EncryptedMedia] = await self.fileReader.enumerateMedia()
+            let media: [EncryptedMedia] = await self.fileAccess.enumerateMedia()
             guard let firstMedia = media.first else {
                 self.thumbnailImage = nil
                 return
             }
-            let cleartextThumb = try await self.fileReader.loadMediaPreview(for: firstMedia)
+            let cleartextThumb = try await self.fileAccess.loadMediaPreview(for: firstMedia)
             guard let thumbnail = UIImage(data: cleartextThumb.source) else {
                 self.thumbnailImage = nil
                 return
@@ -114,24 +114,41 @@ final class CameraModel: ObservableObject {
         }
     }
     
-    func captureButtonPressed() {
+    func captureButtonPressed() async throws {
         switch selectedCameraMode {
         case .photo:
-            service.capturePhoto()
+            let photoProcessor = try await service.createPhotoProcessor()
+            let photoObject = try await photoProcessor.takePhoto(livePhotoEnabled: isLivePhotoEnabled)
+            if let photo = photoObject.photo {
+                try await fileAccess.save(media: photo)
+            }
+            
+            if let livePhoto = photoObject.livePhoto {
+                try await fileAccess.save(media: livePhoto)
+            }
+            
         case .video:
-            service.toggleVideoCapture()
+            let videoProcessor = try await service.createVideoProcessor()
+            let video = try await videoProcessor.takeVideo()
+            try await fileAccess.save(media: video)
         }
     }
     
     func flipCamera() {
-        service.changeCamera()
+        Task {
+            await service.changeCamera()
+        }
     }
     
     func zoom(with factor: CGFloat) {
-        service.set(zoom: factor)
+        Task {
+            await service.set(zoom: factor)
+        }
     }
     
     func switchFlash() {
-        service.model.flashMode = service.model.flashMode == .on ? .off : .on
+        Task {
+            await service.model.flashMode = service.model.flashMode == .on ? .off : .on
+        }
     }
 }

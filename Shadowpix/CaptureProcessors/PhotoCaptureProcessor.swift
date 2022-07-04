@@ -34,22 +34,19 @@ class PhotoCaptureProcessor: NSObject, CaptureProcessor {
                      completionHandler: @escaping (CaptureProcessor) -> Void,
                      photoProcessingHandler: @escaping (Bool) -> Void,
                      livePhotoEnabled: Bool,
-                     fileWriter: FileWriter,
-                     key: ImageKey) {
+                     fileWriter: FileWriter) {
         self.init(
             willCapturePhotoAnimation: willCapturePhotoAnimation,
             completionHandler: completionHandler,
             photoProcessingHandler: photoProcessingHandler,
-            fileWriter: fileWriter,
-            key: key
-        )
+            fileWriter: fileWriter)
         self.requestedPhotoSettings = requestedPhotoSettings
         if livePhotoEnabled {
             self.requestedPhotoSettings.livePhotoMovieFileURL = TempFilesManager.shared.createTempURL(for: .video, id: self.photoId)
         }
     }
     
-    required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
+    required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter) {
         photoId = NSUUID().uuidString
         self.fileWriter = fileWriter
         self.willCapturePhotoAnimation = willCapturePhotoAnimation

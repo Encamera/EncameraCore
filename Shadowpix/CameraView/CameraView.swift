@@ -14,7 +14,9 @@ struct CameraView: View {
     
     private var captureButton: some View {
         Button(action: {
-            cameraModel.captureButtonPressed()
+            Task {
+                try await cameraModel.captureButtonPressed()
+            }
         }, label: {
             if cameraModel.isRecordingVideo {
                 Circle()
@@ -34,7 +36,9 @@ struct CameraView: View {
     }
     
     private func captureAction() {
-        cameraModel.captureButtonPressed()
+        Task {
+            try await cameraModel.captureButtonPressed()
+        }
     }
         
     private var capturedPhotoThumbnail: some View {
@@ -173,7 +177,11 @@ struct CameraView: View {
             MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager))
         }
         .onAppear {
-            cameraModel.configure()
+            Task {
+                await cameraModel.service.checkForPermissions()
+                await cameraModel.service.configure()
+                await cameraModel.service.start()
+            }
             cameraModel.loadThumbnail()
         }
         if cameraModel.showCameraView == false {

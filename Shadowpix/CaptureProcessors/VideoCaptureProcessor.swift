@@ -16,7 +16,7 @@ class VideoCaptureProcessor: NSObject, CaptureProcessor {
     private let completion: (CaptureProcessor) -> (Void)
     let videoId = NSUUID().uuidString
  
-    required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter, key: ImageKey) {
+    required init(willCapturePhotoAnimation: @escaping () -> Void, completionHandler: @escaping (CaptureProcessor) -> Void, photoProcessingHandler: @escaping (Bool) -> Void, fileWriter: FileWriter) {
         self.fileHandler = fileWriter
         self.completion = completionHandler
     }
