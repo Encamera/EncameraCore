@@ -169,7 +169,6 @@ struct CameraView: View {
             Task {
                 await cameraModel.service.checkForPermissions()
                 await cameraModel.service.configure()
-                await cameraModel.service.start()
             }
             cameraModel.loadThumbnail()
         }

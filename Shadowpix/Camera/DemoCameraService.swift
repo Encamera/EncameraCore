@@ -50,7 +50,5 @@ class DemoCameraService: CameraConfigurationServicable {
     func configureForMode(targetMode: CameraMode) async {
         
     }
-    
-    
-    
+
 }

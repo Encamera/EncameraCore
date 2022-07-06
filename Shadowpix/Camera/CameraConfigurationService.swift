@@ -87,11 +87,6 @@ actor CameraConfigurationService: CameraConfigurationServicable {
     }
     
     func configure() async {
-        model.$cameraMode.dropFirst().sink { mode in
-            Task {
-                await self.configureForMode(targetMode: mode)
-            }
-        }.store(in: &cancellables)
         await self.initialSessionConfiguration()
     }
     
@@ -127,7 +122,6 @@ actor CameraConfigurationService: CameraConfigurationServicable {
         }
         switch self.model.setupResult {
         case .success:
-            await self.configureForMode(targetMode: self.model.cameraMode)
             self.session.startRunning()
             guard self.session.isRunning else {
                 print("Session is not running")
@@ -236,8 +230,6 @@ actor CameraConfigurationService: CameraConfigurationServicable {
                     connection.preferredVideoStabilizationMode = .auto
                 }
             }
-            await self.configureForMode(targetMode: self.model.cameraMode)
-            
         } catch {
             print("Error occurred while creating video device input: \(error)")
         }
@@ -338,15 +330,13 @@ private extension CameraConfigurationService {
         guard session.canAddOutput(photoOutput) else {
             return
         }
-        if let videoOutput = movieOutput {
-            session.removeOutput(videoOutput)
+        if let movieOutput = movieOutput {
+            session.removeOutput(movieOutput)
         }
         session.sessionPreset = .photo
         session.addOutput(photoOutput)
-
         photoOutput.maxPhotoQualityPrioritization = .quality
         photoOutput.isHighResolutionCaptureEnabled = true
-
         self.photoOutput = photoOutput
     }
     
@@ -366,18 +356,6 @@ private extension CameraConfigurationService {
         
     }
     
-//    private func swapOutput(with output: AVCaptureOutput) throws {
-//        if let currentCaptureOutput = currentCaptureOutput {
-//            session.removeOutput(currentCaptureOutput)
-//        }
-//        guard session.canAddOutput(output) else {
-//            throw SetupError.couldNotAddVideoInputToSession
-//        }
-//        session.addOutput(output)
-//        currentCaptureOutput = output
-//    }
-    
-    
     private func addMetadataOutputToSession() throws {
         let metadataOutput = AVCaptureMetadataOutput()
         guard session.canAddOutput(metadataOutput) else {
@@ -394,13 +372,19 @@ private extension CameraConfigurationService {
         do {
             var defaultVideoDevice: AVCaptureDevice?
             
-            if let backCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
-                // If a rear dual camera is not available, default to the rear wide angle camera.
+            if let dualCameraDevice = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
+                defaultVideoDevice = dualCameraDevice
+            } else if let dualWideCameraDevice = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
+                // If a rear dual camera is not available, default to the rear dual wide camera.
+                defaultVideoDevice = dualWideCameraDevice
+            } else if let backCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
+                // If a rear dual wide camera is not available, default to the rear wide angle camera.
                 defaultVideoDevice = backCameraDevice
             } else if let frontCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) {
                 // If the rear wide angle camera isn't available, default to the front wide angle camera.
                 defaultVideoDevice = frontCameraDevice
             }
+
             
             guard let videoDevice = defaultVideoDevice else {
                 throw SetupError.defaultVideoDeviceUnavailable
@@ -438,6 +422,7 @@ private extension CameraConfigurationService {
         do {
             try setupCaptureDevice()
             try addMetadataOutputToSession()
+            await configureForMode(targetMode: .photo)
         } catch {
             print(error)
             model.setupResult = .configurationFailed
