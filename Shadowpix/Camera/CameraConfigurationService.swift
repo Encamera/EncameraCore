@@ -35,8 +35,10 @@ import Combine
         case defaultVideoDeviceUnavailable
         case defaultAudioDeviceUnavailable
         case couldNotAddVideoInputToSession
+        case couldNotAddAudioInputToSession
         case couldNotCreateVideoDeviceInput(avFoundationError: Error)
         case couldNotAddPhotoOutputToSession
+        case couldNotAddVideoOutputToSession
         case couldNotAddMetadataOutputToSession
     }
     
@@ -75,7 +77,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
 
     private lazy var metadataProcessor = QRCodeCaptureProcessor()
     private var movieOutput: AVCaptureMovieFileOutput?
-    private var photoOutput: AVCapturePhotoOutput?
+    private let photoOutput = AVCapturePhotoOutput()
     private var volumeObservation: NSKeyValueObservation?
     private var videoDeviceInput: AVCaptureDeviceInput?
     private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTrueDepthCamera], mediaType: .video, position: .unspecified)
@@ -225,7 +227,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
                 self.session.addInput(videoDeviceInput)
             }
             
-            if let connection = self.photoOutput?.connection(with: .video) {
+            if let connection = self.photoOutput.connection(with: .video) {
                 if connection.isVideoStabilizationSupported {
                     connection.preferredVideoStabilizationMode = .auto
                 }
@@ -269,13 +271,13 @@ extension CameraConfigurationService {
             fatalError()
         }
         
-        if let photoOutputConnection = self.photoOutput?.connection(with: .video) {
+        if let photoOutputConnection = self.photoOutput.connection(with: .video) {
             photoOutputConnection.videoOrientation = .portrait
         }
         var photoSettings = AVCapturePhotoSettings()
         
         // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
-        if let photoOutput = self.photoOutput, photoOutput.availablePhotoCodecTypes.contains(.hevc) {
+        if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
             photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
         }
         
@@ -286,9 +288,6 @@ extension CameraConfigurationService {
         }
         
         photoSettings.isHighResolutionPhotoEnabled = true
-        guard let photoOutput = self.photoOutput else {
-            fatalError()
-        }
         
         return AsyncPhotoCaptureProcessor(output: photoOutput, requestedPhotoSettings: photoSettings)
     }
@@ -322,11 +321,7 @@ private extension CameraConfigurationService {
     /// Note: must call commit() to session after this
     private func addPhotoOutputToSession() throws {
         print("Calling addPhotoOutputToSession")
-        session.beginConfiguration()
-        defer {
-            session.commitConfiguration()
-        }
-        let photoOutput = AVCapturePhotoOutput()
+        
         guard session.canAddOutput(photoOutput) else {
             return
         }
@@ -335,9 +330,9 @@ private extension CameraConfigurationService {
         }
         session.sessionPreset = .photo
         session.addOutput(photoOutput)
+        photoOutput.isLivePhotoCaptureEnabled = false
         photoOutput.maxPhotoQualityPrioritization = .quality
         photoOutput.isHighResolutionCaptureEnabled = true
-        self.photoOutput = photoOutput
     }
     
     private func addVideoOutputToSession() throws {
@@ -347,12 +342,17 @@ private extension CameraConfigurationService {
         defer {
             session.commitConfiguration()
         }
-        session.sessionPreset = .hd4K3840x2160
         let movieOutput = AVCaptureMovieFileOutput()
-        
+        guard session.canAddOutput(movieOutput) else {
+            throw SetupError.couldNotAddVideoOutputToSession
+        }
+        session.beginConfiguration()
         session.addOutput(movieOutput)
         
-        session.commitConfiguration()
+        session.sessionPreset = .high
+        
+
+        self.movieOutput = movieOutput
         
     }
     
@@ -361,46 +361,36 @@ private extension CameraConfigurationService {
         guard session.canAddOutput(metadataOutput) else {
             throw SetupError.couldNotAddMetadataOutputToSession
         }
-        session.beginConfiguration()
         session.addOutput(metadataOutput)
         metadataOutput.setMetadataObjectsDelegate(metadataProcessor, queue: .main)
         metadataOutput.metadataObjectTypes = metadataProcessor.supportedObjectTypes
-        session.commitConfiguration()
     }
     
     private func setupCaptureDevice() throws {
+        session.sessionPreset = .photo
+        
+        var defaultVideoDevice: AVCaptureDevice?
+        
+        if let dualCameraDevice = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
+            defaultVideoDevice = dualCameraDevice
+        } else if let dualWideCameraDevice = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
+            // If a rear dual camera is not available, default to the rear dual wide camera.
+            defaultVideoDevice = dualWideCameraDevice
+        } else if let backCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
+            // If a rear dual wide camera is not available, default to the rear wide angle camera.
+            defaultVideoDevice = backCameraDevice
+        } else if let frontCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) {
+            // If the rear wide angle camera isn't available, default to the front wide angle camera.
+            defaultVideoDevice = frontCameraDevice
+        }
+        
+        
+        guard let videoDevice = defaultVideoDevice else {
+            throw SetupError.defaultVideoDeviceUnavailable
+        }
+        
         do {
-            var defaultVideoDevice: AVCaptureDevice?
-            
-            if let dualCameraDevice = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
-                defaultVideoDevice = dualCameraDevice
-            } else if let dualWideCameraDevice = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
-                // If a rear dual camera is not available, default to the rear dual wide camera.
-                defaultVideoDevice = dualWideCameraDevice
-            } else if let backCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
-                // If a rear dual wide camera is not available, default to the rear wide angle camera.
-                defaultVideoDevice = backCameraDevice
-            } else if let frontCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) {
-                // If the rear wide angle camera isn't available, default to the front wide angle camera.
-                defaultVideoDevice = frontCameraDevice
-            }
-
-            
-            guard let videoDevice = defaultVideoDevice else {
-                throw SetupError.defaultVideoDeviceUnavailable
-            }
-//            guard
-                let audioDevice = AVCaptureDevice.default(for: .audio)!
-                  let audioDeviceInput = try! AVCaptureDeviceInput(device: audioDevice)//, session.canAddInput(audioDeviceInput)
-//            else {
-//                throw SetupError.defaultAudioDeviceUnavailable
-//            }
-            
-            session.addInput(audioDeviceInput)
-            
-            
             let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
-            
             if session.canAddInput(videoDeviceInput) {
                 session.addInput(videoDeviceInput)
                 self.videoDeviceInput = videoDeviceInput
@@ -410,24 +400,40 @@ private extension CameraConfigurationService {
         } catch {
             throw SetupError.couldNotCreateVideoDeviceInput(avFoundationError: error)
         }
+        
+        
+        
+        
+        do {
+            let audioDevice = AVCaptureDevice.default(for: .audio)!
+            let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
+            if session.canAddInput(audioDeviceInput) {
+                session.addInput(audioDeviceInput)
+            } else {
+                throw SetupError.couldNotAddAudioInputToSession
+            }
+            
+        } catch {
+            throw error
+        }
+        
     }
     
     private func initialSessionConfiguration() async {
         guard model.setupResult == .success else {
             return
         }
-        
-        
+        session.beginConfiguration()
         configureVolumeButtons()
         do {
             try setupCaptureDevice()
-            try addMetadataOutputToSession()
+//            try addMetadataOutputToSession()
             await configureForMode(targetMode: .photo)
         } catch {
             print(error)
             model.setupResult = .configurationFailed
         }
-        
+        session.commitConfiguration()
         await self.start()
     }
     

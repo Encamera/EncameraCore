@@ -141,7 +141,7 @@ final class CameraModel: ObservableObject {
     
     func switchFlash() {
         Task {
-            await service.model.flashMode = service.model.flashMode == .on ? .off : .on
+            service.model.flashMode = service.model.flashMode == .on ? .off : .on
         }
     }
 }

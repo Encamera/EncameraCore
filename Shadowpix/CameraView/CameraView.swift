@@ -77,7 +77,7 @@ struct CameraView: View {
         VStack {
             CameraModePicker(pressedAction: { mode in
             })
-            .onReceive(cameraModeStateModel.$selectedMode) { newValue in
+            .onReceive(cameraModeStateModel.$selectedMode.dropFirst()) { newValue in
                 cameraModel.selectedCameraMode = newValue
             }
             .environmentObject(cameraModeStateModel)
