@@ -30,6 +30,7 @@ final class CameraModel: ObservableObject {
     var authManager: AuthManager
     var keyManager: KeyManager
     var alertError: AlertError!
+    private var currentVideoProcessor: AsyncVideoCaptureProcessor?
     private var fileAccess: FileAccess
     
     
@@ -121,8 +122,20 @@ final class CameraModel: ObservableObject {
             }
             
         case .video:
+            if let currentVideoProcessor = currentVideoProcessor {
+                currentVideoProcessor.stop()
+                return
+            }
             let videoProcessor = try await service.createVideoProcessor()
+            await MainActor.run(body: {
+                isRecordingVideo = true
+            })
+            currentVideoProcessor = videoProcessor
             let video = try await videoProcessor.takeVideo()
+            await MainActor.run(body: {
+                isRecordingVideo = false
+            })
+            currentVideoProcessor = nil
             try await fileAccess.save(media: video)
         }
     }

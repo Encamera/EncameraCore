@@ -16,23 +16,30 @@ class AsyncVideoCaptureProcessor: NSObject {
     private var continuation: VideoCaptureProcessorContinuation?
     private let captureOutput: AVCaptureMovieFileOutput
     let videoId = NSUUID().uuidString
+    let tempFileUrl: URL
     
  
     required init(videoCaptureOutput: AVCaptureMovieFileOutput) {
         self.captureOutput = videoCaptureOutput
+        self.tempFileUrl = TempFilesManager.shared.createTempURL(for: .video, id: videoId)
     }
     
     func takeVideo() async throws -> CleartextMedia<URL> {
         return try await withCheckedThrowingContinuation({ (continuation: VideoCaptureProcessorContinuation) in
-            let url = TempFilesManager.shared.createTempURL(for: .video, id: videoId)
-            self.captureOutput.startRecording(to: url, recordingDelegate: self)
+            self.captureOutput.startRecording(to: tempFileUrl, recordingDelegate: self)
             self.continuation = continuation
         })
+    }
+    
+    func stop() {
+        captureOutput.stopRecording()
     }
     
 }
 
 extension AsyncVideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
+    
+    
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         print(outputFileURL)
         
@@ -40,9 +47,9 @@ extension AsyncVideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
         continuation?.resume(returning: cleartextVideo)
     }
     
-    
     func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
-        print(fileURL, connections)
+        print(fileURL)
     }
+    
     
 }

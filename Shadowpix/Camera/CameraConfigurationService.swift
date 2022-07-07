@@ -338,22 +338,21 @@ private extension CameraConfigurationService {
     private func addVideoOutputToSession() throws {
         print("Calling addVideoOutputToSession")
 
-        session.beginConfiguration()
-        defer {
-            session.commitConfiguration()
-        }
         let movieOutput = AVCaptureMovieFileOutput()
         guard session.canAddOutput(movieOutput) else {
             throw SetupError.couldNotAddVideoOutputToSession
         }
         session.beginConfiguration()
         session.addOutput(movieOutput)
-        
         session.sessionPreset = .high
-        
+        if let connection = movieOutput.connection(with: .video) {
+            if connection.isVideoStabilizationSupported {
+                connection.preferredVideoStabilizationMode = .auto
+            }
+        }
 
         self.movieOutput = movieOutput
-        
+        session.commitConfiguration()
     }
     
     private func addMetadataOutputToSession() throws {
