@@ -21,6 +21,7 @@ final class CameraModel: ObservableObject {
     
     @Published var isFlashOn = false
     @Published var isRecordingVideo = false
+    @Published var recordingDuration: CMTime = .zero
     @Published var willCapturePhoto = false
     @Published var showCameraView = true
     @Published var selectedCameraMode: CameraMode = .photo
@@ -131,6 +132,9 @@ final class CameraModel: ObservableObject {
                 isRecordingVideo = true
             })
             currentVideoProcessor = videoProcessor
+            currentVideoProcessor?.durationPublisher.sink(receiveValue: { value in
+                self.recordingDuration = value
+            }).store(in: &cancellables)
             let video = try await videoProcessor.takeVideo()
             await MainActor.run(body: {
                 isRecordingVideo = false

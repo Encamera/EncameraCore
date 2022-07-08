@@ -41,8 +41,6 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
     @State var progress = 0.0
     @ObservedObject var viewModel: MovieViewingViewModel<M>
     
-    let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
-
     var body: some View {
         VStack {
             if let movieUrl = viewModel.decryptedFileRef?.source {

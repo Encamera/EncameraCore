@@ -129,24 +129,33 @@ struct CameraView: View {
     }
 
     private var topBar: some View {
-        HStack {
-            
-            Button {
-                cameraModel.showingKeySelection = true
-            } label: {
-                Image(systemName: "key.fill").frame(width: 44, height: 44)
+        ZStack {
+            HStack {
+                
+                Button {
+                    cameraModel.showingKeySelection = true
+                } label: {
+                    Image(systemName: "key.fill").frame(width: 44, height: 44)
+                }
+                Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
+                Spacer()
+                Button(action: {
+                    cameraModel.switchFlash()
+                }, label: {
+                    Image(systemName: cameraModel.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
+                        .font(.system(size: 20, weight: .medium, design: .default))
+                })
+                
+                .accentColor(cameraModel.isFlashOn ? .yellow : .white)
+            }.padding().tint(.white).foregroundColor(.white)
+            if cameraModel.isRecordingVideo {
+                Text("\(cameraModel.recordingDuration.durationText)")
+                .padding(5)
+                .background(Color.red)
+                .cornerRadius(10)
+                .foregroundColor(.white)
             }
-            Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
-            Spacer()
-            Button(action: {
-                cameraModel.switchFlash()
-            }, label: {
-                Image(systemName: cameraModel.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
-                    .font(.system(size: 20, weight: .medium, design: .default))
-            })
-            
-            .accentColor(cameraModel.isFlashOn ? .yellow : .white)
-        }.padding().tint(.white).foregroundColor(.white)
+        }
     }
     
     var body: some View {
@@ -178,12 +187,11 @@ struct CameraView: View {
     }
 }
 
-//#if DEBUG
-//struct ContentView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        CameraView(viewModel: CameraModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()), cameraService: DemoCameraService(keyManager: DemoKeyManager(), model: CameraServiceModel()), fileReader: DemoFileEnumerator()))
-//            .environmentObject(ShadowPixState())
-//        
-//    }
-//}
-//#endif
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: AuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator()))
+        
+    }
+}
+
