@@ -21,11 +21,6 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     private var cancellables = Set<AnyCancellable>()
     private (set) var currentKey: ImageKey?  {
         didSet {
-            if let key = currentKey {
-                UserDefaults.standard.set(key.name, forKey: KeychainConstants.currentKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: KeychainConstants.currentKey)
-            }
             keySubject.send(currentKey)
         }
     }
@@ -41,13 +36,15 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         self.isAuthorized.sink { newValue in
             self.authorized = newValue
             if self.authorized == true {
-                try? self.getKey()
+                try? self.getActiveKeyAndSet()
+            } else {
+                self.currentKey = nil
             }
         }.store(in: &cancellables)
 
     }
     
-    private func getKey() throws {
+    private func getActiveKeyAndSet() throws {
        
         let keyObject = try getActiveKey()
         
@@ -69,6 +66,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
             throw KeyManagerError.deleteKeychainItemsFailed
         }
         currentKey = nil
+        try setActiveKey(nil)
     }
     
     @discardableResult func generateNewKey(name: String) throws-> ImageKey {
@@ -95,7 +93,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let status = SecItemAdd(query as CFDictionary, nil)
         try checkStatus(status: status)
         if setNewKeyToCurrent {
-            currentKey = key
+            try setActiveKey(key.name)
         }
 
     }
@@ -150,18 +148,23 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }
         guard let name = name else {
             currentKey = nil
+            UserDefaults.standard.removeObject(forKey: KeychainConstants.currentKey)
             return
         }
-
         guard let key = try? getKey(by: name) else {
             throw KeyManagerError.notFound
         }
         currentKey = key
+        UserDefaults.standard.set(key.name, forKey: KeychainConstants.currentKey)
     }
     
     func getActiveKey() throws -> ImageKey {
         guard let activeKeyName = UserDefaults.standard.value(forKey: KeychainConstants.currentKey) as? String else {
-            throw KeyManagerError.notFound
+            guard let firstStoredKey = try? storedKeys().first else {
+                throw KeyManagerError.notFound
+            }
+            try setActiveKey(firstStoredKey.name)
+            return firstStoredKey
         }
         return try getKey(by: activeKeyName)
     }

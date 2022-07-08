@@ -20,7 +20,7 @@ class MainInterfaceViewModel: ObservableObject {
             self.cameraService = CameraService(model: CameraServiceModel(keyManager: keyManager, fileWriter: fileWriter))
         }
         self.keyManager = keyManager
-         keyManager.keyPublisher.sink { key in
+        keyManager.keyPublisher.sink { key in
             self.showCameraInterface = key != nil
         }.store(in: &cancellables)
     }

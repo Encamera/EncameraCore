@@ -59,6 +59,25 @@ class KeychainTests: XCTestCase {
         let newKey = try keyManager.generateNewKey(name: "test1_key")
 
         XCTAssertEqual(keyManager.currentKey, newKey)
+        let activeKey = try XCTUnwrap(keyManager.getActiveKey())
+        XCTAssertEqual(activeKey, newKey)
+    }
+    
+    func testGenerateNewKeySetsCurrentKeyInUserDefaults() throws {
+        
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
+
+        XCTAssertEqual(keyManager.currentKey, newKey)
+        let activeKey = try XCTUnwrap(UserDefaults.standard.value(forKey: "currentKey") as? String)
+        XCTAssertEqual(activeKey, newKey.name)
+    }
+    
+    func testGenerateNewKeySetsActiveKeyWithoutUserDefaults() throws {
+        
+        let newKey = try keyManager.generateNewKey(name: "test1_key")
+        UserDefaults.standard.removeObject(forKey: "currentKey")
+        let activeKey = try XCTUnwrap(keyManager.getActiveKey())
+        XCTAssertEqual(activeKey, newKey)
     }
     
     func testDeleteKeyUnsetsCurrentKey() throws {
@@ -67,6 +86,7 @@ class KeychainTests: XCTestCase {
         try keyManager.deleteKey(newKey)
         
         XCTAssertNil(keyManager.currentKey)
+        XCTAssertThrowsError(try keyManager.getActiveKey())
     }
     
     func testGenerateMutipleNewKeysSetsFirstKeyAsCurrentKey() throws {
@@ -74,6 +94,8 @@ class KeychainTests: XCTestCase {
         let newKey = try keyManager.generateNewKey(name: "test1_key")
         try keyManager.generateNewKey(name: "test2_key")
         XCTAssertEqual(keyManager.currentKey, newKey)
+        let activeKey = try XCTUnwrap(keyManager.getActiveKey())
+        XCTAssertEqual(activeKey, newKey)
     }
     
     func testGeneratingNewKeyWithExistingNameThrowsError() throws {

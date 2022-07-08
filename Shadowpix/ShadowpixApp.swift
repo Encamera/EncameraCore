@@ -31,16 +31,16 @@ struct ShadowpixApp: App {
                 self.setupWith(key: newKey)
             }.store(in: &cancellables)
             setupWith(key: keyManager.currentKey)
-//            NotificationCenter.default
-//                .publisher(for: UIApplication.didEnterBackgroundNotification)
-//                .sink { _ in
-//                    self.authManager.deauthorize()
-//                }.store(in: &cancellables)
-//            NotificationCenter.default
-//                .publisher(for: UIApplication.didBecomeActiveNotification)
-//                .sink { _ in
-//                    self.authManager.authorize()
-//                }.store(in: &cancellables)
+            NotificationCenter.default
+                .publisher(for: UIApplication.didEnterBackgroundNotification)
+                .sink { _ in
+                    self.authManager.deauthorize()
+                }.store(in: &cancellables)
+            NotificationCenter.default
+                .publisher(for: UIApplication.didBecomeActiveNotification)
+                .sink { _ in
+                    self.authManager.authorize()
+                }.store(in: &cancellables)
         }
         
         private func setupWith(key: ImageKey?) {
