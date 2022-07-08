@@ -71,7 +71,7 @@ struct ShadowpixApp: App {
                             ImageViewing<EncryptedMedia>(viewModel: ImageViewingViewModel(media: media, fileAccess: fileAccess))
                         case .video:
                             MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
-                        case .thumbnail, .unknown:
+                        default:
                             EmptyView()
                     }
                     

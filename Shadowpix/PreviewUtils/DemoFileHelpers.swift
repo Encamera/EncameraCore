@@ -39,10 +39,11 @@ class DemoFileEnumerator: FileAccess {
         EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
     }
     
-    func loadMediaPreview<T>(for media: T) async -> CleartextMedia<Data> where T : MediaDescribing {
-        let source = media.source as! URL
-        let data = try! Data(contentsOf: source)
-        return CleartextMedia<Data>(source: data)
+    func loadMediaPreview<T>(for media: T) async -> PreviewModel {
+        fatalError()
+//        let source = media.source as! URL
+//        let data = try! Data(contentsOf: source)
+//        return CleartextMedia<Data>(source: data)
     }
     
     func createTempURL(for mediaType: MediaType, id: String) -> URL {

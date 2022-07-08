@@ -8,6 +8,36 @@
 import Foundation
 import SwiftUI
 import Combine
+import CoreMedia
+
+
+class PreviewModel: Codable {
+    
+    var id: String
+    
+    var thumbnailMedia: CleartextMedia<Data>
+    var gridID: String {
+        "\(thumbnailMedia.mediaType.fileExtension)_\(thumbnailMedia.id)"
+    }
+    var videoDuration: String?
+    
+    init(source: CleartextMedia<Data>) {
+        let decoded = try! JSONDecoder().decode(PreviewModel.self, from: source.source)
+        self.id = decoded.id
+        self.thumbnailMedia = decoded.thumbnailMedia
+    }
+    
+    init(thumbnailMedia: CleartextMedia<Data>) {
+        self.thumbnailMedia = thumbnailMedia
+        self.id = thumbnailMedia.id
+    }
+    
+    
+//    init(media: EncryptedMedia) {
+//        self.media = media
+//    }
+    
+}
 
 struct GalleryItem: View {
     

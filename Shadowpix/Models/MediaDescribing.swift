@@ -11,7 +11,7 @@ protocol MediaReference {
     
 }
 
-protocol MediaSourcing: Hashable {
+protocol MediaSourcing: Hashable, Codable {
     
 }
 

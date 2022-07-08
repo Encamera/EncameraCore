@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CleartextMedia<T: MediaSourcing>: MediaDescribing {
+struct CleartextMedia<T: MediaSourcing>: MediaDescribing, Codable {
     
     typealias MediaSource = T
     

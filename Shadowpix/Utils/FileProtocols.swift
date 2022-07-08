@@ -53,6 +53,11 @@ extension DirectoryModel {
         let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(media.mediaType.fileExtension).\(MediaType.thumbnail.fileExtension)")
         return thumbnailPath
     }
+    
+    func previewURLForMedia<T: MediaDescribing>(_ media: T) -> URL {
+        let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(media.mediaType.fileExtension).\(MediaType.preview.fileExtension)")
+        return thumbnailPath
+    }
 }
 
 protocol FileEnumerator {
@@ -64,7 +69,7 @@ protocol FileEnumerator {
 protocol FileReader {
     
     init(key: ImageKey)
-    func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> where T.MediaSource == URL
+    func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL
     func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL>
     func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<Data>
 }

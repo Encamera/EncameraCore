@@ -73,4 +73,12 @@ class FileAccessTests: XCTestCase {
 
     }
     
+    func testPreviewObjectIsSaved() async throws {
+        let movieFile = try FileUtils.createNewMovieFile()
+        let encrypted = try await fileHandler.save(media: movieFile)
+
+        let preview = try await fileHandler.loadMediaPreview(for: encrypted)
+        XCTAssertEqual(preview.videoDuration, "0:02")
+    }
+    
 }

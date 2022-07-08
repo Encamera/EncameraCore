@@ -83,16 +83,16 @@ actor DiskFileAccess<D: DirectoryModel>: FileEnumerator {
 
 extension DiskFileAccess: FileReader {
     
-    func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> where T.MediaSource == URL {
+    func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL {
         
-        let thumbnailPath = directoryModel.thumbnailURLForMedia(media)
-        let thumb = T(source: thumbnailPath, mediaType: .thumbnail, id: media.id)
+        let thumbnailPath = directoryModel.previewURLForMedia(media)
+        let thumb = T(source: thumbnailPath, mediaType: .preview, id: media.id)
         
         do {
-            let existingThumb = try await loadMediaInMemory(media: thumb) { _ in }
-            return existingThumb
+            let existingPreview = try await loadMediaInMemory(media: thumb) { _ in }
+            return PreviewModel(source: existingPreview)
         } catch {
-            return try await self.createThumbnail(for: media)
+            return try await self.createPreview(for: media)
         }
     }
     
@@ -154,6 +154,13 @@ extension DiskFileAccess: FileReader {
             return nil
         }
     }
+    
+    @discardableResult private func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
+        let thumbnail = try await createThumbnail(for: media)
+        let preview = PreviewModel(thumbnailMedia: thumbnail)
+        preview.videoDuration = "0:02"
+        return preview
+    }
 
     @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> {
         
@@ -174,7 +181,7 @@ extension DiskFileAccess: FileReader {
                     throw SecretFilesError.createVideoThumbnailError
                 }
                 thumbnailSourceData = data
-            case .thumbnail, .unknown:
+            default:
                 throw SecretFilesError.fileTypeError
             }
         } else if let cleartext = media as? CleartextMedia<URL> {
@@ -187,14 +194,14 @@ extension DiskFileAccess: FileReader {
                     throw SecretFilesError.createVideoThumbnailError
                 }
                 thumbnailSourceData = data
-            case .thumbnail, .unknown:
+            default:
                 throw SecretFilesError.fileTypeError
             }
         } else if let cleartext = media as? CleartextMedia<Data> {
             switch cleartext.mediaType {
             case .photo:
                 thumbnailSourceData = cleartext.source
-            case .video, .thumbnail, .unknown:
+            default:
                 throw SecretFilesError.fileTypeError
             }
         } else {
@@ -227,7 +234,7 @@ extension DiskFileAccess: FileWriter {
         let destinationURL = directoryModel.driveURLForNewMedia(media)
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
         let encrypted = try await fileHandler.encrypt()
-        try await createThumbnail(for: media)
+        try await createPreview(for: media)
         try media.delete()
         return encrypted
     }

@@ -99,7 +99,7 @@ final class CameraModel: ObservableObject {
                 return
             }
             let cleartextThumb = try await self.fileAccess.loadMediaPreview(for: firstMedia)
-            guard let thumbnail = UIImage(data: cleartextThumb.source) else {
+            guard let thumbnail = UIImage(data: cleartextThumb.thumbnailMedia.source) else {
                 self.thumbnailImage = nil
                 return
             }

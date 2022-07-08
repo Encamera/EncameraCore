@@ -7,7 +7,7 @@
 
 import Foundation
 
-class EncryptedMedia: MediaDescribing, ObservableObject {
+class EncryptedMedia: MediaDescribing, ObservableObject, Codable {
     typealias MediaSource = URL
     
     var mediaType: MediaType = .unknown

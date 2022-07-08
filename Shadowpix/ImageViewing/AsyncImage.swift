@@ -15,7 +15,7 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
         private var loader: FileReader
         private var targetMedia: T
         private var cancellables = Set<AnyCancellable>()
-        @Published var cleartextMedia: CleartextMedia<Data>?
+        @Published var cleartextMedia: PreviewModel?
         
         init(targetMedia: T, loader: FileReader) {
             self.targetMedia = targetMedia
@@ -53,7 +53,7 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
     
     @ViewBuilder private var content: some View {
         // need separate view for holding preview
-        if let decrypted = viewModel.cleartextMedia?.source, let image = UIImage(data: decrypted) {
+        if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.source, let image = UIImage(data: decrypted) {
             Image(uiImage: image)
                 .resizable()
                 .clipped()

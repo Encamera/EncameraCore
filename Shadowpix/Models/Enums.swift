@@ -6,12 +6,13 @@
 //
 
 import Foundation
-enum MediaType: Int, CaseIterable {
+enum MediaType: Int, CaseIterable, Codable {
     
     case photo
     case video
     case thumbnail
     case unknown
+    case preview
     
     static var displayCases: [MediaType] {
         self.allCases.filter({$0 != .unknown && $0 != .thumbnail})
@@ -65,33 +66,8 @@ enum MediaType: Int, CaseIterable {
             return "unknown"
         case .thumbnail:
             return "thmb"
-        }
-    }
-    
-    var title: String {
-        switch self {
-        case .video:
-            return "Video"
-        case .photo:
-            return "Photo"
-        case .unknown:
-            return "Unknown"
-        case .thumbnail:
-            return "Thumbnail"
-        }
-    }
-    
-    var fileDescription: String {
-        switch self {
-            
-        case .video:
-            return "video"
-        case .photo:
-            return "image"
-        case .unknown:
-            return ""
-        case .thumbnail:
-            return "thumbnail"
+        case .preview:
+            return "preview"
         }
     }
 }
