@@ -42,29 +42,29 @@ final class CameraModel: ObservableObject {
         self.fileAccess = fileAccess
         self.authManager = authManager
 
-        NotificationCenter.default
-            .publisher(for: UIApplication.didEnterBackgroundNotification)
-            .sink { _ in
-                self.showCameraView = false
-            }.store(in: &cancellables)
-        NotificationCenter.default
-            .publisher(for: UIApplication.didBecomeActiveNotification)
-            .dropFirst()
-            .sink { _ in
-                Task {
-                    await self.service.start()
-                }
-                self.showCameraView = true
-            }.store(in: &cancellables)
-        NotificationCenter.default
-            .publisher(for: UIApplication.willResignActiveNotification)
-            .sink { _ in
-                Task {
-                    await self.service.stop()
-                }
-                self.showCameraView = false
-            }.store(in: &cancellables)
-            
+//        NotificationCenter.default
+//            .publisher(for: UIApplication.didEnterBackgroundNotification)
+//            .sink { _ in
+//                self.showCameraView = false
+//            }.store(in: &cancellables)
+//        NotificationCenter.default
+//            .publisher(for: UIApplication.didBecomeActiveNotification)
+//            .dropFirst()
+//            .sink { _ in
+////                Task {
+////                    await self.service.start()
+////                }
+//                self.showCameraView = true
+//            }.store(in: &cancellables)
+//        NotificationCenter.default
+//            .publisher(for: UIApplication.willResignActiveNotification)
+//            .sink { _ in
+////                Task {
+////                    await self.service.stop()
+////                }
+//                self.showCameraView = false
+//            }.store(in: &cancellables)
+//            
 //        service.model.$shouldShowAlertView.sink { [weak self] (val) in
 //            self?.alertError = self?.service.alertError
 //            self?.showAlertError = val

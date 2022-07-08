@@ -239,6 +239,10 @@ actor CameraConfigurationService: CameraConfigurationServicable {
     }
     
     func configureForMode(targetMode: CameraMode) async {
+        session.beginConfiguration()
+        defer {
+            session.commitConfiguration()
+        }
         do {
             switch targetMode {
             case .photo:
@@ -251,7 +255,6 @@ actor CameraConfigurationService: CameraConfigurationServicable {
             print("Could not switch to mode \(targetMode)", error)
             self.model.setupResult = .configurationFailed
         }
-        
     }
     
 }
@@ -321,18 +324,20 @@ private extension CameraConfigurationService {
     /// Note: must call commit() to session after this
     private func addPhotoOutputToSession() throws {
         print("Calling addPhotoOutputToSession")
-        
-        guard session.canAddOutput(photoOutput) else {
-            return
-        }
         if let movieOutput = movieOutput {
             session.removeOutput(movieOutput)
+            self.movieOutput = nil
         }
         session.sessionPreset = .photo
-        session.addOutput(photoOutput)
         photoOutput.isLivePhotoCaptureEnabled = false
         photoOutput.maxPhotoQualityPrioritization = .quality
         photoOutput.isHighResolutionCaptureEnabled = true
+
+        guard session.canAddOutput(photoOutput) else {
+            return
+        }
+        
+        session.addOutput(photoOutput)
     }
     
     private func addVideoOutputToSession() throws {
@@ -342,7 +347,6 @@ private extension CameraConfigurationService {
         guard session.canAddOutput(movieOutput) else {
             throw SetupError.couldNotAddVideoOutputToSession
         }
-        session.beginConfiguration()
         session.addOutput(movieOutput)
         session.sessionPreset = .high
         if let connection = movieOutput.connection(with: .video) {
@@ -352,7 +356,6 @@ private extension CameraConfigurationService {
         }
 
         self.movieOutput = movieOutput
-        session.commitConfiguration()
     }
     
     private func addMetadataOutputToSession() throws {
@@ -427,7 +430,7 @@ private extension CameraConfigurationService {
         do {
             try setupCaptureDevice()
 //            try addMetadataOutputToSession()
-            await configureForMode(targetMode: .photo)
+            try addPhotoOutputToSession()
         } catch {
             print(error)
             model.setupResult = .configurationFailed

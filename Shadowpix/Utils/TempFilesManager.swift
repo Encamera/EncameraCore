@@ -24,16 +24,16 @@ class TempFilesManager {
     }
     
     init() {
-        NotificationCenter.default
-            .publisher(for: UIApplication.didFinishLaunchingNotification)
-            .sink { _ in
-                try? self.cleanup()
-            }.store(in: &cancellables)
-        NotificationCenter.default
-            .publisher(for: UIApplication.didEnterBackgroundNotification)
-            .sink { _ in
-                try? self.cleanup()
-            }.store(in: &cancellables)
+//        NotificationCenter.default
+//            .publisher(for: UIApplication.didFinishLaunchingNotification)
+//            .sink { _ in
+//                try? self.cleanup()
+//            }.store(in: &cancellables)
+//        NotificationCenter.default
+//            .publisher(for: UIApplication.didEnterBackgroundNotification)
+//            .sink { _ in
+//                try? self.cleanup()
+//            }.store(in: &cancellables)
     }
     
     func createTempURL(for mediaType: MediaType, id: String) -> URL {

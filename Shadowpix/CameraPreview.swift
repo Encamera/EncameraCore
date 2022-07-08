@@ -16,56 +16,69 @@ struct CameraPreview: UIViewRepresentable {
     class VideoPreviewView: UIView {
         
         
-        var videoPreviewLayer: AVCaptureVideoPreviewLayer? {
-            didSet {
-                removeVideoPreviewLayer()
-                addVideoPreviewLayer()
+        var videoPreviewLayer: AVCaptureVideoPreviewLayer {
+            guard let layer = layer as? AVCaptureVideoPreviewLayer else {
+                fatalError("Expected `AVCaptureVideoPreviewLayer` type for layer. Check PreviewView.layerClass implementation.")
+            }
+            return layer
+        }
+
+        override class var layerClass: AnyClass {
+            return AVCaptureVideoPreviewLayer.self
+        }
+        
+        
+        var session: AVCaptureSession? {
+            set {
+                videoPreviewLayer.session = newValue
+            }
+            get {
+                videoPreviewLayer.session
             }
         }
         
-        private func removeVideoPreviewLayer() {
-            videoPreviewLayer?.removeFromSuperlayer()
-        }
-        
-        private func addVideoPreviewLayer() {
-            guard let videoPreviewLayer = videoPreviewLayer else {
-                return
-            }
-            
-            layer.addSublayer(videoPreviewLayer)
-            videoPreviewLayer.frame = layer.frame
-        }
         private var cancellables = Set<AnyCancellable>()
 
-        init(modePublisher: AnyPublisher<CameraMode, Never>) {
+        init(modePublisher: AnyPublisher<CameraMode, Never>, session: AVCaptureSession) {
             super.init(frame: .zero)
             modePublisher.dropFirst().sink { mode in
-                switch mode {
-                    
-                case .photo:
-                    self.videoPreviewLayer?.videoGravity = .resizeAspect
-                case .video:
-                    self.videoPreviewLayer?.videoGravity = .resizeAspectFill
-                }
+                self.switchMode(mode)
             }.store(in: &cancellables)
-            NotificationCenter.default
-                .publisher(for: UIApplication.didEnterBackgroundNotification)
-                .sink { _ in
-                    self.removeVideoPreviewLayer()
-                }.store(in: &cancellables)
-            NotificationCenter.default
-                .publisher(for: Notification.Name.AVCaptureSessionDidStartRunning)
-                .receive(on: DispatchQueue.main)
-                .sink { _ in
-                    self.addVideoPreviewLayer()
-                }.store(in: &cancellables)
-            NotificationCenter.default
-                .publisher(for: UIApplication.willResignActiveNotification)
-                .sink { _ in
-                    self.removeVideoPreviewLayer()
-                }.store(in: &cancellables)
+            self.session = session
+//            let previewLayer = AVCaptureVideoPreviewLayer()
+//            previewLayer.cornerRadius = 0
+//            previewLayer.session = session
+//            previewLayer.connection?.videoOrientation = .portrait
+//            previewLayer.backgroundColor = UIColor.red.cgColor
+
+            //            NotificationCenter.default
+//                .publisher(for: UIApplication.didEnterBackgroundNotification)
+//                .sink { _ in
+//                    self.removeVideoPreviewLayer()
+//                }.store(in: &cancellables)
+//            NotificationCenter.default
+//                .publisher(for: Notification.Name.AVCaptureSessionDidStartRunning)
+//                .receive(on: DispatchQueue.main)
+//                .sink { _ in
+//                    self.addVideoPreviewLayer()
+//                }.store(in: &cancellables)
+//            NotificationCenter.default
+//                .publisher(for: UIApplication.willResignActiveNotification)
+//                .sink { _ in
+//                    self.removeVideoPreviewLayer()
+//                }.store(in: &cancellables)
 
 
+        }
+        
+        private func switchMode(_ mode: CameraMode) {
+            switch mode {
+
+            case .photo:
+                self.videoPreviewLayer.videoGravity = .resizeAspect
+            case .video:
+                self.videoPreviewLayer.videoGravity = .resizeAspectFill
+            }
         }
         
         required init?(coder: NSCoder) {
@@ -77,14 +90,8 @@ struct CameraPreview: UIViewRepresentable {
     let modePublisher: AnyPublisher<CameraMode, Never>
     
     func makeUIView(context: Context) -> VideoPreviewView {
-        let view = VideoPreviewView(modePublisher: self.modePublisher)
-        view.backgroundColor = .black
-        let layer = AVCaptureVideoPreviewLayer()
-        layer.cornerRadius = 0
-        layer.session = session
-        layer.connection?.videoOrientation = .portrait
-        view.videoPreviewLayer = layer
-        return view
+        
+        return VideoPreviewView(modePublisher: self.modePublisher, session: self.session)
     }
     
     func updateUIView(_ uiView: VideoPreviewView, context: Context) {
