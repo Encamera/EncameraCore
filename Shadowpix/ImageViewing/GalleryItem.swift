@@ -25,17 +25,13 @@ class PreviewModel: Codable {
         let decoded = try! JSONDecoder().decode(PreviewModel.self, from: source.source)
         self.id = decoded.id
         self.thumbnailMedia = decoded.thumbnailMedia
+        self.videoDuration = decoded.videoDuration
     }
     
     init(thumbnailMedia: CleartextMedia<Data>) {
         self.thumbnailMedia = thumbnailMedia
         self.id = thumbnailMedia.id
     }
-    
-    
-//    init(media: EncryptedMedia) {
-//        self.media = media
-//    }
     
 }
 

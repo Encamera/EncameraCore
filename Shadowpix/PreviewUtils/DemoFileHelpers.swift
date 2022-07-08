@@ -17,7 +17,9 @@ class DemoFileEnumerator: FileAccess {
     
     var media: [EncryptedMedia]
     
-    
+    func savePreview<T>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+        fatalError()
+    }
     func loadThumbnails<T>(for: DirectoryModel) async -> [T] where T : MediaDescribing, T.MediaSource == Data {
         []
     }

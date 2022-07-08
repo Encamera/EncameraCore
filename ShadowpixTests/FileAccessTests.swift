@@ -47,10 +47,10 @@ class FileAccessTests: XCTestCase {
         let movieFile = try FileUtils.createNewMovieFile()
         let encrypted = try await fileHandler.save(media: movieFile)
         
-        let thumbURL = directoryModel.thumbnailURLForMedia(encrypted)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: thumbURL.path))
         
-        _ = try await fileHandler.loadMediaPreview(for: encrypted)
+        
+        let preview = try await fileHandler.loadMediaPreview(for: encrypted)
+        XCTAssertNotNil(preview)
     }
     
     func testLivePhotoMovieAndStillAreSaved() async throws {
@@ -60,16 +60,11 @@ class FileAccessTests: XCTestCase {
         
         let encryptedMovie = try await fileHandler.save(media: movieFile)
         let encryptedImage = try await fileHandler.save(media: imageFile)
-        
-        let movieThumbURL = directoryModel.thumbnailURLForMedia(encryptedMovie)
-        let imageThumbURL = directoryModel.thumbnailURLForMedia(encryptedImage)
-        
-        _ = try await fileHandler.loadMediaPreview(for: encryptedMovie)
-        _ = try await fileHandler.loadMediaPreview(for: encryptedImage)
-        
-        XCTAssertTrue(FileManager.default.fileExists(atPath: movieThumbURL.path))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: imageThumbURL.path))
-        XCTAssertNotEqual(movieThumbURL, imageThumbURL)
+                
+        let moviePreview = try await fileHandler.loadMediaPreview(for: encryptedMovie)
+        let imagePreview = try await fileHandler.loadMediaPreview(for: encryptedImage)
+        XCTAssertNotNil(moviePreview)
+        XCTAssertNotNil(imagePreview)
 
     }
     
@@ -78,7 +73,7 @@ class FileAccessTests: XCTestCase {
         let encrypted = try await fileHandler.save(media: movieFile)
 
         let preview = try await fileHandler.loadMediaPreview(for: encrypted)
-        XCTAssertEqual(preview.videoDuration, "0:02")
+        XCTAssertEqual(preview.videoDuration, "00:02")
     }
     
 }

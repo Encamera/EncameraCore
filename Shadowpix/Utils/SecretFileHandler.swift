@@ -19,6 +19,7 @@ enum SecretFilesError: Error {
     case createThumbnailError
     case createVideoThumbnailError
     case fileTypeError
+    case createPreviewError
 }
 
 

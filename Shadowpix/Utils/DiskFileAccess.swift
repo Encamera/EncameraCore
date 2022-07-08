@@ -86,10 +86,10 @@ extension DiskFileAccess: FileReader {
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL {
         
         let thumbnailPath = directoryModel.previewURLForMedia(media)
-        let thumb = T(source: thumbnailPath, mediaType: .preview, id: media.id)
+        let preview = T(source: thumbnailPath, mediaType: .preview, id: media.id)
         
         do {
-            let existingPreview = try await loadMediaInMemory(media: thumb) { _ in }
+            let existingPreview = try await loadMediaInMemory(media: preview) { _ in }
             return PreviewModel(source: existingPreview)
         } catch {
             return try await self.createPreview(for: media)
@@ -156,9 +156,26 @@ extension DiskFileAccess: FileReader {
     }
     
     @discardableResult private func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
+        
         let thumbnail = try await createThumbnail(for: media)
         let preview = PreviewModel(thumbnailMedia: thumbnail)
-        preview.videoDuration = "0:02"
+        if let encrypted = media as? EncryptedMedia {
+            switch encrypted.mediaType {
+            case .photo:
+                break
+            case .video:
+                let video: CleartextMedia<URL> = try await decryptMedia(encrypted: encrypted, progress: {_ in })
+                let asset = AVURLAsset(url: video.source, options: nil)
+                preview.videoDuration = asset.duration.durationText
+            default:
+                throw SecretFilesError.createPreviewError
+            }
+        } else if let decrypted = media as? CleartextMedia<URL>, decrypted.mediaType == .video {
+            let asset = AVURLAsset(url: decrypted.source, options: nil)
+            preview.videoDuration = asset.duration.durationText
+        }
+        try await savePreview(preview: preview, sourceMedia: media)
+        
         return preview
     }
 
@@ -181,6 +198,7 @@ extension DiskFileAccess: FileReader {
                     throw SecretFilesError.createVideoThumbnailError
                 }
                 thumbnailSourceData = data
+                try decrypted.delete()
             default:
                 throw SecretFilesError.fileTypeError
             }
@@ -213,7 +231,7 @@ extension DiskFileAccess: FileReader {
         }
 
         
-        let cleartextThumb = try await self.saveThumbnail(data: thumbnailData, sourceMedia: media)
+        let cleartextThumb = CleartextMedia(source: thumbnailData, mediaType: .thumbnail, id: media.id)
         return cleartextThumb
         
     }
@@ -228,6 +246,16 @@ extension DiskFileAccess: FileWriter {
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextThumb, destinationURL: destinationURL)
         try await fileHandler.encrypt()
         return cleartextThumb
+    }
+    
+    @discardableResult func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> {
+        let data = try JSONEncoder().encode(preview)
+        let destinationURL = directoryModel.previewURLForMedia(sourceMedia)
+        let cleartextPreview = CleartextMedia(source: data, mediaType: .preview, id: sourceMedia.id)
+
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, destinationURL: destinationURL)
+        try await fileHandler.encrypt()
+        return cleartextPreview
     }
     
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia {

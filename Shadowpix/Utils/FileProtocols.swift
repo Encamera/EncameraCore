@@ -36,7 +36,7 @@ extension DirectoryModel {
 
     }
     
-    func driveURLForNewMedia<T: MediaSourcing>(_ media: CleartextMedia<T>) -> URL {
+    func driveURLForNewMedia<T: MediaDescribing>(_ media: T) -> URL {
         let filename = "\(media.id).\(media.mediaType.fileExtension).shdwpic"
         
 
@@ -78,6 +78,7 @@ protocol FileWriter {
         
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia
     @discardableResult func saveThumbnail<T: MediaDescribing>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data>
+    @discardableResult func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data>
 }
 
 protocol FileAccess: FileEnumerator, FileReader, FileWriter {
