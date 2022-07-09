@@ -158,7 +158,7 @@ extension DiskFileAccess: FileReader {
     @discardableResult private func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
         
         let thumbnail = try await createThumbnail(for: media)
-        let preview = PreviewModel(thumbnailMedia: thumbnail)
+        var preview = PreviewModel(thumbnailMedia: thumbnail)
         if let encrypted = media as? EncryptedMedia {
             switch encrypted.mediaType {
             case .photo:

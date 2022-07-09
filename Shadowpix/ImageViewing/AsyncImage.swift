@@ -44,24 +44,49 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
         GeometryReader { geo in
             let frame = geo.frame(in: .local)
             let side = frame.height
-            content
-            .scaledToFill()
+            
+            content(frame: frame)
             .position(x: frame.midX, y: frame.midY)
             .frame(width: side, height: side)
         }
     }
     
-    @ViewBuilder private var content: some View {
-        // need separate view for holding preview
+    @ViewBuilder private func content(frame: CGRect) -> some View {
         if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.source, let image = UIImage(data: decrypted) {
-            Image(uiImage: image)
-                .resizable()
-                .clipped()
-                .aspectRatio(contentMode:.fit)
+            ZStack {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode:.fill)
+                    .frame(width: frame.width, height: frame.height)
+                    .clipped()
+                    
+
+                if let duration = viewModel.cleartextMedia?.videoDuration {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Text(duration)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(2.0)
+                        }
+
+                    }
+                }
+            }
         } else {
             placeholder.task {
                 await viewModel.loadPreview()
             }
         }
+    }
+}
+
+struct AsyncImage_Previews: PreviewProvider {
+
+    static var previews: some View {
+
+        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher())))
     }
 }

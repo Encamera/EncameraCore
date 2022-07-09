@@ -11,9 +11,10 @@ import Combine
 import CoreMedia
 
 
-class PreviewModel: Codable {
+struct PreviewModel: Codable {
     
     var id: String
+    typealias MediaSource = Data
     
     var thumbnailMedia: CleartextMedia<Data>
     var gridID: String {

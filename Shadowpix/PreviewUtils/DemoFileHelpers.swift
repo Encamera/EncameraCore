@@ -41,8 +41,13 @@ class DemoFileEnumerator: FileAccess {
         EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
     }
     
-    func loadMediaPreview<T>(for media: T) async -> PreviewModel {
-        fatalError()
+    func loadMediaPreview<T: MediaDescribing>(for media: T) async -> PreviewModel {
+        let source = media.source as! URL
+        let data = try! Data(contentsOf: source)
+        let cleartext = CleartextMedia<Data>(source: data)
+        var preview = PreviewModel(thumbnailMedia: cleartext)
+        preview.videoDuration = "0:34"
+        return preview
 //        let source = media.source as! URL
 //        let data = try! Data(contentsOf: source)
 //        return CleartextMedia<Data>(source: data)
@@ -63,13 +68,13 @@ class DemoFileEnumerator: FileAccess {
         let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
         media = (0..<5).map { val in
-            EncryptedMedia(source: url, mediaType: .photo, id: "\(val)")
+            EncryptedMedia(source: url, mediaType: .photo, id: "\(NSUUID().uuidString)")
         }
         
         let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
         
-        media += (0..<5).map { val in
-            EncryptedMedia(source: dog, mediaType: .photo, id: "\(val)")
+        media += (6..<10).map { val in
+            EncryptedMedia(source: dog, mediaType: .photo, id: "\(NSUUID().uuidString)")
         }
         
         media.shuffle()
