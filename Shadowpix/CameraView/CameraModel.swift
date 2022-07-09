@@ -19,7 +19,7 @@ final class CameraModel: ObservableObject {
     
     @Published var showAlertError = false
     
-    @Published var isFlashOn = false
+    @Published var flashMode: AVCaptureDevice.FlashMode = .off
     @Published var isRecordingVideo = false
     @Published var recordingDuration: CMTime = .zero
     @Published var willCapturePhoto = false
@@ -112,7 +112,7 @@ final class CameraModel: ObservableObject {
     func captureButtonPressed() async throws {
         switch selectedCameraMode {
         case .photo:
-            let photoProcessor = try await service.createPhotoProcessor()
+            let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode)
             let photoObject = try await photoProcessor.takePhoto(livePhotoEnabled: false)
             if let photo = photoObject.photo {
                 try await fileAccess.save(media: photo)
@@ -158,8 +158,23 @@ final class CameraModel: ObservableObject {
     }
     
     func switchFlash() {
-        Task {
-            service.model.flashMode = service.model.flashMode == .on ? .off : .on
+        flashMode = flashMode.nextMode
+    }
+}
+
+private extension AVCaptureDevice.FlashMode {
+    
+    var nextMode: AVCaptureDevice.FlashMode {
+        switch self {
+            
+        case .off:
+            return .auto
+        case .on:
+            return .off
+        case .auto:
+            return .on
+        @unknown default:
+            return .off
         }
     }
 }

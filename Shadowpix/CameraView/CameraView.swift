@@ -123,7 +123,6 @@ struct CameraView: View {
                         }
                     }
                 )
-                .animation(.easeInOut)
         }
     }
 
@@ -141,11 +140,11 @@ struct CameraView: View {
                 Button(action: {
                     cameraModel.switchFlash()
                 }, label: {
-                    Image(systemName: cameraModel.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
-                        .font(.system(size: 20, weight: .medium, design: .default))
+                    Image(systemName: cameraModel.flashMode.systemIconForMode)
+                        .foregroundColor(cameraModel.flashMode.colorForMode)
                 })
                 
-                .accentColor(cameraModel.isFlashOn ? .yellow : .white)
+                
             }.padding().tint(.white).foregroundColor(.white)
             if cameraModel.isRecordingVideo {
                 Text("\(cameraModel.recordingDuration.durationText)")
@@ -186,6 +185,30 @@ struct CameraView: View {
     }
 }
 
+private extension AVCaptureDevice.FlashMode {
+    
+    var systemIconForMode: String {
+        switch self {
+        case .auto:
+            return "bolt.badge.a.fill"
+        case .on:
+            return "bolt.fill"
+        case .off:
+            return "bolt.slash.fill"
+        default:
+            return "bolt"
+        }
+    }
+    
+    var colorForMode: Color {
+        switch self {
+        case .auto, .on:
+            return .yellow
+        default:
+            return .white
+        }
+    }
+}
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
@@ -193,4 +216,5 @@ struct ContentView_Previews: PreviewProvider {
         
     }
 }
+
 

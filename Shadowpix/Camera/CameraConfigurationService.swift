@@ -66,7 +66,6 @@ protocol CameraConfigurationServicable {
 class CameraConfigurationServiceModel {
     var alertError: AlertError = AlertError()
     @Published var cameraMode: CameraMode = .photo
-    var flashMode: AVCaptureDevice.FlashMode = .off
     var setupResult: SessionSetupResult = .notDetermined
 }
 
@@ -268,7 +267,7 @@ extension CameraConfigurationService {
         return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
     }
     
-    func createPhotoProcessor() throws -> AsyncPhotoCaptureProcessor {
+    func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) throws -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
             print("Could not capture photo")
             fatalError()
@@ -278,7 +277,6 @@ extension CameraConfigurationService {
             photoOutputConnection.videoOrientation = .portrait
         }
         var photoSettings = AVCapturePhotoSettings()
-        
         // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.
         if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
             photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
@@ -287,7 +285,7 @@ extension CameraConfigurationService {
         // Sets the flash option for this capture.
         if let videoDeviceInput = self.videoDeviceInput,
            videoDeviceInput.device.isFlashAvailable {
-            photoSettings.flashMode = self.model.flashMode
+            photoSettings.flashMode = flashMode
         }
         
         photoSettings.isHighResolutionPhotoEnabled = true
