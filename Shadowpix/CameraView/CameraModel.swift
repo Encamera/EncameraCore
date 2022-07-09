@@ -142,6 +142,7 @@ final class CameraModel: ObservableObject {
             currentVideoProcessor = nil
             try await fileAccess.save(media: video)
         }
+        loadThumbnail()
     }
     
     func flipCamera() {

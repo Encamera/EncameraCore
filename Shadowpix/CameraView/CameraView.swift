@@ -49,7 +49,6 @@ struct CameraView: View {
                     .aspectRatio(contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .foregroundColor(.white)
-                    .animation(.spring())
                     .onTapGesture {
                         cameraModel.showGalleryView = true
                     }
