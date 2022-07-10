@@ -12,16 +12,18 @@ import Combine
 struct ShadowpixApp: App {
     class ViewModel: ObservableObject {
         @Published var hasOpenedURL: Bool = false
-        var openedUrl: URL?
         @Published var fileAccess: DiskFileAccess<iCloudFilesDirectoryModel>?
-        var keyManager: KeyManager
-        private(set) var authManager: AuthManager
-        private var cancellables = Set<AnyCancellable>()
         @Published var cameraMode: CameraMode = .photo
+        @Published var rotationFromOrientation: CGFloat = 0.0
+        var openedUrl: URL?
+        var keyManager: KeyManager
         var cameraService: CameraConfigurationService
         var cameraServiceModel = CameraConfigurationServiceModel()
         var tempFilesManager: TempFilesManager = TempFilesManager.shared
-
+        
+        private(set) var authManager: AuthManager
+        private var cancellables = Set<AnyCancellable>()
+        
         init() {
             
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
@@ -35,6 +37,29 @@ struct ShadowpixApp: App {
                 .publisher(for: UIApplication.didEnterBackgroundNotification)
                 .sink { _ in
                     self.authManager.deauthorize()
+                }.store(in: &cancellables)
+            NotificationCenter.default
+                .publisher(for: UIDevice.orientationDidChangeNotification)
+                .sink { value in
+                       
+                    var rotation = 0.0
+                    print("rotation", UIDevice.current.orientation.rawValue)
+                    switch UIDevice.current.orientation {
+                        
+                    case .unknown, .portrait, .portraitUpsideDown:
+                        rotation = 0.0
+                    
+                    case .landscapeLeft:
+                        rotation = 90.0
+                    case .landscapeRight:
+                        rotation = -90.0
+                    case .faceUp, .faceDown:
+                        rotation = 0.0
+                    
+                    @unknown default:
+                        rotation = 0.0
+                    }
+                    self.rotationFromOrientation = rotation
                 }.store(in: &cancellables)
             NotificationCenter.default
                 .publisher(for: UIApplication.didBecomeActiveNotification)
@@ -57,35 +82,38 @@ struct ShadowpixApp: App {
     
     var body: some Scene {
         WindowGroup {
+            
             if let fileAccess = viewModel.fileAccess {
                 CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess))
-                .sheet(isPresented: $viewModel.hasOpenedURL) {
-                    self.viewModel.hasOpenedURL = false
-                } content: {
-                    if let url = viewModel.openedUrl,
-                        let media = EncryptedMedia(source: url),
-                        viewModel.authManager.isAuthorized,
-                       let fileAccess = viewModel.fileAccess {
-                        switch media.mediaType {
-                        case .photo:
-                            ImageViewing<EncryptedMedia>(viewModel: ImageViewingViewModel(media: media, fileAccess: fileAccess))
-                        case .video:
-                            MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
-                        default:
-                            EmptyView()
+                    .sheet(isPresented: $viewModel.hasOpenedURL) {
+                        self.viewModel.hasOpenedURL = false
+                    } content: {
+                        if let url = viewModel.openedUrl,
+                           let media = EncryptedMedia(source: url),
+                           viewModel.authManager.isAuthorized,
+                           let fileAccess = viewModel.fileAccess {
+                            switch media.mediaType {
+                            case .photo:
+                                ImageViewing<EncryptedMedia>(viewModel: ImageViewingViewModel(media: media, fileAccess: fileAccess))
+                            case .video:
+                                MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
+                            default:
+                                EmptyView()
+                            }
+                            
+                        }
                     }
-                    
-                }
-            }
-                .onOpenURL { url in
-                self.viewModel.hasOpenedURL = false
-                self.viewModel.openedUrl = url
-                self.viewModel.hasOpenedURL = true
-            }
+                    .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
+                    .onOpenURL { url in
+                        self.viewModel.hasOpenedURL = false
+                        self.viewModel.openedUrl = url
+                        self.viewModel.hasOpenedURL = true
+                    }
+                
             } else {
                 Color.black
             }
-
+            
         }
     }
 }

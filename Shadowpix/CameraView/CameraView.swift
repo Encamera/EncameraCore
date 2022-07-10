@@ -2,15 +2,18 @@ import SwiftUI
 import Combine
 import AVFoundation
 
+
 struct CameraView: View {
     @ObservedObject private var cameraModel: CameraModel
     @State private var currentZoomFactor: CGFloat = 1.0
     @State var cameraModeStateModel: CameraModeStateModel
-    
+    @Environment(\.rotationFromOrientation) var rotationFromOrientation
     init(viewModel: CameraModel) {
         self.cameraModeStateModel = CameraModeStateModel()
         self.cameraModel = viewModel
     }
+    
+    
     
     private var captureButton: some View {
         Button(action: {
@@ -55,7 +58,9 @@ struct CameraView: View {
             } else {
                 Color.clear
             }
-        }.frame(width: 60, height: 60)
+        }
+        .rotateForOrientation()
+        .frame(width: 60, height: 60)
 
     }
     
@@ -70,6 +75,7 @@ struct CameraView: View {
                     Image(systemName: "camera.rotate.fill")
                         .foregroundColor(.white))
         })
+        .rotateForOrientation()
     }
     
     private var bottomButtonPanel: some View {
@@ -135,6 +141,7 @@ struct CameraView: View {
                 } label: {
                     Image(systemName: "key.fill").frame(width: 44, height: 44)
                 }
+                .rotateForOrientation()
                 Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
                 Spacer()
                 Button(action: {
@@ -142,7 +149,9 @@ struct CameraView: View {
                 }, label: {
                     Image(systemName: cameraModel.flashMode.systemIconForMode)
                         .foregroundColor(cameraModel.flashMode.colorForMode)
+                        
                 })
+                .rotateForOrientation()
                 
                 
             }.padding().tint(.white).foregroundColor(.white)

@@ -42,6 +42,8 @@
 		196AFE81274F83D100C809ED /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE80274F83D100C809ED /* GalleryView.swift */; };
 		196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE82274F858300C809ED /* DiskFileAccess.swift */; };
 		1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1978F9782822486000D16FD4 /* CameraModePicker.swift */; };
+		19868A0A287B25E20006E120 /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19868A09287B25E20006E120 /* Rotation.swift */; };
+		19868A0D287B4C740006E120 /* RotationViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19868A0C287B4C740006E120 /* RotationViewModifier.swift */; };
 		19874B45285D253A001C2D06 /* AsyncImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19874B44285D253A001C2D06 /* AsyncImage.swift */; };
 		1990154B2863BA3F00520082 /* KeySelectionList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990154A2863BA3F00520082 /* KeySelectionList.swift */; };
 		1990154D2863BA8400520082 /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990154C2863BA8400520082 /* KeychainTests.swift */; };
@@ -124,6 +126,8 @@
 		196AFE80274F83D100C809ED /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		196AFE82274F858300C809ED /* DiskFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskFileAccess.swift; sourceTree = "<group>"; };
 		1978F9782822486000D16FD4 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
+		19868A09287B25E20006E120 /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
+		19868A0C287B4C740006E120 /* RotationViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationViewModifier.swift; sourceTree = "<group>"; };
 		19874B44285D253A001C2D06 /* AsyncImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncImage.swift; sourceTree = "<group>"; };
 		1990154A2863BA3F00520082 /* KeySelectionList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionList.swift; sourceTree = "<group>"; };
 		1990154C2863BA8400520082 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
@@ -312,6 +316,22 @@
 			path = CaptureProcessors;
 			sourceTree = "<group>";
 		};
+		19868A08287B25D60006E120 /* EnvironmentKeys */ = {
+			isa = PBXGroup;
+			children = (
+				19868A09287B25E20006E120 /* Rotation.swift */,
+			);
+			path = EnvironmentKeys;
+			sourceTree = "<group>";
+		};
+		19868A0B287B4C640006E120 /* ViewModifiers */ = {
+			isa = PBXGroup;
+			children = (
+				19868A0C287B4C740006E120 /* RotationViewModifier.swift */,
+			);
+			path = ViewModifiers;
+			sourceTree = "<group>";
+		};
 		1994ABF02753E9C000E41BFD /* CameraView */ = {
 			isa = PBXGroup;
 			children = (
@@ -372,6 +392,8 @@
 		A9FE17832539494300D547C7 /* Shadowpix */ = {
 			isa = PBXGroup;
 			children = (
+				19868A0B287B4C640006E120 /* ViewModifiers */,
+				19868A08287B25D60006E120 /* EnvironmentKeys */,
 				193532312862668200964A01 /* KeyOperationsList */,
 				19FD5D612835EADF008D75AA /* PreviewUtils */,
 				1994ABF32753EA3600E41BFD /* MainInterface */,
@@ -544,6 +566,7 @@
 				1932371F28494BF60074CE8A /* CaptureProcessor.swift in Sources */,
 				19FD5D5C2835D91F008D75AA /* CleartextMedia.swift in Sources */,
 				19665C462742542A00DA8578 /* KeyEntry.swift in Sources */,
+				19868A0D287B4C740006E120 /* RotationViewModifier.swift in Sources */,
 				19FD5D632835EAF9008D75AA /* DemoFileHelpers.swift in Sources */,
 				19902B412873809200165C94 /* AlertError.swift in Sources */,
 				1961BCC2281B08CE00D7BE92 /* SecretFileHandler.swift in Sources */,
@@ -556,6 +579,7 @@
 				196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */,
 				193532292860F03C00964A01 /* DataBlockReader.swift in Sources */,
 				A9FE17B825394F1E00D547C7 /* ImageResizer.swift in Sources */,
+				19868A0A287B25E20006E120 /* Rotation.swift in Sources */,
 				1990154B2863BA3F00520082 /* KeySelectionList.swift in Sources */,
 				A9FE17BA25394F1E00D547C7 /* PhotoCaptureProcessor.swift in Sources */,
 				19353233286266CD00964A01 /* KeyList.swift in Sources */,
