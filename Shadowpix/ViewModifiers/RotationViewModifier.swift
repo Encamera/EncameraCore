@@ -14,7 +14,9 @@ struct RotationForOrientation: ViewModifier {
     
     func body(content: Content) -> some View {
         
-        content.rotationEffect(Angle(degrees: rotationFromOrientation)).animation(.easeOut(duration: 0.2), value: rotationFromOrientation)
+        content
+            .rotationEffect(Angle(degrees: rotationFromOrientation))
+            .animation(.easeOut(duration: 0.2), value: rotationFromOrientation)
     }
 }
 

@@ -81,7 +81,7 @@ final class CameraModel: ObservableObject {
 //            self?.willCapturePhoto = val
 //        }
 //        .store(in: &self.cancellables)
-        self.$selectedCameraMode.dropFirst().sink { newMode in
+        self.$selectedCameraMode.sink { newMode in
             Task {
                  await self.service.configureForMode(targetMode: newMode)
             }
@@ -125,6 +125,7 @@ final class CameraModel: ObservableObject {
         case .video:
             if let currentVideoProcessor = currentVideoProcessor {
                 currentVideoProcessor.stop()
+                self.currentVideoProcessor = nil
                 return
             }
             let videoProcessor = try await service.createVideoProcessor()

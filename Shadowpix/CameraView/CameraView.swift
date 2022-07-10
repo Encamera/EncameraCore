@@ -13,8 +13,6 @@ struct CameraView: View {
         self.cameraModel = viewModel
     }
     
-    
-    
     private var captureButton: some View {
         Button(action: {
             Task {
@@ -82,7 +80,7 @@ struct CameraView: View {
         VStack {
             CameraModePicker(pressedAction: { mode in
             })
-            .onReceive(cameraModeStateModel.$selectedMode.dropFirst()) { newValue in
+            .onReceive(cameraModeStateModel.$selectedMode) { newValue in
                 cameraModel.selectedCameraMode = newValue
             }
             .environmentObject(cameraModeStateModel)
@@ -117,6 +115,10 @@ struct CameraView: View {
                         }
                     })
                 )
+                .onChange(of: rotationFromOrientation, perform: { newValue in
+                    print("rotation", newValue)
+                    cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
+                })
                 .alert(isPresented: $cameraModel.showAlertError, content: {
                     Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
                         cameraModel.alertError.primaryAction?()
