@@ -18,12 +18,12 @@ final class CameraModel: ObservableObject {
     }
     
     @Published var showAlertError = false
-    
+    @Published var showScreenBlocker: Bool = true
+
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
     @Published var isRecordingVideo = false
     @Published var recordingDuration: CMTime = .zero
     @Published var willCapturePhoto = false
-    @Published var showCameraView = true
     @Published var selectedCameraMode: CameraMode = .photo
     @Published var thumbnailImage: UIImage?
     @Published var showGalleryView: Bool = false
@@ -37,57 +37,23 @@ final class CameraModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     
-    init(keyManager: KeyManager, authManager: AuthManager, cameraService: CameraConfigurationService, fileAccess: FileAccess) {
+    init(keyManager: KeyManager,
+         authManager: AuthManager,
+         cameraService: CameraConfigurationService,
+         fileAccess: FileAccess,
+         showScreenBlocker: Bool) {
         self.service = cameraService
         self.keyManager = keyManager
         self.fileAccess = fileAccess
         self.authManager = authManager
-
-//        NotificationCenter.default
-//            .publisher(for: UIApplication.didEnterBackgroundNotification)
-//            .sink { _ in
-//                self.showCameraView = false
-//            }.store(in: &cancellables)
-//        NotificationCenter.default
-//            .publisher(for: UIApplication.didBecomeActiveNotification)
-//            .dropFirst()
-//            .sink { _ in
-////                Task {
-////                    await self.service.start()
-////                }
-//                self.showCameraView = true
-//            }.store(in: &cancellables)
-//        NotificationCenter.default
-//            .publisher(for: UIApplication.willResignActiveNotification)
-//            .sink { _ in
-////                Task {
-////                    await self.service.stop()
-////                }
-//                self.showCameraView = false
-//            }.store(in: &cancellables)
-//            
-//        service.model.$shouldShowAlertView.sink { [weak self] (val) in
-//            self?.alertError = self?.service.alertError
-//            self?.showAlertError = val
-//        }
-//        .store(in: &self.cancellables)
-//
-//        service.model.$flashMode.sink { [weak self] (mode) in
-//            self?.isFlashOn = mode == .on
-//        }
-//        .store(in: &self.cancellables)
-        
-//        service.model.$willCapturePhoto.sink { [weak self] (val) in
-//            self?.willCapturePhoto = val
-//        }
-//        .store(in: &self.cancellables)
+        self.showScreenBlocker = showScreenBlocker
         self.$selectedCameraMode.sink { newMode in
             Task {
                  await self.service.configureForMode(targetMode: newMode)
             }
         }
         .store(in: &self.cancellables)
-                
+
         loadThumbnail()
     }
     
@@ -114,6 +80,9 @@ final class CameraModel: ObservableObject {
         case .photo:
             let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode)
             let photoObject = try await photoProcessor.takePhoto(livePhotoEnabled: false)
+            await MainActor.run(body: {
+                willCapturePhoto = true
+            })
             if let photo = photoObject.photo {
                 try await fileAccess.save(media: photo)
             }
@@ -121,7 +90,9 @@ final class CameraModel: ObservableObject {
             if let livePhoto = photoObject.livePhoto {
                 try await fileAccess.save(media: livePhoto)
             }
-            
+            await MainActor.run(body: {
+                willCapturePhoto = false
+            })
         case .video:
             if let currentVideoProcessor = currentVideoProcessor {
                 currentVideoProcessor.stop()

@@ -19,11 +19,12 @@ class AuthManager: ObservableObject {
     }
     
     func authorize() {
-        let context = LAContext()
-        var error: NSError?
+        
         guard isAuthorized == false else {
             return
         }
+        let context = LAContext()
+        var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
             isAuthorized = false
             return

@@ -41,7 +41,7 @@ struct CameraView: View {
             try await cameraModel.captureButtonPressed()
         }
     }
-        
+    
     private var capturedPhotoThumbnail: some View {
         Group {
             if let thumbnail = cameraModel.thumbnailImage {
@@ -59,7 +59,7 @@ struct CameraView: View {
         }
         .rotateForOrientation()
         .frame(width: 60, height: 60)
-
+        
     }
     
     private var flipCameraButton: some View {
@@ -86,7 +86,7 @@ struct CameraView: View {
             .environmentObject(cameraModeStateModel)
             HStack {
                 capturedPhotoThumbnail
-                    
+                
                 captureButton
                     .frame(maxWidth: .infinity)
                 flipCameraButton
@@ -116,7 +116,6 @@ struct CameraView: View {
                     })
                 )
                 .onChange(of: rotationFromOrientation, perform: { newValue in
-                    print("rotation", newValue)
                     cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
                 })
                 .alert(isPresented: $cameraModel.showAlertError, content: {
@@ -131,9 +130,10 @@ struct CameraView: View {
                         }
                     }
                 )
+                .animation(.easeInOut, value: cameraModel.willCapturePhoto)
         }
     }
-
+    
     private var topBar: some View {
         ZStack {
             HStack {
@@ -151,7 +151,7 @@ struct CameraView: View {
                 }, label: {
                     Image(systemName: cameraModel.flashMode.systemIconForMode)
                         .foregroundColor(cameraModel.flashMode.colorForMode)
-                        
+                    
                 })
                 .rotateForOrientation()
                 
@@ -159,22 +159,26 @@ struct CameraView: View {
             }.padding().tint(.white).foregroundColor(.white)
             if cameraModel.isRecordingVideo {
                 Text("\(cameraModel.recordingDuration.durationText)")
-                .padding(5)
-                .background(Color.red)
-                .cornerRadius(10)
-                .foregroundColor(.white)
+                    .padding(5)
+                    .background(Color.red)
+                    .cornerRadius(10)
+                    .foregroundColor(.white)
             }
         }
     }
     
     var body: some View {
         ZStack {
-            cameraPreview
-                .edgesIgnoringSafeArea(.all)
-            VStack {
-                topBar
-                Spacer()
-                bottomButtonPanel
+            if cameraModel.showScreenBlocker {
+                Color.black.edgesIgnoringSafeArea(.all)
+            } else {
+                cameraPreview
+                    .edgesIgnoringSafeArea(.all)
+                VStack {
+                    topBar
+                    Spacer()
+                    bottomButtonPanel
+                }
             }
         }
         .background(Color.black)
@@ -189,9 +193,6 @@ struct CameraView: View {
                 await cameraModel.service.configure()
             }
             cameraModel.loadThumbnail()
-        }
-        if cameraModel.showCameraView == false {
-            Color.black
         }
     }
 }
@@ -223,7 +224,7 @@ private extension AVCaptureDevice.FlashMode {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: AuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator()))
+        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: AuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), showScreenBlocker: false))
         
     }
 }

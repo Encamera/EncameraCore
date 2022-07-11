@@ -25,8 +25,9 @@ import Combine
     }
     
     enum SessionSetupResult {
-        case success
+        case authorized
         case notAuthorized
+        case setupComplete
         case configurationFailed
         case notDetermined
     }
@@ -95,7 +96,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
         
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            self.model.setupResult = .success
+            self.model.setupResult = .authorized
         case .notDetermined:
             
             if await AVCaptureDevice.requestAccess(for: .video) == false {
@@ -109,7 +110,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
     
     
     func stop() async {
-        guard self.session.isRunning, self.model.setupResult == .success else {
+        guard self.session.isRunning, self.model.setupResult == .authorized else {
             print("Could not stop session, isSessionRunning: \(self.session.isRunning), model.setupResult: \(model.setupResult)")
             return
         }
@@ -122,7 +123,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
             return
         }
         switch self.model.setupResult {
-        case .success:
+        case .setupComplete:
             self.session.startRunning()
             guard self.session.isRunning else {
                 print("Session is not running")
@@ -404,9 +405,6 @@ private extension CameraConfigurationService {
             throw SetupError.couldNotCreateVideoDeviceInput(avFoundationError: error)
         }
         
-        
-        
-        
         do {
             let audioDevice = AVCaptureDevice.default(for: .audio)!
             let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
@@ -423,20 +421,26 @@ private extension CameraConfigurationService {
     }
     
     private func initialSessionConfiguration() async {
-        guard model.setupResult == .success else {
+        guard model.setupResult == .authorized else {
             return
         }
-        session.beginConfiguration()
         configureVolumeButtons()
         do {
+            session.beginConfiguration()
+            defer {
+                session.commitConfiguration()
+            }
+            // There is an unhandled case here, where if the video input
+            // cannot be added to the session, it fails but does nothing
             try setupCaptureDevice()
 //            try addMetadataOutputToSession()
             try addPhotoOutputToSession()
         } catch {
             print(error)
-            model.setupResult = .configurationFailed
+            return
         }
-        session.commitConfiguration()
+        model.setupResult = .setupComplete
+
         await self.start()
     }
     

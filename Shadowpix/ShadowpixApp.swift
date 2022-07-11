@@ -15,6 +15,8 @@ struct ShadowpixApp: App {
         @Published var fileAccess: DiskFileAccess<iCloudFilesDirectoryModel>?
         @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
+        @Published var showScreenBlocker: Bool = true
+
         var openedUrl: URL?
         var keyManager: KeyManager
         var cameraService: CameraConfigurationService
@@ -32,18 +34,33 @@ struct ShadowpixApp: App {
             self.keyManager.keyPublisher.sink { newKey in
                 self.setupWith(key: newKey)
             }.store(in: &cancellables)
+            
             setupWith(key: keyManager.currentKey)
             NotificationCenter.default
                 .publisher(for: UIApplication.didEnterBackgroundNotification)
                 .sink { _ in
+
                     self.authManager.deauthorize()
+                    self.showScreenBlocker = true
+                }.store(in: &cancellables)
+            NotificationCenter.default
+                .publisher(for: UIApplication.willResignActiveNotification)
+                .sink { _ in
+                    self.showScreenBlocker = true
+                }
+                .store(in: &cancellables)
+            NotificationCenter.default
+                .publisher(for: UIApplication.didBecomeActiveNotification)
+                .sink { _ in
+                    self.showScreenBlocker = false
+                    self.authManager.authorize()
+
                 }.store(in: &cancellables)
             NotificationCenter.default
                 .publisher(for: UIDevice.orientationDidChangeNotification)
                 .sink { value in
                        
                     var rotation = 0.0
-                    print("rotation", UIDevice.current.orientation.rawValue)
                     switch UIDevice.current.orientation {
                         
                     case .unknown, .portrait, .portraitUpsideDown:
@@ -61,11 +78,6 @@ struct ShadowpixApp: App {
                     }
                     self.rotationFromOrientation = rotation
                 }.store(in: &cancellables)
-            NotificationCenter.default
-                .publisher(for: UIApplication.didBecomeActiveNotification)
-                .sink { _ in
-                    self.authManager.authorize()
-                }.store(in: &cancellables)
         }
         
         private func setupWith(key: ImageKey?) {
@@ -79,12 +91,14 @@ struct ShadowpixApp: App {
     }
     
     @ObservedObject var viewModel: ViewModel = ViewModel()
-    
+
     var body: some Scene {
         WindowGroup {
-            
-            if let fileAccess = viewModel.fileAccess {
-                CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess))
+            if viewModel.authManager.isAuthorized == false {
+                AuthenticationView(viewModel: .init())
+                    .edgesIgnoringSafeArea(.all)
+            } else if let fileAccess = viewModel.fileAccess {
+                CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker))
                     .sheet(isPresented: $viewModel.hasOpenedURL) {
                         self.viewModel.hasOpenedURL = false
                     } content: {
@@ -110,8 +124,6 @@ struct ShadowpixApp: App {
                         self.viewModel.hasOpenedURL = true
                     }
                 
-            } else {
-                Color.black
             }
             
         }

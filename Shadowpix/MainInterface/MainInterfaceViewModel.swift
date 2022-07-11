@@ -11,7 +11,6 @@ import Combine
 
 class MainInterfaceViewModel: ObservableObject {
     
-    @Published var showCameraInterface = false
     private var cancellables = Set<AnyCancellable>()
     @Published var cameraService: CameraService?
     var keyManager: KeyManager
@@ -20,8 +19,5 @@ class MainInterfaceViewModel: ObservableObject {
             self.cameraService = CameraService(model: CameraServiceModel(keyManager: keyManager, fileWriter: fileWriter))
         }
         self.keyManager = keyManager
-        keyManager.keyPublisher.sink { key in
-            self.showCameraInterface = key != nil
-        }.store(in: &cancellables)
     }
 }

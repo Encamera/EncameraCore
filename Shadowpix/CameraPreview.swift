@@ -45,30 +45,11 @@ struct CameraPreview: UIViewRepresentable {
                 self.switchMode(mode)
             }.store(in: &cancellables)
             self.session = session
-//            let previewLayer = AVCaptureVideoPreviewLayer()
-//            previewLayer.cornerRadius = 0
-//            previewLayer.session = session
-//            previewLayer.connection?.videoOrientation = .portrait
-//            previewLayer.backgroundColor = UIColor.red.cgColor
-
-            //            NotificationCenter.default
-//                .publisher(for: UIApplication.didEnterBackgroundNotification)
-//                .sink { _ in
-//                    self.removeVideoPreviewLayer()
-//                }.store(in: &cancellables)
-//            NotificationCenter.default
-//                .publisher(for: Notification.Name.AVCaptureSessionDidStartRunning)
-//                .receive(on: DispatchQueue.main)
-//                .sink { _ in
-//                    self.addVideoPreviewLayer()
-//                }.store(in: &cancellables)
-//            NotificationCenter.default
-//                .publisher(for: UIApplication.willResignActiveNotification)
-//                .sink { _ in
-//                    self.removeVideoPreviewLayer()
-//                }.store(in: &cancellables)
-
-
+            NotificationCenter.default
+                .publisher(for: UIApplication.didEnterBackgroundNotification)
+                .sink { _ in
+                    self.session = nil
+                }.store(in: &cancellables)
         }
         
         private func switchMode(_ mode: CameraMode) {
