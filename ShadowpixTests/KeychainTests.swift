@@ -17,6 +17,7 @@ class KeychainTests: XCTestCase {
     
     override func setUp() async throws {
         try? keyManager.clearStoredKeys()
+        try? keyManager.clearPassword()
     }
 
     
@@ -125,5 +126,50 @@ class KeychainTests: XCTestCase {
         XCTAssertNil(newManager.currentKey)
         
     }
+    
+    func testSetPassword() throws {
+        
+        try keyManager.setPassword("q1w2e3r4")
+    }
+    
+    func testCheckPasswordPositive() throws {
+        let password = "r4t5y6y6"
+        try keyManager.setPassword(password)
+        
+        let result = try keyManager.checkPassword(password)
+        XCTAssertTrue(result)
+    }
+    
+    func testCheckPasswordNegative() throws {
+        let password = "r4t5y6y6"
+        try keyManager.setPassword(password)
+        
+        let result = try keyManager.checkPassword("wrong")
+        XCTAssertFalse(result)
+    }
+    
+    func testSetNewPassword() throws {
+        let firstPassword = "q1w2e3r4"
+        try keyManager.setPassword(firstPassword)
+        let newPassword = "r4t5y6y6"
+        try keyManager.setPassword(newPassword)
+        
+        XCTAssertFalse(try keyManager.checkPassword(firstPassword))
+        XCTAssertTrue(try keyManager.checkPassword(newPassword))
+    }
 
+}
+
+private extension MultipleKeyKeychainManager {
+    func clearPassword() throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword
+        ]
+        
+        let status = SecItemDelete(query as CFDictionary)
+        if status != errSecSuccess {
+            throw KeyManagerError.deleteKeychainItemsFailed
+        }
+
+    }
 }

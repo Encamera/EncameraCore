@@ -12,6 +12,7 @@ import Combine
 private enum KeychainConstants {
     static let applicationTag = "com.shadowpix.key"
     static let currentKey = "currentKey"
+    static let account = "shadowpix"
 }
 
 class MultipleKeyKeychainManager: ObservableObject, KeyManager {
@@ -191,6 +192,52 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let key = try ImageKey(keychainItem: keychainItem)
         return key
 
+    }
+    
+    func setPassword(_ password: String) throws {
+        guard let passwordData = password.data(using: .utf8) else {
+            throw KeyManagerError.dataError
+        }
+        let existingPasswordQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword
+        ]
+        let deletePasswordStatus = SecItemDelete(existingPasswordQuery as CFDictionary)
+        do {
+            try checkStatus(status: deletePasswordStatus)
+        } catch {
+            print("Clearing password failed", error)
+        }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account,
+            kSecValueData as String: passwordData
+        ]
+        let setPasswordStatus = SecItemAdd(query as CFDictionary, nil)
+        
+        try checkStatus(status: setPasswordStatus)
+    }
+    
+    func checkPassword(_ password: String) throws -> Bool {
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account,
+            kSecReturnData as String: true,
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        do {
+            try checkStatus(status: status)
+            guard let item = item, let passwordData = item as? Data else {
+                throw KeyManagerError.notFound
+            }
+
+            let existingPassword = String(data: passwordData, encoding: .utf8)
+            return existingPassword == password
+        } catch {
+            return false
+        }
+        
     }
 }
 
