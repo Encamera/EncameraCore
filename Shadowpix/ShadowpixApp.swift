@@ -30,7 +30,7 @@ struct ShadowpixApp: App {
             
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = AuthManager()
-            self.keyManager = MultipleKeyKeychainManager(isAuthorized: self.authManager.$isAuthorized.eraseToAnyPublisher())
+            self.keyManager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher)
             self.keyManager.keyPublisher.sink { newKey in
                 self.setupWith(key: newKey)
             }.store(in: &cancellables)
@@ -53,7 +53,9 @@ struct ShadowpixApp: App {
                 .publisher(for: UIApplication.didBecomeActiveNotification)
                 .sink { _ in
                     self.showScreenBlocker = false
-                    self.authManager.authorize()
+                    Task {
+                        try? await self.authManager.checkAuthorizationWithCurrentPolicy()
+                    }
 
                 }.store(in: &cancellables)
             NotificationCenter.default
@@ -95,7 +97,7 @@ struct ShadowpixApp: App {
     var body: some Scene {
         WindowGroup {
             if viewModel.authManager.isAuthorized == false {
-                AuthenticationView(viewModel: .init())
+                AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                     .edgesIgnoringSafeArea(.all)
             } else if let fileAccess = viewModel.fileAccess {
                 CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker))

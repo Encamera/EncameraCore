@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct RotationForOrientation: ViewModifier {
+private struct RotationForOrientation: ViewModifier {
     
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
     

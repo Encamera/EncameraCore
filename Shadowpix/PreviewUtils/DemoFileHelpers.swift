@@ -143,6 +143,14 @@ class DemoDirectoryModel: DirectoryModel {
 }
 
 class DemoKeyManager: KeyManager {
+    func checkPassword(_ password: String) throws -> Bool {
+        return true
+    }
+    
+    func setPassword(_ password: String) throws {
+        
+    }
+    
     func deleteKey(_ key: ImageKey) throws {
         
     }
