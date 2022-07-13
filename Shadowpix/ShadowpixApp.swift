@@ -98,7 +98,6 @@ struct ShadowpixApp: App {
         WindowGroup {
             if viewModel.authManager.isAuthorized == false {
                 AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-                    .edgesIgnoringSafeArea(.all)
             } else if let fileAccess = viewModel.fileAccess {
                 CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker))
                     .sheet(isPresented: $viewModel.hasOpenedURL) {

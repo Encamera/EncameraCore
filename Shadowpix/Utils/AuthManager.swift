@@ -27,10 +27,8 @@ enum AuthManagerState: Equatable {
 }
 
 struct AuthenticationPolicy: Codable {
-    
     var preferredAuthenticationMethod: AuthenticationMethod
     var authenticationExpirySeconds: Int
-    
 }
 
 class AuthManager: ObservableObject {
@@ -77,10 +75,16 @@ class AuthManager: ObservableObject {
         authState = .unauthorized
     }
     
-    func checkAuthorizationWithCurrentPolicy() async throws -> AuthManagerState {
+    func checkAuthorizationWithCurrentPolicy() async throws {
+        
+        guard case .unauthorized = authState else {
+            return
+        }
+
+        
         guard let policy = policy else {
             self.authState = .unauthorized
-            return .unauthorized
+            return
         }
 
         switch policy.preferredAuthenticationMethod {
@@ -90,7 +94,7 @@ class AuthManager: ObservableObject {
         case .password:
             reauthorizeForPassword()
         }
-        return authState
+        return
     }
     
     
@@ -152,6 +156,7 @@ private extension AuthManager {
     private func loadAuthenticationPolicy() {
         guard let data = UserDefaults.standard.data(forKey: policyUserDefaultsKey) else {
             print("No authentication policy set in UserDefaults")
+            policy = nil
             return
         }
         do {
