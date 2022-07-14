@@ -31,6 +31,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     var isAuthorized: AnyPublisher<Bool, Never>
     private var authorized: Bool = false
     private var cancellables = Set<AnyCancellable>()
+    private var sodium = Sodium()
     private (set) var currentKey: ImageKey?  {
         didSet {
             keySubject.send(currentKey)
@@ -218,13 +219,11 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func setPassword(_ password: String) throws {
-        guard let passwordData = password.data(using: .utf8) else {
-            throw KeyManagerError.dataError
-        }
+        let hashed = try hashFrom(password: password)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
-            kSecValueData as String: passwordData
+            kSecValueData as String: hashed
         ]
         let setPasswordStatus = SecItemAdd(query as CFDictionary, nil)
         
@@ -262,12 +261,11 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         do {
             try checkStatus(status: status)
-            guard let item = item, let passwordData = item as? Data else {
+            guard let item = item, let passwordData = item as? Data, let hashString = String(data: passwordData, encoding: .utf8) else {
                 throw KeyManagerError.notFound
             }
-
-            let existingPassword = String(data: passwordData, encoding: .utf8)
-            return existingPassword == password
+            let passwordBytes = try bytes(from: password)
+            return sodium.pwHash.strVerify(hash: hashString, passwd: passwordBytes)
         } catch {
             return false
         }
@@ -311,6 +309,27 @@ private extension MultipleKeyKeychainManager {
         default:
             throw defaultError
         }
+    }
+    
+    func hashFrom(password: String) throws -> Data {
+        let bytes = try bytes(from: password)
+        let hashString = sodium.pwHash.str(passwd: bytes,
+                                           opsLimit: sodium.pwHash.OpsLimitInteractive,
+                                                 memLimit: sodium.pwHash.MemLimitInteractive)
+        guard let hashed = hashString?.data(using: .utf8) else {
+            throw KeyManagerError.dataError
+        }
+        return hashed
+    }
+    
+    func bytes(from string: String) throws -> [UInt8] {
+        guard let passwordData = string.data(using: .utf8) else {
+            throw KeyManagerError.dataError
+        }
+        
+        var bytes = [UInt8](repeating: 0, count: passwordData.count)
+        passwordData.copyBytes(to: &bytes, count: string.count)
+        return bytes
     }
 }
 

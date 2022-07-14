@@ -83,23 +83,6 @@ extension SecretFileHandlerInt {
     }
 }
 
-//class SecretInMemoryFileHander<T: MediaDescribing>: SecretFileHandlerInt {
-//
-//    var sourceMedia: T
-//
-//    var keyBytes: Array<UInt8> = []
-//
-//    var cancellables = Set<AnyCancellable>()
-//    fileprivate var progressSubject = PassthroughSubject<Double, Never>()
-//
-//    init(sourceMedia: T, keyBytes: Array<UInt8>) {
-//        self.sourceMedia = sourceMedia
-//        self.keyBytes = keyBytes
-//    }
-//
-//
-//}
-
 class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     
 
@@ -169,7 +152,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
 
                         case .finished:
                             guard let media = EncryptedMedia(source: self.destinationURL) else {
-                                continuation.resume(throwing:  SecretFilesError.sourceFileAccessError)
+                                continuation.resume(throwing: SecretFilesError.sourceFileAccessError)
                                 return
                             }
                             continuation.resume(returning: media)
