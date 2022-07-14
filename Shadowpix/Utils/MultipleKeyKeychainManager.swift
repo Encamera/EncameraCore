@@ -15,6 +15,17 @@ private enum KeychainConstants {
     static let account = "shadowpix"
 }
 
+enum PasswordValidation {
+    case notDetermined
+    case valid
+    case invalidTooShort
+    case invalidDifferent
+    case invalidTooLong
+    
+    static let minPasswordLength = 4
+    static let maxPasswordLength = 30
+}
+
 class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     var isAuthorized: AnyPublisher<Bool, Never>
@@ -194,18 +205,21 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
     }
     
+    func passwordExists() throws -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account,
+            kSecReturnData as String: true,
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        try checkStatus(status: status)
+        return item != nil
+    }
+    
     func setPassword(_ password: String) throws {
         guard let passwordData = password.data(using: .utf8) else {
             throw KeyManagerError.dataError
-        }
-        let existingPasswordQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword
-        ]
-        let deletePasswordStatus = SecItemDelete(existingPasswordQuery as CFDictionary)
-        do {
-            try checkStatus(status: deletePasswordStatus)
-        } catch {
-            print("Clearing password failed", error)
         }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -217,8 +231,28 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         try checkStatus(status: setPasswordStatus)
     }
     
+    func changePassword(newPassword: String, existingPassword: String) throws {
+        guard try checkPassword(existingPassword) == true else {
+            throw KeyManagerError.invalidPassword
+        }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account,
+            kSecReturnData as String: true,
+        ]
+        let deletePasswordStatus = SecItemDelete(query as CFDictionary)
+        do {
+            try checkStatus(status: deletePasswordStatus)
+        } catch {
+            print("Clearing password failed", error)
+        }
+        try setPassword(newPassword)
+    }
+    
     func checkPassword(_ password: String) throws -> Bool {
-        
+        guard validate(password: password) == .valid else {
+            throw KeyManagerError.invalidPassword
+        }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -238,6 +272,32 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
             return false
         }
         
+    }
+    
+    func validate(password: String) -> PasswordValidation {
+        let validationState: PasswordValidation
+        switch (password) {
+        case password where password.count > PasswordValidation.maxPasswordLength:
+            validationState = .invalidTooLong
+        case password where password.count <= PasswordValidation.minPasswordLength:
+            validationState = .invalidTooShort
+        default:
+            validationState = .valid
+        }
+        return validationState
+
+    }
+    
+    func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
+        let validationState: PasswordValidation
+        switch (password1, password2) {
+        case (password2, password1):
+            return validate(password: password1)
+        default:
+            validationState = .notDetermined
+        }
+        return validationState
+
     }
 }
 

@@ -148,14 +148,53 @@ class KeychainTests: XCTestCase {
         XCTAssertFalse(result)
     }
     
-    func testSetNewPassword() throws {
+    func testChangePassword() throws {
         let firstPassword = "q1w2e3r4"
         try keyManager.setPassword(firstPassword)
         let newPassword = "r4t5y6y6"
-        try keyManager.setPassword(newPassword)
+        try keyManager.changePassword(newPassword: newPassword, existingPassword: firstPassword)
         
         XCTAssertFalse(try keyManager.checkPassword(firstPassword))
         XCTAssertTrue(try keyManager.checkPassword(newPassword))
+    }
+    
+    func testCheckIfPasswordExists() throws {
+        let firstPassword = "q1w2e3r4"
+        try keyManager.setPassword(firstPassword)
+
+        XCTAssertTrue(try keyManager.passwordExists())
+    }
+    
+    func checkPasswordValid() throws {
+        let firstPassword = "q1w2e3r4"
+        let secondPassword = "q1w2e3r4"
+        
+        let result = keyManager.validatePasswordPair(firstPassword, password2: secondPassword)
+        XCTAssertEqual(result, .valid)
+    }
+    
+    func checkPasswordInvalidDifferent() throws {
+        let firstPassword = "q1w2e3r4223"
+        let secondPassword = "q1w2e3r4"
+        
+        let result = keyManager.validatePasswordPair(firstPassword, password2: secondPassword)
+        XCTAssertEqual(result, .invalidDifferent)
+    }
+    
+    func checkPasswordInvalidTooLong() throws {
+        let firstPassword = "1111111111111111111111111111111"
+        let secondPassword = "1111111111111111111111111111111"
+        
+        let result = keyManager.validatePasswordPair(firstPassword, password2: secondPassword)
+        XCTAssertEqual(result, .invalidTooLong)
+    }
+    
+    func checkPasswordInvalidTooShort() throws {
+        let firstPassword = "123"
+        let secondPassword = "123"
+        let result = keyManager.validatePasswordPair(firstPassword, password2: secondPassword)
+        XCTAssertEqual(result, .invalidTooShort)
+
     }
 
 }
