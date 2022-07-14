@@ -11,7 +11,7 @@ import SwiftUI
 struct ButtonViewModifier: ViewModifier {
     
     func body(content: Content) -> some View {
-        content.padding(7.0).foregroundColor(.blue)
+        content.padding(7.0).foregroundColor(.black)
             .background(Color.white)
             .cornerRadius(10)
         
@@ -19,8 +19,8 @@ struct ButtonViewModifier: ViewModifier {
     
 }
 
-extension Button {
-    func buttonStyle() -> some View {
+extension View {
+    func primaryButton() -> some View {
         modifier(ButtonViewModifier())
     }
 }

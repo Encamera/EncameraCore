@@ -143,6 +143,10 @@ class DemoDirectoryModel: DirectoryModel {
 }
 
 class DemoKeyManager: KeyManager {
+    func changePassword(newPassword: String, existingPassword: String) throws {
+        
+    }
+    
     func checkPassword(_ password: String) throws -> Bool {
         return true
     }
@@ -207,5 +211,7 @@ class DemoKeyManager: KeyManager {
         
     }
     
-    
+    func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
+        return .valid
+    }
 }

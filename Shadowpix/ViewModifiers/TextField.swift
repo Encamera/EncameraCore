@@ -13,6 +13,7 @@ private struct ShadowpixInputTextField: ViewModifier {
         content
             .padding()
             .background(Color.white)
+            .foregroundColor(.black)
             .cornerRadius(10.0)
 
     }
@@ -20,6 +21,12 @@ private struct ShadowpixInputTextField: ViewModifier {
 
 extension TextField {
     func inputTextField() -> some View {
+        modifier(ShadowpixInputTextField())
+    }
+}
+
+extension SecureField {
+    func passwordField() -> some View {
         modifier(ShadowpixInputTextField())
     }
 }
