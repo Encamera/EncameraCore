@@ -53,6 +53,16 @@ class AuthManager: ObservableObject {
         }
     }
     
+    var canAuthenticateWithBiometrics: Bool {
+        let context = LAContext()
+        var error: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+            return false
+        }
+        
+        return error == nil
+    }
+    
     private var isAuthorizedSubject: PassthroughSubject<Bool, Never> = .init()
     
     private var policy: AuthenticationPolicy?

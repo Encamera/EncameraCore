@@ -143,6 +143,10 @@ class DemoDirectoryModel: DirectoryModel {
 }
 
 class DemoKeyManager: KeyManager {
+    func passwordExists() throws -> Bool {
+        return false
+    }
+    
     func changePassword(newPassword: String, existingPassword: String) throws {
         
     }
