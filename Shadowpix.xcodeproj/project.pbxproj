@@ -57,6 +57,7 @@
 		1990CA36287F6D33007486D3 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA35287F6D33007486D3 /* OnboardingView.swift */; };
 		1990CA38287F6DEF007486D3 /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA37287F6DEF007486D3 /* Text.swift */; };
 		1990CA3C2880C3FE007486D3 /* OnboardingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA3B2880C3FE007486D3 /* OnboardingManager.swift */; };
+		1990CA3E288169AB007486D3 /* OnboardingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA3D288169AB007486D3 /* OnboardingManagerTests.swift */; };
 		1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF12753E9D300E41BFD /* CameraModel.swift */; };
 		19959440280D209900AEFA6D /* VideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1995943F280D209900AEFA6D /* VideoCaptureProcessor.swift */; };
 		19B6D052282B354500DC07F8 /* MediaGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6D051282B354500DC07F8 /* MediaGalleryView.swift */; };
@@ -147,6 +148,7 @@
 		1990CA35287F6D33007486D3 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		1990CA37287F6DEF007486D3 /* Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Text.swift; sourceTree = "<group>"; };
 		1990CA3B2880C3FE007486D3 /* OnboardingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingManager.swift; sourceTree = "<group>"; };
+		1990CA3D288169AB007486D3 /* OnboardingManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingManagerTests.swift; sourceTree = "<group>"; };
 		1994ABF12753E9D300E41BFD /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		1994ABF42753EA3F00E41BFD /* MainInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterface.swift; sourceTree = "<group>"; };
 		1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterfaceViewModel.swift; sourceTree = "<group>"; };
@@ -474,6 +476,7 @@
 				19F768D328637607008F4BD3 /* TempFilesManagerTests.swift */,
 				1990154C2863BA8400520082 /* KeychainTests.swift */,
 				19631A3B286514F200B95FD3 /* DateUtilsTests.swift */,
+				1990CA3D288169AB007486D3 /* OnboardingManagerTests.swift */,
 			);
 			path = ShadowpixTests;
 			sourceTree = "<group>";
@@ -656,6 +659,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1990CA3E288169AB007486D3 /* OnboardingManagerTests.swift in Sources */,
 				1961BCC4281F9DFA00D7BE92 /* FileOperationsTests.swift in Sources */,
 				193532352862F29400964A01 /* FileAccessTests.swift in Sources */,
 				193237232849EEE80074CE8A /* MediaTypeTests.swift in Sources */,

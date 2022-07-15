@@ -7,13 +7,27 @@
 
 import Foundation
 
-enum OnboardingState: Codable {
+enum OnboardingState: Codable, Equatable {
     case unknown
     case completed(OnboardingSavedInfo)
     case notStarted
+    
+    static func ==(lhs: OnboardingState, rhs: OnboardingState) -> Bool {
+        switch (lhs, rhs) {
+        case (.unknown, .unknown):
+            return true
+        case (.notStarted, .notStarted):
+            return true
+        case (.completed(let saved1), .completed(let saved2)):
+            return saved1 == saved2
+        default:
+            return false
+        }
+        
+    }
 }
 
-struct OnboardingSavedInfo: Codable {
+struct OnboardingSavedInfo: Codable, Equatable {
     var useBiometricsForAuth: Bool
     var password: String
 }
@@ -38,12 +52,26 @@ class OnboardingManager: ObservableObject {
         self.keyManager = keyManager
     }
     
+    func clearOnboardingState() {
+        UserDefaults.standard.removeObject(forKey: Constants.onboardingStateKey)
+    }
+    
     func saveOnboardingState(_ state: OnboardingState) throws {
         
         do {
+            switch state {
+            case .unknown:
+                break
+            case .completed(let onboardingSavedInfo):
+                try keyManager.setPassword(onboardingSavedInfo.password)
+            case .notStarted:
+                break
+            }
             let data = try JSONEncoder().encode(state)
             UserDefaults.standard.set(data, forKey: Constants.onboardingStateKey)
+
             onboardingState = state
+
         } catch {
             throw OnboardingError.couldNotSerialize
         }
