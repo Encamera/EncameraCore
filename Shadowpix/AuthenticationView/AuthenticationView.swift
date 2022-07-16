@@ -118,6 +118,6 @@ struct AuthenticationView: View {
 
 struct AuthenticationView_Previews: PreviewProvider {
     static var previews: some View {
-        AuthenticationView(viewModel: .init(authManager: AuthManager(), keyManager: DemoKeyManager()))
+        AuthenticationView(viewModel: .init(authManager: DemoAuthManager(), keyManager: DemoKeyManager()))
     }
 }

@@ -58,6 +58,9 @@
 		1990CA38287F6DEF007486D3 /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA37287F6DEF007486D3 /* Text.swift */; };
 		1990CA3C2880C3FE007486D3 /* OnboardingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA3B2880C3FE007486D3 /* OnboardingManager.swift */; };
 		1990CA3E288169AB007486D3 /* OnboardingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA3D288169AB007486D3 /* OnboardingManagerTests.swift */; };
+		1990CA402881ACB9007486D3 /* PasswordValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA3F2881ACB9007486D3 /* PasswordValidator.swift */; };
+		1990CA422881B10C007486D3 /* PasswordValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA412881B10C007486D3 /* PasswordValidatorTests.swift */; };
+		1990CA442882B4A3007486D3 /* DemoAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA432882B4A3007486D3 /* DemoAuthManager.swift */; };
 		1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF12753E9D300E41BFD /* CameraModel.swift */; };
 		19959440280D209900AEFA6D /* VideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1995943F280D209900AEFA6D /* VideoCaptureProcessor.swift */; };
 		19B6D052282B354500DC07F8 /* MediaGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6D051282B354500DC07F8 /* MediaGalleryView.swift */; };
@@ -149,6 +152,9 @@
 		1990CA37287F6DEF007486D3 /* Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Text.swift; sourceTree = "<group>"; };
 		1990CA3B2880C3FE007486D3 /* OnboardingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingManager.swift; sourceTree = "<group>"; };
 		1990CA3D288169AB007486D3 /* OnboardingManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingManagerTests.swift; sourceTree = "<group>"; };
+		1990CA3F2881ACB9007486D3 /* PasswordValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordValidator.swift; sourceTree = "<group>"; };
+		1990CA412881B10C007486D3 /* PasswordValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordValidatorTests.swift; sourceTree = "<group>"; };
+		1990CA432882B4A3007486D3 /* DemoAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAuthManager.swift; sourceTree = "<group>"; };
 		1994ABF12753E9D300E41BFD /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		1994ABF42753EA3F00E41BFD /* MainInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterface.swift; sourceTree = "<group>"; };
 		1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterfaceViewModel.swift; sourceTree = "<group>"; };
@@ -304,10 +310,12 @@
 				1935322E286112F300964A01 /* SecretFileHandlers */,
 				19FD5D662835F12E008D75AA /* KeyManager.swift */,
 				19631A342864404400B95FD3 /* MultipleKeyKeychainManager.swift */,
+				1990CA3F2881ACB9007486D3 /* PasswordValidator.swift */,
 				195719EA274B8FBF00E93658 /* TempFilesManager.swift */,
 				196AFE82274F858300C809ED /* DiskFileAccess.swift */,
 				19FD5D642835EED6008D75AA /* FileProtocols.swift */,
 				191FF12C275EC83400DED001 /* AuthManager.swift */,
+				1990CA432882B4A3007486D3 /* DemoAuthManager.swift */,
 				1961BCC1281B08CE00D7BE92 /* SecretFileHandler.swift */,
 				19FD5D592835D29B008D75AA /* ChunkedFilesProcessing.swift */,
 				193532272860F02400964A01 /* IO */,
@@ -477,6 +485,7 @@
 				1990154C2863BA8400520082 /* KeychainTests.swift */,
 				19631A3B286514F200B95FD3 /* DateUtilsTests.swift */,
 				1990CA3D288169AB007486D3 /* OnboardingManagerTests.swift */,
+				1990CA412881B10C007486D3 /* PasswordValidatorTests.swift */,
 			);
 			path = ShadowpixTests;
 			sourceTree = "<group>";
@@ -596,6 +605,7 @@
 				19631A372865113300B95FD3 /* KeySelectionCell.swift in Sources */,
 				19FD5D5A2835D29B008D75AA /* ChunkedFilesProcessing.swift in Sources */,
 				19868A13287CCBC70006E120 /* TextField.swift in Sources */,
+				1990CA442882B4A3007486D3 /* DemoAuthManager.swift in Sources */,
 				191FF12D275EC83400DED001 /* AuthManager.swift in Sources */,
 				19902B3D286F4FF500165C94 /* AsyncPhotoCaptureProcessor.swift in Sources */,
 				195719EB274B8FBF00E93658 /* TempFilesManager.swift in Sources */,
@@ -630,6 +640,7 @@
 				19874B45285D253A001C2D06 /* AsyncImage.swift in Sources */,
 				19959440280D209900AEFA6D /* VideoCaptureProcessor.swift in Sources */,
 				1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */,
+				1990CA402881ACB9007486D3 /* PasswordValidator.swift in Sources */,
 				19FD5D602835DB0D008D75AA /* MediaDescribing.swift in Sources */,
 				19217E26273FD616009E3850 /* KeyPickerView.swift in Sources */,
 				19631A3E286596B100B95FD3 /* AddKeyCell.swift in Sources */,
@@ -667,6 +678,7 @@
 				A9FE17972539494700D547C7 /* ShadowpixTests.swift in Sources */,
 				1990154D2863BA8400520082 /* KeychainTests.swift in Sources */,
 				19631A3C286514F200B95FD3 /* DateUtilsTests.swift in Sources */,
+				1990CA422881B10C007486D3 /* PasswordValidatorTests.swift in Sources */,
 				19F768D428637607008F4BD3 /* TempFilesManagerTests.swift in Sources */,
 				193532382862FECB00964A01 /* FileUtils.swift in Sources */,
 			);

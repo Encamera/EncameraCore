@@ -29,7 +29,7 @@ struct ShadowpixApp: App {
         init() {
             
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
-            self.authManager = AuthManager()
+            self.authManager = DeviceAuthManager()
             self.keyManager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher)
             self.keyManager.keyPublisher.sink { newKey in
                 self.setupWith(key: newKey)

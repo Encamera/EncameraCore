@@ -15,16 +15,6 @@ private enum KeychainConstants {
     static let account = "shadowpix"
 }
 
-enum PasswordValidation {
-    case notDetermined
-    case valid
-    case invalidTooShort
-    case invalidDifferent
-    case invalidTooLong
-    
-    static let minPasswordLength = 4
-    static let maxPasswordLength = 30
-}
 
 class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
@@ -32,6 +22,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     private var authorized: Bool = false
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
+    private var passwordValidator = PasswordValidator()
     private (set) var currentKey: ImageKey?  {
         didSet {
             keySubject.send(currentKey)
@@ -249,7 +240,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func checkPassword(_ password: String) throws -> Bool {
-        guard validate(password: password) == .valid else {
+        guard passwordValidator.validate(password: password) == .valid else {
             throw KeyManagerError.invalidPassword
         }
         let query: [String: Any] = [
@@ -272,31 +263,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
     }
     
-    func validate(password: String) -> PasswordValidation {
-        let validationState: PasswordValidation
-        switch (password) {
-        case password where password.count > PasswordValidation.maxPasswordLength:
-            validationState = .invalidTooLong
-        case password where password.count <= PasswordValidation.minPasswordLength:
-            validationState = .invalidTooShort
-        default:
-            validationState = .valid
-        }
-        return validationState
 
-    }
-    
-    func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
-        let validationState: PasswordValidation
-        switch (password1, password2) {
-        case (password2, password1):
-            return validate(password: password1)
-        default:
-            validationState = .notDetermined
-        }
-        return validationState
-
-    }
 }
 
 private extension MultipleKeyKeychainManager {

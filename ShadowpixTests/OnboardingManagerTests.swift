@@ -14,17 +14,19 @@ class OnboardingManagerTests: XCTestCase {
     
     
     private var manager: OnboardingManager!
+    private var keyManager: DemoKeyManager!
     private var cancellables = Set<AnyCancellable>()
     override func setUp() {
-        manager = OnboardingManager(keyManager: DemoKeyManager())
+        keyManager = DemoKeyManager()
+        manager = OnboardingManager(keyManager: keyManager, authManager: DemoAuthManager())
         manager.clearOnboardingState()
     }
     
-    func testSaveCompletedOnboardingState() throws {
+    func testSaveCompletedOnboardingState() async throws {
         
         let state = OnboardingState.completed(OnboardingSavedInfo(useBiometricsForAuth: true, password: "q1w2e3"))
         
-        try manager.saveOnboardingState(state)
+        try await manager.saveOnboardingState(state)
         let savedState = try manager.getOnboardingState()
         XCTAssertEqual(state, savedState)
         
@@ -34,7 +36,7 @@ class OnboardingManagerTests: XCTestCase {
         XCTAssertThrowsError(try manager.getOnboardingState())
     }
     
-    func testPublishedOnSave() throws {
+    func testPublishedOnSave() async throws {
         let state = OnboardingState.completed(OnboardingSavedInfo(useBiometricsForAuth: true, password: "q1w2e3"))
         var publishedState: OnboardingState?
         let expect = expectation(description: "waiting for published state")
@@ -43,17 +45,17 @@ class OnboardingManagerTests: XCTestCase {
             expect.fulfill()
         }.store(in: &cancellables)
         
-        try manager.saveOnboardingState(state)
-        waitForExpectations(timeout: 1.0)
+        try await manager.saveOnboardingState(state)
+        await waitForExpectations(timeout: 1.0)
         
         XCTAssertEqual(publishedState, state)
     }
     
-    func testPublishedOnGet() throws {
+    func testPublishedOnGet() async throws {
         let state = OnboardingState.completed(OnboardingSavedInfo(useBiometricsForAuth: true, password: "q1w2e3"))
         var publishedState: OnboardingState?
         let expect = expectation(description: "waiting for published state")
-        try manager.saveOnboardingState(state)
+        try await manager.saveOnboardingState(state)
 
         
         manager.$onboardingState.dropFirst().sink { published in
@@ -63,10 +65,35 @@ class OnboardingManagerTests: XCTestCase {
         
         _ = try manager.getOnboardingState()
         
-        waitForExpectations(timeout: 1.0)
+        await waitForExpectations(timeout: 1.0)
         
         XCTAssertEqual(publishedState, state)
 
     }
+    
+    func testUserHasStoredPasswordButNoState() async throws {
+        keyManager.hasExistingPassword = true
+        let state = try manager.getOnboardingState()
+        
+        XCTAssertEqual(state, .hasPasswordAndNotOnboarded)
+    }
+    
+    func testOnboardingFlowGeneratesWithSetPassword() async throws {
+        let flow = manager.generateOnboardingFlow()
+        
+        XCTAssertEqual(flow, [.intro, .setPassword, .biometrics, .finished])
+    }
+    
+    func testOnboardingFlowGeneratesWithExistingPassword() async throws {
+        let keyManager = DemoKeyManager()
+        keyManager.hasExistingPassword = true
+        manager = OnboardingManager(keyManager: keyManager, authManager: DemoAuthManager())
+        let flow = manager.generateOnboardingFlow()
+        
+        XCTAssertEqual(flow, [.intro, .enterExistingPassword, .biometrics, .finished])
+    }
+    
+    
+    
     
 }

@@ -35,6 +35,5 @@ protocol KeyManager {
     func checkPassword(_ password: String) throws -> Bool
     func setPassword(_ password: String) throws
     func passwordExists() throws -> Bool
-    func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation
     func changePassword(newPassword: String, existingPassword: String) throws
 }

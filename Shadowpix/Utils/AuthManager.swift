@@ -31,7 +31,17 @@ struct AuthenticationPolicy: Codable {
     var authenticationExpirySeconds: Int
 }
 
-class AuthManager: ObservableObject {
+protocol AuthManager {
+    var isAuthorizedPublisher: AnyPublisher<Bool, Never> { get }
+    var isAuthorized: Bool { get }
+    var canAuthenticateWithBiometrics: Bool { get }
+    func deauthorize()
+    func checkAuthorizationWithCurrentPolicy() async throws
+    func authorize(with password: String, using keyManager: KeyManager) throws
+    func authorizeWithFaceID() async throws
+}
+
+class DeviceAuthManager: AuthManager {
     
     var isAuthorizedPublisher: AnyPublisher<Bool, Never> {
         isAuthorizedSubject.receive(on: DispatchQueue.main).eraseToAnyPublisher()
@@ -65,24 +75,23 @@ class AuthManager: ObservableObject {
     
     private var isAuthorizedSubject: PassthroughSubject<Bool, Never> = .init()
     
-    private var policy: AuthenticationPolicy?
+    private var policy: AuthenticationPolicy? = AuthenticationPolicy(preferredAuthenticationMethod: .faceID, authenticationExpirySeconds: 60)
     private var lastSuccessfulAuthentication: Date?
     private var cancellables = Set<AnyCancellable>()
 
     
     init() {
+        try! storeAuthenticationPolicy(self.policy!)
         loadAuthenticationPolicy()
         NotificationCenter.default.publisher(for: .NSSystemClockDidChange).sink { _ in
             self.lastSuccessfulAuthentication = nil
         }.store(in: &cancellables)
     }
     
-    func invalidateSession() {
-        lastSuccessfulAuthentication = nil
-    }
 
     func deauthorize() {
         authState = .unauthorized
+        lastSuccessfulAuthentication = nil
     }
     
     func checkAuthorizationWithCurrentPolicy() async throws {
@@ -106,9 +115,7 @@ class AuthManager: ObservableObject {
         }
         return
     }
-    
-    
-    
+
     
     func authorize(with password: String, using keyManager: KeyManager) throws {
         let newState: AuthManagerState
@@ -157,7 +164,7 @@ class AuthManager: ObservableObject {
     }
 }
 
-private extension AuthManager {
+private extension DeviceAuthManager {
     
     var policyUserDefaultsKey: String {
         "authenticationPolicy"
