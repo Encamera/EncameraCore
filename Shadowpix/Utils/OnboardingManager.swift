@@ -7,10 +7,11 @@
 
 import Foundation
 
+
 enum OnboardingState: Codable, Equatable {
     case unknown
-    case completed(OnboardingSavedInfo)
-    case inProgress(OnboardingSavedInfo)
+    case completed(SavedSettings)
+    case inProgress(SavedSettings)
     case notStarted
     case hasPasswordAndNotOnboarded
     
@@ -27,17 +28,11 @@ enum OnboardingState: Codable, Equatable {
         default:
             return false
         }
-        
     }
 }
 
-struct OnboardingSavedInfo: Codable, Equatable {
-    
-    var useBiometricsForAuth: Bool?
-    var password: String?
-}
 
-enum OnboardingFlowScreen: String, Identifiable {
+enum OnboardingFlowScreen: Int, Identifiable {
     case intro
     case enterExistingPassword
     case setPassword
@@ -46,14 +41,37 @@ enum OnboardingFlowScreen: String, Identifiable {
     var id: Self { self }
 }
 
-enum OnboardingManagerError: Error {
+enum OnboardingManagerError: Error, Equatable {
+    static func == (lhs: OnboardingManagerError, rhs: OnboardingManagerError) -> Bool {
+        switch (lhs, rhs) {
+        case (.couldNotSerialize, .couldNotSerialize):
+            return true
+        case (.couldNotDeserialize, .couldNotDeserialize):
+            return true
+        case (.couldNotGetFromUserDefaults, .couldNotGetFromUserDefaults):
+            return true
+        case (.incorrectStateForOperation, .incorrectStateForOperation):
+            return true
+        case (.unknownError, .unknownError):
+            return true
+        case (.settingsManagerError(let error1), .settingsManagerError(let error2)):
+            return error1 == error2
+        default:
+            return false            
+        }
+    }
+    
     case couldNotSerialize
     case couldNotDeserialize
     case couldNotGetFromUserDefaults
-    case errorWithFaceID(Error)
-    case keyManagerError(Error)
-    case invalidPassword
     case incorrectStateForOperation
+    case settingsManagerError(SettingsManagerError)
+    case unknownError
+}
+
+protocol OnboardingManaging {
+    init(keyManager: KeyManager, authManager: AuthManager)
+    func clearOnboardingState()
 }
 
 class OnboardingManager: ObservableObject {
@@ -64,13 +82,29 @@ class OnboardingManager: ObservableObject {
     
     @Published var onboardingState: OnboardingState = .unknown
     
+    var shouldShowOnboarding: Bool {
+        switch onboardingState {
+        case .unknown:
+            return true
+        case .completed(_):
+            return false
+        case .inProgress(_):
+            return true
+        case .notStarted:
+            return true
+        case .hasPasswordAndNotOnboarded:
+            return true
+        }
+    }
+    
     private var keyManager: KeyManager
     private var authManager: AuthManager
-    private var passwordValidator = PasswordValidator()
+    private var settingsManager: SettingsManager
     
     init(keyManager: KeyManager, authManager: AuthManager) {
         self.keyManager = keyManager
         self.authManager = authManager
+        self.settingsManager = SettingsManager(authManager: authManager, keyManager: keyManager)
     }
     
     func clearOnboardingState() {
@@ -78,42 +112,36 @@ class OnboardingManager: ObservableObject {
     }
     
     func validate(state: OnboardingState) throws {
-        let onboarding: OnboardingSavedInfo
+        let settings: SavedSettings
         switch state {
         
         case .completed(let onboardingSavedInfo):
-            onboarding = onboardingSavedInfo
+            settings = onboardingSavedInfo
         case .inProgress(let onboardingSavedInfo):
-            onboarding = onboardingSavedInfo
+            settings = onboardingSavedInfo
         default:
             throw OnboardingManagerError.incorrectStateForOperation
         }
-        
-        if let password = onboarding.password, passwordValidator.validate(password: password) != .valid {
-            throw OnboardingManagerError.invalidPassword
+        do {
+            try settingsManager.validate(settings)
+        } catch let validationError as SettingsManagerError {
+            throw OnboardingManagerError.settingsManagerError(validationError)
         }
+        
     }
     
     func saveOnboardingState(_ state: OnboardingState) async throws {
         switch state {
         case .unknown:
             break
-        case .completed(let onboardingSavedInfo):
+        case .completed(let settings):
             try validate(state: state)
-            if onboardingSavedInfo.useBiometricsForAuth ?? false {
-                do {
-                    try await authManager.authorizeWithFaceID()
-                } catch {
-                    throw OnboardingManagerError.errorWithFaceID(error)
-                }
-            }
             do {
-                guard let password = onboardingSavedInfo.password else {
-                    throw OnboardingManagerError.invalidPassword
-                }
-                try keyManager.setPassword(password)
+                try await settingsManager.saveSettings(settings)
+            } catch let settingsError as SettingsManagerError {
+                throw OnboardingManagerError.settingsManagerError(settingsError)
             } catch {
-                throw OnboardingManagerError.keyManagerError(error)
+                throw OnboardingManagerError.unknownError
             }
             
         case .inProgress(_),
@@ -151,20 +179,25 @@ class OnboardingManager: ObservableObject {
     }
     
     func generateOnboardingFlow() -> [OnboardingFlowScreen] {
+        var screens: [OnboardingFlowScreen] = [.intro]
         do {
-            var screens: [OnboardingFlowScreen] = [.intro]
+            
             if try keyManager.passwordExists() {
                 screens += [.enterExistingPassword]
             } else {
                 screens += [.setPassword]
             }
-            screens += [.biometrics, .finished]
-            
-            return screens
         } catch {
-            fatalError()
+            screens += [.setPassword]
         }
+        if authManager.canAuthenticateWithBiometrics {
+            screens += [.biometrics]
+        }
+        screens += [.finished]
         
+        return screens
+
     }
     
 }
+

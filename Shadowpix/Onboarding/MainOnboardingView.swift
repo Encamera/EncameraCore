@@ -8,7 +8,7 @@
 import SwiftUI
 import LocalAuthentication
 
-class OnboardingStateModel: ObservableObject {
+class OnboardingViewModel: ObservableObject {
     
     enum OnboardingKeyError: Error {
         case unhandledError
@@ -17,14 +17,12 @@ class OnboardingStateModel: ObservableObject {
     var password1: String = ""
     var password2: String = ""
     var existingPassword: String = ""
-    var onboardingFlow: [OnboardingFlowScreen] {
-        onboardingManager.generateOnboardingFlow()
-    }
+    var onboardingFlow: [OnboardingFlowScreen]
     @Published var passwordState: PasswordValidation?
     @MainActor
     @Published var stateError: OnboardingManagerError?
     @Published var existingPasswordCorrect: Bool = false
-    var useFaceID: Bool = true
+    var useBiometrics: Bool = true
     
     
     private var onboardingManager: OnboardingManager
@@ -34,6 +32,7 @@ class OnboardingStateModel: ObservableObject {
     init(onboardingManager: OnboardingManager, keyManager: KeyManager) {
         self.onboardingManager = onboardingManager
         self.keyManager = keyManager
+        onboardingFlow = onboardingManager.generateOnboardingFlow()
     }
     
     func validatePassword() -> PasswordValidation {
@@ -75,7 +74,7 @@ class OnboardingStateModel: ObservableObject {
         Task {
             
             do {
-                let savedState = OnboardingState.completed(OnboardingSavedInfo(useBiometricsForAuth: useFaceID, password: password1))
+                let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: useBiometrics, password: password1))
                 try await onboardingManager.saveOnboardingState(savedState)
             } catch let managerError as OnboardingManagerError {
                 await MainActor.run {
@@ -155,7 +154,7 @@ struct MainOnboardingView: View {
                         advanceTab()
                     })) {
                         HStack {
-                            Toggle("Enable Face ID", isOn: $viewModel.useFaceID)
+                            Toggle("Enable Face ID", isOn: $viewModel.useBiometrics)
                         }
                     }.tag(flow)
                 case .finished:
@@ -166,16 +165,16 @@ struct MainOnboardingView: View {
                 }
             }
         }
-        .tabViewStyle(PageTabViewStyle())
+        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         .background(Color.black)
     }
     
-    private func canGoTo(tab: Int) -> Bool {
-        return tab <= currentSelection
+    private func canGoTo(tab: OnboardingFlowScreen) -> Bool {
+        return tab.rawValue <= currentSelection.rawValue
     }
     
     private func advanceTab() {
-        currentSelection += 1
+        currentSelection = OnboardingFlowScreen(rawValue: currentSelection.rawValue + 1) ?? .finished
     }
 }
 

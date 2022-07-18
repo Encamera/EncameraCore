@@ -22,7 +22,7 @@ struct ShadowpixApp: App {
         var cameraService: CameraConfigurationService
         var cameraServiceModel = CameraConfigurationServiceModel()
         var tempFilesManager: TempFilesManager = TempFilesManager.shared
-        
+        var onboardingManager: OnboardingManager
         private(set) var authManager: AuthManager
         private var cancellables = Set<AnyCancellable>()
         
@@ -31,6 +31,7 @@ struct ShadowpixApp: App {
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager()
             self.keyManager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher)
+            self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager)
             self.keyManager.keyPublisher.sink { newKey in
                 self.setupWith(key: newKey)
             }.store(in: &cancellables)
@@ -96,7 +97,11 @@ struct ShadowpixApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if viewModel.authManager.isAuthorized == false {
+            
+            if viewModel.onboardingManager.shouldShowOnboarding {
+                
+                MainOnboardingView(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager))
+            } else if viewModel.authManager.isAuthorized == false {
                 AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
             } else if let fileAccess = viewModel.fileAccess {
                 CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker))
