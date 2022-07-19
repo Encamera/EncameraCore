@@ -39,8 +39,6 @@ enum SettingsManagerError: Error, Equatable {
             return true
         case (.couldNotGetFromUserDefaults, .couldNotGetFromUserDefaults):
             return true
-        case (.invalidPassword, .invalidPassword):
-            return true
         case (.errorWithFaceID(let authError1 as AuthManagerError), .errorWithFaceID(let authError2 as AuthManagerError)):
             return authError1 == authError2
             
@@ -58,7 +56,6 @@ enum SettingsManagerError: Error, Equatable {
     case couldNotSerialize
     case couldNotDeserialize
     case couldNotGetFromUserDefaults
-    case invalidPassword
     case errorWithFaceID(Error)
     case keyManagerError(Error)
     case validationFailed(SettingsValidation)
@@ -72,7 +69,7 @@ struct SavedSettings: Codable, Equatable {
     }
     
     var useBiometricsForAuth: Bool?
-    var password: String?
+    var password: Bool = false
 }
 
 
@@ -82,18 +79,19 @@ struct SettingsManager {
     private enum Constants {
         static var savedSettingsKey = "savedSettings"
     }
-    private var passwordValidator = PasswordValidator()
+    private var passwordValidator : PasswordValidator
     private var authManager: AuthManager
     private var keyManager: KeyManager
     
-    init(authManager: AuthManager, keyManager: KeyManager) {
+    init(authManager: AuthManager, keyManager: KeyManager, passwordValidator: PasswordValidator = .init()) {
         self.authManager = authManager
         self.keyManager = keyManager
+        self.passwordValidator = passwordValidator
     }
 
     
-    func saveSettings(_ settings: SavedSettings) async throws {
-        try validate(settings)
+    func saveSettings(_ settings: SavedSettings, password: String?) async throws {
+        try validate(settings, password: password)
         if settings.useBiometricsForAuth ?? false {
             do {
                 try await authManager.authorizeWithFaceID()
@@ -102,10 +100,9 @@ struct SettingsManager {
             }
         }
         do {
-            guard let password = settings.password else {
-                throw SettingsManagerError.invalidPassword
+            if let password = password {
+                try keyManager.setPassword(password)
             }
-            try keyManager.setPassword(password)
         } catch {
             throw SettingsManagerError.keyManagerError(error)
         }
@@ -118,11 +115,20 @@ struct SettingsManager {
         }
         
     }
-    func validate(_ savedInfo: SavedSettings) throws {
+    func validate(_ savedInfo: SavedSettings, password: String?) throws {
+        var settingsToSave = savedInfo
+        
         let mirror = Mirror(reflecting: savedInfo)
         var errorKeys = [(SavedSettings.CodingKeys, String)]()
         
-        
+        if let password = password {
+            let result = passwordValidator.validate(password: password)
+            if result != .valid {
+                errorKeys += [(.password, result.validationDescription)]
+            } else {
+                settingsToSave.password = true
+            }
+        }
         // nil check
         for (property, value) in mirror.children {
             if case Optional<Any>.some(_) = value {
@@ -131,14 +137,6 @@ struct SettingsManager {
                 errorKeys += [(SavedSettings.CodingKeys(rawValue: prop)!, "\(prop) must be set")]
             }
         }
-        
-        if let password = savedInfo.password {
-            let result = passwordValidator.validate(password: password)
-            if result != .valid {
-                errorKeys += [(.password, result.validationDescription)]
-            }
-        }
-        
         
         if errorKeys.count > 0 {
             throw SettingsManagerError.validationFailed(SettingsValidation.invalid(errorKeys))

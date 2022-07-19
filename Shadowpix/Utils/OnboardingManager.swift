@@ -111,7 +111,7 @@ class OnboardingManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: Constants.onboardingStateKey)
     }
     
-    func validate(state: OnboardingState) throws {
+    func validate(state: OnboardingState, password: String?) throws {
         let settings: SavedSettings
         switch state {
         
@@ -123,21 +123,21 @@ class OnboardingManager: ObservableObject {
             throw OnboardingManagerError.incorrectStateForOperation
         }
         do {
-            try settingsManager.validate(settings)
+            try settingsManager.validate(settings, password: password)
         } catch let validationError as SettingsManagerError {
             throw OnboardingManagerError.settingsManagerError(validationError)
         }
         
     }
     
-    func saveOnboardingState(_ state: OnboardingState) async throws {
+    func saveOnboardingState(_ state: OnboardingState, password: String) async throws {
         switch state {
         case .unknown:
             break
         case .completed(let settings):
-            try validate(state: state)
+            try validate(state: state, password: password)
             do {
-                try await settingsManager.saveSettings(settings)
+                try await settingsManager.saveSettings(settings, password: password)
             } catch let settingsError as SettingsManagerError {
                 throw OnboardingManagerError.settingsManagerError(settingsError)
             } catch {

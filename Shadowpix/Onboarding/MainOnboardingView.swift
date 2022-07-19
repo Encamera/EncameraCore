@@ -74,8 +74,8 @@ class OnboardingViewModel: ObservableObject {
         Task {
             
             do {
-                let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: useBiometrics, password: password1))
-                try await onboardingManager.saveOnboardingState(savedState)
+                let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: useBiometrics, password: !password1.isEmpty))
+                try await onboardingManager.saveOnboardingState(savedState, password: password1)
             } catch let managerError as OnboardingManagerError {
                 await MainActor.run {
                     stateError = managerError
