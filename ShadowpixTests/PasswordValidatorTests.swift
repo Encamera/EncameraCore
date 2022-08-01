@@ -13,7 +13,7 @@ class PasswordValidatorTests: XCTestCase {
     
     private let validator = PasswordValidator()
     
-    func checkPasswordValid() throws {
+    func testCheckPasswordValid() throws {
         let firstPassword = "q1w2e3r4"
         let secondPassword = "q1w2e3r4"
         
@@ -21,7 +21,7 @@ class PasswordValidatorTests: XCTestCase {
         XCTAssertEqual(result, .valid)
     }
     
-    func checkPasswordInvalidDifferent() throws {
+    func testCheckPasswordInvalidDifferent() throws {
         let firstPassword = "q1w2e3r4223"
         let secondPassword = "q1w2e3r4"
         
@@ -29,7 +29,7 @@ class PasswordValidatorTests: XCTestCase {
         XCTAssertEqual(result, .invalidDifferent)
     }
     
-    func checkPasswordInvalidTooLong() throws {
+    func testCheckPasswordInvalidTooLong() throws {
         let firstPassword = "1111111111111111111111111111111"
         let secondPassword = "1111111111111111111111111111111"
         
@@ -37,7 +37,7 @@ class PasswordValidatorTests: XCTestCase {
         XCTAssertEqual(result, .invalidTooLong)
     }
     
-    func checkPasswordInvalidTooShort() throws {
+    func testCheckPasswordInvalidTooShort() throws {
         let firstPassword = "123"
         let secondPassword = "123"
         let result = validator.validatePasswordPair(firstPassword, password2: secondPassword)

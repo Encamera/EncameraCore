@@ -47,7 +47,7 @@ class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Sub
                 byteCount += UInt64(byteArray.count)
                 let progress = Double(byteCount) / Double(sourceFileHandle.size)
                 
-                subscriber?.receive((byteArray, progress, final))
+                let _ = subscriber?.receive((byteArray, progress, final))
                 guard let nextChunk = try? sourceFileHandle.read(upToCount: blockSize) else {
                     break
                 }

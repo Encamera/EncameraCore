@@ -146,11 +146,9 @@ class DemoKeyManager: KeyManager {
     
     var hasExistingPassword = false
     var throwError = false
+    var password: String?
     
-    func passwordExists() throws -> Bool {
-        if throwError {
-            throw KeyManagerError.notFound
-        }
+    func passwordExists() -> Bool {
         return hasExistingPassword
     }
     
@@ -163,11 +161,12 @@ class DemoKeyManager: KeyManager {
     }
     
     func checkPassword(_ password: String) throws -> Bool {
-        return true
+        return self.password == password
     }
     
     func setPassword(_ password: String) throws {
-        
+        self.password = password
+        self.hasExistingPassword = true
     }
     
     func deleteKey(_ key: ImageKey) throws {

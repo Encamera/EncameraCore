@@ -197,7 +197,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
     }
     
-    func passwordExists() throws -> Bool {
+    func passwordExists() -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -205,7 +205,13 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        try checkStatus(status: status)
+        do {
+            try checkStatus(status: status)
+        } catch is KeyManagerError {
+            
+        } catch {
+            print("Key error", error)
+        }
         return item != nil
     }
     
@@ -268,6 +274,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
 private extension MultipleKeyKeychainManager {
     func checkStatus(status: OSStatus, defaultError: KeyManagerError = .unhandledError) throws {
+        determineOSStatus(status: status)
         switch status {
         case errSecItemNotFound:
             throw KeyManagerError.notFound

@@ -70,6 +70,7 @@
 		19BFEEB52860503D00CA2B74 /* GalleryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFEEB42860503D00CA2B74 /* GalleryItem.swift */; };
 		19BFEEB82860560E00CA2B74 /* dog.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 19BFEEB62860519400CA2B74 /* dog.jpg */; };
 		19BFEEB92860561000CA2B74 /* dog.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 19BFEEB62860519400CA2B74 /* dog.jpg */; };
+		19C97EA62888ADDE005901DE /* OSStatusChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C97EA52888ADDE005901DE /* OSStatusChecker.swift */; };
 		19CB675928690F09003FBC98 /* DemoCameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19CB675828690F09003FBC98 /* DemoCameraService.swift */; };
 		19D1F3F5287879580025665D /* CMTimeUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D1F3F4287879580025665D /* CMTimeUtils.swift */; };
 		19DC647427441D10004CCE1B /* ButtonViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DC647327441D10004CCE1B /* ButtonViewModifier.swift */; };
@@ -168,6 +169,7 @@
 		19B6D051282B354500DC07F8 /* MediaGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGalleryView.swift; sourceTree = "<group>"; };
 		19BFEEB42860503D00CA2B74 /* GalleryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryItem.swift; sourceTree = "<group>"; };
 		19BFEEB62860519400CA2B74 /* dog.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = dog.jpg; sourceTree = "<group>"; };
+		19C97EA52888ADDE005901DE /* OSStatusChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSStatusChecker.swift; sourceTree = "<group>"; };
 		19CB675828690F09003FBC98 /* DemoCameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoCameraService.swift; sourceTree = "<group>"; };
 		19D1F3F4287879580025665D /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
 		19DC647327441D10004CCE1B /* ButtonViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonViewModifier.swift; sourceTree = "<group>"; };
@@ -329,6 +331,7 @@
 				19D1F3F4287879580025665D /* CMTimeUtils.swift */,
 				1990CA3B2880C3FE007486D3 /* OnboardingManager.swift */,
 				1990CA492884BC7E007486D3 /* SettingsManager.swift */,
+				19C97EA52888ADDE005901DE /* OSStatusChecker.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -621,6 +624,7 @@
 				A9E6E4EF253B5EA8008B4A33 /* CameraPreview.swift in Sources */,
 				19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */,
 				1932371F28494BF60074CE8A /* CaptureProcessor.swift in Sources */,
+				19C97EA62888ADDE005901DE /* OSStatusChecker.swift in Sources */,
 				19FD5D5C2835D91F008D75AA /* CleartextMedia.swift in Sources */,
 				19665C462742542A00DA8578 /* KeyEntry.swift in Sources */,
 				1990CA3C2880C3FE007486D3 /* OnboardingManager.swift in Sources */,

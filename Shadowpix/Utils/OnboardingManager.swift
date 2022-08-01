@@ -9,21 +9,21 @@ import Foundation
 
 
 enum OnboardingState: Codable, Equatable {
-    case unknown
     case completed(SavedSettings)
     case inProgress(SavedSettings)
     case notStarted
     case hasPasswordAndNotOnboarded
+    case hasOnboardingAndNoPassword
     
     static func ==(lhs: OnboardingState, rhs: OnboardingState) -> Bool {
         switch (lhs, rhs) {
-        case (.unknown, .unknown):
-            return true
         case (.notStarted, .notStarted):
             return true
         case (.completed(let saved1), .completed(let saved2)):
             return saved1 == saved2
         case (.hasPasswordAndNotOnboarded, .hasPasswordAndNotOnboarded):
+            return true
+        case (.hasOnboardingAndNoPassword, .hasOnboardingAndNoPassword):
             return true
         default:
             return false
@@ -80,22 +80,26 @@ class OnboardingManager: ObservableObject {
         static var onboardingStateKey = "onboardingState"
     }
     
-    @Published var onboardingState: OnboardingState = .unknown
-    
-    var shouldShowOnboarding: Bool {
-        switch onboardingState {
-        case .unknown:
-            return true
-        case .completed(_):
-            return false
-        case .inProgress(_):
-            return true
-        case .notStarted:
-            return true
-        case .hasPasswordAndNotOnboarded:
-            return true
+    @Published var onboardingState: OnboardingState = .notStarted {
+        didSet {
+            let showOnboarding: Bool
+            switch onboardingState {
+            case .completed(_):
+                showOnboarding = false
+            case .inProgress(_):
+                showOnboarding = true
+            case .notStarted:
+                showOnboarding = true
+            case .hasPasswordAndNotOnboarded:
+                showOnboarding = true
+            case .hasOnboardingAndNoPassword:
+                showOnboarding = true
+            }
+            shouldShowOnboarding = showOnboarding
         }
     }
+    
+    @Published var shouldShowOnboarding: Bool = true
     
     private var keyManager: KeyManager
     private var authManager: AuthManager
@@ -132,8 +136,6 @@ class OnboardingManager: ObservableObject {
     
     func saveOnboardingState(_ state: OnboardingState, password: String) async throws {
         switch state {
-        case .unknown:
-            break
         case .completed(let settings):
             try validate(state: state, password: password)
             do {
@@ -146,7 +148,8 @@ class OnboardingManager: ObservableObject {
             
         case .inProgress(_),
                 .notStarted,
-                .hasPasswordAndNotOnboarded:
+                .hasPasswordAndNotOnboarded,
+                .hasOnboardingAndNoPassword:
             break
         }
         do {
@@ -160,34 +163,16 @@ class OnboardingManager: ObservableObject {
 
     }
     
-    func getOnboardingState() throws -> OnboardingState {
-        guard let savedState = UserDefaults.standard.data(forKey: Constants.onboardingStateKey) else {
-            if try keyManager.passwordExists() {
-                return .hasPasswordAndNotOnboarded
-            }
-            throw OnboardingManagerError.couldNotGetFromUserDefaults
-        }
-        
-        do {
-            
-            let state = try JSONDecoder().decode(OnboardingState.self, from: savedState)
-            onboardingState = state
-            return state
-        } catch {
-            throw OnboardingManagerError.couldNotDeserialize
-        }
+    @discardableResult func loadOnboardingState() throws -> OnboardingState {
+        onboardingState = try getOnboardingStateFromDefaults()
+        return onboardingState
     }
     
     func generateOnboardingFlow() -> [OnboardingFlowScreen] {
         var screens: [OnboardingFlowScreen] = [.intro]
-        do {
-            
-            if try keyManager.passwordExists() {
-                screens += [.enterExistingPassword]
-            } else {
-                screens += [.setPassword]
-            }
-        } catch {
+        if keyManager.passwordExists() {
+            screens += [.enterExistingPassword]
+        } else {
             screens += [.setPassword]
         }
         if authManager.canAuthenticateWithBiometrics {
@@ -201,3 +186,29 @@ class OnboardingManager: ObservableObject {
     
 }
 
+private extension OnboardingManager {
+    func getOnboardingStateFromDefaults() throws -> OnboardingState {
+        let passwordExists = keyManager.passwordExists()
+        
+        guard let savedState = UserDefaults.standard.data(forKey: Constants.onboardingStateKey) else {
+            if passwordExists {
+                return .hasPasswordAndNotOnboarded
+            }
+            
+            return .notStarted
+        }
+        
+        do {
+            
+            let state = try JSONDecoder().decode(OnboardingState.self, from: savedState)
+            if case .completed = state, passwordExists == false {
+                return .hasOnboardingAndNoPassword
+            }
+            
+            return state
+        } catch {
+            
+            throw OnboardingManagerError.couldNotDeserialize
+        }
+    }
+}

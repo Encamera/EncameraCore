@@ -162,7 +162,11 @@ class KeychainTests: XCTestCase {
         let firstPassword = "q1w2e3r4"
         try keyManager.setPassword(firstPassword)
 
-        XCTAssertTrue(try keyManager.passwordExists())
+        XCTAssertTrue(keyManager.passwordExists())
+    }
+    
+    func testCheckIfPasswordDoesNotExist() throws {
+        XCTAssertFalse(keyManager.passwordExists())
     }
     
     func testCannotSetPasswordIfExists() throws {

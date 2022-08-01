@@ -83,10 +83,10 @@ struct AuthenticationView: View {
         VStack {
             
             HStack {
-                TextField("Password", text: $viewModel.password)
-                    .inputTextField()
+                SecureField("Password", text: $viewModel.password)
+                    .passwordField()
                 Button {
-                    
+                    viewModel.authenticatePassword()
                 } label: {
                     Image(systemName: "lock.circle")
                         .resizable()

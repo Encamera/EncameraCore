@@ -32,6 +32,13 @@ struct ShadowpixApp: App {
             self.authManager = DeviceAuthManager()
             self.keyManager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher)
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager)
+            do {
+                try onboardingManager.loadOnboardingState()
+            } catch let onboardingError as OnboardingManagerError {
+                print("Onboarding error \(onboardingError)")
+            } catch {
+                fatalError("Onboarding error \(error)")
+            }
             self.keyManager.keyPublisher.sink { newKey in
                 self.setupWith(key: newKey)
             }.store(in: &cancellables)

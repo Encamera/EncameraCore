@@ -56,7 +56,7 @@ struct PasswordValidator {
         case (password2, password1):
             return validate(password: password1)
         default:
-            validationState = .notDetermined
+            validationState = .invalidDifferent
         }
         return validationState
     }
