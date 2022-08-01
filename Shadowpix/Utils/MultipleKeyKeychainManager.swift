@@ -40,10 +40,14 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         self.isAuthorized.sink { newValue in
             self.authorized = newValue
-            if self.authorized == true {
-                try? self.getActiveKeyAndSet()
-            } else {
-                self.currentKey = nil
+            do {
+                if self.authorized == true {
+                    try self.getActiveKeyAndSet()
+                } else {
+                    try self.setActiveKey(nil)
+                }
+            } catch {
+                debugPrint("Error getting/setting active key", error)
             }
         }.store(in: &cancellables)
 
@@ -53,24 +57,33 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
        
         let keyObject = try getActiveKey()
         
-        currentKey = keyObject
+        try setActiveKey(keyObject.name)
     }
     
-    func clearStoredKeys() throws {
+    func clearKeychainData() throws {
         
+        #if DEBUG
+        #else
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
+        #endif
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey
         ]
         
         let status = SecItemDelete(query as CFDictionary)
-        if status != errSecSuccess {
-            throw KeyManagerError.deleteKeychainItemsFailed
-        }
-        currentKey = nil
+        
+        try? checkStatus(status: status)
+        
+        let passwordQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword
+        ]
+        
+        let passwordStatus = SecItemDelete(passwordQuery as CFDictionary)
+        
+        try? checkStatus(status: passwordStatus)
         try setActiveKey(nil)
     }
     
@@ -152,6 +165,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     func setActiveKey(_ name: KeyName?) throws {
         guard authorized == true else {
+            currentKey = nil
             throw KeyManagerError.notAuthorizedError
         }
         guard let name = name else {

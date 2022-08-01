@@ -16,7 +16,7 @@ class KeychainTests: XCTestCase {
     var keyManager: MultipleKeyKeychainManager = MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher())
     
     override func setUp() async throws {
-        try? keyManager.clearStoredKeys()
+        try? keyManager.clearKeychainData()
         try? keyManager.clearPassword()
     }
 

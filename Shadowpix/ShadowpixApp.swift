@@ -31,7 +31,9 @@ struct ShadowpixApp: App {
             
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager()
-            self.keyManager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher)
+            let manager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher)
+            self.keyManager = manager
+            
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager)
             self.onboardingManager.$shouldShowOnboarding.sink { value in
                 self.showOnboarding = value

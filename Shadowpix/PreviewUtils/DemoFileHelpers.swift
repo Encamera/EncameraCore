@@ -220,7 +220,7 @@ class DemoKeyManager: KeyManager {
         
     var keyPublisher: AnyPublisher<ImageKey?, Never>
     
-    func clearStoredKeys() throws {
+    func clearKeychainData() throws {
         
     }
     

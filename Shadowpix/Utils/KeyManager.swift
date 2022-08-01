@@ -49,7 +49,7 @@ protocol KeyManager {
     var isAuthorized: AnyPublisher<Bool, Never> { get }
     var currentKey: ImageKey? { get }
     var keyPublisher: AnyPublisher<ImageKey?, Never> { get }
-    func clearStoredKeys() throws
+    func clearKeychainData() throws
     func storedKeys() throws -> [ImageKey]
     func deleteKey(_ key: ImageKey) throws
     func setActiveKey(_ name: KeyName?) throws
