@@ -1,10 +1,3 @@
-//
-//  ImageResizer.swift
-//  Encamera
-//
-//  Created by Rolando Rodriguez on 10/15/20.
-//
-
 import Foundation
 import UIKit
 

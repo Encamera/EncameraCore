@@ -1,10 +1,3 @@
-//
-//  PhotoCaptureProcessor.swift
-//  abseil
-//
-//  Created by Rolando Rodriguez on 10/15/20.
-//
-
 import Foundation
 import AVFoundation
 import CoreImage

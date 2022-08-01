@@ -1,10 +1,3 @@
-//
-//  EncameraApp.swift
-//  Encamera
-//
-//  Created by Rolando Rodriguez on 10/15/20.
-//
-
 import SwiftUI
 import Combine
 

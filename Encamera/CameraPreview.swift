@@ -1,10 +1,3 @@
-//
-//  CameraPreview.swift
-//  Encamera
-//
-//  Created by Rolando Rodriguez on 10/17/20.
-//
-
 import SwiftUI
 import AVFoundation
 import Combine

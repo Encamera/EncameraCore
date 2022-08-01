@@ -89,7 +89,6 @@
 		A9FE17872539494300D547C7 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9FE17862539494300D547C7 /* CameraView.swift */; };
 		A9FE17892539494700D547C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A9FE17882539494700D547C7 /* Assets.xcassets */; };
 		A9FE178C2539494700D547C7 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A9FE178B2539494700D547C7 /* Preview Assets.xcassets */; };
-		A9FE17972539494700D547C7 /* EncameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9FE17962539494700D547C7 /* EncameraTests.swift */; };
 		A9FE17B825394F1E00D547C7 /* ImageResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9FE17B325394F1D00D547C7 /* ImageResizer.swift */; };
 		A9FE17BA25394F1E00D547C7 /* PhotoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9FE17B525394F1E00D547C7 /* PhotoCaptureProcessor.swift */; };
 		A9FE17BB25394F1E00D547C7 /* CameraService+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9FE17B625394F1E00D547C7 /* CameraService+Extensions.swift */; };
@@ -192,7 +191,6 @@
 		A9FE178B2539494700D547C7 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A9FE178D2539494700D547C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A9FE17922539494700D547C7 /* EncameraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EncameraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A9FE17962539494700D547C7 /* EncameraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraTests.swift; sourceTree = "<group>"; };
 		A9FE17982539494700D547C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A9FE17B225394F1C00D547C7 /* CameraService+Enums.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CameraService+Enums.swift"; sourceTree = "<group>"; };
 		A9FE17B325394F1D00D547C7 /* ImageResizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
@@ -485,7 +483,6 @@
 				193532362862FEC100964A01 /* Utils */,
 				1911319C281F9FA900542281 /* TestData */,
 				19DCCD582741C2E200DB487B /* ChaChaPolyHelperTests.swift */,
-				A9FE17962539494700D547C7 /* EncameraTests.swift */,
 				A9FE17982539494700D547C7 /* Info.plist */,
 				1961BCC3281F9DFA00D7BE92 /* FileOperationsTests.swift */,
 				19F768D128636FDD008F4BD3 /* DirectoryModelTests.swift */,
@@ -690,7 +687,6 @@
 				193532352862F29400964A01 /* FileAccessTests.swift in Sources */,
 				193237232849EEE80074CE8A /* MediaTypeTests.swift in Sources */,
 				19F768D228636FDD008F4BD3 /* DirectoryModelTests.swift in Sources */,
-				A9FE17972539494700D547C7 /* EncameraTests.swift in Sources */,
 				1990154D2863BA8400520082 /* KeychainTests.swift in Sources */,
 				19631A3C286514F200B95FD3 /* DateUtilsTests.swift in Sources */,
 				1990CA422881B10C007486D3 /* PasswordValidatorTests.swift in Sources */,

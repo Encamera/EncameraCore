@@ -1,10 +1,3 @@
-//
-//  CameraService+Enums.swift
-//  Encamera
-//
-//  Created by Rolando Rodriguez on 10/15/20.
-//
-
 import Foundation
 
 //  MARK: CameraService Enums
