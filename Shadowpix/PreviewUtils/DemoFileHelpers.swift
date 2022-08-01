@@ -144,9 +144,13 @@ class DemoDirectoryModel: DirectoryModel {
 
 class DemoKeyManager: KeyManager {
     
-    var hasExistingPassword = false
+    private var hasExistingPassword = false
     var throwError = false
-    var password: String?
+    var password: String? {
+        didSet {
+            hasExistingPassword = password != nil
+        }
+    }
     
     func passwordExists() -> Bool {
         return hasExistingPassword
@@ -166,7 +170,6 @@ class DemoKeyManager: KeyManager {
     
     func setPassword(_ password: String) throws {
         self.password = password
-        self.hasExistingPassword = true
     }
     
     func deleteKey(_ key: ImageKey) throws {

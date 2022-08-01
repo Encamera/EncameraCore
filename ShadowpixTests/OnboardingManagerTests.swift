@@ -73,7 +73,7 @@ class OnboardingManagerTests: XCTestCase {
     }
     
     func testUserHasStoredPasswordButNoState() async throws {
-        keyManager.hasExistingPassword = true
+        keyManager.password = "password"
         let state = try manager.loadOnboardingState()
         
         XCTAssertEqual(state, .hasPasswordAndNotOnboarded)
@@ -103,12 +103,12 @@ class OnboardingManagerTests: XCTestCase {
     
     func testOnboardingFlowGeneratesWithExistingPassword() async throws {
         let keyManager = DemoKeyManager()
-        keyManager.hasExistingPassword = true
+        keyManager.password = "password"
         manager = OnboardingManager(keyManager: keyManager, authManager: DemoAuthManager())
         let flow = manager.generateOnboardingFlow()
         
         XCTAssertEqual(flow, [.intro, .enterExistingPassword, .biometrics, .finished])
-    } 
+    }
     
     func testOnboardingStateValidationCompletedIncorrectSavedInfo() throws {
         let savedInfo = SavedSettings(useBiometricsForAuth: nil)
@@ -158,8 +158,36 @@ class OnboardingManagerTests: XCTestCase {
         let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
         
         try await manager.saveOnboardingState(state, password: "q1w2e3")
-        keyManager.hasExistingPassword = false
+        keyManager.password = nil
         let saved = try manager.loadOnboardingState()
         XCTAssertEqual(saved, .hasOnboardingAndNoPassword)
+    }
+    
+    func testShouldShowOnboardingCompleted() async throws {
+        let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
+        
+        try await manager.saveOnboardingState(state, password: "q1w2e3")
+        try manager.loadOnboardingState()
+        XCTAssertFalse(manager.shouldShowOnboarding)
+    }
+    
+    func testShouldShowOnboardingStateNotStarted() throws {
+        try manager.loadOnboardingState()
+        XCTAssertTrue(manager.shouldShowOnboarding)
+    }
+    
+    func testShouldShowOnboardingStateNoPassword() async throws {
+        let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
+        try await manager.saveOnboardingState(state, password: "password")
+        keyManager.password = nil
+        try manager.loadOnboardingState()
+        XCTAssertTrue(manager.shouldShowOnboarding)
+    }
+    
+    func testShouldShowOnboardingStatePasswordNotOnboarded() async throws {
+        try keyManager.setPassword("password")
+        try manager.loadOnboardingState()
+        XCTAssertTrue(manager.shouldShowOnboarding)
+
     }
 }

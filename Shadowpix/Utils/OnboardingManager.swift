@@ -10,7 +10,6 @@ import Foundation
 
 enum OnboardingState: Codable, Equatable {
     case completed(SavedSettings)
-    case inProgress(SavedSettings)
     case notStarted
     case hasPasswordAndNotOnboarded
     case hasOnboardingAndNoPassword
@@ -86,8 +85,6 @@ class OnboardingManager: ObservableObject {
             switch onboardingState {
             case .completed(_):
                 showOnboarding = false
-            case .inProgress(_):
-                showOnboarding = true
             case .notStarted:
                 showOnboarding = true
             case .hasPasswordAndNotOnboarded:
@@ -121,8 +118,6 @@ class OnboardingManager: ObservableObject {
         
         case .completed(let onboardingSavedInfo):
             settings = onboardingSavedInfo
-        case .inProgress(let onboardingSavedInfo):
-            settings = onboardingSavedInfo
         default:
             throw OnboardingManagerError.incorrectStateForOperation
         }
@@ -146,10 +141,9 @@ class OnboardingManager: ObservableObject {
                 throw OnboardingManagerError.unknownError
             }
             
-        case .inProgress(_),
-                .notStarted,
-                .hasPasswordAndNotOnboarded,
-                .hasOnboardingAndNoPassword:
+        case .notStarted,
+             .hasPasswordAndNotOnboarded,
+             .hasOnboardingAndNoPassword:
             break
         }
         do {
