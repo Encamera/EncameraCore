@@ -113,7 +113,7 @@ struct ShadowpixApp: App {
     var body: some Scene {
         WindowGroup {
             
-            if viewModel.isAuthorized == false {
+            if viewModel.isAuthorized == false || viewModel.showOnboarding == true {
                 AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                     .sheet(isPresented: $viewModel.showOnboarding) {
                         MainOnboardingView(

@@ -60,8 +60,10 @@ class OnboardingViewModel: ObservableObject {
     }
     
     func savePassword() throws {
-        try keyManager.setPassword(password1)
-        try authManager.authorize(with: password1, using: keyManager)
+        if validatePassword() == .valid {
+            try keyManager.setPassword(password1)
+            try authManager.authorize(with: password1, using: keyManager)
+        }
     }
     
     func checkExistingPassword() -> Bool {
@@ -80,8 +82,8 @@ class OnboardingViewModel: ObservableObject {
         Task {
             
             do {
-                let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: useBiometrics, password: !password1.isEmpty))
-                try await onboardingManager.saveOnboardingState(savedState, password: password1)
+                let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: useBiometrics))
+                try await onboardingManager.saveOnboardingState(savedState)
                 if useBiometrics {
                     try await authManager.authorizeWithFaceID()
                 } else {
@@ -144,9 +146,10 @@ struct MainOnboardingView: View {
                         
                     case .setPassword:
                         OnboardingView(viewModel: .init(title: "Set a password.", subheading: "This allows you to access the app. Store this in a safe place, you cannot recover it later!", image: Image(systemName: "lock.iphone"), bottomButtonTitle: "Set Password", bottomButtonAction: {
-                            if viewModel.validatePassword() == .valid {
-                                advanceTab()
-                            }
+                            
+                            try viewModel.savePassword()
+                            advanceTab()
+                            
                         })) {
                             VStack {
                                 

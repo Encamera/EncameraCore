@@ -60,14 +60,23 @@ struct OnboardingView<Content>: View where Content: View {
 
 struct OnboardingView_Previews: PreviewProvider {
     
- 
+    
     
     
     static var previews: some View {
-        OnboardingView(viewModel: .init(title: "You're all set!", subheading: "", image: Image(systemName: "faceid"), bottomButtonTitle: "Done", bottomButtonAction: {
-            
+        
+        OnboardingView(viewModel: .init(title: "Setup Image Key", subheading:
+                                            """
+Set the name for the first key.
+
+This is different from your password, and will be used to encrypt data.
+
+You can have multiple keys for different purposes, e.g. one named "Banking" and another "Personal".
+""", image: Image(systemName: "key.fill"), bottomButtonTitle: "Save Key", bottomButtonAction: {
         })) {
-            
+            VStack {
+                TextField("Name", text: .constant("")).inputTextField()
+            }
         }
     }
 }

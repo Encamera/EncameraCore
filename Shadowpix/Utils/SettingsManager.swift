@@ -65,11 +65,9 @@ struct SavedSettings: Codable, Equatable {
     
     enum CodingKeys: String, CodingKey {
         case useBiometricsForAuth
-        case password
     }
     
     var useBiometricsForAuth: Bool?
-    var password: Bool = false
 }
 
 
@@ -79,32 +77,22 @@ struct SettingsManager {
     private enum Constants {
         static var savedSettingsKey = "savedSettings"
     }
-    private var passwordValidator : PasswordValidator
     private var authManager: AuthManager
     private var keyManager: KeyManager
     
-    init(authManager: AuthManager, keyManager: KeyManager, passwordValidator: PasswordValidator = .init()) {
+    init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
-        self.passwordValidator = passwordValidator
     }
 
     
-    func saveSettings(_ settings: SavedSettings, password: String?) async throws {
-        try validate(settings, password: password)
+    func saveSettings(_ settings: SavedSettings) async throws {
         if settings.useBiometricsForAuth ?? false {
             do {
                 try await authManager.authorizeWithFaceID()
             } catch {
                 throw SettingsManagerError.errorWithFaceID(error)
             }
-        }
-        do {
-            if let password = password {
-                try keyManager.setPassword(password)
-            }
-        } catch {
-            throw SettingsManagerError.keyManagerError(error)
         }
         
         do {
@@ -115,20 +103,12 @@ struct SettingsManager {
         }
         
     }
-    func validate(_ savedInfo: SavedSettings, password: String?) throws {
+    func validate(_ savedInfo: SavedSettings) throws {
         var settingsToSave = savedInfo
         
         let mirror = Mirror(reflecting: savedInfo)
         var errorKeys = [(SavedSettings.CodingKeys, String)]()
         
-        if let password = password {
-            let result = passwordValidator.validate(password: password)
-            if result != .valid {
-                errorKeys += [(.password, result.validationDescription)]
-            } else {
-                settingsToSave.password = true
-            }
-        }
         // nil check
         for (property, value) in mirror.children {
             if case Optional<Any>.some(_) = value {

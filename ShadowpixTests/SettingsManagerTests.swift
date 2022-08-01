@@ -36,19 +36,19 @@ class SettingsManagerTests: XCTestCase {
     func testSaveSettings() async throws {
         let settings = SavedSettings(useBiometricsForAuth: true)
         
-        try await manager.saveSettings(settings, password: "q1w2e3r4")
+        try await manager.saveSettings(settings)
     }
     
     func testValidationValid() throws {
         let settings = SavedSettings(useBiometricsForAuth: true)
 
-        try manager.validate(settings, password: "q1w2e3r4")
+        try manager.validate(settings)
     }
     
     func testValidationThrowsInvalidWhenNil() throws {
         let settings = SavedSettings(useBiometricsForAuth: nil)
 
-        XCTAssertThrowsError(try manager.validate(settings, password: ""), "settings validation") { error in
+        XCTAssertThrowsError(try manager.validate(settings), "settings validation") { error in
             
             guard let validation = error as? SettingsManagerError else {
                 XCTFail("Invalid error")
@@ -63,33 +63,7 @@ class SettingsManagerTests: XCTestCase {
             
             XCTAssertEqual(
                 SettingsValidation.invalid([
-                    (SavedSettings.CodingKeys.useBiometricsForAuth, "useBiometricsForAuth must be set"),
-                    (SavedSettings.CodingKeys.password, "Password is too short, <4")
-                ]),
-                validated
-            )
-        }
-    }
-    func testValidationThrowsInvalidWhenInvalidPassword() throws {
-        let settings = SavedSettings(useBiometricsForAuth: true)
-
-        XCTAssertThrowsError(try manager.validate(settings, password: "123"), "settings validation") { error in
-            
-            guard let validation = error as? SettingsManagerError else {
-                XCTFail("Invalid error")
-                return
-            }
-            
-            guard case .validationFailed(let validated) = validation else {
-                return
-                
-            }
-
-            
-            XCTAssertEqual(
-                SettingsValidation.invalid([
-                    (SavedSettings.CodingKeys.password, "Password is too short, <4")
-                ]),
+                    (SavedSettings.CodingKeys.useBiometricsForAuth, "useBiometricsForAuth must be set")                ]),
                 validated
             )
         }
