@@ -85,6 +85,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         try? checkStatus(status: passwordStatus)
         try setActiveKey(nil)
+        print("Keychain data cleared")
     }
     
     @discardableResult func generateNewKey(name: String) throws -> ImageKey {

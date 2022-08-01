@@ -32,6 +32,7 @@ struct ShadowpixApp: App {
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager()
             let manager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher)
+            
             self.keyManager = manager
             
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager)
@@ -121,7 +122,7 @@ struct ShadowpixApp: App {
                         MainOnboardingView(
                             viewModel: .init(onboardingManager: viewModel.onboardingManager,
                                              keyManager: viewModel.keyManager, authManager: viewModel.authManager))
-                    }
+                    }.interactiveDismissDisabled()
             } else if let fileAccess = viewModel.fileAccess {
                 CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker))
                     .sheet(isPresented: $viewModel.hasOpenedURL) {

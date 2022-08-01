@@ -59,10 +59,14 @@ class OnboardingViewModel: ObservableObject {
         }
     }
     
-    func savePassword() throws {
-        if validatePassword() == .valid {
+    func savePassword() throws -> Bool {
+        let validation = validatePassword()
+        if validation == .valid {
             try keyManager.setPassword(password1)
             try authManager.authorize(with: password1, using: keyManager)
+            return true
+        } else {
+            return false
         }
     }
     
@@ -147,9 +151,9 @@ struct MainOnboardingView: View {
                     case .setPassword:
                         OnboardingView(viewModel: .init(title: "Set a password.", subheading: "This allows you to access the app. Store this in a safe place, you cannot recover it later!", image: Image(systemName: "lock.iphone"), bottomButtonTitle: "Set Password", bottomButtonAction: {
                             
-                            try viewModel.savePassword()
-                            advanceTab()
-                            
+                            if try viewModel.savePassword() {
+                                advanceTab()
+                            }
                         })) {
                             VStack {
                                 
