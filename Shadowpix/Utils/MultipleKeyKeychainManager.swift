@@ -102,6 +102,14 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         return key
     }
     
+    func createBackupDocument() throws -> String {
+        let keys = try storedKeys()
+        
+        return keys.map { key in
+            return "Name: \(key.name)\nCode:\n\(key.base64String ?? "invalid")"
+        }.joined(separator: "\n").appending("\n\nCopy the code into the \"Key Entry\" form in the app to use it again.")
+    }
+    
     func save(key: ImageKey) throws {
         var setNewKeyToCurrent: Bool
         do {

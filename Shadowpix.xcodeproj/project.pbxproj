@@ -37,7 +37,7 @@
 		19631A372865113300B95FD3 /* KeySelectionCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A362865113300B95FD3 /* KeySelectionCell.swift */; };
 		19631A3A286514E500B95FD3 /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A382865141600B95FD3 /* DateUtils.swift */; };
 		19631A3C286514F200B95FD3 /* DateUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A3B286514F200B95FD3 /* DateUtilsTests.swift */; };
-		19631A3E286596B100B95FD3 /* AddKeyCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A3D286596B100B95FD3 /* AddKeyCell.swift */; };
+		19631A3E286596B100B95FD3 /* KeyOperationCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19631A3D286596B100B95FD3 /* KeyOperationCell.swift */; };
 		19665C462742542A00DA8578 /* KeyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19665C452742542A00DA8578 /* KeyEntry.swift */; };
 		196AFE81274F83D100C809ED /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE80274F83D100C809ED /* GalleryView.swift */; };
 		196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE82274F858300C809ED /* DiskFileAccess.swift */; };
@@ -135,7 +135,7 @@
 		19631A362865113300B95FD3 /* KeySelectionCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionCell.swift; sourceTree = "<group>"; };
 		19631A382865141600B95FD3 /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
 		19631A3B286514F200B95FD3 /* DateUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtilsTests.swift; sourceTree = "<group>"; };
-		19631A3D286596B100B95FD3 /* AddKeyCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddKeyCell.swift; sourceTree = "<group>"; };
+		19631A3D286596B100B95FD3 /* KeyOperationCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyOperationCell.swift; sourceTree = "<group>"; };
 		19665C452742542A00DA8578 /* KeyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyEntry.swift; sourceTree = "<group>"; };
 		196AFE80274F83D100C809ED /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		196AFE82274F858300C809ED /* DiskFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskFileAccess.swift; sourceTree = "<group>"; };
@@ -251,7 +251,7 @@
 				19DCCD562741AF6700DB487B /* KeyGeneration.swift */,
 				1990154A2863BA3F00520082 /* KeySelectionList.swift */,
 				19631A362865113300B95FD3 /* KeySelectionCell.swift */,
-				19631A3D286596B100B95FD3 /* AddKeyCell.swift */,
+				19631A3D286596B100B95FD3 /* KeyOperationCell.swift */,
 			);
 			path = KeyPicker;
 			sourceTree = "<group>";
@@ -657,7 +657,7 @@
 				1990CA402881ACB9007486D3 /* PasswordValidator.swift in Sources */,
 				19FD5D602835DB0D008D75AA /* MediaDescribing.swift in Sources */,
 				19217E26273FD616009E3850 /* KeyPickerView.swift in Sources */,
-				19631A3E286596B100B95FD3 /* AddKeyCell.swift in Sources */,
+				19631A3E286596B100B95FD3 /* KeyOperationCell.swift in Sources */,
 				193ECDA4282EE7E2004F143D /* Enums.swift in Sources */,
 				195719EE274BA4B400E93658 /* QRCodeCaptureProcessor.swift in Sources */,
 				1935322B2860F08800964A01 /* DiskBlockReader.swift in Sources */,

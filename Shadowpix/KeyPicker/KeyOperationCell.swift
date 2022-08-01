@@ -7,12 +7,14 @@
 
 import SwiftUI
 
-struct AddKeyCell: View {
+struct KeyOperationCell: View {
     
     var title: String
+    var imageName: String
     
     var body: some View {
         HStack {
+            Image(systemName: imageName)
             Text(title).font(.title)
             Spacer()
         }.padding()
@@ -21,6 +23,6 @@ struct AddKeyCell: View {
 
 struct AddKeyCell_Previews: PreviewProvider {
     static var previews: some View {
-        AddKeyCell(title: "Add Key")
+        KeyOperationCell(title: "Add Key", imageName: "doc.on.doc.fill")
     }
 }

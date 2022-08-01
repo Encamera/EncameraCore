@@ -51,13 +51,20 @@ struct KeySelectionList: View {
                 NavigationLink {
                     KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager))
                 } label: {
-                    AddKeyCell(title: "Create New Key")
+                    KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
                 }
                 NavigationLink {
                     KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, isShowing: .constant(true)))
 
                 } label: {
-                    AddKeyCell(title: "Add Key")
+                    KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
+                }
+                KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
+                    guard let doc = try? viewModel.keyManager.createBackupDocument() else {
+                        return
+                    }
+                    let pasteboard = UIPasteboard.general
+                    pasteboard.string = doc
                 }
                 ForEach(viewModel.keys, id: \.name) { key in
                     NavigationLink {

@@ -19,6 +19,11 @@ class KeychainTests: XCTestCase {
         try? keyManager.clearKeychainData()
         try? keyManager.clearPassword()
     }
+    
+    override func tearDown() {
+        try? keyManager.clearKeychainData()
+        try? keyManager.clearPassword()
+    }
 
     
     func testStoreMultipleKeys() throws {
@@ -125,6 +130,15 @@ class KeychainTests: XCTestCase {
         
         XCTAssertNil(newManager.currentKey)
         
+    }
+    
+    func testCreateBackupDocument() throws {
+        try keyManager.generateNewKey(name: "test4")
+        try keyManager.generateNewKey(name: "test5")
+
+        let doc = try keyManager.createBackupDocument()
+        
+        print(doc)
     }
     
     func testSetPassword() throws {

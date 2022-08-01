@@ -54,7 +54,8 @@ protocol KeyManager {
     func deleteKey(_ key: ImageKey) throws
     func setActiveKey(_ name: KeyName?) throws
     func save(key: ImageKey) throws
-    @discardableResult func generateNewKey(name: String) throws-> ImageKey
+    @discardableResult func generateNewKey(name: String) throws -> ImageKey
+    func createBackupDocument() throws -> String
     func checkPassword(_ password: String) throws -> Bool
     func setPassword(_ password: String) throws
     func passwordExists() -> Bool

@@ -14,7 +14,6 @@ func determineOSStatus(status: OSStatus) {
     case errSecUnimplemented: printString += "errSecUnimplemented"
     case errSecDiskFull: printString += "errSecDiskFull"
     
-    case errSecDskFull: printString += "errSecDskFull"
     case errSecIO: printString += "errSecIO"
     case errSecOpWr: printString += "errSecOpWr"
     case errSecParam: printString += "errSecParam"
@@ -321,7 +320,6 @@ func determineOSStatus(status: OSStatus) {
     case errSecInvalidCertAuthority: printString += "errSecInvalidCertAuthority"
     case errSecInvalidCRLAuthority: printString += "errSecInvalidCRLAuthority"
     
-    case errSecInvaldCRLAuthority: printString += "errSecInvaldCRLAuthority"
     case errSecInvalidCRLEncoding: printString += "errSecInvalidCRLEncoding"
     case errSecInvalidCRLType: printString += "errSecInvalidCRLType"
     case errSecInvalidCRL: printString += "errSecInvalidCRL"
@@ -348,7 +346,6 @@ func determineOSStatus(status: OSStatus) {
     case errSecInvalidBaseACLs: printString += "errSecInvalidBaseACLs"
     case errSecInvalidTupleCredentials: printString += "errSecInvalidTupleCredentials"
     
-    case errSecInvalidTupleCredendtials: printString += "errSecInvalidTupleCredendtials"
     case errSecInvalidEncoding: printString += "errSecInvalidEncoding"
     case errSecInvalidValidityPeriod: printString += "errSecInvalidValidityPeriod"
     case errSecInvalidRequestor: printString += "errSecInvalidRequestor"

@@ -151,7 +151,9 @@ class DemoKeyManager: KeyManager {
             hasExistingPassword = password != nil
         }
     }
-    
+    func createBackupDocument() throws -> String {
+        return ""
+    }
     func passwordExists() -> Bool {
         return hasExistingPassword
     }
