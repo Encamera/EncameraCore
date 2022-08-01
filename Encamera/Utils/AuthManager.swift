@@ -8,6 +8,7 @@
 import Foundation
 import LocalAuthentication
 import Combine
+import UIKit
 
 enum AuthManagerError: Error {
     case passwordIncorrect
@@ -81,7 +82,6 @@ class DeviceAuthManager: AuthManager {
 
     
     init() {
-        try! storeAuthenticationPolicy(self.policy!)
         loadAuthenticationPolicy()
         NotificationCenter.default.publisher(for: .NSSystemClockDidChange).sink { _ in
             self.lastSuccessfulAuthentication = nil
@@ -171,7 +171,7 @@ private extension DeviceAuthManager {
         "authenticationPolicy"
     }
     
-    private func loadAuthenticationPolicy() {
+    func loadAuthenticationPolicy() {
         guard let data = UserDefaults.standard.data(forKey: policyUserDefaultsKey) else {
             debugPrint("No authentication policy set in UserDefaults")
             policy = nil
@@ -183,14 +183,15 @@ private extension DeviceAuthManager {
         } catch {
             debugPrint("Could not decode authentication policy")
         }
+        setupNotificationObservers()
     }
     
-    private func storeAuthenticationPolicy(_ policy: AuthenticationPolicy) throws {
+    func storeAuthenticationPolicy(_ policy: AuthenticationPolicy) throws {
         let data = try JSONEncoder().encode(policy)
         UserDefaults.standard.set(data, forKey: policyUserDefaultsKey)
     }
     
-    private func reauthorizeForPassword() {
+    func reauthorizeForPassword() {
         if let policy = policy, let authTime = lastSuccessfulAuthentication, Date().timeIntervalSinceReferenceDate < authTime.timeIntervalSinceReferenceDate - Double(policy.authenticationExpirySeconds) {
             authState = .authorized(with: .password)
             lastSuccessfulAuthentication = Date()
@@ -198,6 +199,24 @@ private extension DeviceAuthManager {
             authState = .unauthorized
             lastSuccessfulAuthentication = nil
         }
+    }
+    
+    func setupNotificationObservers() {
+        NotificationCenter.default
+            .publisher(for: UIApplication.didEnterBackgroundNotification)
+            .sink { _ in
+
+                self.deauthorize()
+            }.store(in: &cancellables)
+        NotificationCenter.default
+            .publisher(for: UIApplication.didBecomeActiveNotification)
+            .sink { _ in
+                Task {
+                    try? await self.checkAuthorizationWithCurrentPolicy()
+                }
+
+            }.store(in: &cancellables)
+
     }
     
 }

@@ -74,6 +74,7 @@ class OnboardingViewModel: ObservableObject {
         
         do {
             existingPasswordCorrect = try keyManager.checkPassword(existingPassword)
+            try authManager.authorize(with: existingPassword, using: keyManager)
             return existingPasswordCorrect
         } catch {
             debugPrint("Problem with existing password", error)

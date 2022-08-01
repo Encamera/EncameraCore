@@ -52,7 +52,6 @@ struct EncameraApp: App {
                 .publisher(for: UIApplication.didEnterBackgroundNotification)
                 .sink { _ in
 
-                    self.authManager.deauthorize()
                     self.showScreenBlocker = true
                 }.store(in: &cancellables)
             NotificationCenter.default
@@ -65,9 +64,6 @@ struct EncameraApp: App {
                 .publisher(for: UIApplication.didBecomeActiveNotification)
                 .sink { _ in
                     self.showScreenBlocker = false
-                    Task {
-                        try? await self.authManager.checkAuthorizationWithCurrentPolicy()
-                    }
 
                 }.store(in: &cancellables)
             NotificationCenter.default
@@ -109,13 +105,12 @@ struct EncameraApp: App {
     var body: some Scene {
         WindowGroup {
             
-            if viewModel.isAuthorized == false || viewModel.showOnboarding == true {
+            if viewModel.showOnboarding {
+                MainOnboardingView(
+                    viewModel: .init(onboardingManager: viewModel.onboardingManager,
+                                     keyManager: viewModel.keyManager, authManager: viewModel.authManager))
+            } else if viewModel.isAuthorized == false {
                 AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-                    .sheet(isPresented: $viewModel.showOnboarding) {
-                        MainOnboardingView(
-                            viewModel: .init(onboardingManager: viewModel.onboardingManager,
-                                             keyManager: viewModel.keyManager, authManager: viewModel.authManager))
-                    }.interactiveDismissDisabled()
             } else if let fileAccess = viewModel.fileAccess {
                 CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker))
                     .sheet(isPresented: $viewModel.hasOpenedURL) {

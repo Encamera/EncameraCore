@@ -104,7 +104,6 @@ struct SettingsManager {
         
     }
     func validate(_ savedInfo: SavedSettings) throws {
-        var settingsToSave = savedInfo
         
         let mirror = Mirror(reflecting: savedInfo)
         var errorKeys = [(SavedSettings.CodingKeys, String)]()

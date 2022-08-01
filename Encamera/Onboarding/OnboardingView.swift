@@ -7,22 +7,26 @@
 
 import SwiftUI
 
-struct OnboardingView<Content>: View where Content: View {
+struct OnboardingViewViewModel {
+    var title: String
+    var subheading: String
+    var image: Image
+    var bottomButtonTitle: String
+    var bottomButtonAction: () throws -> Void
+}
+
+struct OnboardingView<Content, Next>: View where Content: View, Next: View {
     
-    struct OnboardingViewModel {
-        var title: String
-        var subheading: String
-        var image: Image
-        var bottomButtonTitle: String
-        var bottomButtonAction: () throws -> Void
-    }
     
-    var viewModel: OnboardingViewModel
+    
+    var viewModel: OnboardingViewViewModel
     
     let content: (() -> Content)
+    let nextScreen: (() -> Next)
     
-    init(viewModel: OnboardingViewModel, @ViewBuilder content: @escaping () -> Content) {
+    init(viewModel: OnboardingViewViewModel, @ViewBuilder nextScreen: @escaping () -> Next, @ViewBuilder content: @escaping () -> Content) {
         self.content = content
+        self.nextScreen = nextScreen
         self.viewModel = viewModel
     }
     
@@ -42,41 +46,46 @@ struct OnboardingView<Content>: View where Content: View {
 //                    .frame(width: frame.width, height: frame.width)
                 self.content()
                 Spacer()
-                Button(viewModel.bottomButtonTitle, action: {
-                    do {
-                        try viewModel.bottomButtonAction()
-                    } catch {
-                        print("Error on bottom button action", error)
-                    }
-                })
+                NavigationLink {
+                    nextScreen()
+                } label: {
+                    
+                    Button(viewModel.bottomButtonTitle, action: {
+                        do {
+                            try viewModel.bottomButtonAction()
+                        } catch {
+                            print("Error on bottom button action", error)
+                        }
+                    })
                     .frame(width: frame.width)
                     .primaryButton()
+                }
                 Spacer().frame(height: 50.0)
             }.foregroundColor(.white)
         }.padding().background(Color.black)
     }
 }
-
-
-struct OnboardingView_Previews: PreviewProvider {
-    
-    
-    
-    
-    static var previews: some View {
-        
-        OnboardingView(viewModel: .init(title: "Setup Image Key", subheading:
-                                            """
-Set the name for the first key.
-
-This is different from your password, and will be used to encrypt data.
-
-You can have multiple keys for different purposes, e.g. one named "Banking" and another "Personal".
-""", image: Image(systemName: "key.fill"), bottomButtonTitle: "Save Key", bottomButtonAction: {
-        })) {
-            VStack {
-                TextField("Name", text: .constant("")).inputTextField()
-            }
-        }
-    }
-}
+//
+//
+//struct OnboardingView_Previews: PreviewProvider {
+//
+//
+//
+//
+//    static var previews: some View {
+//
+//        OnboardingView(viewModel: .init(title: "Setup Image Key", subheading:
+//                                            """
+//Set the name for the first key.
+//
+//This is different from your password, and will be used to encrypt data.
+//
+//You can have multiple keys for different purposes, e.g. one named "Banking" and another "Personal".
+//""", image: Image(systemName: "key.fill"), bottomButtonTitle: "Save Key", bottomButtonAction: {
+//        })) {
+//            VStack {
+//                TextField("Name", text: .constant("")).inputTextField()
+//            }
+//        }
+//    }
+//}
