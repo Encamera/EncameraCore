@@ -124,6 +124,7 @@ class DeviceAuthManager: AuthManager {
         } else {
             newState = .unauthorized
         }
+        debugPrint("New auth state", newState)
         authState = newState
     }
     

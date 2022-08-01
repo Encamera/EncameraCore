@@ -28,10 +28,12 @@ class OnboardingViewModel: ObservableObject {
     private var onboardingManager: OnboardingManager
     private var passwordValidator = PasswordValidator()
     private var keyManager: KeyManager
+    private var authManager: AuthManager
     
-    init(onboardingManager: OnboardingManager, keyManager: KeyManager) {
+    init(onboardingManager: OnboardingManager, keyManager: KeyManager, authManager: AuthManager) {
         self.onboardingManager = onboardingManager
         self.keyManager = keyManager
+        self.authManager = authManager
         onboardingFlow = onboardingManager.generateOnboardingFlow()
     }
     
@@ -62,6 +64,12 @@ class OnboardingViewModel: ObservableObject {
             do {
                 let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: useBiometrics, password: !password1.isEmpty))
                 try await onboardingManager.saveOnboardingState(savedState, password: password1)
+                if useBiometrics {
+                    try await authManager.authorizeWithFaceID()
+                } else {
+                    try authManager.authorize(with: password1, using: keyManager)
+                }
+                
             } catch let managerError as OnboardingManagerError {
                 debugPrint("onboarding manager error", managerError)
                 await MainActor.run {

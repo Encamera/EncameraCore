@@ -16,7 +16,8 @@ struct ShadowpixApp: App {
         @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
-
+        @Published var showOnboarding = false
+        @Published var isAuthorized = false
         var openedUrl: URL?
         var keyManager: KeyManager
         var cameraService: CameraConfigurationService
@@ -32,6 +33,13 @@ struct ShadowpixApp: App {
             self.authManager = DeviceAuthManager()
             self.keyManager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher)
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager)
+            self.onboardingManager.$shouldShowOnboarding.sink { value in
+                self.showOnboarding = value
+            }.store(in: &cancellables)
+            self.authManager.isAuthorizedPublisher.sink { value in
+                self.isAuthorized = value
+            }.store(in: &cancellables)
+            
             do {
                 try onboardingManager.loadOnboardingState()
             } catch let onboardingError as OnboardingManagerError {
@@ -105,11 +113,13 @@ struct ShadowpixApp: App {
     var body: some Scene {
         WindowGroup {
             
-            if viewModel.onboardingManager.shouldShowOnboarding {
-                
-                MainOnboardingView(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager))
-            } else if viewModel.authManager.isAuthorized == false {
+            if viewModel.isAuthorized == false {
                 AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                    .sheet(isPresented: $viewModel.showOnboarding) {
+                        MainOnboardingView(
+                            viewModel: .init(onboardingManager: viewModel.onboardingManager,
+                                             keyManager: viewModel.keyManager, authManager: viewModel.authManager))
+                    }
             } else if let fileAccess = viewModel.fileAccess {
                 CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker))
                     .sheet(isPresented: $viewModel.hasOpenedURL) {

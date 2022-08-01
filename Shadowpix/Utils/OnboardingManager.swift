@@ -154,7 +154,10 @@ class OnboardingManager: ObservableObject {
             throw OnboardingManagerError.couldNotSerialize
         }
         
-        onboardingState = state
+        await MainActor.run {
+            onboardingState = state
+        }
+        
 
     }
     
