@@ -14,7 +14,7 @@ struct OnboardingView<Content>: View where Content: View {
         var subheading: String
         var image: Image
         var bottomButtonTitle: String
-        var bottomButtonAction: () -> Void
+        var bottomButtonAction: () throws -> Void
     }
     
     var viewModel: OnboardingViewModel
@@ -42,7 +42,13 @@ struct OnboardingView<Content>: View where Content: View {
 //                    .frame(width: frame.width, height: frame.width)
                 self.content()
                 Spacer()
-                Button(viewModel.bottomButtonTitle, action: viewModel.bottomButtonAction)
+                Button(viewModel.bottomButtonTitle, action: {
+                    do {
+                        try viewModel.bottomButtonAction()
+                    } catch {
+                        print("Error on bottom button action", error)
+                    }
+                })
                     .frame(width: frame.width)
                     .primaryButton()
                 Spacer().frame(height: 50.0)

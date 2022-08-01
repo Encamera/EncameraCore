@@ -16,11 +16,14 @@ class OnboardingViewModel: ObservableObject {
     
     @Published var password1: String = ""
     @Published var password2: String = ""
+    @Published var keyName: String = ""
     @Published var existingPassword: String = ""
     var onboardingFlow: [OnboardingFlowScreen]
     @Published var passwordState: PasswordValidation?
     @MainActor
     @Published var stateError: OnboardingManagerError?
+    @Published var keySaveError: KeyManagerError?
+    @Published var generalError: Error?
     @Published var existingPasswordCorrect: Bool = false
     @Published var useBiometrics: Bool = false
     
@@ -44,7 +47,22 @@ class OnboardingViewModel: ObservableObject {
     }
     
     
+    func saveKey() throws {
+        do {
+            try keyManager.generateNewKey(name: keyName)
+        } catch let keyError as KeyManagerError {
+            self.keySaveError = keyError
+            throw keyError
+        } catch {
+            self.generalError = error
+            throw error
+        }
+    }
     
+    func savePassword() throws {
+        try keyManager.setPassword(password1)
+        try authManager.authorize(with: password1, using: keyManager)
+    }
     
     func checkExistingPassword() -> Bool {
         
@@ -77,6 +95,9 @@ class OnboardingViewModel: ObservableObject {
                 }
             } catch {
                 debugPrint("Error saving state", error)
+                await MainActor.run {
+                    generalError = error
+                }
                 return
             }
         }
@@ -144,6 +165,27 @@ struct MainOnboardingView: View {
                         })) {
                             HStack {
                                 Toggle("Enable Face ID", isOn: $viewModel.useBiometrics)
+                            }
+                        }
+                    case .setupImageKey:
+                        OnboardingView(viewModel: .init(title: "Setup Image Key", subheading:
+                                                            """
+                Set the name for the first key.
+
+                This is different from your password, and will be used to encrypt data.
+
+                You can have multiple keys for different purposes, e.g. one named "Banking" and another "Personal".
+                """, image: Image(systemName: "key.fill"), bottomButtonTitle: "Save Key", bottomButtonAction: {
+                            try viewModel.saveKey()
+                            advanceTab()
+                        })) {
+                            VStack {
+                                TextField("Name", text: $viewModel.keyName).inputTextField()
+                                if let keySaveError = viewModel.keySaveError {
+                                    Group {
+                                        Text(keySaveError.displayDescription)
+                                    }.foregroundColor(.red)
+                                }
                             }
                         }
                     case .finished:

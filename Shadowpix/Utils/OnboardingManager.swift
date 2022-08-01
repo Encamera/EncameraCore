@@ -36,6 +36,7 @@ enum OnboardingFlowScreen: Int, Identifiable {
     case enterExistingPassword
     case setPassword
     case biometrics
+    case setupImageKey
     case finished
     var id: Self { self }
 }
@@ -176,7 +177,7 @@ class OnboardingManager: ObservableObject {
         if authManager.canAuthenticateWithBiometrics {
             screens += [.biometrics]
         }
-        screens += [.finished]
+        screens += [.setupImageKey, .finished]
         
         return screens
 

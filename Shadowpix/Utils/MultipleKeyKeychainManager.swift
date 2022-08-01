@@ -13,6 +13,7 @@ private enum KeychainConstants {
     static let applicationTag = "com.shadowpix.key"
     static let currentKey = "currentKey"
     static let account = "shadowpix"
+    static let minKeyLength = 2
 }
 
 
@@ -73,10 +74,13 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         try setActiveKey(nil)
     }
     
-    @discardableResult func generateNewKey(name: String) throws-> ImageKey {
+    @discardableResult func generateNewKey(name: String) throws -> ImageKey {
         
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
+        }
+        guard name.count > KeychainConstants.minKeyLength else {
+            throw KeyManagerError.keyNameError
         }
         
         let bytes = Sodium().secretStream.xchacha20poly1305.key()
