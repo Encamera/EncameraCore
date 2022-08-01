@@ -59,7 +59,7 @@ class KeyViewerViewModel: ObservableObject {
             try keyManager.deleteKey(key)
             isShowingAlertForClearKey = false
         } catch {
-            print("Error clearing keychain", error)
+            debugPrint("Error clearing keychain", error)
         }
     }
 }

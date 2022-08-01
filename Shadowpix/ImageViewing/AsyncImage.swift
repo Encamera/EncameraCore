@@ -26,7 +26,7 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
             do {
                 cleartextMedia = try await loader.loadMediaPreview(for: targetMedia)
             } catch {
-                print(error)
+                debugPrint(error)
             }
         }
     }

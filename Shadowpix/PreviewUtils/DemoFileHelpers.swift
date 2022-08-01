@@ -135,7 +135,7 @@ class DemoDirectoryModel: DirectoryModel {
             }
             .forEach { (file: URL) in
                 try FileManager.default.removeItem(at: file)
-                print("Deleted file at \(file)")
+                debugPrint("Deleted file at \(file)")
             }
         }
     }

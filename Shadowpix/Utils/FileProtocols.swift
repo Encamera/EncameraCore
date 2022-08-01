@@ -29,7 +29,7 @@ extension DirectoryModel {
             do {
                 try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true, attributes: nil)
             } catch {
-                print("could not create directory \(error.localizedDescription)")
+                debugPrint("could not create directory \(error.localizedDescription)")
             }
             
         }

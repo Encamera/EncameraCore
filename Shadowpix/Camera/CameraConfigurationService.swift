@@ -111,7 +111,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
     
     func stop() async {
         guard self.session.isRunning, self.model.setupResult == .authorized else {
-            print("Could not stop session, isSessionRunning: \(self.session.isRunning), model.setupResult: \(model.setupResult)")
+            debugPrint("Could not stop session, isSessionRunning: \(self.session.isRunning), model.setupResult: \(model.setupResult)")
             return
         }
         self.session.stopRunning()
@@ -119,14 +119,14 @@ actor CameraConfigurationService: CameraConfigurationServicable {
     
     func start() async {
         guard !self.session.isRunning else {
-            print("Session is running already or is not configured")
+            debugPrint("Session is running already or is not configured")
             return
         }
         switch self.model.setupResult {
         case .setupComplete:
             self.session.startRunning()
             guard self.session.isRunning else {
-                print("Session is not running")
+                debugPrint("Session is not running")
                 return
             }
         default:
@@ -136,7 +136,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
     
     func focus(at focusPoint: CGPoint) async {
         guard let device = self.videoDeviceInput?.device else {
-            print("Trying to focus, video device is nil")
+            debugPrint("Trying to focus, video device is nil")
             return
         }
         do {
@@ -150,14 +150,14 @@ actor CameraConfigurationService: CameraConfigurationServicable {
             }
         }
         catch {
-            print(error.localizedDescription)
+            debugPrint(error.localizedDescription)
         }
     }
     
     
     func set(zoom: CGFloat) async {
         guard let device = videoDeviceInput?.device else {
-            print("Could not get device for zooming")
+            debugPrint("Could not get device for zooming")
             return
         }
         let factor = zoom < 1 ? 1 : zoom
@@ -168,14 +168,14 @@ actor CameraConfigurationService: CameraConfigurationServicable {
             device.unlockForConfiguration()
         }
         catch {
-            print(error.localizedDescription)
+            debugPrint(error.localizedDescription)
         }
     }
     
     func changeCamera() async {
         
         guard let currentVideoDevice = self.videoDeviceInput?.device else {
-            print("Current video device is nil")
+            debugPrint("Current video device is nil")
             return
         }
         let currentPosition = currentVideoDevice.position
@@ -193,7 +193,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
             preferredDeviceType = .builtInWideAngleCamera
             
         @unknown default:
-            print("Unknown capture position. Defaulting to back, dual-camera.")
+            debugPrint("Unknown capture position. Defaulting to back, dual-camera.")
             preferredPosition = .back
             preferredDeviceType = .builtInWideAngleCamera
         }
@@ -208,7 +208,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
         }
         
         guard let videoDevice = newVideoDevice else {
-            print("New video device is nil")
+            debugPrint("New video device is nil")
             return
         }
         do {
@@ -233,7 +233,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
                 }
             }
         } catch {
-            print("Error occurred while creating video device input: \(error)")
+            debugPrint("Error occurred while creating video device input: \(error)")
         }
         
     }
@@ -252,7 +252,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
             }
             
         } catch {
-            print("Could not switch to mode \(targetMode)", error)
+            debugPrint("Could not switch to mode \(targetMode)", error)
             self.model.setupResult = .configurationFailed
         }
     }
@@ -273,7 +273,7 @@ extension CameraConfigurationService {
     
     func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) throws -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
-            print("Could not capture photo")
+            debugPrint("Could not capture photo")
             fatalError()
         }
         
@@ -325,7 +325,7 @@ private extension CameraConfigurationService {
     /// Add photo output to session
     /// Note: must call commit() to session after this
     private func addPhotoOutputToSession() throws {
-        print("Calling addPhotoOutputToSession")
+        debugPrint("Calling addPhotoOutputToSession")
         if let movieOutput = movieOutput {
             session.removeOutput(movieOutput)
             self.movieOutput = nil
@@ -343,7 +343,7 @@ private extension CameraConfigurationService {
     }
     
     private func addVideoOutputToSession() throws {
-        print("Calling addVideoOutputToSession")
+        debugPrint("Calling addVideoOutputToSession")
 
         let movieOutput = AVCaptureMovieFileOutput()
         guard session.canAddOutput(movieOutput) else {
@@ -436,7 +436,7 @@ private extension CameraConfigurationService {
 //            try addMetadataOutputToSession()
             try addPhotoOutputToSession()
         } catch {
-            print(error)
+            debugPrint(error)
             return
         }
         model.setupResult = .setupComplete
@@ -459,10 +459,10 @@ private extension CameraConfigurationService {
                 
                 device.unlockForConfiguration()
             } catch {
-                print("Torch could not be used")
+                debugPrint("Torch could not be used")
             }
         } else {
-            print("Torch is not available")
+            debugPrint("Torch is not available")
         }
     }
     

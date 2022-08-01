@@ -44,7 +44,7 @@ extension MediaViewingViewModel {
         do {
             try decryptedFileRef?.delete()
         } catch {
-            print("Could not delete file ref \(error)")
+            debugPrint("Could not delete file ref \(error)")
         }
     }
 }

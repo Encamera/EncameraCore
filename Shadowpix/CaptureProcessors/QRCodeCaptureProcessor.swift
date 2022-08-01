@@ -26,7 +26,7 @@ extension QRCodeCaptureProcessor: AVCaptureMetadataOutputObjectsDelegate {
                 return
             }
             lastValidKeyObject = keyObject
-            print(keyObject)
+            debugPrint(keyObject)
             
         }
     }

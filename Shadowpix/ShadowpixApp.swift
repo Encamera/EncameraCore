@@ -35,7 +35,7 @@ struct ShadowpixApp: App {
             do {
                 try onboardingManager.loadOnboardingState()
             } catch let onboardingError as OnboardingManagerError {
-                print("Onboarding error \(onboardingError)")
+                debugPrint("Onboarding error \(onboardingError)")
             } catch {
                 fatalError("Onboarding error \(error)")
             }

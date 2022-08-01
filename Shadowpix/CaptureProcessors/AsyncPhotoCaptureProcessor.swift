@@ -63,7 +63,7 @@ extension AsyncPhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
     /// - Tag: DidFinishProcessingPhoto
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         if let error = error {
-            print("Error capturing photo: \(error)")
+            debugPrint("Error capturing photo: \(error)")
         } else if let photoData = photo.fileDataRepresentation() {
             currentOutput.photo = CleartextMedia(source: photoData, mediaType: .photo, id: photoId)
         }

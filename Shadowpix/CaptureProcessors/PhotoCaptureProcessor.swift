@@ -94,7 +94,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         }
         
         if let error = error {
-            print("Error capturing photo: \(error)")
+            debugPrint("Error capturing photo: \(error)")
         } else {
             photoData = photo.fileDataRepresentation()
         }
@@ -115,7 +115,7 @@ extension PhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
     /// - Tag: DidFinishCapture
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
         if let error = error {
-            print("Error capturing photo: \(error)")
+            debugPrint("Error capturing photo: \(error)")
             DispatchQueue.main.async {
                 self.completionHandler(self)
             }

@@ -172,7 +172,7 @@ private extension DeviceAuthManager {
     
     private func loadAuthenticationPolicy() {
         guard let data = UserDefaults.standard.data(forKey: policyUserDefaultsKey) else {
-            print("No authentication policy set in UserDefaults")
+            debugPrint("No authentication policy set in UserDefaults")
             policy = nil
             return
         }
@@ -180,7 +180,7 @@ private extension DeviceAuthManager {
             let policy = try JSONDecoder().decode(AuthenticationPolicy.self, from: data)
             self.policy = policy
         } catch {
-            print("Could not decode authentication policy")
+            debugPrint("Could not decode authentication policy")
         }
     }
     

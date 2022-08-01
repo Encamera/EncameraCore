@@ -41,7 +41,7 @@ struct AuthenticationView: View {
                 } catch let authManagerError as AuthManagerError {
                     handleAuthManagerError(authManagerError)
                 } catch {
-                    print("Auth manager error", error)
+                    debugPrint("Auth manager error", error)
                 }
             }
         }
@@ -55,7 +55,7 @@ struct AuthenticationView: View {
                         handleAuthManagerError(authManagerError)
                     }
                 } catch {
-                    print("Error handling auth", error)
+                    debugPrint("Error handling auth", error)
                 }
             }
         }

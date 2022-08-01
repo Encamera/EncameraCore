@@ -25,7 +25,7 @@ class VideoCaptureProcessor: NSObject, CaptureProcessor {
 
 extension VideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        print(outputFileURL)
+        debugPrint(outputFileURL)
         
         let cleartextVideo = CleartextMedia(source: outputFileURL, mediaType: .video, id: videoId)
         Task {
@@ -36,7 +36,7 @@ extension VideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
     
     
     func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
-        print(fileURL, connections)
+        debugPrint(fileURL, connections)
     }
     
 }

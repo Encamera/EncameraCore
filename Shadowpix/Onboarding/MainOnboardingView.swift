@@ -50,7 +50,7 @@ class OnboardingViewModel: ObservableObject {
             existingPasswordCorrect = try keyManager.checkPassword(existingPassword)
             return existingPasswordCorrect
         } catch {
-            print("Problem with existing password", error)
+            debugPrint("Problem with existing password", error)
             return false
         }
         
@@ -63,11 +63,12 @@ class OnboardingViewModel: ObservableObject {
                 let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: useBiometrics, password: !password1.isEmpty))
                 try await onboardingManager.saveOnboardingState(savedState, password: password1)
             } catch let managerError as OnboardingManagerError {
+                debugPrint("onboarding manager error", managerError)
                 await MainActor.run {
                     stateError = managerError
                 }
             } catch {
-                print("Error saving state", error)
+                debugPrint("Error saving state", error)
                 return
             }
         }
@@ -86,13 +87,13 @@ struct MainOnboardingView: View {
             currentSelection
         } set: { target in
             if canGoTo(tab: target) {
-                print("tab target", target)
+                debugPrint("tab target", target)
                 currentSelection = target
             }
         }
         
         TabView(selection: selectionBinding) {
-            let _ = print(selectionBinding.wrappedValue, "selection")
+            let _ = debugPrint(selectionBinding.wrappedValue, "selection")
             ForEach(viewModel.onboardingFlow) { flow in
                 Group {
                     switch flow {

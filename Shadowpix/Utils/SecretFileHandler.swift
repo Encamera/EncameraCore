@@ -65,7 +65,7 @@ extension SecretFileHandlerInt {
             })
             
             guard let streamDec = sodium.secretStream.xchacha20poly1305.initPull(secretKey: keyBytes, header: headerBuffer) else {
-                print("Could not create stream with key")
+                debugPrint("Could not create stream with key")
                 return Fail(error: SecretFilesError.keyError).eraseToAnyPublisher()
             }
             
@@ -77,7 +77,7 @@ extension SecretFileHandlerInt {
                    return Data(message)
             }.eraseToAnyPublisher()
         } catch {
-            print("error decrypting", error)
+            debugPrint("error decrypting", error)
             return Fail(error: SecretFilesError.decryptError).eraseToAnyPublisher()
         }
     }
@@ -117,7 +117,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     @discardableResult func encrypt() async throws -> EncryptedMedia {
                 
         guard let streamEnc = sodium.secretStream.xchacha20poly1305.initPush(secretKey: keyBytes) else {
-            print("Could not create stream with key")
+            debugPrint("Could not create stream with key")
             throw SecretFilesError.encryptError
         }
         guard let destinationMedia = EncryptedMedia(source: destinationURL, type: .video) else {
@@ -165,7 +165,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             }
             
         } catch {
-            print("Error encrypting \(error)")
+            debugPrint("Error encrypting \(error)")
             throw SecretFilesError.sourceFileAccessError
         }
     }

@@ -584,6 +584,6 @@ func determineOSStatus(status: OSStatus) {
     default:
         fatalError()
     }
-    print("OS Status", printString)
+    debugPrint("OS Status", printString)
     #endif
 }

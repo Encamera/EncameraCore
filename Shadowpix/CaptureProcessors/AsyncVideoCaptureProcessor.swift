@@ -54,7 +54,7 @@ extension AsyncVideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
     
     
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        print(outputFileURL)
+        debugPrint(outputFileURL)
         
         let cleartextVideo = CleartextMedia(source: outputFileURL, mediaType: .video, id: videoId)
         continuation?.resume(returning: cleartextVideo)

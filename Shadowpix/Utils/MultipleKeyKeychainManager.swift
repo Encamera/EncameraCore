@@ -210,7 +210,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         } catch is KeyManagerError {
             
         } catch {
-            print("Key error", error)
+            debugPrint("Key error", error)
         }
         return item != nil
     }
@@ -240,7 +240,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         do {
             try checkStatus(status: deletePasswordStatus)
         } catch {
-            print("Clearing password failed", error)
+            debugPrint("Clearing password failed", error)
         }
         try setPassword(newPassword)
     }

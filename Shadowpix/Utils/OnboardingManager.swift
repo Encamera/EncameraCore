@@ -130,6 +130,7 @@ class OnboardingManager: ObservableObject {
     }
     
     func saveOnboardingState(_ state: OnboardingState, password: String) async throws {
+        debugPrint("onboarding state", state)
         switch state {
         case .completed(let settings):
             try validate(state: state, password: password)
