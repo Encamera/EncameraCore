@@ -117,6 +117,7 @@ struct MainOnboardingView: View {
     
     @State var currentSelection = OnboardingFlowScreen.intro
     @StateObject var viewModel: OnboardingViewModel
+    
     var body: some View {
         
         let selectionBinding = Binding {
@@ -134,73 +135,17 @@ struct MainOnboardingView: View {
                 Group {
                     switch flow {
                     case .intro:
-                        OnboardingView(viewModel: .init(title: "Keep your files secure.", subheading: "Encrypt everything, take control of your media", image: Image(systemName: "camera"), bottomButtonTitle: "Next", bottomButtonAction: {
-                            advanceTab()
-                        })) {
-                            
-                        }
-                        
+                        introView
                     case .enterExistingPassword:
-                        OnboardingView(viewModel: .init(title: "Enter your existing password", subheading: "You have an existing password for this device.", image: Image(systemName: "key.fill"), bottomButtonTitle: "Next", bottomButtonAction: {
-                            if viewModel.checkExistingPassword() == true {
-                                advanceTab()
-                            }
-                        })) {
-                            SecureField("Password", text: $viewModel.existingPassword).passwordField()
-                        }
-                        
+                        enterExistingPasswordView
                     case .setPassword:
-                        OnboardingView(viewModel: .init(title: "Set a password.", subheading: "This allows you to access the app. Store this in a safe place, you cannot recover it later!", image: Image(systemName: "lock.iphone"), bottomButtonTitle: "Set Password", bottomButtonAction: {
-                            
-                            if try viewModel.savePassword() {
-                                advanceTab()
-                            }
-                        })) {
-                            VStack {
-                                
-                                SecureField("Password", text: $viewModel.password1).passwordField()
-                                SecureField("Repeat Password", text: $viewModel.password2).passwordField()
-                                if let passwordState = viewModel.passwordState {
-                                    Group {
-                                        Text(passwordState.validationDescription)
-                                    }.foregroundColor(.red)
-                                }
-                            }
-                        }
+                        setPasswordView
                     case .biometrics:
-                        OnboardingView(viewModel: .init(title: "Use Face ID?", subheading: "Quickly and securely gain access to the app.", image: Image(systemName: "faceid"), bottomButtonTitle: "Next", bottomButtonAction: {
-                            advanceTab()
-                        })) {
-                            HStack {
-                                Toggle("Enable Face ID", isOn: $viewModel.useBiometrics)
-                            }
-                        }
+                        biometricsView
                     case .setupImageKey:
-                        OnboardingView(viewModel: .init(title: "Setup Image Key", subheading:
-                                                            """
-                Set the name for the first key.
-
-                This is different from your password, and will be used to encrypt data.
-
-                You can have multiple keys for different purposes, e.g. one named "Banking" and another "Personal".
-                """, image: Image(systemName: "key.fill"), bottomButtonTitle: "Save Key", bottomButtonAction: {
-                            try viewModel.saveKey()
-                            advanceTab()
-                        })) {
-                            VStack {
-                                TextField("Name", text: $viewModel.keyName).inputTextField()
-                                if let keySaveError = viewModel.keySaveError {
-                                    Group {
-                                        Text(keySaveError.displayDescription)
-                                    }.foregroundColor(.red)
-                                }
-                            }
-                        }
+                        setupImageKeyView
                     case .finished:
-                        OnboardingView(viewModel: .init(title: "You're all set!", subheading: "", image: Image(systemName: "faceid"), bottomButtonTitle: "Done", bottomButtonAction: {
-                            viewModel.saveState()
-                        })) {
-                        }
+                        finishedView
                     }
                 }.tag(flow)
             }
@@ -226,6 +171,104 @@ struct MainOnboardingView: View {
     }
     
     
+}
+
+private extension MainOnboardingView {
+    
+    
+    
+    var introView: some View {
+        OnboardingView(viewModel: .init(title: "Keep your files secure.", subheading: "Encrypt everything, take control of your media", image: Image(systemName: "camera"), bottomButtonTitle: "Next", bottomButtonAction: {
+            advanceTab()
+        }), nextScreen: {
+            
+        }, content: {
+            
+        })
+    }
+    
+    var enterExistingPasswordView: some View {
+        OnboardingView(viewModel: .init(title: "Enter your existing password", subheading: "You have an existing password for this device.", image: Image(systemName: "key.fill"), bottomButtonTitle: "Next", bottomButtonAction: {
+            if viewModel.checkExistingPassword() == true {
+                advanceTab()
+            }
+        }), nextScreen: {
+        }, content: {
+            SecureField("Password", text: $viewModel.existingPassword).passwordField()
+
+        })
+
+    }
+    
+    var setPasswordView: some View {
+        OnboardingView(viewModel: .init(title: "Set a password.", subheading: "This allows you to access the app. Store this in a safe place, you cannot recover it later!", image: Image(systemName: "lock.iphone"), bottomButtonTitle: "Set Password", bottomButtonAction: {
+            
+            if try viewModel.savePassword() {
+                advanceTab()
+            }
+        })) {
+            
+        } content: {
+            VStack {
+                
+                SecureField("Password", text: $viewModel.password1).passwordField()
+                SecureField("Repeat Password", text: $viewModel.password2).passwordField()
+                if let passwordState = viewModel.passwordState {
+                    Group {
+                        Text(passwordState.validationDescription)
+                    }.foregroundColor(.red)
+                }
+            }
+        }
+    }
+    
+    var biometricsView: some View {
+        OnboardingView(viewModel: .init(title: "Use Face ID?", subheading: "Quickly and securely gain access to the app.", image: Image(systemName: "faceid"), bottomButtonTitle: "Next", bottomButtonAction: {
+            advanceTab()
+        })) {
+            
+        } content: {
+            HStack {
+                Toggle("Enable Face ID", isOn: $viewModel.useBiometrics)
+            }
+        }
+
+    }
+    
+    var setupImageKeyView: some View {
+        OnboardingView(viewModel: .init(title: "Setup Image Key", subheading:
+                                            """
+Set the name for the first key.
+
+This is different from your password, and will be used to encrypt data.
+
+You can have multiple keys for different purposes, e.g. one named "Banking" and another "Personal".
+""", image: Image(systemName: "key.fill"), bottomButtonTitle: "Save Key", bottomButtonAction: {
+            try viewModel.saveKey()
+            advanceTab()
+        })) {
+            
+        } content: {
+            VStack {
+                TextField("Name", text: $viewModel.keyName).inputTextField()
+                if let keySaveError = viewModel.keySaveError {
+                    Group {
+                        Text(keySaveError.displayDescription)
+                    }.foregroundColor(.red)
+                }
+            }
+        }
+    }
+    
+    var finishedView: some View {
+        OnboardingView(viewModel: .init(title: "You're all set!", subheading: "", image: Image(systemName: "faceid"), bottomButtonTitle: "Done", bottomButtonAction: {
+            viewModel.saveState()
+        })) {
+        } content: {
+            
+        }
+
+    }
 }
 
 //struct MainOnboardingView_Previews: PreviewProvider {
