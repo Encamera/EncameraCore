@@ -13,19 +13,18 @@ struct OnboardingViewViewModel {
     var image: Image
     var bottomButtonTitle: String
     var bottomButtonAction: () throws -> Void
+    var content: (() -> AnyView)?
 }
 
-struct OnboardingView<Content, Next>: View where Content: View, Next: View {
+struct OnboardingView<Next>: View where Next: View {
     
-    
+    @State var nextActive: Bool = false
     
     var viewModel: OnboardingViewViewModel
     
-    let content: (() -> Content)
     let nextScreen: (() -> Next)
     
-    init(viewModel: OnboardingViewViewModel, @ViewBuilder nextScreen: @escaping () -> Next, @ViewBuilder content: @escaping () -> Content) {
-        self.content = content
+    init(viewModel: OnboardingViewViewModel, @ViewBuilder nextScreen: @escaping () -> Next) {
         self.nextScreen = nextScreen
         self.viewModel = viewModel
     }
@@ -44,22 +43,25 @@ struct OnboardingView<Content, Next>: View where Content: View, Next: View {
 //                    .resizable()
 //                    .aspectRatio(contentMode: .fit)
 //                    .frame(width: frame.width, height: frame.width)
-                self.content()
+                self.viewModel.content?()
                 Spacer()
-                NavigationLink {
+                NavigationLink(isActive: $nextActive) {
                     nextScreen()
                 } label: {
-                    
                     Button(viewModel.bottomButtonTitle, action: {
                         do {
                             try viewModel.bottomButtonAction()
+                            nextActive = true
                         } catch {
                             print("Error on bottom button action", error)
                         }
                     })
                     .frame(width: frame.width)
                     .primaryButton()
-                }
+
+                }.isDetailLink(false)
+
+                
                 Spacer().frame(height: 50.0)
             }.foregroundColor(.white)
         }.padding().background(Color.black)
