@@ -124,65 +124,65 @@ struct MainOnboardingView: View {
     
     var body: some View {
         
-//        let selectionBinding = Binding {
-//            currentSelection
-//        } set: { target in
-//            if canGoTo(tab: target) {
-//                debugPrint("tab target", target)
-//                currentSelection = target
-//            }
-//        }
+        //        let selectionBinding = Binding {
+        //            currentSelection
+        //        } set: { target in
+        //            if canGoTo(tab: target) {
+        //                debugPrint("tab target", target)
+        //                currentSelection = target
+        //            }
+        //        }
         
         NavigationView {
             buildOnboarding()
-//            let initial = viewFor(flow: .intro, next: {
-//                viewFor(flow: .setPassword, next: {
-//                    viewFor(flow: .setupImageKey, next: {
-//                        OnboardingView(viewModel: .init(title: "Enter your existing password", subheading: "You have an existing password for this device.", image: Image(systemName: "key.fill"), bottomButtonTitle: "Next", bottomButtonAction: {
-//                                    if viewModel.checkExistingPassword() == true {
-//                                        advanceTab()
-//                                    }
-//                                }), nextScreen: {
-//                                }, content: {
-//                                    SecureField("Password", text: $viewModel.existingPassword).passwordField()
-//
-//                                })
-//                    })
-//                })
-//            })
+            //            let initial = viewFor(flow: .intro, next: {
+            //                viewFor(flow: .setPassword, next: {
+            //                    viewFor(flow: .setupImageKey, next: {
+            //                        OnboardingView(viewModel: .init(title: "Enter your existing password", subheading: "You have an existing password for this device.", image: Image(systemName: "key.fill"), bottomButtonTitle: "Next", bottomButtonAction: {
+            //                                    if viewModel.checkExistingPassword() == true {
+            //                                        advanceTab()
+            //                                    }
+            //                                }), nextScreen: {
+            //                                }, content: {
+            //                                    SecureField("Password", text: $viewModel.existingPassword).passwordField()
+            //
+            //                                })
+            //                    })
+            //                })
+            //            })
             
-//            introView(with: .setPassword)
+            //            introView(with: .setPassword)
         }
-//        TabView(selection: selectionBinding) {
-//            let _ = debugPrint(selectionBinding.wrappedValue, "selection")
-//            ForEach(viewModel.onboardingFlow) { flow in
-//                Group {
-//                    switch flow {
-//                    case .intro:
-//                        introView
-//                    case .enterExistingPassword:
-//                        enterExistingPasswordView
-//                    case .setPassword:
-//                        setPasswordView
-//                    case .biometrics:
-//                        biometricsView
-//                    case .setupImageKey:
-//                        setupImageKeyView
-//                    case .finished:
-//                        finishedView
-//                    }
-//                }.tag(flow)
-//            }
-//        }
-//        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-//        .background(Color.black)
+        //        TabView(selection: selectionBinding) {
+        //            let _ = debugPrint(selectionBinding.wrappedValue, "selection")
+        //            ForEach(viewModel.onboardingFlow) { flow in
+        //                Group {
+        //                    switch flow {
+        //                    case .intro:
+        //                        introView
+        //                    case .enterExistingPassword:
+        //                        enterExistingPasswordView
+        //                    case .setPassword:
+        //                        setPasswordView
+        //                    case .biometrics:
+        //                        biometricsView
+        //                    case .setupImageKey:
+        //                        setupImageKeyView
+        //                    case .finished:
+        //                        finishedView
+        //                    }
+        //                }.tag(flow)
+        //            }
+        //        }
+        //        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+        //        .background(Color.black)
     }
     
     
     
     private func canGoTo(tab: OnboardingFlowScreen) -> Bool {
         if let currentIndex = viewModel.onboardingFlow.firstIndex(of: currentSelection),
-            let targetIndex = viewModel.onboardingFlow.firstIndex(of: tab),
+           let targetIndex = viewModel.onboardingFlow.firstIndex(of: tab),
            targetIndex < currentIndex {
             return true
         }
@@ -210,7 +210,7 @@ private extension MainOnboardingView {
     
     func buildOnboarding() -> some View {
         
-        let lastView = AnyView(finishedView)
+        let lastView = AnyView(EmptyView())
         
         let views = viewModel.onboardingFlow.reversed().reduce(lastView) { partialResult, screen in
             return viewFor(flow: screen, next: {
@@ -230,18 +230,15 @@ private extension MainOnboardingView {
                 bottomButtonTitle: "Next",
                 bottomButtonAction: {
                     advanceTab()
-                }) {
-                    AnyView(
-                    Text("yoo"))
-                }
-        
+                })
+            
         case .enterExistingPassword:
             return .init(
                 title: "Enter your existing password",
                 subheading: "You have an existing password for this device.", image: Image(systemName: "key.fill"), bottomButtonTitle: "Next", bottomButtonAction: {
-                if viewModel.checkExistingPassword() == true {
-                    advanceTab()
-                }
+                    if viewModel.checkExistingPassword() == true {
+                        advanceTab()
+                    }
                 }) {
                     AnyView(SecureField("Password", text: $viewModel.existingPassword).passwordField())
                 }
@@ -254,15 +251,15 @@ private extension MainOnboardingView {
                 bottomButtonAction: {
                     try viewModel.savePassword()
                 }) {
-                    AnyView(Group {
-                                    SecureField("Password", text: $viewModel.password1).passwordField()
-                                    SecureField("Repeat Password", text: $viewModel.password2).passwordField()
-                                    if let passwordState = viewModel.passwordState {
-                                        Group {
-                                            Text(passwordState.validationDescription)
-                                        }.foregroundColor(.red)
-                                    }})
-
+                    AnyView(VStack {
+                        SecureField("Password", text: $viewModel.password1).passwordField()
+                        SecureField("Repeat Password", text: $viewModel.password2).passwordField()
+                        if let passwordState = viewModel.passwordState {
+                            Group {
+                                Text(passwordState.validationDescription)
+                            }.foregroundColor(.red)
+                        }})
+                    
                 }
         case .biometrics:
             return .init(
@@ -314,79 +311,8 @@ You can have multiple keys for different purposes, e.g. one named "Banking" and 
                 bottomButtonAction: {
                     viewModel.saveState()
                     throw OnboardingViewError.onboardingEnded
-            })
+                })
         }
-    }
-    
-//    func introView<Flow: View>(@ViewBuilder next: @escaping () -> Flow) -> some View {
-//        OnboardingView(viewModel: , nextScreen: {
-//            next()
-//        }, content: {
-//
-//        })
-//    }
-//
-//    func enterExistingPasswordView<Flow: View>(@ViewBuilder next: @escaping () -> Flow) -> some View {
-//        OnboardingView(viewModel: , nextScreen: {
-//            next()
-//        }, content: {
-//
-//
-//        })
-//
-//    }
-//
-//    func setPasswordView<Flow: View>(@ViewBuilder next: @escaping () -> Flow) -> some View {
-//        OnboardingView(viewModel: ) {
-//            next()
-//        } content: {
-//            VStack {
-//
-//                SecureField("Password", text: $viewModel.password1).passwordField()
-//                SecureField("Repeat Password", text: $viewModel.password2).passwordField()
-//                if let passwordState = viewModel.passwordState {
-//                    Group {
-//                        Text(passwordState.validationDescription)
-//                    }.foregroundColor(.red)
-//                }
-//            }
-//        }
-//    }
-//
-//    func biometricsView<Flow: View>(@ViewBuilder next: @escaping () -> Flow) -> some View {
-//        OnboardingView(viewModel: ) {
-//            next()
-//        } content: {
-//            HStack {
-//                Toggle("Enable Face ID", isOn: $viewModel.useBiometrics)
-//            }
-//        }
-//
-//    }
-//
-//    func setupImageKeyView<Flow: View>(@ViewBuilder next: @escaping () -> Flow) -> some View {
-//        OnboardingView(viewModel: ) {
-//            next()
-//        } content: {
-//            VStack {
-//                TextField("Name", text: $viewModel.keyName).inputTextField()
-//                if let keySaveError = viewModel.keySaveError {
-//                    Group {
-//                        Text(keySaveError.displayDescription)
-//                    }.foregroundColor(.red)
-//                }
-//            }
-//        }
-//    }
-//
-    var finishedView: some View {
-        EmptyView()
-//        OnboardingView(viewModel: viewModel(for: .finished)) {
-//
-//        } content: {
-//
-//        }
-
     }
 }
 
