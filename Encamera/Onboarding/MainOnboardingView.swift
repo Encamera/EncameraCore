@@ -254,7 +254,7 @@ private extension MainOnboardingView {
                     AnyView(VStack {
                         SecureField("Password", text: $viewModel.password1).passwordField()
                         SecureField("Repeat Password", text: $viewModel.password2).passwordField()
-                        if let passwordState = viewModel.passwordState {
+                        if let passwordState = viewModel.passwordState, passwordState != .valid {
                             Group {
                                 Text(passwordState.validationDescription)
                             }.foregroundColor(.red)

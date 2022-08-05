@@ -25,6 +25,7 @@ final class CameraModel: ObservableObject {
     @Published var recordingDuration: CMTime = .zero
     @Published var willCapturePhoto = false
     @Published var selectedCameraMode: CameraMode = .photo
+    @MainActor
     @Published var thumbnailImage: UIImage?
     @Published var showGalleryView: Bool = false
     @Published var showingKeySelection = false
@@ -61,12 +62,16 @@ final class CameraModel: ObservableObject {
         Task {
             let media: [EncryptedMedia] = await self.fileAccess.enumerateMedia()
             guard let firstMedia = media.first else {
-                self.thumbnailImage = nil
+                await MainActor.run {
+                    self.thumbnailImage = nil
+                }
                 return
             }
             let cleartextPreview = try await self.fileAccess.loadMediaPreview(for: firstMedia)
             guard let thumbnail = UIImage(data: cleartextPreview.thumbnailMedia.source) else {
-                self.thumbnailImage = nil
+                await MainActor.run {
+                    self.thumbnailImage = nil
+                }
                 return
             }
             await MainActor.run(body: {

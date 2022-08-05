@@ -29,7 +29,7 @@ struct EncameraApp: App {
             self.keyManager = manager
             
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager)
-            self.onboardingManager.$shouldShowOnboarding.sink { value in
+            self.onboardingManager.$shouldShowOnboarding.dropFirst().sink { value in
                 self.showOnboarding = value
             }.store(in: &cancellables)
             self.authManager.isAuthorizedPublisher.sink { value in
