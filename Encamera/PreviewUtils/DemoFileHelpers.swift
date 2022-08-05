@@ -15,6 +15,7 @@ enum DemoError: Error {
 
 class DemoFileEnumerator: FileAccess {
     
+    
     var media: [EncryptedMedia]
     
     func savePreview<T>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
@@ -64,7 +65,7 @@ class DemoFileEnumerator: FileAccess {
     
     let directoryModel = DemoDirectoryModel()
     
-    required init(key: ImageKey) {
+    required init(key: ImageKey, directoryModel: DirectoryModel) {
         let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
         media = (0..<5).map { val in
@@ -82,7 +83,7 @@ class DemoFileEnumerator: FileAccess {
     }
     
     convenience init() {
-        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()))
+        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()), directoryModel: DemoDirectoryModel())
     }
     
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {

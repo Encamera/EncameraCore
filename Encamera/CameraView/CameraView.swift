@@ -185,7 +185,7 @@ struct CameraView: View {
         .sheet(isPresented: $cameraModel.showingKeySelection) {
             KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
         }.sheet(isPresented: $cameraModel.showGalleryView) {
-            MediaGalleryView<DiskFileAccess<iCloudFilesDirectoryModel>>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager))
+            MediaGalleryView<DiskFileAccess>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager))
         }
         .onAppear {
             Task {

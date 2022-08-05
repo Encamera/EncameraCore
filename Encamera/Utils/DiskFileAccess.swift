@@ -10,28 +10,9 @@ import UIKit
 import Combine
 import AVFoundation
 
-struct iCloudFilesDirectoryModel: DirectoryModel {
-    var thumbnailDirectory: URL {
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        let documentsDirectory = paths[0]
-        let thumbnailDirectory = documentsDirectory.appendingPathComponent("thumbs")
-        return thumbnailDirectory
-    }
-    
-    let keyName: KeyName
-    
-    var baseURL: URL {
-        guard let driveURL = FileManager.default
-            .url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
-            fatalError("Could not get drive url")
-        }
-        
-        let destURL = driveURL.appendingPathComponent(keyName)
-        return destURL
-    }
-}
 
-actor DiskFileAccess<D: DirectoryModel>: FileEnumerator {
+
+actor DiskFileAccess: FileEnumerator {
     
     enum iCloudError: Error {
         case invalidURL
@@ -41,10 +22,10 @@ actor DiskFileAccess<D: DirectoryModel>: FileEnumerator {
         
     private var cancellables = Set<AnyCancellable>()
 
-    private let directoryModel: D
-    init(key: ImageKey) {
+    private let directoryModel: DirectoryModel
+    init(key: ImageKey, directoryModel: DirectoryModel) {
         self.key = key
-        self.directoryModel = D(keyName: key.name)
+        self.directoryModel = directoryModel
         try! self.directoryModel.initializeDirectories()
     }
     

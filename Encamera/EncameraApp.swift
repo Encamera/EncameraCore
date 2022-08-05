@@ -5,7 +5,7 @@ import Combine
 struct EncameraApp: App {
     class ViewModel: ObservableObject {
         @Published var hasOpenedURL: Bool = false
-        @Published var fileAccess: DiskFileAccess<iCloudFilesDirectoryModel>?
+        @Published var fileAccess: DiskFileAccess?
         @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
@@ -48,26 +48,28 @@ struct EncameraApp: App {
             }.store(in: &cancellables)
             
             setupWith(key: keyManager.currentKey)
-            NotificationCenter.default
-                .publisher(for: UIApplication.didEnterBackgroundNotification)
+            
+            NotificationUtils.didEnterBackgroundPublisher
                 .sink { _ in
 
                     self.showScreenBlocker = true
                 }.store(in: &cancellables)
-            NotificationCenter.default
-                .publisher(for: UIApplication.willResignActiveNotification)
+            
+            NotificationUtils.willResignActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = true
                 }
                 .store(in: &cancellables)
-            NotificationCenter.default
-                .publisher(for: UIApplication.didBecomeActiveNotification)
+            
+            
+            NotificationUtils.didBecomeActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = false
 
                 }.store(in: &cancellables)
-            NotificationCenter.default
-                .publisher(for: UIDevice.orientationDidChangeNotification)
+            
+            
+            NotificationUtils.orientationDidChangePublisher
                 .sink { value in
                        
                     var rotation = 0.0
@@ -94,7 +96,7 @@ struct EncameraApp: App {
             guard let key = key else {
                 return
             }
-            let fileAccess = DiskFileAccess<iCloudFilesDirectoryModel>(key: key)
+            let fileAccess = DiskFileAccess(key: key, directoryModel: LocalDirectoryModel(keyName: key.name))
             self.fileAccess = fileAccess
 
         }

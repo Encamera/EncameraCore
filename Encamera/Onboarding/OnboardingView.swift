@@ -12,7 +12,7 @@ struct OnboardingViewViewModel {
     var subheading: String
     var image: Image
     var bottomButtonTitle: String
-    var bottomButtonAction: () throws -> Void
+    var bottomButtonAction: (() throws -> Void)?
     var content: (() -> AnyView)?
 }
 
@@ -22,9 +22,9 @@ struct OnboardingView<Next>: View where Next: View {
     
     var viewModel: OnboardingViewViewModel
     
-    let nextScreen: (() -> Next)
+    let nextScreen: () -> Next?
     
-    init(viewModel: OnboardingViewViewModel, @ViewBuilder nextScreen: @escaping () -> Next) {
+    init(viewModel: OnboardingViewViewModel, @ViewBuilder nextScreen: @escaping () -> Next? = { nil }) {
         self.nextScreen = nextScreen
         self.viewModel = viewModel
     }
@@ -42,25 +42,24 @@ struct OnboardingView<Next>: View where Next: View {
 //                viewModel.image
 //                    .resizable()
 //                    .aspectRatio(contentMode: .fit)
-//                    .frame(width: frame.width, height: frame.width)
+                //                    .frame(width: frame.width, height: frame.width)
                 self.viewModel.content?()
                 Spacer()
                 NavigationLink(isActive: $nextActive) {
                     nextScreen()
                 } label: {
-                    Button(viewModel.bottomButtonTitle, action: {
-                        do {
-                            try viewModel.bottomButtonAction()
-                            nextActive = true
-                        } catch {
-                            print("Error on bottom button action", error)
-                        }
-                    })
-                    .frame(width: frame.width)
-                    .primaryButton()
-
                 }.isDetailLink(false)
-
+                Button(viewModel.bottomButtonTitle, action: {
+                    do {
+                        try viewModel.bottomButtonAction?()
+                        nextActive = true
+                    } catch {
+                        print("Error on bottom button action", error)
+                    }
+                })
+                .frame(width: frame.width)
+                .primaryButton()
+                
                 
                 Spacer().frame(height: 50.0)
             }.foregroundColor(.white)

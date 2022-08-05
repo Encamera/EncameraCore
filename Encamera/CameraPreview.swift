@@ -38,8 +38,7 @@ struct CameraPreview: UIViewRepresentable {
                 self.switchMode(mode)
             }.store(in: &cancellables)
             self.session = session
-            NotificationCenter.default
-                .publisher(for: UIApplication.didEnterBackgroundNotification)
+            NotificationUtils.didEnterBackgroundPublisher
                 .sink { _ in
                     self.session = nil
                 }.store(in: &cancellables)

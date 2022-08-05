@@ -83,7 +83,7 @@ class DeviceAuthManager: AuthManager {
     
     init() {
         loadAuthenticationPolicy()
-        NotificationCenter.default.publisher(for: .NSSystemClockDidChange).sink { _ in
+        NotificationUtils.systemClockDidChangePublisher.sink { _ in
             self.lastSuccessfulAuthentication = nil
         }.store(in: &cancellables)
     }
@@ -202,14 +202,12 @@ private extension DeviceAuthManager {
     }
     
     func setupNotificationObservers() {
-        NotificationCenter.default
-            .publisher(for: UIApplication.didEnterBackgroundNotification)
+        NotificationUtils.didEnterBackgroundPublisher
             .sink { _ in
 
                 self.deauthorize()
             }.store(in: &cancellables)
-        NotificationCenter.default
-            .publisher(for: UIApplication.didBecomeActiveNotification)
+        NotificationUtils.didBecomeActivePublisher
             .sink { _ in
                 Task {
                     try? await self.checkAuthorizationWithCurrentPolicy()

@@ -13,25 +13,36 @@ enum ImageKeyEncodingError: Error {
 }
 
 typealias KeyName = String
+typealias KeyBytes = Array<UInt8>
 
 struct ImageKey: Codable {
     
+    var storageDirectory: DirectoryModel
     var name: KeyName
-    var keyBytes: Array<UInt8>
+    var keyBytes: KeyBytes
     var creationDate: Date
     private static let keyPrefix = "com.encamera.key."
-
-    @available(*, deprecated, message: "Use init with creation date")
-    init(name: String, keyBytes: Array<UInt8>) {
-        self.name = name
-        self.keyBytes = keyBytes
-        self.creationDate = Date()
+    
+    private enum CodingKeys: CodingKey {
+        case name
+        case keyBytes
+        case creationDate
     }
     
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let keyName = try container.decode(KeyName.self, forKey: .name)
+        self.name = keyName
+        self.keyBytes = try container.decode(KeyBytes.self, forKey: .keyBytes)
+        self.creationDate = try container.decode(Date.self, forKey: .creationDate)
+        self.storageDirectory = try ImageKeyDirectoryStorage.directoryModelFor(keyName: keyName)
+    }
+
     init(name: String, keyBytes: Array<UInt8>, creationDate: Date) {
         self.name = name
         self.keyBytes = keyBytes
         self.creationDate = creationDate
+        self.storageDirectory = try! ImageKeyDirectoryStorage.directoryModelFor(keyName: name)
     }
     
     init(base64String: String) throws {
