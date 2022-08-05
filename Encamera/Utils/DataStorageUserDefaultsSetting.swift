@@ -12,7 +12,7 @@ protocol DataStorageSetting {
     func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType)
 }
 
-struct ImageKeyDirectoryStorage: DataStorageSetting {
+struct DataStorageUserDefaultsSetting: DataStorageSetting {
     
     private enum Constants {
         static func directoryTypeKeyFor(keyName: KeyName) -> String {

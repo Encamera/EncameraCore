@@ -71,7 +71,7 @@
 		19BFB1D7289D258700FD33B2 /* AVCaptureUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFB1D6289D258700FD33B2 /* AVCaptureUtils.swift */; };
 		19BFB1DB289D472100FD33B2 /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFB1DA289D472100FD33B2 /* iCloudDirectoryModel.swift */; };
 		19BFB1DD289D473A00FD33B2 /* LocalDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFB1DC289D473A00FD33B2 /* LocalDirectoryModel.swift */; };
-		19BFB1DF289D4A4D00FD33B2 /* ImageKeyDirectoryStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFB1DE289D4A4D00FD33B2 /* ImageKeyDirectoryStorage.swift */; };
+		19BFB1DF289D4A4D00FD33B2 /* DataStorageUserDefaultsSetting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFB1DE289D4A4D00FD33B2 /* DataStorageUserDefaultsSetting.swift */; };
 		19BFEEB52860503D00CA2B74 /* GalleryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFEEB42860503D00CA2B74 /* GalleryItem.swift */; };
 		19BFEEB82860560E00CA2B74 /* dog.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 19BFEEB62860519400CA2B74 /* dog.jpg */; };
 		19BFEEB92860561000CA2B74 /* dog.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 19BFEEB62860519400CA2B74 /* dog.jpg */; };
@@ -175,7 +175,7 @@
 		19BFB1D6289D258700FD33B2 /* AVCaptureUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVCaptureUtils.swift; sourceTree = "<group>"; };
 		19BFB1DA289D472100FD33B2 /* iCloudDirectoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudDirectoryModel.swift; sourceTree = "<group>"; };
 		19BFB1DC289D473A00FD33B2 /* LocalDirectoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDirectoryModel.swift; sourceTree = "<group>"; };
-		19BFB1DE289D4A4D00FD33B2 /* ImageKeyDirectoryStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageKeyDirectoryStorage.swift; sourceTree = "<group>"; };
+		19BFB1DE289D4A4D00FD33B2 /* DataStorageUserDefaultsSetting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStorageUserDefaultsSetting.swift; sourceTree = "<group>"; };
 		19BFEEB42860503D00CA2B74 /* GalleryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryItem.swift; sourceTree = "<group>"; };
 		19BFEEB62860519400CA2B74 /* dog.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = dog.jpg; sourceTree = "<group>"; };
 		19C97EA52888ADDE005901DE /* OSStatusChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSStatusChecker.swift; sourceTree = "<group>"; };
@@ -334,7 +334,7 @@
 				19C97EA52888ADDE005901DE /* OSStatusChecker.swift */,
 				19BFB1D4289D18EA00FD33B2 /* NotificationUtils.swift */,
 				19BFB1D6289D258700FD33B2 /* AVCaptureUtils.swift */,
-				19BFB1DE289D4A4D00FD33B2 /* ImageKeyDirectoryStorage.swift */,
+				19BFB1DE289D4A4D00FD33B2 /* DataStorageUserDefaultsSetting.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -658,7 +658,7 @@
 				1990CA38287F6DEF007486D3 /* Text.swift in Sources */,
 				19217E2E273FE452009E3850 /* EncameraState.swift in Sources */,
 				19631A352864404400B95FD3 /* MultipleKeyKeychainManager.swift in Sources */,
-				19BFB1DF289D4A4D00FD33B2 /* ImageKeyDirectoryStorage.swift in Sources */,
+				19BFB1DF289D4A4D00FD33B2 /* DataStorageUserDefaultsSetting.swift in Sources */,
 				19B6D052282B354500DC07F8 /* MediaGalleryView.swift in Sources */,
 				19DC647427441D10004CCE1B /* ButtonViewModifier.swift in Sources */,
 				A9FE17BB25394F1E00D547C7 /* CameraService+Extensions.swift in Sources */,

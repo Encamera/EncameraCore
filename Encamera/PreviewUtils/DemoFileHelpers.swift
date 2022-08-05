@@ -84,7 +84,7 @@ class DemoFileEnumerator: FileAccess {
     }
     
     convenience init() {
-        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()), storageSettingsManager: ImageKeyDirectoryStorage())
+        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()), storageSettingsManager: DataStorageUserDefaultsSetting())
     }
     
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
@@ -212,7 +212,7 @@ class DemoKeyManager: KeyManager {
     
     
     convenience init() {
-        self.init(isAuthorized: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: ImageKeyDirectoryStorage())
+        self.init(isAuthorized: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DataStorageUserDefaultsSetting())
     }
     
     required init(isAuthorized: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
