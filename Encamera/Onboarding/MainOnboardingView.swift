@@ -31,6 +31,8 @@ class OnboardingViewModel: ObservableObject {
     @Published var keySaveError: KeyManagerError?
     @MainActor
     @Published var generalError: Error?
+    @MainActor
+    @Published var keyStorageType: StorageType = .local
     @Published var existingPasswordCorrect: Bool = false
     @Published var useBiometrics: Bool = false {
         didSet {
@@ -65,7 +67,7 @@ class OnboardingViewModel: ObservableObject {
     @MainActor
     func saveKey() throws {
         do {
-            try keyManager.generateNewKey(name: keyName)
+            try keyManager.generateNewKey(name: keyName, storageType: keyStorageType)
         } catch let keyError as KeyManagerError {
             self.keySaveError = keyError
             throw keyError

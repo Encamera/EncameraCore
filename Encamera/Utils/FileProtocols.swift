@@ -83,13 +83,13 @@ extension DataStorageModel {
 
 protocol FileEnumerator {
         
-    init(key: ImageKey)
+    init(key: ImageKey, storageSettingsManager: DataStorageSetting)
     func enumerateMedia<T: MediaDescribing>() async -> [T] where T.MediaSource == URL
 }
 
 protocol FileReader {
     
-    init(key: ImageKey)
+    init(key: ImageKey, storageSettingsManager: DataStorageSetting)
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL
     func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL>
     func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<Data>
@@ -103,5 +103,5 @@ protocol FileWriter {
 }
 
 protocol FileAccess: FileEnumerator, FileReader, FileWriter {
-    init(key: ImageKey)
+    init(key: ImageKey, storageSettingsManager: DataStorageSetting)
 }

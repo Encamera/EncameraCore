@@ -12,11 +12,11 @@ class MediaGalleryViewModel<F: FileAccess>: ObservableObject {
     @Published var fileAccess: F!
     @Published var keyManager: KeyManager
 
-    init(keyManager: KeyManager) {
+    init(keyManager: KeyManager, storageSettingsManager: DataStorageSetting) {
         
         self.keyManager = keyManager
         if let currentKey = keyManager.currentKey {
-            self.fileAccess = F(key: currentKey)
+            self.fileAccess = F(key: currentKey, storageSettingsManager: storageSettingsManager)
         }
     }
 }

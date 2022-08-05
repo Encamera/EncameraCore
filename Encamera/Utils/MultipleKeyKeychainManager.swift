@@ -24,6 +24,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
     private var passwordValidator = PasswordValidator()
+    private var keyDirectoryStorage: DataStorageSetting
     private (set) var currentKey: ImageKey?  {
         didSet {
             keySubject.send(currentKey)
@@ -35,9 +36,9 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     private var keySubject: PassthroughSubject<ImageKey?, Never> = .init()
     
-    required init(isAuthorized: AnyPublisher<Bool, Never>) {
+    required init(isAuthorized: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
         self.isAuthorized = isAuthorized
-        
+        self.keyDirectoryStorage = keyDirectoryStorage
         self.isAuthorized.sink { newValue in
             self.authorized = newValue
             do {
@@ -88,7 +89,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         print("Keychain data cleared")
     }
     
-    @discardableResult func generateNewKey(name: String) throws -> ImageKey {
+    @discardableResult func generateNewKey(name: String, storageType: StorageType) throws -> ImageKey {
         
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
@@ -99,7 +100,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         let bytes = Sodium().secretStream.xchacha20poly1305.key()
         let key = ImageKey(name: name, keyBytes: bytes, creationDate: Date())
-        try save(key: key)
+        try save(key: key, storageType: storageType)
         return key
     }
     
@@ -111,7 +112,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }.joined(separator: "\n").appending("\n\nCopy the code into the \"Key Entry\" form in the app to use it again.")
     }
     
-    func save(key: ImageKey) throws {
+    func save(key: ImageKey, storageType: StorageType) throws {
         var setNewKeyToCurrent: Bool
         do {
             let storedKeys = try storedKeys()
@@ -125,7 +126,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         if setNewKeyToCurrent {
             try setActiveKey(key.name)
         }
-
+        keyDirectoryStorage.setStorageTypeFor(keyName: key.name, directoryModelType: storageType)
     }
     
     func storedKeys() throws -> [ImageKey] {

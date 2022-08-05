@@ -10,6 +10,7 @@ import SwiftUI
 class KeyGenerationViewModel: ObservableObject {
     @Published var keyName: String = ""
     @Published var keyManagerError: KeyManagerError?
+    @Published var storageType: StorageType = .local
     var keyManager: KeyManager
     
     init(keyManager: KeyManager) {
@@ -18,7 +19,7 @@ class KeyGenerationViewModel: ObservableObject {
     
     func saveKey() {
         do {
-            try keyManager.generateNewKey(name: keyName)
+            try keyManager.generateNewKey(name: keyName, storageType: storageType)
         } catch {
             guard let keyError = error as? KeyManagerError else {
                 return

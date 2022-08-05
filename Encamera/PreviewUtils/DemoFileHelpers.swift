@@ -16,6 +16,7 @@ enum DemoError: Error {
 class DemoFileEnumerator: FileAccess {
     
     
+    
     var media: [EncryptedMedia]
     
     func savePreview<T>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
@@ -65,7 +66,7 @@ class DemoFileEnumerator: FileAccess {
     
     let directoryModel = DemoDirectoryModel()
     
-    required init(key: ImageKey) {
+    required init(key: ImageKey, storageSettingsManager: DataStorageSetting) {
         let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
         media = (0..<5).map { val in
@@ -83,7 +84,7 @@ class DemoFileEnumerator: FileAccess {
     }
     
     convenience init() {
-        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()))
+        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()), storageSettingsManager: ImageKeyDirectoryStorage())
     }
     
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
@@ -144,6 +145,7 @@ class DemoDirectoryModel: DataStorageModel {
 }
 
 class DemoKeyManager: KeyManager {
+     
     
     private var hasExistingPassword = false
     var throwError = false
@@ -179,7 +181,7 @@ class DemoKeyManager: KeyManager {
         
     }
     
-    func save(key: ImageKey) throws {
+    func save(key: ImageKey, storageType: StorageType) throws {
         
     }
     
@@ -200,7 +202,7 @@ class DemoKeyManager: KeyManager {
         
     }
     
-    func generateNewKey(name: String) throws -> ImageKey {
+    func generateNewKey(name: String, storageType: StorageType) throws -> ImageKey {
         return try ImageKey(base64String: "")
     }
     
@@ -210,10 +212,10 @@ class DemoKeyManager: KeyManager {
     
     
     convenience init() {
-        self.init(isAuthorized: Just(true).eraseToAnyPublisher())
+        self.init(isAuthorized: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: ImageKeyDirectoryStorage())
     }
     
-    required init(isAuthorized: AnyPublisher<Bool, Never>) {
+    required init(isAuthorized: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
         self.isAuthorized = isAuthorized
         self.currentKey = ImageKey(name: "test", keyBytes: [], creationDate: Date())
         self.keyPublisher = PassthroughSubject<ImageKey?, Never>().eraseToAnyPublisher()

@@ -21,11 +21,11 @@ actor DiskFileAccess: FileEnumerator {
     var key: ImageKey
         
     private var cancellables = Set<AnyCancellable>()
-
     private let directoryModel: DataStorageModel
-    init(key: ImageKey) {
+    init(key: ImageKey, storageSettingsManager: DataStorageSetting) {
         self.key = key
-        self.directoryModel = ImageKeyDirectoryStorage.directoryModelFor(keyName: key.name)
+        let storageModel = storageSettingsManager.storageModelFor(keyName: key.name)
+        self.directoryModel =  storageModel
         try! self.directoryModel.initializeDirectories()
     }
     

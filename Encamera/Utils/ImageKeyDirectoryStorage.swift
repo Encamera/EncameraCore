@@ -7,7 +7,12 @@
 
 import Foundation
 
-struct ImageKeyDirectoryStorage {
+protocol DataStorageSetting {
+    func storageModelFor(keyName: KeyName) -> DataStorageModel
+    func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType)
+}
+
+struct ImageKeyDirectoryStorage: DataStorageSetting {
     
     private enum Constants {
         static func directoryTypeKeyFor(keyName: KeyName) -> String {
@@ -15,7 +20,7 @@ struct ImageKeyDirectoryStorage {
         }
     }
     
-    static func directoryModelFor(keyName: KeyName) -> DataStorageModel {
+    func storageModelFor(keyName: KeyName) -> DataStorageModel {
         
         guard let directoryModelString = UserDefaults.standard.value(forKey: Constants.directoryTypeKeyFor(keyName: keyName)) as? String, let type = StorageType(rawValue: directoryModelString) else {
             return LocalStorageModel(keyName: keyName)
@@ -26,7 +31,7 @@ struct ImageKeyDirectoryStorage {
         return model
     }
     
-    static func setDirectoryModelFor(keyName: KeyName, directoryModelType: StorageType) throws {
+    func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
         
         
         UserDefaults.standard.set(directoryModelType.rawValue, forKey: Constants.directoryTypeKeyFor(keyName: keyName))

@@ -44,7 +44,7 @@ enum KeyManagerError: Error {
 
 protocol KeyManager {
     
-    init(isAuthorized: AnyPublisher<Bool, Never>)
+    init(isAuthorized: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting)
     
     var isAuthorized: AnyPublisher<Bool, Never> { get }
     var currentKey: ImageKey? { get }
@@ -53,8 +53,8 @@ protocol KeyManager {
     func storedKeys() throws -> [ImageKey]
     func deleteKey(_ key: ImageKey) throws
     func setActiveKey(_ name: KeyName?) throws
-    func save(key: ImageKey) throws
-    @discardableResult func generateNewKey(name: String) throws -> ImageKey
+    func save(key: ImageKey, storageType: StorageType) throws
+    @discardableResult func generateNewKey(name: String, storageType: StorageType) throws -> ImageKey
     func createBackupDocument() throws -> String
     func checkPassword(_ password: String) throws -> Bool
     func setPassword(_ password: String) throws

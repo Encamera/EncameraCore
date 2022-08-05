@@ -185,7 +185,7 @@ struct CameraView: View {
         .sheet(isPresented: $cameraModel.showingKeySelection) {
             KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
         }.sheet(isPresented: $cameraModel.showGalleryView) {
-            MediaGalleryView<DiskFileAccess>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager))
+            MediaGalleryView<DiskFileAccess>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager, storageSettingsManager: cameraModel.storageSettingsManager))
         }
         .onAppear {
             Task {
@@ -224,7 +224,7 @@ private extension AVCaptureDevice.FlashMode {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), showScreenBlocker: false))
+        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), showScreenBlocker: false, storageSettingsManager: ImageKeyDirectoryStorage()))
         
     }
 }

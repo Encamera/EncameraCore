@@ -17,6 +17,7 @@ struct EncameraApp: App {
         var cameraServiceModel = CameraConfigurationServiceModel()
         var tempFilesManager: TempFilesManager = TempFilesManager.shared
         var onboardingManager: OnboardingManager
+        var storageSettingsManager: DataStorageSetting = ImageKeyDirectoryStorage()
         private(set) var authManager: AuthManager
         private var cancellables = Set<AnyCancellable>()
         
@@ -24,7 +25,7 @@ struct EncameraApp: App {
             
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager()
-            let manager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher)
+            let manager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher, keyDirectoryStorage: storageSettingsManager)
             
             self.keyManager = manager
             
@@ -96,7 +97,7 @@ struct EncameraApp: App {
             guard let key = key else {
                 return
             }
-            let fileAccess = DiskFileAccess(key: key)
+            let fileAccess = DiskFileAccess(key: key, storageSettingsManager: storageSettingsManager)
             self.fileAccess = fileAccess
 
         }
@@ -114,7 +115,7 @@ struct EncameraApp: App {
             } else if viewModel.isAuthorized == false {
                 AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
             } else if let fileAccess = viewModel.fileAccess {
-                CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker))
+                CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker, storageSettingsManager: viewModel.storageSettingsManager))
                     .sheet(isPresented: $viewModel.hasOpenedURL) {
                         self.viewModel.hasOpenedURL = false
                     } content: {

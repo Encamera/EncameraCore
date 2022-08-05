@@ -32,6 +32,7 @@ final class CameraModel: ObservableObject {
     var authManager: AuthManager
     var keyManager: KeyManager
     var alertError: AlertError!
+    var storageSettingsManager: DataStorageSetting
     private var currentVideoProcessor: AsyncVideoCaptureProcessor?
     private var fileAccess: FileAccess
     
@@ -42,11 +43,13 @@ final class CameraModel: ObservableObject {
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
-         showScreenBlocker: Bool) {
+         showScreenBlocker: Bool,
+         storageSettingsManager: DataStorageSetting) {
         self.service = cameraService
         self.keyManager = keyManager
         self.fileAccess = fileAccess
         self.authManager = authManager
+        self.storageSettingsManager = storageSettingsManager
         self.showScreenBlocker = showScreenBlocker
         self.$selectedCameraMode.sink { newMode in
             Task {
