@@ -18,7 +18,7 @@ class DirectoryModelTests: XCTestCase {
         
         let media = try XCTUnwrap(EncryptedMedia(source: sourceUrl, mediaType: .photo, id: "imageID"))
         
-        let directory = iCloudFilesDirectoryModel(keyName: "test")
+        let directory = iCloudStorageModel(keyName: "test")
         let url = directory.thumbnailURLForMedia(media)
         
         let components = Array(url.absoluteString.split(separator: "/").reversed())

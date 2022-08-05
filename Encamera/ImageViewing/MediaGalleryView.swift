@@ -16,7 +16,7 @@ class MediaGalleryViewModel<F: FileAccess>: ObservableObject {
         
         self.keyManager = keyManager
         if let currentKey = keyManager.currentKey {
-            self.fileAccess = F(key: currentKey, directoryModel: currentKey.storageDirectory)
+            self.fileAccess = F(key: currentKey)
         }
     }
 }

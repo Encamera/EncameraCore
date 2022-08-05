@@ -96,7 +96,7 @@ struct EncameraApp: App {
             guard let key = key else {
                 return
             }
-            let fileAccess = DiskFileAccess(key: key, directoryModel: LocalDirectoryModel(keyName: key.name))
+            let fileAccess = DiskFileAccess(key: key)
             self.fileAccess = fileAccess
 
         }

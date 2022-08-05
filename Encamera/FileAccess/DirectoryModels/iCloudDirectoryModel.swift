@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct iCloudFilesDirectoryModel: DirectoryModel {
+struct iCloudStorageModel: DataStorageModel {
     
     
     let keyName: KeyName

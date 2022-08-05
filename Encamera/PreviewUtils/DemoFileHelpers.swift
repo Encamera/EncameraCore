@@ -21,7 +21,7 @@ class DemoFileEnumerator: FileAccess {
     func savePreview<T>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
         fatalError()
     }
-    func loadThumbnails<T>(for: DirectoryModel) async -> [T] where T : MediaDescribing, T.MediaSource == Data {
+    func loadThumbnails<T>(for: DataStorageModel) async -> [T] where T : MediaDescribing, T.MediaSource == Data {
         []
     }
     
@@ -65,7 +65,7 @@ class DemoFileEnumerator: FileAccess {
     
     let directoryModel = DemoDirectoryModel()
     
-    required init(key: ImageKey, directoryModel: DirectoryModel) {
+    required init(key: ImageKey) {
         let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
         media = (0..<5).map { val in
@@ -83,7 +83,7 @@ class DemoFileEnumerator: FileAccess {
     }
     
     convenience init() {
-        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()), directoryModel: DemoDirectoryModel())
+        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()))
     }
     
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
@@ -104,7 +104,7 @@ class DemoFileEnumerator: FileAccess {
     }
 }
 
-class DemoDirectoryModel: DirectoryModel {
+class DemoDirectoryModel: DataStorageModel {
     var keyName: KeyName = "testSuite"
     
     var baseURL: URL

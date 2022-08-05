@@ -8,21 +8,21 @@
 import Foundation
 import Combine
 
-enum DirectoryModelType: String {
+enum StorageType: String {
     case icloud
     case local
     
-    var modelForType: DirectoryModel.Type {
+    var modelForType: DataStorageModel.Type {
         switch self {
         case .icloud:
-            return iCloudFilesDirectoryModel.self
+            return iCloudStorageModel.self
         case .local:
-            return LocalDirectoryModel.self
+            return LocalStorageModel.self
         }
     }
 }
 
-protocol DirectoryModel { // please rename this, not representative of what it does
+protocol DataStorageModel {
     var baseURL: URL { get }
     var keyName: KeyName { get }
     var thumbnailDirectory: URL { get }
@@ -31,7 +31,7 @@ protocol DirectoryModel { // please rename this, not representative of what it d
     func initializeDirectories() throws
 }
 
-extension DirectoryModel {
+extension DataStorageModel {
     
     var thumbnailDirectory: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
@@ -83,13 +83,13 @@ extension DirectoryModel {
 
 protocol FileEnumerator {
         
-    init(key: ImageKey, directoryModel: DirectoryModel)
+    init(key: ImageKey)
     func enumerateMedia<T: MediaDescribing>() async -> [T] where T.MediaSource == URL
 }
 
 protocol FileReader {
     
-    init(key: ImageKey, directoryModel: DirectoryModel)
+    init(key: ImageKey)
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL
     func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL>
     func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<Data>
@@ -103,5 +103,5 @@ protocol FileWriter {
 }
 
 protocol FileAccess: FileEnumerator, FileReader, FileWriter {
-    init(key: ImageKey, directoryModel: DirectoryModel)
+    init(key: ImageKey)
 }

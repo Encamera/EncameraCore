@@ -15,10 +15,10 @@ struct ImageKeyDirectoryStorage {
         }
     }
     
-    static func directoryModelFor(keyName: KeyName) throws -> DirectoryModel {
+    static func directoryModelFor(keyName: KeyName) -> DataStorageModel {
         
-        guard let directoryModelString = UserDefaults.standard.value(forKey: Constants.directoryTypeKeyFor(keyName: keyName)) as? String, let type = DirectoryModelType(rawValue: directoryModelString) else {
-            return LocalDirectoryModel(keyName: keyName)
+        guard let directoryModelString = UserDefaults.standard.value(forKey: Constants.directoryTypeKeyFor(keyName: keyName)) as? String, let type = StorageType(rawValue: directoryModelString) else {
+            return LocalStorageModel(keyName: keyName)
         }
         
         let model = type.modelForType.init(keyName: keyName)
@@ -26,7 +26,7 @@ struct ImageKeyDirectoryStorage {
         return model
     }
     
-    static func setDirectoryModelFor(keyName: KeyName, directoryModelType: DirectoryModelType) throws {
+    static func setDirectoryModelFor(keyName: KeyName, directoryModelType: StorageType) throws {
         
         
         UserDefaults.standard.set(directoryModelType.rawValue, forKey: Constants.directoryTypeKeyFor(keyName: keyName))
