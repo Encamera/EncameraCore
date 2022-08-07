@@ -229,9 +229,8 @@ You can have multiple keys for different purposes, e.g. one named "Banking" and 
                 image: Image(systemName: "key.fill"),
                 bottomButtonTitle: "Save Key",
                 bottomButtonAction: {
-                    try viewModel.saveKey()
                 }) {
-                    AnyView(Group{
+                    AnyView(
                         VStack {
                             TextField("Name", text: $viewModel.keyName)
                                 .inputTextField()
@@ -245,8 +244,33 @@ You can have multiple keys for different purposes, e.g. one named "Banking" and 
                                 }.foregroundColor(.red)
                             }
                         }
-                    })
+                    )
                 }
+        case .dataStorageSetting:
+
+
+            return .init(title: "Storage Settings",
+                         subheading: "Where do you want to store media for files encrypted with this key?",
+                         image: Image(systemName: ""),
+                         bottomButtonTitle: "Next") {
+            } content: {
+                AnyView(
+                 HStack {
+                     
+
+                     ForEach(StorageType.allCases) { data in
+                         let binding = Binding {
+                             data == viewModel.keyStorageType
+                         } set: { value in
+                             viewModel.keyStorageType = data
+                         }
+                         storageButton(imageName: data.iconName, text: data.title, isSelected: binding) {
+                             
+                         }
+                     }
+                     
+                 })}
+
         case .finished:
             return .init(
                 title: "You're all set!",
@@ -259,6 +283,35 @@ You can have multiple keys for different purposes, e.g. one named "Banking" and 
                 })
         }
     }
+    
+    @ViewBuilder func storageButton(imageName: String, text: String, isSelected: Binding<Bool>, action: @escaping () -> Void) -> some View {
+        let background = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let output = Button(action: {
+            isSelected.wrappedValue = true
+            action()
+        }, label: {
+            
+            VStack {
+                Image(systemName: imageName).resizable()
+                    .aspectRatio(contentMode: .fit)
+                
+                Text(text)
+            }.padding()
+        })
+        .frame(width: 100, height: 100)
+        
+        if isSelected.wrappedValue == true {
+            output
+                .foregroundColor(Color.black)
+                .background(background.fill(Color.white))
+
+        } else {
+            output
+                .overlay(background.stroke(Color.gray, lineWidth: 3))
+
+        }
+    }
+
 }
 
 //struct MainOnboardingView_Previews: PreviewProvider {

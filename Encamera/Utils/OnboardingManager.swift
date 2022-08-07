@@ -37,6 +37,7 @@ enum OnboardingFlowScreen: Int, Identifiable {
     case setPassword
     case biometrics
     case setupImageKey
+    case dataStorageSetting
     case finished
     var id: Self { self }
 }

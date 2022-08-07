@@ -22,6 +22,27 @@ enum StorageType: String {
     }
 }
 
+extension StorageType: Identifiable, CaseIterable {
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .icloud:
+            return "iCloud"
+        case .local:
+            return "Local"
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .icloud:
+            return "key.icloud"
+        case .local:
+            return "lock.iphone"
+        }
+    }
+    
+}
 protocol DataStorageModel {
     var baseURL: URL { get }
     var keyName: KeyName { get }

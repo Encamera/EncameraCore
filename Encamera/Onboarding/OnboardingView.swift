@@ -68,25 +68,64 @@ struct OnboardingView<Next>: View where Next: View {
 }
 //
 //
-//struct OnboardingView_Previews: PreviewProvider {
-//
-//
-//
-//
-//    static var previews: some View {
-//
-//        OnboardingView(viewModel: .init(title: "Setup Image Key", subheading:
-//                                            """
-//Set the name for the first key.
-//
-//This is different from your password, and will be used to encrypt data.
-//
-//You can have multiple keys for different purposes, e.g. one named "Banking" and another "Personal".
-//""", image: Image(systemName: "key.fill"), bottomButtonTitle: "Save Key", bottomButtonAction: {
-//        })) {
-//            VStack {
-//                TextField("Name", text: .constant("")).inputTextField()
-//            }
-//        }
-//    }
-//}
+struct OnboardingView_Previews: PreviewProvider {
+    
+    
+    @ViewBuilder static func storageButton(imageName: String, text: String, isSelected: Binding<Bool>, action: @escaping () -> Void) -> some View {
+        let background = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let output = Button(action: action, label: {
+            
+            VStack {
+                Image(systemName: imageName).resizable()
+                    .aspectRatio(contentMode: .fit)
+                
+                Text(text)
+            }.padding()
+        })
+        .frame(width: 100, height: 100)
+        
+        if isSelected.wrappedValue == true {
+            output
+                .foregroundColor(Color.black)
+                .background(background.fill(Color.white))
+
+        } else {
+            output
+                .overlay(background.stroke(Color.gray, lineWidth: 3))
+
+        }
+    }
+    
+    
+    static var previews: some View {
+        
+        
+        var selected: StorageType = .local
+
+        OnboardingView(viewModel: .init(title: "Storage Settings",
+                                        subheading: "Where do you want to store media for files encrypted with this key?",
+                                        image: Image(systemName: ""),
+                                        bottomButtonTitle: "Next") {
+                           } content: {
+                               AnyView(
+                                HStack {
+                                    
+
+                                    ForEach(StorageType.allCases) { data in
+                                        let binding = Binding {
+                                            data == selected
+                                        } set: { value in
+                                            selected = data
+                                        }
+                                        storageButton(imageName: data.iconName, text: data.title, isSelected: binding) {
+                                            
+                                        }
+                                    }
+                                    
+                                })
+                            }, nextScreen: { EmptyView() })
+                           
+    }
+    
+}
+
