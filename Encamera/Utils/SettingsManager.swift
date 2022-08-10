@@ -87,13 +87,6 @@ struct SettingsManager {
 
     
     func saveSettings(_ settings: SavedSettings) async throws {
-        if settings.useBiometricsForAuth ?? false {
-            do {
-                try await authManager.authorizeWithBiometrics()
-            } catch {
-                throw SettingsManagerError.errorWithBiometrics(error)
-            }
-        }
         
         do {
             let data = try JSONEncoder().encode(settings)

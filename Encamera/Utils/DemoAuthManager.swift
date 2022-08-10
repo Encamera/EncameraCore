@@ -9,6 +9,8 @@ import Foundation
 import Combine
 
 class DemoAuthManager: AuthManager {
+    var availableBiometric: AuthenticationMethod? = .faceID
+    
     var isAuthorizedPublisher: AnyPublisher<Bool, Never> = PassthroughSubject<Bool, Never>().eraseToAnyPublisher()
     
     var isAuthorized: Bool = false

@@ -24,6 +24,10 @@ struct AuthenticationView: View {
         @Published var password: String = ""
         @Published fileprivate var displayedError: AuthenticationViewError?
         
+        var availableBiometric: AuthenticationMethod? {
+            authManager.availableBiometric
+        }
+        
         init(authManager: AuthManager, keyManager: KeyManager) {
             self.authManager = authManager
             self.keyManager = keyManager
@@ -97,16 +101,17 @@ struct AuthenticationView: View {
 
             }
             Spacer().frame(height: 50.0)
-            Button {
-                viewModel.password = ""
-                viewModel.authenticateWithBiometrics()
-            } label: {
-                Image(systemName: "faceid")
-                    .resizable()
-                    .foregroundColor(.white)
-                    .frame(width: 50.0, height: 50.0)
-            }.padding()
-
+            if let biometric = viewModel.availableBiometric {
+                Button {
+                    viewModel.password = ""
+                    viewModel.authenticateWithBiometrics()
+                } label: {
+                    Image(systemName: biometric.imageNameForMethod)
+                        .resizable()
+                        .foregroundColor(.white)
+                        .frame(width: 50.0, height: 50.0)
+                }.padding()
+            }
             Spacer()
         }
         .padding()

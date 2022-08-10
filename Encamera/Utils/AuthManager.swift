@@ -18,8 +18,49 @@ enum AuthManagerError: Error {
 }
 
 enum AuthenticationMethod: Codable {
-    case biometrics
+    case touchID
+    case faceID
     case password
+    
+    var nameForMethod: String {
+        switch self {
+        case .touchID:
+            return "Touch ID"
+        case .faceID:
+            return "Face ID"
+        case .password:
+            return "Password"
+        }
+    }
+    
+    var imageNameForMethod: String {
+        switch self {
+            
+        case .touchID:
+            return "touchid"
+        case .faceID:
+            return "faceid"
+        case .password:
+            return "rectangle.and.pencil.and.ellipsis"
+        }
+    }
+    
+    
+    
+    
+    
+    static func methodFrom(biometryType: LABiometryType) -> AuthenticationMethod? {
+        switch biometryType {
+        case .none:
+            return nil
+        case .touchID:
+            return .touchID
+        case .faceID:
+            return .faceID
+        @unknown default:
+            return nil
+        }
+    }
 }
 
 enum AuthManagerState: Equatable {
@@ -35,14 +76,20 @@ struct AuthenticationPolicy: Codable {
 protocol AuthManager {
     var isAuthorizedPublisher: AnyPublisher<Bool, Never> { get }
     var isAuthorized: Bool { get }
+    var availableBiometric: AuthenticationMethod? { get }
     var canAuthenticateWithBiometrics: Bool { get }
     func deauthorize()
     func checkAuthorizationWithCurrentPolicy() async throws
     func authorize(with password: String, using keyManager: KeyManager) throws
     func authorizeWithBiometrics() async throws
+    
 }
 
 class DeviceAuthManager: AuthManager {
+    
+    var availableBiometric: AuthenticationMethod? {
+        AuthenticationMethod.methodFrom(biometryType: LAContext().biometryType)
+    }
     
     var isAuthorizedPublisher: AnyPublisher<Bool, Never> {
         isAuthorizedSubject.receive(on: DispatchQueue.main).eraseToAnyPublisher()
@@ -76,7 +123,7 @@ class DeviceAuthManager: AuthManager {
     
     private var isAuthorizedSubject: PassthroughSubject<Bool, Never> = .init()
     
-    private var policy: AuthenticationPolicy? = AuthenticationPolicy(preferredAuthenticationMethod: .biometrics, authenticationExpirySeconds: 60)
+    private var policy: AuthenticationPolicy? = AuthenticationPolicy(preferredAuthenticationMethod: .faceID, authenticationExpirySeconds: 60)
     private var lastSuccessfulAuthentication: Date?
     private var cancellables = Set<AnyCancellable>()
 
@@ -108,7 +155,7 @@ class DeviceAuthManager: AuthManager {
 
         switch policy.preferredAuthenticationMethod {
             
-        case .biometrics:
+        case .touchID, .faceID:
             try await authorizeWithBiometrics()
         case .password:
             reauthorizeForPassword()
@@ -129,17 +176,16 @@ class DeviceAuthManager: AuthManager {
     }
     
     func authorizeWithBiometrics() async throws {
-        
+
         let context = LAContext()
         var error: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error), let method = AuthenticationMethod.methodFrom(biometryType: context.biometryType) else {
             throw AuthManagerError.biometricsNotAvailable
         }
-        context.setCredential("password".data(using: .utf8), type: .applicationPassword)
         do {
-            let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Scan face ID to keep your keys secure.")
+            let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Keep your encrypted data safe by using \(method.nameForMethod).")
             if result == true {
-                self.authState = .authorized(with: .biometrics)
+                self.authState = .authorized(with: method)
             } else {
                 self.authState = .unauthorized
             }

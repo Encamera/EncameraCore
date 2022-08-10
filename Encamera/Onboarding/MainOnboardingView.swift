@@ -44,15 +44,20 @@ class OnboardingViewModel: ObservableObject {
     @MainActor
     @Published var storageAvailabilities: [StorageAvailabilityModel] = []
     @Published var existingPasswordCorrect: Bool = false
+    @MainActor
     @Published var useBiometrics: Bool = false {
         didSet {
             guard useBiometrics == true else {
                 return
             }
             Task {
-                try await authManager.authorizeWithBiometrics()
+                await authWithBiometrics()
             }
         }
+    }
+    
+    var availableBiometric: AuthenticationMethod? {
+        return authManager.availableBiometric
     }
     
     
@@ -60,6 +65,8 @@ class OnboardingViewModel: ObservableObject {
     private var passwordValidator = PasswordValidator()
     private var keyManager: KeyManager
     private var authManager: AuthManager
+    
+    
     
     init(onboardingManager: OnboardingManaging, keyManager: KeyManager, authManager: AuthManager) {
         self.onboardingManager = onboardingManager
@@ -72,6 +79,28 @@ class OnboardingViewModel: ObservableObject {
         let state = passwordValidator.validatePasswordPair(password1, password2: password2)
         self.passwordState = state
         return state
+    }
+    
+    @MainActor
+    func authWithBiometrics() async {
+        do {
+            try await authManager.authorizeWithBiometrics()
+        } catch let authError as AuthManagerError {
+            switch authError {
+                
+            case .passwordIncorrect:
+                break
+            case .biometricsFailed:
+                
+                    generalError = authError
+                
+            case .biometricsNotAvailable, .userCancelledBiometrics:
+                
+                useBiometrics = false
+            }
+        } catch {
+            generalError = error
+        }
     }
     
     @MainActor
@@ -151,13 +180,9 @@ class OnboardingViewModel: ObservableObject {
         Task {
             
             do {
-                let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: useBiometrics))
+                let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: await useBiometrics))
                 try await onboardingManager.saveOnboardingState(savedState)
-                if useBiometrics {
-                    try await authManager.authorizeWithBiometrics()
-                } else {
-                    try authManager.authorize(with: password1, using: keyManager)
-                }
+                try authManager.authorize(with: password1, using: keyManager)
                 
             } catch {
                 try await handle(error: error)
@@ -253,13 +278,16 @@ private extension MainOnboardingView {
                     
                 }
         case .biometrics:
+            guard let method = viewModel.availableBiometric else {
+                return viewModel(for: .finished)
+            }
             return .init(
-                title: "Use Face ID?",
+                title: "Use \(method.nameForMethod)?",
                 subheading: "Quickly and securely gain access to the app.",
-                image: Image(systemName: "faceid"),
+                image: Image(systemName: method.imageNameForMethod),
                 bottomButtonTitle: "Next", content:  {
                     AnyView(Group {HStack {
-                        Toggle("Enable Face ID", isOn: $viewModel.useBiometrics)
+                        Toggle("Enable \(method.nameForMethod)", isOn: $viewModel.useBiometrics)
                     }})
                 })
         case .setupImageKey:
