@@ -11,7 +11,7 @@ struct LocalStorageModel: DataStorageModel {
     var baseURL: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         let documentsDirectory = paths[0]
-        let filesDirectory = documentsDirectory.appendingPathComponent("data")
+        let filesDirectory = documentsDirectory.appendingPathComponent(keyName)
         return filesDirectory
     }
     

@@ -247,8 +247,8 @@ private extension MainOnboardingView {
                         SecureField("Repeat Password", text: $viewModel.password2).passwordField()
                         if let passwordState = viewModel.passwordState, passwordState != .valid {
                             Group {
-                                Text(passwordState.validationDescription)
-                            }.foregroundColor(.red)
+                                Text(passwordState.validationDescription).alertText()
+                            }
                         }})
                     
                 }

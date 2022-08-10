@@ -53,7 +53,7 @@ extension StorageType: Identifiable, CaseIterable {
         case .icloud:
             return "Saves encrypted files to iCloud Drive."
         case .local:
-            return "Saves encrypted files only on this device."
+            return "Saves encrypted files to this device."
         }
     }
     
