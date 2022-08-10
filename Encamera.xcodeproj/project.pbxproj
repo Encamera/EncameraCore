@@ -16,6 +16,7 @@
 		19217E29273FD620009E3850 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E28273FD620009E3850 /* AppConstants.swift */; };
 		19217E2D273FE452009E3850 /* ImageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2B273FE452009E3850 /* ImageKey.swift */; };
 		19217E2E273FE452009E3850 /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2C273FE452009E3850 /* EncameraState.swift */; };
+		192B2CE828A1A8840047DAE2 /* StorageOptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192B2CE728A1A8840047DAE2 /* StorageOptionItemView.swift */; };
 		1932371F28494BF60074CE8A /* CaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1932371E28494BF60074CE8A /* CaptureProcessor.swift */; };
 		193237212849EA680074CE8A /* image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 193237202849EA680074CE8A /* image.jpg */; };
 		193237232849EEE80074CE8A /* MediaTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193237222849EEE80074CE8A /* MediaTypeTests.swift */; };
@@ -119,6 +120,7 @@
 		19217E28273FD620009E3850 /* AppConstants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		19217E2B273FE452009E3850 /* ImageKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageKey.swift; sourceTree = "<group>"; };
 		19217E2C273FE452009E3850 /* EncameraState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EncameraState.swift; sourceTree = "<group>"; };
+		192B2CE728A1A8840047DAE2 /* StorageOptionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageOptionItemView.swift; sourceTree = "<group>"; };
 		1932371E28494BF60074CE8A /* CaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureProcessor.swift; sourceTree = "<group>"; };
 		193237202849EA680074CE8A /* image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = image.jpg; sourceTree = "<group>"; };
 		193237222849EEE80074CE8A /* MediaTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTypeTests.swift; sourceTree = "<group>"; };
@@ -384,6 +386,7 @@
 			children = (
 				1990CA33287F24F9007486D3 /* MainOnboardingView.swift */,
 				1990CA35287F6D33007486D3 /* OnboardingView.swift */,
+				192B2CE728A1A8840047DAE2 /* StorageOptionItemView.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -689,6 +692,7 @@
 				1990CA34287F24F9007486D3 /* MainOnboardingView.swift in Sources */,
 				19FD5D5E2835D927008D75AA /* EncryptedMedia.swift in Sources */,
 				19217E29273FD620009E3850 /* AppConstants.swift in Sources */,
+				192B2CE828A1A8840047DAE2 /* StorageOptionItemView.swift in Sources */,
 				19631A3A286514E500B95FD3 /* DateUtils.swift in Sources */,
 				A9FE17852539494300D547C7 /* EncameraApp.swift in Sources */,
 				19BFB1D7289D258700FD33B2 /* AVCaptureUtils.swift in Sources */,

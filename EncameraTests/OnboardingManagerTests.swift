@@ -43,7 +43,7 @@ class OnboardingManagerTests: XCTestCase {
         let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
         var publishedState: OnboardingState?
         let expect = expectation(description: "waiting for published state")
-        manager.$onboardingState.dropFirst().sink { published in
+        manager.observables.$onboardingState.dropFirst().sink { published in
             publishedState = published
             expect.fulfill()
         }.store(in: &cancellables)
@@ -61,7 +61,7 @@ class OnboardingManagerTests: XCTestCase {
         try await manager.saveOnboardingState(state)
         keyManager.password = "123"
         
-        manager.$onboardingState.dropFirst().sink { published in
+        manager.observables.$onboardingState.dropFirst().sink { published in
             publishedState = published
             expect.fulfill()
         }.store(in: &cancellables)
@@ -84,14 +84,26 @@ class OnboardingManagerTests: XCTestCase {
     func testOnboardingFlowGeneratesWithSetPassword() async throws {
         let flow = manager.generateOnboardingFlow()
         
-        XCTAssertEqual(flow, [.intro, .setPassword, .biometrics, .setupImageKey, .finished])
+        XCTAssertEqual(flow, [
+            .intro,
+            .setPassword,
+            .biometrics,
+            .setupImageKey,
+            .dataStorageSetting,
+            .finished])
     }
     
     func testOnboardingFlowCorrectWithKeyManagerError() throws {
         keyManager.throwError = true
         let flow = manager.generateOnboardingFlow()
         
-        XCTAssertEqual(flow, [.intro, .setPassword, .biometrics, .setupImageKey, .finished])
+        XCTAssertEqual(flow, [
+            .intro,
+                .setPassword,
+                .biometrics,
+                .setupImageKey,
+                .dataStorageSetting,
+                .finished])
 
     }
     
@@ -99,7 +111,12 @@ class OnboardingManagerTests: XCTestCase {
         authManager.canAuthenticateWithBiometrics = false
         let flow = manager.generateOnboardingFlow()
         
-        XCTAssertEqual(flow, [.intro, .setPassword, .setupImageKey, .finished])
+        XCTAssertEqual(flow, [
+            .intro,
+            .setPassword,
+            .setupImageKey,
+            .dataStorageSetting,
+            .finished])
 
     }
     
@@ -109,7 +126,13 @@ class OnboardingManagerTests: XCTestCase {
         manager = OnboardingManager(keyManager: keyManager, authManager: DemoAuthManager())
         let flow = manager.generateOnboardingFlow()
         
-        XCTAssertEqual(flow, [.intro, .enterExistingPassword, .biometrics, .setupImageKey, .finished])
+        XCTAssertEqual(flow, [
+            .intro,
+            .enterExistingPassword,
+            .biometrics,
+            .setupImageKey,
+            .dataStorageSetting,
+            .finished])
     }
     
     func testOnboardingStateValidationCompletedIncorrectSavedInfo() throws {
@@ -140,7 +163,7 @@ class OnboardingManagerTests: XCTestCase {
     func testLoadOnboardingStateNotStarted() throws {
         let state = try manager.loadOnboardingState()
         XCTAssertEqual(state, .notStarted)
-        XCTAssertEqual(manager.onboardingState, .notStarted)
+        XCTAssertEqual(manager.observables.onboardingState, .notStarted)
     }
     
     func testLoadOnboardingStateDeserializationFailed() throws {
@@ -152,7 +175,7 @@ class OnboardingManagerTests: XCTestCase {
             }
             XCTAssertEqual(error, .couldNotDeserialize)
         }
-        XCTAssertEqual(manager.onboardingState, .notStarted)
+        XCTAssertEqual(manager.observables.onboardingState, .notStarted)
 
     }
     
@@ -170,12 +193,12 @@ class OnboardingManagerTests: XCTestCase {
         keyManager.password = "123"
         try await manager.saveOnboardingState(state)
         try manager.loadOnboardingState()
-        XCTAssertFalse(manager.shouldShowOnboarding)
+        XCTAssertFalse(manager.observables.shouldShowOnboarding)
     }
     
     func testShouldShowOnboardingStateNotStarted() throws {
         try manager.loadOnboardingState()
-        XCTAssertTrue(manager.shouldShowOnboarding)
+        XCTAssertTrue(manager.observables.shouldShowOnboarding)
     }
     
     func testShouldShowOnboardingStateNoPassword() async throws {
@@ -183,13 +206,13 @@ class OnboardingManagerTests: XCTestCase {
         try await manager.saveOnboardingState(state)
         keyManager.password = nil
         try manager.loadOnboardingState()
-        XCTAssertTrue(manager.shouldShowOnboarding)
+        XCTAssertTrue(manager.observables.shouldShowOnboarding)
     }
     
     func testShouldShowOnboardingStatePasswordNotOnboarded() async throws {
         try keyManager.setPassword("password")
         try manager.loadOnboardingState()
-        XCTAssertTrue(manager.shouldShowOnboarding)
+        XCTAssertTrue(manager.observables.shouldShowOnboarding)
 
     }
 }

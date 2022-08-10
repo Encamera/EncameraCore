@@ -21,7 +21,7 @@ class FileAccessTests: XCTestCase {
         try directoryModel.deleteAllFiles()
         let key = Sodium().secretStream.xchacha20poly1305.key()
         imageKey = ImageKey(name: "testSuite", keyBytes: key, creationDate: Date())
-        fileHandler = DiskFileAccess<DemoDirectoryModel>(key: imageKey)
+        fileHandler = DiskFileAccess(key: imageKey, storageSettingsManager: DemoStorageSettingsManager())
         try FileUtils.tempFilesManager.cleanup()
     }
     

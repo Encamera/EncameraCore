@@ -24,7 +24,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
     private var passwordValidator = PasswordValidator()
-    private var keyDirectoryStorage: DataStorageSetting
+    var keyDirectoryStorage: DataStorageSetting
     private (set) var currentKey: ImageKey?  {
         didSet {
             keySubject.send(currentKey)
@@ -94,14 +94,19 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         guard authorized == true else {
             throw KeyManagerError.notAuthorizedError
         }
-        guard name.count > KeychainConstants.minKeyLength else {
-            throw KeyManagerError.keyNameError
-        }
+        
+        try validateKeyName(name: name)
         
         let bytes = Sodium().secretStream.xchacha20poly1305.key()
         let key = ImageKey(name: name, keyBytes: bytes, creationDate: Date())
         try save(key: key, storageType: storageType)
         return key
+    }
+    
+    func validateKeyName(name: String) throws {
+        guard name.count > KeychainConstants.minKeyLength else {
+            throw KeyManagerError.keyNameError
+        }
     }
     
     func createBackupDocument() throws -> String {
@@ -123,10 +128,11 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let query = key.keychainQueryDictForKeychain
         let status = SecItemAdd(query as CFDictionary, nil)
         try checkStatus(status: status)
+        keyDirectoryStorage.setStorageTypeFor(keyName: key.name, directoryModelType: storageType)
+
         if setNewKeyToCurrent {
             try setActiveKey(key.name)
         }
-        keyDirectoryStorage.setStorageTypeFor(keyName: key.name, directoryModelType: storageType)
     }
     
     func storedKeys() throws -> [ImageKey] {

@@ -20,4 +20,12 @@ extension Text {
     func titleText() -> some View {
         return self.modifier(TextViewModifier())
     }
+    
+    func alertText() -> some View {
+        return self.lineLimit(3)
+            .padding(10)
+            .foregroundColor(.white)
+            .background(Color.red)
+            .cornerRadius(10)
+    }
 }

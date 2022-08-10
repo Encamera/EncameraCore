@@ -12,12 +12,20 @@ enum OnboardingViewError: Error {
     case passwordInvalid
     case onboardingEnded
 }
-
+struct StorageAvailabilityModel: Identifiable {
+    let storageType: StorageType
+    let availability: StorageType.Availability
+    var id: StorageType {
+        storageType
+    }
+}
 class OnboardingViewModel: ObservableObject {
     
     enum OnboardingKeyError: Error {
         case unhandledError
     }
+    
+    
     
     @Published var password1: String = ""
     @Published var password2: String = ""
@@ -33,6 +41,8 @@ class OnboardingViewModel: ObservableObject {
     @Published var generalError: Error?
     @MainActor
     @Published var keyStorageType: StorageType = .local
+    @MainActor
+    @Published var storageAvailabilities: [StorageAvailabilityModel] = []
     @Published var existingPasswordCorrect: Bool = false
     @Published var useBiometrics: Bool = false {
         didSet {
@@ -46,12 +56,12 @@ class OnboardingViewModel: ObservableObject {
     }
     
     
-    private var onboardingManager: OnboardingManager
+    private var onboardingManager: OnboardingManaging
     private var passwordValidator = PasswordValidator()
     private var keyManager: KeyManager
     private var authManager: AuthManager
     
-    init(onboardingManager: OnboardingManager, keyManager: KeyManager, authManager: AuthManager) {
+    init(onboardingManager: OnboardingManaging, keyManager: KeyManager, authManager: AuthManager) {
         self.onboardingManager = onboardingManager
         self.keyManager = keyManager
         self.authManager = authManager
@@ -68,13 +78,32 @@ class OnboardingViewModel: ObservableObject {
     func saveKey() throws {
         do {
             try keyManager.generateNewKey(name: keyName, storageType: keyStorageType)
-        } catch let keyError as KeyManagerError {
-            self.keySaveError = keyError
-            throw keyError
         } catch {
-            self.generalError = error
-            throw error
+            try handle(error: error)
         }
+    }
+    
+    @MainActor
+    func validateKeyName() throws {
+        do {
+            try keyManager.validateKeyName(name: keyName)
+            
+        } catch {
+            try handle(error: error)
+        }
+    }
+    
+    @MainActor
+    func handle(error: Error) throws {
+        switch error {
+        case let managerError as OnboardingManagerError:
+            stateError = managerError
+        case let keyError as KeyManagerError:
+            keySaveError = keyError
+        default:
+            generalError = error
+        }
+        throw error
     }
     
     func savePassword() throws {
@@ -94,6 +123,30 @@ class OnboardingViewModel: ObservableObject {
         
     }
     
+    func loadStorageAvailabilities() {
+        Task {
+            var availabilites = [StorageAvailabilityModel]()
+            for type in StorageType.allCases {
+                let result = await keyManager.keyDirectoryStorage.isStorageTypeAvailable(type: type)
+                availabilites += [StorageAvailabilityModel(storageType: type, availability: result)]
+            }
+            await setStorage(availabilites: availabilites)
+        }
+        
+    }
+    @MainActor
+    func setStorage(availabilites: [StorageAvailabilityModel]) async {
+        await MainActor.run {
+            self.keyStorageType = availabilites.filter({
+                if case .available = $0.availability {
+                    return true
+                }
+                return false
+            }).map({$0.storageType}).first ?? .local
+            self.storageAvailabilities = availabilites
+        }
+    }
+    
     func saveState() {
         Task {
             
@@ -106,17 +159,8 @@ class OnboardingViewModel: ObservableObject {
                     try authManager.authorize(with: password1, using: keyManager)
                 }
                 
-            } catch let managerError as OnboardingManagerError {
-                debugPrint("onboarding manager error", managerError)
-                await MainActor.run {
-                    stateError = managerError
-                }
             } catch {
-                debugPrint("Error saving state", error)
-                await MainActor.run {
-                    generalError = error
-                }
-                return
+                try await handle(error: error)
             }
         }
     }
@@ -154,7 +198,10 @@ private extension MainOnboardingView {
         AnyView(OnboardingView(
             viewModel: viewModel(for: flow), nextScreen: {
                 next()
-            }))
+            })
+            .navigationTitle("")
+            .navigationBarHidden(true)
+        )
     }
     
     func buildOnboarding() -> some View {
@@ -227,8 +274,9 @@ This is different from your password, and will be used to encrypt data.
 You can have multiple keys for different purposes, e.g. one named "Banking" and another "Personal".
 """,
                 image: Image(systemName: "key.fill"),
-                bottomButtonTitle: "Save Key",
+                bottomButtonTitle: "Next",
                 bottomButtonAction: {
+                    try viewModel.validateKeyName()
                 }) {
                     AnyView(
                         VStack {
@@ -250,26 +298,39 @@ You can have multiple keys for different purposes, e.g. one named "Banking" and 
 
 
             return .init(title: "Storage Settings",
-                         subheading: "Where do you want to store media for files encrypted with this key?",
+                         subheading: """
+Where do you want to store media for files encrypted with this key?
+
+Each key will store data in its own directory.
+""",
                          image: Image(systemName: ""),
                          bottomButtonTitle: "Next") {
+                try viewModel.saveKey()
             } content: {
                 AnyView(
-                 HStack {
-                     
-
-                     ForEach(StorageType.allCases) { data in
-                         let binding = Binding {
-                             data == viewModel.keyStorageType
-                         } set: { value in
-                             viewModel.keyStorageType = data
-                         }
-                         storageButton(imageName: data.iconName, text: data.title, isSelected: binding) {
-                             
-                         }
-                     }
-                     
-                 })}
+                    
+                    VStack(spacing: 20) {
+                        
+                        ForEach(viewModel.storageAvailabilities) { data in
+                            let binding = Binding {
+                                data.storageType == viewModel.keyStorageType
+                            } set: { value in
+                                guard case .available = data.availability else {
+                                    return
+                                }
+                                viewModel.keyStorageType = data.storageType
+                            }
+                            StorageTypeOptionItemView(
+                                storageType: data.storageType,
+                                availability: data.availability,
+                                isSelected: binding)
+                        }
+                    }.onAppear {
+                        viewModel.loadStorageAvailabilities()
+                    }
+                )
+                
+            }
 
         case .finished:
             return .init(
@@ -314,10 +375,10 @@ You can have multiple keys for different purposes, e.g. one named "Banking" and 
 
 }
 
-//struct MainOnboardingView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        MainOnboardingView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), onboardingManager: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager())))
-//    }
-//}
+struct MainOnboardingView_Previews: PreviewProvider {
+    static var previews: some View {
+        MainOnboardingView(viewModel: .init(onboardingManager: DemoOnboardingManager(keyManager: DemoKeyManager(), authManager: DemoAuthManager()), keyManager: DemoKeyManager(), authManager: DemoAuthManager()))
+    }
+}
 
 

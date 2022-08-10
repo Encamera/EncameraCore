@@ -224,7 +224,7 @@ private extension AVCaptureDevice.FlashMode {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), showScreenBlocker: false, storageSettingsManager: DataStorageUserDefaultsSetting()))
+        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), showScreenBlocker: false, storageSettingsManager: DemoStorageSettingsManager()))
         
     }
 }

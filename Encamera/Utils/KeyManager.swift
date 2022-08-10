@@ -49,12 +49,14 @@ protocol KeyManager {
     var isAuthorized: AnyPublisher<Bool, Never> { get }
     var currentKey: ImageKey? { get }
     var keyPublisher: AnyPublisher<ImageKey?, Never> { get }
+    var keyDirectoryStorage: DataStorageSetting { get }
     func clearKeychainData() throws
     func storedKeys() throws -> [ImageKey]
     func deleteKey(_ key: ImageKey) throws
     func setActiveKey(_ name: KeyName?) throws
     func save(key: ImageKey, storageType: StorageType) throws
     @discardableResult func generateNewKey(name: String, storageType: StorageType) throws -> ImageKey
+    func validateKeyName(name: String) throws
     func createBackupDocument() throws -> String
     func checkPassword(_ password: String) throws -> Bool
     func setPassword(_ password: String) throws

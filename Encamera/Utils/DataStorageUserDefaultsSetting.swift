@@ -12,6 +12,22 @@ protocol DataStorageSetting {
     func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType)
 }
 
+extension DataStorageSetting {
+    
+    func isStorageTypeAvailable(type: StorageType) async -> StorageType.Availability {
+        switch type {
+        case .icloud:
+            if FileManager.default.ubiquityIdentityToken == nil {
+                return .unavailable(reason: "No iCloud account found on this device.")
+            } else {
+                return .available
+            }
+        case .local:
+            return .available
+        }
+    }
+}
+
 struct DataStorageUserDefaultsSetting: DataStorageSetting {
     
     private enum Constants {

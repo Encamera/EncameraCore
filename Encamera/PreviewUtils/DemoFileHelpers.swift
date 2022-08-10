@@ -84,7 +84,7 @@ class DemoFileEnumerator: FileAccess {
     }
     
     convenience init() {
-        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()), storageSettingsManager: DataStorageUserDefaultsSetting())
+        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()), storageSettingsManager: DemoStorageSettingsManager())
     }
     
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
@@ -145,6 +145,8 @@ class DemoDirectoryModel: DataStorageModel {
 }
 
 class DemoKeyManager: KeyManager {
+    var keyDirectoryStorage: DataStorageSetting = DemoStorageSettingsManager()
+    
      
     
     private var hasExistingPassword = false
@@ -210,9 +212,13 @@ class DemoKeyManager: KeyManager {
         return storedKeysValue
     }
     
+    func validateKeyName(name: String) throws {
+        
+    }
+    
     
     convenience init() {
-        self.init(isAuthorized: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DataStorageUserDefaultsSetting())
+        self.init(isAuthorized: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
     }
     
     required init(isAuthorized: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
@@ -236,4 +242,32 @@ class DemoKeyManager: KeyManager {
     func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
         return .valid
     }
+}
+
+class DemoOnboardingManager: OnboardingManaging {
+    required init(keyManager: KeyManager, authManager: AuthManager) {
+        
+    }
+    
+    func generateOnboardingFlow() -> [OnboardingFlowScreen] {
+        return [.dataStorageSetting]
+    }
+    
+    func saveOnboardingState(_ state: OnboardingState) async throws {
+        
+    }
+    
+    
+}
+
+class DemoStorageSettingsManager: DataStorageSetting {
+    func storageModelFor(keyName: KeyName) -> DataStorageModel {
+        return LocalStorageModel(keyName: keyName)
+    }
+    
+    func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
+        
+    }
+    
+    
 }

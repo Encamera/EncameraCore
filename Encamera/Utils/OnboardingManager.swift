@@ -72,15 +72,11 @@ enum OnboardingManagerError: Error, Equatable {
 
 protocol OnboardingManaging {
     init(keyManager: KeyManager, authManager: AuthManager)
-    func clearOnboardingState()
+    func generateOnboardingFlow() -> [OnboardingFlowScreen]
+    func saveOnboardingState(_ state: OnboardingState) async throws
 }
 
-class OnboardingManager: ObservableObject {
-    
-    private enum Constants {
-        static var onboardingStateKey = "onboardingState"
-    }
-    
+class OnboardingManagerObservable {
     @Published var onboardingState: OnboardingState = .notStarted {
         didSet {
             let showOnboarding: Bool
@@ -99,15 +95,25 @@ class OnboardingManager: ObservableObject {
     }
     
     @Published var shouldShowOnboarding: Bool = true
+
+}
+
+class OnboardingManager: OnboardingManaging {
+    
+    private enum Constants {
+        static var onboardingStateKey = "onboardingState"
+    }
+    var observables: OnboardingManagerObservable
     
     private var keyManager: KeyManager
     private var authManager: AuthManager
     private var settingsManager: SettingsManager
     
-    init(keyManager: KeyManager, authManager: AuthManager) {
+    required init(keyManager: KeyManager, authManager: AuthManager) {
         self.keyManager = keyManager
         self.authManager = authManager
         self.settingsManager = SettingsManager(authManager: authManager, keyManager: keyManager)
+        self.observables = OnboardingManagerObservable()
     }
     
     func clearOnboardingState() {
@@ -157,15 +163,15 @@ class OnboardingManager: ObservableObject {
         }
         
         await MainActor.run {
-            onboardingState = state
+            observables.onboardingState = state
         }
         
 
     }
     
     @discardableResult func loadOnboardingState() throws -> OnboardingState {
-        onboardingState = try getOnboardingStateFromDefaults()
-        return onboardingState
+        observables.onboardingState = try getOnboardingStateFromDefaults()
+        return observables.onboardingState
     }
     
     func generateOnboardingFlow() -> [OnboardingFlowScreen] {
@@ -178,7 +184,11 @@ class OnboardingManager: ObservableObject {
         if authManager.canAuthenticateWithBiometrics {
             screens += [.biometrics]
         }
-        screens += [.setupImageKey, .finished]
+        screens += [
+            .setupImageKey,
+            .dataStorageSetting,
+            .finished
+        ]
         
         return screens
 
