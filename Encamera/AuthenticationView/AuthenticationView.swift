@@ -10,8 +10,8 @@ import SwiftUI
 private enum AuthenticationViewError {
     case noPasswordGiven
     case passwordIncorrect
-    case faceIDFailed
-    case faceIDNotAvailable
+    case biometricsFailed
+    case biometricsNotAvailable
     case keychainError(KeyManagerError)
     
 }
@@ -46,10 +46,10 @@ struct AuthenticationView: View {
             }
         }
         
-        func authenticateWithFaceID() {
+        func authenticateWithBiometrics() {
             Task {
                 do {
-                    try await authManager.authorizeWithFaceID()
+                    try await authManager.authorizeWithBiometrics()
                 } catch let authManagerError as AuthManagerError {
                     await MainActor.run {
                         handleAuthManagerError(authManagerError)
@@ -66,12 +66,12 @@ struct AuthenticationView: View {
             switch error {
             case .passwordIncorrect:
                 displayError = .passwordIncorrect
-            case .faceIDFailed:
-                displayError = .faceIDFailed
-            case .faceIDNotAvailable:
-                displayError = .faceIDNotAvailable
-            case .userCancelledFaceID:
-                displayError = .faceIDFailed
+            case .biometricsFailed:
+                displayError = .biometricsFailed
+            case .biometricsNotAvailable:
+                displayError = .biometricsNotAvailable
+            case .userCancelledBiometrics:
+                displayError = .biometricsFailed
             }
             displayedError = displayError
         }
@@ -99,7 +99,7 @@ struct AuthenticationView: View {
             Spacer().frame(height: 50.0)
             Button {
                 viewModel.password = ""
-                viewModel.authenticateWithFaceID()
+                viewModel.authenticateWithBiometrics()
             } label: {
                 Image(systemName: "faceid")
                     .resizable()

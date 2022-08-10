@@ -50,7 +50,7 @@ class OnboardingViewModel: ObservableObject {
                 return
             }
             Task {
-                try await authManager.authorizeWithFaceID()
+                try await authManager.authorizeWithBiometrics()
             }
         }
     }
@@ -154,7 +154,7 @@ class OnboardingViewModel: ObservableObject {
                 let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: useBiometrics))
                 try await onboardingManager.saveOnboardingState(savedState)
                 if useBiometrics {
-                    try await authManager.authorizeWithFaceID()
+                    try await authManager.authorizeWithBiometrics()
                 } else {
                     try authManager.authorize(with: password1, using: keyManager)
                 }

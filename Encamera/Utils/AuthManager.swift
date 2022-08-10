@@ -12,13 +12,13 @@ import UIKit
 
 enum AuthManagerError: Error {
     case passwordIncorrect
-    case faceIDFailed
-    case faceIDNotAvailable
-    case userCancelledFaceID
+    case biometricsFailed
+    case biometricsNotAvailable
+    case userCancelledBiometrics
 }
 
 enum AuthenticationMethod: Codable {
-    case faceID
+    case biometrics
     case password
 }
 
@@ -39,7 +39,7 @@ protocol AuthManager {
     func deauthorize()
     func checkAuthorizationWithCurrentPolicy() async throws
     func authorize(with password: String, using keyManager: KeyManager) throws
-    func authorizeWithFaceID() async throws
+    func authorizeWithBiometrics() async throws
 }
 
 class DeviceAuthManager: AuthManager {
@@ -76,7 +76,7 @@ class DeviceAuthManager: AuthManager {
     
     private var isAuthorizedSubject: PassthroughSubject<Bool, Never> = .init()
     
-    private var policy: AuthenticationPolicy? = AuthenticationPolicy(preferredAuthenticationMethod: .faceID, authenticationExpirySeconds: 60)
+    private var policy: AuthenticationPolicy? = AuthenticationPolicy(preferredAuthenticationMethod: .biometrics, authenticationExpirySeconds: 60)
     private var lastSuccessfulAuthentication: Date?
     private var cancellables = Set<AnyCancellable>()
 
@@ -108,8 +108,8 @@ class DeviceAuthManager: AuthManager {
 
         switch policy.preferredAuthenticationMethod {
             
-        case .faceID:
-            try await authorizeWithFaceID()
+        case .biometrics:
+            try await authorizeWithBiometrics()
         case .password:
             reauthorizeForPassword()
         }
@@ -128,18 +128,18 @@ class DeviceAuthManager: AuthManager {
         authState = newState
     }
     
-    func authorizeWithFaceID() async throws {
+    func authorizeWithBiometrics() async throws {
         
         let context = LAContext()
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            throw AuthManagerError.faceIDNotAvailable
+            throw AuthManagerError.biometricsNotAvailable
         }
         context.setCredential("password".data(using: .utf8), type: .applicationPassword)
         do {
             let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Scan face ID to keep your keys secure.")
             if result == true {
-                self.authState = .authorized(with: .faceID)
+                self.authState = .authorized(with: .biometrics)
             } else {
                 self.authState = .unauthorized
             }
@@ -152,15 +152,15 @@ class DeviceAuthManager: AuthManager {
                     .invalidContext,
                     .systemCancel,
                     .notInteractive:
-                throw AuthManagerError.faceIDFailed
+                throw AuthManagerError.biometricsFailed
             case .userCancel, .userFallback, .passcodeNotSet:
-                throw AuthManagerError.userCancelledFaceID
+                throw AuthManagerError.userCancelledBiometrics
                 
             default:
-                throw AuthManagerError.faceIDFailed
+                throw AuthManagerError.biometricsFailed
             }
         } catch {
-            throw AuthManagerError.faceIDFailed
+            throw AuthManagerError.biometricsFailed
         }
     }
 }

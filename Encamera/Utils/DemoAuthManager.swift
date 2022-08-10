@@ -18,9 +18,7 @@ class DemoAuthManager: AuthManager {
     func deauthorize() {
         
     }
-    func requestFaceIDPermissions() async throws {
-        
-    }
+    
     func checkAuthorizationWithCurrentPolicy() async throws {
         
     }
@@ -29,7 +27,7 @@ class DemoAuthManager: AuthManager {
         
     }
     
-    func authorizeWithFaceID() async throws {
+    func authorizeWithBiometrics() async throws {
         
     }
     

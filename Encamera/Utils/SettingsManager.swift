@@ -39,7 +39,7 @@ enum SettingsManagerError: Error, Equatable {
             return true
         case (.couldNotGetFromUserDefaults, .couldNotGetFromUserDefaults):
             return true
-        case (.errorWithFaceID(let authError1 as AuthManagerError), .errorWithFaceID(let authError2 as AuthManagerError)):
+        case (.errorWithBiometrics(let authError1 as AuthManagerError), .errorWithBiometrics(let authError2 as AuthManagerError)):
             return authError1 == authError2
             
         case (.keyManagerError(let keyManagerError1 as KeyManagerError), .keyManagerError(let keyManagerError2 as KeyManagerError)):
@@ -56,7 +56,7 @@ enum SettingsManagerError: Error, Equatable {
     case couldNotSerialize
     case couldNotDeserialize
     case couldNotGetFromUserDefaults
-    case errorWithFaceID(Error)
+    case errorWithBiometrics(Error)
     case keyManagerError(Error)
     case validationFailed(SettingsValidation)
 }
@@ -89,9 +89,9 @@ struct SettingsManager {
     func saveSettings(_ settings: SavedSettings) async throws {
         if settings.useBiometricsForAuth ?? false {
             do {
-                try await authManager.authorizeWithFaceID()
+                try await authManager.authorizeWithBiometrics()
             } catch {
-                throw SettingsManagerError.errorWithFaceID(error)
+                throw SettingsManagerError.errorWithBiometrics(error)
             }
         }
         
