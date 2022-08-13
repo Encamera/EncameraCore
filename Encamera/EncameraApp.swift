@@ -22,7 +22,10 @@ struct EncameraApp: App {
         private var cancellables = Set<AnyCancellable>()
         
         init() {
-            
+            let navBarAppearance = UINavigationBar.appearance()
+            navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+            navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager()
             let manager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher, keyDirectoryStorage: storageSettingsManager)
@@ -89,7 +92,9 @@ struct EncameraApp: App {
                     @unknown default:
                         rotation = 0.0
                     }
-                    self.rotationFromOrientation = rotation
+                    if self.rotationFromOrientation != rotation {
+                        self.rotationFromOrientation = rotation
+                    }
                 }.store(in: &cancellables)
         }
         
@@ -106,8 +111,9 @@ struct EncameraApp: App {
     @ObservedObject var viewModel: ViewModel = ViewModel()
 
     var body: some Scene {
+        
         WindowGroup {
-            
+
             if viewModel.showOnboarding {
                 MainOnboardingView(
                     viewModel: .init(onboardingManager: viewModel.onboardingManager,

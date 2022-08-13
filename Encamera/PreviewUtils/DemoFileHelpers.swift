@@ -250,7 +250,7 @@ class DemoOnboardingManager: OnboardingManaging {
     }
     
     func generateOnboardingFlow() -> [OnboardingFlowScreen] {
-        return [.dataStorageSetting]
+        return [.setupImageKey, .dataStorageSetting]
     }
     
     func saveOnboardingState(_ state: OnboardingState) async throws {

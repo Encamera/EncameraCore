@@ -88,7 +88,12 @@ protocol AuthManager {
 class DeviceAuthManager: AuthManager {
     
     var availableBiometric: AuthenticationMethod? {
-        AuthenticationMethod.methodFrom(biometryType: LAContext().biometryType)
+        let context = LAContext()
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
+            return .none
+        }
+
+        return AuthenticationMethod.methodFrom(biometryType: context.biometryType)
     }
     
     var isAuthorizedPublisher: AnyPublisher<Bool, Never> {

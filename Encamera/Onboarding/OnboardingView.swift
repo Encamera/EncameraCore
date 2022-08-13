@@ -7,6 +7,26 @@
 
 import SwiftUI
 
+struct RootPresentationModeKey: EnvironmentKey {
+    static let defaultValue: Binding<RootPresentationMode> = .constant(RootPresentationMode())
+}
+
+extension EnvironmentValues {
+    var rootPresentationMode: Binding<RootPresentationMode> {
+        get { return self[RootPresentationModeKey.self] }
+        set { self[RootPresentationModeKey.self] = newValue }
+    }
+}
+
+typealias RootPresentationMode = Bool
+
+extension RootPresentationMode {
+    
+    public mutating func dismiss() {
+        self.toggle()
+    }
+}
+
 struct OnboardingViewViewModel {
     var title: String
     var subheading: String
@@ -18,8 +38,8 @@ struct OnboardingViewViewModel {
 
 struct OnboardingView<Next>: View where Next: View {
     
-    @State var nextActive: Bool = false
-    
+    @State var nextActive: Bool = false 
+    @Environment(\.rootPresentationMode) private var rootPresentationMode
     var viewModel: OnboardingViewViewModel
     
     let nextScreen: () -> Next?
@@ -34,8 +54,6 @@ struct OnboardingView<Next>: View where Next: View {
         GeometryReader { geo in
             let frame = geo.frame(in: .global)
             VStack(alignment: .leading, spacing: 2) {
-                Text(viewModel.title).titleText()
-                    .font(.system(.title))
                 Text(viewModel.subheading)
                 
 //
@@ -65,7 +83,9 @@ struct OnboardingView<Next>: View where Next: View {
                 
                 Spacer().frame(height: 50.0)
             }.foregroundColor(.white)
-        }.padding().background(Color.black)
+            
+        }.padding().background(Color.black).navigationTitle(viewModel.title)
+            
     }
 }
 //
@@ -73,29 +93,32 @@ struct OnboardingView<Next>: View where Next: View {
 struct OnboardingView_Previews: PreviewProvider {
     
     static var previews: some View {
-        OnboardingView(viewModel: .init(title: "Storage Settings",
-                                        subheading: """
+        NavigationView {
+            OnboardingView(viewModel: .init(title: "Storage Settings",
+                                            subheading: """
                Where do you want to store media for files encrypted with this key?
-
+               
                Each key will store data in its own directory.
                """,
-                                        image: Image(systemName: ""),
-                                        bottomButtonTitle: "Next") {
-                           } content: {
-                               AnyView(
-                                   
-                                   VStack(spacing: 20) {
-                                       
-                                       ForEach(StorageType.allCases) { data in
-                                           StorageTypeOptionItemView(
-                                               storageType: data,
-                                               availability: .available,
-                                               isSelected: .constant(false))
-                                       }
-                                   }
-                               )
-                               
-                           }, nextScreen: { EmptyView() })
+                                            image: Image(systemName: ""),
+                                            bottomButtonTitle: "Next") {
+            } content: {
+                AnyView(
+                    
+                    VStack(spacing: 20) {
+                        
+                        ForEach(StorageType.allCases) { data in
+                            StorageTypeOptionItemView(
+                                storageType: data,
+                                availability: .available,
+                                isSelected: .constant(false))
+                        }
+                    }
+                )
+                
+            }, nextScreen: { EmptyView() })
+            
+        }
     }
     
 }

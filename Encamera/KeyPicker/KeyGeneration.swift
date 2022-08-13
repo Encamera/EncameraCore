@@ -10,16 +10,23 @@ import SwiftUI
 class KeyGenerationViewModel: ObservableObject {
     @Published var keyName: String = ""
     @Published var keyManagerError: KeyManagerError?
-    @Published var storageType: StorageType = .local
+    @MainActor
+    @Published var keySaveError: KeyManagerError?
+    @MainActor
+    @Published var storageAvailabilities: [StorageAvailabilityModel] = []
+    @MainActor
+    @Published var keyStorageType: StorageType = .local
+
     var keyManager: KeyManager
     
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
     }
     
+    @MainActor
     func saveKey() {
         do {
-            try keyManager.generateNewKey(name: keyName, storageType: storageType)
+            try keyManager.generateNewKey(name: keyName, storageType: keyStorageType)
         } catch {
             guard let keyError = error as? KeyManagerError else {
                 return
@@ -27,49 +34,152 @@ class KeyGenerationViewModel: ObservableObject {
             self.keyManagerError = keyError
         }
     }
+    
+    @MainActor
+    func validateKeyName() throws {
+        do {
+            try keyManager.validateKeyName(name: keyName)
+            
+        } catch {
+            try handle(error: error)
+        }
+    }
+    
+    @MainActor
+    func handle(error: Error) throws {
+        switch error {
+        case let keyError as KeyManagerError:
+            keySaveError = keyError
+        default:
+            throw error
+        }
+        throw error
+        
+    }
+    
+    func loadStorageAvailabilities() {
+        Task {
+            var availabilites = [StorageAvailabilityModel]()
+            for type in StorageType.allCases {
+                let result = await keyManager.keyDirectoryStorage.isStorageTypeAvailable(type: type)
+                availabilites += [StorageAvailabilityModel(storageType: type, availability: result)]
+            }
+            await setStorage(availabilites: availabilites)
+        }
+        
+    }
+    
+    @MainActor
+    func setStorage(availabilites: [StorageAvailabilityModel]) async {
+        await MainActor.run {
+            self.keyStorageType = availabilites.filter({
+                if case .available = $0.availability {
+                    return true
+                }
+                return false
+            }).map({$0.storageType}).first ?? .local
+            self.storageAvailabilities = availabilites
+        }
+    }
 }
 
 struct KeyGeneration: View {
     @ObservedObject var viewModel: KeyGenerationViewModel
+    @Binding var shouldBeActive: Bool
     @FocusState var isFocused: Bool
     @Environment(\.dismiss) var dismiss
-
+    @Environment(\.rootPresentationMode) private var rootPresentationMode
+    
     var body: some View {
-        VStack {
-            
-            TextField("Key Name", text: $viewModel.keyName, prompt: Text("Key Name"))
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
-                .frame(height: 44)
-                .focused($isFocused)
-            Spacer()
-            
+        let lastView: AnyView? = nil
+        
+        let views = [OnboardingFlowScreen.setupImageKey, .dataStorageSetting]
+            .reversed().reduce(lastView) { partialResult, screen in
+            return viewFor(flow: screen, next: {
+                partialResult
+            })
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                if viewModel.keyName.count > 0 {
-                    
-                    Button("Save") {
-                        saveKey()
-                    }.foregroundColor(.blue)
+        views
+
+    }
+    
+    func viewModel(for flow: OnboardingFlowScreen) -> OnboardingViewViewModel {
+        switch flow {
+        
+        case .setupImageKey:
+            return .init(
+                title: "Setup Image Key",
+                subheading:
+                                            """
+Set the name for this key.
+
+You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
+""",
+                image: Image(systemName: "key.fill"),
+                bottomButtonTitle: "Next",
+                bottomButtonAction: {
+                    try viewModel.validateKeyName()
+                }) {
+                    AnyView(
+                        VStack {
+                            TextField("Name", text: $viewModel.keyName)
+                                .inputTextField()
+                                .textCase(.lowercase)
+                                .disableAutocorrection(true)
+                                .textInputAutocapitalization(.never)
+                                
+                            if let keySaveError = viewModel.keySaveError {
+                                Group {
+                                    Text(keySaveError.displayDescription)
+                                }.foregroundColor(.red)
+                            }
+                        }
+                    )
                 }
+        case .dataStorageSetting:
+
+
+            return .init(title: "Storage Settings",
+                         subheading: """
+Where do you want to store media for files encrypted with this key?
+
+Each key will store data in its own directory.
+""",
+                         image: Image(systemName: ""),
+                         bottomButtonTitle: "Save Key") {
+                saveKey()
+                throw OnboardingViewError.onboardingEnded
+            } content: {
+                AnyView(
+                    StorageSettingView(keyStorageType: $viewModel.keyStorageType, storageAvailabilities: $viewModel.storageAvailabilities)
+                    .onAppear {
+                        viewModel.loadStorageAvailabilities()
+                    }
+                )
+                
             }
-        }
-        .padding()
-        .navigationTitle("Key Generation")
-        .onAppear {
-            isFocused = true
+        default:
+            fatalError()
         }
     }
     
     func saveKey() {
         viewModel.saveKey()
-        dismiss()
+        shouldBeActive = false
+//        rootPresentationMode.wrappedValue.dismiss()
+    }
+    
+    @ViewBuilder private func viewFor<Next: View>(flow: OnboardingFlowScreen, next: @escaping () -> Next) -> AnyView {
+        AnyView(OnboardingView(
+            viewModel: viewModel(for: flow), nextScreen: {
+                next()
+            })
+        )
     }
 }
 
-struct KeyGeneration_Previews: PreviewProvider {
-    static var previews: some View {
-        KeyGeneration(viewModel: .init(keyManager: DemoKeyManager()))
-    }
-}
+//struct KeyGeneration_Previews: PreviewProvider {
+//    static var previews: some View {
+//        KeyGeneration(viewModel: .init(keyManager: DemoKeyManager()), shouldBeActive: false)
+//    }
+//}

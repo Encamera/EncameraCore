@@ -13,7 +13,7 @@ struct KeyEntry: View {
     class ViewModel: ObservableObject {
         @Published var keyString: String = ""
         @Published var isShowingAlertForSaveKey: Bool = false
-        @Published var storageType: StorageType = .local
+        @Published var storageType: StorageType!
         var keyManager: KeyManager
         init(keyManager: KeyManager, isShowing: Binding<Bool>) {
             self.keyManager = keyManager

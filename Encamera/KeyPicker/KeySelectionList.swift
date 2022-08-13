@@ -42,14 +42,15 @@ struct KeySelectionList: View {
     
     @State var presentingAddKeySheet: Bool = false
     @State var isShowingAddKeyView: Bool = false
+    
     @ObservedObject var viewModel: KeySelectionListViewModel
     
     var body: some View {
         
         NavigationView {
             List {
-                NavigationLink {
-                    KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager))
+                NavigationLink(isActive: $isShowingAddKeyView) {
+                    KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: $isShowingAddKeyView)
                 } label: {
                     KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
                 }

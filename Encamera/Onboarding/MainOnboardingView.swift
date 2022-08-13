@@ -299,7 +299,7 @@ Set the name for the first key.
 
 This is different from your password, and will be used to encrypt data.
 
-You can have multiple keys for different purposes, e.g. one named "Banking" and another "Personal".
+You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
 """,
                 image: Image(systemName: "key.fill"),
                 bottomButtonTitle: "Next",
@@ -336,24 +336,8 @@ Each key will store data in its own directory.
                 try viewModel.saveKey()
             } content: {
                 AnyView(
-                    
-                    VStack(spacing: 20) {
-                        
-                        ForEach(viewModel.storageAvailabilities) { data in
-                            let binding = Binding {
-                                data.storageType == viewModel.keyStorageType
-                            } set: { value in
-                                guard case .available = data.availability else {
-                                    return
-                                }
-                                viewModel.keyStorageType = data.storageType
-                            }
-                            StorageTypeOptionItemView(
-                                storageType: data.storageType,
-                                availability: data.availability,
-                                isSelected: binding)
-                        }
-                    }.onAppear {
+                    StorageSettingView(keyStorageType: $viewModel.keyStorageType, storageAvailabilities: $viewModel.storageAvailabilities)
+                    .onAppear {
                         viewModel.loadStorageAvailabilities()
                     }
                 )
