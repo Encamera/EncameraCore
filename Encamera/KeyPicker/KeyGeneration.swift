@@ -88,7 +88,6 @@ struct KeyGeneration: View {
     @Binding var shouldBeActive: Bool
     @FocusState var isFocused: Bool
     @Environment(\.dismiss) var dismiss
-    @Environment(\.rootPresentationMode) private var rootPresentationMode
     
     var body: some View {
         let lastView: AnyView? = nil
@@ -166,7 +165,6 @@ Each key will store data in its own directory.
     func saveKey() {
         viewModel.saveKey()
         shouldBeActive = false
-//        rootPresentationMode.wrappedValue.dismiss()
     }
     
     @ViewBuilder private func viewFor<Next: View>(flow: OnboardingFlowScreen, next: @escaping () -> Next) -> AnyView {
