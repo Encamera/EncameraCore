@@ -22,10 +22,6 @@ struct EncameraApp: App {
         private var cancellables = Set<AnyCancellable>()
         
         init() {
-            let navBarAppearance = UINavigationBar.appearance()
-            navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
-            navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor.white]
-
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager()
             let manager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher, keyDirectoryStorage: storageSettingsManager)
@@ -96,6 +92,8 @@ struct EncameraApp: App {
                         self.rotationFromOrientation = rotation
                     }
                 }.store(in: &cancellables)
+            setupAppearances()
+
         }
         
         private func setupWith(key: ImageKey?) {
@@ -104,6 +102,16 @@ struct EncameraApp: App {
             }
             let fileAccess = DiskFileAccess(key: key, storageSettingsManager: storageSettingsManager)
             self.fileAccess = fileAccess
+
+        }
+        
+        private func setupAppearances() {
+            let navBarAppearance = UINavigationBar.appearance()
+            navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+            navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+            UITableView.appearance().separatorStyle = .none
+            UITableViewCell.appearance().backgroundColor = .gray
+            UITableView.appearance().backgroundColor = .black
 
         }
     }

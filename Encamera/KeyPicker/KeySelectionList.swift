@@ -45,6 +45,7 @@ struct KeySelectionList: View {
     
     @ObservedObject var viewModel: KeySelectionListViewModel
     
+   
     var body: some View {
         
         NavigationView {
@@ -75,9 +76,11 @@ struct KeySelectionList: View {
                     }
                 }
             }
+            
             .onAppear {
                 viewModel.loadKeys()
             }.navigationTitle("Key Selection")
+                
         }
     }
 }
