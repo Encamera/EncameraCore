@@ -141,7 +141,8 @@ struct CameraView: View {
                 Button {
                     cameraModel.showingKeySelection = true
                 } label: {
-                    Image(systemName: "key.fill").frame(width: 44, height: 44)
+                    Image(systemName: "key.fill")
+                        .frame(width: 44, height: 44)
                 }
                 .rotateForOrientation()
                 Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
@@ -151,6 +152,7 @@ struct CameraView: View {
                 }, label: {
                     Image(systemName: cameraModel.flashMode.systemIconForMode)
                         .foregroundColor(cameraModel.flashMode.colorForMode)
+                        .frame(width: 44, height: 44)
                     
                 })
                 .rotateForOrientation()

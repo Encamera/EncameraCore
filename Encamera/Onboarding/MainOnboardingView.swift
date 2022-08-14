@@ -224,8 +224,6 @@ private extension MainOnboardingView {
             viewModel: viewModel(for: flow), nextScreen: {
                 next()
             })
-            .navigationTitle("")
-            .navigationBarHidden(true)
         )
     }
     

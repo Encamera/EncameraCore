@@ -21,14 +21,7 @@ struct CameraPreview: UIViewRepresentable {
         }
         
         
-        var session: AVCaptureSession? {
-            set {
-                videoPreviewLayer.session = newValue
-            }
-            get {
-                videoPreviewLayer.session
-            }
-        }
+        var session: AVCaptureSession?
         
         private var cancellables = Set<AnyCancellable>()
 
@@ -38,9 +31,14 @@ struct CameraPreview: UIViewRepresentable {
                 self.switchMode(mode)
             }.store(in: &cancellables)
             self.session = session
+            videoPreviewLayer.session = session
             NotificationUtils.didEnterBackgroundPublisher
                 .sink { _ in
-                    self.session = nil
+                    self.videoPreviewLayer.session = nil
+                }.store(in: &cancellables)
+            NotificationUtils.didBecomeActivePublisher
+                .sink { _ in
+                    self.videoPreviewLayer.session = self.session
                 }.store(in: &cancellables)
         }
         

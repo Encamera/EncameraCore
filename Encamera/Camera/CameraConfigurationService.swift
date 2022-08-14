@@ -325,7 +325,7 @@ private extension CameraConfigurationService {
     /// Add photo output to session
     /// Note: must call commit() to session after this
     private func addPhotoOutputToSession() throws {
-        debugPrint("Calling addPhotoOutputToSession")
+        
         if let movieOutput = movieOutput {
             session.removeOutput(movieOutput)
             self.movieOutput = nil
@@ -338,7 +338,8 @@ private extension CameraConfigurationService {
         guard session.canAddOutput(photoOutput) else {
             return
         }
-        
+        debugPrint("Calling addPhotoOutputToSession")
+
         session.addOutput(photoOutput)
     }
     
