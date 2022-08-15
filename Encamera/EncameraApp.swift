@@ -18,17 +18,19 @@ struct EncameraApp: App {
         var tempFilesManager: TempFilesManager = TempFilesManager.shared
         var onboardingManager: OnboardingManager
         var storageSettingsManager: DataStorageSetting = DataStorageUserDefaultsSetting()
+        var settingsManager: SettingsManager
         private(set) var authManager: AuthManager
         private var cancellables = Set<AnyCancellable>()
         
         init() {
+            self.settingsManager = SettingsManager()
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
-            self.authManager = DeviceAuthManager()
+            self.authManager = DeviceAuthManager(settingsManager: settingsManager)
             let manager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher, keyDirectoryStorage: storageSettingsManager)
             
             self.keyManager = manager
             
-            self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager)
+            self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager, settingsManager: settingsManager)
             self.onboardingManager.observables.$shouldShowOnboarding.dropFirst().sink { value in
                 self.showOnboarding = value
             }.store(in: &cancellables)
@@ -121,7 +123,6 @@ struct EncameraApp: App {
     var body: some Scene {
         
         WindowGroup {
-
             if viewModel.showOnboarding {
                 MainOnboardingView(
                     viewModel: .init(onboardingManager: viewModel.onboardingManager,

@@ -336,6 +336,7 @@ private extension CameraConfigurationService {
         photoOutput.isHighResolutionCaptureEnabled = true
 
         guard session.canAddOutput(photoOutput) else {
+            debugPrint("Could not add photooutput to session")
             return
         }
         debugPrint("Calling addPhotoOutputToSession")
@@ -396,6 +397,7 @@ private extension CameraConfigurationService {
         
         do {
             let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
+            
             if session.canAddInput(videoDeviceInput) {
                 session.addInput(videoDeviceInput)
                 self.videoDeviceInput = videoDeviceInput

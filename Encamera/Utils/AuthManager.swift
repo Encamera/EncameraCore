@@ -128,16 +128,17 @@ class DeviceAuthManager: AuthManager {
     
     private var isAuthorizedSubject: PassthroughSubject<Bool, Never> = .init()
     
-    private var policy: AuthenticationPolicy? = AuthenticationPolicy(preferredAuthenticationMethod: .faceID, authenticationExpirySeconds: 60)
     private var lastSuccessfulAuthentication: Date?
-    private var cancellables = Set<AnyCancellable>()
-
+    private var appStateCancellables = Set<AnyCancellable>()
+    private var systemClockCancellables: AnyCancellable?
+    private var settingsManager: SettingsManager
     
-    init() {
-        loadAuthenticationPolicy()
-        NotificationUtils.systemClockDidChangePublisher.sink { _ in
+    init(settingsManager: SettingsManager) {
+        self.settingsManager = settingsManager
+        systemClockCancellables = NotificationUtils.systemClockDidChangePublisher.sink { _ in
             self.lastSuccessfulAuthentication = nil
-        }.store(in: &cancellables)
+        }
+        setupNotificationObservers()
     }
     
 
@@ -151,12 +152,8 @@ class DeviceAuthManager: AuthManager {
         guard case .unauthorized = authState else {
             return
         }
-
+        let policy = loadAuthenticationPolicy()
         
-        guard let policy = policy else {
-            self.authState = .unauthorized
-            return
-        }
 
         switch policy.preferredAuthenticationMethod {
             
@@ -181,7 +178,8 @@ class DeviceAuthManager: AuthManager {
     }
     
     func authorizeWithBiometrics() async throws {
-
+        cancelNotificationObservers()
+        
         let context = LAContext()
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error), let method = AuthenticationMethod.methodFrom(biometryType: context.biometryType) else {
@@ -194,6 +192,7 @@ class DeviceAuthManager: AuthManager {
             } else {
                 self.authState = .unauthorized
             }
+            setupNotificationObservers()
         } catch let localAuthError as LAError {
             switch localAuthError.code {
             case .appCancel:
@@ -222,19 +221,10 @@ private extension DeviceAuthManager {
         "authenticationPolicy"
     }
     
-    func loadAuthenticationPolicy() {
-        guard let data = UserDefaults.standard.data(forKey: policyUserDefaultsKey) else {
-            debugPrint("No authentication policy set in UserDefaults")
-            policy = nil
-            return
-        }
-        do {
-            let policy = try JSONDecoder().decode(AuthenticationPolicy.self, from: data)
-            self.policy = policy
-        } catch {
-            debugPrint("Could not decode authentication policy")
-        }
-        setupNotificationObservers()
+    func loadAuthenticationPolicy() -> AuthenticationPolicy {
+        let settings = try! settingsManager.loadSettings()
+        let preferredAuth: AuthenticationMethod = settings.useBiometricsForAuth ?? false ? availableBiometric ?? .password : .password
+        return AuthenticationPolicy(preferredAuthenticationMethod: preferredAuth, authenticationExpirySeconds: 60)
     }
     
     func storeAuthenticationPolicy(_ policy: AuthenticationPolicy) throws {
@@ -243,7 +233,8 @@ private extension DeviceAuthManager {
     }
     
     func reauthorizeForPassword() {
-        if let policy = policy, let authTime = lastSuccessfulAuthentication, Date().timeIntervalSinceReferenceDate < authTime.timeIntervalSinceReferenceDate - Double(policy.authenticationExpirySeconds) {
+        let policy = loadAuthenticationPolicy()
+        if let authTime = lastSuccessfulAuthentication, Date().timeIntervalSinceReferenceDate < authTime.timeIntervalSinceReferenceDate - Double(policy.authenticationExpirySeconds) {
             authState = .authorized(with: .password)
             lastSuccessfulAuthentication = Date()
         } else {
@@ -252,19 +243,23 @@ private extension DeviceAuthManager {
         }
     }
     
+    func cancelNotificationObservers() {
+        appStateCancellables.forEach({$0.cancel()})
+    }
+    
     func setupNotificationObservers() {
         NotificationUtils.didEnterBackgroundPublisher
             .sink { _ in
 
                 self.deauthorize()
-            }.store(in: &cancellables)
+            }.store(in: &appStateCancellables)
         NotificationUtils.didBecomeActivePublisher
             .sink { _ in
                 Task {
                     try? await self.checkAuthorizationWithCurrentPolicy()
                 }
 
-            }.store(in: &cancellables)
+            }.store(in: &appStateCancellables)
 
     }
     

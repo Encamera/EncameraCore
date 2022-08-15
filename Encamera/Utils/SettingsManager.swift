@@ -77,16 +77,15 @@ struct SettingsManager {
     private enum Constants {
         static var savedSettingsKey = "savedSettings"
     }
-    private var authManager: AuthManager
-    private var keyManager: KeyManager
-    
-    init(authManager: AuthManager, keyManager: KeyManager) {
-        self.authManager = authManager
-        self.keyManager = keyManager
-    }
 
+    func loadSettings() throws -> SavedSettings  {
+        guard let value = UserDefaults.standard.value(forKey: Constants.savedSettingsKey) as? Data else {
+            throw SettingsManagerError.couldNotDeserialize
+        }
+        return try JSONDecoder().decode(SavedSettings.self, from: value)
+    }
     
-    func saveSettings(_ settings: SavedSettings) async throws {
+    func saveSettings(_ settings: SavedSettings) throws {
         
         do {
             let data = try JSONEncoder().encode(settings)

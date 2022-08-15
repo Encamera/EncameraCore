@@ -22,7 +22,8 @@ class OnboardingManagerTests: XCTestCase {
         keyManager = DemoKeyManager()
         manager = OnboardingManager(
             keyManager: keyManager,
-            authManager: authManager
+            authManager: authManager,
+            settingsManager: SettingsManager()
         )
         manager.clearOnboardingState()
         
@@ -126,7 +127,7 @@ class OnboardingManagerTests: XCTestCase {
     func testOnboardingFlowGeneratesWithExistingPassword() async throws {
         let keyManager = DemoKeyManager()
         keyManager.password = "password"
-        manager = OnboardingManager(keyManager: keyManager, authManager: DemoAuthManager())
+        manager = OnboardingManager(keyManager: keyManager, authManager: DemoAuthManager(), settingsManager: SettingsManager())
         let flow = manager.generateOnboardingFlow()
         
         XCTAssertEqual(flow, [

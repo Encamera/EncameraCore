@@ -245,7 +245,7 @@ class DemoKeyManager: KeyManager {
 }
 
 class DemoOnboardingManager: OnboardingManaging {
-    required init(keyManager: KeyManager, authManager: AuthManager) {
+    required init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager) {
         
     }
     

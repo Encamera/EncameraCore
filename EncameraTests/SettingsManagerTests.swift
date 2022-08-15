@@ -18,7 +18,7 @@ class SettingsManagerTests: XCTestCase {
     override func setUp() async throws {
         self.keyManager = DemoKeyManager()
         self.authManager = DemoAuthManager()
-        self.manager = SettingsManager(authManager: authManager, keyManager: keyManager)
+        self.manager = SettingsManager()
         UserDefaults.standard.removeObject(forKey: "savedSettings")
     }
     
@@ -36,7 +36,15 @@ class SettingsManagerTests: XCTestCase {
     func testSaveSettings() async throws {
         let settings = SavedSettings(useBiometricsForAuth: true)
         
-        try await manager.saveSettings(settings)
+        try manager.saveSettings(settings)
+    }
+    
+    func testLoadSettings() throws {
+        let settings = SavedSettings(useBiometricsForAuth: true)
+        
+        try manager.saveSettings(settings)
+        let loaded = try manager.loadSettings()
+        XCTAssertEqual(settings, loaded)
     }
     
     func testValidationValid() throws {

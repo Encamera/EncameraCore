@@ -387,7 +387,7 @@ Each key will store data in its own directory.
 
 struct MainOnboardingView_Previews: PreviewProvider {
     static var previews: some View {
-        MainOnboardingView(viewModel: .init(onboardingManager: DemoOnboardingManager(keyManager: DemoKeyManager(), authManager: DemoAuthManager()), keyManager: DemoKeyManager(), authManager: DemoAuthManager()))
+        MainOnboardingView(viewModel: .init(onboardingManager: DemoOnboardingManager(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), settingsManager: SettingsManager()), keyManager: DemoKeyManager(), authManager: DemoAuthManager()))
     }
 }
 

@@ -71,7 +71,7 @@ enum OnboardingManagerError: Error, Equatable {
 }
 
 protocol OnboardingManaging {
-    init(keyManager: KeyManager, authManager: AuthManager)
+    init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager)
     func generateOnboardingFlow() -> [OnboardingFlowScreen]
     func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws
 }
@@ -109,10 +109,10 @@ class OnboardingManager: OnboardingManaging {
     private var authManager: AuthManager
     private var settingsManager: SettingsManager
     
-    required init(keyManager: KeyManager, authManager: AuthManager) {
+    required init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager) {
         self.keyManager = keyManager
         self.authManager = authManager
-        self.settingsManager = SettingsManager(authManager: authManager, keyManager: keyManager)
+        self.settingsManager = settingsManager
         self.observables = OnboardingManagerObservable()
     }
     
