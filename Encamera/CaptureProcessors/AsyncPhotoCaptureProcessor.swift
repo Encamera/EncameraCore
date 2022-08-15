@@ -34,10 +34,8 @@ class AsyncPhotoCaptureProcessor: NSObject {
         self.photoOutput = output
     }
     
-    func takePhoto(livePhotoEnabled: Bool) async throws -> PhotoCaptureProcessorOutput {
-        if livePhotoEnabled {
-            requestedPhotoSettings.livePhotoMovieFileURL = TempFilesManager.shared.createTempURL(for: .video, id: self.photoId)
-        }
+    func takePhoto() async throws -> PhotoCaptureProcessorOutput {
+        
 
         return try await withCheckedThrowingContinuation({ (continuation: PhotoCaptureProcessorContinuation) in
             self.continuation = continuation

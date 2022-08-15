@@ -87,14 +87,14 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     
 
     let sourceMedia: T
-    let destinationURL: URL
+    let destinationURL: URL?
     let keyBytes: Array<UInt8>
     fileprivate var progressSubject = PassthroughSubject<Double, Never>()
     
     init(keyBytes: Array<UInt8>, source: T, destinationURL: URL? = nil) {
         self.keyBytes = keyBytes
         self.sourceMedia = source
-        self.destinationURL = destinationURL ?? TempFilesManager.shared.createTempURL(for: source.mediaType, id: source.id)
+        self.destinationURL = destinationURL
     }
     
     var cancellables = Set<AnyCancellable>()
@@ -120,7 +120,8 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             debugPrint("Could not create stream with key")
             throw SecretFilesError.encryptError
         }
-        guard let destinationMedia = EncryptedMedia(source: destinationURL, type: .video) else {
+        guard let destinationURL = destinationURL,
+              let destinationMedia = EncryptedMedia(source: destinationURL, type: .video) else {
             throw SecretFilesError.sourceFileAccessError
         }
         do {
@@ -151,7 +152,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
                         switch signal {
 
                         case .finished:
-                            guard let media = EncryptedMedia(source: self.destinationURL) else {
+                            guard let media = EncryptedMedia(source: destinationURL) else {
                                 continuation.resume(throwing: SecretFilesError.sourceFileAccessError)
                                 return
                             }
@@ -198,9 +199,11 @@ private extension SecretFileHandler {
     }
     
     private func decryptFile() async throws -> CleartextMedia<URL> {
-        
+        guard let destinationURL = self.destinationURL else {
+            throw SecretFilesError.sourceFileAccessError
+        }
         do {
-            let destinationMedia = CleartextMedia(source: self.destinationURL)
+            let destinationMedia = CleartextMedia(source: destinationURL)
             let destinationHandler = try FileLikeHandler(media: destinationMedia, mode: .writing)
             try destinationHandler.prepareIfDoesNotExist()
             
@@ -211,7 +214,7 @@ private extension SecretFileHandler {
                     .sink { recieveCompletion in
                         switch recieveCompletion {
                         case .finished:
-                            let media = CleartextMedia(source: self.destinationURL)
+                            let media = CleartextMedia(source: destinationURL)
                             continuation.resume(returning: media)
                         case .failure(_):
                             continuation.resume(throwing: SecretFilesError.decryptError)

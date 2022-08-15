@@ -33,7 +33,6 @@ final class CameraModel: ObservableObject {
     var keyManager: KeyManager
     var alertError: AlertError!
     var storageSettingsManager: DataStorageSetting
-    private var currentVideoProcessor: AsyncVideoCaptureProcessor?
     private var fileAccess: FileAccess?
     
     
@@ -107,7 +106,7 @@ final class CameraModel: ObservableObject {
         switch selectedCameraMode {
         case .photo:
             let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode)
-            let photoObject = try await photoProcessor.takePhoto(livePhotoEnabled: false)
+            let photoObject = try await photoProcessor.takePhoto()
             await MainActor.run(body: {
                 willCapturePhoto = true
             })
@@ -122,25 +121,26 @@ final class CameraModel: ObservableObject {
                 willCapturePhoto = false
             })
         case .video:
-            if let currentVideoProcessor = currentVideoProcessor {
-                currentVideoProcessor.stop()
-                self.currentVideoProcessor = nil
-                return
-            }
-            let videoProcessor = try await service.createVideoProcessor()
-            await MainActor.run(body: {
-                isRecordingVideo = true
-            })
-            currentVideoProcessor = videoProcessor
-            currentVideoProcessor?.durationPublisher.sink(receiveValue: { value in
-                self.recordingDuration = value
-            }).store(in: &cancellables)
-            let video = try await videoProcessor.takeVideo()
-            await MainActor.run(body: {
-                isRecordingVideo = false
-            })
-            currentVideoProcessor = nil
-            try await fileAccess.save(media: video)
+//            if let currentVideoProcessor = currentVideoProcessor {
+//                currentVideoProcessor.stop()
+//                self.currentVideoProcessor = nil
+//                return
+//            }
+//            let videoProcessor = try await service.createVideoProcessor()
+//            await MainActor.run(body: {
+//                isRecordingVideo = true
+//            })
+//            currentVideoProcessor = videoProcessor
+//            currentVideoProcessor?.durationPublisher.sink(receiveValue: { value in
+//                self.recordingDuration = value
+//            }).store(in: &cancellables)
+//            let video = try await videoProcessor.takeVideo()
+//            await MainActor.run(body: {
+//                isRecordingVideo = false
+//            })
+//            currentVideoProcessor = nil
+//            try await fileAccess.save(media: video)
+            break
         }
         await loadThumbnail()
     }

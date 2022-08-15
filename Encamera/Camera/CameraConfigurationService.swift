@@ -261,15 +261,15 @@ actor CameraConfigurationService: CameraConfigurationServicable {
 
 extension CameraConfigurationService {
     
-    func createVideoProcessor() throws -> AsyncVideoCaptureProcessor {
-        guard let videoOutput = self.movieOutput else {
-            fatalError()
-        }
-        let connection = videoOutput.connection(with: .video)
-        connection?.videoOrientation = model.orientation
-
-        return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
-    }
+//    func createVideoProcessor() throws -> AsyncVideoCaptureProcessor {
+//        guard let videoOutput = self.movieOutput else {
+//            fatalError()
+//        }
+//        let connection = videoOutput.connection(with: .video)
+//        connection?.videoOrientation = model.orientation
+//
+//        return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
+//    }
     
     func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) throws -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {

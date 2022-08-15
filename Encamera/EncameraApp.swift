@@ -15,7 +15,6 @@ struct EncameraApp: App {
         var keyManager: KeyManager
         var cameraService: CameraConfigurationService
         var cameraServiceModel = CameraConfigurationServiceModel()
-        var tempFilesManager: TempFilesManager = TempFilesManager.shared
         var onboardingManager: OnboardingManager
         var storageSettingsManager: DataStorageSetting = DataStorageUserDefaultsSetting()
         var settingsManager: SettingsManager
