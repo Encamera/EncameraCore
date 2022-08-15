@@ -11,6 +11,10 @@ struct CameraView: View {
     init(viewModel: CameraModel) {
         self.cameraModeStateModel = CameraModeStateModel()
         self.cameraModel = viewModel
+        Task {
+            await viewModel.service.checkForPermissions()
+            await viewModel.service.configure()
+        }
     }
     
     private var captureButton: some View {
@@ -190,10 +194,8 @@ struct CameraView: View {
         }
         .onAppear {
             Task {
-                await cameraModel.service.checkForPermissions()
-                await cameraModel.service.configure()
+                await cameraModel.loadThumbnail()
             }
-            cameraModel.loadThumbnail()
         }
     }
 }
@@ -225,7 +227,7 @@ private extension AVCaptureDevice.FlashMode {
 
 struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), showScreenBlocker: false, storageSettingsManager: DemoStorageSettingsManager()))
+        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), showScreenBlocker: false, storageSettingsManager: DemoStorageSettingsManager()))
         
     }
 }

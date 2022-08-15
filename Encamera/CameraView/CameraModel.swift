@@ -34,7 +34,7 @@ final class CameraModel: ObservableObject {
     var alertError: AlertError!
     var storageSettingsManager: DataStorageSetting
     private var currentVideoProcessor: AsyncVideoCaptureProcessor?
-    private var fileAccess: FileAccess
+    private var fileAccess: FileAccess?
     
     
     private var cancellables = Set<AnyCancellable>()
@@ -42,13 +42,12 @@ final class CameraModel: ObservableObject {
     init(keyManager: KeyManager,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
-         fileAccess: FileAccess,
          showScreenBlocker: Bool,
          storageSettingsManager: DataStorageSetting) {
         self.service = cameraService
         self.showScreenBlocker = showScreenBlocker
         self.keyManager = keyManager
-        self.fileAccess = fileAccess
+        
         self.authManager = authManager
         self.storageSettingsManager = storageSettingsManager
         
@@ -58,20 +57,34 @@ final class CameraModel: ObservableObject {
             }
         }
         .store(in: &self.cancellables)
-
-        loadThumbnail()
-    }
-    
-    func loadThumbnail() {
-        Task {
-            let media: [EncryptedMedia] = await self.fileAccess.enumerateMedia()
-            guard let firstMedia = media.first else {
-                await MainActor.run {
-                    self.thumbnailImage = nil
-                }
+        if let key = keyManager.currentKey {
+            self.fileAccess = DiskFileAccess(key: key, storageSettingsManager: DataStorageUserDefaultsSetting())
+        }
+        keyManager.keyPublisher.sink { key in
+            guard let key = key else {
                 return
             }
-            let cleartextPreview = try await self.fileAccess.loadMediaPreview(for: firstMedia)
+            Task {
+                self.fileAccess = DiskFileAccess(key: key, storageSettingsManager: DataStorageUserDefaultsSetting())
+                await self.loadThumbnail()
+            }
+        }.store(in: &cancellables)
+    }
+    
+    func loadThumbnail() async {
+        guard let fileAccess = fileAccess else {
+            return
+        }
+        
+        let media: [EncryptedMedia] = await fileAccess.enumerateMedia()
+        guard let firstMedia = media.first else {
+            await MainActor.run {
+                self.thumbnailImage = nil
+            }
+            return
+        }
+        do {
+            let cleartextPreview = try await fileAccess.loadMediaPreview(for: firstMedia)
             guard let thumbnail = UIImage(data: cleartextPreview.thumbnailMedia.source) else {
                 await MainActor.run {
                     self.thumbnailImage = nil
@@ -81,10 +94,16 @@ final class CameraModel: ObservableObject {
             await MainActor.run(body: {
                 self.thumbnailImage = thumbnail
             })
+            
+        } catch {
+            debugPrint("Error loading media preview")
         }
     }
     
     func captureButtonPressed() async throws {
+        guard let fileAccess = fileAccess else {
+            return
+        }
         switch selectedCameraMode {
         case .photo:
             let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode)
@@ -123,7 +142,7 @@ final class CameraModel: ObservableObject {
             currentVideoProcessor = nil
             try await fileAccess.save(media: video)
         }
-        loadThumbnail()
+        await loadThumbnail()
     }
     
     func flipCamera() {

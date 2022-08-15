@@ -8,7 +8,7 @@ struct EncameraApp: App {
         @Published var fileAccess: DiskFileAccess?
         @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
-        @Published var showScreenBlocker: Bool = true
+        @Published var showScreenBlocker: Bool = false
         @Published var showOnboarding = false
         @Published var isAuthorized = false
         var openedUrl: URL?
@@ -51,25 +51,25 @@ struct EncameraApp: App {
             
             setupWith(key: keyManager.currentKey)
             
-            NotificationUtils.didEnterBackgroundPublisher
-                .sink { _ in
-
-                    self.showScreenBlocker = true
-                }.store(in: &cancellables)
-            
-            NotificationUtils.willResignActivePublisher
-                .sink { _ in
-                    self.showScreenBlocker = true
-                }
-                .store(in: &cancellables)
-            
-            
-            NotificationUtils.didBecomeActivePublisher
-                .sink { _ in
-                    self.showScreenBlocker = false
-
-                }.store(in: &cancellables)
-            
+//            NotificationUtils.didEnterBackgroundPublisher
+//                .sink { _ in
+//
+//                    self.showScreenBlocker = true
+//                }.store(in: &cancellables)
+//
+//            NotificationUtils.willResignActivePublisher
+//                .sink { _ in
+//                    self.showScreenBlocker = true
+//                }
+//                .store(in: &cancellables)
+//
+//
+//            NotificationUtils.didBecomeActivePublisher
+//                .sink { _ in
+//                    self.showScreenBlocker = false
+//
+//                }.store(in: &cancellables)
+//
             
             NotificationUtils.orientationDidChangePublisher
                 .sink { value in
@@ -123,40 +123,43 @@ struct EncameraApp: App {
     var body: some Scene {
         
         WindowGroup {
-            if viewModel.showOnboarding {
-                MainOnboardingView(
-                    viewModel: .init(onboardingManager: viewModel.onboardingManager,
-                                     keyManager: viewModel.keyManager, authManager: viewModel.authManager))
-            } else if viewModel.isAuthorized == false {
-                AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-            } else if let fileAccess = viewModel.fileAccess {
-                CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, fileAccess: fileAccess, showScreenBlocker: viewModel.showScreenBlocker, storageSettingsManager: viewModel.storageSettingsManager))
-                    .sheet(isPresented: $viewModel.hasOpenedURL) {
-                        self.viewModel.hasOpenedURL = false
-                    } content: {
-                        if let url = viewModel.openedUrl,
-                           let media = EncryptedMedia(source: url),
-                           viewModel.authManager.isAuthorized,
-                           let fileAccess = viewModel.fileAccess {
-                            switch media.mediaType {
-                            case .photo:
-                                ImageViewing<EncryptedMedia>(viewModel: ImageViewingViewModel(media: media, fileAccess: fileAccess))
-                            case .video:
-                                MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
-                            default:
-                                EmptyView()
-                            }
-                            
+            
+            
+            CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, showScreenBlocker: viewModel.showScreenBlocker, storageSettingsManager: viewModel.storageSettingsManager))
+                .sheet(isPresented: $viewModel.hasOpenedURL) {
+                    self.viewModel.hasOpenedURL = false
+                } content: {
+                    if let url = viewModel.openedUrl,
+                       let media = EncryptedMedia(source: url),
+                       viewModel.authManager.isAuthorized,
+                       let fileAccess = viewModel.fileAccess {
+                        switch media.mediaType {
+                        case .photo:
+                            ImageViewing<EncryptedMedia>(viewModel: ImageViewingViewModel(media: media, fileAccess: fileAccess))
+                        case .video:
+                            MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
+                        default:
+                            EmptyView()
                         }
+                        
                     }
-                    .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
-                    .onOpenURL { url in
-                        self.viewModel.hasOpenedURL = false
-                        self.viewModel.openedUrl = url
-                        self.viewModel.hasOpenedURL = true
+                }
+                .overlay {
+                    if viewModel.showOnboarding {
+                        MainOnboardingView(
+                            viewModel: .init(onboardingManager: viewModel.onboardingManager,
+                                             keyManager: viewModel.keyManager, authManager: viewModel.authManager))
+                    } else if viewModel.isAuthorized == false {
+                        AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                     }
-                
-            }
+                }
+                .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
+                .onOpenURL { url in
+                    self.viewModel.hasOpenedURL = false
+                    self.viewModel.openedUrl = url
+                    self.viewModel.hasOpenedURL = true
+                }
+
             
         }
     }
