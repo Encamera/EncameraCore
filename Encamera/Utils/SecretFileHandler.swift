@@ -87,14 +87,14 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
     
 
     let sourceMedia: T
-    let destinationURL: URL?
+    let targetURL: URL?
     let keyBytes: Array<UInt8>
     fileprivate var progressSubject = PassthroughSubject<Double, Never>()
     
-    init(keyBytes: Array<UInt8>, source: T, destinationURL: URL? = nil) {
+    init(keyBytes: Array<UInt8>, source: T, targetURL: URL? = nil) {
         self.keyBytes = keyBytes
         self.sourceMedia = source
-        self.destinationURL = destinationURL
+        self.targetURL = targetURL
     }
     
     var cancellables = Set<AnyCancellable>()
@@ -120,7 +120,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             debugPrint("Could not create stream with key")
             throw SecretFilesError.encryptError
         }
-        guard let destinationURL = destinationURL,
+        guard let destinationURL = targetURL,
               let destinationMedia = EncryptedMedia(source: destinationURL, type: .video) else {
             throw SecretFilesError.sourceFileAccessError
         }
@@ -198,8 +198,9 @@ private extension SecretFileHandler {
         }
     }
     
+    @available(*, deprecated, message: "Do not use decryptFile, as there will be no unencrypted media written to disk, ever.")
     private func decryptFile() async throws -> CleartextMedia<URL> {
-        guard let destinationURL = self.destinationURL else {
+        guard let destinationURL = self.targetURL else {
             throw SecretFilesError.sourceFileAccessError
         }
         do {

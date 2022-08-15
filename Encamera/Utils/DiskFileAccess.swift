@@ -224,7 +224,7 @@ extension DiskFileAccess: FileWriter {
         let destinationURL = directoryModel.thumbnailURLForMedia(sourceMedia)
         let cleartextThumb = CleartextMedia(source: data, mediaType: .thumbnail, id: sourceMedia.id)
 
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextThumb, destinationURL: destinationURL)
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextThumb, targetURL: destinationURL)
         try await fileHandler.encrypt()
         return cleartextThumb
     }
@@ -234,14 +234,14 @@ extension DiskFileAccess: FileWriter {
         let destinationURL = directoryModel.previewURLForMedia(sourceMedia)
         let cleartextPreview = CleartextMedia(source: data, mediaType: .preview, id: sourceMedia.id)
 
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, destinationURL: destinationURL)
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
         try await fileHandler.encrypt()
         return cleartextPreview
     }
     
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia {
         let destinationURL = directoryModel.driveURLForNewMedia(media)
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, destinationURL: destinationURL)
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
         let encrypted = try await fileHandler.encrypt()
         try await createPreview(for: media)
         try media.delete()
