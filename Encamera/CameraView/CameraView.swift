@@ -116,7 +116,7 @@ struct CameraView: View {
                     })
                 )
                 .onChange(of: rotationFromOrientation, perform: { newValue in
-                    cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
+//                    cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
                 })
                 .alert(isPresented: $cameraModel.showAlertError, content: {
                     Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {

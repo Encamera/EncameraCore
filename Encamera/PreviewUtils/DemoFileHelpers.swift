@@ -253,7 +253,7 @@ class DemoOnboardingManager: OnboardingManaging {
         return [.setupImageKey, .dataStorageSetting]
     }
     
-    func saveOnboardingState(_ state: OnboardingState) async throws {
+    func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
         
     }
     

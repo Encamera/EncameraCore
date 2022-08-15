@@ -9,25 +9,25 @@ import Foundation
 
 
 enum OnboardingState: Codable, Equatable {
-    case completed(SavedSettings)
+    case completed
     case notStarted
     case hasPasswordAndNotOnboarded
     case hasOnboardingAndNoPassword
-    
-    static func ==(lhs: OnboardingState, rhs: OnboardingState) -> Bool {
-        switch (lhs, rhs) {
-        case (.notStarted, .notStarted):
-            return true
-        case (.completed(let saved1), .completed(let saved2)):
-            return saved1 == saved2
-        case (.hasPasswordAndNotOnboarded, .hasPasswordAndNotOnboarded):
-            return true
-        case (.hasOnboardingAndNoPassword, .hasOnboardingAndNoPassword):
-            return true
-        default:
-            return false
-        }
-    }
+//
+//    static func ==(lhs: OnboardingState, rhs: OnboardingState) -> Bool {
+//        switch (lhs, rhs) {
+//        case (.notStarted, .notStarted):
+//            return true
+//        case (.completed(let saved1), .completed(let saved2)):
+//            return saved1 == saved2
+//        case (.hasPasswordAndNotOnboarded, .hasPasswordAndNotOnboarded):
+//            return true
+//        case (.hasOnboardingAndNoPassword, .hasOnboardingAndNoPassword):
+//            return true
+//        default:
+//            return false
+//        }
+//    }
 }
 
 
@@ -73,7 +73,7 @@ enum OnboardingManagerError: Error, Equatable {
 protocol OnboardingManaging {
     init(keyManager: KeyManager, authManager: AuthManager)
     func generateOnboardingFlow() -> [OnboardingFlowScreen]
-    func saveOnboardingState(_ state: OnboardingState) async throws
+    func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws
 }
 
 class OnboardingManagerObservable {
@@ -81,7 +81,7 @@ class OnboardingManagerObservable {
         didSet {
             let showOnboarding: Bool
             switch onboardingState {
-            case .completed(_):
+            case .completed:
                 showOnboarding = false
             case .notStarted:
                 showOnboarding = true
@@ -120,15 +120,11 @@ class OnboardingManager: OnboardingManaging {
         UserDefaults.standard.removeObject(forKey: Constants.onboardingStateKey)
     }
     
-    func validate(state: OnboardingState) throws {
-        let settings: SavedSettings
-        switch state {
-        
-        case .completed(let onboardingSavedInfo):
-            settings = onboardingSavedInfo
-        default:
+    func validate(state: OnboardingState, settings: SavedSettings) throws {
+        guard case .completed = state else {
             throw OnboardingManagerError.incorrectStateForOperation
         }
+        
         do {
             try settingsManager.validate(settings)
         } catch let validationError as SettingsManagerError {
@@ -137,11 +133,11 @@ class OnboardingManager: OnboardingManaging {
         
     }
     
-    func saveOnboardingState(_ state: OnboardingState) async throws {
+    func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
         debugPrint("onboarding state", state)
         switch state {
-        case .completed(let settings):
-            try validate(state: state)
+        case .completed:
+            try validate(state: state, settings: settings)
             do {
                 try await settingsManager.saveSettings(settings)
             } catch let settingsError as SettingsManagerError {
@@ -153,7 +149,7 @@ class OnboardingManager: OnboardingManaging {
         case .notStarted,
              .hasPasswordAndNotOnboarded,
              .hasOnboardingAndNoPassword:
-            break
+            return
         }
         do {
             let data = try JSONEncoder().encode(state)

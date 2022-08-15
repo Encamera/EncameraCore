@@ -180,8 +180,8 @@ class OnboardingViewModel: ObservableObject {
         Task {
             
             do {
-                let savedState = OnboardingState.completed(SavedSettings(useBiometricsForAuth: await useBiometrics))
-                try await onboardingManager.saveOnboardingState(savedState)
+                let savedState = OnboardingState.completed
+                try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
                 try authManager.authorize(with: password1, using: keyManager)
                 
             } catch {

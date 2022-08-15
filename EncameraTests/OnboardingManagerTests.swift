@@ -30,9 +30,10 @@ class OnboardingManagerTests: XCTestCase {
     
     func testSaveCompletedOnboardingState() async throws {
         
-        let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
+        let state = OnboardingState.completed
+        let settings = SavedSettings(useBiometricsForAuth: true)
         
-        try await manager.saveOnboardingState(state)
+        try await manager.saveOnboardingState(state, settings: settings)
         keyManager.password = "123"
         let savedState = try manager.loadOnboardingState()
         XCTAssertEqual(state, savedState)
@@ -40,7 +41,8 @@ class OnboardingManagerTests: XCTestCase {
     }
     
     func testPublishedOnSave() async throws {
-        let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
+        let state = OnboardingState.completed
+        let settings = SavedSettings(useBiometricsForAuth: true)
         var publishedState: OnboardingState?
         let expect = expectation(description: "waiting for published state")
         manager.observables.$onboardingState.dropFirst().sink { published in
@@ -48,17 +50,18 @@ class OnboardingManagerTests: XCTestCase {
             expect.fulfill()
         }.store(in: &cancellables)
         
-        try await manager.saveOnboardingState(state)
+        try await manager.saveOnboardingState(state, settings: settings)
         await waitForExpectations(timeout: 1.0)
         
         XCTAssertEqual(publishedState, state)
     }
     
     func testPublishedOnGet() async throws {
-        let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
+        let state = OnboardingState.completed
+        let settings = SavedSettings(useBiometricsForAuth: true)
         var publishedState: OnboardingState?
         let expect = expectation(description: "waiting for published state")
-        try await manager.saveOnboardingState(state)
+        try await manager.saveOnboardingState(state, settings: settings)
         keyManager.password = "123"
         
         manager.observables.$onboardingState.dropFirst().sink { published in
@@ -136,23 +139,23 @@ class OnboardingManagerTests: XCTestCase {
     }
     
     func testOnboardingStateValidationCompletedIncorrectSavedInfo() throws {
-        let savedInfo = SavedSettings(useBiometricsForAuth: nil)
-        let state = OnboardingState.completed(savedInfo)
+        let settings = SavedSettings(useBiometricsForAuth: nil)
+        let state = OnboardingState.completed
         
         
-        XCTAssertThrowsError(try manager.validate(state: state), "Validation error") { error in
+        XCTAssertThrowsError(try manager.validate(state: state, settings: settings), "Validation error") { error in
             let onboardingError = try? XCTUnwrap(error as? OnboardingManagerError)
             XCTAssertEqual(onboardingError, .settingsManagerError(.validationFailed(SettingsValidation.invalid([ (SavedSettings.CodingKeys.useBiometricsForAuth, "useBiometricsForAuth must be set")]))))
         }
     }
     
     func testOnboardingStateValidationCompletedNoPassword() throws {
-        let savedInfo = SavedSettings(useBiometricsForAuth: nil)
-        let state = OnboardingState.completed(savedInfo)
+        let settings = SavedSettings(useBiometricsForAuth: nil)
+        let state = OnboardingState.completed
         
-        XCTAssertThrowsError(try manager.validate(state: state))
+        XCTAssertThrowsError(try manager.validate(state: state, settings: settings))
         
-        XCTAssertThrowsError(try manager.validate(state: state), "Validation error") { error in
+        XCTAssertThrowsError(try manager.validate(state: state, settings: settings), "Validation error") { error in
             let onboardingError = try? XCTUnwrap(error as? OnboardingManagerError)
             XCTAssertEqual(onboardingError, .settingsManagerError(.validationFailed(SettingsValidation.invalid([
                 (SavedSettings.CodingKeys.useBiometricsForAuth, "useBiometricsForAuth must be set")
@@ -180,18 +183,20 @@ class OnboardingManagerTests: XCTestCase {
     }
     
     func testOnboardedButNoPassword() async throws {
-        let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
+        let settings = SavedSettings(useBiometricsForAuth: true)
+        let state = OnboardingState.completed
         
-        try await manager.saveOnboardingState(state)
+        try await manager.saveOnboardingState(state, settings: settings)
         keyManager.password = nil
         let saved = try manager.loadOnboardingState()
         XCTAssertEqual(saved, .hasOnboardingAndNoPassword)
     }
     
     func testShouldShowOnboardingCompleted() async throws {
-        let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
+        let settings = SavedSettings(useBiometricsForAuth: true)
+        let state = OnboardingState.completed
         keyManager.password = "123"
-        try await manager.saveOnboardingState(state)
+        try await manager.saveOnboardingState(state, settings: settings)
         try manager.loadOnboardingState()
         XCTAssertFalse(manager.observables.shouldShowOnboarding)
     }
@@ -202,8 +207,9 @@ class OnboardingManagerTests: XCTestCase {
     }
     
     func testShouldShowOnboardingStateNoPassword() async throws {
-        let state = OnboardingState.completed(SavedSettings(useBiometricsForAuth: true))
-        try await manager.saveOnboardingState(state)
+        let settings = SavedSettings(useBiometricsForAuth: true)
+        let state = OnboardingState.completed
+        try await manager.saveOnboardingState(state, settings: settings)
         keyManager.password = nil
         try manager.loadOnboardingState()
         XCTAssertTrue(manager.observables.shouldShowOnboarding)
