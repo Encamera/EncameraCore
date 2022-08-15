@@ -171,16 +171,15 @@ struct CameraView: View {
     
     var body: some View {
         ZStack {
+            cameraPreview
+                .edgesIgnoringSafeArea(.all)
+            VStack {
+                topBar
+                Spacer()
+                bottomButtonPanel
+            }
             if cameraModel.showScreenBlocker {
                 Color.black.edgesIgnoringSafeArea(.all)
-            } else {
-                cameraPreview
-                    .edgesIgnoringSafeArea(.all)
-                VStack {
-                    topBar
-                    Spacer()
-                    bottomButtonPanel
-                }
             }
         }
         .background(Color.black)
@@ -224,7 +223,7 @@ private extension AVCaptureDevice.FlashMode {
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
+struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
         CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), showScreenBlocker: false, storageSettingsManager: DemoStorageSettingsManager()))
         

@@ -18,7 +18,7 @@ final class CameraModel: ObservableObject {
     }
     
     @Published var showAlertError = false
-    @Published var showScreenBlocker: Bool = true
+    @Published var showScreenBlocker: Bool
 
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
     @Published var isRecordingVideo = false
@@ -46,11 +46,12 @@ final class CameraModel: ObservableObject {
          showScreenBlocker: Bool,
          storageSettingsManager: DataStorageSetting) {
         self.service = cameraService
+        self.showScreenBlocker = showScreenBlocker
         self.keyManager = keyManager
         self.fileAccess = fileAccess
         self.authManager = authManager
         self.storageSettingsManager = storageSettingsManager
-        self.showScreenBlocker = showScreenBlocker
+        
         self.$selectedCameraMode.sink { newMode in
             Task {
                  await self.service.configureForMode(targetMode: newMode)
