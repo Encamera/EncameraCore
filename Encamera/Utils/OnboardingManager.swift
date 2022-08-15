@@ -139,7 +139,7 @@ class OnboardingManager: OnboardingManaging {
         case .completed:
             try validate(state: state, settings: settings)
             do {
-                try await settingsManager.saveSettings(settings)
+                try settingsManager.saveSettings(settings)
             } catch let settingsError as SettingsManagerError {
                 throw OnboardingManagerError.settingsManagerError(settingsError)
             } catch {

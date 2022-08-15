@@ -46,21 +46,16 @@ struct CameraView: View {
         }
     }
     
-    private var capturedPhotoThumbnail: some View {
-        Group {
-            if let thumbnail = cameraModel.thumbnailImage {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .foregroundColor(.white)
-                    .onTapGesture {
-                        cameraModel.showGalleryView = true
-                    }
-            } else {
-                Color.clear
+    private func capturedPhotoThumbnail(thumbnailImage: UIImage) -> some View {
+        Image(uiImage: thumbnailImage)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .foregroundColor(.white)
+            .onTapGesture {
+                cameraModel.showGalleryView = true
             }
-        }
+
         .rotateForOrientation()
         .frame(width: 60, height: 60)
         
@@ -89,7 +84,9 @@ struct CameraView: View {
             }
             .environmentObject(cameraModeStateModel)
             HStack {
-                capturedPhotoThumbnail
+                if let thumbnail = cameraModel.thumbnailImage {
+                    capturedPhotoThumbnail(thumbnailImage: thumbnail)
+                }
                 
                 captureButton
                     .frame(maxWidth: .infinity)
@@ -227,7 +224,7 @@ private extension AVCaptureDevice.FlashMode {
 
 struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), showScreenBlocker: false, storageSettingsManager: DemoStorageSettingsManager()))
+        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), showScreenBlocker: Just(false).eraseToAnyPublisher(), storageSettingsManager: DemoStorageSettingsManager()))
         
     }
 }

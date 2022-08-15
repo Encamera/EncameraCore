@@ -18,7 +18,7 @@ final class CameraModel: ObservableObject {
     }
     
     @Published var showAlertError = false
-    @Published var showScreenBlocker: Bool
+    @Published var showScreenBlocker: Bool = true
 
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
     @Published var isRecordingVideo = false
@@ -41,10 +41,11 @@ final class CameraModel: ObservableObject {
     init(keyManager: KeyManager,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
-         showScreenBlocker: Bool,
+         showScreenBlocker: AnyPublisher<Bool, Never>,
          storageSettingsManager: DataStorageSetting) {
         self.service = cameraService
-        self.showScreenBlocker = showScreenBlocker
+        
+        
         self.keyManager = keyManager
         
         self.authManager = authManager
@@ -68,6 +69,9 @@ final class CameraModel: ObservableObject {
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)
+        showScreenBlocker.sink { value in
+            self.showScreenBlocker = value
+        }.store(in: &cancellables)
     }
     
     func loadThumbnail() async {
@@ -90,9 +94,9 @@ final class CameraModel: ObservableObject {
                 }
                 return
             }
-            await MainActor.run(body: {
+            await MainActor.run {
                 self.thumbnailImage = thumbnail
-            })
+            }
             
         } catch {
             debugPrint("Error loading media preview")

@@ -8,7 +8,7 @@ struct EncameraApp: App {
         @Published var fileAccess: DiskFileAccess?
         @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
-        @Published var showScreenBlocker: Bool = false
+        @Published var showScreenBlocker: Bool = true
         @Published var showOnboarding = false
         @Published var isAuthorized = false
         var openedUrl: URL?
@@ -50,25 +50,25 @@ struct EncameraApp: App {
             
             setupWith(key: keyManager.currentKey)
             
-//            NotificationUtils.didEnterBackgroundPublisher
-//                .sink { _ in
-//
-//                    self.showScreenBlocker = true
-//                }.store(in: &cancellables)
-//
-//            NotificationUtils.willResignActivePublisher
-//                .sink { _ in
-//                    self.showScreenBlocker = true
-//                }
-//                .store(in: &cancellables)
-//
-//
-//            NotificationUtils.didBecomeActivePublisher
-//                .sink { _ in
-//                    self.showScreenBlocker = false
-//
-//                }.store(in: &cancellables)
-//
+            NotificationUtils.didEnterBackgroundPublisher
+                .sink { _ in
+
+                    self.showScreenBlocker = true
+                }.store(in: &cancellables)
+
+            NotificationUtils.willResignActivePublisher
+                .sink { _ in
+                    self.showScreenBlocker = true
+                }
+                .store(in: &cancellables)
+
+
+            NotificationUtils.didBecomeActivePublisher
+                .sink { _ in
+                    self.showScreenBlocker = false
+
+                }.store(in: &cancellables)
+
             
             NotificationUtils.orientationDidChangePublisher
                 .sink { value in
@@ -117,14 +117,27 @@ struct EncameraApp: App {
         }
     }
     
-    @ObservedObject var viewModel: ViewModel = ViewModel()
+    @ObservedObject var viewModel: ViewModel
 
+    @ObservedObject var cameraModel: CameraModel
+    
+    init() {
+        let model = ViewModel()
+        self.viewModel = model
+        self.cameraModel = .init(
+            keyManager: model.keyManager,
+            authManager: model.authManager,
+            cameraService: model.cameraService,
+            showScreenBlocker: model.$showScreenBlocker.eraseToAnyPublisher(),
+            storageSettingsManager: model.storageSettingsManager
+        )
+    }
     var body: some Scene {
         
         WindowGroup {
             
             
-            CameraView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, cameraService: viewModel.cameraService, showScreenBlocker: viewModel.showScreenBlocker, storageSettingsManager: viewModel.storageSettingsManager))
+            CameraView(viewModel: cameraModel)
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     self.viewModel.hasOpenedURL = false
                 } content: {
