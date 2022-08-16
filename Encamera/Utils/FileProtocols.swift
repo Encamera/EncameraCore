@@ -80,17 +80,13 @@ extension DataStorageModel {
         if FileManager.default.fileExists(atPath: thumbnailDirectory.path) == false {
             try FileManager.default.createDirectory(atPath: thumbnailDirectory.path, withIntermediateDirectories: true)
         }
-
+        
         if FileManager.default.fileExists(atPath: baseURL.path) == false {
             
-            do {
-                try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true, attributes: nil)
-            } catch {
-                debugPrint("could not create directory \(error.localizedDescription)")
-            }
             
+            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true, attributes: nil)
         }
-
+        
     }
     
     func driveURLForNewMedia<T: MediaDescribing>(_ media: T) -> URL {

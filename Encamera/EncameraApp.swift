@@ -10,7 +10,7 @@ struct EncameraApp: App {
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
         @Published var showOnboarding = false
-        @Published var isAuthorized = false
+        @Published var isAuthenticated = false
         var openedUrl: URL?
         var keyManager: KeyManager
         var cameraService: CameraConfigurationService
@@ -25,7 +25,7 @@ struct EncameraApp: App {
             self.settingsManager = SettingsManager()
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
-            let manager = MultipleKeyKeychainManager(isAuthorized: self.authManager.isAuthorizedPublisher, keyDirectoryStorage: storageSettingsManager)
+            let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher, keyDirectoryStorage: storageSettingsManager)
             
             self.keyManager = manager
             
@@ -33,8 +33,8 @@ struct EncameraApp: App {
             self.onboardingManager.observables.$shouldShowOnboarding.dropFirst().sink { value in
                 self.showOnboarding = value
             }.store(in: &cancellables)
-            self.authManager.isAuthorizedPublisher.sink { value in
-                self.isAuthorized = value
+            self.authManager.isAuthenticatedPublisher.sink { value in
+                self.isAuthenticated = value
             }.store(in: &cancellables)
             
             do {
@@ -143,7 +143,7 @@ struct EncameraApp: App {
                 } content: {
                     if let url = viewModel.openedUrl,
                        let media = EncryptedMedia(source: url),
-                       viewModel.authManager.isAuthorized,
+                       viewModel.authManager.isAuthenticated,
                        let fileAccess = viewModel.fileAccess {
                         switch media.mediaType {
                         case .photo:
@@ -161,7 +161,7 @@ struct EncameraApp: App {
                         MainOnboardingView(
                             viewModel: .init(onboardingManager: viewModel.onboardingManager,
                                              keyManager: viewModel.keyManager, authManager: viewModel.authManager))
-                    } else if viewModel.isAuthorized == false {
+                    } else if viewModel.isAuthenticated == false {
                         AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                     }
                 }

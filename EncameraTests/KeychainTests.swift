@@ -13,7 +13,7 @@ import Combine
 
 class KeychainTests: XCTestCase {
     
-    var keyManager: MultipleKeyKeychainManager = MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+    var keyManager: MultipleKeyKeychainManager = MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
     
     override func setUp() async throws {
         try? keyManager.clearKeychainData()
@@ -110,23 +110,23 @@ class KeychainTests: XCTestCase {
         
     }
     
-    func testInitSetsCurrentKeyIfAuthorized() throws {
+    func testInitSetsCurrentKeyIfAuthenticated() throws {
         
         let key = try keyManager.generateNewKey(name: "test1_key", storageType: .local)
         try keyManager.setActiveKey(key.name)
         let subject = PassthroughSubject<Bool, Never>()
-        let newManager = MultipleKeyKeychainManager(isAuthorized: subject.eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+        let newManager = MultipleKeyKeychainManager(isAuthenticated: subject.eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
         subject.send(true)
         
         XCTAssertEqual(newManager.currentKey, key)
         
     }
     
-    func testInitDoesNotSetCurrentKeyIfNotAuthorized() throws {
+    func testInitDoesNotSetCurrentKeyIfNotAuthenticated() throws {
         
         try keyManager.generateNewKey(name: "test1_key", storageType: .local)
 
-        let newManager = MultipleKeyKeychainManager(isAuthorized: Just(false).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+        let newManager = MultipleKeyKeychainManager(isAuthenticated: Just(false).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
         
         XCTAssertNil(newManager.currentKey)
         

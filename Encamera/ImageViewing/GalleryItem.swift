@@ -69,7 +69,7 @@ struct GalleryItem_Previews: PreviewProvider {
     static let fileAccess = DemoFileEnumerator()
 
     static var previews: some View {
-//        GalleryItem(fileAccess: fileAccess, keyManager: KeychainKeyManager(isAuthorized: Just(true).eraseToAnyPublisher()), media: fileAccess.media.randomElement()!)
-        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
+//        GalleryItem(fileAccess: fileAccess, keyManager: KeychainKeyManager(isAuthenticated: Just(true).eraseToAnyPublisher()), media: fileAccess.media.randomElement()!)
+        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
     }
 }

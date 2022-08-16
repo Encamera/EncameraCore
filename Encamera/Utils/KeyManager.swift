@@ -12,7 +12,7 @@ import Combine
 enum KeyManagerError: Error {
     case deleteKeychainItemsFailed
     case unhandledError
-    case notAuthorizedError
+    case notAuthenticatedError
     case keyNameError
     case notFound
     case dataError
@@ -25,8 +25,8 @@ enum KeyManagerError: Error {
             return "Could not delete keychain items."
         case .unhandledError:
             return "Unhandled error."
-        case .notAuthorizedError:
-            return "Not authorized for this operation."
+        case .notAuthenticatedError:
+            return "Not authenticated for this operation."
         case .keyNameError:
             return "Key name is invalid, must be more than two characters"
         case .notFound:
@@ -44,9 +44,9 @@ enum KeyManagerError: Error {
 
 protocol KeyManager {
     
-    init(isAuthorized: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting)
+    init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting)
     
-    var isAuthorized: AnyPublisher<Bool, Never> { get }
+    var isAuthenticated: AnyPublisher<Bool, Never> { get }
     var currentKey: ImageKey? { get }
     var keyPublisher: AnyPublisher<ImageKey?, Never> { get }
     var keyDirectoryStorage: DataStorageSetting { get }

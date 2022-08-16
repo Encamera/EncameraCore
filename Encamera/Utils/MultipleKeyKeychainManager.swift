@@ -19,8 +19,8 @@ private enum KeychainConstants {
 
 class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
-    var isAuthorized: AnyPublisher<Bool, Never>
-    private var authorized: Bool = false
+    var isAuthenticated: AnyPublisher<Bool, Never>
+    private var authenticated: Bool = false
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
     private var passwordValidator = PasswordValidator()
@@ -36,13 +36,13 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     private var keySubject: PassthroughSubject<ImageKey?, Never> = .init()
     
-    required init(isAuthorized: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
-        self.isAuthorized = isAuthorized
+    required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
+        self.isAuthenticated = isAuthenticated
         self.keyDirectoryStorage = keyDirectoryStorage
-        self.isAuthorized.sink { newValue in
-            self.authorized = newValue
+        self.isAuthenticated.sink { newValue in
+            self.authenticated = newValue
             do {
-                if self.authorized == true {
+                if self.authenticated == true {
                     try self.getActiveKeyAndSet()
                 } else {
                     try self.setActiveKey(nil)
@@ -65,8 +65,8 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
         #if DEBUG
         #else
-        guard authorized == true else {
-            throw KeyManagerError.notAuthorizedError
+        guard authenticated == true else {
+            throw KeyManagerError.notAuthenticatedError
         }
         #endif
         
@@ -91,8 +91,8 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     @discardableResult func generateNewKey(name: String, storageType: StorageType) throws -> ImageKey {
         
-        guard authorized == true else {
-            throw KeyManagerError.notAuthorizedError
+        guard authenticated == true else {
+            throw KeyManagerError.notAuthenticatedError
         }
         
         try validateKeyName(name: name)
@@ -136,8 +136,8 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func storedKeys() throws -> [ImageKey] {
-        guard authorized == true else {
-            throw KeyManagerError.notAuthorizedError
+        guard authenticated == true else {
+            throw KeyManagerError.notAuthenticatedError
         }
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
@@ -167,8 +167,8 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     func deleteKey(_ key: ImageKey) throws {
         
-        guard authorized == true else {
-            throw KeyManagerError.notAuthorizedError
+        guard authenticated == true else {
+            throw KeyManagerError.notAuthenticatedError
         }
         let key = try getKey(by: key.name)
         let query = key.keychainQueryDictForKeychain
@@ -180,9 +180,9 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func setActiveKey(_ name: KeyName?) throws {
-        guard authorized == true else {
+        guard authenticated == true else {
             currentKey = nil
-            throw KeyManagerError.notAuthorizedError
+            throw KeyManagerError.notAuthenticatedError
         }
         guard let name = name else {
             currentKey = nil
@@ -208,8 +208,8 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func getKey(by keyName: KeyName) throws -> ImageKey {
-        guard authorized == true else {
-            throw KeyManagerError.notAuthorizedError
+        guard authenticated == true else {
+            throw KeyManagerError.notAuthenticatedError
         }
         
         let query: [String: Any] = [kSecClass as String: kSecClassKey,

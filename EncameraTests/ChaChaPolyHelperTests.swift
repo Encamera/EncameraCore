@@ -14,7 +14,7 @@ class ChaChaPolyHelperTests: XCTestCase {
     
     override class func setUp() {
         WorkWithKeychain.clearKeychain()
-        WorkWithKeychain.isAuthorized = true
+        WorkWithKeychain.isAuthenticated = true
     }
     
     override class func tearDown() {

@@ -21,7 +21,6 @@ class TempFilesManagerTests: XCTestCase {
             XCTAssertTrue(FileManager.default.fileExists(atPath: cleartext.source.path))
             urls.append(cleartext.source)
         }
-        try TempFilesManager.shared.cleanup()
         XCTAssertEqual(5, urls.count)
         
         urls.forEach { url in

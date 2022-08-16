@@ -24,8 +24,6 @@
 		1935322B2860F08800964A01 /* DiskBlockReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1935322A2860F08800964A01 /* DiskBlockReader.swift */; };
 		1935322D2860F25500964A01 /* FileLikeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1935322C2860F25500964A01 /* FileLikeHandler.swift */; };
 		19353233286266CD00964A01 /* KeyList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19353232286266CD00964A01 /* KeyList.swift */; };
-		193532352862F29400964A01 /* FileAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193532342862F29400964A01 /* FileAccessTests.swift */; };
-		193532382862FECB00964A01 /* FileUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193532372862FECB00964A01 /* FileUtils.swift */; };
 		193ECDA4282EE7E2004F143D /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193ECDA3282EE7E2004F143D /* Enums.swift */; };
 		195719E7274B8BE300E93658 /* MovieViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195719E6274B8BE300E93658 /* MovieViewing.swift */; };
 		195719EE274BA4B400E93658 /* QRCodeCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195719ED274BA4B400E93658 /* QRCodeCaptureProcessor.swift */; };
@@ -42,6 +40,8 @@
 		196AFE81274F83D100C809ED /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE80274F83D100C809ED /* GalleryView.swift */; };
 		196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE82274F858300C809ED /* DiskFileAccess.swift */; };
 		1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1978F9782822486000D16FD4 /* CameraModePicker.swift */; };
+		197DDE9E28AB95DD0027371D /* FileUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193532372862FECB00964A01 /* FileUtils.swift */; };
+		197DDEA028AB96D80027371D /* TempFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197DDE9F28AB96D80027371D /* TempFilesManager.swift */; };
 		19868A0A287B25E20006E120 /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19868A09287B25E20006E120 /* Rotation.swift */; };
 		19868A0D287B4C740006E120 /* RotationViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19868A0C287B4C740006E120 /* RotationViewModifier.swift */; };
 		19868A10287B73380006E120 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19868A0F287B73380006E120 /* AuthenticationView.swift */; };
@@ -81,7 +81,6 @@
 		19DC647427441D10004CCE1B /* ButtonViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DC647327441D10004CCE1B /* ButtonViewModifier.swift */; };
 		19DCCD572741AF6700DB487B /* KeyGeneration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DCCD562741AF6700DB487B /* KeyGeneration.swift */; };
 		19F768D228636FDD008F4BD3 /* DirectoryModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F768D128636FDD008F4BD3 /* DirectoryModelTests.swift */; };
-		19F768D428637607008F4BD3 /* TempFilesManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F768D328637607008F4BD3 /* TempFilesManagerTests.swift */; };
 		19FD5D5A2835D29B008D75AA /* ChunkedFilesProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FD5D592835D29B008D75AA /* ChunkedFilesProcessing.swift */; };
 		19FD5D5C2835D91F008D75AA /* CleartextMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FD5D5B2835D91F008D75AA /* CleartextMedia.swift */; };
 		19FD5D5E2835D927008D75AA /* EncryptedMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FD5D5D2835D927008D75AA /* EncryptedMedia.swift */; };
@@ -144,6 +143,7 @@
 		196AFE80274F83D100C809ED /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		196AFE82274F858300C809ED /* DiskFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskFileAccess.swift; sourceTree = "<group>"; };
 		1978F9782822486000D16FD4 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
+		197DDE9F28AB96D80027371D /* TempFilesManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TempFilesManager.swift; path = Encamera/Utils/TempFilesManager.swift; sourceTree = SOURCE_ROOT; };
 		19868A09287B25E20006E120 /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
 		19868A0C287B4C740006E120 /* RotationViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationViewModifier.swift; sourceTree = "<group>"; };
 		19868A0F287B73380006E120 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
@@ -308,6 +308,7 @@
 		193532362862FEC100964A01 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				197DDE9F28AB96D80027371D /* TempFilesManager.swift */,
 				193532372862FECB00964A01 /* FileUtils.swift */,
 			);
 			path = Utils;
@@ -714,15 +715,14 @@
 				1990CA3E288169AB007486D3 /* OnboardingManagerTests.swift in Sources */,
 				1961BCC4281F9DFA00D7BE92 /* FileOperationsTests.swift in Sources */,
 				1990CA4D28853DCA007486D3 /* SettingsManagerTests.swift in Sources */,
-				193532352862F29400964A01 /* FileAccessTests.swift in Sources */,
+				197DDEA028AB96D80027371D /* TempFilesManager.swift in Sources */,
 				193237232849EEE80074CE8A /* MediaTypeTests.swift in Sources */,
 				19F768D228636FDD008F4BD3 /* DirectoryModelTests.swift in Sources */,
 				1990154D2863BA8400520082 /* KeychainTests.swift in Sources */,
 				19631A3C286514F200B95FD3 /* DateUtilsTests.swift in Sources */,
 				1990CA422881B10C007486D3 /* PasswordValidatorTests.swift in Sources */,
-				19F768D428637607008F4BD3 /* TempFilesManagerTests.swift in Sources */,
-				193532382862FECB00964A01 /* FileUtils.swift in Sources */,
 				1990CA4728846E7C007486D3 /* OnboardingViewModelTests.swift in Sources */,
+				197DDE9E28AB95DD0027371D /* FileUtils.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

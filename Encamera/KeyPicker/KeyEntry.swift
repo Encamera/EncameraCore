@@ -69,6 +69,6 @@ struct KeyEntry: View {
 
 struct KeyEntry_Previews: PreviewProvider {
     static var previews: some View {
-        KeyEntry(viewModel: KeyEntry.ViewModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager()), isShowing: .constant(true)))
+        KeyEntry(viewModel: KeyEntry.ViewModel(keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager()), isShowing: .constant(true)))
     }
 }

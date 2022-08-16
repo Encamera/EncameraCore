@@ -19,7 +19,7 @@ extension CameraService {
     
     enum SessionSetupResult {
         case success
-        case notAuthorized
+        case notAuthenticated
         case configurationFailed
     }
     

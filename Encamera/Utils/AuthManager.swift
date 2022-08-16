@@ -64,8 +64,8 @@ enum AuthenticationMethod: Codable {
 }
 
 enum AuthManagerState: Equatable {
-    case authorized(with: AuthenticationMethod)
-    case unauthorized
+    case authenticated(with: AuthenticationMethod)
+    case unauthenticated
 }
 
 struct AuthenticationPolicy: Codable {
@@ -78,8 +78,8 @@ struct AuthenticationPolicy: Codable {
 }
 
 protocol AuthManager {
-    var isAuthorizedPublisher: AnyPublisher<Bool, Never> { get }
-    var isAuthorized: Bool { get }
+    var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
+    var isAuthenticated: Bool { get }
     var availableBiometric: AuthenticationMethod? { get }
     var canAuthenticateWithBiometrics: Bool { get }
     func deauthorize()
@@ -100,23 +100,23 @@ class DeviceAuthManager: AuthManager {
         return AuthenticationMethod.methodFrom(biometryType: context.biometryType)
     }
     
-    var isAuthorizedPublisher: AnyPublisher<Bool, Never> {
-        isAuthorizedSubject.receive(on: DispatchQueue.main).eraseToAnyPublisher()
+    var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
+        isAuthenticatedSubject.receive(on: DispatchQueue.main).eraseToAnyPublisher()
     }
     
-    private(set) var isAuthorized: Bool = false {
+    private(set) var isAuthenticated: Bool = false {
         didSet {
-            isAuthorizedSubject.send(isAuthorized)
+            isAuthenticatedSubject.send(isAuthenticated)
         }
     }
     
-    private var authState: AuthManagerState = .unauthorized {
+    private var authState: AuthManagerState = .unauthenticated {
         didSet {
-            guard case .authorized = authState else {
-                isAuthorized = false
+            guard case .authenticated = authState else {
+                isAuthenticated = false
                 return
             }
-            isAuthorized = true
+            isAuthenticated = true
         }
     }
     
@@ -130,7 +130,7 @@ class DeviceAuthManager: AuthManager {
         return error == nil
     }
     
-    private var isAuthorizedSubject: PassthroughSubject<Bool, Never> = .init()
+    private var isAuthenticatedSubject: PassthroughSubject<Bool, Never> = .init()
     
     private var lastSuccessfulAuthentication: Date?
     private var appStateCancellables = Set<AnyCancellable>()
@@ -147,13 +147,13 @@ class DeviceAuthManager: AuthManager {
     
 
     func deauthorize() {
-        authState = .unauthorized
+        authState = .unauthenticated
         lastSuccessfulAuthentication = nil
     }
     
     func checkAuthorizationWithCurrentPolicy() async throws {
         
-        guard case .unauthorized = authState else {
+        guard case .unauthenticated = authState else {
             return
         }
         let policy = loadAuthenticationPolicy()
@@ -173,9 +173,9 @@ class DeviceAuthManager: AuthManager {
     func authorize(with password: String, using keyManager: KeyManager) throws {
         let newState: AuthManagerState
         if try keyManager.checkPassword(password) {
-            newState = .authorized(with: .password)
+            newState = .authenticated(with: .password)
         } else {
-            newState = .unauthorized
+            newState = .unauthenticated
         }
         debugPrint("New auth state", newState)
         authState = newState
@@ -192,9 +192,9 @@ class DeviceAuthManager: AuthManager {
         do {
             let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Keep your encrypted data safe by using \(method.nameForMethod).")
             if result == true {
-                self.authState = .authorized(with: method)
+                self.authState = .authenticated(with: method)
             } else {
-                self.authState = .unauthorized
+                self.authState = .unauthenticated
             }
             setupNotificationObservers()
         } catch let localAuthError as LAError {
@@ -241,10 +241,10 @@ private extension DeviceAuthManager {
     func reauthorizeForPassword() {
         let policy = loadAuthenticationPolicy()
         if let authTime = lastSuccessfulAuthentication, Date().timeIntervalSinceReferenceDate < authTime.timeIntervalSinceReferenceDate - Double(policy.authenticationExpirySeconds) {
-            authState = .authorized(with: .password)
+            authState = .authenticated(with: .password)
             lastSuccessfulAuthentication = Date()
         } else {
-            authState = .unauthorized
+            authState = .unauthenticated
             lastSuccessfulAuthentication = nil
         }
     }

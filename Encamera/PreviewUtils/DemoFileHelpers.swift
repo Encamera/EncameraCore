@@ -114,9 +114,9 @@ class DemoDirectoryModel: DataStorageModel {
     
     required init(keyName: KeyName) {
         self.baseURL = URL(fileURLWithPath: NSTemporaryDirectory(),
-                           isDirectory: true).appendingPathExtension("base")
+                           isDirectory: true).appendingPathComponent("base")
         self.thumbnailDirectory = URL(fileURLWithPath: NSTemporaryDirectory(),
-                                      isDirectory: true).appendingPathExtension("thumbs")
+                                      isDirectory: true).appendingPathComponent("thumbs")
     }
     
     convenience init() {
@@ -218,16 +218,16 @@ class DemoKeyManager: KeyManager {
     
     
     convenience init() {
-        self.init(isAuthorized: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+        self.init(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
     }
     
-    required init(isAuthorized: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
-        self.isAuthorized = isAuthorized
+    required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
+        self.isAuthenticated = isAuthenticated
         self.currentKey = ImageKey(name: "test", keyBytes: [], creationDate: Date())
         self.keyPublisher = PassthroughSubject<ImageKey?, Never>().eraseToAnyPublisher()
     }
     
-    var isAuthorized: AnyPublisher<Bool, Never>
+    var isAuthenticated: AnyPublisher<Bool, Never>
         
     var keyPublisher: AnyPublisher<ImageKey?, Never>
     

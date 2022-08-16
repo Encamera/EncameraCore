@@ -32,6 +32,6 @@ struct MainInterface: View {
 
 struct MainInterface_Previews: PreviewProvider {
     static var previews: some View {
-        MainInterface(viewModel: MainInterfaceViewModel(keyManager: MultipleKeyKeychainManager(isAuthorized: Just(true).eraseToAnyPublisher()), fileWriter: DemoFileEnumerator()))
+        MainInterface(viewModel: MainInterfaceViewModel(keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher()), fileWriter: DemoFileEnumerator()))
     }
 }

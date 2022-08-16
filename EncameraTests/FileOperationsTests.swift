@@ -14,20 +14,19 @@ import Combine
 class FileOperationsTests: XCTestCase {
     
     var cancellables: [AnyCancellable] = []
-    let tempFiles = TempFilesManager(subdirectory: "FileOperationsTests")
     private var key: Array<UInt8>!
 
     private let directoryModel = DemoDirectoryModel()
 
     override func setUp() {
         key = Sodium().secretStream.xchacha20poly1305.key()
-        try! tempFiles.cleanup()
+        try? directoryModel.initializeDirectories()
     }
     
     func testEncryptInMemory() async throws {
         let sourceMedia = try FileUtils.createNewDataImageMedia()
-        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia)
-        
+        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia, targetURL: directoryModel.driveURLForNewMedia(sourceMedia))
+
         let encrypted = try await handler.encrypt()
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))
 
@@ -38,7 +37,7 @@ class FileOperationsTests: XCTestCase {
         
         let sourceMedia = try FileUtils.createNewMovieFile()
 
-        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia)
+        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia, targetURL: directoryModel.driveURLForNewMedia(sourceMedia))
         let encrypted = try await handler.encrypt()
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))
     }
@@ -47,11 +46,11 @@ class FileOperationsTests: XCTestCase {
         
         let sourceMedia = try FileUtils.createNewMovieFile()
 
-        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia)
+        let handler = SecretFileHandler(keyBytes: key, source: sourceMedia, targetURL: directoryModel.driveURLForNewMedia(sourceMedia))
         let encrypted = try await handler.encrypt()
-        
+        let target = TempFilesManager(subdirectory: "testing_1").createTempURL(for: .video, id: sourceMedia.id)
         XCTAssertTrue(FileManager.default.fileExists(atPath: encrypted.source.path))
-        let decryptHandler = SecretFileHandler(keyBytes: key, source: encrypted)
+        let decryptHandler = SecretFileHandler(keyBytes: key, source: encrypted, targetURL: target)
         let decrypted: CleartextMedia<URL> = try await decryptHandler.decrypt()
         
         XCTAssertTrue(FileManager.default.fileExists(atPath: decrypted.source.path))
