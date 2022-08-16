@@ -71,6 +71,10 @@ enum AuthManagerState: Equatable {
 struct AuthenticationPolicy: Codable {
     var preferredAuthenticationMethod: AuthenticationMethod
     var authenticationExpirySeconds: Int
+    
+    static var defaultPolicy: AuthenticationPolicy {
+        return AuthenticationPolicy(preferredAuthenticationMethod: .password, authenticationExpirySeconds: 60)
+    }
 }
 
 protocol AuthManager {
@@ -222,7 +226,9 @@ private extension DeviceAuthManager {
     }
     
     func loadAuthenticationPolicy() -> AuthenticationPolicy {
-        let settings = try! settingsManager.loadSettings()
+        guard let settings = try? settingsManager.loadSettings() else {
+            return AuthenticationPolicy.defaultPolicy
+        }
         let preferredAuth: AuthenticationMethod = settings.useBiometricsForAuth ?? false ? availableBiometric ?? .password : .password
         return AuthenticationPolicy(preferredAuthenticationMethod: preferredAuth, authenticationExpirySeconds: 60)
     }

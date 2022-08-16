@@ -39,7 +39,7 @@ private enum Constants {
     }
     static let snapTolerance: CGFloat = 50
     static let heightShrink: CGFloat = 0.70
-    static let cardHeight: CGFloat = 60
+    static let cardHeight: CGFloat = 40
 }
 
 // based off of https://gist.github.com/xtabbas/97b44b854e1315384b7d1d5ccce20623

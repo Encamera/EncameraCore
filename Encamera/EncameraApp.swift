@@ -170,7 +170,7 @@ struct EncameraApp: App {
                     self.viewModel.hasOpenedURL = false
                     self.viewModel.openedUrl = url
                     self.viewModel.hasOpenedURL = true
-                }
+                }.statusBar(hidden: true)
 
             
         }

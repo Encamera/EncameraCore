@@ -4,6 +4,14 @@ import AVFoundation
 
 
 struct CameraView: View {
+
+    private enum Constants {
+        static var minCaptureButtonEdge: Double = 80
+        static var innerCaptureButtonLineWidth: Double = 2
+        static var innerCaptureButtonStroke: Double = 0.8
+        static var innerCaptureButtonSize = Constants.minCaptureButtonEdge * 0.8
+    }
+    
     @ObservedObject private var cameraModel: CameraModel
     @State private var currentZoomFactor: CGFloat = 1.0
     @State var cameraModeStateModel: CameraModeStateModel
@@ -18,6 +26,7 @@ struct CameraView: View {
     }
     
     private var captureButton: some View {
+        
         Button(action: {
             Task {
                 try await cameraModel.captureButtonPressed()
@@ -26,15 +35,15 @@ struct CameraView: View {
             if cameraModel.isRecordingVideo {
                 Circle()
                     .foregroundColor(.red)
-                    .frame(width: 80, height: 80, alignment: .center)
+                    .frame(width: Constants.minCaptureButtonEdge, height: Constants.minCaptureButtonEdge, alignment: .center)
             } else {
                 Circle()
                     .foregroundColor(.white)
-                    .frame(width: 80, height: 80, alignment: .center)
+                    .frame(maxWidth: Constants.minCaptureButtonEdge, maxHeight: Constants.minCaptureButtonEdge, alignment: .center)
                     .overlay(
                         Circle()
-                            .stroke(Color.black.opacity(0.8), lineWidth: 2)
-                            .frame(width: 65, height: 65, alignment: .center)
+                            .stroke(Color.black.opacity(Constants.innerCaptureButtonStroke), lineWidth: Constants.innerCaptureButtonLineWidth)
+                            .frame(maxWidth: Constants.innerCaptureButtonSize, maxHeight: Constants.innerCaptureButtonSize, alignment: .center)
                     )
             }
         })
@@ -46,16 +55,21 @@ struct CameraView: View {
         }
     }
     
-    private func capturedPhotoThumbnail(thumbnailImage: UIImage) -> some View {
-        Image(uiImage: thumbnailImage)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .foregroundColor(.white)
-            .onTapGesture {
-                cameraModel.showGalleryView = true
+    private var capturedPhotoThumbnail: some View {
+        Group {
+            if let thumbnail = cameraModel.thumbnailImage {
+                Image(uiImage: thumbnail)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .foregroundColor(.white)
+                    .onTapGesture {
+                        cameraModel.showGalleryView = true
+                    }
+            } else {
+                Color.clear
             }
-
+        }
         .rotateForOrientation()
         .frame(width: 60, height: 60)
         
@@ -77,19 +91,12 @@ struct CameraView: View {
     
     private var bottomButtonPanel: some View {
         VStack {
-            CameraModePicker(pressedAction: { mode in
-            })
-            .onReceive(cameraModeStateModel.$selectedMode) { newValue in
-                cameraModel.selectedCameraMode = newValue
-            }
-            .environmentObject(cameraModeStateModel)
             HStack {
-                if let thumbnail = cameraModel.thumbnailImage {
-                    capturedPhotoThumbnail(thumbnailImage: thumbnail)
-                }
+                capturedPhotoThumbnail
                 
                 captureButton
                     .frame(maxWidth: .infinity)
+                    .padding()
                 flipCameraButton
             }
             .padding(.horizontal, 20)
@@ -159,7 +166,9 @@ struct CameraView: View {
                 .rotateForOrientation()
                 
                 
-            }.padding().tint(.white).foregroundColor(.white)
+            }
+            .tint(.white)
+            .foregroundColor(.white)
             if cameraModel.isRecordingVideo {
                 Text("\(cameraModel.recordingDuration.durationText)")
                     .padding(5)
@@ -172,11 +181,15 @@ struct CameraView: View {
     
     var body: some View {
         ZStack {
-            cameraPreview
-                .edgesIgnoringSafeArea(.all)
+            
+                
+                
+
             VStack {
                 topBar
-                Spacer()
+                cameraPreview
+                    .edgesIgnoringSafeArea(.all)
+//                cameraModePicker
                 bottomButtonPanel
             }
             if cameraModel.showScreenBlocker {
@@ -193,8 +206,23 @@ struct CameraView: View {
             Task {
                 await cameraModel.loadThumbnail()
             }
-        }
+        }        
+
     }
+}
+
+private extension CameraView {
+    
+    var cameraModePicker: some View {
+        CameraModePicker(pressedAction: { mode in
+        })
+        .onReceive(cameraModeStateModel.$selectedMode) { newValue in
+            cameraModel.selectedCameraMode = newValue
+        }
+        .environmentObject(cameraModeStateModel)
+        
+    }
+    
 }
 
 private extension AVCaptureDevice.FlashMode {
