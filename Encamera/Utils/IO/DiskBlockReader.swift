@@ -47,7 +47,7 @@ class DiskBlockReader: FileLikeBlockReader {
         }
         
         if FileManager.default.fileExists(atPath: source.path) == false {
-            let result = FileManager.default.createFile(atPath: source.path, contents: "".data(using: .utf8))
+            FileManager.default.createFile(atPath: source.path, contents: "".data(using: .utf8))
         }
         fileHandle = try FileHandle(forWritingTo: source)
     }

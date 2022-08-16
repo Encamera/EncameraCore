@@ -132,23 +132,18 @@ class DeviceAuthManager: AuthManager {
     
     private var isAuthenticatedSubject: PassthroughSubject<Bool, Never> = .init()
     
-    private var lastSuccessfulAuthentication: Date?
+
     private var appStateCancellables = Set<AnyCancellable>()
-    private var systemClockCancellables: AnyCancellable?
     private var settingsManager: SettingsManager
     
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
-        systemClockCancellables = NotificationUtils.systemClockDidChangePublisher.sink { _ in
-            self.lastSuccessfulAuthentication = nil
-        }
         setupNotificationObservers()
     }
     
 
     func deauthorize() {
         authState = .unauthenticated
-        lastSuccessfulAuthentication = nil
     }
     
     func checkAuthorizationWithCurrentPolicy() async throws {
@@ -239,14 +234,7 @@ private extension DeviceAuthManager {
     }
     
     func reauthorizeForPassword() {
-        let policy = loadAuthenticationPolicy()
-        if let authTime = lastSuccessfulAuthentication, Date().timeIntervalSinceReferenceDate < authTime.timeIntervalSinceReferenceDate - Double(policy.authenticationExpirySeconds) {
-            authState = .authenticated(with: .password)
-            lastSuccessfulAuthentication = Date()
-        } else {
-            authState = .unauthenticated
-            lastSuccessfulAuthentication = nil
-        }
+        authState = .unauthenticated
     }
     
     func cancelNotificationObservers() {
