@@ -11,7 +11,7 @@ import PDFKit
 
 struct PhotoDetailView: UIViewRepresentable {
     let image: UIImage
-
+    
     func makeUIView(context: Context) -> PDFView {
         let view = PDFView()
         view.document = PDFDocument()
@@ -20,7 +20,7 @@ struct PhotoDetailView: UIViewRepresentable {
         view.autoScales = true
         return view
     }
-
+    
     func updateUIView(_ uiView: PDFView, context: Context) {
         // empty
     }
@@ -40,7 +40,7 @@ protocol MediaViewingViewModel: AnyObject {
     var sourceMedia: SourceType { get set }
     var fileAccess: FileAccess? { get set }
     var error: MediaViewingError? { get set }
-
+    
     var decryptedFileRef: CleartextMedia<TargetT>? { get set }
     init(media: SourceType, fileAccess: FileAccess)
     
@@ -53,7 +53,7 @@ extension MediaViewingViewModel {
         do {
             let result = try await decrypt()
             print("result", result, print(Unmanaged.passUnretained(self).toOpaque())
-)
+            )
             self.decryptedFileRef = result
         } catch {
             self.error = .decryptError(wrapped: error)
@@ -74,7 +74,7 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
     var sourceMedia: SourceType
     var fileAccess: FileAccess?
     var error: MediaViewingError?
-
+    
     required init(media: SourceType, fileAccess: FileAccess) {
         self.sourceMedia = media
         self.fileAccess = fileAccess
@@ -93,28 +93,26 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
             self.error = .decryptError(wrapped: error)
         }
     }
-//    func decrypt() async throws -> CleartextMedia<Data> {
-////        guard let fileAccess = fileAccess else {
-////            throw MediaViewingError.fileAccessNotAvailable
-////        }
-////        return
-//    }
+    
+    
 }
 
 struct ImageViewing<M: MediaDescribing>: View {
     
     @State var currentScale: CGFloat = 0.0
     @State var finalScale: CGFloat = 1.0
-    @State var offset: CGPoint = .zero
+    @State var finalOffset: CGSize = .zero
+    @State var currentOffset: CGSize = .zero
+    @State var showBottomActions = false
     @ObservedObject var viewModel: ImageViewingViewModel<M>
     private var cancellables = Set<AnyCancellable>()
-
+    
     init(viewModel: ImageViewingViewModel<M>) {
         self.viewModel = viewModel
-//        print("ImageViewingViewModel", self)
-//        viewModel.$decryptedFileRef.sink { media in
-//            print("media", media)
-//        }.store(in: &cancellables)
+        //        print("ImageViewingViewModel", self)
+        //        viewModel.$decryptedFileRef.sink { media in
+        //            print("media", media)
+        //        }.store(in: &cancellables)
         
         
     }
@@ -122,46 +120,89 @@ struct ImageViewing<M: MediaDescribing>: View {
     
     
     var body: some View {
-        VStack {
+        GeometryReader { geo in
+            let frame = geo.frame(in: .local)
             
-//            if let imageData = viewModel.decryptedFileRef?.source,
-//               let image = UIImage(data: imageData) {
-            if let imageData = try? Data(contentsOf: Bundle.main.url(forResource: "dog", withExtension: "jpg")!),
-               let image = UIImage(data: imageData) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .scaleEffect(finalScale + currentScale)
-                    .offset(x: offset.x, y: offset.y)
+            ScrollView {
                 
-                    .gesture(
-                        MagnificationGesture()
-                            .onChanged({ value in
-                                currentScale = value - 1
-                            })
-                            .onEnded({ amount in
-                                finalScale += currentScale
-                                currentScale = 0.0
-                            })
-                    )
-                    .gesture(DragGesture().onChanged({ value in
-                        self.offset = value.predictedEndLocation
-                    }))
-                    .gesture(TapGesture(count: 2).onEnded {
-                        self.finalScale = 1.0
-                    })
-                    .animation(.easeInOut, value: currentScale)
-            } else {
-                Text("Could not decrypt image")
-                    .foregroundColor(.red)
+                
+                //            if let imageData = viewModel.decryptedFileRef?.source,
+                //               let image = UIImage(data: imageData) {
+                if let imageData = try? Data(contentsOf: Bundle.main.url(forResource: "dog", withExtension: "jpg")!),
+                   let image = UIImage(data: imageData) {
+                    
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: frame.width, height: frame.height)
+                        .scaleEffect(finalScale + currentScale)
+                        .offset(
+                            x: finalOffset.width + currentOffset.width,
+                            y: finalOffset.height + currentOffset.height)
+                        
+                        .gesture(DragGesture().onChanged({ value in
+                            if finalScale > 1.0 {
+                                var newOffset = value.translation
+                                if newOffset.height > frame.height * finalScale {
+                                    newOffset.height = frame.height * finalScale
+                                }
+                                
+                                currentOffset = newOffset
+                            }
+                        }).onEnded({ value in
+                            let nextOffset: CGSize = .init(
+                                width: finalOffset.width + currentOffset.width,
+                                height: finalOffset.height + currentOffset.height)
+                            
+                            finalOffset = nextOffset
+                            currentOffset = .zero
+                        }))
+                        .gesture(
+                            MagnificationGesture()
+                                .onChanged({ value in
+                                    currentScale = value - 1
+                                    
+                                })
+                                .onEnded({ amount in
+                                    let final = finalScale + currentScale
+                                    finalScale = final < 1.0 ? 1.0 : final
+                                    currentScale = 0.0
+                                })
+                        )
+                    
+                        .gesture(TapGesture(count: 2).onEnded {
+                            finalScale = finalScale > 1.0 ? 1.0 : 3.0
+                            finalOffset = .zero
+                        })
+                        .animation(.easeInOut, value: currentScale)
+                        .animation(.easeInOut, value: finalOffset)
+                        .zIndex(1)
+                    
+                } else {
+                    Text("Could not decrypt image")
+                        .foregroundColor(.red)
+                }
+                if finalScale == 1.0 {
+                    VStack(spacing: 10) {
+                        Button("Delete Image") {
+                            
+                        }
+                        Button("Share Encrypted") {
+                            
+                        }
+                        Button("Share Decrypted") {
+                            
+                        }
+                    }
+                }
             }
         }.task {
             await viewModel.decryptAndSet()
         }
         
-//        .onDisappear {
-//            viewModel.cleanup()
-//        }
+        //        .onDisappear {
+        //            viewModel.cleanup()
+        //        }
         .navigationTitle("")
         .navigationBarHidden(true)
         .background(Color.black)
@@ -170,11 +211,11 @@ struct ImageViewing<M: MediaDescribing>: View {
 
 struct ImageViewing_Previews: PreviewProvider {
     
-
+    
     static var previews: some View {
         NavigationView {
             let url = Bundle.main.url(forResource: "image", withExtension: "jpg")!
-        ImageViewing(viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()))
+            ImageViewing(viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()))
         }
     }
 }

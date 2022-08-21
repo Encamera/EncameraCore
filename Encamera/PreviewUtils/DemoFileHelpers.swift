@@ -105,6 +105,9 @@ class DemoFileEnumerator: FileAccess {
         
         return retVal.shuffled()
     }
+    func delete(media: EncryptedMedia) async throws {
+        
+    }
 }
 
 class DemoDirectoryModel: DataStorageModel {

@@ -247,6 +247,13 @@ extension DiskFileAccess: FileWriter {
         try media.delete()
         return encrypted
     }
+    
+    func delete(media: EncryptedMedia) async throws {
+        
+        try FileManager.default.removeItem(at: media.source)
+        try FileManager.default.removeItem(at: media.thumbnailURL)
+        
+    }
 }
 
 extension DiskFileAccess: FileAccess {
