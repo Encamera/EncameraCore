@@ -17,6 +17,7 @@
 		19217E2D273FE452009E3850 /* ImageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2B273FE452009E3850 /* ImageKey.swift */; };
 		19217E2E273FE452009E3850 /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2C273FE452009E3850 /* EncameraState.swift */; };
 		192B2CE828A1A8840047DAE2 /* StorageOptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192B2CE728A1A8840047DAE2 /* StorageOptionItemView.swift */; };
+		192C645228B0F2A500852963 /* SwiftUISnappingScrollView in Frameworks */ = {isa = PBXBuildFile; productRef = 192C645128B0F2A500852963 /* SwiftUISnappingScrollView */; };
 		1932371F28494BF60074CE8A /* CaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1932371E28494BF60074CE8A /* CaptureProcessor.swift */; };
 		193237212849EA680074CE8A /* image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 193237202849EA680074CE8A /* image.jpg */; };
 		193237232849EEE80074CE8A /* MediaTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193237222849EEE80074CE8A /* MediaTypeTests.swift */; };
@@ -39,9 +40,11 @@
 		19665C462742542A00DA8578 /* KeyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19665C452742542A00DA8578 /* KeyEntry.swift */; };
 		196AFE81274F83D100C809ED /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE80274F83D100C809ED /* GalleryView.swift */; };
 		196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196AFE82274F858300C809ED /* DiskFileAccess.swift */; };
+		197213C928ACF229001C9BEE /* GalleryScrollViewItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197213C828ACF229001C9BEE /* GalleryScrollViewItem.swift */; };
 		1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1978F9782822486000D16FD4 /* CameraModePicker.swift */; };
 		197DDE9E28AB95DD0027371D /* FileUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193532372862FECB00964A01 /* FileUtils.swift */; };
 		197DDEA028AB96D80027371D /* TempFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197DDE9F28AB96D80027371D /* TempFilesManager.swift */; };
+		197DDEA228ABBE670027371D /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197DDEA128ABBE670027371D /* GalleryHorizontalScrollView.swift */; };
 		19868A0A287B25E20006E120 /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19868A09287B25E20006E120 /* Rotation.swift */; };
 		19868A0D287B4C740006E120 /* RotationViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19868A0C287B4C740006E120 /* RotationViewModifier.swift */; };
 		19868A10287B73380006E120 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19868A0F287B73380006E120 /* AuthenticationView.swift */; };
@@ -142,8 +145,10 @@
 		19665C452742542A00DA8578 /* KeyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyEntry.swift; sourceTree = "<group>"; };
 		196AFE80274F83D100C809ED /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		196AFE82274F858300C809ED /* DiskFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskFileAccess.swift; sourceTree = "<group>"; };
+		197213C828ACF229001C9BEE /* GalleryScrollViewItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryScrollViewItem.swift; sourceTree = "<group>"; };
 		1978F9782822486000D16FD4 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
 		197DDE9F28AB96D80027371D /* TempFilesManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TempFilesManager.swift; path = Encamera/Utils/TempFilesManager.swift; sourceTree = SOURCE_ROOT; };
+		197DDEA128ABBE670027371D /* GalleryHorizontalScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryHorizontalScrollView.swift; sourceTree = "<group>"; };
 		19868A09287B25E20006E120 /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
 		19868A0C287B4C740006E120 /* RotationViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationViewModifier.swift; sourceTree = "<group>"; };
 		19868A0F287B73380006E120 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
@@ -216,6 +221,7 @@
 			files = (
 				1961BCBE281B081E00D7BE92 /* Clibsodium in Frameworks */,
 				1961BCC0281B081E00D7BE92 /* Sodium in Frameworks */,
+				192C645228B0F2A500852963 /* SwiftUISnappingScrollView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -248,6 +254,8 @@
 				19874B44285D253A001C2D06 /* AsyncImage.swift */,
 				195719E6274B8BE300E93658 /* MovieViewing.swift */,
 				19B6D051282B354500DC07F8 /* MediaGalleryView.swift */,
+				197DDEA128ABBE670027371D /* GalleryHorizontalScrollView.swift */,
+				197213C828ACF229001C9BEE /* GalleryScrollViewItem.swift */,
 			);
 			path = ImageViewing;
 			sourceTree = "<group>";
@@ -544,6 +552,7 @@
 			packageProductDependencies = (
 				1961BCBD281B081E00D7BE92 /* Clibsodium */,
 				1961BCBF281B081E00D7BE92 /* Sodium */,
+				192C645128B0F2A500852963 /* SwiftUISnappingScrollView */,
 			);
 			productName = Encamera;
 			productReference = A9FE17812539494300D547C7 /* Encamera.app */;
@@ -596,6 +605,7 @@
 			mainGroup = A9FE17782539494300D547C7;
 			packageReferences = (
 				1961BCBC281B081E00D7BE92 /* XCRemoteSwiftPackageReference "swift-sodium" */,
+				192C645028B0F2A500852963 /* XCRemoteSwiftPackageReference "SwiftUISnappingScrollView" */,
 			);
 			productRefGroup = A9FE17822539494300D547C7 /* Products */;
 			projectDirPath = "";
@@ -648,7 +658,9 @@
 				19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */,
 				1932371F28494BF60074CE8A /* CaptureProcessor.swift in Sources */,
 				19C97EA62888ADDE005901DE /* OSStatusChecker.swift in Sources */,
+				197DDEA228ABBE670027371D /* GalleryHorizontalScrollView.swift in Sources */,
 				19FD5D5C2835D91F008D75AA /* CleartextMedia.swift in Sources */,
+				197213C928ACF229001C9BEE /* GalleryScrollViewItem.swift in Sources */,
 				19665C462742542A00DA8578 /* KeyEntry.swift in Sources */,
 				1990CA3C2880C3FE007486D3 /* OnboardingManager.swift in Sources */,
 				19868A0D287B4C740006E120 /* RotationViewModifier.swift in Sources */,
@@ -978,6 +990,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		192C645028B0F2A500852963 /* XCRemoteSwiftPackageReference "SwiftUISnappingScrollView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ciaranrobrien/SwiftUISnappingScrollView";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		1961BCBC281B081E00D7BE92 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jedisct1/swift-sodium.git";
@@ -989,6 +1009,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		192C645128B0F2A500852963 /* SwiftUISnappingScrollView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 192C645028B0F2A500852963 /* XCRemoteSwiftPackageReference "SwiftUISnappingScrollView" */;
+			productName = SwiftUISnappingScrollView;
+		};
 		1961BCBD281B081E00D7BE92 /* Clibsodium */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 1961BCBC281B081E00D7BE92 /* XCRemoteSwiftPackageReference "swift-sodium" */;

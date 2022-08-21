@@ -40,18 +40,20 @@ struct GalleryItem: View {
     
     var fileAccess: FileAccess
     var media: EncryptedMedia
+    var galleryViewModel: GalleryViewModel
     @State private var isActive: Bool = false
     
     var body: some View {
         NavigationLink(isActive: $isActive, destination: {
-            switch media.mediaType {
-            case .photo:
-                ImageViewing(viewModel: ImageViewingViewModel<EncryptedMedia>.init(media: media, fileAccess: fileAccess))
-            case .video:
-                MovieViewing<EncryptedMedia>(viewModel: .init(media: media, fileAccess: fileAccess))
-            default:
-                EmptyView()
-            }
+            GalleryHorizontalScrollView(viewModel: .init(media: galleryViewModel.media, fileAccess: galleryViewModel.fileAccess))
+//            switch media.mediaType {
+//            case .photo:
+//                ImageViewing(viewModel: ImageViewingViewModel<EncryptedMedia>.init(media: media, fileAccess: fileAccess))
+//            case .video:
+//                MovieViewing<EncryptedMedia>(viewModel: .init(media: media, fileAccess: fileAccess))
+//            default:
+//                EmptyView()
+//            }
         }, label: {
             AsyncImage(viewModel: .init(targetMedia: media, loader: fileAccess)) {
                 ProgressView()

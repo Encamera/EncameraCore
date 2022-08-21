@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 
+
 @MainActor
 class GalleryViewModel: ObservableObject {
     
@@ -36,10 +37,12 @@ struct GalleryView: View {
         let gridItems = [
             GridItem(.adaptive(minimum: 100), spacing: 1)
         ]
+        
         ScrollView {
             LazyVGrid(columns: gridItems, spacing: 1) {
                 ForEach(viewModel.media, id: \.gridID) { mediaItem in
-                    GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem)
+                    
+                    GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem, galleryViewModel: viewModel)
                 }
             }
         }

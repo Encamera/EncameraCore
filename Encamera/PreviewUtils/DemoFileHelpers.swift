@@ -17,7 +17,7 @@ class DemoFileEnumerator: FileAccess {
     
     
     
-    var media: [EncryptedMedia]
+    var mediaList: [EncryptedMedia]
     
     func savePreview<T>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
         fatalError()
@@ -36,7 +36,9 @@ class DemoFileEnumerator: FileAccess {
     }
     
     func loadMediaInMemory<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
-        CleartextMedia(source: Data())
+        let url = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
+
+        return CleartextMedia(source: try! Data(contentsOf: url))
     }
     
     func save<T>(media: CleartextMedia<T>) async throws -> EncryptedMedia where T : MediaSourcing {
@@ -69,17 +71,17 @@ class DemoFileEnumerator: FileAccess {
     required init(key: ImageKey, storageSettingsManager: DataStorageSetting) {
         let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
         
-        media = (0..<5).map { val in
+        mediaList = (0..<5).map { val in
             EncryptedMedia(source: url, mediaType: .photo, id: "\(NSUUID().uuidString)")
         }
         
         let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
         
-        media += (6..<10).map { val in
+        mediaList += (6..<10).map { val in
             EncryptedMedia(source: dog, mediaType: .photo, id: "\(NSUUID().uuidString)")
         }
         
-        media.shuffle()
+        mediaList.shuffle()
 
     }
     
@@ -145,6 +147,7 @@ class DemoDirectoryModel: DataStorageModel {
 }
 
 class DemoKeyManager: KeyManager {
+    
     var keyDirectoryStorage: DataStorageSetting = DemoStorageSettingsManager()
     
      

@@ -13,10 +13,35 @@ struct KeyEntry: View {
     class ViewModel: ObservableObject {
         @Published var keyString: String = ""
         @Published var isShowingAlertForSaveKey: Bool = false
-        @Published var storageType: StorageType!
+        @Published var keyStorageType: StorageType = .local
+        @Published var storageAvailabilities: [StorageAvailabilityModel] = []
         var keyManager: KeyManager
         init(keyManager: KeyManager, isShowing: Binding<Bool>) {
             self.keyManager = keyManager
+        }
+        
+        func loadStorageAvailabilities() {
+            Task {
+                var availabilites = [StorageAvailabilityModel]()
+                for type in StorageType.allCases {
+                    let result = await keyManager.keyDirectoryStorage.isStorageTypeAvailable(type: type)
+                    availabilites += [StorageAvailabilityModel(storageType: type, availability: result)]
+                }
+                await setStorage(availabilites: availabilites)
+            }
+            
+        }
+        @MainActor
+        func setStorage(availabilites: [StorageAvailabilityModel]) async {
+            await MainActor.run {
+                self.keyStorageType = availabilites.filter({
+                    if case .available = $0.availability {
+                        return true
+                    }
+                    return false
+                }).map({$0.storageType}).first ?? .local
+                self.storageAvailabilities = availabilites
+            }
         }
     }
         
@@ -41,7 +66,7 @@ struct KeyEntry: View {
             
             TextEditor(text: $viewModel.keyString)
             Spacer()
-            
+            StorageSettingView(keyStorageType: $viewModel.keyStorageType, storageAvailabilities: $viewModel.storageAvailabilities)
         }.padding().navigationTitle("Key Entry")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -58,11 +83,13 @@ struct KeyEntry: View {
                     guard let keyObject = keyObject.wrappedValue else {
                         return
                     }
-                    try? viewModel.keyManager.save(key: keyObject, storageType: viewModel.storageType)
+                    try? viewModel.keyManager.save(key: keyObject, storageType: viewModel.keyStorageType)
                 }
                 Button("Cancel", role: .cancel) {
                     viewModel.isShowingAlertForSaveKey = false
                 }
+            }.onAppear {
+                viewModel.loadStorageAvailabilities()
             }
     }
 }

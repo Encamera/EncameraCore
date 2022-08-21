@@ -5,7 +5,7 @@ import Combine
 struct EncameraApp: App {
     class ViewModel: ObservableObject {
         @Published var hasOpenedURL: Bool = false
-        @Published var fileAccess: DiskFileAccess?
+        @Published var fileAccess: FileAccess?
         @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
