@@ -11,7 +11,7 @@ import Combine
 class MediaGalleryViewModel<F: FileAccess>: ObservableObject {
     @Published var fileAccess: F!
     @Published var keyManager: KeyManager
-
+    
     init(keyManager: KeyManager, storageSettingsManager: DataStorageSetting) {
         
         self.keyManager = keyManager
@@ -22,24 +22,22 @@ class MediaGalleryViewModel<F: FileAccess>: ObservableObject {
 }
 
 struct MediaGalleryView<F: FileAccess>: View {
-
-    @State var viewModel: MediaGalleryViewModel<F>
+    
+    @ObservedObject var viewModel: MediaGalleryViewModel<F>
     @State var selectedMediaType: MediaType
-
+    
     init(viewModel: MediaGalleryViewModel<F>) {
         self.viewModel = viewModel
         self.selectedMediaType = .photo
     }
     
     var body: some View {
-        NavigationView {
-            VStack {
-                GalleryView(viewModel: .init(
-                    fileAccess: viewModel.fileAccess,
-                    keyManager: viewModel.keyManager
-                ))
-            }.navigationBarHidden(true)
-        }
+//        VStack {
+            GalleryView(viewModel: .init(
+                fileAccess: viewModel.fileAccess,
+                keyManager: viewModel.keyManager
+            )).navigationTitle(viewModel.keyManager.currentKey?.name ?? "No Key")
+//        }
     }
 }
 //

@@ -14,7 +14,6 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
     class ViewModel: ObservableObject {
         private var loader: FileReader
         private var targetMedia: T
-        private var cancellables = Set<AnyCancellable>()
         @Published var cleartextMedia: PreviewModel?
         
         init(targetMedia: T, loader: FileReader) {
@@ -24,7 +23,10 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
         
         func loadPreview() async {
             do {
-                cleartextMedia = try await loader.loadMediaPreview(for: targetMedia)
+                let preview = try await loader.loadMediaPreview(for: targetMedia)
+                await MainActor.run {
+                    cleartextMedia = preview
+                }
             } catch {
                 debugPrint(error)
             }
@@ -41,6 +43,8 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
     
     
     var body: some View {
+        let _ = Self._printChanges()
+
         GeometryReader { geo in
             let frame = geo.frame(in: .local)
             let side = frame.height
@@ -52,7 +56,8 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
     }
     
     @ViewBuilder private func content(frame: CGRect) -> some View {
-        if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.source, let image = UIImage(data: decrypted) {
+        if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.source,
+           let image = UIImage(data: decrypted) {
             ZStack {
                 Image(uiImage: image)
                     .resizable()

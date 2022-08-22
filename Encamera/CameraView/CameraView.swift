@@ -4,7 +4,7 @@ import AVFoundation
 
 
 struct CameraView: View {
-
+    
     private enum Constants {
         static var minCaptureButtonEdge: Double = 80
         static var innerCaptureButtonLineWidth: Double = 2
@@ -124,7 +124,7 @@ struct CameraView: View {
                     })
                 )
                 .onChange(of: rotationFromOrientation, perform: { newValue in
-////                    cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
+                    ////                    cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
                 })
                 .alert(isPresented: $cameraModel.showAlertError, content: {
                     Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
@@ -180,34 +180,37 @@ struct CameraView: View {
     }
     
     var body: some View {
-        ZStack {
+        NavigationView {
             
+            ZStack {
                 
-                
-
-            VStack {
-                topBar
-                cameraPreview
-                    .edgesIgnoringSafeArea(.all)
-//                cameraModePicker
-                bottomButtonPanel
+                NavigationLink(isActive: $cameraModel.showGalleryView) {
+                    MediaGalleryView<DiskFileAccess>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager, storageSettingsManager: cameraModel.storageSettingsManager))
+                    
+                } label: {
+                    EmptyView()
+                }
+                VStack {
+                    topBar
+                    cameraPreview
+                        .edgesIgnoringSafeArea(.all)
+                    //                cameraModePicker
+                    bottomButtonPanel
+                }.navigationBarHidden(true).navigationTitle("")
+                if cameraModel.showScreenBlocker {
+                    Color.black.edgesIgnoringSafeArea(.all)
+                }
             }
-            if cameraModel.showScreenBlocker {
-                Color.black.edgesIgnoringSafeArea(.all)
+            .background(Color.black)
+            .sheet(isPresented: $cameraModel.showingKeySelection) {
+                KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
+            }
+            .onAppear {
+                Task {
+                    await cameraModel.loadThumbnail()
+                }
             }
         }
-        .background(Color.black)
-        .sheet(isPresented: $cameraModel.showingKeySelection) {
-            KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
-        }.sheet(isPresented: $cameraModel.showGalleryView) {
-            MediaGalleryView<DiskFileAccess>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager, storageSettingsManager: cameraModel.storageSettingsManager))
-        }
-        .onAppear {
-            Task {
-                await cameraModel.loadThumbnail()
-            }
-        }        
-
     }
 }
 

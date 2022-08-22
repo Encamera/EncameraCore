@@ -33,7 +33,7 @@ final class CameraModel: ObservableObject {
     var keyManager: KeyManager
     var alertError: AlertError!
     var storageSettingsManager: DataStorageSetting
-    private var fileAccess: FileAccess?
+    var fileAccess: FileAccess?
     
     
     private var cancellables = Set<AnyCancellable>()

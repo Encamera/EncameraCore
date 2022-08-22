@@ -40,16 +40,17 @@ struct GalleryHorizontalScrollView: View {
             let gridItems = [
                 GridItem(.fixed(frame.width), spacing: 0)
             ]
-//            ScrollView(.horizontal) {
-//                LazyHGrid(rows: gridItems) {
-//
-//                    ForEach(viewModel.media) { item in
-            let item = viewModel.media.first!
+            
+            ScrollView(.horizontal) {
+                LazyHGrid(rows: gridItems) {
+
+                    ForEach(viewModel.media) { item in
+//            let item = viewModel.media.first!
                         ImageViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess)).frame(width: frame.width, height: frame.height)
                             
-//                    }
-//                }
-//            }
+                    }
+                }
+            }
         }
     }
 }

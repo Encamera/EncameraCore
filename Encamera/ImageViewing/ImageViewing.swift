@@ -80,20 +80,21 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
         self.fileAccess = fileAccess
     }
     
-    func decryptAndSet() async {
-        do {
-            let result = try await fileAccess!.loadMediaInMemory(media: sourceMedia) { progress in
+    func decryptAndSet() {
+        Task {
+            do {
+                let result = try await fileAccess!.loadMediaInMemory(media: sourceMedia) { progress in
+                    
+                }
+                await MainActor.run {
+                    self.decryptedFileRef = result
+                }
                 
+            } catch {
+                self.error = .decryptError(wrapped: error)
             }
-            await MainActor.run {
-                self.decryptedFileRef = result
-            }
-            
-        } catch {
-            self.error = .decryptError(wrapped: error)
         }
     }
-    
     
 }
 
@@ -123,13 +124,13 @@ struct ImageViewing<M: MediaDescribing>: View {
         GeometryReader { geo in
             let frame = geo.frame(in: .local)
             
-            ScrollView {
+//            ScrollView {
                 
                 
-                //            if let imageData = viewModel.decryptedFileRef?.source,
-                //               let image = UIImage(data: imageData) {
-                if let imageData = try? Data(contentsOf: Bundle.main.url(forResource: "dog", withExtension: "jpg")!),
+                if let imageData = viewModel.decryptedFileRef?.source,
                    let image = UIImage(data: imageData) {
+                    ////                if let imageData = try? Data(contentsOf: Bundle.main.url(forResource: "dog", withExtension: "jpg")!),
+                    //                   let image = UIImage(data: imageData) {
                     
                     Image(uiImage: image)
                         .resizable()
@@ -139,7 +140,7 @@ struct ImageViewing<M: MediaDescribing>: View {
                         .offset(
                             x: finalOffset.width + currentOffset.width,
                             y: finalOffset.height + currentOffset.height)
-                        
+                    
                         .gesture(DragGesture().onChanged({ value in
                             if finalScale > 1.0 {
                                 var newOffset = value.translation
@@ -182,22 +183,10 @@ struct ImageViewing<M: MediaDescribing>: View {
                     Text("Could not decrypt image")
                         .foregroundColor(.red)
                 }
-                if finalScale == 1.0 {
-                    VStack(spacing: 10) {
-                        Button("Delete Image") {
-                            
-                        }
-                        Button("Share Encrypted") {
-                            
-                        }
-                        Button("Share Decrypted") {
-                            
-                        }
-                    }
-                }
-            }
-        }.task {
-            await viewModel.decryptAndSet()
+                
+//            }
+        }.onAppear {
+            viewModel.decryptAndSet()
         }
         
         //        .onDisappear {

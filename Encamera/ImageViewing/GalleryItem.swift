@@ -11,30 +11,6 @@ import Combine
 import CoreMedia
 
 
-struct PreviewModel: Codable {
-    
-    var id: String
-    typealias MediaSource = Data
-    
-    var thumbnailMedia: CleartextMedia<Data>
-    var gridID: String {
-        "\(thumbnailMedia.mediaType.fileExtension)_\(thumbnailMedia.id)"
-    }
-    var videoDuration: String?
-    
-    init(source: CleartextMedia<Data>) {
-        let decoded = try! JSONDecoder().decode(PreviewModel.self, from: source.source)
-        self.id = decoded.id
-        self.thumbnailMedia = decoded.thumbnailMedia
-        self.videoDuration = decoded.videoDuration
-    }
-    
-    init(thumbnailMedia: CleartextMedia<Data>) {
-        self.thumbnailMedia = thumbnailMedia
-        self.id = thumbnailMedia.id
-    }
-    
-}
 
 struct GalleryItem: View {
     
@@ -44,26 +20,11 @@ struct GalleryItem: View {
     @State private var isActive: Bool = false
     
     var body: some View {
-        NavigationLink(isActive: $isActive, destination: {
-            GalleryHorizontalScrollView(viewModel: .init(media: galleryViewModel.media, fileAccess: galleryViewModel.fileAccess))
-//            switch media.mediaType {
-//            case .photo:
-//                ImageViewing(viewModel: ImageViewingViewModel<EncryptedMedia>.init(media: media, fileAccess: fileAccess))
-//            case .video:
-//                MovieViewing<EncryptedMedia>(viewModel: .init(media: media, fileAccess: fileAccess))
-//            default:
-//                EmptyView()
-//            }
-        }, label: {
             AsyncImage(viewModel: .init(targetMedia: media, loader: fileAccess)) {
                 ProgressView()
             }
             .clipped()
             .aspectRatio(1, contentMode: .fill)
-            
-        }).onTapGesture {
-            isActive = true
-        }
     }
 }
 struct GalleryItem_Previews: PreviewProvider {

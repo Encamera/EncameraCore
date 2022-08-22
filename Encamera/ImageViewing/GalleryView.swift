@@ -25,7 +25,8 @@ class GalleryViewModel: ObservableObject {
     
     
     func enumerateMedia() async {
-        self.media = await fileAccess.enumerateMedia()
+        let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
+        media = enumerated
     }
 }
 
@@ -34,6 +35,8 @@ struct GalleryView: View {
     @ObservedObject var viewModel: GalleryViewModel
     
     var body: some View {
+        let _ = Self._printChanges()
+
         let gridItems = [
             GridItem(.adaptive(minimum: 100), spacing: 1)
         ]
@@ -48,8 +51,8 @@ struct GalleryView: View {
         }
         .task {
             await viewModel.enumerateMedia()
-        }
-        .edgesIgnoringSafeArea(.all)
+        }.background(Color.black)
+//        .edgesIgnoringSafeArea(.all)
         
     }
 }
