@@ -30,44 +30,102 @@ extension Color {
         )
     }
 }
+
+private struct OffsetPreferenceKey: PreferenceKey {
+    
+    static var defaultValue: CGPoint = .zero
+    
+    static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) { }
+}
+
+struct ScrollViewOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue = CGFloat.zero
+    
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value += nextValue()
+    }
+}
+// A ScrollView wrapper that tracks scroll offset changes.
+struct ObservableScrollView<Content>: View where Content : View {
+    @Namespace var scrollSpace
+    
+    @Binding var scrollOffset: CGFloat
+    let content: (ScrollViewProxy) -> Content
+    
+    init(scrollOffset: Binding<CGFloat>,
+         @ViewBuilder content: @escaping (ScrollViewProxy) -> Content) {
+        _scrollOffset = scrollOffset
+        self.content = content
+    }
+    
+    var body: some View {
+        ScrollView {
+            ScrollViewReader { proxy in
+                content(proxy)
+                    .background(GeometryReader { geo in
+                        let offset = -geo.frame(in: .named(scrollSpace)).minY
+                        Color.clear
+                            .preference(key: ScrollViewOffsetPreferenceKey.self,
+                                        value: offset)
+                    })
+            }
+        }
+        .coordinateSpace(name: scrollSpace)
+        .onPreferenceChange(ScrollViewOffsetPreferenceKey.self) { value in
+            scrollOffset = value
+        }
+    }
+}
+
 struct GalleryHorizontalScrollView: View {
     
     @ObservedObject var viewModel: GalleryHorizontalScrollViewModel
     @Binding var shouldShow: Bool
     @State var scrollViewXOffset: CGFloat = .zero
     @GestureState private var state = false
-    var swipeDownGesture = DragGesture()
     //    @Published var startPoint: CGPoint = .zero
-    
+    @Namespace var scrollSpace
+
     
     
     var body: some View {
         VStack {
-            Button {
-                shouldShow = false
-            } label: {
-                Image(systemName: "x.circle")
-            }
             
             GeometryReader { geo in
                 let frame = geo.frame(in: .global)
                 let gridItems = [
                     GridItem(.fixed(frame.width), spacing: 0)
                 ]
+                ScrollView(.horizontal) {
+
                 ScrollViewReader { scrollProxy in
-                    ScrollView(.horizontal) {
+                    
+                        
                         LazyHGrid(rows: gridItems) {
                             ForEach(viewModel.media, id: \.id) { item in
                                 ImageViewing(viewModel:
                                         .init(media: item, fileAccess: viewModel.fileAccess),
                                              isActive: $shouldShow)
+                                
                                 .frame(width: frame.width, height: frame.height)
+                                
                             }
-                        }
-                    }.onAppear {
-                        scrollProxy.scrollTo(viewModel.selectedMedia.id)
+                        }.background(GeometryReader { geo in
+                            let offset = -geo.frame(in: .named(scrollSpace)).minY
+                            Color.clear
+                                .preference(key: ScrollViewOffsetPreferenceKey.self,
+                                            value: offset)
+                        })
                     }
+//                    .onAppear {
+//                        scrollProxy.scrollTo(viewModel.selectedMedia.id)
+//                    }
                 }
+                .coordinateSpace(name: scrollSpace)
+                .onPreferenceChange(ScrollViewOffsetPreferenceKey.self) { value in
+                    print("Scroll view value", value)
+                }
+
             }
         }
     }

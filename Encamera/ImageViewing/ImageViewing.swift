@@ -138,48 +138,48 @@ struct ImageViewing<M: MediaDescribing>: View {
                             x: finalOffset.width + currentOffset.width,
                             y: finalOffset.height + currentOffset.height)
                     
-                        .gesture(DragGesture().onChanged({ value in
-                            if finalScale > 1.0 {
-                                var newOffset = value.translation
-                                if newOffset.height > frame.height * finalScale {
-                                    newOffset.height = frame.height * finalScale
-                                }
-                                
-                                currentOffset = newOffset
-                            }
-                        }).onEnded({ value in
-                            print("drag value", value.startLocation, value.location)
-
-                            if finalScale > 1.0 {
-                            
-                        
-                                let nextOffset: CGSize = .init(
-                                    width: finalOffset.width + currentOffset.width,
-                                    height: finalOffset.height + currentOffset.height)
-                                
-                                finalOffset = nextOffset
-                                currentOffset = .zero
-                            } else if  value.location.y - value.startLocation.y > 50 {
-                                isActive.wrappedValue = false
-                            }
-                        }))
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged({ value in
-                                    currentScale = value - 1
-                                    
-                                })
-                                .onEnded({ amount in
-                                    let final = finalScale + currentScale
-                                    finalScale = final < 1.0 ? 1.0 : final
-                                    currentScale = 0.0
-                                })
-                        )
-                    
-                        .gesture(TapGesture(count: 2).onEnded {
-                            finalScale = finalScale > 1.0 ? 1.0 : 3.0
-                            finalOffset = .zero
-                        })
+//                        .gesture(DragGesture().onChanged({ value in
+//                            if finalScale > 1.0 {
+//                                var newOffset = value.translation
+//                                if newOffset.height > frame.height * finalScale {
+//                                    newOffset.height = frame.height * finalScale
+//                                }
+//
+//                                currentOffset = newOffset
+//                            }
+//                        }).onEnded({ value in
+//                            print("drag value", value.startLocation, value.location)
+//
+//                            if finalScale > 1.0 {
+//
+//
+//                                let nextOffset: CGSize = .init(
+//                                    width: finalOffset.width + currentOffset.width,
+//                                    height: finalOffset.height + currentOffset.height)
+//
+//                                finalOffset = nextOffset
+//                                currentOffset = .zero
+//                            } else if  value.location.y - value.startLocation.y > 50 {
+//                                isActive.wrappedValue = false
+//                            }
+//                        }))
+//                        .gesture(
+//                            MagnificationGesture()
+//                                .onChanged({ value in
+//                                    currentScale = value - 1
+//                                    
+//                                })
+//                                .onEnded({ amount in
+//                                    let final = finalScale + currentScale
+//                                    finalScale = final < 1.0 ? 1.0 : final
+//                                    currentScale = 0.0
+//                                })
+//                        )
+//                    
+//                        .gesture(TapGesture(count: 2).onEnded {
+//                            finalScale = finalScale > 1.0 ? 1.0 : 3.0
+//                            finalOffset = .zero
+//                        })
                         .animation(.easeInOut, value: currentScale)
                         .animation(.easeInOut, value: finalOffset)
                         .zIndex(1)
