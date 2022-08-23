@@ -105,17 +105,14 @@ struct ImageViewing<M: MediaDescribing>: View {
     @State var finalOffset: CGSize = .zero
     @State var currentOffset: CGSize = .zero
     @State var showBottomActions = false
+    private var isActive: Binding<Bool>
     @ObservedObject var viewModel: ImageViewingViewModel<M>
+    
     private var cancellables = Set<AnyCancellable>()
     
-    init(viewModel: ImageViewingViewModel<M>) {
+    init(viewModel: ImageViewingViewModel<M>, isActive: Binding<Bool>) {
         self.viewModel = viewModel
-        //        print("ImageViewingViewModel", self)
-        //        viewModel.$decryptedFileRef.sink { media in
-        //            print("media", media)
-        //        }.store(in: &cancellables)
-        
-        
+        self.isActive = isActive
     }
     
     
@@ -151,12 +148,20 @@ struct ImageViewing<M: MediaDescribing>: View {
                                 currentOffset = newOffset
                             }
                         }).onEnded({ value in
-                            let nextOffset: CGSize = .init(
-                                width: finalOffset.width + currentOffset.width,
-                                height: finalOffset.height + currentOffset.height)
+                            print("drag value", value.startLocation, value.location)
+
+                            if finalScale > 1.0 {
                             
-                            finalOffset = nextOffset
-                            currentOffset = .zero
+                        
+                                let nextOffset: CGSize = .init(
+                                    width: finalOffset.width + currentOffset.width,
+                                    height: finalOffset.height + currentOffset.height)
+                                
+                                finalOffset = nextOffset
+                                currentOffset = .zero
+                            } else if  value.location.y - value.startLocation.y > 50 {
+                                isActive.wrappedValue = false
+                            }
                         }))
                         .gesture(
                             MagnificationGesture()
@@ -204,7 +209,7 @@ struct ImageViewing_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             let url = Bundle.main.url(forResource: "image", withExtension: "jpg")!
-            ImageViewing(viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()))
+//            ImageViewing(viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()), simultaneousGesture: DragGesture())
         }
     }
 }

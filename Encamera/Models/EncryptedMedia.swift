@@ -34,3 +34,15 @@ class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identifiable {
         self.mediaType = MediaType.typeFromMedia(source: self)
     }
 }
+
+extension EncryptedMedia: Hashable {
+    static func == (lhs: EncryptedMedia, rhs: EncryptedMedia) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    
+}

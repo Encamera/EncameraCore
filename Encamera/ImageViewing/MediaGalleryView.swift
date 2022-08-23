@@ -33,10 +33,14 @@ struct MediaGalleryView<F: FileAccess>: View {
     
     var body: some View {
 //        VStack {
+        if let fileAccess = viewModel.fileAccess {
             GalleryView(viewModel: .init(
-                fileAccess: viewModel.fileAccess,
+                fileAccess: fileAccess,
                 keyManager: viewModel.keyManager
             )).navigationTitle(viewModel.keyManager.currentKey?.name ?? "No Key")
+        } else {
+            EmptyView()
+        }
 //        }
     }
 }

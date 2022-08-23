@@ -33,6 +33,19 @@ class GalleryViewModel: ObservableObject {
 struct GalleryView: View {
     
     @ObservedObject var viewModel: GalleryViewModel
+    @State var showingCarousel = false
+    @State var carouselTarget: EncryptedMedia? {
+        didSet {
+            if carouselTarget == nil {
+                showingCarousel = false
+            } else {
+                showingCarousel = true
+            }
+        }
+    }
+    
+    @State var shouldClose: Bool = false
+
     
     var body: some View {
         let _ = Self._printChanges()
@@ -40,13 +53,21 @@ struct GalleryView: View {
         let gridItems = [
             GridItem(.adaptive(minimum: 100), spacing: 1)
         ]
-        
-        ScrollView {
-            LazyVGrid(columns: gridItems, spacing: 1) {
-                ForEach(viewModel.media, id: \.gridID) { mediaItem in
-                    
-                    GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem, galleryViewModel: viewModel)
+        ZStack {
+            
+            ScrollView {
+                LazyVGrid(columns: gridItems, spacing: 1) {
+                    ForEach(viewModel.media, id: \.gridID) { mediaItem in
+                        
+                        GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem, galleryViewModel: viewModel)
+                            .onTapGesture {
+                                carouselTarget = mediaItem
+                            }
+                    }
                 }
+            }
+            if let carouselTarget = carouselTarget, showingCarousel == true {
+                GalleryHorizontalScrollView(viewModel: .init(media: viewModel.media, selectedMedia: carouselTarget, fileAccess: viewModel.fileAccess), shouldShow: $showingCarousel)
             }
         }
         .task {
