@@ -105,15 +105,15 @@ struct ImageViewing<M: MediaDescribing>: View {
     @State var finalOffset: CGSize = .zero
     @State var currentOffset: CGSize = .zero
     @State var showBottomActions = false
-    private var isActive: Binding<Bool>
-    @ObservedObject var viewModel: ImageViewingViewModel<M>
+    var isActive: Binding<Bool>
+    @StateObject var viewModel: ImageViewingViewModel<M>
     
-    private var cancellables = Set<AnyCancellable>()
+    var cancellables = Set<AnyCancellable>()
     
-    init(viewModel: ImageViewingViewModel<M>, isActive: Binding<Bool>) {
-        self.viewModel = viewModel
-        self.isActive = isActive
-    }
+//    init(viewModel: ImageViewingViewModel<M>, isActive: Binding<Bool>) {
+//        self.viewModel = viewModel
+//        self.isActive = isActive
+//    }
     
     
     
