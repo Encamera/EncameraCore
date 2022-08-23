@@ -17,7 +17,6 @@
 		19217E2D273FE452009E3850 /* ImageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2B273FE452009E3850 /* ImageKey.swift */; };
 		19217E2E273FE452009E3850 /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2C273FE452009E3850 /* EncameraState.swift */; };
 		192B2CE828A1A8840047DAE2 /* StorageOptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192B2CE728A1A8840047DAE2 /* StorageOptionItemView.swift */; };
-		192C645228B0F2A500852963 /* SwiftUISnappingScrollView in Frameworks */ = {isa = PBXBuildFile; productRef = 192C645128B0F2A500852963 /* SwiftUISnappingScrollView */; };
 		192C9FEE28B34CA800CCD1D2 /* PreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192C9FED28B34CA800CCD1D2 /* PreviewModel.swift */; };
 		1932371F28494BF60074CE8A /* CaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1932371E28494BF60074CE8A /* CaptureProcessor.swift */; };
 		193237212849EA680074CE8A /* image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 193237202849EA680074CE8A /* image.jpg */; };
@@ -223,7 +222,6 @@
 			files = (
 				1961BCBE281B081E00D7BE92 /* Clibsodium in Frameworks */,
 				1961BCC0281B081E00D7BE92 /* Sodium in Frameworks */,
-				192C645228B0F2A500852963 /* SwiftUISnappingScrollView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -555,7 +553,6 @@
 			packageProductDependencies = (
 				1961BCBD281B081E00D7BE92 /* Clibsodium */,
 				1961BCBF281B081E00D7BE92 /* Sodium */,
-				192C645128B0F2A500852963 /* SwiftUISnappingScrollView */,
 			);
 			productName = Encamera;
 			productReference = A9FE17812539494300D547C7 /* Encamera.app */;
@@ -608,7 +605,6 @@
 			mainGroup = A9FE17782539494300D547C7;
 			packageReferences = (
 				1961BCBC281B081E00D7BE92 /* XCRemoteSwiftPackageReference "swift-sodium" */,
-				192C645028B0F2A500852963 /* XCRemoteSwiftPackageReference "SwiftUISnappingScrollView" */,
 			);
 			productRefGroup = A9FE17822539494300D547C7 /* Products */;
 			projectDirPath = "";
@@ -994,14 +990,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		192C645028B0F2A500852963 /* XCRemoteSwiftPackageReference "SwiftUISnappingScrollView" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ciaranrobrien/SwiftUISnappingScrollView";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 		1961BCBC281B081E00D7BE92 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jedisct1/swift-sodium.git";
@@ -1013,11 +1001,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		192C645128B0F2A500852963 /* SwiftUISnappingScrollView */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 192C645028B0F2A500852963 /* XCRemoteSwiftPackageReference "SwiftUISnappingScrollView" */;
-			productName = SwiftUISnappingScrollView;
-		};
 		1961BCBD281B081E00D7BE92 /* Clibsodium */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 1961BCBC281B081E00D7BE92 /* XCRemoteSwiftPackageReference "swift-sodium" */;
