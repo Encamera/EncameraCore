@@ -100,14 +100,13 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
 
 struct ImageViewing<M: MediaDescribing>: View {
     
-    @State var currentScale: CGFloat = 0.0
-    @State var finalScale: CGFloat = 1.0
-    @State var finalOffset: CGSize = .zero
+    @Binding var currentScale: CGFloat
+    @Binding var finalOffset: CGSize
     @State var currentOffset: CGSize = .zero
     @State var showBottomActions = false
     var isActive: Binding<Bool>
     @StateObject var viewModel: ImageViewingViewModel<M>
-    
+    var externalGesture: DragGesture
     var cancellables = Set<AnyCancellable>()
     
 //    init(viewModel: ImageViewingViewModel<M>, isActive: Binding<Bool>) {
@@ -133,12 +132,12 @@ struct ImageViewing<M: MediaDescribing>: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: frame.width, height: frame.height)
-                        .scaleEffect(finalScale + currentScale)
+                        .scaleEffect(currentScale)
                         .offset(
                             x: finalOffset.width + currentOffset.width,
                             y: finalOffset.height + currentOffset.height)
                     
-//                        .gesture(DragGesture().onChanged({ value in
+//                        .gesture(DragGesture(minimumDistance: 0).onChanged({ value in
 //                            if finalScale > 1.0 {
 //                                var newOffset = value.translation
 //                                if newOffset.height > frame.height * finalScale {
@@ -163,23 +162,13 @@ struct ImageViewing<M: MediaDescribing>: View {
 //                                isActive.wrappedValue = false
 //                            }
 //                        }))
-//                        .gesture(
-//                            MagnificationGesture()
-//                                .onChanged({ value in
-//                                    currentScale = value - 1
-//                                    
-//                                })
-//                                .onEnded({ amount in
-//                                    let final = finalScale + currentScale
-//                                    finalScale = final < 1.0 ? 1.0 : final
-//                                    currentScale = 0.0
-//                                })
-//                        )
-//                    
+                        
+
 //                        .gesture(TapGesture(count: 2).onEnded {
 //                            finalScale = finalScale > 1.0 ? 1.0 : 3.0
 //                            finalOffset = .zero
 //                        })
+//                        .simultaneousGesture(externalGesture)//, including: finalScale > 1.0 ? .subviews : .none)
                         .animation(.easeInOut, value: currentScale)
                         .animation(.easeInOut, value: finalOffset)
                         .zIndex(1)
@@ -197,6 +186,18 @@ struct ImageViewing<M: MediaDescribing>: View {
         //        .onDisappear {
         //            viewModel.cleanup()
         //        }
+//        .gesture(
+//            MagnificationGesture()
+//                .onChanged({ value in
+//                    currentScale = value - 1
+//
+//                })
+//                .onEnded({ amount in
+//                    let final = finalScale + currentScale
+//                    finalScale = final < 1.0 ? 1.0 : final
+//                    currentScale = 0.0
+//                }).simultaneously(with: externalGesture)
+//        )
         .navigationTitle("")
         .navigationBarHidden(true)
         .background(Color.black)

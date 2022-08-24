@@ -16,7 +16,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     @Published var xOffset: CGFloat = .zero
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
-
+    
     init(media: [EncryptedMedia], selectedMedia: EncryptedMedia, fileAccess: FileAccess) {
         self.media = media
         self.fileAccess = fileAccess
@@ -64,29 +64,24 @@ struct ObservableScrollView<Content>: View where Content : View {
         self.content = content
     }
     @GestureState private var state = true
-
+    
     var body: some View {
-        let dragGesture = DragGesture(minimumDistance: 1).onEnded({ ended in
-            print("ended")
-        }).updating($state, body: { value, state, transaction in
-            print("drag", value, state, transaction)
-        })
+        
         ScrollView(.horizontal) {
             ScrollViewReader { proxy in
                 content(proxy)
-
+                
                     .background(GeometryReader { geo in
                         let offset = -geo.frame(in: .named(scrollSpace)).minX
-                            
+                        
                         Color.clear
-                            .gesture(dragGesture)
                             .preference(key: ScrollViewOffsetPreferenceKey.self,
                                         value: offset)
                     })
             }
         }
-//        .gesture(dragGesture)
-//        .simultaneousGesture(dragGesture)
+        //        .gesture(dragGesture)
+        //        .simultaneousGesture(dragGesture)
         .coordinateSpace(name: scrollSpace)
         .onPreferenceChange(ScrollViewOffsetPreferenceKey.self) { value in
             scrollOffset = value
@@ -99,55 +94,119 @@ struct GalleryHorizontalScrollView: View {
     
     @ObservedObject var viewModel: GalleryHorizontalScrollViewModel
     @Binding var shouldShow: Bool
-    var scrollViewXOffset: CGFloat = .zero
+    @State var nextScrollViewXOffset: CGFloat = .zero
     //    @Published var startPoint: CGPoint = .zero
     @Namespace var scrollSpace
+    @GestureState private var state = false
+    @State var currentScrollViewXOffset: CGFloat = .zero
+    @State var isDragging = false
+    @State var currentIndex = 0
+    @State var finalScale: CGFloat = 1.0
+    @State var currentScale: CGFloat = .zero
+    @State var finalOffset: CGSize = .zero
+    @State var currentOffset: CGSize = .zero
     
-   
+    var dragGesture = DragGesture(minimumDistance: 0)
     
     var body: some View {
-
-        let scrollViewXOffsetBinding = Binding(get: {
-            viewModel.xOffset
-        }, set: { value in
-            viewModel.xOffset = value
-        })
-        
-       
-        VStack {
+        GeometryReader { geo in
+            let frame = geo.frame(in: .global)
             
-            GeometryReader { geo in
-                let frame = geo.frame(in: .global)
+            VStack {
+                
                 let gridItems = [
                     GridItem(.fixed(frame.width), spacing: 0)
                 ]
-                ObservableScrollView(scrollOffset: scrollViewXOffsetBinding) { proxy in
+                ScrollViewReader { proxy in
                     
-                    LazyHGrid(rows: gridItems) {
-                        ForEach(viewModel.media, id: \.id) { item in
-//                            ImageViewing(isActive: $shouldShow, viewModel:
-//                                    .init(media: item, fileAccess: viewModel.fileAccess))
-                            Color.orange
-                            .frame(width: frame.width, height: frame.height)
-                            
+                    ScrollView(.horizontal) {
+                        
+                        LazyHGrid(rows: gridItems) {
+                            ForEach(viewModel.media, id: \.id) { item in
+                                let scaleBinding = Binding<CGFloat> {
+                                    if viewModel.selectedMedia == item {
+                                        return finalScale + currentScale
+                                    } else {
+                                        return 1.0
+                                    }
+                                } set: { _, _ in
+                                    
+                                }
+                                let offsetBinding = Binding<CGSize> {
+                                    if viewModel.selectedMedia == item {
+                                        return CGSize(
+                                            width: finalOffset.width + currentOffset.width,
+                                            height: finalOffset.height + currentOffset.height)
+                                    } else {
+                                        return .zero
+                                    }
+                                } set: { _ in
+                                    
+                                }
+
+                                ImageViewing(
+                                    currentScale: scaleBinding,
+                                    finalOffset: offsetBinding,
+                                    isActive: $shouldShow,
+                                    
+                                    viewModel:
+                                            .init(media: item, fileAccess: viewModel.fileAccess), externalGesture: dragGesture)
+                                .frame(width: frame.width, height: frame.height)
+                                
+                            }
                         }
                     }
-                    
-                    .onAppear {
-                        proxy.scrollTo(viewModel.selectedMedia.id)
+                    .onChange(of: viewModel.selectedMedia) { newValue in
+                        withAnimation {
+                            finalScale = 1.0
+                            proxy.scrollTo(newValue.id)
+                        }
+                        
                     }
-//                    .onChange(of: ) { newValue in
-//                        if newValue.truncatingRemainder(dividingBy: frame.width) > frame.width / 2 {
-//                            print("scroll right")
-//                        } else {
-//                            print("scroll left")
-//                        }
-//
-//                        print("onchange value", newValue)
-//                    }
                     
                 }
-            }
+            }.gesture(dragGesture.onEnded({ value in
+                if finalScale <= 1.0 {
+                    if value.startLocation.x > value.location.x {
+                        currentIndex = min(viewModel.media.count - 1, currentIndex + 1)
+                        
+                    } else {
+                        currentIndex = max(0, currentIndex - 1)
+                    }
+                    viewModel.selectedMedia = viewModel.media[currentIndex]
+                } else {
+                    let nextOffset: CGSize = .init(
+                        width: finalOffset.width + currentOffset.width,
+                        height: finalOffset.height + currentOffset.height)
+                    
+                    finalOffset = nextOffset
+                    currentOffset = .zero
+
+                }
+                
+            }).onChanged({ value in
+                if finalScale > 1.0 {
+                    var newOffset = value.translation
+                    if newOffset.height > frame.height * finalScale {
+                        newOffset.height = frame.height * finalScale
+                    }
+                    
+                    currentOffset = newOffset
+                }
+                
+            }).simultaneously(with: MagnificationGesture().onChanged({ value in
+                currentScale = value - 1
+                
+            })
+                .onEnded({ amount in
+                    let final = finalScale + currentScale
+                    finalScale = final < 1.0 ? 1.0 : final
+                    currentScale = 0.0
+                })
+                             ).simultaneously(with: TapGesture(count: 2).onEnded {
+                                            finalScale = finalScale > 1.0 ? 1.0 : 3.0
+                                            finalOffset = .zero
+                                        }))
         }
     }
 }
