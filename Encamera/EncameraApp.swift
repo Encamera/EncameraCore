@@ -110,6 +110,7 @@ struct EncameraApp: App {
             let navBarAppearance = UINavigationBar.appearance()
             navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
             navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+            navBarAppearance.backgroundColor = .black
             UITableView.appearance().separatorStyle = .none
             UITableViewCell.appearance().backgroundColor = .gray
             UITableView.appearance().backgroundColor = .black

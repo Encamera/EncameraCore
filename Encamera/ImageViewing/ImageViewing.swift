@@ -109,97 +109,39 @@ struct ImageViewing<M: MediaDescribing>: View {
     var externalGesture: DragGesture
     var cancellables = Set<AnyCancellable>()
     
-//    init(viewModel: ImageViewingViewModel<M>, isActive: Binding<Bool>) {
-//        self.viewModel = viewModel
-//        self.isActive = isActive
-//    }
-    
-    
     
     var body: some View {
-        GeometryReader { geo in
-            let frame = geo.frame(in: .local)
-            
-//            ScrollView {
+//        GeometryReader { geo in
+//            let frame = geo.frame(in: .local)
+        ZStack {
+            if let imageData = viewModel.decryptedFileRef?.source,
+               let image = UIImage(data: imageData) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
                 
+//                    .frame(width: frame.width, height: frame.height)
+                    .scaleEffect(currentScale)
+                    .offset(
+                        x: finalOffset.width + currentOffset.width,
+                        y: finalOffset.height + currentOffset.height
+                    )
+                    .animation(.easeInOut, value: currentScale)
+                    .animation(.easeInOut, value: finalOffset)
+                    .zIndex(1)
                 
-                if let imageData = viewModel.decryptedFileRef?.source,
-                   let image = UIImage(data: imageData) {
-                    ////                if let imageData = try? Data(contentsOf: Bundle.main.url(forResource: "dog", withExtension: "jpg")!),
-                    //                   let image = UIImage(data: imageData) {
-                    
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: frame.width, height: frame.height)
-                        .scaleEffect(currentScale)
-                        .offset(
-                            x: finalOffset.width + currentOffset.width,
-                            y: finalOffset.height + currentOffset.height)
-                    
-//                        .gesture(DragGesture(minimumDistance: 0).onChanged({ value in
-//                            if finalScale > 1.0 {
-//                                var newOffset = value.translation
-//                                if newOffset.height > frame.height * finalScale {
-//                                    newOffset.height = frame.height * finalScale
-//                                }
-//
-//                                currentOffset = newOffset
-//                            }
-//                        }).onEnded({ value in
-//                            print("drag value", value.startLocation, value.location)
-//
-//                            if finalScale > 1.0 {
-//
-//
-//                                let nextOffset: CGSize = .init(
-//                                    width: finalOffset.width + currentOffset.width,
-//                                    height: finalOffset.height + currentOffset.height)
-//
-//                                finalOffset = nextOffset
-//                                currentOffset = .zero
-//                            } else if  value.location.y - value.startLocation.y > 50 {
-//                                isActive.wrappedValue = false
-//                            }
-//                        }))
-                        
-
-//                        .gesture(TapGesture(count: 2).onEnded {
-//                            finalScale = finalScale > 1.0 ? 1.0 : 3.0
-//                            finalOffset = .zero
-//                        })
-//                        .simultaneousGesture(externalGesture)//, including: finalScale > 1.0 ? .subviews : .none)
-                        .animation(.easeInOut, value: currentScale)
-                        .animation(.easeInOut, value: finalOffset)
-                        .zIndex(1)
-                    
-                } else {
-                    Text("Could not decrypt image")
-                        .foregroundColor(.red)
-                }
-                
-//            }
-        }.onAppear {
+            } else if let error = viewModel.error {
+                Text("Could not decrypt image: \(error.localizedDescription)")
+                    .foregroundColor(.red)
+            } else {
+                ProgressView()
+            }
+        }
+        .onAppear {
             viewModel.decryptAndSet()
         }
-        
-        //        .onDisappear {
-        //            viewModel.cleanup()
-        //        }
-//        .gesture(
-//            MagnificationGesture()
-//                .onChanged({ value in
-//                    currentScale = value - 1
-//
-//                })
-//                .onEnded({ amount in
-//                    let final = finalScale + currentScale
-//                    finalScale = final < 1.0 ? 1.0 : final
-//                    currentScale = 0.0
-//                }).simultaneously(with: externalGesture)
-//        )
-        .navigationTitle("")
-        .navigationBarHidden(true)
+        .navigationTitle("\(viewModel.decryptedFileRef?.id ?? "None")")
+        .navigationBarTitleDisplayMode(.inline)
         .background(Color.black)
     }
 }
@@ -210,7 +152,7 @@ struct ImageViewing_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             let url = Bundle.main.url(forResource: "image", withExtension: "jpg")!
-//            ImageViewing(viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()), simultaneousGesture: DragGesture())
+            ImageViewing(currentScale: .constant(1.0), finalOffset: .constant(.zero), isActive: .constant(false), viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()), externalGesture: DragGesture())
         }
     }
 }

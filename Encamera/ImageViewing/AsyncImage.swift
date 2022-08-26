@@ -15,6 +15,7 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
         private var loader: FileReader
         private var targetMedia: T
         @Published var cleartextMedia: PreviewModel?
+        @Published var error: Error?
         
         init(targetMedia: T, loader: FileReader) {
             self.targetMedia = targetMedia
@@ -28,7 +29,7 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
                     cleartextMedia = preview
                 }
             } catch {
-                debugPrint(error)
+                self.error = SecretFilesError.sourceFileAccessError
             }
         }
     }
@@ -44,14 +45,14 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
     
     var body: some View {
         let _ = Self._printChanges()
-
+        
         GeometryReader { geo in
             let frame = geo.frame(in: .local)
             let side = frame.height
             
             content(frame: frame)
-            .position(x: frame.midX, y: frame.midY)
-            .frame(width: side, height: side)
+                .position(x: frame.midX, y: frame.midY)
+                .frame(width: side, height: side)
         }
     }
     
@@ -64,8 +65,8 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
                     .aspectRatio(contentMode:.fill)
                     .frame(width: frame.width, height: frame.height)
                     .clipped()
-                    
-
+                
+                
                 if let duration = viewModel.cleartextMedia?.videoDuration {
                     VStack {
                         Spacer()
@@ -76,10 +77,14 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
                                 .foregroundColor(.white)
                                 .padding(2.0)
                         }
-
+                        
                     }
                 }
             }
+        } else if viewModel.error != nil {
+            Image(systemName: "x.square")
+                .foregroundColor(.white)
+        
         } else {
             placeholder.task {
                 await viewModel.loadPreview()
@@ -89,9 +94,9 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
 }
 
 struct AsyncImage_Previews: PreviewProvider {
-
+    
     static var previews: some View {
-
+        
         GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
     }
 }

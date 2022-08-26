@@ -66,9 +66,16 @@ struct GalleryView: View {
                     }
                 }
             }
-            if let carouselTarget = carouselTarget, showingCarousel == true {
-                GalleryHorizontalScrollView(viewModel: .init(media: viewModel.media, selectedMedia: carouselTarget, fileAccess: viewModel.fileAccess), shouldShow: $showingCarousel)
+            NavigationLink(isActive: $showingCarousel) {
+                if let carouselTarget = carouselTarget, showingCarousel == true {
+                    
+                    GalleryHorizontalScrollView(
+                        viewModel: .init(media: viewModel.media, selectedMedia: carouselTarget, fileAccess: viewModel.fileAccess), shouldShow: $showingCarousel)
+                }
+            } label: {
+                EmptyView()
             }
+            
         }
         .task {
             await viewModel.enumerateMedia()
