@@ -70,6 +70,7 @@ extension MediaViewingViewModel {
 }
 
 class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
+    
     @Published var decryptedFileRef: CleartextMedia<Data>?
     var sourceMedia: SourceType
     var fileAccess: FileAccess?
