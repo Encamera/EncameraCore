@@ -48,8 +48,6 @@ struct GalleryView: View {
 
     
     var body: some View {
-        let _ = Self._printChanges()
-
         let gridItems = [
             GridItem(.adaptive(minimum: 100), spacing: 1)
         ]

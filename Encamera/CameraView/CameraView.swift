@@ -117,7 +117,7 @@ struct CameraView: View {
                     })
                 )
                 .onChange(of: rotationFromOrientation, perform: { newValue in
-                    ////                    cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
+                    cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
                 })
                 .alert(isPresented: $cameraModel.showAlertError, content: {
                     Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
@@ -198,19 +198,24 @@ struct CameraView: View {
                     topBar
                     cameraPreview
                         .edgesIgnoringSafeArea(.all)
-                    //                cameraModePicker
                     bottomButtonPanel
-                }.navigationBarHidden(true).navigationTitle("")
+                }
+                .onChange(of: cameraModel.authManager.isAuthenticated, perform: { newValue in
+                    guard newValue == true else {
+                        return
+                    }
+                    Task {
+                        await cameraModel.service.checkForPermissions()
+                        await cameraModel.service.configure()
+                    }
+                })
+                
+                .navigationBarHidden(true)
+                .navigationTitle("")
             }
             .background(Color.black)
             .screenBlocked()
-            .onAppear {
-                Task {
-                    await cameraModel.service.checkForPermissions()
-                    await cameraModel.service.configure()
-                    await cameraModel.loadThumbnail()
-                }
-            }
+            
             
         }
 

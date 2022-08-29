@@ -90,14 +90,17 @@ protocol AuthManager {
 }
 
 class DeviceAuthManager: AuthManager {
-    
+    let context = LAContext()
+    var _availableBiometric: AuthenticationMethod?
     var availableBiometric: AuthenticationMethod? {
-        let context = LAContext()
+        if let _availableBiometric = _availableBiometric {
+            return _availableBiometric
+        }
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
             return .none
         }
-
-        return AuthenticationMethod.methodFrom(biometryType: context.biometryType)
+        _availableBiometric = AuthenticationMethod.methodFrom(biometryType: context.biometryType)
+        return _availableBiometric
     }
     
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
@@ -121,13 +124,8 @@ class DeviceAuthManager: AuthManager {
     }
     
     var canAuthenticateWithBiometrics: Bool {
-        let context = LAContext()
-        var error: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            return false
-        }
         
-        return error == nil
+        return availableBiometric == .faceID || availableBiometric == .touchID
     }
     
     private var isAuthenticatedSubject: PassthroughSubject<Bool, Never> = .init()
@@ -179,9 +177,8 @@ class DeviceAuthManager: AuthManager {
     func authorizeWithBiometrics() async throws {
         cancelNotificationObservers()
         
-        let context = LAContext()
-        var error: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error), let method = AuthenticationMethod.methodFrom(biometryType: context.biometryType) else {
+                
+        guard let method = availableBiometric else {
             throw AuthManagerError.biometricsNotAvailable
         }
         do {
@@ -193,6 +190,7 @@ class DeviceAuthManager: AuthManager {
             }
             setupNotificationObservers()
         } catch let localAuthError as LAError {
+            debugPrint("LAError", localAuthError)
             switch localAuthError.code {
             case .appCancel:
                 break

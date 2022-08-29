@@ -52,40 +52,40 @@ struct EncameraApp: App {
             
             NotificationUtils.didEnterBackgroundPublisher
                 .sink { _ in
-
+                    
                     self.showScreenBlocker = true
                 }.store(in: &cancellables)
-
+            
             NotificationUtils.willResignActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = true
                 }
                 .store(in: &cancellables)
-
-
+            
+            
             NotificationUtils.didBecomeActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = false
-
+                    
                 }.store(in: &cancellables)
-
+            
             
             NotificationUtils.orientationDidChangePublisher
                 .sink { value in
-                       
+                    
                     var rotation = 0.0
                     switch UIDevice.current.orientation {
                         
                     case .unknown, .portrait, .portraitUpsideDown:
                         rotation = 0.0
-                    
+                        
                     case .landscapeLeft:
                         rotation = 90.0
                     case .landscapeRight:
                         rotation = -90.0
                     case .faceUp, .faceDown:
                         rotation = 0.0
-                    
+                        
                     @unknown default:
                         rotation = 0.0
                     }
@@ -94,7 +94,7 @@ struct EncameraApp: App {
                     }
                 }.store(in: &cancellables)
             setupAppearances()
-
+            
         }
         
         private func setupWith(key: ImageKey?) {
@@ -103,7 +103,7 @@ struct EncameraApp: App {
             }
             let fileAccess = DiskFileAccess(key: key, storageSettingsManager: storageSettingsManager)
             self.fileAccess = fileAccess
-
+            
         }
         
         private func setupAppearances() {
@@ -114,12 +114,12 @@ struct EncameraApp: App {
             UITableView.appearance().separatorStyle = .none
             UITableViewCell.appearance().backgroundColor = .gray
             UITableView.appearance().backgroundColor = .black
-
+            
         }
     }
     
     @StateObject var viewModel: ViewModel = .init()
-
+    
     var body: some Scene {
         
         WindowGroup {

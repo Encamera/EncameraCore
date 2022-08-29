@@ -45,7 +45,6 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
     
     
     var body: some View {
-        let _ = Self._printChanges()
         
         GeometryReader { geo in
             let frame = geo.frame(in: .local)
