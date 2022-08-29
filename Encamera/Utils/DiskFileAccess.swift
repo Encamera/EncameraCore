@@ -17,7 +17,7 @@ actor DiskFileAccess: FileEnumerator {
         case general
     }
     var key: ImageKey
-        
+    
     private var cancellables = Set<AnyCancellable>()
     private let directoryModel: DataStorageModel
     init(key: ImageKey, storageSettingsManager: DataStorageSetting) {
@@ -36,18 +36,28 @@ actor DiskFileAccess: FileEnumerator {
         guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
             return []
         }
-        
-        let imageItems: [T] = enumerator.compactMap { item in
+        let urls: [URL] = enumerator.compactMap { item in
             guard let itemUrl = item as? URL else {
                 return nil
             }
             return itemUrl
-        }.filter({
-            let components = $0.lastPathComponent.split(separator: ".")
-            let fileExtensions = components[(components.count-2)...]
-            
-            return fileExtensions.joined(separator: ".") == [MediaType.photo.fileExtension, AppConstants.fileExtension].joined(separator: ".")
+        }
+        
+        urls.forEach({
+            if $0.pathExtension == "icloud" {
+                try? FileManager.default.startDownloadingUbiquitousItem(at: $0)
+            }
         })
+        
+        let imageItems: [T] = urls
+            .filter({
+                let components = $0.lastPathComponent.split(separator: ".")
+                guard components.count > 1 else {
+                    return false
+                }
+                let fileExtensions = components[(components.count-2)...]
+                return fileExtensions.joined(separator: ".") == [MediaType.photo.fileExtension, AppConstants.fileExtension].joined(separator: ".")
+            })
             .sorted { (url1: URL, url2: URL) in
                 guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
                       let creationDate1 = resourceValues1.creationDate,
@@ -91,7 +101,7 @@ extension DiskFileAccess: FileReader {
     
     func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> {
         if let encrypted = media as? EncryptedMedia {
-             return try await decryptMedia(encrypted: encrypted, progress: progress)
+            return try await decryptMedia(encrypted: encrypted, progress: progress)
         } else if let cleartext = media as? CleartextMedia<URL> {
             return cleartext
         }
@@ -103,6 +113,7 @@ extension DiskFileAccess: FileReader {
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
+        
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted)
         
         let decrypted: CleartextMedia<Data> = try await fileHandler.decrypt()
@@ -118,8 +129,8 @@ extension DiskFileAccess: FileReader {
         fileHandler.progress
             .receive(on: DispatchQueue.main)
             .sink { percent in
-            progress(percent)
-        }.store(in: &cancellables)
+                progress(percent)
+            }.store(in: &cancellables)
         let decrypted: CleartextMedia<URL> = try await fileHandler.decrypt()
         sourceURL.stopAccessingSecurityScopedResource()
         return decrypted
@@ -162,7 +173,7 @@ extension DiskFileAccess: FileReader {
         
         return preview
     }
-
+    
     @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia<Data> {
         
         
@@ -213,7 +224,7 @@ extension DiskFileAccess: FileReader {
         guard let thumbnailData = resizer.resize(data: thumbnailSourceData)?.pngData() else {
             fatalError()
         }
-
+        
         
         let cleartextThumb = CleartextMedia(source: thumbnailData, mediaType: .thumbnail, id: media.id)
         return cleartextThumb
@@ -226,7 +237,7 @@ extension DiskFileAccess: FileWriter {
     @discardableResult func saveThumbnail<T: MediaDescribing>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data> {
         let destinationURL = directoryModel.thumbnailURLForMedia(sourceMedia)
         let cleartextThumb = CleartextMedia(source: data, mediaType: .thumbnail, id: sourceMedia.id)
-
+        
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextThumb, targetURL: destinationURL)
         try await fileHandler.encrypt()
         return cleartextThumb
@@ -236,7 +247,7 @@ extension DiskFileAccess: FileWriter {
         let data = try JSONEncoder().encode(preview)
         let destinationURL = directoryModel.previewURLForMedia(sourceMedia)
         let cleartextPreview = CleartextMedia(source: data, mediaType: .preview, id: sourceMedia.id)
-
+        
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
         try await fileHandler.encrypt()
         return cleartextPreview
