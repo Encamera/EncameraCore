@@ -18,7 +18,7 @@ class KeySelectionListViewModel: ObservableObject {
     @Published var selectionError: KeySelectionError?
     @Published var activeKey: ImageKey?
     private var cancellables = Set<AnyCancellable>()
-
+    
     
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
@@ -47,40 +47,38 @@ struct KeySelectionList: View {
     
     var body: some View {
         
-        NavigationView {
-            List {
-                NavigationLink(isActive: $isShowingAddKeyView) {
-                    KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: $isShowingAddKeyView)
-                } label: {
-                    KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
+        List {
+            NavigationLink(isActive: $isShowingAddKeyView) {
+                KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: $isShowingAddKeyView)
+            } label: {
+                KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
+            }
+            NavigationLink {
+                KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, isShowing: .constant(true)))
+                
+            } label: {
+                KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
+            }
+            KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
+                guard let doc = try? viewModel.keyManager.createBackupDocument() else {
+                    return
                 }
+                let pasteboard = UIPasteboard.general
+                pasteboard.string = doc
+            }
+            ForEach(viewModel.keys, id: \.name) { key in
                 NavigationLink {
-                    KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, isShowing: .constant(true)))
-
+                    KeyPickerView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
                 } label: {
-                    KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
-                }
-                KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
-                    guard let doc = try? viewModel.keyManager.createBackupDocument() else {
-                        return
-                    }
-                    let pasteboard = UIPasteboard.general
-                    pasteboard.string = doc
-                }
-                ForEach(viewModel.keys, id: \.name) { key in
-                    NavigationLink {
-                        KeyPickerView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
-                    } label: {
-                        KeySelectionCell(viewModel: .init(key: key, isActive: key == viewModel.activeKey))
-                    }
+                    KeySelectionCell(viewModel: .init(key: key, isActive: key == viewModel.activeKey))
                 }
             }
-            
-            .onAppear {
-                viewModel.loadKeys()
-            }.navigationTitle("Key Selection")
-                
         }
+        .screenBlocked()
+        .onAppear {
+            viewModel.loadKeys()
+        }.navigationTitle("Key Selection")
+        
     }
 }
 

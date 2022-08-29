@@ -128,7 +128,6 @@ struct EncameraApp: App {
                 keyManager: viewModel.keyManager,
                 authManager: viewModel.authManager,
                 cameraService: viewModel.cameraService,
-                showScreenBlocker: viewModel.$showScreenBlocker.eraseToAnyPublisher(),
                 storageSettingsManager: viewModel.storageSettingsManager
             ))
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
@@ -163,9 +162,12 @@ struct EncameraApp: App {
                     self.viewModel.hasOpenedURL = false
                     self.viewModel.openedUrl = url
                     self.viewModel.hasOpenedURL = true
-                }.statusBar(hidden: true)
-
-            
+                }
+                .statusBar(hidden: true)
+                .environment(
+                    \.isScreenBlockingActive,
+                     self.viewModel.showScreenBlocker
+                )
         }
     }
 }

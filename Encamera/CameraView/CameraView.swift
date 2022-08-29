@@ -178,8 +178,19 @@ struct CameraView: View {
             ZStack {
                 
                 NavigationLink(isActive: $cameraModel.showGalleryView) {
-                    MediaGalleryView<DiskFileAccess>(viewModel: MediaGalleryViewModel(keyManager: cameraModel.keyManager, storageSettingsManager: cameraModel.storageSettingsManager))
+                    MediaGalleryView<DiskFileAccess>(
+                        viewModel: MediaGalleryViewModel(
+                            keyManager: cameraModel.keyManager,
+                            storageSettingsManager: cameraModel.storageSettingsManager
+                        )
+                    )
                     
+                } label: {
+                    EmptyView()
+                }
+                
+                NavigationLink(isActive: $cameraModel.showingKeySelection) {
+                    KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
                 } label: {
                     EmptyView()
                 }
@@ -190,14 +201,9 @@ struct CameraView: View {
                     //                cameraModePicker
                     bottomButtonPanel
                 }.navigationBarHidden(true).navigationTitle("")
-                if cameraModel.showScreenBlocker {
-                    Color.black.edgesIgnoringSafeArea(.all)
-                }
             }
             .background(Color.black)
-            .sheet(isPresented: $cameraModel.showingKeySelection) {
-                KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
-            }
+            .screenBlocked()
             .onAppear {
                 Task {
                     await cameraModel.service.checkForPermissions()
@@ -205,7 +211,9 @@ struct CameraView: View {
                     await cameraModel.loadThumbnail()
                 }
             }
+            
         }
+
     }
 }
 
@@ -250,7 +258,7 @@ private extension AVCaptureDevice.FlashMode {
 
 struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(cameraModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), showScreenBlocker: Just(false).eraseToAnyPublisher(), storageSettingsManager: DemoStorageSettingsManager()))
+        CameraView(cameraModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), storageSettingsManager: DemoStorageSettingsManager()))
         
     }
 }

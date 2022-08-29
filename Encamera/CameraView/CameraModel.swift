@@ -18,7 +18,6 @@ final class CameraModel: ObservableObject {
     }
     
     @Published var showAlertError = false
-    @Published var showScreenBlocker: Bool = true
 
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
     @Published var isRecordingVideo = false
@@ -41,7 +40,6 @@ final class CameraModel: ObservableObject {
     init(keyManager: KeyManager,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
-         showScreenBlocker: AnyPublisher<Bool, Never>,
          storageSettingsManager: DataStorageSetting) {
         self.service = cameraService
         
@@ -68,9 +66,6 @@ final class CameraModel: ObservableObject {
                 self.fileAccess = DiskFileAccess(key: key, storageSettingsManager: DataStorageUserDefaultsSetting())
                 await self.loadThumbnail()
             }
-        }.store(in: &cancellables)
-        showScreenBlocker.sink { value in
-            self.showScreenBlocker = value
         }.store(in: &cancellables)
     }
     

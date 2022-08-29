@@ -26,24 +26,24 @@ struct MediaGalleryView<F: FileAccess>: View {
     @StateObject var viewModel: MediaGalleryViewModel<F>
     
     var body: some View {
-//        VStack {
         if let fileAccess = viewModel.fileAccess {
             GalleryView(viewModel: .init(
                 fileAccess: fileAccess,
                 keyManager: viewModel.keyManager
-            )).navigationTitle(viewModel.keyManager.currentKey?.name ?? "No Key")
+            ))
+            .screenBlocked()
+            .navigationTitle(viewModel.keyManager.currentKey?.name ?? "No Key")
         } else {
             EmptyView()
         }
-//        }
     }
 }
-//
-//struct MediaGalleryView_Previews: PreviewProvider {
-//
-//    
-//    static var previews: some View {
-//        MediaGalleryView(viewModel: MediaGalleryViewModel<DemoFileEnumerator, DemoDirectoryModel>(directory: DemoDirectoryModel(), key: ImageKey(name: "test", keyBytes: [])))
-//            .environmentObject(EncameraState())
-//    }
-//}
+
+struct MediaGalleryView_Previews: PreviewProvider {
+
+    
+    static var previews: some View {
+        MediaGalleryView<DemoFileEnumerator>(viewModel: .init(keyManager: DemoKeyManager(), storageSettingsManager: DataStorageUserDefaultsSetting()))
+            .environmentObject(EncameraState())
+    }
+}

@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		19109389284FF8C1000F40A8 /* image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 193237202849EA680074CE8A /* image.jpg */; };
 		1911319E281F9FC100542281 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = 1911319D281F9FC100542281 /* test.mov */; };
+		19157F7F28BD59AF005EFF59 /* ScreenBlocking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19157F7E28BD59AF005EFF59 /* ScreenBlocking.swift */; };
+		19157F8128BD5A7E005EFF59 /* ScreenBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19157F8028BD5A7E005EFF59 /* ScreenBlock.swift */; };
 		191671BB2857BDC500842F25 /* FileLikeBlockReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191671BA2857BDC500842F25 /* FileLikeBlockReader.swift */; };
 		191FF12D275EC83400DED001 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191FF12C275EC83400DED001 /* AuthManager.swift */; };
 		19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E22273FD60F009E3850 /* ImageViewing.swift */; };
@@ -113,6 +115,8 @@
 
 /* Begin PBXFileReference section */
 		1911319D281F9FC100542281 /* test.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = test.mov; sourceTree = "<group>"; };
+		19157F7E28BD59AF005EFF59 /* ScreenBlocking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlocking.swift; sourceTree = "<group>"; };
+		19157F8028BD5A7E005EFF59 /* ScreenBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlock.swift; sourceTree = "<group>"; };
 		191671B82857BD5600842F25 /* ChunkedFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChunkedFiles.swift; sourceTree = "<group>"; };
 		191671BA2857BDC500842F25 /* FileLikeBlockReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileLikeBlockReader.swift; sourceTree = "<group>"; };
 		191FF12C275EC83400DED001 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
@@ -364,6 +368,7 @@
 			isa = PBXGroup;
 			children = (
 				19868A09287B25E20006E120 /* Rotation.swift */,
+				19157F8028BD5A7E005EFF59 /* ScreenBlock.swift */,
 			);
 			path = EnvironmentKeys;
 			sourceTree = "<group>";
@@ -375,6 +380,7 @@
 				19868A0C287B4C740006E120 /* RotationViewModifier.swift */,
 				19868A12287CCBC70006E120 /* TextField.swift */,
 				1990CA37287F6DEF007486D3 /* Text.swift */,
+				19157F7E28BD59AF005EFF59 /* ScreenBlocking.swift */,
 			);
 			path = ViewModifiers;
 			sourceTree = "<group>";
@@ -652,6 +658,7 @@
 				1990CA3C2880C3FE007486D3 /* OnboardingManager.swift in Sources */,
 				19868A0D287B4C740006E120 /* RotationViewModifier.swift in Sources */,
 				19FD5D632835EAF9008D75AA /* DemoFileHelpers.swift in Sources */,
+				19157F7F28BD59AF005EFF59 /* ScreenBlocking.swift in Sources */,
 				19902B412873809200165C94 /* AlertError.swift in Sources */,
 				1990CA4A2884BC7E007486D3 /* SettingsManager.swift in Sources */,
 				1961BCC2281B08CE00D7BE92 /* SecretFileHandler.swift in Sources */,
@@ -701,6 +708,7 @@
 				19FD5D652835EED6008D75AA /* FileProtocols.swift in Sources */,
 				1978F9792822486000D16FD4 /* CameraModePicker.swift in Sources */,
 				195719E7274B8BE300E93658 /* MovieViewing.swift in Sources */,
+				19157F8128BD5A7E005EFF59 /* ScreenBlock.swift in Sources */,
 				191671BB2857BDC500842F25 /* FileLikeBlockReader.swift in Sources */,
 				19BFB1D5289D18EA00FD33B2 /* NotificationUtils.swift in Sources */,
 				19902B39286F46F300165C94 /* CameraConfigurationService.swift in Sources */,

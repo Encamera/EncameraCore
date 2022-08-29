@@ -56,6 +56,7 @@ extension MediaViewingViewModel {
             )
             self.decryptedFileRef = result
         } catch {
+            
             self.error = .decryptError(wrapped: error)
         }
     }
