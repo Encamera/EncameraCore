@@ -173,8 +173,6 @@
 		1990CA492884BC7E007486D3 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
 		1990CA4C28853DCA007486D3 /* SettingsManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManagerTests.swift; sourceTree = "<group>"; };
 		1994ABF12753E9D300E41BFD /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
-		1994ABF42753EA3F00E41BFD /* MainInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterface.swift; sourceTree = "<group>"; };
-		1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainInterfaceViewModel.swift; sourceTree = "<group>"; };
 		1995943F280D209900AEFA6D /* VideoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCaptureProcessor.swift; sourceTree = "<group>"; };
 		19B6D051282B354500DC07F8 /* MediaGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGalleryView.swift; sourceTree = "<group>"; };
 		19BFB1D4289D18EA00FD33B2 /* NotificationUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationUtils.swift; sourceTree = "<group>"; };
@@ -410,15 +408,6 @@
 			path = CameraView;
 			sourceTree = "<group>";
 		};
-		1994ABF32753EA3600E41BFD /* MainInterface */ = {
-			isa = PBXGroup;
-			children = (
-				1994ABF42753EA3F00E41BFD /* MainInterface.swift */,
-				1994ABF62753EAEF00E41BFD /* MainInterfaceViewModel.swift */,
-			);
-			path = MainInterface;
-			sourceTree = "<group>";
-		};
 		19BFB1D8289D470100FD33B2 /* FileAccess */ = {
 			isa = PBXGroup;
 			children = (
@@ -484,7 +473,6 @@
 				19868A08287B25D60006E120 /* EnvironmentKeys */,
 				193532312862668200964A01 /* KeyOperationsList */,
 				19FD5D612835EADF008D75AA /* PreviewUtils */,
-				1994ABF32753EA3600E41BFD /* MainInterface */,
 				1994ABF02753E9C000E41BFD /* CameraView */,
 				195719E9274B8FB100E93658 /* Utils */,
 				19217E2A273FE452009E3850 /* Models */,
