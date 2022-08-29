@@ -32,7 +32,7 @@ class GalleryViewModel: ObservableObject {
 
 struct GalleryView: View {
     
-    @ObservedObject var viewModel: GalleryViewModel
+    @StateObject var viewModel: GalleryViewModel
     @State var showingCarousel = false
     @State var carouselTarget: EncryptedMedia? {
         didSet {

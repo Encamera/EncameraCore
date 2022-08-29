@@ -12,18 +12,11 @@ struct CameraView: View {
         static var innerCaptureButtonSize = Constants.minCaptureButtonEdge * 0.8
     }
     
-    @ObservedObject private var cameraModel: CameraModel
+    @StateObject var cameraModel: CameraModel
     @State private var currentZoomFactor: CGFloat = 1.0
-    @State var cameraModeStateModel: CameraModeStateModel
+    @State var cameraModeStateModel = CameraModeStateModel()
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
-    init(viewModel: CameraModel) {
-        self.cameraModeStateModel = CameraModeStateModel()
-        self.cameraModel = viewModel
-        Task {
-            await viewModel.service.checkForPermissions()
-            await viewModel.service.configure()
-        }
-    }
+
     
     private var captureButton: some View {
         
@@ -207,6 +200,8 @@ struct CameraView: View {
             }
             .onAppear {
                 Task {
+                    await cameraModel.service.checkForPermissions()
+                    await cameraModel.service.configure()
                     await cameraModel.loadThumbnail()
                 }
             }
@@ -255,7 +250,7 @@ private extension AVCaptureDevice.FlashMode {
 
 struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(viewModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), showScreenBlocker: Just(false).eraseToAnyPublisher(), storageSettingsManager: DemoStorageSettingsManager()))
+        CameraView(cameraModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), showScreenBlocker: Just(false).eraseToAnyPublisher(), storageSettingsManager: DemoStorageSettingsManager()))
         
     }
 }

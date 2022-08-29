@@ -67,7 +67,7 @@ class KeyViewerViewModel: ObservableObject {
 struct KeyPickerView: View {
     
     @State var isShowingAlertForClearKey: Bool = false
-    @ObservedObject var viewModel: KeyViewerViewModel
+    @StateObject var viewModel: KeyViewerViewModel
     @Environment(\.dismiss) var dismiss
 
     private struct Constants {

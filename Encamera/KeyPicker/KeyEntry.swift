@@ -45,11 +45,8 @@ struct KeyEntry: View {
         }
     }
         
-    @ObservedObject private var viewModel: ViewModel
+    @StateObject var viewModel: ViewModel
     
-    init(viewModel: ViewModel) {
-        self.viewModel = viewModel
-    }
     
     var body: some View {
         let keyObject: Binding<ImageKey?> = {

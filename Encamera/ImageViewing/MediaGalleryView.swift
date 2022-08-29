@@ -23,13 +23,7 @@ class MediaGalleryViewModel<F: FileAccess>: ObservableObject {
 
 struct MediaGalleryView<F: FileAccess>: View {
     
-    @ObservedObject var viewModel: MediaGalleryViewModel<F>
-    @State var selectedMediaType: MediaType
-    
-    init(viewModel: MediaGalleryViewModel<F>) {
-        self.viewModel = viewModel
-        self.selectedMediaType = .photo
-    }
+    @StateObject var viewModel: MediaGalleryViewModel<F>
     
     var body: some View {
 //        VStack {

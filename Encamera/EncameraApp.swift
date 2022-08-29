@@ -118,27 +118,19 @@ struct EncameraApp: App {
         }
     }
     
-    @ObservedObject var viewModel: ViewModel
+    @StateObject var viewModel: ViewModel = .init()
 
-    @ObservedObject var cameraModel: CameraModel
-    
-    init() {
-        let model = ViewModel()
-        self.viewModel = model
-        self.cameraModel = .init(
-            keyManager: model.keyManager,
-            authManager: model.authManager,
-            cameraService: model.cameraService,
-            showScreenBlocker: model.$showScreenBlocker.eraseToAnyPublisher(),
-            storageSettingsManager: model.storageSettingsManager
-        )
-    }
     var body: some Scene {
         
         WindowGroup {
             
-            
-            CameraView(viewModel: cameraModel)
+            CameraView(cameraModel: .init(
+                keyManager: viewModel.keyManager,
+                authManager: viewModel.authManager,
+                cameraService: viewModel.cameraService,
+                showScreenBlocker: viewModel.$showScreenBlocker.eraseToAnyPublisher(),
+                storageSettingsManager: viewModel.storageSettingsManager
+            ))
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     self.viewModel.hasOpenedURL = false
                 } content: {

@@ -112,7 +112,7 @@ struct GalleryHorizontalScrollView: View {
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
     
     
-    @ObservedObject var viewModel: GalleryHorizontalScrollViewModel
+    @StateObject var viewModel: GalleryHorizontalScrollViewModel
     @Binding var shouldShow: Bool
     @State var nextScrollViewXOffset: CGFloat = .zero
     @Namespace var scrollSpace

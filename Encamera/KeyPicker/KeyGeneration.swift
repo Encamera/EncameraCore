@@ -84,7 +84,7 @@ class KeyGenerationViewModel: ObservableObject {
 }
 
 struct KeyGeneration: View {
-    @ObservedObject var viewModel: KeyGenerationViewModel
+    @StateObject var viewModel: KeyGenerationViewModel
     @Binding var shouldBeActive: Bool
     @FocusState var isFocused: Bool
     @Environment(\.dismiss) var dismiss

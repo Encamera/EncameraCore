@@ -20,9 +20,7 @@ struct GalleryItem: View {
     @State private var isActive: Bool = false
     
     var body: some View {
-            AsyncImage(viewModel: .init(targetMedia: media, loader: fileAccess)) {
-                ProgressView()
-            }
+            AsyncImage(viewModel: .init(targetMedia: media, loader: fileAccess), placeholder: ProgressView())
             .clipped()
             .aspectRatio(1, contentMode: .fill)
     }

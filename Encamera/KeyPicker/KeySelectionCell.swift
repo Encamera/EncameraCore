@@ -20,7 +20,7 @@ class KeySelectionCellViewModel: ObservableObject {
 
 struct KeySelectionCell: View {
     
-    @ObservedObject var viewModel: KeySelectionCellViewModel
+    @StateObject var viewModel: KeySelectionCellViewModel
     
     var body: some View {
         HStack {

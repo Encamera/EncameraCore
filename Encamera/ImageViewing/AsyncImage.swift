@@ -34,13 +34,14 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
         }
     }
     var id: String = NSUUID().uuidString
-    private var placeholder: Placeholder
-    @ObservedObject private var viewModel: ViewModel
     
-    init(viewModel: ViewModel, placeholder: () -> Placeholder) {
-        self.viewModel = viewModel
-        self.placeholder = placeholder()
-    }
+    @StateObject var viewModel: ViewModel
+    var placeholder: Placeholder
+////
+//    init(viewModel: ViewModel, placeholder: () -> Placeholder) {
+//        self.viewModel = viewModel
+//        self.placeholder = placeholder()
+//    }
     
     
     var body: some View {
