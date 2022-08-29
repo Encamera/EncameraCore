@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum AppConstants: String {
+enum AppConstants {
     
-    case fileExtension = "shdwpic"
+    static var fileExtension = "ecmedia"
 }

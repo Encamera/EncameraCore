@@ -23,7 +23,7 @@ extension URL: MediaSourcing {
     
 }
 
-protocol MediaDescribing {
+protocol MediaDescribing: Hashable {
     
     associatedtype MediaSource: MediaSourcing
         

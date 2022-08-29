@@ -10,8 +10,6 @@ import UIKit
 import Combine
 import AVFoundation
 
-
-
 actor DiskFileAccess: FileEnumerator {
     
     enum iCloudError: Error {
@@ -44,7 +42,12 @@ actor DiskFileAccess: FileEnumerator {
                 return nil
             }
             return itemUrl
-        }
+        }.filter({
+            let components = $0.lastPathComponent.split(separator: ".")
+            let fileExtensions = components[(components.count-2)...]
+            
+            return fileExtensions.joined(separator: ".") == [MediaType.photo.fileExtension, AppConstants.fileExtension].joined(separator: ".")
+        })
             .sorted { (url1: URL, url2: URL) in
                 guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
                       let creationDate1 = resourceValues1.creationDate,

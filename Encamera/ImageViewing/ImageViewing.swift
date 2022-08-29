@@ -112,16 +112,14 @@ struct ImageViewing<M: MediaDescribing>: View {
     
     
     var body: some View {
-//        GeometryReader { geo in
-//            let frame = geo.frame(in: .local)
+        
         ZStack {
             if let imageData = viewModel.decryptedFileRef?.source,
                let image = UIImage(data: imageData) {
+                
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
-                
-//                    .frame(width: frame.width, height: frame.height)
                     .scaleEffect(currentScale)
                     .offset(
                         x: finalOffset.width + currentOffset.width,

@@ -147,10 +147,10 @@ struct EncameraApp: App {
                        viewModel.authManager.isAuthenticated,
                        let fileAccess = viewModel.fileAccess {
                         switch media.mediaType {
-//                        case .photo:
-//                            ImageViewing<EncryptedMedia>(viewModel: ImageViewingViewModel(media: media, fileAccess: fileAccess), )
-//                        case .video:
-//                            MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
+                        case .photo:
+                            GalleryHorizontalScrollView(viewModel: .init(media: [media], selectedMedia: media, fileAccess: fileAccess), shouldShow: .constant(true))
+                        case .video:
+                            MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
                         default:
                             EmptyView()
                         }

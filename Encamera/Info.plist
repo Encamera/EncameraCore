@@ -104,11 +104,11 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>shdwpic</string>
+					<string>ecmedia</string>
 				</array>
 				<key>public.mime-type</key>
 				<array>
-					<string>application/x-shdwpic</string>
+					<string>application/x-ecmedia</string>
 				</array>
 			</dict>
 		</dict>
@@ -130,11 +130,11 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>shdwpic</string>
+					<string>ecmedia</string>
 				</array>
 				<key>public.mime-type</key>
 				<array>
-					<string>application/x-shdwpic</string>
+					<string>application/x-ecmedia</string>
 				</array>
 			</dict>
 		</dict>

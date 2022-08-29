@@ -43,9 +43,8 @@ struct KeySelectionList: View {
     @State var presentingAddKeySheet: Bool = false
     @State var isShowingAddKeyView: Bool = false
     
-    @ObservedObject var viewModel: KeySelectionListViewModel
+    @StateObject var viewModel: KeySelectionListViewModel
     
-   
     var body: some View {
         
         NavigationView {

@@ -82,17 +82,12 @@ extension DataStorageModel {
         }
         
         if FileManager.default.fileExists(atPath: baseURL.path) == false {
-            
-            
             try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true, attributes: nil)
         }
-        
     }
     
     func driveURLForNewMedia<T: MediaDescribing>(_ media: T) -> URL {
-        let filename = "\(media.id).\(media.mediaType.fileExtension).shdwpic"
-        
-
+        let filename = "\(media.id).\(media.mediaType.fileExtension).\(AppConstants.fileExtension)"
         return baseURL.appendingPathComponent(filename)
     }
     

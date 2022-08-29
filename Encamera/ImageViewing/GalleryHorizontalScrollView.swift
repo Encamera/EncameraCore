@@ -7,7 +7,6 @@
 
 import SwiftUI
 import Combine
-import SwiftUISnappingScrollView
 
 class GalleryHorizontalScrollViewModel: ObservableObject {
     
@@ -25,13 +24,17 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     var selectedIndex: Int {
         media.firstIndex(of: selectedMedia) ?? 0
     }
-
     
+    func openInFiles() {
+        let url = URL(string: selectedMedia.source.absoluteString.replacingOccurrences(of: "file://", with: "shareddocuments://"))!
+        
+        UIApplication.shared.open(url.deletingLastPathComponent())
+    }
     
     func advanceIndex() {
         let nextIndex = min(media.count - 1, selectedIndex + 1)
         selectedMedia = media[nextIndex]
-
+        
     }
     
     func rewindIndex() {
@@ -41,11 +44,53 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     
     func deleteAction() {
         Task {
+            let targetIndex = selectedIndex
             let targetMedia = selectedMedia
+
+            await MainActor.run {
+                if targetIndex > 0 {
+                    rewindIndex()
+                } else {
+                    advanceIndex()
+                }
+                
+                _ = withAnimation {
+                    media.remove(at: targetIndex)
+                }
+                
+            }
             try await fileAccess.delete(media: targetMedia)
-            media.removeAll { $0 == targetMedia }
-            rewindIndex()
+            
         }
+    }
+    
+    func shareEncrypted() {
+        shareSheet(data: selectedMedia.source)
+    }
+    
+    func shareDecrypted() {
+        Task {
+            let decrypted = try await fileAccess.loadMediaInMemory(media: selectedMedia) { _ in
+                
+            }
+            await MainActor.run {
+                let image = UIImage(data: decrypted.source)!
+                shareSheet(data: image)
+            }
+        }
+    }
+    
+    func shareSheet(data: Any) {
+        let activityView = UIActivityViewController(activityItems: [data], applicationActivities: nil)
+        
+        
+        let allScenes = UIApplication.shared.connectedScenes
+        let scene = allScenes.first { $0.activationState == .foregroundActive }
+        
+        if let windowScene = scene as? UIWindowScene {
+            windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
+        }
+        
     }
     
 }
@@ -65,12 +110,11 @@ struct GalleryHorizontalScrollView: View {
     typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<GestureStateGesture<MagnificationGesture, Bool>>>
     typealias TapGestureType = _EndedGesture<TapGesture>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
-
+    
     
     @ObservedObject var viewModel: GalleryHorizontalScrollViewModel
     @Binding var shouldShow: Bool
     @State var nextScrollViewXOffset: CGFloat = .zero
-    //    @Published var startPoint: CGPoint = .zero
     @Namespace var scrollSpace
     @GestureState private var state = false
     @State var currentScrollViewXOffset: CGFloat = .zero
@@ -79,8 +123,10 @@ struct GalleryHorizontalScrollView: View {
     @State var currentScale: CGFloat = .zero
     @State var finalOffset: CGSize = .zero
     @State var currentOffset: CGSize = .zero
+    @State var showingShareSheet = false
+    @State var showingDeleteConfirmation = false
     var dragGestureRef = DragGesture(minimumDistance: 0)
-
+    
     
     func offsetBinding(for item: EncryptedMedia) -> Binding<CGSize> {
         return Binding<CGSize> {
@@ -94,7 +140,7 @@ struct GalleryHorizontalScrollView: View {
         } set: { _ in
             
         }
-
+        
     }
     
     func scaleBinding(for item: EncryptedMedia) -> Binding<CGFloat> {
@@ -112,100 +158,83 @@ struct GalleryHorizontalScrollView: View {
     var body: some View {
         GeometryReader { geo in
             let frame = geo.frame(in: .global)
-            ZStack {
-                VStack {
-                    
-                    let gridItems = [
-                        GridItem(.fixed(frame.width), spacing: 0)
-                    ]
-                    ScrollViewReader { proxy in
-                        
-                        ScrollView(.horizontal) {
-                            
-                            LazyHGrid(rows: gridItems) {
-                                ForEach(viewModel.media, id: \.id) { item in
-                                    
-                                    let model = ImageViewingViewModel(media: item, fileAccess: viewModel.fileAccess)
-                                    
-                                    ImageViewing(
-                                        currentScale: scaleBinding(for: item),
-                                        finalOffset: offsetBinding(for: item),
-                                        isActive: $shouldShow,
-                                        
-                                        viewModel: model, externalGesture: dragGestureRef)
-                                    .frame(width: frame.width, height: frame.height)
-                                    
-                                }
-                            }
-                        }
-                        .onChange(of: viewModel.selectedMedia) { newValue in
-                            scrollTo(media: newValue, with: proxy)
-                        }
-                        .onAppear {
-                            scrollTo(media: viewModel.selectedMedia, with: proxy)
-                        }
-                        
-                    }
-                }.gesture(dragGesture(with: frame)
-                    .simultaneously(with: magnificationGesture)
-                    .simultaneously(with: tapGesture)
-                )
-            }
             VStack {
-                Spacer()
+                let gridItems = [
+                    GridItem(.fixed(frame.width), spacing: 0)
+                ]
+                
+                ScrollViewReader { proxy in
+                    
+                    ScrollView(.horizontal) {
+                        LazyHGrid(rows: gridItems) {
+                            ForEach(viewModel.media, id: \.id) { item in
+                                
+                                let model = ImageViewingViewModel(media: item, fileAccess: viewModel.fileAccess)
+                                ImageViewing(
+                                    currentScale: scaleBinding(for: item),
+                                    finalOffset: offsetBinding(for: item),
+                                    isActive: $shouldShow,
+                                    
+                                    viewModel: model, externalGesture: dragGestureRef)
+                                .frame(
+                                    width: frame.width,
+                                    height: frame.height)
+                                
+                            }
+                        }.frame(maxHeight: .infinity)
+                    }
+                    .onChange(of: viewModel.selectedMedia) { newValue in
+                        scrollTo(media: newValue, with: proxy)
+                    }
+                    .onAppear {
+                        scrollTo(media: viewModel.selectedMedia, with: proxy)
+                    }
+                    
+                }
+                
                 HStack(alignment: .center) {
                     Button {
-                    
-                        
+                        showingShareSheet = true
                     } label: {
                         Image(systemName: "square.and.arrow.up")
-                    }.contextMenu {
-                        Button("Share Encrypted") {
-                            shareSheet(data: viewModel.selectedMedia.source)
-                        }
-                        Button("Share Decrypted") {
-                            Task {
-                                let decrypted = try await viewModel.fileAccess.loadMediaInMemory(media: viewModel.selectedMedia) { _ in
-                                    
-                                }
-                                await MainActor.run {
-                                    let image = UIImage(data: decrypted.source)!
-                                    shareSheet(data: image)
-                                }
-                            }
-                        }
                     }
                     Spacer()
                     Button {
-                        let url = URL(string: "shareddocuments://\(viewModel.selectedMedia.source.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!)")!
-                        UIApplication.shared.open(url)
+                        viewModel.openInFiles()
                     } label: {
                         Image(systemName: "folder")
                     }
                     Spacer()
                     Button {
-                        viewModel.deleteAction()
+                        showingDeleteConfirmation = true
                     } label: {
                         Image(systemName: "trash")
                     }
-
-                }.padding()
+                }
+                .padding()
+                .frame(height: 44)
+                
+                
+            }.confirmationDialog("Delete this image?", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
+                
+                Button("Delete", role: .destructive) {
+                    viewModel.deleteAction()
+                }
             }
+            .confirmationDialog("Share Image", isPresented: $showingShareSheet) {
+                Button("Share Encrypted") {
+                    viewModel.shareEncrypted()
+                }
+                Button("Share Decrypted") {
+                    viewModel.shareDecrypted()
+                }
+            }
+            .gesture(dragGesture(with: frame)
+                .simultaneously(with: magnificationGesture)
+                .simultaneously(with: tapGesture)
+            )
         }
         
-    }
-    
-    func shareSheet(data: Any) {
-        let activityView = UIActivityViewController(activityItems: [data], applicationActivities: nil)
-
-        
-        let allScenes = UIApplication.shared.connectedScenes
-        let scene = allScenes.first { $0.activationState == .foregroundActive }
-
-        if let windowScene = scene as? UIWindowScene {
-            windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
-        }
-
     }
     
     private func scrollTo(media: EncryptedMedia, with proxy: ScrollViewProxy) {
@@ -213,7 +242,7 @@ struct GalleryHorizontalScrollView: View {
             finalScale = 1.0
             proxy.scrollTo(media.id)
         }
-
+        
     }
     private func dragGesture(with frame: CGRect) -> DragGestureType {
         dragGestureRef.onChanged({ value in
@@ -228,6 +257,11 @@ struct GalleryHorizontalScrollView: View {
             
         }).onEnded({ value in
             if finalScale <= 1.0 {
+                if value.location.x > value.startLocation.x {
+                    viewModel.rewindIndex()
+                } else {
+                    viewModel.advanceIndex()
+                }
             } else {
                 let nextOffset: CGSize = .init(
                     width: finalOffset.width + currentOffset.width,
@@ -235,7 +269,7 @@ struct GalleryHorizontalScrollView: View {
                 
                 finalOffset = nextOffset
                 currentOffset = .zero
-
+                
             }
             
         })
@@ -245,9 +279,9 @@ struct GalleryHorizontalScrollView: View {
     
     private var tapGesture: TapGestureType {
         TapGesture(count: 2).onEnded {
-                                        finalScale = finalScale > 1.0 ? 1.0 : 3.0
-                                        finalOffset = .zero
-                                    }
+            finalScale = finalScale > 1.0 ? 1.0 : 3.0
+            finalOffset = .zero
+        }
     }
     
     private var magnificationGesture: MagnificationGestureType {
@@ -257,11 +291,11 @@ struct GalleryHorizontalScrollView: View {
             currentScale = value - 1
             
         })
-            .onEnded({ amount in
-                let final = finalScale + currentScale
-                finalScale = final < 1.0 ? 1.0 : final
-                currentScale = 0.0
-            })
+        .onEnded({ amount in
+            let final = finalScale + currentScale
+            finalScale = final < 1.0 ? 1.0 : final
+            currentScale = 0.0
+        })
     }
 }
 
