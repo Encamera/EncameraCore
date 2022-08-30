@@ -8,24 +8,23 @@
 import SwiftUI
 import Combine
 
-class MediaGalleryViewModel<F: FileAccess>: ObservableObject {
-    @Published var fileAccess: F!
+class MediaGalleryViewModel: ObservableObject {
+    @Published var fileAccess: FileAccess!
     @Published var keyManager: KeyManager
     
-    init(keyManager: KeyManager, storageSettingsManager: DataStorageSetting) {
+    init(keyManager: KeyManager, fileAccess: FileAccess, storageSettingsManager: DataStorageSetting) {
         
         self.keyManager = keyManager
-        if let currentKey = keyManager.currentKey {
-            self.fileAccess = F(key: currentKey, storageSettingsManager: storageSettingsManager)
-        }
+        self.fileAccess = fileAccess
     }
 }
 
 struct MediaGalleryView<F: FileAccess>: View {
     
-    @StateObject var viewModel: MediaGalleryViewModel<F>
+    @StateObject var viewModel: MediaGalleryViewModel
     
     var body: some View {
+
         if let fileAccess = viewModel.fileAccess {
             GalleryView(viewModel: .init(
                 fileAccess: fileAccess,
@@ -38,12 +37,12 @@ struct MediaGalleryView<F: FileAccess>: View {
         }
     }
 }
-
-struct MediaGalleryView_Previews: PreviewProvider {
-
-    
-    static var previews: some View {
-        MediaGalleryView<DemoFileEnumerator>(viewModel: .init(keyManager: DemoKeyManager(), storageSettingsManager: DataStorageUserDefaultsSetting()))
-            .environmentObject(EncameraState())
-    }
-}
+//
+//struct MediaGalleryView_Previews: PreviewProvider {
+//
+//    
+//    static var previews: some View {
+//        MediaGalleryView<DemoFileEnumerator>(viewModel: .init(keyManager: DemoKeyManager(), storageSettingsManager: DataStorageUserDefaultsSetting()))
+//            .environmentObject(EncameraState())
+//    }
+//}

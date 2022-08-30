@@ -226,6 +226,7 @@ struct GalleryHorizontalScrollView: View {
                     viewModel.shareDecrypted()
                 }
             }
+            .screenBlocked()
             .gesture(dragGesture(with: frame)
                 .simultaneously(with: magnificationGesture)
                 .simultaneously(with: tapGesture)
