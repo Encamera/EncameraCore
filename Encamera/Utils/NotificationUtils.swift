@@ -11,34 +11,36 @@ import Combine
 
 struct NotificationUtils {
     
+    private static var noOp = false
+    
     static var didBecomeActivePublisher: AnyPublisher<Notification, Never> {
         
-        return NotificationCenter.default
-            .publisher(for: UIApplication.didBecomeActiveNotification)
-            .eraseToAnyPublisher()
+        return publisher(for: UIApplication.didBecomeActiveNotification)
     }
     
     static var didEnterBackgroundPublisher: AnyPublisher<Notification, Never> {
-        return NotificationCenter.default
-            .publisher(for: UIApplication.didEnterBackgroundNotification)
-            .eraseToAnyPublisher()
+        return publisher(for: UIApplication.didEnterBackgroundNotification)
+            
     }
     
     static var willResignActivePublisher: AnyPublisher<Notification, Never> {
-        return NotificationCenter.default
-            .publisher(for: UIApplication.willResignActiveNotification)
-            .eraseToAnyPublisher()
+        return publisher(for: UIApplication.willResignActiveNotification)
     }
     
     static var orientationDidChangePublisher: AnyPublisher<Notification, Never> {
-        return NotificationCenter.default
-            .publisher(for: UIDevice.orientationDidChangeNotification)
-            .eraseToAnyPublisher()
+        return publisher(for: UIDevice.orientationDidChangeNotification)
     }
     
     static var systemClockDidChangePublisher: AnyPublisher<Notification, Never> {
+        return publisher(for: .NSSystemClockDidChange)
+    }
+    
+    private static func publisher(for notifType: Notification.Name) -> AnyPublisher<Notification, Never> {
+        guard noOp == false else {
+            return PassthroughSubject().eraseToAnyPublisher()
+        }
         return NotificationCenter.default
-            .publisher(for: .NSSystemClockDidChange)
+            .publisher(for: notifType)
             .eraseToAnyPublisher()
     }
 }

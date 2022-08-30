@@ -14,6 +14,26 @@ enum DemoError: Error {
 }
 
 class DemoFileEnumerator: FileAccess {
+    required init() {
+        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
+        
+        mediaList = (0..<5).map { val in
+            EncryptedMedia(source: url, mediaType: .photo, id: "\(NSUUID().uuidString)")
+        }
+        
+        let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
+        
+        mediaList += (6..<10).map { val in
+            EncryptedMedia(source: dog, mediaType: .photo, id: "\(NSUUID().uuidString)")
+        }
+        
+        mediaList.shuffle()
+    }
+    
+    func configure(with key: ImageKey, storageSettingsManager: DataStorageSetting) async {
+        
+    }
+    
     
     
     
@@ -68,26 +88,7 @@ class DemoFileEnumerator: FileAccess {
     
     let directoryModel = DemoDirectoryModel()
     
-    required init(key: ImageKey, storageSettingsManager: DataStorageSetting) {
-        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
-        
-        mediaList = (0..<5).map { val in
-            EncryptedMedia(source: url, mediaType: .photo, id: "\(NSUUID().uuidString)")
-        }
-        
-        let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
-        
-        mediaList += (6..<10).map { val in
-            EncryptedMedia(source: dog, mediaType: .photo, id: "\(NSUUID().uuidString)")
-        }
-        
-        mediaList.shuffle()
-
-    }
     
-    convenience init() {
-        self.init(key: ImageKey(name: "", keyBytes: [], creationDate: Date()), storageSettingsManager: DemoStorageSettingsManager())
-    }
     
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
          

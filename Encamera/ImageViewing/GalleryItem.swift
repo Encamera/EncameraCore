@@ -16,7 +16,6 @@ struct GalleryItem: View {
     
     var fileAccess: FileAccess
     var media: EncryptedMedia
-    var galleryViewModel: GalleryViewModel
     @State private var isActive: Bool = false
     
     var body: some View {

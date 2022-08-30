@@ -5,7 +5,7 @@ import Combine
 struct EncameraApp: App {
     class ViewModel: ObservableObject {
         @Published var hasOpenedURL: Bool = false
-        @Published var fileAccess: FileAccess?
+        var fileAccess: FileAccess = DiskFileAccess()
         @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
@@ -55,20 +55,18 @@ struct EncameraApp: App {
                     
                     self.showScreenBlocker = true
                 }.store(in: &cancellables)
-            
+
             NotificationUtils.willResignActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = true
                 }
                 .store(in: &cancellables)
-            
-            
+
             NotificationUtils.didBecomeActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = false
                     
                 }.store(in: &cancellables)
-            
             
             NotificationUtils.orientationDidChangePublisher
                 .sink { value in
@@ -101,8 +99,10 @@ struct EncameraApp: App {
             guard let key = key else {
                 return
             }
-            let fileAccess = DiskFileAccess(key: key, storageSettingsManager: storageSettingsManager)
-            self.fileAccess = fileAccess
+            Task {
+                await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
+            }
+            
             
         }
         
@@ -123,11 +123,12 @@ struct EncameraApp: App {
     var body: some Scene {
         
         WindowGroup {
-            
+
             CameraView(cameraModel: .init(
                 keyManager: viewModel.keyManager,
                 authManager: viewModel.authManager,
                 cameraService: viewModel.cameraService,
+                fileAccess: viewModel.fileAccess,
                 storageSettingsManager: viewModel.storageSettingsManager
             ))
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
@@ -139,7 +140,7 @@ struct EncameraApp: App {
                        let fileAccess = viewModel.fileAccess {
                         switch media.mediaType {
                         case .photo:
-                            GalleryHorizontalScrollView(viewModel: .init(media: [media], selectedMedia: media, fileAccess: fileAccess), shouldShow: .constant(true))
+                            GalleryHorizontalScrollView(viewModel: .init(media: [media], selectedMedia: media, fileAccess: fileAccess))
                         case .video:
                             MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
                         default:

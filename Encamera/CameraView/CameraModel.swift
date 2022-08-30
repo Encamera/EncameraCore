@@ -32,7 +32,7 @@ final class CameraModel: ObservableObject {
     var keyManager: KeyManager
     var alertError: AlertError!
     var storageSettingsManager: DataStorageSetting
-    var fileAccess: FileAccess?
+    var fileAccess: FileAccess
     
     
     private var cancellables = Set<AnyCancellable>()
@@ -40,9 +40,10 @@ final class CameraModel: ObservableObject {
     init(keyManager: KeyManager,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
+         fileAccess: FileAccess,
          storageSettingsManager: DataStorageSetting) {
         self.service = cameraService
-        
+        self.fileAccess = fileAccess
         
         self.keyManager = keyManager
         
@@ -56,23 +57,23 @@ final class CameraModel: ObservableObject {
         }
         .store(in: &self.cancellables)
         if let key = keyManager.currentKey {
-            self.fileAccess = DiskFileAccess(key: key, storageSettingsManager: DataStorageUserDefaultsSetting())
+            Task {
+                await self.fileAccess.configure(with: key, storageSettingsManager: DataStorageUserDefaultsSetting())
+            }
         }
         keyManager.keyPublisher.sink { key in
             guard let key = key else {
                 return
             }
             Task {
-                self.fileAccess = DiskFileAccess(key: key, storageSettingsManager: DataStorageUserDefaultsSetting())
+                await self.fileAccess.configure(with: key, storageSettingsManager: DataStorageUserDefaultsSetting())
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)
     }
     
+    
     func loadThumbnail() async {
-        guard let fileAccess = fileAccess else {
-            return
-        }
         
         let media: [EncryptedMedia] = await fileAccess.enumerateMedia()
         guard let firstMedia = media.first else {
@@ -99,9 +100,7 @@ final class CameraModel: ObservableObject {
     }
     
     func captureButtonPressed() async throws {
-        guard let fileAccess = fileAccess else {
-            return
-        }
+
         switch selectedCameraMode {
         case .photo:
             let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode)

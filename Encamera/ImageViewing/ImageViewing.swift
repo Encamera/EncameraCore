@@ -9,23 +9,6 @@ import SwiftUI
 import Combine
 import PDFKit
 
-struct PhotoDetailView: UIViewRepresentable {
-    let image: UIImage
-    
-    func makeUIView(context: Context) -> PDFView {
-        let view = PDFView()
-        view.document = PDFDocument()
-        guard let page = PDFPage(image: image) else { return view }
-        view.document?.insert(page, at: 0)
-        view.autoScales = true
-        return view
-    }
-    
-    func updateUIView(_ uiView: PDFView, context: Context) {
-        // empty
-    }
-}
-
 enum MediaViewingError: Error {
     case noKeyAvailable
     case fileAccessNotAvailable
@@ -106,7 +89,6 @@ struct ImageViewing<M: MediaDescribing>: View {
     @Binding var finalOffset: CGSize
     @State var currentOffset: CGSize = .zero
     @State var showBottomActions = false
-    var isActive: Binding<Bool>
     @StateObject var viewModel: ImageViewingViewModel<M>
     var externalGesture: DragGesture
     var cancellables = Set<AnyCancellable>()
@@ -140,7 +122,6 @@ struct ImageViewing<M: MediaDescribing>: View {
         .onAppear {
             viewModel.decryptAndSet()
         }
-        .navigationTitle("\(viewModel.decryptedFileRef?.id ?? "None")")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color.black)
     }
@@ -152,7 +133,7 @@ struct ImageViewing_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             let url = Bundle.main.url(forResource: "image", withExtension: "jpg")!
-            ImageViewing(currentScale: .constant(1.0), finalOffset: .constant(.zero), isActive: .constant(false), viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()), externalGesture: DragGesture())
+            ImageViewing(currentScale: .constant(1.0), finalOffset: .constant(.zero), viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()), externalGesture: DragGesture())
         }
     }
 }

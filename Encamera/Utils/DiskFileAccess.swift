@@ -10,25 +10,33 @@ import UIKit
 import Combine
 import AVFoundation
 
+
+enum FileAccessError: Error {
+    case missingDirectoryModel
+}
+
 actor DiskFileAccess: FileEnumerator {
     
     enum iCloudError: Error {
         case invalidURL
         case general
     }
-    var key: ImageKey
+    var key: ImageKey!
     
     private var cancellables = Set<AnyCancellable>()
-    private let directoryModel: DataStorageModel
-    init(key: ImageKey, storageSettingsManager: DataStorageSetting) {
-        self.key = key
-        let storageModel = storageSettingsManager.storageModelFor(keyName: key.name)
-        self.directoryModel =  storageModel
-        try! self.directoryModel.initializeDirectories()
+    private var directoryModel: DataStorageModel?
+    
+    func configure(with key: ImageKey, storageSettingsManager: DataStorageSetting) async {
+         self.key = key
+         let storageModel = storageSettingsManager.storageModelFor(keyName: key.name)
+         self.directoryModel = storageModel
+         try? self.directoryModel?.initializeDirectories()
     }
     
-    func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not truly async, should be though
-        
+    func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not async, should be though
+        guard let directoryModel = directoryModel else {
+            return []
+        }
         let driveUrl = directoryModel.baseURL
         _ = driveUrl.startAccessingSecurityScopedResource()
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
@@ -75,11 +83,14 @@ actor DiskFileAccess: FileEnumerator {
     
 }
 
+
 extension DiskFileAccess: FileReader {
     
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL {
         
-        let thumbnailPath = directoryModel.previewURLForMedia(media)
+        guard let thumbnailPath = directoryModel?.previewURLForMedia(media) else {
+            throw FileAccessError.missingDirectoryModel
+        }
         let preview = T(source: thumbnailPath, mediaType: .preview, id: media.id)
         
         do {
@@ -232,10 +243,13 @@ extension DiskFileAccess: FileReader {
     }
 }
 
+
+
 extension DiskFileAccess: FileWriter {
     
     @discardableResult func saveThumbnail<T: MediaDescribing>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data> {
-        let destinationURL = directoryModel.thumbnailURLForMedia(sourceMedia)
+        
+        let destinationURL = directoryModel?.thumbnailURLForMedia(sourceMedia)
         let cleartextThumb = CleartextMedia(source: data, mediaType: .thumbnail, id: sourceMedia.id)
         
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextThumb, targetURL: destinationURL)
@@ -245,7 +259,7 @@ extension DiskFileAccess: FileWriter {
     
     @discardableResult func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> {
         let data = try JSONEncoder().encode(preview)
-        let destinationURL = directoryModel.previewURLForMedia(sourceMedia)
+        let destinationURL = directoryModel?.previewURLForMedia(sourceMedia)
         let cleartextPreview = CleartextMedia(source: data, mediaType: .preview, id: sourceMedia.id)
         
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
@@ -254,7 +268,7 @@ extension DiskFileAccess: FileWriter {
     }
     
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia {
-        let destinationURL = directoryModel.driveURLForNewMedia(media)
+        let destinationURL = directoryModel?.driveURLForNewMedia(media)
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
         let encrypted = try await fileHandler.encrypt()
         try await createPreview(for: media)

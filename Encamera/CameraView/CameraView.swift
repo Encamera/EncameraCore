@@ -173,14 +173,18 @@ struct CameraView: View {
     }
     
     var body: some View {
+        let _ = Self._printChanges()
+
         NavigationView {
             
             ZStack {
                 
                 NavigationLink(isActive: $cameraModel.showGalleryView) {
+
                     MediaGalleryView<DiskFileAccess>(
                         viewModel: MediaGalleryViewModel(
                             keyManager: cameraModel.keyManager,
+                            fileAccess: cameraModel.fileAccess,
                             storageSettingsManager: cameraModel.storageSettingsManager
                         )
                     )
@@ -263,7 +267,7 @@ private extension AVCaptureDevice.FlashMode {
 
 struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(cameraModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), storageSettingsManager: DemoStorageSettingsManager()))
+        CameraView(cameraModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), storageSettingsManager: DemoStorageSettingsManager()))
         
     }
 }

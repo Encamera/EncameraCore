@@ -182,7 +182,9 @@ class DeviceAuthManager: AuthManager {
             throw AuthManagerError.biometricsNotAvailable
         }
         do {
+            print("Attempting LA auth")
             let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Keep your encrypted data safe by using \(method.nameForMethod).")
+            print("Result from LA auth", result)
             if result == true {
                 self.authState = .authenticated(with: method)
             } else {

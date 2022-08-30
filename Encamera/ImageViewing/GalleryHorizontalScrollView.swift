@@ -113,7 +113,6 @@ struct GalleryHorizontalScrollView: View {
     
     
     @StateObject var viewModel: GalleryHorizontalScrollViewModel
-    @Binding var shouldShow: Bool
     @State var nextScrollViewXOffset: CGFloat = .zero
     @Namespace var scrollSpace
     @GestureState private var state = false
@@ -173,8 +172,6 @@ struct GalleryHorizontalScrollView: View {
                                 ImageViewing(
                                     currentScale: scaleBinding(for: item),
                                     finalOffset: offsetBinding(for: item),
-                                    isActive: $shouldShow,
-                                    
                                     viewModel: model, externalGesture: dragGestureRef)
                                 .frame(
                                     width: frame.width,
@@ -303,6 +300,6 @@ struct GalleryHorizontalScrollView_Previews: PreviewProvider {
     static var previews: some View {
         let media = (0..<10).map { EncryptedMedia(source: URL(string: "/")!, mediaType: .photo, id: "\($0)") }
         let model = GalleryHorizontalScrollViewModel(media: media, selectedMedia: media.first!, fileAccess: DemoFileEnumerator())
-        GalleryHorizontalScrollView(viewModel: model, shouldShow: .constant(false))
+        GalleryHorizontalScrollView(viewModel: model)
     }
 }

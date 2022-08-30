@@ -14,6 +14,16 @@ class GalleryViewModel: ObservableObject {
     
     @Published var isDisplayingMedia: Bool = false
     @Published var media: [EncryptedMedia] = []
+    @Published var showingCarousel = false
+    @Published var carouselTarget: EncryptedMedia? {
+        didSet {
+            if carouselTarget == nil {
+                showingCarousel = false
+            } else {
+                showingCarousel = true
+            }
+        }
+    }
     var cancellables = Set<AnyCancellable>()
     var fileAccess: FileAccess
     var keyManager: KeyManager
@@ -33,19 +43,6 @@ class GalleryViewModel: ObservableObject {
 struct GalleryView: View {
     
     @StateObject var viewModel: GalleryViewModel
-    @State var showingCarousel = false
-    @State var carouselTarget: EncryptedMedia? {
-        didSet {
-            if carouselTarget == nil {
-                showingCarousel = false
-            } else {
-                showingCarousel = true
-            }
-        }
-    }
-    
-    @State var shouldClose: Bool = false
-
     
     var body: some View {
         let gridItems = [
@@ -57,18 +54,20 @@ struct GalleryView: View {
                 LazyVGrid(columns: gridItems, spacing: 1) {
                     ForEach(viewModel.media, id: \.gridID) { mediaItem in
                         
-                        GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem, galleryViewModel: viewModel)
+                        GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem)
                             .onTapGesture {
-                                carouselTarget = mediaItem
+                                viewModel.carouselTarget = mediaItem
                             }
                     }
                 }
             }
-            NavigationLink(isActive: $showingCarousel) {
-                if let carouselTarget = carouselTarget, showingCarousel == true {
+            
+
+            NavigationLink(isActive: $viewModel.showingCarousel) {
+                if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
                     
                     GalleryHorizontalScrollView(
-                        viewModel: .init(media: viewModel.media, selectedMedia: carouselTarget, fileAccess: viewModel.fileAccess), shouldShow: $showingCarousel)
+                        viewModel: .init(media: viewModel.media, selectedMedia: carouselTarget, fileAccess: viewModel.fileAccess))
                 }
             } label: {
                 EmptyView()
@@ -77,8 +76,8 @@ struct GalleryView: View {
         }
         .task {
             await viewModel.enumerateMedia()
-        }.background(Color.black)
-//        .edgesIgnoringSafeArea(.all)
+        }
+        .background(Color.black)
         
     }
 }
