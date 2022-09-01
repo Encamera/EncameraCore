@@ -43,7 +43,7 @@ class OnboardingViewModel: ObservableObject {
     @Published var keyStorageType: StorageType = .local
     @MainActor
     @Published var storageAvailabilities: [StorageAvailabilityModel] = []
-    @Published var existingPasswordCorrect: Bool = false
+    @Published var existingPasswordCorrect: Bool?
     @MainActor
     @Published var useBiometrics: Bool = false {
         didSet {
@@ -84,7 +84,7 @@ class OnboardingViewModel: ObservableObject {
     @MainActor
     func authWithBiometrics() async {
         do {
-            try await authManager.authorizeWithBiometrics()
+            try await authManager.evaluateWithBiometrics()
         } catch let authError as AuthManagerError {
             switch authError {
                 
@@ -100,15 +100,6 @@ class OnboardingViewModel: ObservableObject {
             }
         } catch {
             generalError = error
-        }
-    }
-    
-    @MainActor
-    func saveKey() throws {
-        do {
-            try keyManager.generateNewKey(name: keyName, storageType: keyStorageType)
-        } catch {
-            try handle(error: error)
         }
     }
     
@@ -136,20 +127,24 @@ class OnboardingViewModel: ObservableObject {
     }
     
     func savePassword() throws {
-        let validation = validatePassword()
-        if validation == .valid {
-            try keyManager.setPassword(password1)
-            try authManager.authorize(with: password1, using: keyManager)
-        } else {
-            throw OnboardingViewError.passwordInvalid
+        do {
+            let validation = validatePassword()
+            if validation == .valid {
+                try keyManager.setPassword(password1)
+            } else {
+                throw OnboardingViewError.passwordInvalid
+            }
+        } catch {
+            try handle(error: error)
         }
     }
     
     func checkExistingPasswordAndAuth() throws {
         
         existingPasswordCorrect = try keyManager.checkPassword(existingPassword)
-        try authManager.authorize(with: existingPassword, using: keyManager)
-        
+        if existingPasswordCorrect == false {
+            throw OnboardingViewError.passwordInvalid
+        }
     }
     
     func loadStorageAvailabilities() {
@@ -181,8 +176,13 @@ class OnboardingViewModel: ObservableObject {
             
             do {
                 let savedState = OnboardingState.completed
+                if existingPassword.isEmpty == false {
+                    try authManager.authorize(with: existingPassword, using: keyManager)
+                } else {
+                    try authManager.authorize(with: password1, using: keyManager)
+                }
+                try keyManager.generateNewKey(name: keyName, storageType: await keyStorageType)
                 try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
-                try authManager.authorize(with: password1, using: keyManager)
                 
             } catch {
                 try await handle(error: error)
@@ -254,7 +254,16 @@ private extension MainOnboardingView {
                 subheading: "You have an existing password for this device.", image: Image(systemName: "key.fill"), bottomButtonTitle: "Next", bottomButtonAction: {
                     try viewModel.checkExistingPasswordAndAuth()
                 }) {
-                    AnyView(SecureField("Password", text: $viewModel.existingPassword).passwordField())
+                    AnyView(
+                        VStack {
+                            SecureField("Password", text: $viewModel.existingPassword).passwordField()
+                            if let existingPasswordCorrect = viewModel.existingPasswordCorrect, existingPasswordCorrect == false {
+                                Group {
+                                    Text("Incorrect password").alertText()
+                                }
+                            }
+                        }
+                    )
                 }
         case .setPassword:
             return .init(
@@ -331,7 +340,6 @@ Each key will store data in its own directory.
 """,
                          image: Image(systemName: ""),
                          bottomButtonTitle: "Next") {
-                try viewModel.saveKey()
             } content: {
                 AnyView(
                     StorageSettingView(keyStorageType: $viewModel.keyStorageType, storageAvailabilities: $viewModel.storageAvailabilities)

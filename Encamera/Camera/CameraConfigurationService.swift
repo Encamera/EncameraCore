@@ -331,7 +331,6 @@ private extension CameraConfigurationService {
             self.movieOutput = nil
         }
         session.sessionPreset = .photo
-        photoOutput.isLivePhotoCaptureEnabled = false
         photoOutput.maxPhotoQualityPrioritization = .quality
         photoOutput.isHighResolutionCaptureEnabled = true
 

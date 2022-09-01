@@ -102,8 +102,6 @@ struct EncameraApp: App {
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
             }
-            
-            
         }
         
         private func setupAppearances() {

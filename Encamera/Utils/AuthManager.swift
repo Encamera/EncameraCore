@@ -86,7 +86,7 @@ protocol AuthManager {
     func checkAuthorizationWithCurrentPolicy() async throws
     func authorize(with password: String, using keyManager: KeyManager) throws
     func authorizeWithBiometrics() async throws
-    
+    @discardableResult func evaluateWithBiometrics() async throws -> Bool
 }
 
 class DeviceAuthManager: AuthManager {
@@ -170,11 +170,10 @@ class DeviceAuthManager: AuthManager {
         } else {
             newState = .unauthenticated
         }
-        debugPrint("New auth state", newState)
         authState = newState
     }
     
-    func authorizeWithBiometrics() async throws {
+    @discardableResult func evaluateWithBiometrics() async throws -> Bool {
         cancelNotificationObservers()
         
                 
@@ -184,13 +183,8 @@ class DeviceAuthManager: AuthManager {
         do {
             print("Attempting LA auth")
             let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Keep your encrypted data safe by using \(method.nameForMethod).")
-            print("Result from LA auth", result)
-            if result == true {
-                self.authState = .authenticated(with: method)
-            } else {
-                self.authState = .unauthenticated
-            }
             setupNotificationObservers()
+            return result
         } catch let localAuthError as LAError {
             debugPrint("LAError", localAuthError)
             switch localAuthError.code {
@@ -210,6 +204,22 @@ class DeviceAuthManager: AuthManager {
             }
         } catch {
             throw AuthManagerError.biometricsFailed
+        }
+        return false
+    }
+    
+    func authorizeWithBiometrics() async throws {
+        cancelNotificationObservers()
+        
+                
+        guard let method = availableBiometric else {
+            throw AuthManagerError.biometricsNotAvailable
+        }
+        let result = try await evaluateWithBiometrics()
+        if result == true {
+            self.authState = .authenticated(with: method)
+        } else {
+            self.authState = .unauthenticated
         }
     }
 }

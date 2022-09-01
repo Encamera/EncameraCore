@@ -24,7 +24,9 @@ class DemoAuthManager: AuthManager {
     func checkAuthorizationWithCurrentPolicy() async throws {
         
     }
-    
+    func evaluateWithBiometrics() async throws -> Bool {
+        return false
+    }
     func authorize(with password: String, using keyManager: KeyManager) throws {
         
     }
