@@ -62,9 +62,11 @@ protocol DataStorageModel {
     var baseURL: URL { get }
     var keyName: KeyName { get }
     var thumbnailDirectory: URL { get }
+    var storageType: StorageType { get }
     
     init(keyName: KeyName)
     func initializeDirectories() throws
+    
 }
 
 extension DataStorageModel {

@@ -38,8 +38,11 @@ struct DataStorageUserDefaultsSetting: DataStorageSetting {
     
     func storageModelFor(keyName: KeyName) -> DataStorageModel {
         
-        guard let directoryModelString = UserDefaults.standard.value(forKey: Constants.directoryTypeKeyFor(keyName: keyName)) as? String, let type = StorageType(rawValue: directoryModelString) else {
-            return LocalStorageModel(keyName: keyName)
+        guard let directoryModelString = UserDefaults.standard.value(forKey: Constants.directoryTypeKeyFor(keyName: keyName)) as? String,
+              let type = StorageType(rawValue: directoryModelString) else {
+            let model = determineStorageModelFor(keyName: keyName)
+            setStorageTypeFor(keyName: keyName, directoryModelType: model.storageType)
+            return model
         }
         
         let model = type.modelForType.init(keyName: keyName)
@@ -47,11 +50,27 @@ struct DataStorageUserDefaultsSetting: DataStorageSetting {
         return model
     }
     
+    func determineStorageModelFor(keyName: KeyName) -> DataStorageModel {
+        
+        let local = LocalStorageModel(keyName: keyName)
+        if FileManager.default.fileExists(atPath: local.baseURL.path) {
+            return local
+        }
+        
+        let remote = iCloudStorageModel(keyName: keyName)
+        _ = remote.baseURL.startAccessingSecurityScopedResource()
+        defer {
+            remote.baseURL.stopAccessingSecurityScopedResource()
+        }
+        if FileManager.default.fileExists(atPath: remote.baseURL.path) {
+            return remote
+        }
+        return local
+    }
+    
     func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
-        
-        
+            
         UserDefaults.standard.set(directoryModelType.rawValue, forKey: Constants.directoryTypeKeyFor(keyName: keyName))
-        
         
     }
 }

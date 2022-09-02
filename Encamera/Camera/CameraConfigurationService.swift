@@ -99,7 +99,9 @@ actor CameraConfigurationService: CameraConfigurationServicable {
             self.model.setupResult = .authorized
         case .notDetermined:
             
-            if await AVCaptureDevice.requestAccess(for: .video) == false {
+            if await AVCaptureDevice.requestAccess(for: .video) == true {
+                self.model.setupResult = .authorized
+            } else {
                 self.model.setupResult = .notAuthorized
             }
             
@@ -371,7 +373,7 @@ private extension CameraConfigurationService {
         metadataOutput.metadataObjectTypes = metadataProcessor.supportedObjectTypes
     }
     
-    private func setupCaptureDevice() throws {
+    private func setupVideoCaptureDevice() throws {
         session.sessionPreset = .photo
         
         var defaultVideoDevice: AVCaptureDevice?
@@ -407,6 +409,10 @@ private extension CameraConfigurationService {
             throw SetupError.couldNotCreateVideoDeviceInput(avFoundationError: error)
         }
         
+    }
+    
+    private func setupAudioCaptureDevice() throws {
+        
         do {
             let audioDevice = AVCaptureDevice.default(for: .audio)!
             let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
@@ -434,7 +440,7 @@ private extension CameraConfigurationService {
             }
             // There is an unhandled case here, where if the video input
             // cannot be added to the session, it fails but does nothing
-            try setupCaptureDevice()
+            try setupVideoCaptureDevice()
 //            try addMetadataOutputToSession()
             try addPhotoOutputToSession()
         } catch {

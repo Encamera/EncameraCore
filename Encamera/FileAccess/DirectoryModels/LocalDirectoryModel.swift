@@ -8,6 +8,11 @@
 import Foundation
 
 struct LocalStorageModel: DataStorageModel {
+    
+    var storageType: StorageType {
+        .local
+    }
+    
     var baseURL: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         let documentsDirectory = paths[0]
@@ -16,10 +21,4 @@ struct LocalStorageModel: DataStorageModel {
     }
     
     var keyName: KeyName
-        
-    init(keyName: KeyName) {
-        self.keyName = keyName
-    }
-    
-    
 }

@@ -9,7 +9,9 @@ import Foundation
 
 struct iCloudStorageModel: DataStorageModel {
     
-    
+    var storageType: StorageType {
+        .icloud
+    }
     let keyName: KeyName
     
     var baseURL: URL {

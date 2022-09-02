@@ -112,6 +112,8 @@ class DemoFileEnumerator: FileAccess {
 }
 
 class DemoDirectoryModel: DataStorageModel {
+    var storageType: StorageType = .local
+    
     var keyName: KeyName = "testSuite"
     
     var baseURL: URL
