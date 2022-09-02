@@ -61,10 +61,15 @@ struct OnboardingView<Next>: View where Next: View {
                 .primaryButton()
                 
                 
-                Spacer().frame(height: 50.0)
-            }.foregroundColor(.white)
+//                Spacer().frame(height: 50.0)
+            }
+            .foregroundColor(.white)
             
-        }.padding().background(Color.black).navigationTitle(viewModel.title)
+        }
+        
+        .padding()
+        .background(Color.black)
+        .navigationTitle(viewModel.title)
             
     }
 }

@@ -51,6 +51,11 @@ struct GalleryView: View {
         ZStack {
             
             ScrollView {
+                HStack {
+                    Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
+                    .foregroundColor(.white)
+                    Spacer()
+                }.padding()
                 LazyVGrid(columns: gridItems, spacing: 1) {
                     ForEach(viewModel.media, id: \.gridID) { mediaItem in
                         

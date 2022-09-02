@@ -14,7 +14,7 @@ protocol DataStorageSetting {
 
 extension DataStorageSetting {
     
-    func isStorageTypeAvailable(type: StorageType) async -> StorageType.Availability {
+    func isStorageTypeAvailable(type: StorageType) -> StorageType.Availability {
         switch type {
         case .icloud:
             if FileManager.default.ubiquityIdentityToken == nil {
@@ -54,6 +54,10 @@ struct DataStorageUserDefaultsSetting: DataStorageSetting {
         
         let local = LocalStorageModel(keyName: keyName)
         if FileManager.default.fileExists(atPath: local.baseURL.path) {
+            return local
+        }
+        
+        guard case .available = isStorageTypeAvailable(type: .icloud) else {
             return local
         }
         

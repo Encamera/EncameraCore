@@ -187,6 +187,7 @@ struct GalleryHorizontalScrollView: View {
                         scrollTo(media: viewModel.selectedMedia, with: proxy)
                     }
                     
+                    
                 }
                 
                 HStack(alignment: .center) {
@@ -211,7 +212,6 @@ struct GalleryHorizontalScrollView: View {
                 .padding()
                 .frame(height: 44)
                 
-                
             }.confirmationDialog("Delete this image?", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
                 
                 Button("Delete", role: .destructive) {
@@ -231,6 +231,8 @@ struct GalleryHorizontalScrollView: View {
                 .simultaneously(with: magnificationGesture)
                 .simultaneously(with: tapGesture)
             )
+            
+            .background(Color.black)
         }
         
     }

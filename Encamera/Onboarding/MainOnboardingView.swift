@@ -126,7 +126,7 @@ class OnboardingViewModel: ObservableObject {
         throw error
     }
     
-    func savePassword() throws {
+    @MainActor func savePassword() throws {
         do {
             let validation = validatePassword()
             if validation == .valid {
@@ -201,7 +201,8 @@ struct MainOnboardingView: View {
     var body: some View {
         NavigationView {
             buildOnboarding()
-        }
+        }.ignoresSafeArea(.keyboard)
+
     }
     
     
@@ -243,14 +244,21 @@ private extension MainOnboardingView {
         switch flow {
         case .intro:
             return .init(
-                title: "Keep your files secure.",
-                subheading: "Encrypt everything, take control of your media",
+                title: "Welcome!",
+                subheading: """
+                                            Thank you for downloading Encamera.\n
+                                            Encamera encrypts every photo it takes,
+                                            preventing your most sensitive and private
+                                            media from being leaked or hacked.\n
+                                            
+                                            """,
+                             
                 image: Image(systemName: "camera"),
                 bottomButtonTitle: "Next")
             
         case .enterExistingPassword:
             return .init(
-                title: "Enter your existing password",
+                title: "Enter Password",
                 subheading: "You have an existing password for this device.", image: Image(systemName: "key.fill"), bottomButtonTitle: "Next", bottomButtonAction: {
                     try viewModel.checkExistingPasswordAndAuth()
                 }) {
@@ -267,7 +275,7 @@ private extension MainOnboardingView {
                 }
         case .setPassword:
             return .init(
-                title: "Set a password.",
+                title: "Set Password",
                 subheading: "This allows you to access the app. Store this in a safe place, you cannot recover it later!",
                 image: Image(systemName: "lock.iphone"),
                 bottomButtonTitle: "Set Password",
@@ -299,7 +307,7 @@ private extension MainOnboardingView {
                 })
         case .setupImageKey:
             return .init(
-                title: "Setup Image Key",
+                title: "Encryption Key",
                 subheading:
                                             """
 Set the name for the first key.
@@ -352,8 +360,8 @@ Each key will store data in its own directory.
 
         case .finished:
             return .init(
-                title: "You're all set!",
-                subheading: "",
+                title: "Done!",
+                subheading: "All set up! Your captured media is now protected with top-notch encryption.",
                 image: Image(systemName: "faceid"),
                 bottomButtonTitle: "Done",
                 bottomButtonAction: {
