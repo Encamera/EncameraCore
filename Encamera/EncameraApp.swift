@@ -92,7 +92,7 @@ struct EncameraApp: App {
                     }
                 }.store(in: &cancellables)
             setupAppearances()
-            
+
         }
         
         private func setupWith(key: PrivateKey?) {
@@ -138,7 +138,19 @@ struct EncameraApp: App {
                        let fileAccess = viewModel.fileAccess {
                         switch media.mediaType {
                         case .photo:
-                            GalleryHorizontalScrollView(viewModel: .init(media: [media], selectedMedia: media, fileAccess: fileAccess))
+                            NavigationView {
+                                GalleryHorizontalScrollView(
+                                    viewModel: .init(
+                                        media: [media],
+                                        selectedMedia: media,
+                                        fileAccess: fileAccess
+                                    )
+                                ).toolbar {
+                                    Button("Close") {
+                                        self.viewModel.hasOpenedURL = false
+                                    }
+                                }
+                            }
                         case .video:
                             MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
                         default:
@@ -158,9 +170,14 @@ struct EncameraApp: App {
                 }
                 .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
                 .onOpenURL { url in
-                    self.viewModel.hasOpenedURL = false
-                    self.viewModel.openedUrl = url
-                    self.viewModel.hasOpenedURL = true
+                    Task {
+                        self.viewModel.hasOpenedURL = false
+                        guard case .authenticated(_) = await self.viewModel.authManager.waitForAuthResponse() else {
+                            return
+                        }
+                        self.viewModel.openedUrl = url
+                        self.viewModel.hasOpenedURL = true
+                    }
                 }
                 .statusBar(hidden: true)
                 .environment(

@@ -87,12 +87,13 @@ protocol AuthManager {
     func authorize(with password: String, using keyManager: KeyManager) throws
     func authorizeWithBiometrics() async throws
     @discardableResult func evaluateWithBiometrics() async throws -> Bool
+    func waitForAuthResponse() async -> AuthManagerState
 }
 
 class DeviceAuthManager: AuthManager {
     
     var context: LAContext {
-        var context = LAContext()
+        let context = LAContext()
         context.localizedCancelTitle = "Use Password"
         return context
     }
@@ -119,7 +120,7 @@ class DeviceAuthManager: AuthManager {
         }
     }
     
-    private var authState: AuthManagerState = .unauthenticated {
+    @Published private var authState: AuthManagerState = .unauthenticated {
         didSet {
             guard case .authenticated = authState else {
                 isAuthenticated = false
@@ -138,6 +139,7 @@ class DeviceAuthManager: AuthManager {
     
 
     private var appStateCancellables = Set<AnyCancellable>()
+    private var generalCancellables = Set<AnyCancellable>()
     private var settingsManager: SettingsManager
     
     init(settingsManager: SettingsManager) {
@@ -168,6 +170,29 @@ class DeviceAuthManager: AuthManager {
         return
     }
 
+    func waitForAuthResponse() async -> AuthManagerState {
+        await waitForAuthResponse(delay: AppConstants.authenticationTimeout)
+    }
+    
+    func waitForAuthResponse(delay: RunLoop.SchedulerTimeType.Stride) async -> AuthManagerState  {
+        return await withCheckedContinuation({ continuation in
+            if case .authenticated(_) = authState {
+                continuation.resume(returning: authState)
+            } else {
+                Publishers.MergeMany(
+                    Just(AuthManagerState.unauthenticated)
+                        .delay(for: delay, scheduler: RunLoop.main).eraseToAnyPublisher(),
+                    $authState.dropFirst().eraseToAnyPublisher()
+                )
+                    .first()
+                    .sink { value in
+                        continuation.resume(returning: value)
+                    }
+                    .store(in: &generalCancellables)
+            }
+            
+        })
+    }
     
     func authorize(with password: String, using keyManager: KeyManager) throws {
         let newState: AuthManagerState

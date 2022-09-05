@@ -24,7 +24,7 @@ private func generateQRCode(from string: String, size: CGSize) -> UIImage {
     let qrCodeImage = output.transformed(by: CGAffineTransform(scaleX: x, y: y))
     
     if let qrCodeCGImage = context.createCGImage(qrCodeImage, from: qrCodeImage.extent) {
-        return UIImage(cgImage: qrCodeCGImage)
+        return UIImage(cgImage: qrCodeCGImage)  
     }
     
     return UIImage(systemName: "xmark") ?? UIImage()

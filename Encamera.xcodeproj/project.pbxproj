@@ -10,6 +10,7 @@
 		190D5AFC28C5F30B002A7E0F /* LocalDeeplinkingUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190D5AFB28C5F30B002A7E0F /* LocalDeeplinkingUtils.swift */; };
 		190D5AFE28C5F9CD002A7E0F /* DataStorageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190D5AFD28C5F9CD002A7E0F /* DataStorageModel.swift */; };
 		190D5B0028C5F9E9002A7E0F /* StorageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190D5AFF28C5F9E9002A7E0F /* StorageType.swift */; };
+		190D5B0228C62217002A7E0F /* DeviceAuthManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190D5B0128C62217002A7E0F /* DeviceAuthManagerTests.swift */; };
 		19109389284FF8C1000F40A8 /* image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 193237202849EA680074CE8A /* image.jpg */; };
 		1911319E281F9FC100542281 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = 1911319D281F9FC100542281 /* test.mov */; };
 		19157F7F28BD59AF005EFF59 /* ScreenBlocking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19157F7E28BD59AF005EFF59 /* ScreenBlocking.swift */; };
@@ -119,6 +120,7 @@
 		190D5AFB28C5F30B002A7E0F /* LocalDeeplinkingUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDeeplinkingUtils.swift; sourceTree = "<group>"; };
 		190D5AFD28C5F9CD002A7E0F /* DataStorageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStorageModel.swift; sourceTree = "<group>"; };
 		190D5AFF28C5F9E9002A7E0F /* StorageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageType.swift; sourceTree = "<group>"; };
+		190D5B0128C62217002A7E0F /* DeviceAuthManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAuthManagerTests.swift; sourceTree = "<group>"; };
 		1911319D281F9FC100542281 /* test.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = test.mov; sourceTree = "<group>"; };
 		19157F7E28BD59AF005EFF59 /* ScreenBlocking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlocking.swift; sourceTree = "<group>"; };
 		19157F8028BD5A7E005EFF59 /* ScreenBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlock.swift; sourceTree = "<group>"; };
@@ -530,6 +532,7 @@
 				1990CA412881B10C007486D3 /* PasswordValidatorTests.swift */,
 				1990CA4628846E7C007486D3 /* OnboardingViewModelTests.swift */,
 				1990CA4C28853DCA007486D3 /* SettingsManagerTests.swift */,
+				190D5B0128C62217002A7E0F /* DeviceAuthManagerTests.swift */,
 			);
 			path = EncameraTests;
 			sourceTree = "<group>";
@@ -735,6 +738,7 @@
 				193237232849EEE80074CE8A /* MediaTypeTests.swift in Sources */,
 				19F768D228636FDD008F4BD3 /* DirectoryModelTests.swift in Sources */,
 				1990154D2863BA8400520082 /* KeychainTests.swift in Sources */,
+				190D5B0228C62217002A7E0F /* DeviceAuthManagerTests.swift in Sources */,
 				19631A3C286514F200B95FD3 /* DateUtilsTests.swift in Sources */,
 				1990CA422881B10C007486D3 /* PasswordValidatorTests.swift in Sources */,
 				1990CA4728846E7C007486D3 /* OnboardingViewModelTests.swift in Sources */,

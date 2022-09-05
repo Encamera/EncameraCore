@@ -9,6 +9,10 @@ import Foundation
 import Combine
 
 class DemoAuthManager: AuthManager {
+    func waitForAuthResponse() async -> AuthManagerState {
+        return .unauthenticated
+    }
+    
     var availableBiometric: AuthenticationMethod? = .faceID
     
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> = PassthroughSubject<Bool, Never>().eraseToAnyPublisher()
