@@ -21,12 +21,12 @@ actor DiskFileAccess: FileEnumerator {
         case invalidURL
         case general
     }
-    var key: ImageKey!
+    var key: PrivateKey!
     
     private var cancellables = Set<AnyCancellable>()
     private var directoryModel: DataStorageModel?
     
-    func configure(with key: ImageKey, storageSettingsManager: DataStorageSetting) async {
+    func configure(with key: PrivateKey, storageSettingsManager: DataStorageSetting) async {
          self.key = key
          let storageModel = storageSettingsManager.storageModelFor(keyName: key.name)
          self.directoryModel = storageModel

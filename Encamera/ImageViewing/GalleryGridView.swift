@@ -12,6 +12,7 @@ import Combine
 @MainActor
 class GalleryGridViewModel: ObservableObject {
     
+    var privateKey: PrivateKey
     @Published var isDisplayingMedia: Bool = false
     @Published var media: [EncryptedMedia] = []
     @Published var showingCarousel = false
@@ -26,15 +27,17 @@ class GalleryGridViewModel: ObservableObject {
     }
     var cancellables = Set<AnyCancellable>()
     var fileAccess: FileAccess
-    var keyManager: KeyManager
+    var storageSetting = DataStorageUserDefaultsSetting()
     
-    init(fileAccess: FileAccess, keyManager: KeyManager) {
-        self.fileAccess = fileAccess
-        self.keyManager = keyManager
+    init(privateKey: PrivateKey) {
+        
+        self.privateKey = privateKey
+        self.fileAccess = DiskFileAccess()
     }
     
     
     func enumerateMedia() async {
+        await fileAccess.configure(with: privateKey, storageSettingsManager: storageSetting)
         let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
         media = enumerated
     }
@@ -54,6 +57,13 @@ struct GalleryGridView: View {
                     Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
                         .foregroundColor(.white)
                     Spacer()
+                    Button {
+                        LocalDeeplinkingUtils.openKeyContentsInFiles(keyName: viewModel.privateKey.name)
+                    } label: {
+                        Image(systemName: "folder")
+                    }
+                    
+
                 }.padding()
                 LazyVGrid(columns: gridItems, spacing: 1) {
                     ForEach(viewModel.media, id: \.gridID) { mediaItem in
@@ -82,6 +92,8 @@ struct GalleryGridView: View {
             await viewModel.enumerateMedia()
         }
         .background(Color.black)
+        .screenBlocked()
+        .navigationTitle(viewModel.privateKey.name)
         
     }
 }
@@ -89,7 +101,8 @@ struct GalleryGridView: View {
 struct GalleryView_Previews: PreviewProvider {
     
     static var previews: some View {
-        
-        GalleryGridView(viewModel: GalleryGridViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
+        NavigationView {
+            GalleryGridView(viewModel: GalleryGridViewModel(privateKey: DemoPrivateKey.dummyKey()))
+        }
     }
 }

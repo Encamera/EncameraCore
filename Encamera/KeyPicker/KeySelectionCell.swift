@@ -10,9 +10,9 @@ import SwiftUI
 class KeySelectionCellViewModel: ObservableObject {
     
     var isActive: Bool
-    var key: ImageKey
+    var key: PrivateKey
     
-    init(key: ImageKey, isActive: Bool) {
+    init(key: PrivateKey, isActive: Bool) {
         self.isActive = isActive
         self.key = key
     }
@@ -46,6 +46,6 @@ struct KeySelectionCell: View {
 
 struct KeySelectionCell_Previews: PreviewProvider {
     static var previews: some View {
-        KeySelectionCell(viewModel: .init(key: ImageKey(name: "test", keyBytes: [], creationDate: Date()), isActive: true))
+        KeySelectionCell(viewModel: .init(key: PrivateKey(name: "test", keyBytes: [], creationDate: Date()), isActive: true))
     }
 }

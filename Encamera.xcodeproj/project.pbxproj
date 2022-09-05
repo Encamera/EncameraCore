@@ -19,7 +19,7 @@
 		19217E23273FD60F009E3850 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E22273FD60F009E3850 /* ImageViewing.swift */; };
 		19217E26273FD616009E3850 /* KeyPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E25273FD616009E3850 /* KeyPickerView.swift */; };
 		19217E29273FD620009E3850 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E28273FD620009E3850 /* AppConstants.swift */; };
-		19217E2D273FE452009E3850 /* ImageKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2B273FE452009E3850 /* ImageKey.swift */; };
+		19217E2D273FE452009E3850 /* PrivateKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2B273FE452009E3850 /* PrivateKey.swift */; };
 		19217E2E273FE452009E3850 /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19217E2C273FE452009E3850 /* EncameraState.swift */; };
 		192B2CE828A1A8840047DAE2 /* StorageOptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192B2CE728A1A8840047DAE2 /* StorageOptionItemView.swift */; };
 		192C9FEE28B34CA800CCD1D2 /* PreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192C9FED28B34CA800CCD1D2 /* PreviewModel.swift */; };
@@ -73,7 +73,6 @@
 		1990CA4D28853DCA007486D3 /* SettingsManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990CA4C28853DCA007486D3 /* SettingsManagerTests.swift */; };
 		1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1994ABF12753E9D300E41BFD /* CameraModel.swift */; };
 		19959440280D209900AEFA6D /* VideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1995943F280D209900AEFA6D /* VideoCaptureProcessor.swift */; };
-		19B6D052282B354500DC07F8 /* MediaGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6D051282B354500DC07F8 /* MediaGalleryView.swift */; };
 		19BFB1D5289D18EA00FD33B2 /* NotificationUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFB1D4289D18EA00FD33B2 /* NotificationUtils.swift */; };
 		19BFB1D7289D258700FD33B2 /* AVCaptureUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFB1D6289D258700FD33B2 /* AVCaptureUtils.swift */; };
 		19BFB1DB289D472100FD33B2 /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BFB1DA289D472100FD33B2 /* iCloudDirectoryModel.swift */; };
@@ -129,7 +128,7 @@
 		19217E22273FD60F009E3850 /* ImageViewing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewing.swift; sourceTree = "<group>"; };
 		19217E25273FD616009E3850 /* KeyPickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KeyPickerView.swift; sourceTree = "<group>"; };
 		19217E28273FD620009E3850 /* AppConstants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
-		19217E2B273FE452009E3850 /* ImageKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageKey.swift; sourceTree = "<group>"; };
+		19217E2B273FE452009E3850 /* PrivateKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PrivateKey.swift; sourceTree = "<group>"; };
 		19217E2C273FE452009E3850 /* EncameraState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EncameraState.swift; sourceTree = "<group>"; };
 		192B2CE728A1A8840047DAE2 /* StorageOptionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageOptionItemView.swift; sourceTree = "<group>"; };
 		192C9FED28B34CA800CCD1D2 /* PreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewModel.swift; sourceTree = "<group>"; };
@@ -184,7 +183,6 @@
 		1990CA4C28853DCA007486D3 /* SettingsManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManagerTests.swift; sourceTree = "<group>"; };
 		1994ABF12753E9D300E41BFD /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		1995943F280D209900AEFA6D /* VideoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCaptureProcessor.swift; sourceTree = "<group>"; };
-		19B6D051282B354500DC07F8 /* MediaGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGalleryView.swift; sourceTree = "<group>"; };
 		19BFB1D4289D18EA00FD33B2 /* NotificationUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationUtils.swift; sourceTree = "<group>"; };
 		19BFB1D6289D258700FD33B2 /* AVCaptureUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVCaptureUtils.swift; sourceTree = "<group>"; };
 		19BFB1DA289D472100FD33B2 /* iCloudDirectoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudDirectoryModel.swift; sourceTree = "<group>"; };
@@ -261,7 +259,6 @@
 				19BFEEB42860503D00CA2B74 /* GalleryItem.swift */,
 				19874B44285D253A001C2D06 /* AsyncImage.swift */,
 				195719E6274B8BE300E93658 /* MovieViewing.swift */,
-				19B6D051282B354500DC07F8 /* MediaGalleryView.swift */,
 				197DDEA128ABBE670027371D /* GalleryHorizontalScrollView.swift */,
 				197213C828ACF229001C9BEE /* GalleryScrollViewItem.swift */,
 			);
@@ -292,7 +289,7 @@
 		19217E2A273FE452009E3850 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				19217E2B273FE452009E3850 /* ImageKey.swift */,
+				19217E2B273FE452009E3850 /* PrivateKey.swift */,
 				19217E2C273FE452009E3850 /* EncameraState.swift */,
 				19FD5D5B2835D91F008D75AA /* CleartextMedia.swift */,
 				19FD5D5D2835D927008D75AA /* EncryptedMedia.swift */,
@@ -677,7 +674,6 @@
 				19217E2E273FE452009E3850 /* EncameraState.swift in Sources */,
 				19631A352864404400B95FD3 /* MultipleKeyKeychainManager.swift in Sources */,
 				19BFB1DF289D4A4D00FD33B2 /* DataStorageUserDefaultsSetting.swift in Sources */,
-				19B6D052282B354500DC07F8 /* MediaGalleryView.swift in Sources */,
 				19DC647427441D10004CCE1B /* ButtonViewModifier.swift in Sources */,
 				A9FE17BB25394F1E00D547C7 /* CameraService+Extensions.swift in Sources */,
 				196AFE83274F858300C809ED /* DiskFileAccess.swift in Sources */,
@@ -704,7 +700,7 @@
 				193ECDA4282EE7E2004F143D /* Enums.swift in Sources */,
 				195719EE274BA4B400E93658 /* QRCodeCaptureProcessor.swift in Sources */,
 				1935322B2860F08800964A01 /* DiskBlockReader.swift in Sources */,
-				19217E2D273FE452009E3850 /* ImageKey.swift in Sources */,
+				19217E2D273FE452009E3850 /* PrivateKey.swift in Sources */,
 				A9FE17872539494300D547C7 /* CameraView.swift in Sources */,
 				1990CA34287F24F9007486D3 /* MainOnboardingView.swift in Sources */,
 				19FD5D5E2835D927008D75AA /* EncryptedMedia.swift in Sources */,

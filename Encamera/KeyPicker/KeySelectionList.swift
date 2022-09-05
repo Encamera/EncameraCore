@@ -14,9 +14,9 @@ enum KeySelectionError: Error {
 
 class KeySelectionListViewModel: ObservableObject {
     var keyManager: KeyManager
-    @Published var keys: [ImageKey] = []
+    @Published var keys: [PrivateKey] = []
     @Published var selectionError: KeySelectionError?
-    @Published var activeKey: ImageKey?
+    @Published var activeKey: PrivateKey?
     private var cancellables = Set<AnyCancellable>()
     
     
@@ -87,9 +87,9 @@ struct KeySelectionList_Previews: PreviewProvider {
     static var keyManager: DemoKeyManager = {
         let manager = DemoKeyManager()
         manager.storedKeysValue = [
-            ImageKey(name: "first key", keyBytes: [], creationDate: Date()),
-            ImageKey(name: "second key", keyBytes: [], creationDate: Date()),
-            ImageKey(name: "third key", keyBytes: [], creationDate: Date()),
+            PrivateKey(name: "first key", keyBytes: [], creationDate: Date()),
+            PrivateKey(name: "second key", keyBytes: [], creationDate: Date()),
+            PrivateKey(name: "third key", keyBytes: [], creationDate: Date()),
         ]
         return manager
     }()

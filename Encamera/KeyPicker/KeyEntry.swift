@@ -49,9 +49,9 @@ struct KeyEntry: View {
     
     
     var body: some View {
-        let keyObject: Binding<ImageKey?> = {
+        let keyObject: Binding<PrivateKey?> = {
             return Binding {
-                return try? ImageKey(base64String: viewModel.keyString)
+                return try? PrivateKey(base64String: viewModel.keyString)
             } set: { _ in
                 
             }

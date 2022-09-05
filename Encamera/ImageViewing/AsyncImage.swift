@@ -97,6 +97,6 @@ struct AsyncImage_Previews: PreviewProvider {
     
     static var previews: some View {
         
-        GalleryGridView(viewModel: GalleryGridViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
+        GalleryGridView(viewModel: GalleryGridViewModel(privateKey: DemoPrivateKey.dummyKey()))
     }
 }

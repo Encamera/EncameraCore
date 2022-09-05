@@ -29,7 +29,6 @@ struct GalleryItem_Previews: PreviewProvider {
     static let fileAccess = DemoFileEnumerator()
 
     static var previews: some View {
-//        GalleryItem(fileAccess: fileAccess, keyManager: KeychainKeyManager(isAuthenticated: Just(true).eraseToAnyPublisher()), media: fileAccess.media.randomElement()!)
-        GalleryGridView(viewModel: GalleryGridViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
+        GalleryGridView(viewModel: GalleryGridViewModel(privateKey: DemoPrivateKey.dummyKey()))
     }
 }

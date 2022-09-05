@@ -30,7 +30,7 @@ class DemoFileEnumerator: FileAccess {
         mediaList.shuffle()
     }
     
-    func configure(with key: ImageKey, storageSettingsManager: DataStorageSetting) async {
+    func configure(with key: PrivateKey, storageSettingsManager: DataStorageSetting) async {
         
     }
     
@@ -188,22 +188,22 @@ class DemoKeyManager: KeyManager {
         self.password = password
     }
     
-    func deleteKey(_ key: ImageKey) throws {
+    func deleteKey(_ key: PrivateKey) throws {
         
     }
     
-    func save(key: ImageKey, storageType: StorageType) throws {
+    func save(key: PrivateKey, storageType: StorageType) throws {
         
     }
     
-    var currentKey: ImageKey?
+    var currentKey: PrivateKey?
     
     func setActiveKey(_ name: KeyName?) throws {
         
     }
     
     
-    var storedKeysValue: [ImageKey] = []
+    var storedKeysValue: [PrivateKey] = []
     
     func deleteKey(by name: KeyName) throws {
         
@@ -213,11 +213,11 @@ class DemoKeyManager: KeyManager {
         
     }
     
-    func generateNewKey(name: String, storageType: StorageType) throws -> ImageKey {
-        return try ImageKey(base64String: "")
+    func generateNewKey(name: String, storageType: StorageType) throws -> PrivateKey {
+        return try PrivateKey(base64String: "")
     }
     
-    func storedKeys() throws -> [ImageKey] {
+    func storedKeys() throws -> [PrivateKey] {
         return storedKeysValue
     }
     
@@ -232,13 +232,13 @@ class DemoKeyManager: KeyManager {
     
     required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
         self.isAuthenticated = isAuthenticated
-        self.currentKey = ImageKey(name: "test", keyBytes: [], creationDate: Date())
-        self.keyPublisher = PassthroughSubject<ImageKey?, Never>().eraseToAnyPublisher()
+        self.currentKey = PrivateKey(name: "test", keyBytes: [], creationDate: Date())
+        self.keyPublisher = PassthroughSubject<PrivateKey?, Never>().eraseToAnyPublisher()
     }
     
     var isAuthenticated: AnyPublisher<Bool, Never>
         
-    var keyPublisher: AnyPublisher<ImageKey?, Never>
+    var keyPublisher: AnyPublisher<PrivateKey?, Never>
     
     func clearKeychainData() throws {
         
@@ -279,4 +279,11 @@ class DemoStorageSettingsManager: DataStorageSetting {
     }
     
     
+}
+
+class DemoPrivateKey {
+    
+    static func dummyKey() -> PrivateKey {
+        return PrivateKey(name: "test", keyBytes: [], creationDate: Date())
+    }
 }

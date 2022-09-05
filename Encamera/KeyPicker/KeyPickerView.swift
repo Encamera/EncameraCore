@@ -39,9 +39,9 @@ class KeyViewerViewModel: ObservableObject {
     @Published var keyManager: KeyManager
     @Published var isShowingAlertForClearKey: Bool = false
     @Published var keyViewerError: KeyViewerError?
-    var key: ImageKey
+    var key: PrivateKey
     
-    init(keyManager: KeyManager, key: ImageKey) {
+    init(keyManager: KeyManager, key: PrivateKey) {
         self.keyManager = keyManager
         self.key = key
     }
@@ -136,7 +136,7 @@ struct KeyPickerView: View {
 
 struct KeyPickerView_Previews: PreviewProvider {
     static var previews: some View {
-        KeyPickerView(viewModel: .init(keyManager: DemoKeyManager(), key: ImageKey(name: "whoop", keyBytes: [], creationDate: Date())))
+        KeyPickerView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
             .preferredColorScheme(.dark)
     }
 }

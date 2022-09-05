@@ -15,7 +15,7 @@ enum ImageKeyEncodingError: Error {
 typealias KeyName = String
 typealias KeyBytes = Array<UInt8>
 
-struct ImageKey: Codable {
+struct PrivateKey: Codable {
     
     var name: KeyName
     var keyBytes: KeyBytes
@@ -38,7 +38,7 @@ struct ImageKey: Codable {
         guard let data = Data(base64Encoded: base64String) else {
             throw ImageKeyEncodingError.invalidBase64Data
         }
-        self = try JSONDecoder().decode(ImageKey.self, from: data)
+        self = try JSONDecoder().decode(PrivateKey.self, from: data)
     }
     
     init(keychainItem: [String: Any]) throws {
@@ -48,7 +48,7 @@ struct ImageKey: Codable {
             let creationDate = keychainItem[kSecAttrCreationDate as String] as? Date else {
             throw ImageKeyEncodingError.invalidKeychainItemData
         }
-        let name = ImageKey.keyName(from: nameData)
+        let name = PrivateKey.keyName(from: nameData)
 
         let keyBytes = try keyData.withUnsafeBytes({ (body: UnsafeRawBufferPointer) throws -> [UInt8] in
             [UInt8](UnsafeRawBufferPointer(body))
@@ -80,9 +80,9 @@ struct ImageKey: Codable {
     
 }
 
-extension ImageKey: Equatable {
+extension PrivateKey: Equatable {
     
-    static func ==(lhs: ImageKey, rhs: ImageKey) -> Bool {
+    static func ==(lhs: PrivateKey, rhs: PrivateKey) -> Bool {
         return lhs.name == rhs.name && lhs.keyBytes == rhs.keyBytes
     }
 }

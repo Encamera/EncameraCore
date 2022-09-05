@@ -95,7 +95,7 @@ struct EncameraApp: App {
             
         }
         
-        private func setupWith(key: ImageKey?) {
+        private func setupWith(key: PrivateKey?) {
             guard let key = key else {
                 return
             }

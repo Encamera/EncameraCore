@@ -180,15 +180,9 @@ struct CameraView: View {
             ZStack {
                 
                 NavigationLink(isActive: $cameraModel.showGalleryView) {
-
-                    MediaGalleryView<DiskFileAccess>(
-                        viewModel: MediaGalleryViewModel(
-                            keyManager: cameraModel.keyManager,
-                            fileAccess: cameraModel.fileAccess,
-                            storageSettingsManager: cameraModel.storageSettingsManager
-                        )
-                    )
-                    
+                    if let key = cameraModel.keyManager.currentKey {
+                        GalleryGridView(viewModel: .init(privateKey: key))
+                    }
                 } label: {
                     EmptyView()
                 }

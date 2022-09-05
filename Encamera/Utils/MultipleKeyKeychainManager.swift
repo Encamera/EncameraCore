@@ -25,16 +25,16 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     private var sodium = Sodium()
     private var passwordValidator = PasswordValidator()
     var keyDirectoryStorage: DataStorageSetting
-    private (set) var currentKey: ImageKey?  {
+    private (set) var currentKey: PrivateKey?  {
         didSet {
             keySubject.send(currentKey)
         }
     }
-    var keyPublisher: AnyPublisher<ImageKey?, Never> {
+    var keyPublisher: AnyPublisher<PrivateKey?, Never> {
         keySubject.eraseToAnyPublisher()
     }
     
-    private var keySubject: PassthroughSubject<ImageKey?, Never> = .init()
+    private var keySubject: PassthroughSubject<PrivateKey?, Never> = .init()
     
     required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
         self.isAuthenticated = isAuthenticated
@@ -89,7 +89,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         print("Keychain data cleared")
     }
     
-    @discardableResult func generateNewKey(name: String, storageType: StorageType) throws -> ImageKey {
+    @discardableResult func generateNewKey(name: String, storageType: StorageType) throws -> PrivateKey {
         
         guard authenticated == true else {
             throw KeyManagerError.notAuthenticatedError
@@ -98,7 +98,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         try validateKeyName(name: name)
         
         let bytes = Sodium().secretStream.xchacha20poly1305.key()
-        let key = ImageKey(name: name, keyBytes: bytes, creationDate: Date())
+        let key = PrivateKey(name: name, keyBytes: bytes, creationDate: Date())
         try save(key: key, storageType: storageType)
         return key
     }
@@ -117,7 +117,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }.joined(separator: "\n").appending("\n\nCopy the code into the \"Key Entry\" form in the app to use it again.")
     }
     
-    func save(key: ImageKey, storageType: StorageType) throws {
+    func save(key: PrivateKey, storageType: StorageType) throws {
         var setNewKeyToCurrent: Bool
         do {
             let storedKeys = try storedKeys()
@@ -135,7 +135,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }
     }
     
-    func storedKeys() throws -> [ImageKey] {
+    func storedKeys() throws -> [PrivateKey] {
         guard authenticated == true else {
             throw KeyManagerError.notAuthenticatedError
         }
@@ -153,9 +153,9 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         guard let keychainItems = item as? [[String: Any]] else {
             throw KeyManagerError.dataError
         }
-        let keys = keychainItems.compactMap { keychainItem -> ImageKey? in
+        let keys = keychainItems.compactMap { keychainItem -> PrivateKey? in
             do {
-                return try ImageKey(keychainItem: keychainItem)
+                return try PrivateKey(keychainItem: keychainItem)
             } catch {
                 return nil
             }
@@ -165,7 +165,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         return keys
     }
     
-    func deleteKey(_ key: ImageKey) throws {
+    func deleteKey(_ key: PrivateKey) throws {
         
         guard authenticated == true else {
             throw KeyManagerError.notAuthenticatedError
@@ -196,7 +196,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         UserDefaults.standard.set(key.name, forKey: KeychainConstants.currentKey)
     }
     
-    func getActiveKey() throws -> ImageKey {
+    func getActiveKey() throws -> PrivateKey {
         guard let activeKeyName = UserDefaults.standard.value(forKey: KeychainConstants.currentKey) as? String else {
             guard let firstStoredKey = try? storedKeys().first else {
                 throw KeyManagerError.notFound
@@ -207,7 +207,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         return try getKey(by: activeKeyName)
     }
     
-    func getKey(by keyName: KeyName) throws -> ImageKey {
+    func getKey(by keyName: KeyName) throws -> PrivateKey {
         guard authenticated == true else {
             throw KeyManagerError.notAuthenticatedError
         }
@@ -226,7 +226,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
                else {
             throw KeyManagerError.dataError
         }
-        let key = try ImageKey(keychainItem: keychainItem)
+        let key = try PrivateKey(keychainItem: keychainItem)
         return key
 
     }
@@ -341,7 +341,7 @@ private extension MultipleKeyKeychainManager {
     }
 }
 
-private extension ImageKey {
+private extension PrivateKey {
     
     var keychainQueryDictForKeychain: [String: Any] {
         var query = keychainQueryDict
