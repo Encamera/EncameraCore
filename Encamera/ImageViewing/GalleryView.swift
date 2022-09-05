@@ -49,11 +49,10 @@ struct GalleryView: View {
             GridItem(.adaptive(minimum: 100), spacing: 1)
         ]
         ZStack {
-            
             ScrollView {
                 HStack {
                     Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
-                    .foregroundColor(.white)
+                        .foregroundColor(.white)
                     Spacer()
                 }.padding()
                 LazyVGrid(columns: gridItems, spacing: 1) {
@@ -67,7 +66,7 @@ struct GalleryView: View {
                 }
             }
             
-
+            
             NavigationLink(isActive: $viewModel.showingCarousel) {
                 if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
                     
@@ -88,9 +87,9 @@ struct GalleryView: View {
 }
 
 struct GalleryView_Previews: PreviewProvider {
-
+    
     static var previews: some View {
-
+        
         GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
     }
 }

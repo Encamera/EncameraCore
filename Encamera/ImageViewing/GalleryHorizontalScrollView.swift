@@ -26,9 +26,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     }
     
     func openInFiles() {
-        let url = URL(string: selectedMedia.source.absoluteString.replacingOccurrences(of: "file://", with: "shareddocuments://"))!
-        
-        UIApplication.shared.open(url.deletingLastPathComponent())
+        LocalDeeplinkingUtils.openInFiles(media: selectedMedia)
     }
     
     func advanceIndex() {

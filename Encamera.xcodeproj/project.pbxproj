@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		190D5AFC28C5F30B002A7E0F /* LocalDeeplinkingUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190D5AFB28C5F30B002A7E0F /* LocalDeeplinkingUtils.swift */; };
 		19109389284FF8C1000F40A8 /* image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 193237202849EA680074CE8A /* image.jpg */; };
 		1911319E281F9FC100542281 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = 1911319D281F9FC100542281 /* test.mov */; };
 		19157F7F28BD59AF005EFF59 /* ScreenBlocking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19157F7E28BD59AF005EFF59 /* ScreenBlocking.swift */; };
@@ -114,6 +115,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		190D5AFB28C5F30B002A7E0F /* LocalDeeplinkingUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDeeplinkingUtils.swift; sourceTree = "<group>"; };
 		1911319D281F9FC100542281 /* test.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = test.mov; sourceTree = "<group>"; };
 		19157F7E28BD59AF005EFF59 /* ScreenBlocking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlocking.swift; sourceTree = "<group>"; };
 		19157F8028BD5A7E005EFF59 /* ScreenBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlock.swift; sourceTree = "<group>"; };
@@ -347,6 +349,7 @@
 				19BFB1D4289D18EA00FD33B2 /* NotificationUtils.swift */,
 				19BFB1D6289D258700FD33B2 /* AVCaptureUtils.swift */,
 				19BFB1DE289D4A4D00FD33B2 /* DataStorageUserDefaultsSetting.swift */,
+				190D5AFB28C5F30B002A7E0F /* LocalDeeplinkingUtils.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -684,6 +687,7 @@
 				19BFEEB52860503D00CA2B74 /* GalleryItem.swift in Sources */,
 				19874B45285D253A001C2D06 /* AsyncImage.swift in Sources */,
 				19959440280D209900AEFA6D /* VideoCaptureProcessor.swift in Sources */,
+				190D5AFC28C5F30B002A7E0F /* LocalDeeplinkingUtils.swift in Sources */,
 				1994ABF22753E9D300E41BFD /* CameraModel.swift in Sources */,
 				1990CA402881ACB9007486D3 /* PasswordValidator.swift in Sources */,
 				19FD5D602835DB0D008D75AA /* MediaDescribing.swift in Sources */,
