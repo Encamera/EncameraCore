@@ -10,7 +10,7 @@ import Combine
 
 
 @MainActor
-class GalleryViewModel: ObservableObject {
+class GalleryGridViewModel: ObservableObject {
     
     @Published var isDisplayingMedia: Bool = false
     @Published var media: [EncryptedMedia] = []
@@ -40,9 +40,9 @@ class GalleryViewModel: ObservableObject {
     }
 }
 
-struct GalleryView: View {
+struct GalleryGridView: View {
     
-    @StateObject var viewModel: GalleryViewModel
+    @StateObject var viewModel: GalleryGridViewModel
     
     var body: some View {
         let gridItems = [
@@ -90,6 +90,6 @@ struct GalleryView_Previews: PreviewProvider {
     
     static var previews: some View {
         
-        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
+        GalleryGridView(viewModel: GalleryGridViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
     }
 }

@@ -30,6 +30,6 @@ struct GalleryItem_Previews: PreviewProvider {
 
     static var previews: some View {
 //        GalleryItem(fileAccess: fileAccess, keyManager: KeychainKeyManager(isAuthenticated: Just(true).eraseToAnyPublisher()), media: fileAccess.media.randomElement()!)
-        GalleryView(viewModel: GalleryViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
+        GalleryGridView(viewModel: GalleryGridViewModel(fileAccess: DemoFileEnumerator(), keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
     }
 }

@@ -26,7 +26,7 @@ struct MediaGalleryView<F: FileAccess>: View {
     var body: some View {
 
         if let fileAccess = viewModel.fileAccess {
-            GalleryView(viewModel: .init(
+            GalleryGridView(viewModel: .init(
                 fileAccess: fileAccess,
                 keyManager: viewModel.keyManager
             ))
