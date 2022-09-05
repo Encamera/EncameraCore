@@ -90,7 +90,13 @@ protocol AuthManager {
 }
 
 class DeviceAuthManager: AuthManager {
-    let context = LAContext()
+    
+    var context: LAContext {
+        var context = LAContext()
+        context.localizedCancelTitle = "Use Password"
+        return context
+    }
+    
     var _availableBiometric: AuthenticationMethod?
     var availableBiometric: AuthenticationMethod? {
         if let _availableBiometric = _availableBiometric {
