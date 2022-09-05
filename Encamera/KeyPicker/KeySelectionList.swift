@@ -22,9 +22,6 @@ class KeySelectionListViewModel: ObservableObject {
     
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
-        keyManager.keyPublisher.sink { key in
-            self.activeKey = key
-        }.store(in: &cancellables)
     }
     
     func loadKeys() {
@@ -55,7 +52,6 @@ struct KeySelectionList: View {
             }
             NavigationLink {
                 KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, isShowing: .constant(true)))
-                
             } label: {
                 KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
             }
