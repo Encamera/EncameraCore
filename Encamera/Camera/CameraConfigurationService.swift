@@ -273,7 +273,7 @@ extension CameraConfigurationService {
 //        return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
 //    }
     
-    func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) throws -> AsyncPhotoCaptureProcessor {
+    func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
             debugPrint("Could not capture photo")
             fatalError()

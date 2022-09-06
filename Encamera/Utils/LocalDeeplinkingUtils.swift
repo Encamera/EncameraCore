@@ -23,7 +23,7 @@ class LocalDeeplinkingUtils {
         
         let storageSetting = DataStorageUserDefaultsSetting()
         let model = storageSetting.storageModelFor(keyName: keyName)
-        guard let url = model.baseURL.driveDeeplink() else {
+        guard let url = model?.baseURL.driveDeeplink() else {
             debugPrint("Could not create deeplink")
             return
         }

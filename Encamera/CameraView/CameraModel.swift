@@ -28,6 +28,7 @@ final class CameraModel: ObservableObject {
     @Published var thumbnailImage: UIImage?
     @Published var showGalleryView: Bool = false
     @Published var showingKeySelection = false
+    @Published var showAlertForMissingKey = false
     var authManager: AuthManager
     var keyManager: KeyManager
     var alertError: AlertError!
@@ -56,15 +57,14 @@ final class CameraModel: ObservableObject {
             }
         }
         .store(in: &self.cancellables)
-        if let key = keyManager.currentKey {
-            Task {
-                await self.fileAccess.configure(with: key, storageSettingsManager: DataStorageUserDefaultsSetting())
-            }
+        Task {
+            await self.fileAccess.configure(
+                with: keyManager.currentKey,
+                storageSettingsManager: DataStorageUserDefaultsSetting()
+            )
         }
+
         keyManager.keyPublisher.sink { key in
-            guard let key = key else {
-                return
-            }
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: DataStorageUserDefaultsSetting())
                 await self.loadThumbnail()
@@ -99,21 +99,44 @@ final class CameraModel: ObservableObject {
         }
     }
     
-    func captureButtonPressed() async throws {
+    func captureButtonPressed() async {
 
         switch selectedCameraMode {
         case .photo:
-            let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode)
-            let photoObject = try await photoProcessor.takePhoto()
+            let photoProcessor = await service.createPhotoProcessor(flashMode: flashMode)
+            
+            var photoObject: PhotoCaptureProcessorOutput?
+            do {
+                photoObject = try await photoProcessor.takePhoto()
+            } catch {
+                
+            }
+            guard let photoObject = photoObject else {
+                return
+            }
             await MainActor.run(body: {
                 willCapturePhoto = true
             })
-            if let photo = photoObject.photo {
-                try await fileAccess.save(media: photo)
-            }
-            
-            if let livePhoto = photoObject.livePhoto {
-                try await fileAccess.save(media: livePhoto)
+            do {
+                if let photo = photoObject.photo {
+                    try await fileAccess.save(media: photo)
+                }
+                
+                if let livePhoto = photoObject.livePhoto {
+                    try await fileAccess.save(media: livePhoto)
+                }
+            } catch let filesError as FileAccessError {
+                await MainActor.run {
+                    switch filesError {
+                        
+                    case .missingDirectoryModel:
+                        break
+                    case .missingPrivateKey:
+                        showAlertForMissingKey = true
+                    }
+                }
+            } catch {
+                
             }
             await MainActor.run(body: {
                 willCapturePhoto = false

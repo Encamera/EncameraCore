@@ -42,12 +42,6 @@ struct CameraView: View {
         })
     }
     
-    private func captureAction() {
-        Task {
-            try await cameraModel.captureButtonPressed()
-        }
-    }
-    
     private var capturedPhotoThumbnail: some View {
         Group {
             if let thumbnail = cameraModel.thumbnailImage {
@@ -213,8 +207,12 @@ struct CameraView: View {
             }
             .background(Color.black)
             .screenBlocked()
-            
-            
+            .alert(isPresented: $cameraModel.showAlertForMissingKey) {
+                
+                Alert(title: Text("No key selected"), message: Text("You don't have an active key selected, select one to continue saving media."), primaryButton: .default(Text("Key Selection")) {
+                    cameraModel.showingKeySelection = true
+                }, secondaryButton: .cancel())
+            }
         }
 
     }

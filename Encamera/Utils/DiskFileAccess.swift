@@ -11,9 +11,6 @@ import Combine
 import AVFoundation
 
 
-enum FileAccessError: Error {
-    case missingDirectoryModel
-}
 
 actor DiskFileAccess: FileEnumerator {
     
@@ -21,16 +18,16 @@ actor DiskFileAccess: FileEnumerator {
         case invalidURL
         case general
     }
-    var key: PrivateKey!
+    var key: PrivateKey?
     
     private var cancellables = Set<AnyCancellable>()
     private var directoryModel: DataStorageModel?
     
-    func configure(with key: PrivateKey, storageSettingsManager: DataStorageSetting) async {
-         self.key = key
-         let storageModel = storageSettingsManager.storageModelFor(keyName: key.name)
-         self.directoryModel = storageModel
-         try? self.directoryModel?.initializeDirectories()
+    func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
+        self.key = key
+        let storageModel = storageSettingsManager.storageModelFor(keyName: key?.name)
+        self.directoryModel = storageModel
+        try? self.directoryModel?.initializeDirectories()
     }
     
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not async, should be though
@@ -120,7 +117,9 @@ extension DiskFileAccess: FileReader {
         fatalError()
     }
     private func decryptMedia(encrypted: EncryptedMedia, progress: (Double) -> Void) async throws -> CleartextMedia<Data> {
-        
+        guard let key = key else {
+            throw FileAccessError.missingPrivateKey
+        }
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
@@ -133,6 +132,9 @@ extension DiskFileAccess: FileReader {
     }
     
     private func decryptMedia(encrypted: EncryptedMedia, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> {
+        guard let key = key else {
+            throw FileAccessError.missingPrivateKey
+        }
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
@@ -248,7 +250,9 @@ extension DiskFileAccess: FileReader {
 extension DiskFileAccess: FileWriter {
     
     @discardableResult func saveThumbnail<T: MediaDescribing>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data> {
-        
+        guard let key = key else {
+            throw FileAccessError.missingPrivateKey
+        }
         let destinationURL = directoryModel?.thumbnailURLForMedia(sourceMedia)
         let cleartextThumb = CleartextMedia(source: data, mediaType: .thumbnail, id: sourceMedia.id)
         
@@ -258,6 +262,9 @@ extension DiskFileAccess: FileWriter {
     }
     
     @discardableResult func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> {
+        guard let key = key else {
+            throw FileAccessError.missingPrivateKey
+        }
         let data = try JSONEncoder().encode(preview)
         let destinationURL = directoryModel?.previewURLForMedia(sourceMedia)
         let cleartextPreview = CleartextMedia(source: data, mediaType: .preview, id: sourceMedia.id)
@@ -268,6 +275,9 @@ extension DiskFileAccess: FileWriter {
     }
     
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia {
+        guard let key = key else {
+            throw FileAccessError.missingPrivateKey
+        }
         let destinationURL = directoryModel?.driveURLForNewMedia(media)
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
         let encrypted = try await fileHandler.encrypt()

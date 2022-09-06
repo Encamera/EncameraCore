@@ -8,13 +8,18 @@
 import Foundation
 import Combine
 
+enum FileAccessError: Error {
+    case missingDirectoryModel
+    case missingPrivateKey
+}
+
 protocol FileEnumerator {
-    func configure(with key: PrivateKey, storageSettingsManager: DataStorageSetting) async
+    func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async
     func enumerateMedia<T: MediaDescribing>() async -> [T] where T.MediaSource == URL
 }
 
 protocol FileReader {
-    func configure(with key: PrivateKey, storageSettingsManager: DataStorageSetting) async
+    func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL
     func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL>
     func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<Data>

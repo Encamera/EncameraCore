@@ -8,7 +8,7 @@
 import Foundation
 
 protocol DataStorageSetting {
-    func storageModelFor(keyName: KeyName) -> DataStorageModel
+    func storageModelFor(keyName: KeyName?) -> DataStorageModel?
     func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType)
 }
 
@@ -36,8 +36,11 @@ struct DataStorageUserDefaultsSetting: DataStorageSetting {
         }
     }
     
-    func storageModelFor(keyName: KeyName) -> DataStorageModel {
+    func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
         
+        guard let keyName = keyName else {
+            return nil
+        }
         guard let directoryModelString = UserDefaults.standard.value(forKey: Constants.directoryTypeKeyFor(keyName: keyName)) as? String,
               let type = StorageType(rawValue: directoryModelString) else {
             let model = determineStorageModelFor(keyName: keyName)

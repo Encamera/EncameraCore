@@ -96,9 +96,6 @@ struct EncameraApp: App {
         }
         
         private func setupWith(key: PrivateKey?) {
-            guard let key = key else {
-                return
-            }
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
             }

@@ -30,7 +30,7 @@ class DemoFileEnumerator: FileAccess {
         mediaList.shuffle()
     }
     
-    func configure(with key: PrivateKey, storageSettingsManager: DataStorageSetting) async {
+    func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
         
     }
     
@@ -270,8 +270,9 @@ class DemoOnboardingManager: OnboardingManaging {
 }
 
 class DemoStorageSettingsManager: DataStorageSetting {
-    func storageModelFor(keyName: KeyName) -> DataStorageModel {
-        return LocalStorageModel(keyName: keyName)
+    
+    func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
+        return LocalStorageModel(keyName: keyName!)
     }
     
     func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
