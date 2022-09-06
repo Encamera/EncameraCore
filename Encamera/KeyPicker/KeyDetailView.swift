@@ -24,7 +24,7 @@ private func generateQRCode(from string: String, size: CGSize) -> UIImage {
     let qrCodeImage = output.transformed(by: CGAffineTransform(scaleX: x, y: y))
     
     if let qrCodeCGImage = context.createCGImage(qrCodeImage, from: qrCodeImage.extent) {
-        return UIImage(cgImage: qrCodeCGImage)  
+        return UIImage(cgImage: qrCodeCGImage)
     }
     
     return UIImage(systemName: "xmark") ?? UIImage()
@@ -69,7 +69,7 @@ struct KeyDetailView: View {
     @State var isShowingAlertForClearKey: Bool = false
     @StateObject var viewModel: KeyDetailViewModel
     @Environment(\.dismiss) var dismiss
-
+    
     private struct Constants {
         static var outerPadding = 20.0
     }
@@ -89,47 +89,32 @@ struct KeyDetailView: View {
             .frame(width: geo.size.width*0.75))
     }
     var body: some View {
-            VStack {
-                GeometryReader { geo in
+        GalleryGridView(viewModel: .init(privateKey: viewModel.key)) {
+            List {
+                Button("Set Active") {
+                    viewModel.setActive()
+                    dismiss()
+                }
+                Button("Exchange Key") {
                     
-                    Spacer(minLength: geo.safeAreaInsets.top)
-                    HStack {
-                        Spacer()
-                        createQrImage(geo: geo)
-                        Spacer()
-                    }
                 }
-                HStack {
-                    Text(viewModel.key.name)
-                        .padding()
-                        .font(Font.largeTitle)
+                Button {
+                    isShowingAlertForClearKey = true
+                } label: {
+                    Text("Delete")
+                        .foregroundColor(.red)
                 }
-                List {
-                    Button("Set Active") {
-                        viewModel.setActive()
+            }.frame(height: 200)
+        }
+        .foregroundColor(.blue)
+        .alert(isPresented: $isShowingAlertForClearKey) {
+            Alert(title: Text("Delete key?"), message: Text("Are you sure you want to delete this key forever?"), primaryButton:
+                    .cancel(Text("Cancel")) {
+                        isShowingAlertForClearKey = false
+                    }, secondaryButton: .destructive(Text("Clear")) {
+                        viewModel.deleteKey()
                         dismiss()
-                    }
-                    Button("Copy Key to Clipboard") {
-                        UIPasteboard.general.string = viewModel.key.base64String
-                    }
-                    Button {
-                        isShowingAlertForClearKey = true
-                    } label: {
-                        Text("Delete")
-                            .foregroundColor(.red)
-                    }
-                }
-                
-            }
-            .foregroundColor(.blue)
-            .alert(isPresented: $isShowingAlertForClearKey) {
-                Alert(title: Text("Delete key?"), message: Text("Are you sure you want to delete this key forever?"), primaryButton:
-                        .cancel(Text("Cancel")) {
-                            isShowingAlertForClearKey = false
-                        }, secondaryButton: .destructive(Text("Clear")) {
-                            viewModel.deleteKey()
-                            dismiss()
-                        })}
+                    })}
         
     }
 }

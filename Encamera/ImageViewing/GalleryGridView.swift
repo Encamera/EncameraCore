@@ -43,9 +43,15 @@ class GalleryGridViewModel: ObservableObject {
     }
 }
 
-struct GalleryGridView: View {
+struct GalleryGridView<Content: View>: View {
     
     @StateObject var viewModel: GalleryGridViewModel
+    var content: Content
+    
+    init(viewModel: GalleryGridViewModel, content: () -> Content = { EmptyView() }) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+        self.content = content()
+    }
     
     var body: some View {
         let gridItems = [
@@ -53,6 +59,7 @@ struct GalleryGridView: View {
         ]
         ZStack {
             ScrollView {
+                content
                 HStack {
                     Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
                         .foregroundColor(.white)
@@ -93,7 +100,7 @@ struct GalleryGridView: View {
         }
         .background(Color.black)
         .screenBlocked()
-        .navigationTitle(viewModel.privateKey.name)
+        .navigationBarTitle(viewModel.privateKey.name, displayMode: .large)
         
     }
 }
