@@ -107,6 +107,7 @@ struct KeyDetailView: View {
                 List {
                     Button("Set Active") {
                         viewModel.setActive()
+                        dismiss()
                     }
                     Button("Copy Key to Clipboard") {
                         UIPasteboard.general.string = viewModel.key.base64String

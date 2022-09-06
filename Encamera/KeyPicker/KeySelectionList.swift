@@ -51,37 +51,68 @@ struct KeySelectionList: View {
         }
 
         List {
-            
-            NavigationLink(isActive: binding) {
-                KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: binding)
-            } label: {
-                KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
-            }
-            NavigationLink {
-                KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, isShowing: .constant(true)))
-            } label: {
-                KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
-            }
-            KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
-                guard let doc = try? viewModel.keyManager.createBackupDocument() else {
-                    return
-                }
-                let pasteboard = UIPasteboard.general
-                pasteboard.string = doc
-            }
-            ForEach(viewModel.keys, id: \.name) { key in
-                NavigationLink {
-                    KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
+            Section {
+                NavigationLink(isActive: binding) {
+                    KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: binding)
                 } label: {
-                    KeySelectionCell(viewModel: .init(key: key, isActive: key == viewModel.activeKey))
+                    KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
+                }
+                NavigationLink {
+                    KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, isShowing: .constant(true)))
+                } label: {
+                    KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
+                }
+                KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
+                    guard let doc = try? viewModel.keyManager.createBackupDocument() else {
+                        return
+                    }
+                    let pasteboard = UIPasteboard.general
+                    pasteboard.string = doc
                 }
             }
-        }
+            Section(header: Text("Keys").foregroundColor(.white)) {
+                
+                if let activeKey = viewModel.activeKey {
+                    keyCell(key: activeKey, isActive: true)
+                }
+                
+                ForEach(viewModel.keys.filter({$0 != viewModel.activeKey}), id: \.name) { key in
+                    keyCell(key: key, isActive: false)
+                }
+            }
+        }.listStyle(InsetGroupedListStyle())
         .screenBlocked()
         .onAppear {
             viewModel.loadKeys()
-        }.navigationTitle("Key Selection")
+        }.navigationTitle("Key Management")
         
+    }
+    
+    func keyCell(key: PrivateKey, isActive: Bool) -> some View {
+        NavigationLink {
+            KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
+        } label: {
+            HStack {
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(key.name)
+                            .font(.title)
+                        Text(DateUtils.dateOnlyString(from: key.creationDate))
+                            .font(.caption)
+                    }
+                    Spacer()
+                }.padding()
+                if key == viewModel.activeKey {
+                    HStack {
+                        Text("Active")
+                        Image(systemName: "key.fill")
+                    }.foregroundColor(.green)
+                    
+                } else {
+                    Image(systemName: "key")
+                }
+            }
+        }
     }
 }
 
