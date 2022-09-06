@@ -30,7 +30,7 @@ private func generateQRCode(from string: String, size: CGSize) -> UIImage {
     return UIImage(systemName: "xmark") ?? UIImage()
 }
 
-class KeyViewerViewModel: ObservableObject {
+class KeyDetailViewModel: ObservableObject {
     
     enum KeyViewerError {
         case couldNotSetKeychain
@@ -64,10 +64,10 @@ class KeyViewerViewModel: ObservableObject {
     }
 }
 
-struct KeyPickerView: View {
+struct KeyDetailView: View {
     
     @State var isShowingAlertForClearKey: Bool = false
-    @StateObject var viewModel: KeyViewerViewModel
+    @StateObject var viewModel: KeyDetailViewModel
     @Environment(\.dismiss) var dismiss
 
     private struct Constants {
@@ -135,7 +135,7 @@ struct KeyPickerView: View {
 
 struct KeyPickerView_Previews: PreviewProvider {
     static var previews: some View {
-        KeyPickerView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
+        KeyDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
             .preferredColorScheme(.dark)
     }
 }

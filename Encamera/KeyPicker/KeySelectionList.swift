@@ -64,7 +64,7 @@ struct KeySelectionList: View {
             }
             ForEach(viewModel.keys, id: \.name) { key in
                 NavigationLink {
-                    KeyPickerView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
+                    KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
                 } label: {
                     KeySelectionCell(viewModel: .init(key: key, isActive: key == viewModel.activeKey))
                 }
