@@ -122,7 +122,7 @@ struct KeyDetailView: View {
             }
             .foregroundColor(.blue)
             .alert(isPresented: $isShowingAlertForClearKey) {
-                Alert(title: Text("Clear key"), message: Text("Do you really want to clear the current key in the keychain?"), primaryButton:
+                Alert(title: Text("Delete key?"), message: Text("Are you sure you want to delete this key forever?"), primaryButton:
                         .cancel(Text("Cancel")) {
                             isShowingAlertForClearKey = false
                         }, secondaryButton: .destructive(Text("Clear")) {

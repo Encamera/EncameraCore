@@ -107,7 +107,7 @@ struct KeyGeneration: View {
         
         case .setupImageKey:
             return .init(
-                title: "Setup Image Key",
+                title: "New Key",
                 subheading:
                                             """
 Set the name for this key.

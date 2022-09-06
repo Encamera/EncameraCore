@@ -172,7 +172,11 @@ struct CameraView: View {
         NavigationView {
             
             ZStack {
-                
+                NavigationLink(isActive: $cameraModel.showingKeySelection) {
+                    KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
+                } label: {
+                    EmptyView()
+                }.isDetailLink(false)
                 NavigationLink(isActive: $cameraModel.showGalleryView) {
                     if let key = cameraModel.keyManager.currentKey {
                         GalleryGridView(viewModel: .init(privateKey: key))
@@ -181,11 +185,7 @@ struct CameraView: View {
                     EmptyView()
                 }
                 
-                NavigationLink(isActive: $cameraModel.showingKeySelection) {
-                    KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
-                } label: {
-                    EmptyView()
-                }
+                
                 VStack {
                     topBar
                     cameraPreview

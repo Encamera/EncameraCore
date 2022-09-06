@@ -17,6 +17,7 @@ class KeySelectionListViewModel: ObservableObject {
     @Published var keys: [PrivateKey] = []
     @Published var selectionError: KeySelectionError?
     @Published var activeKey: PrivateKey?
+    @Published var isShowingAddKeyView: Bool = false
     private var cancellables = Set<AnyCancellable>()
     
     
@@ -43,10 +44,16 @@ struct KeySelectionList: View {
     @StateObject var viewModel: KeySelectionListViewModel
     
     var body: some View {
-        
+        let binding = Binding<Bool> {
+            viewModel.isShowingAddKeyView
+        } set: { newValue in
+            viewModel.isShowingAddKeyView = newValue
+        }
+
         List {
-            NavigationLink(isActive: $isShowingAddKeyView) {
-                KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: $isShowingAddKeyView)
+            
+            NavigationLink(isActive: binding) {
+                KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: binding)
             } label: {
                 KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
             }
