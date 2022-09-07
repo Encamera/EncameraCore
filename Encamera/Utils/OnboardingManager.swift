@@ -36,7 +36,7 @@ enum OnboardingFlowScreen: Int, Identifiable {
     case enterExistingPassword
     case setPassword
     case biometrics
-    case setupImageKey
+    case setupPrivateKey
     case dataStorageSetting
     case finished
     var id: Self { self }
@@ -181,7 +181,7 @@ class OnboardingManager: OnboardingManaging {
             screens += [.biometrics]
         }
         screens += [
-            .setupImageKey,
+            .setupPrivateKey,
             .dataStorageSetting,
             .finished
         ]

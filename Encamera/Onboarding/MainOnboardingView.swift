@@ -305,7 +305,7 @@ private extension MainOnboardingView {
                         Toggle("Enable \(method.nameForMethod)", isOn: $viewModel.useBiometrics)
                     }})
                 })
-        case .setupImageKey:
+        case .setupPrivateKey:
             return .init(
                 title: "Encryption Key",
                 subheading:

@@ -20,7 +20,7 @@ class DeviceAuthManagerTests: XCTestCase {
     
     func testWaitForAuthResponseUnauthed() async throws {
         
-        let result = try await authManager.waitForAuthResponse()
+        let result = await authManager.waitForAuthResponse()
         XCTAssertEqual(result, .unauthenticated)
     }
     func testWaitForAuthResponseAuthed() async throws {
@@ -31,7 +31,7 @@ class DeviceAuthManagerTests: XCTestCase {
             sleep(1)
             try authManager.authorize(with: "1234", using: keyManager)
         }
-        let result = try await authManager.waitForAuthResponse(delay: 3)
+        let result = await authManager.waitForAuthResponse(delay: 3)
 
         XCTAssertEqual(result, .authenticated(with: .password))
     }

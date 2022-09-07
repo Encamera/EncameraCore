@@ -99,21 +99,14 @@ final class CameraModel: ObservableObject {
         }
     }
     
-    func captureButtonPressed() async {
+    func captureButtonPressed() async throws {
 
         switch selectedCameraMode {
         case .photo:
             let photoProcessor = await service.createPhotoProcessor(flashMode: flashMode)
             
-            var photoObject: PhotoCaptureProcessorOutput?
-            do {
-                photoObject = try await photoProcessor.takePhoto()
-            } catch {
-                
-            }
-            guard let photoObject = photoObject else {
-                return
-            }
+            var photoObject = try await photoProcessor.takePhoto()
+            
             await MainActor.run(body: {
                 willCapturePhoto = true
             })

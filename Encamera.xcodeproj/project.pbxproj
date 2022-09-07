@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 51;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -23,12 +23,10 @@
 		22EEFC367257688DDCB707B0 /* FileProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 906D6CF8031D625E05A869E2 /* FileProtocols.swift */; };
 		26FE0971738E9033F853B303 /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = 966AD9D0BE48CC6E4C4FF069 /* Text.swift */; };
 		287C6B691F74D954A27FBB00 /* ScreenBlocking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DDB58308D21ABE7B46DAA7C /* ScreenBlocking.swift */; };
-		2AD8441A3F4D6FBB4AF033E1 /* ChaChaPolyHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8308F358F915ACDFF15B8FBA /* ChaChaPolyHelperTests.swift */; };
 		2F24514B8BEACEE3B50D390E /* RotationViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0441FC55C7D865110DD929F /* RotationViewModifier.swift */; };
 		303DE58239B9DE2DC3C2BBC7 /* ButtonViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E78CFA4F3A670FDED42E2D3 /* ButtonViewModifier.swift */; };
 		314D2DFF0325E8EBB5AD18FE /* GalleryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 735B316BD49982948A28252D /* GalleryDetailView.swift */; };
 		32E1B10DD8EACB497A05758D /* MediaDescribing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D16E0EA60C4E61C60609E92 /* MediaDescribing.swift */; };
-		3434D1795A21A8F9D2F307A0 /* TempFilesManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCFBE11C93E2199328425D05 /* TempFilesManagerTests.swift */; };
 		382E0489FC7DDB928E86C7D9 /* PhotoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F5C02720F368B4E732208A /* PhotoCaptureProcessor.swift */; };
 		395975FDD522FB598EEEC938 /* DataStorageUserDefaultsSetting.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3067B217DBB3CF026BF1943 /* DataStorageUserDefaultsSetting.swift */; };
 		3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF307DAF9F7334418CF7C35A /* ImageViewing.swift */; };
@@ -58,7 +56,6 @@
 		753C199E4BD91DF38A25460F /* KeySelectionCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661F4FF6682E53B6870C8665 /* KeySelectionCell.swift */; };
 		757341F7B8BC2B7B27BD60E9 /* DeviceAuthManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0CFDC6B26D814A78B7E20F /* DeviceAuthManagerTests.swift */; };
 		78C52C83B6B9AB4A0BB53076 /* MediaTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 071F6A11B150B89A33FB5F1B /* MediaTypeTests.swift */; };
-		7BCF636563DB94B36DE0487A /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 09BA6D46FE4EA6BAF2AD1E44 /* Sodium */; };
 		7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 49A2EF989B2F8643105205DF /* Assets.xcassets */; };
 		814B5F952A3744042B2642BB /* DataBlockReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4412C3D2FB58ADA32383DC7A /* DataBlockReader.swift */; };
 		821DE886AB64301064E096B6 /* VideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D159D92569E26A0C488780FB /* VideoCaptureProcessor.swift */; };
@@ -108,6 +105,16 @@
 		F6B7F0D60027FFF84B2C321E /* dog.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 94DDBF06C1BD9949FE4F53BA /* dog.jpg */; };
 		F860061EE853A5C21899C1E4 /* EncameraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB580774C2A1B0E3A6D54F50 /* EncameraApp.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4FBD0FFA0D0ABA143F7A822E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A47DB3FD4772EE1BAC336831 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 00569D33CDF0C8B9A50A5F86;
+			remoteInfo = Encamera;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
@@ -166,7 +173,6 @@
 		7E78CFA4F3A670FDED42E2D3 /* ButtonViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonViewModifier.swift; sourceTree = "<group>"; };
 		7EEAEFBFF5E91FF19134CDC9 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		80D6FE3CC656F09258F08EE5 /* FileLikeBlockReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileLikeBlockReader.swift; sourceTree = "<group>"; };
-		8308F358F915ACDFF15B8FBA /* ChaChaPolyHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChaChaPolyHelperTests.swift; sourceTree = "<group>"; };
 		84DA69357571FEABAB3BB728 /* LocalDeeplinkingUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDeeplinkingUtils.swift; sourceTree = "<group>"; };
 		8557D069453D7DEC29205127 /* PrivateKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateKey.swift; sourceTree = "<group>"; };
 		8BE81D3482C2C815A7280065 /* PreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewModel.swift; sourceTree = "<group>"; };
@@ -212,7 +218,6 @@
 		F3F5C02720F368B4E732208A /* PhotoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureProcessor.swift; sourceTree = "<group>"; };
 		F6C7B4340F9BA5AC5E1CABBD /* file-icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "file-icon.png"; sourceTree = "<group>"; };
 		F833D2C2F3C322F3D8589E8D /* FileUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileUtils.swift; sourceTree = "<group>"; };
-		FCFBE11C93E2199328425D05 /* TempFilesManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempFilesManagerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -221,14 +226,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B63167557D9D5422FDAAEE94 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				7BCF636563DB94B36DE0487A /* Sodium in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -313,7 +310,6 @@
 		4EEA8683D2DD954DE3F9C9B3 /* EncameraTests */ = {
 			isa = PBXGroup;
 			children = (
-				8308F358F915ACDFF15B8FBA /* ChaChaPolyHelperTests.swift */,
 				D44DDD90E617BE3BA3A10655 /* DateUtilsTests.swift */,
 				5C0CFDC6B26D814A78B7E20F /* DeviceAuthManagerTests.swift */,
 				6FB4C14E86455E6A3C10DA26 /* DirectoryModelTests.swift */,
@@ -326,7 +322,6 @@
 				78071D38AA47B2501C7EC1F4 /* OnboardingViewModelTests.swift */,
 				7E2C2364927E97A558A531EA /* PasswordValidatorTests.swift */,
 				C7F31A3C960455C9A8F534B1 /* SettingsManagerTests.swift */,
-				FCFBE11C93E2199328425D05 /* TempFilesManagerTests.swift */,
 				8B27BAA76D6BDE3BF8D89745 /* TestData */,
 				010E333EA3D38C22C08C9ECB /* Utils */,
 			);
@@ -549,16 +544,13 @@
 			buildPhases = (
 				496144A7544A81AD4EC8BE3F /* Sources */,
 				EDBFC40DC6DC89A8F3ADB92E /* Resources */,
-				B63167557D9D5422FDAAEE94 /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E857B4708FFF396537CCE649 /* PBXTargetDependency */,
 			);
 			name = EncameraTests;
-			packageProductDependencies = (
-				09BA6D46FE4EA6BAF2AD1E44 /* Sodium */,
-			);
 			productName = EncameraTests;
 			productReference = 3237449B062E865D537211D4 /* EncameraTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -570,8 +562,6 @@
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 1200;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = 1A8CCF54D871FA62B49F8929 /* Build configuration list for PBXProject "Encamera" */;
 			compatibilityVersion = "Xcode 11.0";
@@ -622,7 +612,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2AD8441A3F4D6FBB4AF033E1 /* ChaChaPolyHelperTests.swift in Sources */,
 				22E4A4E63340B318D682C5C5 /* DateUtilsTests.swift in Sources */,
 				757341F7B8BC2B7B27BD60E9 /* DeviceAuthManagerTests.swift in Sources */,
 				8CEFA48DD808331CA3E3D46C /* DirectoryModelTests.swift in Sources */,
@@ -635,7 +624,6 @@
 				C8E8FF58DFF729F50509D4EA /* OnboardingViewModelTests.swift in Sources */,
 				DC4E439741DAE1027AF85E33 /* PasswordValidatorTests.swift in Sources */,
 				6298404D91A7967A38ED63AB /* SettingsManagerTests.swift in Sources */,
-				3434D1795A21A8F9D2F307A0 /* TempFilesManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -726,6 +714,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		E857B4708FFF396537CCE649 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 00569D33CDF0C8B9A50A5F86 /* Encamera */;
+			targetProxy = 4FBD0FFA0D0ABA143F7A822E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		2013426EC1687E6DCA4C4884 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -738,9 +734,10 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.EncameraTests;
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.EncameraTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Encamera.app/Encamera";
 			};
 			name = Release;
 		};
@@ -817,9 +814,10 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.EncameraTests;
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.EncameraTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Encamera.app/Encamera";
 			};
 			name = Debug;
 		};
@@ -834,7 +832,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.Encamera;
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.Encamera;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -851,7 +849,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.Encamera;
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.Encamera;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -956,11 +954,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		09BA6D46FE4EA6BAF2AD1E44 /* Sodium */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;
-			productName = Sodium;
-		};
 		9BDB467AF8E2ABBB52B964F4 /* Sodium */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;

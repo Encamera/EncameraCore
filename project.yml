@@ -1,6 +1,6 @@
 name: Encamera
 options:
-  bundleIdPrefix: me.freas
+  bundleIdPrefix: me.freas.encamera
 packages:
   Sodium:
     url: https://github.com/jedisct1/swift-sodium.git
@@ -13,12 +13,13 @@ targets:
     sources: [Encamera]
     dependencies:
       - package: Sodium
+    scheme:
+      testTargets:
+        - EncameraTests
   EncameraTests:
-    dependencies:
-      - target: Encamera
     platform: iOS
     deploymentTarget: "15.0"
     sources: [EncameraTests]
-    dependencies:
-      - package: Sodium
     type: bundle.unit-test
+    dependencies:
+      - target: Encamera

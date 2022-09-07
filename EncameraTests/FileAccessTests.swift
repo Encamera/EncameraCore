@@ -14,15 +14,15 @@ class FileAccessTests: XCTestCase {
     
     
     private var directoryModel = DemoDirectoryModel()
-    private var imageKey: ImageKey!
+    private var imageKey: PrivateKey!
     private var fileHandler: FileAccess!
     
     override func setUp() async throws {
         try directoryModel.deleteAllFiles()
         let key = Sodium().secretStream.xchacha20poly1305.key()
-        imageKey = ImageKey(name: "testSuite", keyBytes: key, creationDate: Date())
-        fileHandler = DiskFileAccess(key: imageKey, storageSettingsManager: DemoStorageSettingsManager())
-        try FileUtils.tempFilesManager.cleanup()
+        imageKey = PrivateKey(name: "testSuite", keyBytes: key, creationDate: Date())
+        fileHandler = await DiskFileAccess(with: imageKey, storageSettingsManager: DemoStorageSettingsManager())
+        
     }
     
     
@@ -56,11 +56,11 @@ class FileAccessTests: XCTestCase {
     func testLivePhotoMovieAndStillAreSaved() async throws {
         let movieFile = try FileUtils.createNewMovieFile()
         let imageFile = try FileUtils.createNewDataImageMedia(id: movieFile.id)
-        
-        
+
+
         let encryptedMovie = try await fileHandler.save(media: movieFile)
         let encryptedImage = try await fileHandler.save(media: imageFile)
-                
+
         let moviePreview = try await fileHandler.loadMediaPreview(for: encryptedMovie)
         let imagePreview = try await fileHandler.loadMediaPreview(for: encryptedImage)
         XCTAssertNotNil(moviePreview)

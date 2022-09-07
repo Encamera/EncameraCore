@@ -92,7 +92,7 @@ struct KeyGeneration: View {
     var body: some View {
         let lastView: AnyView? = nil
         
-        let views = [OnboardingFlowScreen.setupImageKey, .dataStorageSetting]
+        let views = [OnboardingFlowScreen.setupPrivateKey, .dataStorageSetting]
             .reversed().reduce(lastView) { partialResult, screen in
             return viewFor(flow: screen, next: {
                 partialResult
@@ -105,7 +105,7 @@ struct KeyGeneration: View {
     func viewModel(for flow: OnboardingFlowScreen) -> OnboardingViewViewModel {
         switch flow {
         
-        case .setupImageKey:
+        case .setupPrivateKey:
             return .init(
                 title: "New Key",
                 subheading:

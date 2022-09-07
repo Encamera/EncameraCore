@@ -23,6 +23,12 @@ actor DiskFileAccess: FileEnumerator {
     private var cancellables = Set<AnyCancellable>()
     private var directoryModel: DataStorageModel?
     
+    init() {}
+    
+    init(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
+        await configure(with: key, storageSettingsManager: storageSettingsManager)
+    }
+    
     func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
         self.key = key
         let storageModel = storageSettingsManager.storageModelFor(keyName: key?.name)
