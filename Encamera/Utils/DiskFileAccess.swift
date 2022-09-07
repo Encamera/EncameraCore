@@ -34,19 +34,9 @@ actor DiskFileAccess: FileEnumerator {
         guard let directoryModel = directoryModel else {
             return []
         }
-        let driveUrl = directoryModel.baseURL
-        _ = driveUrl.startAccessingSecurityScopedResource()
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
         
-        guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
-            return []
-        }
-        let urls: [URL] = enumerator.compactMap { item in
-            guard let itemUrl = item as? URL else {
-                return nil
-            }
-            return itemUrl
-        }
+        let urls: [URL] = directoryModel.enumeratorForStorageDirectory(resourceKeys: resourceKeys)
         
         urls.forEach({
             if $0.pathExtension == "icloud" {
@@ -55,14 +45,6 @@ actor DiskFileAccess: FileEnumerator {
         })
         
         let imageItems: [T] = urls
-            .filter({
-                let components = $0.lastPathComponent.split(separator: ".")
-                guard components.count > 1 else {
-                    return false
-                }
-                let fileExtensions = components[(components.count-2)...]
-                return fileExtensions.joined(separator: ".") == [MediaType.photo.fileExtension, AppConstants.fileExtension].joined(separator: ".")
-            })
             .sorted { (url1: URL, url2: URL) in
                 guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
                       let creationDate1 = resourceValues1.creationDate,
@@ -74,7 +56,6 @@ actor DiskFileAccess: FileEnumerator {
             }.compactMap { (itemUrl: URL) in
                 return T(source: itemUrl)
             }
-        driveUrl.stopAccessingSecurityScopedResource()
         return imageItems
     }
     

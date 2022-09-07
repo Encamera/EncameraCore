@@ -12,11 +12,21 @@ enum KeySelectionError: Error {
     case loadKeysError
 }
 
+
 class KeySelectionListViewModel: ObservableObject {
+    
+    struct KeyItemModel: Identifiable {
+        let key: PrivateKey
+        let imageCount: Int
+        var id: String {
+            key.name
+        }
+    }
+    
     var keyManager: KeyManager
-    @Published var keys: [PrivateKey] = []
+    @Published var keys: [KeyItemModel] = []
     @Published var selectionError: KeySelectionError?
-    @Published var activeKey: PrivateKey?
+    @Published var activeKey: KeyItemModel?
     @Published var isShowingAddKeyView: Bool = false
     private var cancellables = Set<AnyCancellable>()
     
@@ -27,8 +37,15 @@ class KeySelectionListViewModel: ObservableObject {
     
     func loadKeys() {
         do {
-            keys = try keyManager.storedKeys()
-            activeKey = keyManager.currentKey
+            let storage = DataStorageUserDefaultsSetting()
+            keys = try keyManager.storedKeys().map { key in
+                let model = storage.storageModelFor(keyName: key.name)
+                let count = model?.countOfFiles() ?? 0
+                return KeyItemModel(key: key, imageCount: count)
+            }
+            if let currentKey = keyManager.currentKey {
+                activeKey = keys.first(where: {$0.key == currentKey})
+            }
             selectionError = nil
         } catch {
             selectionError = .loadKeysError
@@ -74,11 +91,11 @@ struct KeySelectionList: View {
             Section(header: Text("Keys").foregroundColor(.white)) {
                 
                 if let activeKey = viewModel.activeKey {
-                    keyCell(key: activeKey, isActive: true)
+                    keyCell(model: activeKey, isActive: true)
                 }
                 
-                ForEach(viewModel.keys.filter({$0 != viewModel.activeKey}), id: \.name) { key in
-                    keyCell(key: key, isActive: false)
+                ForEach(viewModel.keys.filter({$0.key != viewModel.activeKey?.key})) { key in
+                    keyCell(model: key, isActive: false)
                 }
             }
         }.listStyle(InsetGroupedListStyle())
@@ -89,12 +106,16 @@ struct KeySelectionList: View {
         
     }
     
-    func keyCell(key: PrivateKey, isActive: Bool) -> some View {
-        NavigationLink {
+    func keyCell(model: KeySelectionListViewModel.KeyItemModel, isActive: Bool) -> some View {
+        let key = model.key
+        return NavigationLink {
             KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
         } label: {
             HStack {
                 HStack {
+                    Text("\(model.imageCount)")
+                        .font(.caption)
+                        .frame(width: 20)
                     VStack(alignment: .leading) {
                         Text(key.name)
                             .font(.title)
@@ -103,7 +124,7 @@ struct KeySelectionList: View {
                     }
                     Spacer()
                 }.padding()
-                if key == viewModel.activeKey {
+                if isActive {
                     HStack {
                         Text("Active")
                         Image(systemName: "key.fill")

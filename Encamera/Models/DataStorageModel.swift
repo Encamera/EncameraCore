@@ -57,4 +57,31 @@ extension DataStorageModel {
         let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(media.mediaType.fileExtension).\(MediaType.preview.fileExtension)")
         return thumbnailPath
     }
+    
+    func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey>) -> [URL] {
+        let driveUrl = baseURL
+        _ = driveUrl.startAccessingSecurityScopedResource()
+        
+        guard let enumerator = FileManager.default.enumerator(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys)) else {
+            return []
+        }
+        driveUrl.stopAccessingSecurityScopedResource()
+        return enumerator.compactMap { item in
+            guard let itemUrl = item as? URL else {
+                return nil
+            }
+            return itemUrl
+        }.filter({
+            let components = $0.lastPathComponent.split(separator: ".")
+            guard components.count > 1 else {
+                return false
+            }
+            let fileExtensions = components[(components.count-2)...]
+            return fileExtensions.joined(separator: ".") == [MediaType.photo.fileExtension, AppConstants.fileExtension].joined(separator: ".")
+        })
+    }
+    
+    func countOfFiles() -> Int {
+        return enumeratorForStorageDirectory(resourceKeys: Set()).count
+    }
 }
