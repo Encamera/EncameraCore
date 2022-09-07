@@ -100,7 +100,8 @@ struct AuthenticationView: View {
                 }
 
             }
-            Spacer().frame(height: 50.0)
+            Spacer()
+                .frame(height: 50.0)
             if let biometric = viewModel.availableBiometric {
                 Button {
                     viewModel.password = ""

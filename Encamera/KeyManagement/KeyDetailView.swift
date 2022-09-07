@@ -101,9 +101,15 @@ struct KeyDetailView: View {
                     viewModel.setActive()
                     dismiss()
                 }
-                Button("Exchange Key") {
+                NavigationLink {
                     
+                } label: {
+                    Button("Share Key") {
+                        
+                    }
                 }
+
+                
                 Button {
                     isShowingAlertForClearKey = true
                 } label: {

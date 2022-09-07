@@ -240,9 +240,6 @@ class DeviceAuthManager: AuthManager {
     }
     
     func authorizeWithBiometrics() async throws {
-        cancelNotificationObservers()
-        
-                
         guard let method = availableBiometric else {
             throw AuthManagerError.biometricsNotAvailable
         }
@@ -288,14 +285,6 @@ private extension DeviceAuthManager {
 
                 self.deauthorize()
             }.store(in: &appStateCancellables)
-        NotificationUtils.didBecomeActivePublisher
-            .sink { _ in
-                Task {
-                    try? await self.checkAuthorizationWithCurrentPolicy()
-                }
-
-            }.store(in: &appStateCancellables)
-
     }
     
 }
