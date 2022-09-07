@@ -122,10 +122,9 @@ You can have multiple keys for different purposes, e.g. one named "Documents" an
                     AnyView(
                         VStack {
                             TextField("Name", text: $viewModel.keyName)
+                                .noAutoModification()
                                 .inputTextField()
-                                .textCase(.lowercase)
-                                .disableAutocorrection(true)
-                                .textInputAutocapitalization(.never)
+                                
                                 
                             if let keySaveError = viewModel.keySaveError {
                                 Group {

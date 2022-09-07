@@ -19,9 +19,15 @@ private struct EncameraInputTextField: ViewModifier {
     }
 }
 
-extension TextField {
+extension View {
     func inputTextField() -> some View {
         modifier(EncameraInputTextField())
+    }
+    
+    func noAutoModification() -> some View {
+        self.textCase(.lowercase)
+            .disableAutocorrection(true)
+            .textInputAutocapitalization(.never)
     }
 }
 

@@ -39,6 +39,7 @@ class KeyDetailViewModel: ObservableObject {
     @Published var keyManager: KeyManager
     @Published var isShowingAlertForClearKey: Bool = false
     @Published var keyViewerError: KeyViewerError?
+    @Published var deleteKeyConfirmation: String = ""
     var key: PrivateKey
     
     init(keyManager: KeyManager, key: PrivateKey) {
@@ -62,12 +63,17 @@ class KeyDetailViewModel: ObservableObject {
             debugPrint("Error clearing keychain", error)
         }
     }
+    
+    func canDeleteKey() -> Bool {
+        deleteKeyConfirmation == key.name
+    }
 }
 
 struct KeyDetailView: View {
     
     @State var isShowingAlertForClearKey: Bool = false
     @StateObject var viewModel: KeyDetailViewModel
+    
     @Environment(\.dismiss) var dismiss
     
     private struct Constants {
@@ -107,15 +113,21 @@ struct KeyDetailView: View {
             }.frame(height: 200)
         }
         .foregroundColor(.blue)
-        .alert(isPresented: $isShowingAlertForClearKey) {
-            Alert(title: Text("Delete key?"), message: Text("Are you sure you want to delete this key forever?"), primaryButton:
-                    .cancel(Text("Cancel")) {
-                        isShowingAlertForClearKey = false
-                    }, secondaryButton: .destructive(Text("Clear")) {
-                        viewModel.deleteKey()
-                        dismiss()
-                    })}
-        
+        .alert("Delete Key?", isPresented: $isShowingAlertForClearKey, actions: {
+            TextField("Key name", text: $viewModel.deleteKeyConfirmation)
+                .noAutoModification()
+            Button("Delete", role: .destructive) {
+                if viewModel.canDeleteKey() {
+                    viewModel.deleteKey()
+                    dismiss()
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                isShowingAlertForClearKey = false
+            }
+        }, message: {
+            Text("Enter the name of the key to delete it forever.")
+        })
     }
 }
 

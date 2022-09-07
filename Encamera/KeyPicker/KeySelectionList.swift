@@ -115,7 +115,7 @@ struct KeySelectionList: View {
                 HStack {
                     Text("\(model.imageCount)")
                         .font(.caption)
-                        .frame(width: 20)
+                        .frame(width: 30)
                     VStack(alignment: .leading) {
                         Text(key.name)
                             .font(.title)
