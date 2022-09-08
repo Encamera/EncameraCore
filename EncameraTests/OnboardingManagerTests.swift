@@ -134,8 +134,6 @@ class OnboardingManagerTests: XCTestCase {
             .intro,
             .enterExistingPassword,
             .biometrics,
-            .setupPrivateKey,
-            .dataStorageSetting,
             .finished])
     }
     

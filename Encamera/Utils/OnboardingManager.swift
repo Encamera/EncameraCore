@@ -180,9 +180,12 @@ class OnboardingManager: OnboardingManaging {
         if authManager.canAuthenticateWithBiometrics {
             screens += [.biometrics]
         }
+        
+        if !keyManager.passwordExists() {
+            screens += [.setupPrivateKey,
+                        .dataStorageSetting]
+        }
         screens += [
-            .setupPrivateKey,
-            .dataStorageSetting,
             .finished
         ]
         

@@ -19,7 +19,7 @@ class AsyncVideoCaptureProcessor: NSObject {
     private var cancellables = Set<AnyCancellable>()
 
     let videoId = NSUUID().uuidString
-    let tempFileUrl: URL
+    let tempFileUrl: URL! = nil
     
     
     var durationPublisher: AnyPublisher<CMTime, Never> {
@@ -30,7 +30,6 @@ class AsyncVideoCaptureProcessor: NSObject {
  
     required init(videoCaptureOutput: AVCaptureMovieFileOutput) {
         self.captureOutput = videoCaptureOutput
-        self.tempFileUrl = TempFilesManager.shared.createTempURL(for: .video, id: videoId)
     }
     
     func takeVideo() async throws -> CleartextMedia<URL> {

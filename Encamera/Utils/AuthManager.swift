@@ -45,10 +45,6 @@ enum AuthenticationMethod: Codable {
         }
     }
     
-    
-    
-    
-    
     static func methodFrom(biometryType: LABiometryType) -> AuthenticationMethod? {
         switch biometryType {
         case .none:

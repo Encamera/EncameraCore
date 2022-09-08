@@ -180,8 +180,8 @@ class OnboardingViewModel: ObservableObject {
                     try authManager.authorize(with: existingPassword, using: keyManager)
                 } else {
                     try authManager.authorize(with: password1, using: keyManager)
+                    try keyManager.generateNewKey(name: keyName, storageType: await keyStorageType)
                 }
-                try keyManager.generateNewKey(name: keyName, storageType: await keyStorageType)
                 try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
                 
             } catch {

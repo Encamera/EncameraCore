@@ -6,29 +6,6 @@
 //
 
 import SwiftUI
-import CoreImage
-import CoreImage.CIFilterBuiltins
-
-private func generateQRCode(from string: String, size: CGSize) -> UIImage {
-    let context = CIContext()
-    let filter = CIFilter.qrCodeGenerator()
-    
-    let data = Data(string.utf8)
-    filter.setValue(data, forKey: "inputMessage")
-    guard let output = filter.outputImage else {
-        fatalError("no image")
-    }
-    let x = size.width / output.extent.size.width
-    let y = size.height / output.extent.size.height
-    
-    let qrCodeImage = output.transformed(by: CGAffineTransform(scaleX: x, y: y))
-    
-    if let qrCodeCGImage = context.createCGImage(qrCodeImage, from: qrCodeImage.extent) {
-        return UIImage(cgImage: qrCodeCGImage)
-    }
-    
-    return UIImage(systemName: "xmark") ?? UIImage()
-}
 
 class KeyDetailViewModel: ObservableObject {
     
@@ -79,21 +56,6 @@ struct KeyDetailView: View {
     private struct Constants {
         static var outerPadding = 20.0
     }
-    func createQrImage(geo: GeometryProxy) -> some View {
-        var imageView: Image
-        
-        if let keyString = viewModel.key.base64String {
-            let image = generateQRCode(from: keyString, size: geo.size)
-            imageView = Image(uiImage: image)
-        } else {
-            imageView = Image(systemName: "lock.slash")
-        }
-        
-        return AnyView(imageView
-            .resizable()
-            .aspectRatio(1.0, contentMode: .fit)
-            .frame(width: geo.size.width*0.75))
-    }
     var body: some View {
         GalleryGridView(viewModel: .init(privateKey: viewModel.key)) {
             List {
@@ -102,7 +64,7 @@ struct KeyDetailView: View {
                     dismiss()
                 }
                 NavigationLink {
-                    
+                    KeyExchange(viewModel: .init(key: viewModel.key))
                 } label: {
                     Button("Share Key") {
                         

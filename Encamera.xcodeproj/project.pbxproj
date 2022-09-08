@@ -30,11 +30,11 @@
 		382E0489FC7DDB928E86C7D9 /* PhotoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F5C02720F368B4E732208A /* PhotoCaptureProcessor.swift */; };
 		395975FDD522FB598EEEC938 /* DataStorageUserDefaultsSetting.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3067B217DBB3CF026BF1943 /* DataStorageUserDefaultsSetting.swift */; };
 		3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF307DAF9F7334418CF7C35A /* ImageViewing.swift */; };
-		3B5BF01B9CDC76BA39DBC7CF /* TempFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E4B545FB61AEF05A6FD75D /* TempFilesManager.swift */; };
 		3FF954D71ED23854CF6A9B53 /* DataStorageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5052BBC248EA5FBC111DBC96 /* DataStorageModel.swift */; };
 		40C7605DB284B18C4C8ED36C /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */; };
 		44494B8589FFD53D0DCF3C41 /* CameraService+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C4D9AA72B7AE9BFDECD696 /* CameraService+Extensions.swift */; };
 		4479253E8ADD2D7F810D69B7 /* OnboardingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7647783C20C8ABCD587291B3 /* OnboardingManagerTests.swift */; };
+		45D000FDCE5E881139569871 /* QRCodeGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A21EA545E188821E4920118 /* QRCodeGenerator.swift */; };
 		487D2948BC076595D04F4DA2 /* EncryptedMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8D6AA4203944ABFC972E85 /* EncryptedMedia.swift */; };
 		59243D0D07D49EC3ADFAC700 /* OnboardingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECA64653935828207E3D950 /* OnboardingManager.swift */; };
 		5D8A8BBF90E59B7E75FE8DF9 /* KeyGeneration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26C4CC1724CE208C558D81E /* KeyGeneration.swift */; };
@@ -56,6 +56,7 @@
 		753C199E4BD91DF38A25460F /* KeySelectionCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661F4FF6682E53B6870C8665 /* KeySelectionCell.swift */; };
 		757341F7B8BC2B7B27BD60E9 /* DeviceAuthManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0CFDC6B26D814A78B7E20F /* DeviceAuthManagerTests.swift */; };
 		78C52C83B6B9AB4A0BB53076 /* MediaTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 071F6A11B150B89A33FB5F1B /* MediaTypeTests.swift */; };
+		7B124E21D239AA4744DC0168 /* KeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9962EDE6F5712DA02FF64 /* KeyExchange.swift */; };
 		7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 49A2EF989B2F8643105205DF /* Assets.xcassets */; };
 		814B5F952A3744042B2642BB /* DataBlockReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4412C3D2FB58ADA32383DC7A /* DataBlockReader.swift */; };
 		821DE886AB64301064E096B6 /* VideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D159D92569E26A0C488780FB /* VideoCaptureProcessor.swift */; };
@@ -90,6 +91,7 @@
 		CADEB705575FEC9E1323DD0C /* FileLikeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F55110707EAF524868AD3DD /* FileLikeHandler.swift */; };
 		CAE9FE633C4A8AAFC35F8F4F /* LocalDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30D269AED2DD7548005D5930 /* LocalDirectoryModel.swift */; };
 		D01E8AA533B7B5E386D342E4 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EEAEFBFF5E91FF19134CDC9 /* Enums.swift */; };
+		D600B142C3A47BB0E0F3B4EA /* TempFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DFB034173F128B2A7210967 /* TempFilesManager.swift */; };
 		D9593E17F428493E19AC0277 /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DF70D2CC410A637C7BB925 /* EncameraState.swift */; };
 		D95B5A20ECD8C5784FDD63D0 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		DC4E439741DAE1027AF85E33 /* PasswordValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E2C2364927E97A558A531EA /* PasswordValidatorTests.swift */; };
@@ -153,10 +155,12 @@
 		5052BBC248EA5FBC111DBC96 /* DataStorageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStorageModel.swift; sourceTree = "<group>"; };
 		57C54146880DB6F836B1AB7F /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
 		595D310D0EF81D2BAC59A8FD /* FileOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperationsTests.swift; sourceTree = "<group>"; };
+		59D9962EDE6F5712DA02FF64 /* KeyExchange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyExchange.swift; sourceTree = "<group>"; };
 		5C0CFDC6B26D814A78B7E20F /* DeviceAuthManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAuthManagerTests.swift; sourceTree = "<group>"; };
 		5C79DD2442FFFD819DAAD1BD /* CaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureProcessor.swift; sourceTree = "<group>"; };
 		5D4D58B61CE717B122E804F5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		5D79BD6595B2129672A6AB30 /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		5DFB034173F128B2A7210967 /* TempFilesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempFilesManager.swift; sourceTree = "<group>"; };
 		5F55110707EAF524868AD3DD /* FileLikeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileLikeHandler.swift; sourceTree = "<group>"; };
 		5F87936ECB7F2B45E23186B8 /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		661F4FF6682E53B6870C8665 /* KeySelectionCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionCell.swift; sourceTree = "<group>"; };
@@ -175,6 +179,7 @@
 		80D6FE3CC656F09258F08EE5 /* FileLikeBlockReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileLikeBlockReader.swift; sourceTree = "<group>"; };
 		84DA69357571FEABAB3BB728 /* LocalDeeplinkingUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDeeplinkingUtils.swift; sourceTree = "<group>"; };
 		8557D069453D7DEC29205127 /* PrivateKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateKey.swift; sourceTree = "<group>"; };
+		8A21EA545E188821E4920118 /* QRCodeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeGenerator.swift; sourceTree = "<group>"; };
 		8BE81D3482C2C815A7280065 /* PreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewModel.swift; sourceTree = "<group>"; };
 		906D6CF8031D625E05A869E2 /* FileProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileProtocols.swift; sourceTree = "<group>"; };
 		9180088B6F3C787C103F69C5 /* StorageOptionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageOptionItemView.swift; sourceTree = "<group>"; };
@@ -191,7 +196,6 @@
 		AE667C90AC53488E5C411BEE /* AsyncVideoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncVideoCaptureProcessor.swift; sourceTree = "<group>"; };
 		AF3D409D97BC49AEDA21BB6B /* ChunkedFilesProcessing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChunkedFilesProcessing.swift; sourceTree = "<group>"; };
 		B2B27AF6F426AABF6AF21042 /* StorageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageType.swift; sourceTree = "<group>"; };
-		B2E4B545FB61AEF05A6FD75D /* TempFilesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempFilesManager.swift; sourceTree = "<group>"; };
 		B4DC9B1566E5F63DD273CBCA /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		BD80B31ED188E0F75FCF32A4 /* Encamera.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Encamera.entitlements; sourceTree = "<group>"; };
 		BECA64653935828207E3D950 /* OnboardingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingManager.swift; sourceTree = "<group>"; };
@@ -236,6 +240,7 @@
 			isa = PBXGroup;
 			children = (
 				F833D2C2F3C322F3D8589E8D /* FileUtils.swift */,
+				5DFB034173F128B2A7210967 /* TempFilesManager.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -433,9 +438,9 @@
 				BECA64653935828207E3D950 /* OnboardingManager.swift */,
 				C6FFD3B3D86ACB77D3BE0FD3 /* OSStatusChecker.swift */,
 				0B8F889A7EC11C30F9CB3B10 /* PasswordValidator.swift */,
+				8A21EA545E188821E4920118 /* QRCodeGenerator.swift */,
 				9FF7292F021A07449C6C9C93 /* SecretFileHandler.swift */,
 				7995FDA3D610A1AFB4937EC6 /* SettingsManager.swift */,
-				B2E4B545FB61AEF05A6FD75D /* TempFilesManager.swift */,
 				4F6562565D7C4998CC1AD341 /* IO */,
 			);
 			path = Utils;
@@ -470,6 +475,7 @@
 			children = (
 				D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */,
 				A5E2FA1268C0C6B4843E6E57 /* KeyEntry.swift */,
+				59D9962EDE6F5712DA02FF64 /* KeyExchange.swift */,
 				E26C4CC1724CE208C558D81E /* KeyGeneration.swift */,
 				24DEE57B92A4A089C5A570BC /* KeyOperationCell.swift */,
 				661F4FF6682E53B6870C8665 /* KeySelectionCell.swift */,
@@ -562,6 +568,11 @@
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 1200;
+				TargetAttributes = {
+					00569D33CDF0C8B9A50A5F86 = {
+						DevelopmentTeam = KGJCC745S9;
+					};
+				};
 			};
 			buildConfigurationList = 1A8CCF54D871FA62B49F8929 /* Build configuration list for PBXProject "Encamera" */;
 			compatibilityVersion = "Xcode 11.0";
@@ -624,6 +635,7 @@
 				C8E8FF58DFF729F50509D4EA /* OnboardingViewModelTests.swift in Sources */,
 				DC4E439741DAE1027AF85E33 /* PasswordValidatorTests.swift in Sources */,
 				6298404D91A7967A38ED63AB /* SettingsManagerTests.swift in Sources */,
+				D600B142C3A47BB0E0F3B4EA /* TempFilesManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -675,6 +687,7 @@
 				3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */,
 				AACB64F8B3E0692251214E0D /* KeyDetailView.swift in Sources */,
 				E0D2C3611EF60B4DFE85F4D8 /* KeyEntry.swift in Sources */,
+				7B124E21D239AA4744DC0168 /* KeyExchange.swift in Sources */,
 				5D8A8BBF90E59B7E75FE8DF9 /* KeyGeneration.swift in Sources */,
 				6756E5B5C7BCEC5F909FF85C /* KeyManager.swift in Sources */,
 				8C75F3F31341AD03897522B0 /* KeyOperationCell.swift in Sources */,
@@ -695,6 +708,7 @@
 				9F732B86F9CD0DDBD8F1568D /* PreviewModel.swift in Sources */,
 				690E8852F04E73436BA5D987 /* PrivateKey.swift in Sources */,
 				9C5A11E3FCAE66413DAB2ED8 /* QRCodeCaptureProcessor.swift in Sources */,
+				45D000FDCE5E881139569871 /* QRCodeGenerator.swift in Sources */,
 				70D8B277BC2C42A22907B619 /* Rotation.swift in Sources */,
 				2F24514B8BEACEE3B50D390E /* RotationViewModifier.swift in Sources */,
 				970C997C472D9D4A5A2B9CC8 /* ScreenBlock.swift in Sources */,
@@ -704,7 +718,6 @@
 				12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */,
 				E9C36D15F15ACB3E66847F49 /* StorageSettingView.swift in Sources */,
 				A9FDEF968B61A782A81DA127 /* StorageType.swift in Sources */,
-				3B5BF01B9CDC76BA39DBC7CF /* TempFilesManager.swift in Sources */,
 				26FE0971738E9033F853B303 /* Text.swift in Sources */,
 				21E5501110D2122E010CC0B7 /* TextField.swift in Sources */,
 				821DE886AB64301064E096B6 /* VideoCaptureProcessor.swift in Sources */,
@@ -734,7 +747,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.EncameraTests;
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.EncameraTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Encamera.app/Encamera";
@@ -814,7 +827,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.EncameraTests;
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.EncameraTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Encamera.app/Encamera";
@@ -825,14 +838,16 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ./Encamera/Encamera.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = KGJCC745S9;
 				INFOPLIST_FILE = Encamera/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.Encamera;
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -842,14 +857,16 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ./Encamera/Encamera.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = KGJCC745S9;
 				INFOPLIST_FILE = Encamera/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.Encamera;
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

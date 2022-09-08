@@ -30,6 +30,15 @@ class LocalDeeplinkingUtils {
         
         UIApplication.shared.open(url)
     }
+    
+    static func deeplinkFor(key: PrivateKey) -> URL? {
+        guard let keyString = key.base64String else {
+            return nil
+        }
+        
+        let linkString = "encamera://key/\(keyString)"
+        return URL(string: linkString)
+    }
 }
 
 private extension URL {

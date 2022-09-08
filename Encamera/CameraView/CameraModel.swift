@@ -105,7 +105,7 @@ final class CameraModel: ObservableObject {
         case .photo:
             let photoProcessor = await service.createPhotoProcessor(flashMode: flashMode)
             
-            var photoObject = try await photoProcessor.takePhoto()
+            let photoObject = try await photoProcessor.takePhoto()
             
             await MainActor.run(body: {
                 willCapturePhoto = true
