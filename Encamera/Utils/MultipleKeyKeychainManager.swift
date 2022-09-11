@@ -303,7 +303,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         
     }
     
-
+    
 }
 
 private extension MultipleKeyKeychainManager {
@@ -320,7 +320,7 @@ private extension MultipleKeyKeychainManager {
     }
     
     func hashFrom(password: String) throws -> Data {
-        let bytes = try bytes(from: password)
+        let bytes = password.bytes
         let hashString = sodium.pwHash.str(passwd: bytes,
                                            opsLimit: sodium.pwHash.OpsLimitInteractive,
                                                  memLimit: sodium.pwHash.MemLimitInteractive)

@@ -32,12 +32,8 @@ class LocalDeeplinkingUtils {
     }
     
     static func deeplinkFor(key: PrivateKey) -> URL? {
-        guard let keyString = key.base64String else {
-            return nil
-        }
         
-        let linkString = "encamera://key/\(keyString)"
-        return URL(string: linkString)
+        return URLType.key(key: key).url
     }
 }
 

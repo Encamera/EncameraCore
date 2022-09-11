@@ -7,6 +7,13 @@
 
 import Foundation
 
+struct StorageAvailabilityModel: Identifiable {
+    let storageType: StorageType
+    let availability: StorageType.Availability
+    var id: StorageType {
+        storageType
+    }
+}
 
 enum StorageType: String {
     case icloud

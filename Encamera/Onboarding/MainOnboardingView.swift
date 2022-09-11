@@ -12,13 +12,7 @@ enum OnboardingViewError: Error {
     case passwordInvalid
     case onboardingEnded
 }
-struct StorageAvailabilityModel: Identifiable {
-    let storageType: StorageType
-    let availability: StorageType.Availability
-    var id: StorageType {
-        storageType
-    }
-}
+
 class OnboardingViewModel: ObservableObject {
     
     enum OnboardingKeyError: Error {
@@ -144,30 +138,6 @@ class OnboardingViewModel: ObservableObject {
         existingPasswordCorrect = try keyManager.checkPassword(existingPassword)
         if existingPasswordCorrect == false {
             throw OnboardingViewError.passwordInvalid
-        }
-    }
-    
-    func loadStorageAvailabilities() {
-        Task {
-            var availabilites = [StorageAvailabilityModel]()
-            for type in StorageType.allCases {
-                let result = await keyManager.keyDirectoryStorage.isStorageTypeAvailable(type: type)
-                availabilites += [StorageAvailabilityModel(storageType: type, availability: result)]
-            }
-            await setStorage(availabilites: availabilites)
-        }
-        
-    }
-    @MainActor
-    func setStorage(availabilites: [StorageAvailabilityModel]) async {
-        await MainActor.run {
-            self.keyStorageType = availabilites.filter({
-                if case .available = $0.availability {
-                    return true
-                }
-                return false
-            }).map({$0.storageType}).first ?? .local
-            self.storageAvailabilities = availabilites
         }
     }
     
@@ -350,10 +320,7 @@ Each key will store data in its own directory.
                          bottomButtonTitle: "Next") {
             } content: {
                 AnyView(
-                    StorageSettingView(keyStorageType: $viewModel.keyStorageType, storageAvailabilities: $viewModel.storageAvailabilities)
-                    .onAppear {
-                        viewModel.loadStorageAvailabilities()
-                    }
+                    StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType))
                 )
                 
             }

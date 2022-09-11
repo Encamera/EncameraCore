@@ -76,7 +76,7 @@ struct KeySelectionList: View {
                     KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
                 }
                 NavigationLink {
-                    KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, isShowing: .constant(true)))
+                    KeyEntry(viewModel: .init(keyManager: viewModel.keyManager))
                 } label: {
                     KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
                 }

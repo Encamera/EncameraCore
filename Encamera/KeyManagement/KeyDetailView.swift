@@ -70,8 +70,11 @@ struct KeyDetailView: View {
                         
                     }
                 }
-
-                
+                Button("Copy to clipboard") {
+                    let key = viewModel.key.base64String
+                    let pasteboard = UIPasteboard.general
+                    pasteboard.string = key
+                }
                 Button {
                     isShowingAlertForClearKey = true
                 } label: {

@@ -26,6 +26,15 @@ extension DataStorageSetting {
             return .available
         }
     }
+    
+    func storageAvailabilities() -> [StorageAvailabilityModel] {
+        var availabilites = [StorageAvailabilityModel]()
+        for type in StorageType.allCases {
+            let result = isStorageTypeAvailable(type: type)
+            availabilites += [StorageAvailabilityModel(storageType: type, availability: result)]
+        }
+        return availabilites
+    }
 }
 
 struct DataStorageUserDefaultsSetting: DataStorageSetting {

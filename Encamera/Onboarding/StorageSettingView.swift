@@ -7,22 +7,31 @@
 
 import SwiftUI
 
+class StorageSettingViewModel: ObservableObject {
+    
+    var keyStorageType: Binding<StorageType>
+    @Published var storageAvailabilities: [StorageAvailabilityModel] = DataStorageUserDefaultsSetting().storageAvailabilities()
+    
+    init(keyStorageType: Binding<StorageType>) {
+        self.keyStorageType = keyStorageType
+    }
+}
+
 struct StorageSettingView: View {
     
-    @Binding var keyStorageType: StorageType
-    @Binding var storageAvailabilities: [StorageAvailabilityModel]
+    @StateObject var viewModel: StorageSettingViewModel
     
     var body: some View {
         VStack(spacing: 20) {
             
-            ForEach(storageAvailabilities) { data in
+            ForEach(viewModel.storageAvailabilities) { data in
                 let binding = Binding {
-                    data.storageType == keyStorageType
+                    data.storageType == viewModel.keyStorageType.wrappedValue
                 } set: { value in
                     guard case .available = data.availability else {
                         return
                     }
-                    keyStorageType = data.storageType
+                    viewModel.keyStorageType.wrappedValue = data.storageType
                 }
                 StorageTypeOptionItemView(
                     storageType: data.storageType,
@@ -34,10 +43,10 @@ struct StorageSettingView: View {
     }
 }
 
-struct StorageSettingView_Previews: PreviewProvider {
-    static var previews: some View {
-        StorageSettingView(keyStorageType: .constant(.local), storageAvailabilities: .constant([
-            .init(storageType: .local, availability: .available),
-            .init(storageType: .icloud, availability: .unavailable(reason: "No iCloud account found."))]))
-    }
-}
+//struct StorageSettingView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        StorageSettingView(keyStorageType: .constant(.local), storageAvailabilities: .constant([
+//            .init(storageType: .local, availability: .available),
+//            .init(storageType: .icloud, availability: .unavailable(reason: "No iCloud account found."))]))
+//    }
+//}

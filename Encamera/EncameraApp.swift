@@ -130,30 +130,18 @@ struct EncameraApp: App {
                     self.viewModel.hasOpenedURL = false
                 } content: {
                     if let url = viewModel.openedUrl,
-                       let media = EncryptedMedia(source: url),
-                       viewModel.authManager.isAuthenticated,
-                       let fileAccess = viewModel.fileAccess {
-                        switch media.mediaType {
-                        case .photo:
+                       let urlType = URLType(url: url),
+                       viewModel.authManager.isAuthenticated {
+                        switch urlType {
+                        case .media(let encryptedMedia):
+                            galleryForMedia(media: encryptedMedia)
+                        case .key(let key):
                             NavigationView {
-                                GalleryHorizontalScrollView(
-                                    viewModel: .init(
-                                        media: [media],
-                                        selectedMedia: media,
-                                        fileAccess: fileAccess
-                                    )
-                                ).toolbar {
-                                    Button("Close") {
-                                        self.viewModel.hasOpenedURL = false
-                                    }
-                                }
+                                KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager))
                             }
-                        case .video:
-                            MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
-                        default:
-                            EmptyView()
                         }
-                        
+                    } else {
+                        Text("No private key or media found.")
                     }
                 }
                 .overlay {
@@ -181,6 +169,30 @@ struct EncameraApp: App {
                     \.isScreenBlockingActive,
                      self.viewModel.showScreenBlocker
                 )
+        }
+    }
+    
+    @ViewBuilder private func galleryForMedia(media: EncryptedMedia) -> some View {
+        let fileAccess = viewModel.fileAccess
+        switch media.mediaType {
+        case .photo:
+            NavigationView {
+                GalleryHorizontalScrollView(
+                    viewModel: .init(
+                        media: [media],
+                        selectedMedia: media,
+                        fileAccess: fileAccess
+                    )
+                ).toolbar {
+                    Button("Close") {
+                        self.viewModel.hasOpenedURL = false
+                    }
+                }
+            }
+        case .video:
+            MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
+        default:
+            EmptyView()
         }
     }
 }

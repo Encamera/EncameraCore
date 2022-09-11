@@ -14,6 +14,10 @@
 		136F5881359E6FE8690CC234 /* FileAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFC5DA63F9E20223F0BF592 /* FileAccessTests.swift */; };
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
+		19FEFB6328CA963500B59818 /* URLTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FEFB6228CA963500B59818 /* URLTypes.swift */; };
+		19FEFB6528CA967600B59818 /* DeeplinkingKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FEFB6428CA967600B59818 /* DeeplinkingKeyTests.swift */; };
+		19FEFB6728CA96E800B59818 /* URLTypesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FEFB6628CA96E800B59818 /* URLTypesTest.swift */; };
+		19FEFB6928CB52B500B59818 /* AddExchangedKeyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FEFB6828CB52B500B59818 /* AddExchangedKeyConfirmation.swift */; };
 		1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */; };
 		1D99F465F8AFC10EA75EDB1F /* DemoFileHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70DF8856410B3044FBFDCE31 /* DemoFileHelpers.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
@@ -130,6 +134,10 @@
 		136825FBFC03AA8F4F609A86 /* QRCodeCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeCaptureProcessor.swift; sourceTree = "<group>"; };
 		1585D15F7B92351433FED0B3 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
+		19FEFB6228CA963500B59818 /* URLTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTypes.swift; sourceTree = "<group>"; };
+		19FEFB6428CA967600B59818 /* DeeplinkingKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeeplinkingKeyTests.swift; sourceTree = "<group>"; };
+		19FEFB6628CA96E800B59818 /* URLTypesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTypesTest.swift; sourceTree = "<group>"; };
+		19FEFB6828CB52B500B59818 /* AddExchangedKeyConfirmation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddExchangedKeyConfirmation.swift; sourceTree = "<group>"; };
 		1AD23C6426D4D73F9E8994C9 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		1D16E0EA60C4E61C60609E92 /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -329,6 +337,8 @@
 				C7F31A3C960455C9A8F534B1 /* SettingsManagerTests.swift */,
 				8B27BAA76D6BDE3BF8D89745 /* TestData */,
 				010E333EA3D38C22C08C9ECB /* Utils */,
+				19FEFB6428CA967600B59818 /* DeeplinkingKeyTests.swift */,
+				19FEFB6628CA96E800B59818 /* URLTypesTest.swift */,
 			);
 			path = EncameraTests;
 			sourceTree = "<group>";
@@ -450,6 +460,7 @@
 			isa = PBXGroup;
 			children = (
 				5D79BD6595B2129672A6AB30 /* AppConstants.swift */,
+				19FEFB6228CA963500B59818 /* URLTypes.swift */,
 			);
 			path = Constants;
 			sourceTree = "<group>";
@@ -480,6 +491,7 @@
 				24DEE57B92A4A089C5A570BC /* KeyOperationCell.swift */,
 				661F4FF6682E53B6870C8665 /* KeySelectionCell.swift */,
 				1025DA125F361EE6FA441219 /* KeySelectionList.swift */,
+				19FEFB6828CB52B500B59818 /* AddExchangedKeyConfirmation.swift */,
 			);
 			path = KeyManagement;
 			sourceTree = "<group>";
@@ -628,10 +640,12 @@
 				8CEFA48DD808331CA3E3D46C /* DirectoryModelTests.swift in Sources */,
 				136F5881359E6FE8690CC234 /* FileAccessTests.swift in Sources */,
 				74C89EFD9D3A3B4B90C27431 /* FileOperationsTests.swift in Sources */,
+				19FEFB6528CA967600B59818 /* DeeplinkingKeyTests.swift in Sources */,
 				828109C5551642F705D03958 /* FileUtils.swift in Sources */,
 				8F201785CD1B1B9C034D3386 /* KeychainTests.swift in Sources */,
 				78C52C83B6B9AB4A0BB53076 /* MediaTypeTests.swift in Sources */,
 				4479253E8ADD2D7F810D69B7 /* OnboardingManagerTests.swift in Sources */,
+				19FEFB6728CA96E800B59818 /* URLTypesTest.swift in Sources */,
 				C8E8FF58DFF729F50509D4EA /* OnboardingViewModelTests.swift in Sources */,
 				DC4E439741DAE1027AF85E33 /* PasswordValidatorTests.swift in Sources */,
 				6298404D91A7967A38ED63AB /* SettingsManagerTests.swift in Sources */,
@@ -676,6 +690,7 @@
 				487D2948BC076595D04F4DA2 /* EncryptedMedia.swift in Sources */,
 				D01E8AA533B7B5E386D342E4 /* Enums.swift in Sources */,
 				70BC1CAA3B81162795D60A79 /* FileLikeBlockReader.swift in Sources */,
+				19FEFB6328CA963500B59818 /* URLTypes.swift in Sources */,
 				CADEB705575FEC9E1323DD0C /* FileLikeHandler.swift in Sources */,
 				22EEFC367257688DDCB707B0 /* FileProtocols.swift in Sources */,
 				314D2DFF0325E8EBB5AD18FE /* GalleryDetailView.swift in Sources */,
@@ -698,6 +713,7 @@
 				114EBEBC2E22847C842A538D /* MainOnboardingView.swift in Sources */,
 				32E1B10DD8EACB497A05758D /* MediaDescribing.swift in Sources */,
 				EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */,
+				19FEFB6928CB52B500B59818 /* AddExchangedKeyConfirmation.swift in Sources */,
 				C0B35E67923C4594C7BA7F53 /* MultipleKeyKeychainManager.swift in Sources */,
 				824EC784B8158236BD9FC94E /* NotificationUtils.swift in Sources */,
 				639AA0D52590F717A8237B5E /* OSStatusChecker.swift in Sources */,

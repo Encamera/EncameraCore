@@ -57,17 +57,7 @@ class KeyGenerationViewModel: ObservableObject {
         
     }
     
-    func loadStorageAvailabilities() {
-        Task {
-            var availabilites = [StorageAvailabilityModel]()
-            for type in StorageType.allCases {
-                let result = await keyManager.keyDirectoryStorage.isStorageTypeAvailable(type: type)
-                availabilites += [StorageAvailabilityModel(storageType: type, availability: result)]
-            }
-            await setStorage(availabilites: availabilites)
-        }
-        
-    }
+    
     
     @MainActor
     func setStorage(availabilites: [StorageAvailabilityModel]) async {
@@ -149,10 +139,8 @@ Each key will store data in its own directory.
                 throw OnboardingViewError.onboardingEnded
             } content: {
                 AnyView(
-                    StorageSettingView(keyStorageType: $viewModel.keyStorageType, storageAvailabilities: $viewModel.storageAvailabilities)
-                    .onAppear {
-                        viewModel.loadStorageAvailabilities()
-                    }
+                    StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType))
+                    
                 )
                 
             }
