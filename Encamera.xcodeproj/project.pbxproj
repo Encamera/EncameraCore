@@ -14,10 +14,8 @@
 		136F5881359E6FE8690CC234 /* FileAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFC5DA63F9E20223F0BF592 /* FileAccessTests.swift */; };
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
-		19FEFB6328CA963500B59818 /* URLTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FEFB6228CA963500B59818 /* URLTypes.swift */; };
-		19FEFB6528CA967600B59818 /* DeeplinkingKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FEFB6428CA967600B59818 /* DeeplinkingKeyTests.swift */; };
-		19FEFB6728CA96E800B59818 /* URLTypesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FEFB6628CA96E800B59818 /* URLTypesTest.swift */; };
-		19FEFB6928CB52B500B59818 /* AddExchangedKeyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FEFB6828CB52B500B59818 /* AddExchangedKeyConfirmation.swift */; };
+		19F99ED428CF5C5F00145FF1 /* Clibsodium in Frameworks */ = {isa = PBXBuildFile; productRef = 19F99ED328CF5C5F00145FF1 /* Clibsodium */; };
+		19F99ED628CF5C5F00145FF1 /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 19F99ED528CF5C5F00145FF1 /* Sodium */; };
 		1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */; };
 		1D99F465F8AFC10EA75EDB1F /* DemoFileHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70DF8856410B3044FBFDCE31 /* DemoFileHelpers.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
@@ -39,7 +37,9 @@
 		44494B8589FFD53D0DCF3C41 /* CameraService+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C4D9AA72B7AE9BFDECD696 /* CameraService+Extensions.swift */; };
 		4479253E8ADD2D7F810D69B7 /* OnboardingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7647783C20C8ABCD587291B3 /* OnboardingManagerTests.swift */; };
 		45D000FDCE5E881139569871 /* QRCodeGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A21EA545E188821E4920118 /* QRCodeGenerator.swift */; };
+		469BE8F9637C2473884C43EE /* URLTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF60C8A4222C7F31720EA7 /* URLTypes.swift */; };
 		487D2948BC076595D04F4DA2 /* EncryptedMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8D6AA4203944ABFC972E85 /* EncryptedMedia.swift */; };
+		4D05292066CC564599287AAD /* URLTypesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458DFC8B3BB9794E5B68F326 /* URLTypesTest.swift */; };
 		59243D0D07D49EC3ADFAC700 /* OnboardingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECA64653935828207E3D950 /* OnboardingManager.swift */; };
 		5D8A8BBF90E59B7E75FE8DF9 /* KeyGeneration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26C4CC1724CE208C558D81E /* KeyGeneration.swift */; };
 		5D8C6F30C3A04A49D33F52BE /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BEE457665F667EBB8B3A0A5 /* AuthManager.swift */; };
@@ -80,6 +80,7 @@
 		9F732B86F9CD0DDBD8F1568D /* PreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE81D3482C2C815A7280065 /* PreviewModel.swift */; };
 		A110A1F171C9A71EBC2A8DC2 /* GalleryScrollViewItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AAF32644BA53C12592B731 /* GalleryScrollViewItem.swift */; };
 		A7FFA0723B19BF8AFC18E8F4 /* DemoCameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AEA7125C21D361A1F6011ED /* DemoCameraService.swift */; };
+		A8CF1328AD8BE2D1DC0599E9 /* AddExchangedKeyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */; };
 		A9FDEF968B61A782A81DA127 /* StorageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B27AF6F426AABF6AF21042 /* StorageType.swift */; };
 		AACB64F8B3E0692251214E0D /* KeyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */; };
 		AD8F6464844061B17FAFE50E /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DC9B1566E5F63DD273CBCA /* OnboardingView.swift */; };
@@ -98,8 +99,8 @@
 		D600B142C3A47BB0E0F3B4EA /* TempFilesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DFB034173F128B2A7210967 /* TempFilesManager.swift */; };
 		D9593E17F428493E19AC0277 /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DF70D2CC410A637C7BB925 /* EncameraState.swift */; };
 		D95B5A20ECD8C5784FDD63D0 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
+		DAD683C4FC3504924E163C2B /* DeeplinkingKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 403601D9942CACD7FD770AA2 /* DeeplinkingKeyTests.swift */; };
 		DC4E439741DAE1027AF85E33 /* PasswordValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E2C2364927E97A558A531EA /* PasswordValidatorTests.swift */; };
-		DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 9BDB467AF8E2ABBB52B964F4 /* Sodium */; };
 		E02CDF136FEA73C34ED68EE1 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */; };
 		E0D2C3611EF60B4DFE85F4D8 /* KeyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5E2FA1268C0C6B4843E6E57 /* KeyEntry.swift */; };
 		E60899CADF3D3D0369C30A68 /* GalleryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748E067EDA778708048F40F4 /* GalleryItem.swift */; };
@@ -134,10 +135,6 @@
 		136825FBFC03AA8F4F609A86 /* QRCodeCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeCaptureProcessor.swift; sourceTree = "<group>"; };
 		1585D15F7B92351433FED0B3 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
-		19FEFB6228CA963500B59818 /* URLTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTypes.swift; sourceTree = "<group>"; };
-		19FEFB6428CA967600B59818 /* DeeplinkingKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeeplinkingKeyTests.swift; sourceTree = "<group>"; };
-		19FEFB6628CA96E800B59818 /* URLTypesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTypesTest.swift; sourceTree = "<group>"; };
-		19FEFB6828CB52B500B59818 /* AddExchangedKeyConfirmation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddExchangedKeyConfirmation.swift; sourceTree = "<group>"; };
 		1AD23C6426D4D73F9E8994C9 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		1D16E0EA60C4E61C60609E92 /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -154,8 +151,10 @@
 		3AEA7125C21D361A1F6011ED /* DemoCameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoCameraService.swift; sourceTree = "<group>"; };
 		3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
 		3BEE457665F667EBB8B3A0A5 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		403601D9942CACD7FD770AA2 /* DeeplinkingKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeeplinkingKeyTests.swift; sourceTree = "<group>"; };
 		408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudDirectoryModel.swift; sourceTree = "<group>"; };
 		4412C3D2FB58ADA32383DC7A /* DataBlockReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataBlockReader.swift; sourceTree = "<group>"; };
+		458DFC8B3BB9794E5B68F326 /* URLTypesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTypesTest.swift; sourceTree = "<group>"; };
 		48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		49A2EF989B2F8643105205DF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4ACD9CDA1D7DDA26F5FBBCC7 /* NotificationUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationUtils.swift; sourceTree = "<group>"; };
@@ -193,6 +192,7 @@
 		9180088B6F3C787C103F69C5 /* StorageOptionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageOptionItemView.swift; sourceTree = "<group>"; };
 		91C4D9AA72B7AE9BFDECD696 /* CameraService+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CameraService+Extensions.swift"; sourceTree = "<group>"; };
 		92D2400874037244411FADCC /* image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = image.jpg; sourceTree = "<group>"; };
+		94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddExchangedKeyConfirmation.swift; sourceTree = "<group>"; };
 		94DDBF06C1BD9949FE4F53BA /* dog.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = dog.jpg; sourceTree = "<group>"; };
 		966AD9D0BE48CC6E4C4FF069 /* Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Text.swift; sourceTree = "<group>"; };
 		9FF7292F021A07449C6C9C93 /* SecretFileHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretFileHandler.swift; sourceTree = "<group>"; };
@@ -228,6 +228,7 @@
 		EEF8FCEC1A6021AF7BF1AEE3 /* DiskFileAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskFileAccess.swift; sourceTree = "<group>"; };
 		EF307DAF9F7334418CF7C35A /* ImageViewing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewing.swift; sourceTree = "<group>"; };
 		F3F5C02720F368B4E732208A /* PhotoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureProcessor.swift; sourceTree = "<group>"; };
+		F4DF60C8A4222C7F31720EA7 /* URLTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTypes.swift; sourceTree = "<group>"; };
 		F6C7B4340F9BA5AC5E1CABBD /* file-icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "file-icon.png"; sourceTree = "<group>"; };
 		F833D2C2F3C322F3D8589E8D /* FileUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileUtils.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -237,7 +238,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */,
+				19F99ED428CF5C5F00145FF1 /* Clibsodium in Frameworks */,
+				19F99ED628CF5C5F00145FF1 /* Sodium in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -324,6 +326,7 @@
 			isa = PBXGroup;
 			children = (
 				D44DDD90E617BE3BA3A10655 /* DateUtilsTests.swift */,
+				403601D9942CACD7FD770AA2 /* DeeplinkingKeyTests.swift */,
 				5C0CFDC6B26D814A78B7E20F /* DeviceAuthManagerTests.swift */,
 				6FB4C14E86455E6A3C10DA26 /* DirectoryModelTests.swift */,
 				DAFC5DA63F9E20223F0BF592 /* FileAccessTests.swift */,
@@ -335,10 +338,9 @@
 				78071D38AA47B2501C7EC1F4 /* OnboardingViewModelTests.swift */,
 				7E2C2364927E97A558A531EA /* PasswordValidatorTests.swift */,
 				C7F31A3C960455C9A8F534B1 /* SettingsManagerTests.swift */,
+				458DFC8B3BB9794E5B68F326 /* URLTypesTest.swift */,
 				8B27BAA76D6BDE3BF8D89745 /* TestData */,
 				010E333EA3D38C22C08C9ECB /* Utils */,
-				19FEFB6428CA967600B59818 /* DeeplinkingKeyTests.swift */,
-				19FEFB6628CA96E800B59818 /* URLTypesTest.swift */,
 			);
 			path = EncameraTests;
 			sourceTree = "<group>";
@@ -460,7 +462,7 @@
 			isa = PBXGroup;
 			children = (
 				5D79BD6595B2129672A6AB30 /* AppConstants.swift */,
-				19FEFB6228CA963500B59818 /* URLTypes.swift */,
+				F4DF60C8A4222C7F31720EA7 /* URLTypes.swift */,
 			);
 			path = Constants;
 			sourceTree = "<group>";
@@ -484,6 +486,7 @@
 		A81FE7E245543B5B8AB71986 /* KeyManagement */ = {
 			isa = PBXGroup;
 			children = (
+				94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */,
 				D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */,
 				A5E2FA1268C0C6B4843E6E57 /* KeyEntry.swift */,
 				59D9962EDE6F5712DA02FF64 /* KeyExchange.swift */,
@@ -491,7 +494,6 @@
 				24DEE57B92A4A089C5A570BC /* KeyOperationCell.swift */,
 				661F4FF6682E53B6870C8665 /* KeySelectionCell.swift */,
 				1025DA125F361EE6FA441219 /* KeySelectionList.swift */,
-				19FEFB6828CB52B500B59818 /* AddExchangedKeyConfirmation.swift */,
 			);
 			path = KeyManagement;
 			sourceTree = "<group>";
@@ -550,7 +552,8 @@
 			);
 			name = Encamera;
 			packageProductDependencies = (
-				9BDB467AF8E2ABBB52B964F4 /* Sodium */,
+				19F99ED328CF5C5F00145FF1 /* Clibsodium */,
+				19F99ED528CF5C5F00145FF1 /* Sodium */,
 			);
 			productName = Encamera;
 			productReference = AD8594B39C00DCD662DD5B08 /* Encamera.app */;
@@ -596,7 +599,7 @@
 			);
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
-				C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */,
+				19F99ED228CF5C5F00145FF1 /* XCRemoteSwiftPackageReference "swift-sodium" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -636,20 +639,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				22E4A4E63340B318D682C5C5 /* DateUtilsTests.swift in Sources */,
+				DAD683C4FC3504924E163C2B /* DeeplinkingKeyTests.swift in Sources */,
 				757341F7B8BC2B7B27BD60E9 /* DeviceAuthManagerTests.swift in Sources */,
 				8CEFA48DD808331CA3E3D46C /* DirectoryModelTests.swift in Sources */,
 				136F5881359E6FE8690CC234 /* FileAccessTests.swift in Sources */,
 				74C89EFD9D3A3B4B90C27431 /* FileOperationsTests.swift in Sources */,
-				19FEFB6528CA967600B59818 /* DeeplinkingKeyTests.swift in Sources */,
 				828109C5551642F705D03958 /* FileUtils.swift in Sources */,
 				8F201785CD1B1B9C034D3386 /* KeychainTests.swift in Sources */,
 				78C52C83B6B9AB4A0BB53076 /* MediaTypeTests.swift in Sources */,
 				4479253E8ADD2D7F810D69B7 /* OnboardingManagerTests.swift in Sources */,
-				19FEFB6728CA96E800B59818 /* URLTypesTest.swift in Sources */,
 				C8E8FF58DFF729F50509D4EA /* OnboardingViewModelTests.swift in Sources */,
 				DC4E439741DAE1027AF85E33 /* PasswordValidatorTests.swift in Sources */,
 				6298404D91A7967A38ED63AB /* SettingsManagerTests.swift in Sources */,
 				D600B142C3A47BB0E0F3B4EA /* TempFilesManager.swift in Sources */,
+				4D05292066CC564599287AAD /* URLTypesTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -658,6 +661,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0A18F45A6858197150EB3D52 /* AVCaptureUtils.swift in Sources */,
+				A8CF1328AD8BE2D1DC0599E9 /* AddExchangedKeyConfirmation.swift in Sources */,
 				74A426CBDF114D88EFF62067 /* AlertError.swift in Sources */,
 				B48FDA6C79F0389ABD97F346 /* AppConstants.swift in Sources */,
 				B143CDC53DAC0A77FA373EF6 /* AsyncImage.swift in Sources */,
@@ -690,7 +694,6 @@
 				487D2948BC076595D04F4DA2 /* EncryptedMedia.swift in Sources */,
 				D01E8AA533B7B5E386D342E4 /* Enums.swift in Sources */,
 				70BC1CAA3B81162795D60A79 /* FileLikeBlockReader.swift in Sources */,
-				19FEFB6328CA963500B59818 /* URLTypes.swift in Sources */,
 				CADEB705575FEC9E1323DD0C /* FileLikeHandler.swift in Sources */,
 				22EEFC367257688DDCB707B0 /* FileProtocols.swift in Sources */,
 				314D2DFF0325E8EBB5AD18FE /* GalleryDetailView.swift in Sources */,
@@ -713,7 +716,6 @@
 				114EBEBC2E22847C842A538D /* MainOnboardingView.swift in Sources */,
 				32E1B10DD8EACB497A05758D /* MediaDescribing.swift in Sources */,
 				EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */,
-				19FEFB6928CB52B500B59818 /* AddExchangedKeyConfirmation.swift in Sources */,
 				C0B35E67923C4594C7BA7F53 /* MultipleKeyKeychainManager.swift in Sources */,
 				824EC784B8158236BD9FC94E /* NotificationUtils.swift in Sources */,
 				639AA0D52590F717A8237B5E /* OSStatusChecker.swift in Sources */,
@@ -736,6 +738,7 @@
 				A9FDEF968B61A782A81DA127 /* StorageType.swift in Sources */,
 				26FE0971738E9033F853B303 /* Text.swift in Sources */,
 				21E5501110D2122E010CC0B7 /* TextField.swift in Sources */,
+				469BE8F9637C2473884C43EE /* URLTypes.swift in Sources */,
 				821DE886AB64301064E096B6 /* VideoCaptureProcessor.swift in Sources */,
 				1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */,
 			);
@@ -976,7 +979,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
+		19F99ED228CF5C5F00145FF1 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jedisct1/swift-sodium.git";
 			requirement = {
@@ -987,9 +990,14 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		9BDB467AF8E2ABBB52B964F4 /* Sodium */ = {
+		19F99ED328CF5C5F00145FF1 /* Clibsodium */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;
+			package = 19F99ED228CF5C5F00145FF1 /* XCRemoteSwiftPackageReference "swift-sodium" */;
+			productName = Clibsodium;
+		};
+		19F99ED528CF5C5F00145FF1 /* Sodium */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 19F99ED228CF5C5F00145FF1 /* XCRemoteSwiftPackageReference "swift-sodium" */;
 			productName = Sodium;
 		};
 /* End XCSwiftPackageProductDependency section */
