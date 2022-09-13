@@ -234,7 +234,7 @@ private extension MainOnboardingView {
                 }) {
                     AnyView(
                         VStack {
-                            SecureField("Password", text: $viewModel.existingPassword).passwordField()
+                            SecureTextField("Password", text: $viewModel.existingPassword)
                             if let existingPasswordCorrect = viewModel.existingPasswordCorrect, existingPasswordCorrect == false {
                                 Group {
                                     Text("Incorrect password").alertText()
@@ -253,8 +253,8 @@ private extension MainOnboardingView {
                     try viewModel.savePassword()
                 }) {
                     AnyView(VStack {
-                        SecureField("Password", text: $viewModel.password1).passwordField()
-                        SecureField("Repeat Password", text: $viewModel.password2).passwordField()
+                        SecureTextField("Password", text: $viewModel.password1)
+                        SecureTextField("Repeat Password", text: $viewModel.password2)
                         if let passwordState = viewModel.passwordState, passwordState != .valid {
                             Group {
                                 Text(passwordState.validationDescription).alertText()
@@ -293,16 +293,11 @@ You can have multiple keys for different purposes, e.g. one named "Documents" an
                 }) {
                     AnyView(
                         VStack {
-                            TextField("Name", text: $viewModel.keyName)
-                                .inputTextField()
-                                .textCase(.lowercase)
-                                .disableAutocorrection(true)
-                                .textInputAutocapitalization(.never)
+                            InputTextField("Key Name", text: $viewModel.keyName)
+                                .noAutoModification()
                                 
                             if let keySaveError = viewModel.keySaveError {
-                                Group {
-                                    Text(keySaveError.displayDescription)
-                                }.foregroundColor(.red)
+                                Text(keySaveError.displayDescription).alertText()
                             }
                         }
                     )

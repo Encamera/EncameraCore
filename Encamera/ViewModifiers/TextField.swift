@@ -12,8 +12,7 @@ private struct EncameraInputTextField: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding()
-            .background(Color.white)
-            .foregroundColor(.black)
+            .background(Color.gray)
             .cornerRadius(10.0)
 
     }
@@ -34,5 +33,52 @@ extension View {
 extension SecureField {
     func passwordField() -> some View {
         modifier(EncameraInputTextField())
+    }
+}
+
+
+struct SecureTextField: View {
+    
+    var placeholder: String
+    @Binding var text: String
+    
+    init(_ placeholder: String, text: Binding<String>) {
+        self.placeholder = placeholder
+        _text = text
+    }
+    
+    var body: some View {
+        ZStack(alignment: .leading) {
+            
+            SecureField("", text: $text).passwordField()
+            if text.isEmpty {
+                Text(placeholder)
+                    .foregroundColor(.white)
+                    .padding()
+            }
+        }
+    }
+}
+
+struct InputTextField: View {
+    
+    var placeholder: String
+    @Binding var text: String
+    
+    init(_ placeholder: String, text: Binding<String>) {
+        self.placeholder = placeholder
+        _text = text
+    }
+    
+    var body: some View {
+        ZStack(alignment: .leading) {
+            
+            TextField("", text: $text).inputTextField()
+            if text.isEmpty {
+                Text(placeholder)
+                    .foregroundColor(.white)
+                    .padding()
+            }
+        }
     }
 }

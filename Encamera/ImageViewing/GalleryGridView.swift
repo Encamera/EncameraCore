@@ -143,7 +143,8 @@ struct GalleryGridView<Content: View>: View {
                         }
                         
                         
-                    }.padding()
+                    }
+                    .padding()
                     LazyVGrid(columns: gridItems, spacing: 1) {
                         ForEach(viewModel.media, id: \.gridID) { mediaItem in
                             AsyncImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView())
@@ -153,6 +154,7 @@ struct GalleryGridView<Content: View>: View {
                         }
                     }
                     .blur(radius: viewModel.blurImages ? 10.0 : 0.0)
+                    .animation(.easeIn, value: viewModel.blurImages)
                 }
                 
                 
