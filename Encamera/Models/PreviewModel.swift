@@ -9,7 +9,6 @@ import Foundation
 struct PreviewModel: Codable {
     
     var id: String
-    typealias MediaSource = Data
     
     var thumbnailMedia: CleartextMedia<Data>
     var gridID: String {

@@ -43,7 +43,7 @@ class URLTypesTest: XCTestCase {
     
     func testConvertMediaLocationType() throws {
         
-        let url = try XCTUnwrap(URL(string: "file:///private/var/mobile/Library/Mobile%20Documents/iCloud~Encamera/Documents/peaches/25280ADA-BEB5-4896-BFEF-ACC0D804653A.jpg.ecmedia"))
+        let url = try XCTUnwrap(URL(string: "file:///private/var/mobile/Library/Mobile%20Documents/iCloud~Encamera/Documents/peaches/25280ADA-BEB5-4896-BFEF-ACC0D804653A.encimage"))
         
         let converted = URLType(url: url)
         

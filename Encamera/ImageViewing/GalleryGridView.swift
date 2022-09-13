@@ -13,9 +13,10 @@ import Combine
 class GalleryGridViewModel: ObservableObject {
     
     var privateKey: PrivateKey
-    @Published var isDisplayingMedia: Bool = false
     @Published var media: [EncryptedMedia] = []
     @Published var showingCarousel = false
+    @Published var downloadPendingMediaCount: Int = 0
+    @Published var downloadInProgress = false
     @Published var carouselTarget: EncryptedMedia? {
         didSet {
             if carouselTarget == nil {
@@ -25,21 +26,52 @@ class GalleryGridViewModel: ObservableObject {
             }
         }
     }
-    var cancellables = Set<AnyCancellable>()
-    var fileAccess: FileAccess
+    private var cancellables = Set<AnyCancellable>()
+    var fileAccess: FileAccess = DiskFileAccess()
     var storageSetting = DataStorageUserDefaultsSetting()
     
-    init(privateKey: PrivateKey) {
-        
+    init(privateKey: PrivateKey,
+         showingCarousel: Bool = false,
+         downloadPendingMediaCount: Int = 0,
+         carouselTarget: EncryptedMedia? = nil,
+         fileAccess: FileAccess = DiskFileAccess()
+    ) {
         self.privateKey = privateKey
-        self.fileAccess = DiskFileAccess()
+        self.showingCarousel = showingCarousel
+        self.downloadPendingMediaCount = downloadPendingMediaCount
+        self.carouselTarget = carouselTarget
+        self.fileAccess = fileAccess
     }
     
+    func startiCloudDownload() {
+        let directory = storageSetting.storageModelFor(keyName: privateKey.name)
+        directory?.triggerDownload()
+        downloadInProgress = true
+        Timer.publish(every: 1, on: .main, in: .default)
+            .autoconnect()
+            .receive(on: DispatchQueue.main)
+            .sink { out in
+                Task {
+                    await self.enumerateMedia()
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    func enumerateiCloudUndownloaded() {
+        let directory = storageSetting.storageModelFor(keyName: privateKey.name)
+        downloadPendingMediaCount = directory?.enumeratorForStorageDirectory(fileExtensionFilter: ["icloud"]).count ?? 0
+        if downloadPendingMediaCount == 0 {
+            downloadInProgress = false
+            cancellables.forEach({$0.cancel()})
+        }
+    }
     
     func enumerateMedia() async {
         await fileAccess.configure(with: privateKey, storageSettingsManager: storageSetting)
         let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
         media = enumerated
+        enumerateiCloudUndownloaded()
     }
 }
 
@@ -63,7 +95,32 @@ struct GalleryGridView<Content: View>: View {
                 HStack {
                     Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
                         .foregroundColor(.white)
+                    if viewModel.downloadPendingMediaCount > 0 {
+                        Button {
+                            viewModel.startiCloudDownload()
+                        } label: {
+                            
+                            HStack {
+                                if viewModel.downloadInProgress {
+                                    ProgressView()
+                                        .tint(Color.white)
+                                    Spacer()
+                                        .frame(width: 5)
+                                } else {
+                                    Text("\(viewModel.downloadPendingMediaCount)")
+                                }
+                                Image(systemName: "icloud.and.arrow.down")
+                            }
+                            
+                            
+                        }.foregroundColor(.white)
+                            .padding(5)
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                    }
+
                     Spacer()
+                    
                     Button {
                         LocalDeeplinkingUtils.openKeyContentsInFiles(keyName: viewModel.privateKey.name)
                     } label: {
@@ -109,7 +166,11 @@ struct GalleryView_Previews: PreviewProvider {
     
     static var previews: some View {
         NavigationView {
-            GalleryGridView(viewModel: GalleryGridViewModel(privateKey: DemoPrivateKey.dummyKey()))
+            GalleryGridView(viewModel: GalleryGridViewModel(
+                privateKey: DemoPrivateKey.dummyKey(),
+                downloadPendingMediaCount: 20,
+                fileAccess: DemoFileEnumerator()
+            ))
         }
     }
 }

@@ -47,9 +47,6 @@ class DemoFileEnumerator: FileAccess {
         []
     }
     
-    func saveThumbnail<T>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
-        fatalError()
-    }
     
     func loadMediaToURL<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
 

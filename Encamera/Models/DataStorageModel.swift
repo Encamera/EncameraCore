@@ -38,27 +38,17 @@ extension DataStorageModel {
     }
     
     func driveURLForNewMedia<T: MediaDescribing>(_ media: T) -> URL {
-        let filename = "\(media.id).\(media.mediaType.fileExtension).\(AppConstants.fileExtension)"
+        let filename = "\(media.id).\(media.mediaType.fileExtension)"
         return baseURL.appendingPathComponent(filename)
     }
     
-    func thumbnailFor<T: MediaDescribing>(media: T) -> EncryptedMedia {
-        let thumbnailURL = thumbnailURLForMedia(media)
-        let media = EncryptedMedia(source: thumbnailURL, mediaType: .thumbnail, id: media.id)
-        return media
-    }
-    
-    func thumbnailURLForMedia<T: MediaDescribing>(_ media: T) -> URL {
-        let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(media.mediaType.fileExtension).\(MediaType.thumbnail.fileExtension)")
-        return thumbnailPath
-    }
     
     func previewURLForMedia<T: MediaDescribing>(_ media: T) -> URL {
-        let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(media.mediaType.fileExtension).\(MediaType.preview.fileExtension)")
+        let thumbnailPath = thumbnailDirectory.appendingPathComponent("\(media.id).\(MediaType.preview.fileExtension)")
         return thumbnailPath
     }
     
-    func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey>) -> [URL] {
+    func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
         let driveUrl = baseURL
         _ = driveUrl.startAccessingSecurityScopedResource()
         
@@ -66,22 +56,34 @@ extension DataStorageModel {
             return []
         }
         driveUrl.stopAccessingSecurityScopedResource()
-        return enumerator.compactMap { item in
+        let mapped = enumerator.compactMap { item -> URL? in
             guard let itemUrl = item as? URL else {
                 return nil
             }
             return itemUrl
-        }.filter({
-            let components = $0.lastPathComponent.split(separator: ".")
-            guard components.count > 1 else {
-                return false
-            }
-            let fileExtensions = components[(components.count-2)...]
-            return fileExtensions.joined(separator: ".") == [MediaType.photo.fileExtension, AppConstants.fileExtension].joined(separator: ".")
-        })
+        }
+        if let fileExtensionFilter = fileExtensionFilter {
+            return mapped.filter({
+                let components = $0.lastPathComponent.split(separator: ".")
+                guard components.count > 1 else {
+                    return false
+                }
+                let fileExtension = String(components.last ?? "")
+                return fileExtensionFilter.contains(where: {$0 == fileExtension})
+            })
+        }
+        return mapped
     }
     
-    func countOfFiles() -> Int {
-        return enumeratorForStorageDirectory(resourceKeys: Set()).count
+    func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
+        return enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension).count
+    }
+    
+    func triggerDownload() {
+        enumeratorForStorageDirectory(fileExtensionFilter: ["icloud"]).forEach({
+            if $0.pathExtension == "icloud" {
+                try? FileManager.default.startDownloadingUbiquitousItem(at: $0)
+            }
+        })
     }
 }

@@ -9,7 +9,6 @@ import Foundation
 
 enum AppConstants {
     
-    static var fileExtension = "ecmedia"
     static var authenticationTimeout: RunLoop.SchedulerTimeType.Stride = 20
     static var deeplinkSchema = "encamera"
 }

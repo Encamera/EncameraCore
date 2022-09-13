@@ -10,13 +10,8 @@ enum MediaType: Int, CaseIterable, Codable {
     
     case photo
     case video
-    case thumbnail
     case unknown
     case preview
-    
-    static var displayCases: [MediaType] {
-        self.allCases.filter({$0 != .unknown && $0 != .thumbnail})
-    }
     
     static func typeFromMedia<T: MediaDescribing>(source: T) -> MediaType {
         
@@ -35,9 +30,7 @@ enum MediaType: Int, CaseIterable, Codable {
     }
     
     private static func typeFrom(media: EncryptedMedia) -> MediaType {
-        
-        let trimmed = media.source.deletingPathExtension()
-        return typeFromURL(trimmed)
+        return typeFromURL(media.source)
     }
     
     private static func typeFrom(media: CleartextMedia<URL>) -> MediaType {
@@ -59,15 +52,13 @@ enum MediaType: Int, CaseIterable, Codable {
     var fileExtension: String {
         switch self {
         case .video:
-            return "mov"
+            return "encvideo"
         case .photo:
-            return "jpg"
+            return "encimage"
         case .unknown:
             return "unknown"
-        case .thumbnail:
-            return "thmb"
         case .preview:
-            return "preview"
+            return "encpreview"
         }
     }
 }

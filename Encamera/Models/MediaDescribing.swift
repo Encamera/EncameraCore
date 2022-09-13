@@ -37,10 +37,6 @@ protocol MediaDescribing: Hashable {
 
 extension MediaDescribing where MediaSource == URL {
     
-    var thumbnailURL: URL {
-        source.appendingPathExtension(MediaType.thumbnail.fileExtension)
-    }
-    
     var gridID: String {
         "\(mediaType.fileExtension)_\(id)"
     }

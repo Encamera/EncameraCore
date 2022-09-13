@@ -36,19 +36,16 @@ actor DiskFileAccess: FileEnumerator {
         try? self.directoryModel?.initializeDirectories()
     }
     
-    func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL { // this is not async, should be though
+    func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
         guard let directoryModel = directoryModel else {
             return []
         }
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
         
-        let urls: [URL] = directoryModel.enumeratorForStorageDirectory(resourceKeys: resourceKeys)
-        
-        urls.forEach({
-            if $0.pathExtension == "icloud" {
-                try? FileManager.default.startDownloadingUbiquitousItem(at: $0)
-            }
-        })
+        let urls: [URL] = directoryModel.enumeratorForStorageDirectory(
+            resourceKeys: resourceKeys,
+            fileExtensionFilter: [MediaType.photo.fileExtension]
+        )
         
         let imageItems: [T] = urls
             .sorted { (url1: URL, url2: URL) in
@@ -226,7 +223,7 @@ extension DiskFileAccess: FileReader {
         }
         
         
-        let cleartextThumb = CleartextMedia(source: thumbnailData, mediaType: .thumbnail, id: media.id)
+        let cleartextThumb = CleartextMedia(source: thumbnailData, mediaType: .photo, id: media.id)
         return cleartextThumb
         
     }
@@ -235,19 +232,7 @@ extension DiskFileAccess: FileReader {
 
 
 extension DiskFileAccess: FileWriter {
-    
-    @discardableResult func saveThumbnail<T: MediaDescribing>(data: Data, sourceMedia: T) async throws -> CleartextMedia<Data> {
-        guard let key = key else {
-            throw FileAccessError.missingPrivateKey
-        }
-        let destinationURL = directoryModel?.thumbnailURLForMedia(sourceMedia)
-        let cleartextThumb = CleartextMedia(source: data, mediaType: .thumbnail, id: sourceMedia.id)
         
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextThumb, targetURL: destinationURL)
-        try await fileHandler.encrypt()
-        return cleartextThumb
-    }
-    
     @discardableResult func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
@@ -276,7 +261,9 @@ extension DiskFileAccess: FileWriter {
     func delete(media: EncryptedMedia) async throws {
         
         try FileManager.default.removeItem(at: media.source)
-        try FileManager.default.removeItem(at: media.thumbnailURL)
+        if let previewURL = directoryModel?.previewURLForMedia(media) {
+            try FileManager.default.removeItem(at: previewURL)
+        }
         
     }
 }
