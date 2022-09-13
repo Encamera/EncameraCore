@@ -42,18 +42,11 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
         if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.source,
            let image = UIImage(data: decrypted) {
             ZStack {
-                Color.clear
-                    .background {
-                        
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                    }
-                    .aspectRatio(contentMode:.fill)
-                    .clipped()
-                    .contentShape(Rectangle())
-
-                
+                bodyContainer {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                }
                 
                 if let duration = viewModel.cleartextMedia?.videoDuration {
                     VStack {
@@ -68,17 +61,34 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
                         
                     }
                 }
-            }                    
-
+            }
+            
         } else if viewModel.error != nil {
-            Image(systemName: "x.square")
-                .foregroundColor(.white)
+            bodyContainer {
+                Image(systemName: "x.square")
+                    .foregroundColor(.white)
+            }
+            
         
         } else {
-            placeholder.task {
-                await viewModel.loadPreview()
+            bodyContainer {
+                placeholder.task {
+                    await viewModel.loadPreview()
+                }
             }
         }
+    }
+    
+    @ViewBuilder func bodyContainer<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        Color.clear
+            .background {
+                
+                content()
+            }
+            .aspectRatio(contentMode:.fill)
+            .clipped()
+            .contentShape(Rectangle())
+
     }
 }
 

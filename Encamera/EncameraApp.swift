@@ -126,6 +126,8 @@ struct EncameraApp: App {
                 fileAccess: viewModel.fileAccess,
                 storageSettingsManager: viewModel.storageSettingsManager
             ))
+            .preferredColorScheme(.dark)
+
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     if let url = viewModel.openedUrl,
                        let urlType = URLType(url: url),
