@@ -37,34 +37,22 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
     
     @StateObject var viewModel: ViewModel
     var placeholder: Placeholder
-////
-//    init(viewModel: ViewModel, placeholder: () -> Placeholder) {
-//        self.viewModel = viewModel
-//        self.placeholder = placeholder()
-//    }
-    
     
     var body: some View {
-        
-        GeometryReader { geo in
-            let frame = geo.frame(in: .local)
-            let side = frame.height
-            
-            content(frame: frame)
-                .position(x: frame.midX, y: frame.midY)
-                .frame(width: side, height: side)
-        }
-    }
-    
-    @ViewBuilder private func content(frame: CGRect) -> some View {
         if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.source,
            let image = UIImage(data: decrypted) {
             ZStack {
-                Image(uiImage: image)
-                    .resizable()
+                Color.clear
+                    .background {
+                        
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                    }
                     .aspectRatio(contentMode:.fill)
-                    .frame(width: frame.width, height: frame.height)
                     .clipped()
+                    .contentShape(Rectangle())
+
                 
                 
                 if let duration = viewModel.cleartextMedia?.videoDuration {
@@ -80,7 +68,8 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
                         
                     }
                 }
-            }
+            }                    
+
         } else if viewModel.error != nil {
             Image(systemName: "x.square")
                 .foregroundColor(.white)

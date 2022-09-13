@@ -90,86 +90,91 @@ struct GalleryGridView<Content: View>: View {
     }
     
     var body: some View {
-        let gridItems = [
-            GridItem(.adaptive(minimum: 100), spacing: 1)
-        ]
-        ZStack {
-            ScrollView {
-                content
-                HStack {
-                    if viewModel.blurImages {
-                        Toggle("Hide", isOn: $viewModel.blurImages)
-                            .foregroundColor(.white)
-                            .frame(width: 100)
-                        Spacer()
-                    } else {
-                        Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
-                            .foregroundColor(.white)
-                    }
-                    
-                    if viewModel.downloadPendingMediaCount > 0 {
-                        Button {
-                            viewModel.startiCloudDownload()
-                        } label: {
-                            
-                            HStack {
-                                if viewModel.downloadInProgress {
-                                    ProgressView()
-                                        .tint(Color.white)
-                                    Spacer()
-                                        .frame(width: 5)
-                                } else {
-                                    Text("\(viewModel.downloadPendingMediaCount)")
-                                }
-                                Image(systemName: "icloud.and.arrow.down")
-                            }
-                            
-                            
-                        }.foregroundColor(.white)
-                            .padding(5)
-                            .background(Color.blue)
-                            .cornerRadius(10)
-                    }
-                    Spacer()
-                    Button {
-                        LocalDeeplinkingUtils.openKeyContentsInFiles(keyName: viewModel.privateKey.name)
-                    } label: {
-                        Image(systemName: "folder")
-                    }
-                    
-
-                }.padding()
-                LazyVGrid(columns: gridItems, spacing: 1) {
-                    ForEach(viewModel.media, id: \.gridID) { mediaItem in
+        GeometryReader { geo in
+            let frame = geo.frame(in: .global)
+            let side = frame.width / 3
+            let gridItems = [
+                GridItem(.fixed(side), spacing: 1),
+                GridItem(.fixed(side), spacing: 1),
+                GridItem(.fixed(side), spacing: 1)
+            ]
+            ZStack {
+                ScrollView {
+                    content
+                    HStack {
+                        if viewModel.blurImages {
+                            Toggle("Hide", isOn: $viewModel.blurImages)
+                                .foregroundColor(.white)
+                                .frame(width: 100)
+                            Spacer()
+                        } else {
+                            Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
+                                .foregroundColor(.white)
+                        }
                         
-                        GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem)
-                            
-                            .onTapGesture {
-                                viewModel.carouselTarget = mediaItem
-                            }
+                        if viewModel.downloadPendingMediaCount > 0 {
+                            Button {
+                                viewModel.startiCloudDownload()
+                            } label: {
+                                
+                                HStack {
+                                    if viewModel.downloadInProgress {
+                                        ProgressView()
+                                            .tint(Color.white)
+                                        Spacer()
+                                            .frame(width: 5)
+                                    } else {
+                                        Text("\(viewModel.downloadPendingMediaCount)")
+                                    }
+                                    Image(systemName: "icloud.and.arrow.down")
+                                }
+                                
+                                
+                            }.foregroundColor(.white)
+                                .padding(5)
+                                .background(Color.blue)
+                                .cornerRadius(10)
+                        }
+                        Spacer()
+                        Button {
+                            LocalDeeplinkingUtils.openKeyContentsInFiles(keyName: viewModel.privateKey.name)
+                        } label: {
+                            Image(systemName: "folder")
+                        }
+                        
+                        
+                    }.padding()
+                    LazyVGrid(columns: gridItems, spacing: 1) {
+                        ForEach(viewModel.media, id: \.gridID) { mediaItem in
+                            AsyncImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView())
+                                .onTapGesture {
+                                    viewModel.carouselTarget = mediaItem
+                                }
+                        }
                     }
-                }.blur(radius: viewModel.blurImages ? 10.0 : 0.0)
-            }
-            
-            
-            NavigationLink(isActive: $viewModel.showingCarousel) {
-                if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
-                    
-                    GalleryHorizontalScrollView(
-                        viewModel: .init(media: viewModel.media, selectedMedia: carouselTarget, fileAccess: viewModel.fileAccess))
+                    .blur(radius: viewModel.blurImages ? 10.0 : 0.0)
                 }
-            } label: {
-                EmptyView()
+                
+                
+                NavigationLink(isActive: $viewModel.showingCarousel) {
+                    if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
+                        
+                        GalleryHorizontalScrollView(
+                            viewModel: .init(media: viewModel.media, selectedMedia: carouselTarget, fileAccess: viewModel.fileAccess))
+                    }
+                } label: {
+                    EmptyView()
+                }
+                
             }
+            .task {
+                await viewModel.enumerateMedia()
+            }
+            .background(Color.black)
+            .screenBlocked()
+            .navigationBarTitle(viewModel.privateKey.name, displayMode: .large)
             
         }
-        .task {
-            await viewModel.enumerateMedia()
-        }
-        .background(Color.black)
-        .screenBlocked()
-        .navigationBarTitle(viewModel.privateKey.name, displayMode: .large)
-        
     }
 }
 
