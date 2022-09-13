@@ -98,6 +98,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         try validateKeyName(name: name)
         
         let bytes = Sodium().secretStream.xchacha20poly1305.key()
+        
         let key = PrivateKey(name: name, keyBytes: bytes, creationDate: Date())
         try save(key: key, storageType: storageType)
         return key
@@ -312,6 +313,8 @@ private extension MultipleKeyKeychainManager {
         switch status {
         case errSecItemNotFound:
             throw KeyManagerError.notFound
+        case errSecDuplicateItem:
+            throw KeyManagerError.keyExists
         case errSecSuccess:
             break
         default:

@@ -11,11 +11,9 @@
 		0AD0B0BEE77F8F725CA7EF49 /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71427AB575B7040A923D05C /* DateUtils.swift */; };
 		114EBEBC2E22847C842A538D /* MainOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D51D9B421BB280892A96B442 /* MainOnboardingView.swift */; };
 		12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180088B6F3C787C103F69C5 /* StorageOptionItemView.swift */; };
-		136F5881359E6FE8690CC234 /* FileAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFC5DA63F9E20223F0BF592 /* FileAccessTests.swift */; };
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
-		19F99ED428CF5C5F00145FF1 /* Clibsodium in Frameworks */ = {isa = PBXBuildFile; productRef = 19F99ED328CF5C5F00145FF1 /* Clibsodium */; };
-		19F99ED628CF5C5F00145FF1 /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 19F99ED528CF5C5F00145FF1 /* Sodium */; };
+		1990127828D0AEAD00DCFB19 /* KeyInformation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1990127728D0AEAD00DCFB19 /* KeyInformation.swift */; };
 		1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */; };
 		1D99F465F8AFC10EA75EDB1F /* DemoFileHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70DF8856410B3044FBFDCE31 /* DemoFileHelpers.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
@@ -69,7 +67,6 @@
 		849748E50FE439D8287AA897 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7995FDA3D610A1AFB4937EC6 /* SettingsManager.swift */; };
 		8C75F3F31341AD03897522B0 /* KeyOperationCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24DEE57B92A4A089C5A570BC /* KeyOperationCell.swift */; };
 		8CA3652FF0CFC73F31DA600E /* DiskFileAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF8FCEC1A6021AF7BF1AEE3 /* DiskFileAccess.swift */; };
-		8CEFA48DD808331CA3E3D46C /* DirectoryModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FB4C14E86455E6A3C10DA26 /* DirectoryModelTests.swift */; };
 		8D29CF39EA1C32A06DEB9FBD /* CameraConfigurationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2958DDDB56ED8C872C97B65 /* CameraConfigurationService.swift */; };
 		8F201785CD1B1B9C034D3386 /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C6738E921CCEB0FD88E6D /* KeychainTests.swift */; };
 		950FBFFE68B35AEDBBF975D3 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */; };
@@ -101,6 +98,7 @@
 		D95B5A20ECD8C5784FDD63D0 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		DAD683C4FC3504924E163C2B /* DeeplinkingKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 403601D9942CACD7FD770AA2 /* DeeplinkingKeyTests.swift */; };
 		DC4E439741DAE1027AF85E33 /* PasswordValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E2C2364927E97A558A531EA /* PasswordValidatorTests.swift */; };
+		DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 9BDB467AF8E2ABBB52B964F4 /* Sodium */; };
 		E02CDF136FEA73C34ED68EE1 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */; };
 		E0D2C3611EF60B4DFE85F4D8 /* KeyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5E2FA1268C0C6B4843E6E57 /* KeyEntry.swift */; };
 		E60899CADF3D3D0369C30A68 /* GalleryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748E067EDA778708048F40F4 /* GalleryItem.swift */; };
@@ -135,6 +133,7 @@
 		136825FBFC03AA8F4F609A86 /* QRCodeCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeCaptureProcessor.swift; sourceTree = "<group>"; };
 		1585D15F7B92351433FED0B3 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
+		1990127728D0AEAD00DCFB19 /* KeyInformation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyInformation.swift; sourceTree = "<group>"; };
 		1AD23C6426D4D73F9E8994C9 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		1D16E0EA60C4E61C60609E92 /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -172,7 +171,6 @@
 		5F87936ECB7F2B45E23186B8 /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		661F4FF6682E53B6870C8665 /* KeySelectionCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionCell.swift; sourceTree = "<group>"; };
 		6E22F3B47CA14072CC7A56E6 /* DiskBlockReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskBlockReader.swift; sourceTree = "<group>"; };
-		6FB4C14E86455E6A3C10DA26 /* DirectoryModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryModelTests.swift; sourceTree = "<group>"; };
 		70DF8856410B3044FBFDCE31 /* DemoFileHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFileHelpers.swift; sourceTree = "<group>"; };
 		72935CD1CF7D9FD70DAE47B1 /* ScreenBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlock.swift; sourceTree = "<group>"; };
 		735B316BD49982948A28252D /* GalleryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryDetailView.swift; sourceTree = "<group>"; };
@@ -221,7 +219,6 @@
 		D44DDD90E617BE3BA3A10655 /* DateUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtilsTests.swift; sourceTree = "<group>"; };
 		D51D9B421BB280892A96B442 /* MainOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainOnboardingView.swift; sourceTree = "<group>"; };
 		D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyDetailView.swift; sourceTree = "<group>"; };
-		DAFC5DA63F9E20223F0BF592 /* FileAccessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileAccessTests.swift; sourceTree = "<group>"; };
 		E26C4CC1724CE208C558D81E /* KeyGeneration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyGeneration.swift; sourceTree = "<group>"; };
 		E3067B217DBB3CF026BF1943 /* DataStorageUserDefaultsSetting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStorageUserDefaultsSetting.swift; sourceTree = "<group>"; };
 		E99B1F67FDB24F9B433CB03A /* test.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = test.mov; sourceTree = "<group>"; };
@@ -238,8 +235,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				19F99ED428CF5C5F00145FF1 /* Clibsodium in Frameworks */,
-				19F99ED628CF5C5F00145FF1 /* Sodium in Frameworks */,
+				DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -328,8 +324,6 @@
 				D44DDD90E617BE3BA3A10655 /* DateUtilsTests.swift */,
 				403601D9942CACD7FD770AA2 /* DeeplinkingKeyTests.swift */,
 				5C0CFDC6B26D814A78B7E20F /* DeviceAuthManagerTests.swift */,
-				6FB4C14E86455E6A3C10DA26 /* DirectoryModelTests.swift */,
-				DAFC5DA63F9E20223F0BF592 /* FileAccessTests.swift */,
 				595D310D0EF81D2BAC59A8FD /* FileOperationsTests.swift */,
 				5D4D58B61CE717B122E804F5 /* Info.plist */,
 				2D0C6738E921CCEB0FD88E6D /* KeychainTests.swift */,
@@ -489,6 +483,7 @@
 				94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */,
 				D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */,
 				A5E2FA1268C0C6B4843E6E57 /* KeyEntry.swift */,
+				1990127728D0AEAD00DCFB19 /* KeyInformation.swift */,
 				59D9962EDE6F5712DA02FF64 /* KeyExchange.swift */,
 				E26C4CC1724CE208C558D81E /* KeyGeneration.swift */,
 				24DEE57B92A4A089C5A570BC /* KeyOperationCell.swift */,
@@ -552,8 +547,7 @@
 			);
 			name = Encamera;
 			packageProductDependencies = (
-				19F99ED328CF5C5F00145FF1 /* Clibsodium */,
-				19F99ED528CF5C5F00145FF1 /* Sodium */,
+				9BDB467AF8E2ABBB52B964F4 /* Sodium */,
 			);
 			productName = Encamera;
 			productReference = AD8594B39C00DCD662DD5B08 /* Encamera.app */;
@@ -599,7 +593,7 @@
 			);
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
-				19F99ED228CF5C5F00145FF1 /* XCRemoteSwiftPackageReference "swift-sodium" */,
+				C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -641,8 +635,6 @@
 				22E4A4E63340B318D682C5C5 /* DateUtilsTests.swift in Sources */,
 				DAD683C4FC3504924E163C2B /* DeeplinkingKeyTests.swift in Sources */,
 				757341F7B8BC2B7B27BD60E9 /* DeviceAuthManagerTests.swift in Sources */,
-				8CEFA48DD808331CA3E3D46C /* DirectoryModelTests.swift in Sources */,
-				136F5881359E6FE8690CC234 /* FileAccessTests.swift in Sources */,
 				74C89EFD9D3A3B4B90C27431 /* FileOperationsTests.swift in Sources */,
 				828109C5551642F705D03958 /* FileUtils.swift in Sources */,
 				8F201785CD1B1B9C034D3386 /* KeychainTests.swift in Sources */,
@@ -690,6 +682,7 @@
 				73D4C1417039EB366F9A914A /* DiskBlockReader.swift in Sources */,
 				8CA3652FF0CFC73F31DA600E /* DiskFileAccess.swift in Sources */,
 				F860061EE853A5C21899C1E4 /* EncameraApp.swift in Sources */,
+				1990127828D0AEAD00DCFB19 /* KeyInformation.swift in Sources */,
 				D9593E17F428493E19AC0277 /* EncameraState.swift in Sources */,
 				487D2948BC076595D04F4DA2 /* EncryptedMedia.swift in Sources */,
 				D01E8AA533B7B5E386D342E4 /* Enums.swift in Sources */,
@@ -979,7 +972,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		19F99ED228CF5C5F00145FF1 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
+		C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jedisct1/swift-sodium.git";
 			requirement = {
@@ -990,14 +983,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		19F99ED328CF5C5F00145FF1 /* Clibsodium */ = {
+		9BDB467AF8E2ABBB52B964F4 /* Sodium */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 19F99ED228CF5C5F00145FF1 /* XCRemoteSwiftPackageReference "swift-sodium" */;
-			productName = Clibsodium;
-		};
-		19F99ED528CF5C5F00145FF1 /* Sodium */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 19F99ED228CF5C5F00145FF1 /* XCRemoteSwiftPackageReference "swift-sodium" */;
+			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;
 			productName = Sodium;
 		};
 /* End XCSwiftPackageProductDependency section */

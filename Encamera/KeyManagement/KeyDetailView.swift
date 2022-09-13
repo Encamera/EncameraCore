@@ -17,6 +17,7 @@ class KeyDetailViewModel: ObservableObject {
     @Published var isShowingAlertForClearKey: Bool = false
     @Published var keyViewerError: KeyViewerError?
     @Published var deleteKeyConfirmation: String = ""
+    @Published var blurImages = true
     var key: PrivateKey
     
     init(keyManager: KeyManager, key: PrivateKey) {
@@ -42,7 +43,11 @@ class KeyDetailViewModel: ObservableObject {
     }
     
     func canDeleteKey() -> Bool {
-        deleteKeyConfirmation == key.name
+        if #available(iOS 16.0, *) {
+            return deleteKeyConfirmation == key.name
+        } else {
+            return true
+        }
     }
 }
 
@@ -57,11 +62,16 @@ struct KeyDetailView: View {
         static var outerPadding = 20.0
     }
     var body: some View {
-        GalleryGridView(viewModel: .init(privateKey: viewModel.key)) {
+        GalleryGridView(viewModel: .init(privateKey: viewModel.key, blurImages: viewModel.blurImages)) {
             List {
                 Button("Set Active") {
                     viewModel.setActive()
                     dismiss()
+                }
+                NavigationLink {
+                    KeyInformation(key: viewModel.key)
+                } label: {
+                    Text("Key Info")
                 }
                 NavigationLink {
                     KeyExchange(viewModel: .init(key: viewModel.key))
@@ -70,6 +80,7 @@ struct KeyDetailView: View {
                         
                     }
                 }
+                
                 Button("Copy to clipboard") {
                     let key = viewModel.key.base64String
                     let pasteboard = UIPasteboard.general
@@ -81,12 +92,14 @@ struct KeyDetailView: View {
                     Text("Delete")
                         .foregroundColor(.red)
                 }
-            }.frame(height: 200)
+            }.frame(height: 300)
         }
         .foregroundColor(.blue)
         .alert("Delete Key?", isPresented: $isShowingAlertForClearKey, actions: {
-            TextField("Key name", text: $viewModel.deleteKeyConfirmation)
-                .noAutoModification()
+            if #available(iOS 16.0, *) {
+                TextField("Key name", text: $viewModel.deleteKeyConfirmation)
+                    .noAutoModification()
+            }
             Button("Delete", role: .destructive) {
                 if viewModel.canDeleteKey() {
                     viewModel.deleteKey()
@@ -97,14 +110,22 @@ struct KeyDetailView: View {
                 isShowingAlertForClearKey = false
             }
         }, message: {
-            Text("Enter the name of the key to delete it forever.")
+            if #available(iOS 16.0, *) {
+                Text("Enter the name of the key to delete it forever.")
+            } else {
+                Text("Do you want to delete this key forever?")
+            }
+            
         })
     }
 }
 
 struct KeyPickerView_Previews: PreviewProvider {
     static var previews: some View {
-        KeyDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
-            .preferredColorScheme(.dark)
+        NavigationView {
+            
+            KeyDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
+                .preferredColorScheme(.dark)
+        }
     }
 }

@@ -142,7 +142,7 @@ extension DiskFileAccess: FileReader {
             let thumbnail = UIImage(cgImage: cgImage)
             return thumbnail
         } catch let error {
-            debugPrint("*** Error generating thumbnail: \(error.localizedDescription)")
+            debugPrint("Error generating thumbnail at path \(path): \(error.localizedDescription)")
             return nil
         }
     }

@@ -127,8 +127,6 @@ struct EncameraApp: App {
                 storageSettingsManager: viewModel.storageSettingsManager
             ))
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
-                    self.viewModel.hasOpenedURL = false
-                } content: {
                     if let url = viewModel.openedUrl,
                        let urlType = URLType(url: url),
                        viewModel.authManager.isAuthenticated {
@@ -137,7 +135,7 @@ struct EncameraApp: App {
                             galleryForMedia(media: encryptedMedia)
                         case .key(let key):
                             NavigationView {
-                                KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager))
+                                KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true))
                             }
                         }
                     } else {

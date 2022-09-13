@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Sodium
 
 enum ImageKeyEncodingError: Error {
     case invalidBase64Data
@@ -49,7 +50,7 @@ struct PrivateKey: Codable {
             throw ImageKeyEncodingError.invalidKeychainItemData
         }
         let name = PrivateKey.keyName(from: nameData)
-
+        
         let keyBytes = try keyData.withUnsafeBytes({ (body: UnsafeRawBufferPointer) throws -> [UInt8] in
             [UInt8](UnsafeRawBufferPointer(body))
         })
@@ -84,5 +85,8 @@ extension PrivateKey: Equatable {
     
     static func ==(lhs: PrivateKey, rhs: PrivateKey) -> Bool {
         return lhs.name == rhs.name && lhs.keyBytes == rhs.keyBytes
+    }
+    var keyString: String {
+        return keyBytes.map({String($0)}).joined(separator: " ")
     }
 }

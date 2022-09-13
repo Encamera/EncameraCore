@@ -113,11 +113,11 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>ecmedia</string>
+					<string>encimage</string>
 				</array>
 				<key>public.mime-type</key>
 				<array>
-					<string>application/x-ecmedia</string>
+					<string>application/x-encimage</string>
 				</array>
 			</dict>
 		</dict>
@@ -141,11 +141,12 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>ecmedia</string>
+					<string>encvideo</string>
+					<string>encimage</string>
 				</array>
 				<key>public.mime-type</key>
 				<array>
-					<string>application/x-ecmedia</string>
+					<string>application/x-encimage</string>
 				</array>
 			</dict>
 		</dict>

@@ -17,6 +17,7 @@ class GalleryGridViewModel: ObservableObject {
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
     @Published var downloadInProgress = false
+    @Published var blurImages = false
     @Published var carouselTarget: EncryptedMedia? {
         didSet {
             if carouselTarget == nil {
@@ -31,11 +32,14 @@ class GalleryGridViewModel: ObservableObject {
     var storageSetting = DataStorageUserDefaultsSetting()
     
     init(privateKey: PrivateKey,
+         blurImages: Bool = false,
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,
          carouselTarget: EncryptedMedia? = nil,
+         
          fileAccess: FileAccess = DiskFileAccess()
     ) {
+        self.blurImages = blurImages
         self.privateKey = privateKey
         self.showingCarousel = showingCarousel
         self.downloadPendingMediaCount = downloadPendingMediaCount
@@ -93,8 +97,16 @@ struct GalleryGridView<Content: View>: View {
             ScrollView {
                 content
                 HStack {
-                    Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
-                        .foregroundColor(.white)
+                    if viewModel.blurImages {
+                        Toggle("Hide", isOn: $viewModel.blurImages)
+                            .foregroundColor(.white)
+                            .frame(width: 100)
+                        Spacer()
+                    } else {
+                        Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
+                            .foregroundColor(.white)
+                    }
+                    
                     if viewModel.downloadPendingMediaCount > 0 {
                         Button {
                             viewModel.startiCloudDownload()
@@ -118,9 +130,7 @@ struct GalleryGridView<Content: View>: View {
                             .background(Color.blue)
                             .cornerRadius(10)
                     }
-
                     Spacer()
-                    
                     Button {
                         LocalDeeplinkingUtils.openKeyContentsInFiles(keyName: viewModel.privateKey.name)
                     } label: {
@@ -133,11 +143,12 @@ struct GalleryGridView<Content: View>: View {
                     ForEach(viewModel.media, id: \.gridID) { mediaItem in
                         
                         GalleryItem(fileAccess: viewModel.fileAccess, media: mediaItem)
+                            
                             .onTapGesture {
                                 viewModel.carouselTarget = mediaItem
                             }
                     }
-                }
+                }.blur(radius: viewModel.blurImages ? 10.0 : 0.0)
             }
             
             
@@ -167,8 +178,11 @@ struct GalleryView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             GalleryGridView(viewModel: GalleryGridViewModel(
+                
                 privateKey: DemoPrivateKey.dummyKey(),
+                blurImages: true,
                 downloadPendingMediaCount: 20,
+                
                 fileAccess: DemoFileEnumerator()
             ))
         }
