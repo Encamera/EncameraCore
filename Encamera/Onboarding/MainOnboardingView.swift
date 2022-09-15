@@ -164,7 +164,7 @@ class OnboardingViewModel: ObservableObject {
 struct MainOnboardingView: View {
     
     
-    
+    @FocusState var password2Focused
     @State var currentSelection = OnboardingFlowScreen.intro
     @StateObject var viewModel: OnboardingViewModel
     
@@ -253,8 +253,14 @@ private extension MainOnboardingView {
                     try viewModel.savePassword()
                 }) {
                     AnyView(VStack {
-                        SecureTextField("Password", text: $viewModel.password1)
+                        SecureTextField("Password", text: $viewModel.password1).onSubmit {
+                            password2Focused = true
+                        }
                         SecureTextField("Repeat Password", text: $viewModel.password2)
+                            .focused($password2Focused)
+                            .onSubmit {
+                            password2Focused = false
+                        }
                         if let passwordState = viewModel.passwordState, passwordState != .valid {
                             Group {
                                 Text(passwordState.validationDescription).alertText()
@@ -315,7 +321,7 @@ Each key will store data in its own directory.
                          bottomButtonTitle: "Next") {
             } content: {
                 AnyView(
-                    StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType))
+                    StorageSettingView(keyStorageType: $viewModel.keyStorageType)
                 )
                 
             }

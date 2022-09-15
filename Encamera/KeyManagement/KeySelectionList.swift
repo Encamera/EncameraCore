@@ -88,14 +88,16 @@ struct KeySelectionList: View {
                     pasteboard.string = doc
                 }
             }
-            Section(header: Text("Keys").foregroundColor(.white)) {
-                
-                if let activeKey = viewModel.activeKey {
-                    keyCell(model: activeKey, isActive: true)
-                }
-                
-                ForEach(viewModel.keys.filter({$0.key != viewModel.activeKey?.key})) { key in
-                    keyCell(model: key, isActive: false)
+            if viewModel.keys.count > 0 {
+                Section(header: Text("Keys").foregroundColor(.white)) {
+                    
+                    if let activeKey = viewModel.activeKey {
+                        keyCell(model: activeKey, isActive: true)
+                    }
+                    
+                    ForEach(viewModel.keys.filter({$0.key != viewModel.activeKey?.key})) { key in
+                        keyCell(model: key, isActive: false)
+                    }
                 }
             }
         }.listStyle(InsetGroupedListStyle())

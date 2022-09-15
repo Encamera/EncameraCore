@@ -138,7 +138,7 @@ Each key will store data in its own directory.
                 throw OnboardingViewError.onboardingEnded
             } content: {
                 AnyView(
-                    StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType))
+                    StorageSettingView(keyStorageType: $viewModel.keyStorageType)
                     
                 )
                 

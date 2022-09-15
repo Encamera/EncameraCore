@@ -14,7 +14,6 @@ private struct EncameraInputTextField: ViewModifier {
             .padding()
             .background(Color.gray)
             .cornerRadius(10.0)
-
     }
 }
 

@@ -42,11 +42,10 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         self.isAuthenticated.sink { newValue in
             self.authenticated = newValue
             do {
-                if self.authenticated == true {
-                    try self.getActiveKeyAndSet()
-                } else {
+                try self.checkAuthenticated {
                     try self.setActiveKey(nil)
                 }
+                try self.getActiveKeyAndSet()
             } catch {
                 debugPrint("Error getting/setting active key", error)
             }
@@ -54,22 +53,9 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
     }
     
-    private func getActiveKeyAndSet() throws {
-       
-        let keyObject = try getActiveKey()
-        
-        try setActiveKey(keyObject.name)
-    }
-    
     func clearKeychainData() throws {
         
-        #if DEBUG
-        #else
-        guard authenticated == true else {
-            throw KeyManagerError.notAuthenticatedError
-        }
-        #endif
-        
+        try checkAuthenticated()
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey
         ]
@@ -91,9 +77,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     @discardableResult func generateNewKey(name: String, storageType: StorageType) throws -> PrivateKey {
         
-        guard authenticated == true else {
-            throw KeyManagerError.notAuthenticatedError
-        }
+        try checkAuthenticated()
         
         try validateKeyName(name: name)
         
@@ -137,9 +121,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func storedKeys() throws -> [PrivateKey] {
-        guard authenticated == true else {
-            throw KeyManagerError.notAuthenticatedError
-        }
+        try checkAuthenticated()
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecReturnData as String: true,
@@ -168,9 +150,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     func deleteKey(_ key: PrivateKey) throws {
         
-        guard authenticated == true else {
-            throw KeyManagerError.notAuthenticatedError
-        }
+        try checkAuthenticated()
         let key = try getKey(by: key.name)
         let query = key.keychainQueryDictForKeychain
         let status = SecItemDelete(query as CFDictionary)
@@ -181,9 +161,8 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func setActiveKey(_ name: KeyName?) throws {
-        guard authenticated == true else {
-            currentKey = nil
-            throw KeyManagerError.notAuthenticatedError
+        try checkAuthenticated {
+            self.currentKey = nil
         }
         guard let name = name else {
             currentKey = nil
@@ -209,9 +188,8 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func getKey(by keyName: KeyName) throws -> PrivateKey {
-        guard authenticated == true else {
-            throw KeyManagerError.notAuthenticatedError
-        }
+
+        try checkAuthenticated()
         
         let query: [String: Any] = [kSecClass as String: kSecClassKey,
                                     kSecMatchLimit as String: kSecMatchLimitOne,
@@ -341,6 +319,20 @@ private extension MultipleKeyKeychainManager {
         var bytes = [UInt8](repeating: 0, count: passwordData.count)
         passwordData.copyBytes(to: &bytes, count: string.count)
         return bytes
+    }
+    
+    private func getActiveKeyAndSet() throws {
+       
+        let keyObject = try getActiveKey()
+        
+        try setActiveKey(keyObject.name)
+    }
+    
+    private func checkAuthenticated(_ nonAuthenticatedAction: (() throws -> Void)? = nil) throws {
+        guard authenticated == true else {
+            try nonAuthenticatedAction?()
+            throw KeyManagerError.notAuthenticatedError
+        }
     }
 }
 

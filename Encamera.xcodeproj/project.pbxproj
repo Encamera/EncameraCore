@@ -160,6 +160,7 @@
 		57C54146880DB6F836B1AB7F /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
 		595D310D0EF81D2BAC59A8FD /* FileOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperationsTests.swift; sourceTree = "<group>"; };
 		59D9962EDE6F5712DA02FF64 /* KeyExchange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyExchange.swift; sourceTree = "<group>"; };
+		5B5BD74DF33D218275BF0976 /* release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = release.xcconfig; sourceTree = "<group>"; };
 		5C0CFDC6B26D814A78B7E20F /* DeviceAuthManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAuthManagerTests.swift; sourceTree = "<group>"; };
 		5C79DD2442FFFD819DAAD1BD /* CaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureProcessor.swift; sourceTree = "<group>"; };
 		5D4D58B61CE717B122E804F5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -217,6 +218,7 @@
 		D44DDD90E617BE3BA3A10655 /* DateUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtilsTests.swift; sourceTree = "<group>"; };
 		D51D9B421BB280892A96B442 /* MainOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainOnboardingView.swift; sourceTree = "<group>"; };
 		D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyDetailView.swift; sourceTree = "<group>"; };
+		D85AFFF69DE741F555B05A79 /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = debug.xcconfig; sourceTree = "<group>"; };
 		E26C4CC1724CE208C558D81E /* KeyGeneration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyGeneration.swift; sourceTree = "<group>"; };
 		E3067B217DBB3CF026BF1943 /* DataStorageUserDefaultsSetting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStorageUserDefaultsSetting.swift; sourceTree = "<group>"; };
 		E99B1F67FDB24F9B433CB03A /* test.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = test.mov; sourceTree = "<group>"; };
@@ -254,6 +256,7 @@
 			children = (
 				F8E25D1CB96BBE7C0604CA54 /* Encamera */,
 				4EEA8683D2DD954DE3F9C9B3 /* EncameraTests */,
+				FEBBDB990AA3D33156B4538C /* xcconfigs */,
 				6DF497A8542EDE819517CE41 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -525,6 +528,15 @@
 				3EED6C0557F35022AEDDE1B8 /* ViewModifiers */,
 			);
 			path = Encamera;
+			sourceTree = "<group>";
+		};
+		FEBBDB990AA3D33156B4538C /* xcconfigs */ = {
+			isa = PBXGroup;
+			children = (
+				D85AFFF69DE741F555B05A79 /* debug.xcconfig */,
+				5B5BD74DF33D218275BF0976 /* release.xcconfig */,
+			);
+			path = xcconfigs;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -844,6 +856,7 @@
 		};
 		A4560EFD111A72A6C0AB75C4 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = D85AFFF69DE741F555B05A79 /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = ./Encamera/Encamera.entitlements;
@@ -863,6 +876,7 @@
 		};
 		CB1B8A97577FBBE9D04EDBB7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5B5BD74DF33D218275BF0976 /* release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = ./Encamera/Encamera.entitlements;

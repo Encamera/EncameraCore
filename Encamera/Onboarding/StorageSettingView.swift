@@ -9,29 +9,28 @@ import SwiftUI
 
 class StorageSettingViewModel: ObservableObject {
     
-    var keyStorageType: Binding<StorageType>
     @Published var storageAvailabilities: [StorageAvailabilityModel] = DataStorageUserDefaultsSetting().storageAvailabilities()
     
-    init(keyStorageType: Binding<StorageType>) {
-        self.keyStorageType = keyStorageType
+    init(storageAvailabilities: [StorageAvailabilityModel] = DataStorageUserDefaultsSetting().storageAvailabilities()) {
+        self.storageAvailabilities = storageAvailabilities
     }
 }
 
 struct StorageSettingView: View {
     
-    @StateObject var viewModel: StorageSettingViewModel
-    
+    @StateObject var viewModel: StorageSettingViewModel = StorageSettingViewModel()
+    @Binding var keyStorageType: StorageType
     var body: some View {
         VStack(spacing: 20) {
             
             ForEach(viewModel.storageAvailabilities) { data in
                 let binding = Binding {
-                    data.storageType == viewModel.keyStorageType.wrappedValue
+                    data.storageType == keyStorageType
                 } set: { value in
                     guard case .available = data.availability else {
                         return
                     }
-                    viewModel.keyStorageType.wrappedValue = data.storageType
+                    keyStorageType = data.storageType
                 }
                 StorageTypeOptionItemView(
                     storageType: data.storageType,

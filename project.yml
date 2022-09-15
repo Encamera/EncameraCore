@@ -8,6 +8,9 @@ packages:
 targets:
   Encamera:
     type: application
+    configFiles:
+      Debug: ./xcconfigs/debug.xcconfig
+      Release: ./xcconfigs/release.xcconfig
     platform: iOS
     deploymentTarget: "15.0"
     sources: [Encamera]
