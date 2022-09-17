@@ -174,6 +174,15 @@ struct CameraView: View {
             ZStack {
                 NavigationLink(isActive: $cameraModel.showingKeySelection) {
                     KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
+                        .toolbar {
+                            NavigationLink {
+        
+                                SettingsView(viewModel: .init(keyManager: cameraModel.keyManager))
+                            } label: {
+                                Image(systemName: "gear")
+                            }
+
+                        }
                 } label: {
                     EmptyView()
                 }.isDetailLink(false)
