@@ -35,3 +35,9 @@ protocol FileWriter {
 protocol FileAccess: FileEnumerator, FileReader, FileWriter {
     init()
 }
+
+extension FileAccess {
+    var operationBus: FileOperationBus {
+        FileOperationBus.shared
+    }
+}

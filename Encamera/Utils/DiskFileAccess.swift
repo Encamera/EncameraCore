@@ -253,6 +253,7 @@ extension DiskFileAccess: FileWriter {
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
         let encrypted = try await fileHandler.encrypt()
         try await createPreview(for: media)
+        operationBus.didCreate(encrypted)
         return encrypted
     }
     
@@ -262,6 +263,7 @@ extension DiskFileAccess: FileWriter {
         if let previewURL = directoryModel?.previewURLForMedia(media) {
             try FileManager.default.removeItem(at: previewURL)
         }
+        operationBus.didDelete(media)
         
     }
 }

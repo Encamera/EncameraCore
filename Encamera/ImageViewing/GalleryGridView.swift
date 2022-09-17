@@ -36,7 +36,6 @@ class GalleryGridViewModel: ObservableObject {
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,
          carouselTarget: EncryptedMedia? = nil,
-         
          fileAccess: FileAccess = DiskFileAccess()
     ) {
         self.blurImages = blurImages

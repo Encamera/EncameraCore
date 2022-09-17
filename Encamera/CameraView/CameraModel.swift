@@ -63,7 +63,11 @@ final class CameraModel: ObservableObject {
                 storageSettingsManager: DataStorageUserDefaultsSetting()
             )
         }
-
+        FileOperationBus.shared.operations.sink { operation in
+            Task {
+                await self.loadThumbnail()
+            }
+        }.store(in: &cancellables)
         keyManager.keyPublisher.sink { key in
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: DataStorageUserDefaultsSetting())

@@ -183,7 +183,7 @@ struct CameraView: View {
                     }
                 } label: {
                     EmptyView()
-                }
+                }.isDetailLink(false)
                 
                 
                 VStack {
