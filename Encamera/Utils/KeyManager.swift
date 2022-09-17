@@ -9,7 +9,7 @@ import Foundation
 import Sodium
 import Combine
 
-enum KeyManagerError: Error {
+enum KeyManagerError: ErrorDescribable {
     case deleteKeychainItemsFailed
     case unhandledError
     case notAuthenticatedError

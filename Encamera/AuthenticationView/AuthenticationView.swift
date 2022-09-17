@@ -7,12 +7,27 @@
 
 import SwiftUI
 
-private enum AuthenticationViewError {
+private enum AuthenticationViewError: ErrorDescribable {
     case noPasswordGiven
     case passwordIncorrect
     case biometricsFailed
     case biometricsNotAvailable
     case keychainError(KeyManagerError)
+    
+    var displayDescription: String {
+        switch self {
+        case .noPasswordGiven:
+            return "Missing password"
+        case .passwordIncorrect:
+            return "Password incorrect"
+        case .biometricsFailed:
+            return "Biometrics failed"
+        case .biometricsNotAvailable:
+            return "Biometrics unavailable"
+        case .keychainError(let keyManagerError):
+            return keyManagerError.displayDescription
+        }
+    }
     
 }
 
@@ -39,9 +54,7 @@ struct AuthenticationView: View {
                     try authManager.authorize(with: password, using: keyManager)
                 
                 } catch let keyManagerError as KeyManagerError {
-                    if keyManagerError == .notFound {
-                        displayedError = .keychainError(keyManagerError)
-                    }
+                    displayedError = .keychainError(keyManagerError)
                 } catch let authManagerError as AuthManagerError {
                     handleAuthManagerError(authManagerError)
                 } catch {
@@ -87,7 +100,10 @@ struct AuthenticationView: View {
         VStack {
             
             HStack {
-                SecureTextField("Password", text: $viewModel.password)
+                EncameraTextField("Password", type: .secure, text: $viewModel.password)
+                    .onSubmit {
+                        viewModel.authenticatePassword()
+                    }
                 Button {
                     viewModel.authenticatePassword()
                 } label: {
@@ -98,6 +114,10 @@ struct AuthenticationView: View {
                         
                 }
 
+            }
+            if let error = viewModel.displayedError {
+                Text("\(error.displayDescription)")
+                    .alertText()
             }
             Spacer()
                 .frame(height: 50.0)

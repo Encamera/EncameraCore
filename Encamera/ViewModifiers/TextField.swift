@@ -35,49 +35,46 @@ extension SecureField {
     }
 }
 
-
-struct SecureTextField: View {
+struct EncameraTextField: View {
     
-    var placeholder: String
+    enum FieldType {
+        case secure
+        case normal
+    }
+    
+    private var placeholder: String
+    private var fieldType: FieldType = .normal
     @Binding var text: String
+    @FocusState var isFieldFocused
     
-    init(_ placeholder: String, text: Binding<String>) {
+    init(_ placeholder: String, type: FieldType = .normal, text: Binding<String>) {
         self.placeholder = placeholder
+        self.fieldType = type
         _text = text
     }
     
     var body: some View {
         ZStack(alignment: .leading) {
             
-            SecureField("", text: $text).passwordField()
+            field.focused($isFieldFocused)
             if text.isEmpty {
                 Text(placeholder)
                     .foregroundColor(.white)
+                    .onTapGesture {
+                        isFieldFocused = true
+                    }
                     .padding()
             }
         }
     }
-}
-
-struct InputTextField: View {
     
-    var placeholder: String
-    @Binding var text: String
-    
-    init(_ placeholder: String, text: Binding<String>) {
-        self.placeholder = placeholder
-        _text = text
-    }
-    
-    var body: some View {
-        ZStack(alignment: .leading) {
-            
+    @ViewBuilder private var field: some View {
+        switch fieldType {
+        case .normal:
             TextField("", text: $text).inputTextField()
-            if text.isEmpty {
-                Text(placeholder)
-                    .foregroundColor(.white)
-                    .padding()
-            }
+        case .secure:
+            SecureField("", text: $text)
+                .passwordField()
         }
     }
 }

@@ -7,6 +7,10 @@
 
 import SwiftUI
 
+enum KeyGenerationError: Error {
+    case missingStorageType
+}
+
 class KeyGenerationViewModel: ObservableObject {
     @Published var keyName: String = ""
     @Published var keyManagerError: KeyManagerError?
@@ -15,7 +19,8 @@ class KeyGenerationViewModel: ObservableObject {
     @MainActor
     @Published var storageAvailabilities: [StorageAvailabilityModel] = []
     @MainActor
-    @Published var keyStorageType: StorageType = .local
+    @Published var keyStorageType: StorageType?
+    @Published var generalError: KeyGenerationError?
 
     var keyManager: KeyManager
     
@@ -24,15 +29,24 @@ class KeyGenerationViewModel: ObservableObject {
     }
     
     @MainActor
-    func saveKey() {
+    func saveKey() throws {
         do {
-            try keyManager.generateNewKey(name: keyName, storageType: keyStorageType)
-        } catch {
-            guard let keyError = error as? KeyManagerError else {
-                return
+            if let keyStorageType = keyStorageType {
+                try keyManager.generateNewKey(name: keyName, storageType: keyStorageType)
+            } else {
+                throw KeyGenerationError.missingStorageType
             }
-            self.keyManagerError = keyError
+        } catch let keyManagerError as KeyManagerError {
+            self.keyManagerError = keyManagerError
+            throw keyManagerError
+        } catch let generalError as KeyGenerationError {
+            self.generalError = generalError
+            throw generalError
+        } catch {
+            print("Unhandled error", error)
+            throw error
         }
+        
     }
     
     @MainActor
@@ -111,7 +125,7 @@ You can have multiple keys for different purposes, e.g. one named "Documents" an
                 }) {
                     AnyView(
                         VStack {
-                            InputTextField("Key Name", text: $viewModel.keyName)
+                            EncameraTextField("Key Name", text: $viewModel.keyName)
                                 .noAutoModification()
                                 
                                 
@@ -134,11 +148,17 @@ Each key will store data in its own directory.
 """,
                          image: Image(systemName: ""),
                          bottomButtonTitle: "Save Key") {
-                saveKey()
+                try saveKey()
                 throw OnboardingViewError.onboardingEnded
             } content: {
                 AnyView(
-                    StorageSettingView(keyStorageType: $viewModel.keyStorageType)
+                    VStack {
+                        StorageSettingView(keyStorageType: $viewModel.keyStorageType)
+                        if case .missingStorageType = viewModel.generalError {
+                            Text("Select a place to keep media for this key.")
+                                .alertText()
+                        }
+                    }
                     
                 )
                 
@@ -148,8 +168,8 @@ Each key will store data in its own directory.
         }
     }
     
-    func saveKey() {
-        viewModel.saveKey()
+    func saveKey() throws {
+        try viewModel.saveKey()
         shouldBeActive = false
     }
     

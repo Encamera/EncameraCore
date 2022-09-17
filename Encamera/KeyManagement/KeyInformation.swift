@@ -11,7 +11,7 @@ import SwiftUI
 struct KeyInformation: View {
     
     @State var key: PrivateKey
-    @State var keyManagerError: KeyManagerError?
+    @Binding var keyManagerError: KeyManagerError?
     
     var body: some View {
         VStack(alignment: .center) {
@@ -35,13 +35,11 @@ struct KeyInformation: View {
             }
             Spacer()
         }
-        .foregroundColor(.white)
-        .background(Color.black)
     }
 }
 
 struct KeyInformation_Previews: PreviewProvider {
     static var previews: some View {
-        KeyInformation(key: DemoPrivateKey.dummyKey())
+        KeyInformation(key: DemoPrivateKey.dummyKey(), keyManagerError: .constant(nil))
     }
 }

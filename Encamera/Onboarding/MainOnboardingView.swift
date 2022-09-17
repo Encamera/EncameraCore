@@ -11,6 +11,9 @@ import LocalAuthentication
 enum OnboardingViewError: Error {
     case passwordInvalid
     case onboardingEnded
+    case missingStorageType
+    
+    
 }
 
 class OnboardingViewModel: ObservableObject {
@@ -34,7 +37,7 @@ class OnboardingViewModel: ObservableObject {
     @MainActor
     @Published var generalError: Error?
     @MainActor
-    @Published var keyStorageType: StorageType = .local
+    @Published var keyStorageType: StorageType?
     @MainActor
     @Published var storageAvailabilities: [StorageAvailabilityModel] = []
     @Published var existingPasswordCorrect: Bool?
@@ -108,6 +111,14 @@ class OnboardingViewModel: ObservableObject {
     }
     
     @MainActor
+    func validateStorageSelection() throws {
+        
+        if keyStorageType == nil {
+            try handle(error: OnboardingViewError.missingStorageType)
+        }
+    }
+    
+    @MainActor
     func handle(error: Error) throws {
         switch error {
         case let managerError as OnboardingManagerError:
@@ -148,9 +159,9 @@ class OnboardingViewModel: ObservableObject {
                 let savedState = OnboardingState.completed
                 if existingPassword.isEmpty == false {
                     try authManager.authorize(with: existingPassword, using: keyManager)
-                } else {
+                } else if let storageType = await keyStorageType {
                     try authManager.authorize(with: password1, using: keyManager)
-                    try keyManager.generateNewKey(name: keyName, storageType: await keyStorageType)
+                    try keyManager.generateNewKey(name: keyName, storageType: storageType)
                 }
                 try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
                 
@@ -234,7 +245,7 @@ private extension MainOnboardingView {
                 }) {
                     AnyView(
                         VStack {
-                            SecureTextField("Password", text: $viewModel.existingPassword)
+                            EncameraTextField("Password", type: .secure, text: $viewModel.existingPassword)
                             if let existingPasswordCorrect = viewModel.existingPasswordCorrect, existingPasswordCorrect == false {
                                 Group {
                                     Text("Incorrect password").alertText()
@@ -253,10 +264,10 @@ private extension MainOnboardingView {
                     try viewModel.savePassword()
                 }) {
                     AnyView(VStack {
-                        SecureTextField("Password", text: $viewModel.password1).onSubmit {
+                        EncameraTextField("Password", type: .secure, text: $viewModel.password1).onSubmit {
                             password2Focused = true
                         }
-                        SecureTextField("Repeat Password", text: $viewModel.password2)
+                        EncameraTextField("Repeat Password", type: .secure, text: $viewModel.password2)
                             .focused($password2Focused)
                             .onSubmit {
                             password2Focused = false
@@ -299,7 +310,7 @@ You can have multiple keys for different purposes, e.g. one named "Documents" an
                 }) {
                     AnyView(
                         VStack {
-                            InputTextField("Key Name", text: $viewModel.keyName)
+                            EncameraTextField("Key Name", text: $viewModel.keyName)
                                 .noAutoModification()
                                 
                             if let keySaveError = viewModel.keySaveError {
@@ -319,9 +330,15 @@ Each key will store data in its own directory.
 """,
                          image: Image(systemName: ""),
                          bottomButtonTitle: "Next") {
+                try viewModel.validateStorageSelection()
             } content: {
                 AnyView(
-                    StorageSettingView(keyStorageType: $viewModel.keyStorageType)
+                    VStack {
+                        StorageSettingView(keyStorageType: $viewModel.keyStorageType)
+                        if case .missingStorageType = viewModel.generalError as? OnboardingViewError {
+                            
+                        }
+                    }
                 )
                 
             }

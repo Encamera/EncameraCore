@@ -69,7 +69,7 @@ struct KeyDetailView: View {
                     dismiss()
                 }
                 NavigationLink {
-                    KeyInformation(key: viewModel.key)
+                    KeyInformation(key: viewModel.key, keyManagerError: .constant(nil))
                 } label: {
                     Text("Key Info")
                 }

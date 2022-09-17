@@ -192,7 +192,8 @@ class DeviceAuthManager: AuthManager {
     
     func authorize(with password: String, using keyManager: KeyManager) throws {
         let newState: AuthManagerState
-        if try keyManager.checkPassword(password) {
+        let check = try keyManager.checkPassword(password)
+        if check {
             newState = .authenticated(with: .password)
         } else {
             newState = .unauthenticated

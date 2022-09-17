@@ -19,7 +19,7 @@ class StorageSettingViewModel: ObservableObject {
 struct StorageSettingView: View {
     
     @StateObject var viewModel: StorageSettingViewModel = StorageSettingViewModel()
-    @Binding var keyStorageType: StorageType
+    @Binding var keyStorageType: StorageType?
     var body: some View {
         VStack(spacing: 20) {
             
@@ -42,10 +42,8 @@ struct StorageSettingView: View {
     }
 }
 
-//struct StorageSettingView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        StorageSettingView(keyStorageType: .constant(.local), storageAvailabilities: .constant([
-//            .init(storageType: .local, availability: .available),
-//            .init(storageType: .icloud, availability: .unavailable(reason: "No iCloud account found."))]))
-//    }
-//}
+struct StorageSettingView_Previews: PreviewProvider {
+    static var previews: some View {
+        StorageSettingView(viewModel: .init(storageAvailabilities: [.init(storageType: .local, availability: .available), .init(storageType: .icloud, availability: .available)]), keyStorageType: .constant(.local))
+    }
+}

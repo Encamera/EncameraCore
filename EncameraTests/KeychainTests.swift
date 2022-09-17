@@ -158,8 +158,9 @@ class KeychainTests: XCTestCase {
         let password = "r4t5y6y6"
         try keyManager.setPassword(password)
         
-        let result = try keyManager.checkPassword("wrong")
-        XCTAssertFalse(result)
+        let result = XCTAssertThrowsError(try keyManager.checkPassword("wrong")) { error in
+            XCTAssertEqual(error as! KeyManagerError, .invalidPassword)
+        }
     }
     
     func testChangePassword() throws {
@@ -168,8 +169,22 @@ class KeychainTests: XCTestCase {
         let newPassword = "r4t5y6y6"
         try keyManager.changePassword(newPassword: newPassword, existingPassword: firstPassword)
         
-        XCTAssertFalse(try keyManager.checkPassword(firstPassword))
+        XCTAssertThrowsError(try keyManager.checkPassword(firstPassword)) { error in
+            XCTAssertEqual(error as! KeyManagerError, .invalidPassword)
+        }
         XCTAssertTrue(try keyManager.checkPassword(newPassword))
+    }
+    
+    func testChangePasswordIncorrectExistingPassword() throws {
+        let firstPassword = "q1w2e3r4"
+        try keyManager.setPassword(firstPassword)
+        let newPassword = "r4t5y6y6"
+        XCTAssertThrowsError(try keyManager.changePassword(newPassword: newPassword, existingPassword: "blabla")) { error in
+            XCTAssertEqual(error as! KeyManagerError, KeyManagerError.invalidPassword)
+        }
+        
+        XCTAssertTrue(try keyManager.checkPassword(firstPassword))
+
     }
     
     func testCheckIfPasswordExists() throws {

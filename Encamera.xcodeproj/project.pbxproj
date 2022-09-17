@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 51;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -13,6 +13,7 @@
 		12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180088B6F3C787C103F69C5 /* StorageOptionItemView.swift */; };
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
+		194E2FDA28D59014001B93E6 /* ErrorDescribable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FD928D59014001B93E6 /* ErrorDescribable.swift */; };
 		1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */; };
 		1D99F465F8AFC10EA75EDB1F /* DemoFileHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70DF8856410B3044FBFDCE31 /* DemoFileHelpers.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
@@ -132,6 +133,7 @@
 		136825FBFC03AA8F4F609A86 /* QRCodeCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeCaptureProcessor.swift; sourceTree = "<group>"; };
 		1585D15F7B92351433FED0B3 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
+		194E2FD928D59014001B93E6 /* ErrorDescribable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorDescribable.swift; sourceTree = "<group>"; };
 		1AD23C6426D4D73F9E8994C9 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		1D16E0EA60C4E61C60609E92 /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -196,7 +198,7 @@
 		A5B48420A8A9AAE9F23A575F /* AsyncImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncImage.swift; sourceTree = "<group>"; };
 		A5E2FA1268C0C6B4843E6E57 /* KeyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyEntry.swift; sourceTree = "<group>"; };
 		A71427AB575B7040A923D05C /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
-		AD8594B39C00DCD662DD5B08 /* Encamera.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Encamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD8594B39C00DCD662DD5B08 /* Encamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Encamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE667C90AC53488E5C411BEE /* AsyncVideoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncVideoCaptureProcessor.swift; sourceTree = "<group>"; };
 		AF3D409D97BC49AEDA21BB6B /* ChunkedFilesProcessing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChunkedFilesProcessing.swift; sourceTree = "<group>"; };
 		B197301286602327AC9EB11A /* KeyInformation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyInformation.swift; sourceTree = "<group>"; };
@@ -267,6 +269,14 @@
 				48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */,
 			);
 			path = AuthenticationView;
+			sourceTree = "<group>";
+		};
+		194E2FD828D58FFE001B93E6 /* Protocols */ = {
+			isa = PBXGroup;
+			children = (
+				194E2FD928D59014001B93E6 /* ErrorDescribable.swift */,
+			);
+			path = Protocols;
 			sourceTree = "<group>";
 		};
 		2FC387D366959219521CF923 /* ImageViewing */ = {
@@ -504,6 +514,7 @@
 		F8E25D1CB96BBE7C0604CA54 /* Encamera */ = {
 			isa = PBXGroup;
 			children = (
+				194E2FD828D58FFE001B93E6 /* Protocols */,
 				49A2EF989B2F8643105205DF /* Assets.xcassets */,
 				0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */,
 				BD80B31ED188E0F75FCF32A4 /* Encamera.entitlements */,
@@ -714,6 +725,7 @@
 				6FB4B63701642073F6810B46 /* KeySelectionList.swift in Sources */,
 				E7DCBFF393B3C499D3EA42A5 /* LocalDeeplinkingUtils.swift in Sources */,
 				CAE9FE633C4A8AAFC35F8F4F /* LocalDirectoryModel.swift in Sources */,
+				194E2FDA28D59014001B93E6 /* ErrorDescribable.swift in Sources */,
 				114EBEBC2E22847C842A538D /* MainOnboardingView.swift in Sources */,
 				32E1B10DD8EACB497A05758D /* MediaDescribing.swift in Sources */,
 				EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */,

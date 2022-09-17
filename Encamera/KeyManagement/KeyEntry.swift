@@ -20,10 +20,10 @@ struct KeyEntry: View {
                 self.enteredKey = matchedKey
             }
         }
-        @Published var keyStorageType: StorageType = .local
+        @Published var keyStorageType: StorageType?
         @Published var enteredKey: PrivateKey?
         @Published var keyManagerError: KeyManagerError?
-        
+        @Published var showStorageSelectionSheet = false
         var showCancelButton = false
         private var cancellables = Set<AnyCancellable>()
         var keyManager: KeyManager
@@ -38,11 +38,11 @@ struct KeyEntry: View {
         
         func saveKey() throws {
             do {
-                guard let enteredKey = enteredKey else {
+                guard let enteredKey = enteredKey, let storageType = keyStorageType else {
                     return
                 }
                 
-                try keyManager.save(key: enteredKey, storageType: keyStorageType)
+                try keyManager.save(key: enteredKey, storageType: storageType)
             } catch let managerError as KeyManagerError {
                 self.keyManagerError = managerError
                 throw managerError
@@ -63,7 +63,7 @@ struct KeyEntry: View {
     var body: some View {
         let vstack = VStack(alignment: .center) {
             if let matchedKey = viewModel.enteredKey {
-                KeyInformation(key: matchedKey, keyManagerError: viewModel.keyManagerError)
+                KeyInformation(key: matchedKey, keyManagerError: $viewModel.keyManagerError)
             } else {
                 ZStack {
                     TextEditor(text: $viewModel.enteredKeyString)
@@ -77,9 +77,33 @@ struct KeyEntry: View {
                 Spacer()
             }
         }
+            .sheet(isPresented: $viewModel.showStorageSelectionSheet) {
+                let view =  NavigationView {
+                    
+                    VStack {
+                        Text("Where do you want to save this key's media?")
+                            .font(.headline)
+                        StorageSettingView(viewModel: .init(), keyStorageType: $viewModel.keyStorageType).padding()
+                        
+                    }.toolbar {
+                        Button("Save") {
+                            do {
+                                try viewModel.saveKey()
+                                dismiss()
+                            } catch {
+                                viewModel.showStorageSelectionSheet = false
+                            }
+                        }
+                    }
+                }
+                if #available(iOS 16.0, *) {
+                    view.presentationDetents([.medium])
+                } else {
+                    view
+                }
+                
+            }
             .frame(maxWidth: .infinity)
-            .foregroundColor(.white)
-            .background(Color.black)
             .navigationTitle("Key Entry")
         
         if viewModel.showCancelButton {
@@ -103,13 +127,7 @@ struct KeyEntry: View {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             if viewModel.enteredKey != nil {
                 Button("Save Key") {
-                    do {
-                        try viewModel.saveKey()
-                        dismiss()
-                    } catch {
-                        
-                    }
-                    
+                    viewModel.showStorageSelectionSheet = true
                 }
             }
         }

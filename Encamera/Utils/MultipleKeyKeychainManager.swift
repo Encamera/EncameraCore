@@ -259,9 +259,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func checkPassword(_ password: String) throws -> Bool {
-        guard passwordValidator.validate(password: password) == .valid else {
-            throw KeyManagerError.invalidPassword
-        }
+        
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -271,15 +269,28 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         do {
             try checkStatus(status: status)
-            guard let item = item, let passwordData = item as? Data, let hashString = String(data: passwordData, encoding: .utf8) else {
+            guard let item = item, let passwordData = item as? Data,
+                  let hashString = String(data: passwordData, encoding: .utf8) else {
                 throw KeyManagerError.notFound
             }
-            let passwordBytes = try bytes(from: password)
-            return sodium.pwHash.strVerify(hash: hashString, passwd: passwordBytes)
-        } catch {
-            return false
+            let passwordBytes = password.bytes
+            let passwordMatch = sodium.pwHash.strVerify(hash: hashString, passwd: passwordBytes)
+            if passwordMatch != true {
+                throw KeyManagerError.invalidPassword
+            }
+            return passwordMatch
         }
-        
+        catch let managerError as KeyManagerError {
+            if case .notFound = managerError {
+                throw KeyManagerError.invalidPassword
+            } else {
+                throw managerError
+            }
+        }
+        catch {
+            debugPrint("error checking password", error)
+        }
+        return false
     }
     
     
