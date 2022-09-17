@@ -9,10 +9,23 @@ import SwiftUI
 import Combine
 import PDFKit
 
-enum MediaViewingError: Error {
+enum MediaViewingError: ErrorDescribable {
     case noKeyAvailable
     case fileAccessNotAvailable
     case decryptError(wrapped: Error)
+    
+    var displayDescription: String {
+        switch self {
+        case .noKeyAvailable:
+            return "No key available."
+        case .fileAccessNotAvailable:
+            return "No file access available."
+        case .decryptError(let wrapped as ErrorDescribable):
+            return "Decryption error: \(wrapped.displayDescription)"
+        case .decryptError(wrapped: let wrapped):
+            return "Decryption error: \(wrapped.localizedDescription)"
+        }
+    }
 }
 
 protocol MediaViewingViewModel: AnyObject {
@@ -34,10 +47,7 @@ extension MediaViewingViewModel {
     @MainActor
     func decryptAndSet() async {
         do {
-            let result = try await decrypt()
-            print("result", result, print(Unmanaged.passUnretained(self).toOpaque())
-            )
-            self.decryptedFileRef = result
+            self.decryptedFileRef = try await decrypt()
         } catch {
             
             self.error = .decryptError(wrapped: error)
@@ -106,8 +116,7 @@ struct ImageViewing<M: MediaDescribing>: View {
                     .zIndex(1)
                 
             } else if let error = viewModel.error {
-                Text("Could not decrypt image: \(error.localizedDescription)")
-                    .foregroundColor(.red)
+                DecryptErrorExplanation(error: error)
             } else {
                 ProgressView()
             }

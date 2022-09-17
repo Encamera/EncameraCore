@@ -5,6 +5,7 @@ import Combine
 struct EncameraApp: App {
     class ViewModel: ObservableObject {
         @Published var hasOpenedURL: Bool = false
+        @Published var promptToSaveMedia: Bool = false
         var fileAccess: FileAccess = DiskFileAccess()
         @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
@@ -95,6 +96,20 @@ struct EncameraApp: App {
 
         }
         
+        func copyOpenedFile(media: EncryptedMedia) {
+            Task {
+                do {
+                    try await fileAccess.copy(media: media)
+                } catch {
+                    print("Could not copy: ", error)
+                }
+                await MainActor.run {
+                    hasOpenedURL = false
+                }
+            }
+
+        }
+        
         private func setupWith(key: PrivateKey?) {
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
@@ -137,7 +152,13 @@ struct EncameraApp: App {
                             galleryForMedia(media: encryptedMedia)
                         case .key(let key):
                             NavigationView {
-                                KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true))
+                                let dismissBinding = Binding {
+                                    !viewModel.hasOpenedURL
+                                } set: { value in
+                                    viewModel.hasOpenedURL = !value
+                                }
+
+                                KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true, dismiss: dismissBinding ))
                             }
                         }
                     } else {
@@ -181,13 +202,24 @@ struct EncameraApp: App {
                     viewModel: .init(
                         media: [media],
                         selectedMedia: media,
-                        fileAccess: fileAccess
+                        fileAccess: fileAccess,
+                        showActionBar: false
                     )
                 ).toolbar {
                     Button("Close") {
-                        self.viewModel.hasOpenedURL = false
+                        self.viewModel.promptToSaveMedia = true
                     }
                 }
+                .alert("Save this media?", isPresented: $viewModel.promptToSaveMedia) {
+                    Text("This will save the media to your library.")
+                    Button("Cancel", role: .cancel) {
+                        self.viewModel.hasOpenedURL = false
+                    }
+                    Button("Save") {
+                        viewModel.copyOpenedFile(media: media)
+                    }
+                }
+                
             }
         case .video:
             MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))

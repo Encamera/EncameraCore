@@ -36,7 +36,9 @@ class DemoFileEnumerator: FileAccess {
     }
     
     
-    
+    func copy(media: EncryptedMedia) async throws {
+        
+    }
     
     var mediaList: [EncryptedMedia]
     

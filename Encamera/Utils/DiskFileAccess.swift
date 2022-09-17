@@ -257,6 +257,16 @@ extension DiskFileAccess: FileWriter {
         return encrypted
     }
     
+    func copy(media: EncryptedMedia) async throws {
+        guard let destinationURL = directoryModel?.driveURLForNewMedia(media) else {
+            throw FileAccessError.missingDirectoryModel
+        }
+        try FileManager.default.moveItem(at: media.source, to: destinationURL)
+        if let newMedia = EncryptedMedia(source: destinationURL) {
+            operationBus.didCreate(newMedia)
+        }
+    }
+    
     func delete(media: EncryptedMedia) async throws {
         
         try FileManager.default.removeItem(at: media.source)

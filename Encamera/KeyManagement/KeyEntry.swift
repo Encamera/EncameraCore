@@ -20,6 +20,7 @@ struct KeyEntry: View {
                 self.enteredKey = matchedKey
             }
         }
+        var dismiss: Binding<Bool>?
         @Published var keyStorageType: StorageType?
         @Published var enteredKey: PrivateKey?
         @Published var keyManagerError: KeyManagerError?
@@ -27,13 +28,28 @@ struct KeyEntry: View {
         var showCancelButton = false
         private var cancellables = Set<AnyCancellable>()
         var keyManager: KeyManager
-        init(enteredKeyString: String = "", keyStorageType: StorageType = .local, enteredKey: PrivateKey? = nil, keyManager: KeyManager, showCancelButton: Bool = false) {
+        init(enteredKeyString: String = "", keyStorageType: StorageType = .local, enteredKey: PrivateKey? = nil, keyManager: KeyManager, showCancelButton: Bool = false, dismiss: Binding<Bool>? = nil) {
             self.enteredKeyString = enteredKeyString
             self.showCancelButton = showCancelButton
             self.keyStorageType = keyStorageType
             self.enteredKey = (try? PrivateKey(base64String: enteredKeyString)) ?? enteredKey
             self.keyManager = keyManager
+            self.dismiss = dismiss
             UITextView.appearance().backgroundColor = .clear
+        }
+        
+        func saveButtonPressed() throws {
+            guard let enteredKey = enteredKey else {
+                return
+            }
+            
+            if let storageModel = DataStorageUserDefaultsSetting().determineStorageModelFor(keyName: enteredKey.name) {
+                keyStorageType = storageModel.storageType
+                try saveKey()
+            } else {
+                showStorageSelectionSheet = true
+            }
+
         }
         
         func saveKey() throws {
@@ -89,7 +105,8 @@ struct KeyEntry: View {
                         Button("Save") {
                             do {
                                 try viewModel.saveKey()
-                                dismiss()
+                                viewModel.showStorageSelectionSheet = false
+                                dismissAction()
                             } catch {
                                 viewModel.showStorageSelectionSheet = false
                             }
@@ -110,7 +127,7 @@ struct KeyEntry: View {
             vstack.toolbar {
                 ToolbarItemGroup(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        dismiss()
+                        dismissAction()
                     }
                 }
                 saveKeyToolbar
@@ -123,11 +140,22 @@ struct KeyEntry: View {
         }
     }
     
+    private func dismissAction() {
+        if let dismissBinding = viewModel.dismiss {
+            dismissBinding.wrappedValue = true
+        } else {
+            dismiss()
+        }
+    }
     private var saveKeyToolbar: ToolbarItemGroup<some View> {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             if viewModel.enteredKey != nil {
                 Button("Save Key") {
-                    viewModel.showStorageSelectionSheet = true
+                    do {
+                        try viewModel.saveButtonPressed()
+                    } catch {
+                        
+                    }                    
                 }
             }
         }
@@ -143,7 +171,7 @@ struct KeyEntry_Previews: PreviewProvider {
                 
                 enteredKeyString: "eyJuYW1lIjoiODhGNTA5MjktNTYxQS00MkQyLTlBRkUtQzM5NjUxNDBDOTQ2Iiwia2V5Qnl0ZXMiOls3MCwxLDY1LDExMCw2OSwxMDAsMjMwLDE4MywxODYsNDEsNzYsMTMyLDQwLDg2LDIyMSwxOTksMjE2LDE4MSw3OSwxNzYsMTM2LDQ3LDIxNywxMTgsMjI0LDEwMywxMDQsMTAsNDksMTg3LDEwMCwxM10sImNyZWF0aW9uRGF0ZSI6Njg0NDAzMjc2LjM5OTM0ODAyfQ==",
                 keyStorageType: .local,
-                keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())))
+                keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager()), dismiss: .constant(true)))
         }
     }
 }

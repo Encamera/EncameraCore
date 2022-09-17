@@ -12,13 +12,15 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     
     @Published var media: [EncryptedMedia]
     @Published var selectedMedia: EncryptedMedia
+    var showActionBar = true
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
     
-    init(media: [EncryptedMedia], selectedMedia: EncryptedMedia, fileAccess: FileAccess) {
+    init(media: [EncryptedMedia], selectedMedia: EncryptedMedia, fileAccess: FileAccess, showActionBar: Bool = true) {
         self.media = media
         self.fileAccess = fileAccess
         self.selectedMedia = selectedMedia
+        self.showActionBar = showActionBar
     }
     
     var selectedIndex: Int {
@@ -187,29 +189,29 @@ struct GalleryHorizontalScrollView: View {
                     
                     
                 }
-                
-                HStack(alignment: .center) {
-                    Button {
-                        showingShareSheet = true
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
+                if viewModel.showActionBar {
+                    HStack(alignment: .center) {
+                        Button {
+                            showingShareSheet = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        Spacer()
+                        Button {
+                            viewModel.openInFiles()
+                        } label: {
+                            Image(systemName: "folder")
+                        }
+                        Spacer()
+                        Button {
+                            showingDeleteConfirmation = true
+                        } label: {
+                            Image(systemName: "trash")
+                        }
                     }
-                    Spacer()
-                    Button {
-                        viewModel.openInFiles()
-                    } label: {
-                        Image(systemName: "folder")
-                    }
-                    Spacer()
-                    Button {
-                        showingDeleteConfirmation = true
-                    } label: {
-                        Image(systemName: "trash")
-                    }
+                    .padding()
+                    .frame(height: 44)
                 }
-                .padding()
-                .frame(height: 44)
-                
             }.confirmationDialog("Delete this image?", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
                 
                 Button("Delete", role: .destructive) {
