@@ -46,7 +46,6 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
             if let movieUrl = viewModel.decryptedFileRef?.source {
                 let player = AVPlayer(url: movieUrl)
                 VideoPlayer(player: player).onDisappear {
-                    viewModel.cleanup()
                 }
             } else if let error = viewModel.error {
                 Text("Could not decrypt movie: \(error.localizedDescription)")

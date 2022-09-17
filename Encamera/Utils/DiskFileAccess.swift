@@ -190,7 +190,6 @@ extension DiskFileAccess: FileReader {
                     throw SecretFilesError.createVideoThumbnailError
                 }
                 thumbnailSourceData = data
-                try decrypted.delete()
             default:
                 throw SecretFilesError.fileTypeError
             }
@@ -254,7 +253,6 @@ extension DiskFileAccess: FileWriter {
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
         let encrypted = try await fileHandler.encrypt()
         try await createPreview(for: media)
-        try media.delete()
         return encrypted
     }
     

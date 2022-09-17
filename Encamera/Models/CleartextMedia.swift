@@ -32,12 +32,6 @@ struct CleartextMedia<T: MediaSourcing>: MediaDescribing, Codable {
         }
         mediaType = MediaType.typeFromMedia(source: self)
     }
-    
-    func delete() throws {
-        if let source = source as? URL {
-            try FileManager.default.removeItem(at: source)
-        }
-    }
 }
 
 

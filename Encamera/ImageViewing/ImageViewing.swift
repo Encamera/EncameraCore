@@ -44,13 +44,6 @@ extension MediaViewingViewModel {
         }
     }
     
-    func cleanup() {
-        do {
-            try decryptedFileRef?.delete()
-        } catch {
-            debugPrint("Could not delete file ref \(error)")
-        }
-    }
 }
 
 class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
