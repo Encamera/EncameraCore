@@ -117,7 +117,7 @@ class OnboardingManager: OnboardingManaging {
     }
     
     func clearOnboardingState() {
-        UserDefaults.standard.removeObject(forKey: Constants.onboardingStateKey)
+        UserDefaultUtils.removeObject(forKey: .onboardingState)
     }
     
     func validate(state: OnboardingState, settings: SavedSettings) throws {
@@ -153,7 +153,7 @@ class OnboardingManager: OnboardingManaging {
         }
         do {
             let data = try JSONEncoder().encode(state)
-            UserDefaults.standard.set(data, forKey: Constants.onboardingStateKey)
+            UserDefaultUtils.set(data, forKey: .onboardingState)
         } catch {
             throw OnboardingManagerError.couldNotSerialize
         }
@@ -199,7 +199,7 @@ private extension OnboardingManager {
     func getOnboardingStateFromDefaults() throws -> OnboardingState {
         let passwordExists = keyManager.passwordExists()
         
-        guard let savedState = UserDefaults.standard.data(forKey: Constants.onboardingStateKey) else {
+        guard let savedState = UserDefaultUtils.data(forKey: .onboardingState) else {
             if passwordExists {
                 return .hasPasswordAndNotOnboarded
             }

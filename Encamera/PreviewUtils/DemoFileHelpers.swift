@@ -49,6 +49,13 @@ class DemoFileEnumerator: FileAccess {
         []
     }
     
+    func deleteMedia(for key: PrivateKey) async throws {
+        
+    }
+    
+    func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws {
+        
+    }
     
     func loadMediaToURL<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
 
@@ -107,6 +114,9 @@ class DemoFileEnumerator: FileAccess {
         return retVal.shuffled()
     }
     func delete(media: EncryptedMedia) async throws {
+        
+    }
+    func deleteAllMedia() async throws {
         
     }
 }

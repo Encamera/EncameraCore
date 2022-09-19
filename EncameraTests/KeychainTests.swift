@@ -74,14 +74,14 @@ class KeychainTests: XCTestCase {
         let newKey = try keyManager.generateNewKey(name: "test1_key", storageType: .local)
 
         XCTAssertEqual(keyManager.currentKey, newKey)
-        let activeKey = try XCTUnwrap(UserDefaults.standard.value(forKey: "currentKey") as? String)
+        let activeKey = try XCTUnwrap(UserDefaultUtils.value(forKey: .currentKey) as? String)
         XCTAssertEqual(activeKey, newKey.name)
     }
     
     func testGenerateNewKeySetsActiveKeyWithoutUserDefaults() throws {
         
         let newKey = try keyManager.generateNewKey(name: "test1_key", storageType: .local)
-        UserDefaults.standard.removeObject(forKey: "currentKey")
+        UserDefaultUtils.removeObject(forKey: .currentKey)
         let activeKey = try XCTUnwrap(keyManager.getActiveKey())
         XCTAssertEqual(activeKey, newKey)
     }

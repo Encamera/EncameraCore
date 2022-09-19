@@ -11,7 +11,6 @@ import Combine
 
 private enum KeychainConstants {
     static let applicationTag = "com.encamera.key"
-    static let currentKey = "currentKey"
     static let account = "encamera"
     static let minKeyLength = 2
 }
@@ -166,18 +165,18 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }
         guard let name = name else {
             currentKey = nil
-            UserDefaults.standard.removeObject(forKey: KeychainConstants.currentKey)
+            UserDefaultUtils.removeObject(forKey: UserDefaultKey.currentKey)
             return
         }
         guard let key = try? getKey(by: name) else {
             throw KeyManagerError.notFound
         }
         currentKey = key
-        UserDefaults.standard.set(key.name, forKey: KeychainConstants.currentKey)
+        UserDefaultUtils.set(key.name, forKey: UserDefaultKey.currentKey)
     }
     
     func getActiveKey() throws -> PrivateKey {
-        guard let activeKeyName = UserDefaults.standard.value(forKey: KeychainConstants.currentKey) as? String else {
+        guard let activeKeyName = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String else {
             guard let firstStoredKey = try? storedKeys().first else {
                 throw KeyManagerError.notFound
             }

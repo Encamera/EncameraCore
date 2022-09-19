@@ -17,6 +17,10 @@
 		194E2FDE28D6022E001B93E6 /* FileOperationBus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FDD28D6022E001B93E6 /* FileOperationBus.swift */; };
 		194E2FE028D607D9001B93E6 /* DecryptErrorExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FDF28D607D9001B93E6 /* DecryptErrorExplanation.swift */; };
 		194E2FE328D61C77001B93E6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FE228D61C77001B93E6 /* SettingsView.swift */; };
+		194E2FE528D87B64001B93E6 /* EraserUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FE428D87B64001B93E6 /* EraserUtils.swift */; };
+		194E2FE728D87EBD001B93E6 /* PromptToErase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FE628D87EBD001B93E6 /* PromptToErase.swift */; };
+		194E2FE928D8C1A1001B93E6 /* UserDefaultKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FE828D8C1A1001B93E6 /* UserDefaultKeys.swift */; };
+		194E2FEC28D8C33A001B93E6 /* UserDefaultUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FEB28D8C33A001B93E6 /* UserDefaultUtils.swift */; };
 		1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */; };
 		1D99F465F8AFC10EA75EDB1F /* DemoFileHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70DF8856410B3044FBFDCE31 /* DemoFileHelpers.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
@@ -140,6 +144,10 @@
 		194E2FDD28D6022E001B93E6 /* FileOperationBus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperationBus.swift; sourceTree = "<group>"; };
 		194E2FDF28D607D9001B93E6 /* DecryptErrorExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptErrorExplanation.swift; sourceTree = "<group>"; };
 		194E2FE228D61C77001B93E6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		194E2FE428D87B64001B93E6 /* EraserUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EraserUtils.swift; sourceTree = "<group>"; };
+		194E2FE628D87EBD001B93E6 /* PromptToErase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptToErase.swift; sourceTree = "<group>"; };
+		194E2FE828D8C1A1001B93E6 /* UserDefaultKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultKeys.swift; sourceTree = "<group>"; };
+		194E2FEB28D8C33A001B93E6 /* UserDefaultUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultUtils.swift; sourceTree = "<group>"; };
 		1AD23C6426D4D73F9E8994C9 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		1D16E0EA60C4E61C60609E92 /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -289,6 +297,7 @@
 			isa = PBXGroup;
 			children = (
 				194E2FE228D61C77001B93E6 /* SettingsView.swift */,
+				194E2FE628D87EBD001B93E6 /* PromptToErase.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -473,6 +482,8 @@
 				9FF7292F021A07449C6C9C93 /* SecretFileHandler.swift */,
 				7995FDA3D610A1AFB4937EC6 /* SettingsManager.swift */,
 				4F6562565D7C4998CC1AD341 /* IO */,
+				194E2FE428D87B64001B93E6 /* EraserUtils.swift */,
+				194E2FEB28D8C33A001B93E6 /* UserDefaultUtils.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -482,6 +493,7 @@
 			children = (
 				5D79BD6595B2129672A6AB30 /* AppConstants.swift */,
 				F4DF60C8A4222C7F31720EA7 /* URLTypes.swift */,
+				194E2FE828D8C1A1001B93E6 /* UserDefaultKeys.swift */,
 			);
 			path = Constants;
 			sourceTree = "<group>";
@@ -694,6 +706,7 @@
 				74A426CBDF114D88EFF62067 /* AlertError.swift in Sources */,
 				B48FDA6C79F0389ABD97F346 /* AppConstants.swift in Sources */,
 				194E2FE028D607D9001B93E6 /* DecryptErrorExplanation.swift in Sources */,
+				194E2FE528D87B64001B93E6 /* EraserUtils.swift in Sources */,
 				194E2FE328D61C77001B93E6 /* SettingsView.swift in Sources */,
 				B143CDC53DAC0A77FA373EF6 /* AsyncImage.swift in Sources */,
 				9710F5392348A3CA4EAF0F94 /* AsyncPhotoCaptureProcessor.swift in Sources */,
@@ -704,6 +717,7 @@
 				95B3BFB5D6E3715C612F42BB /* CMTimeUtils.swift in Sources */,
 				8D29CF39EA1C32A06DEB9FBD /* CameraConfigurationService.swift in Sources */,
 				E02CDF136FEA73C34ED68EE1 /* CameraModePicker.swift in Sources */,
+				194E2FE928D8C1A1001B93E6 /* UserDefaultKeys.swift in Sources */,
 				D95B5A20ECD8C5784FDD63D0 /* CameraModel.swift in Sources */,
 				950FBFFE68B35AEDBBF975D3 /* CameraPreview.swift in Sources */,
 				44494B8589FFD53D0DCF3C41 /* CameraService+Extensions.swift in Sources */,
@@ -733,6 +747,7 @@
 				1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */,
 				A110A1F171C9A71EBC2A8DC2 /* GalleryScrollViewItem.swift in Sources */,
 				B1E364A6983CEAC49AC62F8C /* ImageResizer.swift in Sources */,
+				194E2FEC28D8C33A001B93E6 /* UserDefaultUtils.swift in Sources */,
 				3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */,
 				AACB64F8B3E0692251214E0D /* KeyDetailView.swift in Sources */,
 				E0D2C3611EF60B4DFE85F4D8 /* KeyEntry.swift in Sources */,
@@ -755,6 +770,7 @@
 				59243D0D07D49EC3ADFAC700 /* OnboardingManager.swift in Sources */,
 				AD8F6464844061B17FAFE50E /* OnboardingView.swift in Sources */,
 				5EB003D78CBE2E204B0BDA3B /* PasswordValidator.swift in Sources */,
+				194E2FE728D87EBD001B93E6 /* PromptToErase.swift in Sources */,
 				382E0489FC7DDB928E86C7D9 /* PhotoCaptureProcessor.swift in Sources */,
 				9F732B86F9CD0DDBD8F1568D /* PreviewModel.swift in Sources */,
 				690E8852F04E73436BA5D987 /* PrivateKey.swift in Sources */,

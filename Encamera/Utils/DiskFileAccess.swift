@@ -276,6 +276,26 @@ extension DiskFileAccess: FileWriter {
         operationBus.didDelete(media)
         
     }
+    
+    func deleteMedia(for key: PrivateKey) async throws {
+        
+        guard let url = directoryModel?.baseURL else {
+            throw FileAccessError.missingPrivateKey
+        }
+        try FileManager.default.removeItem(at: url)
+    }
+    func deleteAllMedia() async throws {
+        let local = LocalStorageModel(keyName: "")
+        try FileManager.default.removeItem(at: local.baseURL)
+        
+        let remote = iCloudStorageModel(keyName: "")
+        try FileManager.default.removeItem(at: local.baseURL)
+    }
+    
+    func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws {
+        
+    }
+    
 }
 
 extension DiskFileAccess: FileAccess {

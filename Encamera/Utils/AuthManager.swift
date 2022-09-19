@@ -251,10 +251,6 @@ class DeviceAuthManager: AuthManager {
 
 private extension DeviceAuthManager {
     
-    var policyUserDefaultsKey: String {
-        "authenticationPolicy"
-    }
-    
     func loadAuthenticationPolicy() -> AuthenticationPolicy {
         guard let settings = try? settingsManager.loadSettings() else {
             return AuthenticationPolicy.defaultPolicy
@@ -265,7 +261,7 @@ private extension DeviceAuthManager {
     
     func storeAuthenticationPolicy(_ policy: AuthenticationPolicy) throws {
         let data = try JSONEncoder().encode(policy)
-        UserDefaults.standard.set(data, forKey: policyUserDefaultsKey)
+        UserDefaultUtils.set(data, forKey: UserDefaultKey.authenticationPolicy)
     }
     
     func reauthorizeForPassword() {

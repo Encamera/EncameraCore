@@ -31,6 +31,9 @@ protocol FileWriter {
     @discardableResult func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data>
     func copy(media: EncryptedMedia) async throws
     func delete(media: EncryptedMedia) async throws
+    func deleteMedia(for key: PrivateKey) async throws
+    func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws
+    func deleteAllMedia() async throws
 }
 
 protocol FileAccess: FileEnumerator, FileReader, FileWriter {

@@ -19,7 +19,7 @@ class SettingsManagerTests: XCTestCase {
         self.keyManager = DemoKeyManager()
         self.authManager = DemoAuthManager()
         self.manager = SettingsManager()
-        UserDefaults.standard.removeObject(forKey: "savedSettings")
+        UserDefaultUtils.removeObject(forKey: .savedSettings)
     }
     
     func testEqualityOfSettingsValidationValid() throws {

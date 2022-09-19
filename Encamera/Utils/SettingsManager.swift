@@ -72,14 +72,10 @@ struct SavedSettings: Codable, Equatable {
 
 
 struct SettingsManager {
-    
-    
-    private enum Constants {
-        static var savedSettingsKey = "savedSettings"
-    }
+
 
     func loadSettings() throws -> SavedSettings  {
-        guard let value = UserDefaults.standard.value(forKey: Constants.savedSettingsKey) as? Data else {
+        guard let value = UserDefaultUtils.value(forKey: .savedSettings) as? Data else {
             throw SettingsManagerError.couldNotDeserialize
         }
         return try JSONDecoder().decode(SavedSettings.self, from: value)
@@ -89,7 +85,7 @@ struct SettingsManager {
         
         do {
             let data = try JSONEncoder().encode(settings)
-            UserDefaults.standard.set(data, forKey: Constants.savedSettingsKey)
+            UserDefaultUtils.set(data, forKey: .savedSettings)
         } catch {
             throw SettingsManagerError.couldNotSerialize
         }

@@ -180,7 +180,7 @@ struct CameraView: View {
                                 SettingsView(viewModel: .init(keyManager: cameraModel.keyManager))
                             } label: {
                                 Image(systemName: "gear")
-                            }
+                            }.isDetailLink(false)
 
                         }
                 } label: {

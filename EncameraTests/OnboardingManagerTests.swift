@@ -169,7 +169,7 @@ class OnboardingManagerTests: XCTestCase {
     }
     
     func testLoadOnboardingStateDeserializationFailed() throws {
-        UserDefaults.standard.set(try! JSONEncoder().encode(["hey"]), forKey: "onboardingState")
+        UserDefaultUtils.set(try! JSONEncoder().encode(["hey"]), forKey: .onboardingState)
         XCTAssertThrowsError(try manager.loadOnboardingState(), "load onboarding state") { error in
             guard let error = error as? OnboardingManagerError else {
                 XCTFail("unknown error \(error)")

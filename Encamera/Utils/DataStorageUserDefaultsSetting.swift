@@ -50,7 +50,7 @@ struct DataStorageUserDefaultsSetting: DataStorageSetting {
         guard let keyName = keyName else {
             return nil
         }
-        guard let directoryModelString = UserDefaults.standard.value(forKey: Constants.directoryTypeKeyFor(keyName: keyName)) as? String,
+        guard let directoryModelString = UserDefaultUtils.value(forKey: .directoryTypeKeyFor(keyName: keyName)) as? String,
               let type = StorageType(rawValue: directoryModelString) else {
             let model = determineStorageModelFor(keyName: keyName) ?? LocalStorageModel(keyName: keyName)
             setStorageTypeFor(keyName: keyName, directoryModelType: model.storageType)
@@ -85,8 +85,7 @@ struct DataStorageUserDefaultsSetting: DataStorageSetting {
     }
     
     func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
-            
-        UserDefaults.standard.set(directoryModelType.rawValue, forKey: Constants.directoryTypeKeyFor(keyName: keyName))
+        UserDefaultUtils.set(directoryModelType.rawValue, forKey: .directoryTypeKeyFor(keyName: keyName))
         
     }
 }
