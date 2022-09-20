@@ -13,6 +13,7 @@
 		12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180088B6F3C787C103F69C5 /* StorageOptionItemView.swift */; };
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
+		190C3E0128D8D1900031F782 /* PasswordEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190C3E0028D8D1900031F782 /* PasswordEntry.swift */; };
 		194E2FDA28D59014001B93E6 /* ErrorDescribable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FD928D59014001B93E6 /* ErrorDescribable.swift */; };
 		194E2FDE28D6022E001B93E6 /* FileOperationBus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FDD28D6022E001B93E6 /* FileOperationBus.swift */; };
 		194E2FE028D607D9001B93E6 /* DecryptErrorExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FDF28D607D9001B93E6 /* DecryptErrorExplanation.swift */; };
@@ -140,6 +141,7 @@
 		136825FBFC03AA8F4F609A86 /* QRCodeCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeCaptureProcessor.swift; sourceTree = "<group>"; };
 		1585D15F7B92351433FED0B3 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
+		190C3E0028D8D1900031F782 /* PasswordEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordEntry.swift; sourceTree = "<group>"; };
 		194E2FD928D59014001B93E6 /* ErrorDescribable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorDescribable.swift; sourceTree = "<group>"; };
 		194E2FDD28D6022E001B93E6 /* FileOperationBus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperationBus.swift; sourceTree = "<group>"; };
 		194E2FDF28D607D9001B93E6 /* DecryptErrorExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptErrorExplanation.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 			isa = PBXGroup;
 			children = (
 				48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */,
+				190C3E0028D8D1900031F782 /* PasswordEntry.swift */,
 			);
 			path = AuthenticationView;
 			sourceTree = "<group>";
@@ -768,6 +771,7 @@
 				824EC784B8158236BD9FC94E /* NotificationUtils.swift in Sources */,
 				639AA0D52590F717A8237B5E /* OSStatusChecker.swift in Sources */,
 				59243D0D07D49EC3ADFAC700 /* OnboardingManager.swift in Sources */,
+				190C3E0128D8D1900031F782 /* PasswordEntry.swift in Sources */,
 				AD8F6464844061B17FAFE50E /* OnboardingView.swift in Sources */,
 				5EB003D78CBE2E204B0BDA3B /* PasswordValidator.swift in Sources */,
 				194E2FE728D87EBD001B93E6 /* PromptToErase.swift in Sources */,

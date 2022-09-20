@@ -16,13 +16,16 @@ enum DemoError: Error {
 
 class DemoFileEnumerator: FileAccess {
     required init() {
-        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
+        guard let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg"),
+              let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg") else {
+            return
+        }
         
         mediaList = (0..<5).map { val in
             EncryptedMedia(source: url, mediaType: .photo, id: "\(NSUUID().uuidString)")
         }
         
-        let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
+        
         
         mediaList += (6..<10).map { val in
             EncryptedMedia(source: dog, mediaType: .photo, id: "\(NSUUID().uuidString)")
@@ -40,7 +43,7 @@ class DemoFileEnumerator: FileAccess {
         
     }
     
-    var mediaList: [EncryptedMedia]
+    var mediaList: [EncryptedMedia] = []
     
     func savePreview<T>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
         fatalError()
@@ -191,6 +194,9 @@ class DemoKeyManager: KeyManager {
     }
     
     func checkPassword(_ password: String) throws -> Bool {
+        if self.password != password {
+            throw KeyManagerError.invalidPassword
+        }
         return self.password == password
     }
     

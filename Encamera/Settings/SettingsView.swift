@@ -27,11 +27,13 @@ class SettingsViewViewModel: ObservableObject {
     @Published var showPromptToErase: Bool = false
     @Published fileprivate var successMessage: SettingsViewMessage?
     var keyManager: KeyManager
+    var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
     private var passwordValidator = PasswordValidator()
     
-    init(keyManager: KeyManager) {
+    init(keyManager: KeyManager, fileAccess: FileAccess) {
         self.keyManager = keyManager
+        self.fileAccess = fileAccess
     }
     func resetPasswordInputs() {
         keyManagerError = nil
@@ -101,12 +103,19 @@ struct SettingsView: View {
     private var reset: some View {
         NavigationLink("Erase") {
             Form {
-                
-                Button("Erase keychain data") {
-                    
+                NavigationLink {
+                    PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
+                } label: {
+                    Button("Erase keychain data") {
+                        
+                    }
                 }
-                Button("Erase all data") {
-                    
+                NavigationLink {
+                    PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
+                } label: {
+                    Button("Erase all data") {
+
+                    }
                 }
             }
             .foregroundColor(.red)
@@ -157,7 +166,7 @@ struct SettingsView: View {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            SettingsView(viewModel: .init(keyManager: DemoKeyManager()))
+            SettingsView(viewModel: .init(keyManager: DemoKeyManager(), fileAccess: DemoFileEnumerator()))
         }
         
     }

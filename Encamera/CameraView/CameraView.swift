@@ -177,7 +177,7 @@ struct CameraView: View {
                         .toolbar {
                             NavigationLink {
         
-                                SettingsView(viewModel: .init(keyManager: cameraModel.keyManager))
+                                SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, fileAccess: cameraModel.fileAccess))
                             } label: {
                                 Image(systemName: "gear")
                             }.isDetailLink(false)

@@ -11,6 +11,7 @@ class PromptToEraseViewModel: ObservableObject {
     @Published var eraseButtonPressed = false
     @Published var password: String = ""
     @Published var error: KeyManagerError?
+    @Published var passwordState: PasswordEntryState = .empty
     var eraserUtil: EraserUtils
     var keyManager: KeyManager
     var scope: ErasureScope
@@ -21,12 +22,12 @@ class PromptToEraseViewModel: ObservableObject {
         self.scope = scope
     }
     
-    
-    func validatePassword() {
+    func performErase() {
         Task {
             do {
                 if try keyManager.checkPassword(password) == true {
                     try await eraserUtil.erase()
+                    exit(0)
                 }
                 
             } catch let keyManagerError as KeyManagerError {
@@ -36,22 +37,34 @@ class PromptToEraseViewModel: ObservableObject {
             }
         }
     }
+    
+    
 }
 
 struct PromptToErase: View {
     
     @StateObject var viewModel: PromptToEraseViewModel
-    
+
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 10) {
                 Text(viewModel.scope.explanationString)
-                Spacer()
-                Button("I'm sure, erase") {
+                if case .valid = viewModel.passwordState {
+                    Button("I'm sure, erase now") {
+                        viewModel.performErase()
+                    }.primaryButton()
+                } else {
+                    PasswordEntry(viewModel: .init(keyManager: viewModel.keyManager, stateUpdate: { update in
+                        viewModel.passwordState = update
+                    }))
+                }
                     
-                }.primaryButton()
-            }
-            .navigationTitle("Erase app data")
+                
+                Spacer()
+                
+                
+            }.padding()
+                .navigationTitle("Erase app data")
         }
         
         
@@ -60,14 +73,6 @@ struct PromptToErase: View {
     
 }
 
-struct PromptToErase_Previews: PreviewProvider {
-    static var previews: some View {
-        Text("hi.").sheet(isPresented: .constant(true)) {
-            PromptToErase(viewModel: .init(scope: .allData, keyManager: DemoKeyManager(), fileAccess: DemoFileEnumerator()))
-        }
-        
-    }
-}
 
 extension ErasureScope {
     
@@ -82,7 +87,7 @@ extension ErasureScope {
     
     private var allDataExplanation: LocalizedStringKey {
                 """
-                Are you sure you want to erase all app data?
+                Are you sure you want to erase __all__ app data?
 
                 __This will erase:__
 
@@ -91,7 +96,9 @@ extension ErasureScope {
                 • App settings 🎛
                 • Media you have stored locally or on iCloud 💾
 
-                If you need to, you can create a backup of your keys from the key management screen.
+                You can create a backup of your keys from the key management screen.
+                
+                The app will quit after erase is finished.
 
                 """
 
@@ -111,8 +118,24 @@ extension ErasureScope {
 
         • Media you have stored locally or on iCloud 💾
 
-        If you need to, you can create a backup of your keys from the key management screen.
+        You can create a backup of your keys from the key management screen.
+        
+        The app will quit after erase is finished.
 
         """
+    }
+}
+
+struct PromptToErase_Previews: PreviewProvider {
+    static var manager: KeyManager {
+        let manager = DemoKeyManager()
+        manager.password = "pass"
+        return manager
+    }
+    static var previews: some View {
+        Text("hi.").sheet(isPresented: .constant(true)) {
+            PromptToErase(viewModel: .init(scope: .allData, keyManager: manager, fileAccess: DemoFileEnumerator()))
+        }
+        
     }
 }

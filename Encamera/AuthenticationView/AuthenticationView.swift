@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 private enum AuthenticationViewError: ErrorDescribable {
     case noPasswordGiven
@@ -31,90 +32,78 @@ private enum AuthenticationViewError: ErrorDescribable {
     
 }
 
-struct AuthenticationView: View {
+class AuthenticationViewModel: ObservableObject {
+    private var authManager: AuthManager
+    var keyManager: KeyManager
+    @Published fileprivate var displayedError: AuthenticationViewError?
+    var cancellables = Set<AnyCancellable>()
+    var availableBiometric: AuthenticationMethod? {
+        authManager.availableBiometric
+    }
     
-    class AuthenticationViewModel: ObservableObject {
-        private var authManager: AuthManager
-        private var keyManager: KeyManager
-        @Published var password: String = ""
-        @Published fileprivate var displayedError: AuthenticationViewError?
-        
-        var availableBiometric: AuthenticationMethod? {
-            authManager.availableBiometric
-        }
-        
-        init(authManager: AuthManager, keyManager: KeyManager) {
-            self.authManager = authManager
-            self.keyManager = keyManager
-        }
-        
-        func authenticatePassword() {
-            if password.count > 0 {
-                do {
-                    try authManager.authorize(with: password, using: keyManager)
-                
-                } catch let keyManagerError as KeyManagerError {
-                    displayedError = .keychainError(keyManagerError)
-                } catch let authManagerError as AuthManagerError {
-                    handleAuthManagerError(authManagerError)
-                } catch {
-                    debugPrint("Auth manager error", error)
-                }
+    init(authManager: AuthManager, keyManager: KeyManager) {
+        self.authManager = authManager
+        self.keyManager = keyManager
+    }
+    
+    func authenticatePassword(password: String) {
+        if password.count > 0 {
+            do {
+                try authManager.authorize(with: password, using: keyManager)
+            
+            } catch let keyManagerError as KeyManagerError {
+                displayedError = .keychainError(keyManagerError)
+            } catch let authManagerError as AuthManagerError {
+                handleAuthManagerError(authManagerError)
+            } catch {
+                debugPrint("Auth manager error", error)
             }
-        }
-        
-        func authenticateWithBiometrics() {
-            Task {
-                do {
-                    try await authManager.authorizeWithBiometrics()
-                } catch let authManagerError as AuthManagerError {
-                    await MainActor.run {
-                        handleAuthManagerError(authManagerError)
-                    }
-                } catch {
-                    debugPrint("Error handling auth", error)
-                }
-            }
-        }
-        
-        
-        func handleAuthManagerError(_ error: AuthManagerError) {
-            let displayError: AuthenticationViewError
-            switch error {
-            case .passwordIncorrect:
-                displayError = .passwordIncorrect
-            case .biometricsFailed:
-                displayError = .biometricsFailed
-            case .biometricsNotAvailable:
-                displayError = .biometricsNotAvailable
-            case .userCancelledBiometrics:
-                displayError = .biometricsFailed
-            }
-            displayedError = displayError
         }
     }
+    
+    func authenticateWithBiometrics() {
+        Task {
+            do {
+                try await authManager.authorizeWithBiometrics()
+            } catch let authManagerError as AuthManagerError {
+                await MainActor.run {
+                    handleAuthManagerError(authManagerError)
+                }
+            } catch {
+                debugPrint("Error handling auth", error)
+            }
+        }
+    }
+    
+    
+    func handleAuthManagerError(_ error: AuthManagerError) {
+        let displayError: AuthenticationViewError
+        switch error {
+        case .passwordIncorrect:
+            displayError = .passwordIncorrect
+        case .biometricsFailed:
+            displayError = .biometricsFailed
+        case .biometricsNotAvailable:
+            displayError = .biometricsNotAvailable
+        case .userCancelledBiometrics:
+            displayError = .biometricsFailed
+        }
+        displayedError = displayError
+    }
+}
+struct AuthenticationView: View {
+    
     
     @StateObject var viewModel: AuthenticationViewModel
     
     var body: some View {
         VStack {
-            
-            HStack {
-                EncameraTextField("Password", type: .secure, text: $viewModel.password)
-                    .onSubmit {
-                        viewModel.authenticatePassword()
+            PasswordEntry(viewModel: .init(
+                keyManager: viewModel.keyManager, stateUpdate: { update in
+                    if case .valid(let password) = update {
+                        viewModel.authenticatePassword(password: password)
                     }
-                Button {
-                    viewModel.authenticatePassword()
-                } label: {
-                    Image(systemName: "lock.circle")
-                        .resizable()
-                        .frame(width: 50.0, height: 50.0)
-                        .foregroundColor(.white)
-                        
-                }
-
-            }
+                }))
             if let error = viewModel.displayedError {
                 Text("\(error.displayDescription)")
                     .alertText()
@@ -123,7 +112,6 @@ struct AuthenticationView: View {
                 .frame(height: 50.0)
             if let biometric = viewModel.availableBiometric {
                 Button {
-                    viewModel.password = ""
                     viewModel.authenticateWithBiometrics()
                 } label: {
                     Image(systemName: biometric.imageNameForMethod)
@@ -144,6 +132,7 @@ struct AuthenticationView: View {
         .background(Color.black)
         
     }
+
 }
 
 struct AuthenticationView_Previews: PreviewProvider {
