@@ -9,7 +9,6 @@ import SwiftUI
 
 class PromptToEraseViewModel: ObservableObject {
     @Published var eraseButtonPressed = false
-    @Published var password: String = ""
     @Published var error: KeyManagerError?
     @Published var passwordState: PasswordEntryState = .empty
     var eraserUtil: EraserUtils
@@ -25,13 +24,19 @@ class PromptToEraseViewModel: ObservableObject {
     func performErase() {
         Task {
             do {
-                if try keyManager.checkPassword(password) == true {
+                guard case .valid(let string) = passwordState else {
+                    return
+                }
+
+                if try keyManager.checkPassword(string) == true {
                     try await eraserUtil.erase()
                     exit(0)
                 }
                 
             } catch let keyManagerError as KeyManagerError {
-                self.error = keyManagerError
+                await MainActor.run {
+                    self.error = keyManagerError
+                }
             } catch {
                 print("Error", error)
             }
