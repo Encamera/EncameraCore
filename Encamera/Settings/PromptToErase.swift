@@ -63,19 +63,11 @@ struct PromptToErase: View {
                         viewModel.passwordState = update
                     }))
                 }
-                    
-                
                 Spacer()
-                
-                
             }.padding()
                 .navigationTitle("Erase app data")
         }
-        
-        
     }
-    
-    
 }
 
 
