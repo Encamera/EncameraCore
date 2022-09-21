@@ -68,12 +68,14 @@ class CameraConfigurationServiceModel {
     var alertError: AlertError = AlertError()
     @Published var cameraMode: CameraMode = .photo
     var setupResult: SessionSetupResult = .notDetermined
+    @MainActor
     @Published var orientation: AVCaptureVideoOrientation = .portrait
 }
 
 actor CameraConfigurationService: CameraConfigurationServicable {
     
     let session = AVCaptureSession()
+    @MainActor
     let model: CameraConfigurationServiceModel
     
     private lazy var metadataProcessor = QRCodeCaptureProcessor()
@@ -273,14 +275,14 @@ extension CameraConfigurationService {
 //        return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
 //    }
     
-    func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) -> AsyncPhotoCaptureProcessor {
+    func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) async -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
             debugPrint("Could not capture photo")
             fatalError()
         }
         
         if let photoOutputConnection = self.photoOutput.connection(with: .video) {
-            photoOutputConnection.videoOrientation = model.orientation
+            photoOutputConnection.videoOrientation = await model.orientation
         }
         var photoSettings = AVCapturePhotoSettings()
         // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.

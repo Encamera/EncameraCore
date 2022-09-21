@@ -68,7 +68,6 @@ struct OnboardingView<Next>: View where Next: View {
         }
         
         .padding()
-        .background(Color.black)
         .navigationTitle(viewModel.title)
             
     }

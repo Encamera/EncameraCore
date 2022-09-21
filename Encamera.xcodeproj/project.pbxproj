@@ -14,6 +14,7 @@
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		190C3E0128D8D1900031F782 /* PasswordEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190C3E0028D8D1900031F782 /* PasswordEntry.swift */; };
+		190C3E2328DB64A70031F782 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190C3E2228DB64A70031F782 /* Color.swift */; };
 		194E2FDA28D59014001B93E6 /* ErrorDescribable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FD928D59014001B93E6 /* ErrorDescribable.swift */; };
 		194E2FDE28D6022E001B93E6 /* FileOperationBus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FDD28D6022E001B93E6 /* FileOperationBus.swift */; };
 		194E2FE028D607D9001B93E6 /* DecryptErrorExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194E2FDF28D607D9001B93E6 /* DecryptErrorExplanation.swift */; };
@@ -142,6 +143,7 @@
 		1585D15F7B92351433FED0B3 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
 		190C3E0028D8D1900031F782 /* PasswordEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordEntry.swift; sourceTree = "<group>"; };
+		190C3E2228DB64A70031F782 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
 		194E2FD928D59014001B93E6 /* ErrorDescribable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorDescribable.swift; sourceTree = "<group>"; };
 		194E2FDD28D6022E001B93E6 /* FileOperationBus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperationBus.swift; sourceTree = "<group>"; };
 		194E2FDF28D607D9001B93E6 /* DecryptErrorExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptErrorExplanation.swift; sourceTree = "<group>"; };
@@ -286,6 +288,14 @@
 				190C3E0028D8D1900031F782 /* PasswordEntry.swift */,
 			);
 			path = AuthenticationView;
+			sourceTree = "<group>";
+		};
+		190C3E2128DB649C0031F782 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				190C3E2228DB64A70031F782 /* Color.swift */,
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 		194E2FD828D58FFE001B93E6 /* Protocols */ = {
@@ -545,6 +555,7 @@
 		F8E25D1CB96BBE7C0604CA54 /* Encamera */ = {
 			isa = PBXGroup;
 			children = (
+				190C3E2128DB649C0031F782 /* Extensions */,
 				194E2FE128D61C65001B93E6 /* Settings */,
 				194E2FD828D58FFE001B93E6 /* Protocols */,
 				49A2EF989B2F8643105205DF /* Assets.xcassets */,
@@ -734,6 +745,7 @@
 				0AD0B0BEE77F8F725CA7EF49 /* DateUtils.swift in Sources */,
 				F4029706E597435C617F2936 /* DemoAuthManager.swift in Sources */,
 				A7FFA0723B19BF8AFC18E8F4 /* DemoCameraService.swift in Sources */,
+				190C3E2328DB64A70031F782 /* Color.swift in Sources */,
 				194E2FDE28D6022E001B93E6 /* FileOperationBus.swift in Sources */,
 				1D99F465F8AFC10EA75EDB1F /* DemoFileHelpers.swift in Sources */,
 				73D4C1417039EB366F9A914A /* DiskBlockReader.swift in Sources */,

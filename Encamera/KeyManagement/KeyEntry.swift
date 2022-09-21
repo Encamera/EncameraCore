@@ -88,7 +88,7 @@ struct KeyEntry: View {
                         Text("Paste the private key here.")
                     }
                 }
-                .background(Color.gray)
+                .background(Color.foregroundSecondary)
                 .padding()
                 Spacer()
             }

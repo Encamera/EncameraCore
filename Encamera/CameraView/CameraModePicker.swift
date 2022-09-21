@@ -62,12 +62,11 @@ struct CameraModePicker: View {
                         }
                     ) {
                         let itemActive = item.rawValue == stateModel.activeIndex
-                        let foreground = itemActive ? Color.yellow : Color.white
+                        let foreground = itemActive ? Color.activeCameraMode : Color.foregroundPrimary
                         Text(item.title)
                             .foregroundColor(foreground)
                         
                     }
-                    .foregroundColor(Color.white)
                     .transition(AnyTransition.slide)
                     .animation(.spring())
                 }
@@ -230,7 +229,6 @@ struct CameraModePicker_Previews: PreviewProvider {
         CameraModePicker(pressedAction: {mode in
             
         })
-            .background(Color.black)
             .environmentObject(model)
     }
 }

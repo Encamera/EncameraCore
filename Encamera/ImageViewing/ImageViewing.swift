@@ -125,7 +125,6 @@ struct ImageViewing<M: MediaDescribing>: View {
             viewModel.decryptAndSet()
         }
         .navigationBarTitleDisplayMode(.inline)
-        .background(Color.black)
     }
 }
 

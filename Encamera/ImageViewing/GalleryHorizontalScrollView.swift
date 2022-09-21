@@ -94,15 +94,6 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     }
     
 }
-extension Color {
-    static var random: Color {
-        return Color(
-            red: .random(in: 0...1),
-            green: .random(in: 0...1),
-            blue: .random(in: 0...1)
-        )
-    }
-}
 
 struct GalleryHorizontalScrollView: View {
     
@@ -231,10 +222,7 @@ struct GalleryHorizontalScrollView: View {
                 .simultaneously(with: magnificationGesture)
                 .simultaneously(with: tapGesture)
             )
-            
-            .background(Color.black)
         }
-        
     }
     
     private func scrollTo(media: EncryptedMedia, with proxy: ScrollViewProxy) {

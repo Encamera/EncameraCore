@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 enum PasswordEntryState: Equatable {
     case empty
@@ -16,18 +17,27 @@ enum PasswordEntryState: Equatable {
 class PasswordEntryViewModel: ObservableObject {
     typealias PasswordStateUpdate = (PasswordEntryState) -> Void
     @Published var password: String = ""
+    var passwordBinding: Binding<String>?
     var placeholderText = "Password"
     var keyManager: KeyManager
     var stateUpdate: PasswordStateUpdate
     @Published var attempts: Int = 0
     @Published var offset: CGSize = .zero
     @Published var passwordState: PasswordEntryState 
+    private var cancellables = Set<AnyCancellable>()
 
-    init(placeholderText: String = "Password", keyManager: KeyManager, stateUpdate: @escaping (PasswordEntryState) -> Void) {
+    init(placeholderText: String = "Password", keyManager: KeyManager, passwordBinding: Binding<String>? = nil, stateUpdate: @escaping (PasswordEntryState) -> Void) {
+        self.passwordBinding = passwordBinding
         self.placeholderText = placeholderText
         self.stateUpdate = stateUpdate
         self.keyManager = keyManager
         self.passwordState = .empty
+        
+        $password.sink { pass in
+            passwordBinding?.wrappedValue = pass
+        }.store(in: &cancellables)
+        
+        
     }
     
     func validatePassword() {

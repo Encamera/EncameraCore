@@ -48,7 +48,6 @@ struct AddExchangedKeyConfirmation: View {
             
             
         }
-        .background(Color.black)
         .navigationTitle("Confirm adding key")
     }
 }

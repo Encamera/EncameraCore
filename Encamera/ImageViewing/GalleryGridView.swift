@@ -119,7 +119,7 @@ struct GalleryGridView<Content: View>: View {
                                 HStack {
                                     if viewModel.downloadInProgress {
                                         ProgressView()
-                                            .tint(Color.white)
+                                            .tint(Color.foregroundPrimary)
                                         Spacer()
                                             .frame(width: 5)
                                     } else {
@@ -131,7 +131,7 @@ struct GalleryGridView<Content: View>: View {
                                 
                             }.foregroundColor(.white)
                                 .padding(5)
-                                .background(Color.blue)
+                                .background(Color.actionButton)
                                 .cornerRadius(10)
                         }
                         Spacer()
@@ -171,7 +171,6 @@ struct GalleryGridView<Content: View>: View {
             .task {
                 await viewModel.enumerateMedia()
             }
-            .background(Color.black)
             .screenBlocked()
             .navigationBarTitle(viewModel.privateKey.name, displayMode: .large)
             

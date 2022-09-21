@@ -125,7 +125,6 @@ struct KeyPickerView_Previews: PreviewProvider {
         NavigationView {
             
             KeyDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
-                .preferredColorScheme(.dark)
         }
     }
 }

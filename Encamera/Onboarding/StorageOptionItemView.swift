@@ -22,7 +22,7 @@ struct StorageTypeOptionItemView: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .resizable()
-                        .foregroundColor(Color.green)
+                        .foregroundColor(Color.activeKey)
                         
                         .frame(width: 20, height: 20)
                         .offset(x: -7, y: 7)
@@ -32,7 +32,7 @@ struct StorageTypeOptionItemView: View {
                         .aspectRatio(contentMode: .fit)
                     Text(storageType.title)
                 }.padding().frame(width: 100, height: 100)
-                    .overlay(background.stroke(Color.gray, lineWidth: 3))
+                    .overlay(background.stroke(Color.foregroundSecondary, lineWidth: 3))
                 
             }
         }

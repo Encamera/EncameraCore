@@ -27,15 +27,15 @@ struct CameraView: View {
         }, label: {
             if cameraModel.isRecordingVideo {
                 Circle()
-                    .foregroundColor(.red)
+                    .foregroundColor(.videoRecordingIndicator)
                     .frame(width: Constants.minCaptureButtonEdge, height: Constants.minCaptureButtonEdge, alignment: .center)
             } else {
                 Circle()
-                    .foregroundColor(.white)
+                    .foregroundColor(.foregroundPrimary)
                     .frame(maxWidth: Constants.minCaptureButtonEdge, maxHeight: Constants.minCaptureButtonEdge, alignment: .center)
                     .overlay(
                         Circle()
-                            .stroke(Color.black.opacity(Constants.innerCaptureButtonStroke), lineWidth: Constants.innerCaptureButtonLineWidth)
+                            .stroke(Color.background, lineWidth: Constants.innerCaptureButtonLineWidth)
                             .frame(maxWidth: Constants.innerCaptureButtonSize, maxHeight: Constants.innerCaptureButtonSize, alignment: .center)
                     )
             }
@@ -67,11 +67,11 @@ struct CameraView: View {
             cameraModel.flipCamera()
         }, label: {
             Circle()
-                .foregroundColor(Color.gray.opacity(0.2))
+                .foregroundColor(Color.foregroundSecondary)
                 .frame(width: 60, height: 60, alignment: .center)
                 .overlay(
                     Image(systemName: "camera.rotate.fill")
-                        .foregroundColor(.white))
+                        .foregroundColor(.background))
         })
         .rotateForOrientation()
     }
@@ -111,7 +111,9 @@ struct CameraView: View {
                     })
                 )
                 .onChange(of: rotationFromOrientation, perform: { newValue in
-                    cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
+                    Task {
+                        cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
+                    }
                 })
                 .alert(isPresented: $cameraModel.showAlertError, content: {
                     Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
@@ -138,9 +140,13 @@ struct CameraView: View {
                 } label: {
                     Image(systemName: "key.fill")
                         .frame(width: 44, height: 44)
+                        .foregroundColor(.foregroundPrimary)
+                        .symbolRenderingMode(.monochrome)
+
                 }
                 .rotateForOrientation()
                 Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
+                    .foregroundColor(.foregroundPrimary)
                 Spacer()
                 Button(action: {
                     cameraModel.switchFlash()
@@ -159,7 +165,7 @@ struct CameraView: View {
             if cameraModel.isRecordingVideo {
                 Text("\(cameraModel.recordingDuration.durationText)")
                     .padding(5)
-                    .background(Color.red)
+                    .background(Color.videoRecordingIndicator)
                     .cornerRadius(10)
                     .foregroundColor(.white)
             }
@@ -214,7 +220,6 @@ struct CameraView: View {
                 .navigationBarHidden(true)
                 .navigationTitle("")
             }
-            .background(Color.black)
             .screenBlocked()
             .alert(isPresented: $cameraModel.showAlertForMissingKey) {
                 
@@ -261,7 +266,7 @@ private extension AVCaptureDevice.FlashMode {
         case .auto, .on:
             return .yellow
         default:
-            return .white
+            return .foregroundPrimary
         }
     }
 }

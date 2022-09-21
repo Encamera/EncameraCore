@@ -39,11 +39,11 @@ struct KeyExchange: View {
                         .font(.largeTitle)
                         .frame(maxWidth: .infinity)
                         .foregroundColor(.white)
-                        .background(Color.gray)
+                        .background(Color.foregroundSecondary)
                         .opacity(viewModel.blurView ? 1.0 : 0.0)
                 }
                 
-                .background(Color.gray)
+                .background(Color.foregroundSecondary)
                 .cornerRadius(20)
                 
                 Text("Hold to reveal")
@@ -58,7 +58,6 @@ struct KeyExchange: View {
         }
         .padding(30)
         .navigationTitle("Share Key")
-        .background(Color.black)
         .screenBlocked()
     }
     

@@ -60,7 +60,7 @@ class OnboardingViewModel: ObservableObject {
     
     private var onboardingManager: OnboardingManaging
     private var passwordValidator = PasswordValidator()
-    private var keyManager: KeyManager
+    var keyManager: KeyManager
     private var authManager: AuthManager
     
     
@@ -245,12 +245,13 @@ private extension MainOnboardingView {
                 }) {
                     AnyView(
                         VStack {
-                            EncameraTextField("Password", type: .secure, text: $viewModel.existingPassword)
-                            if let existingPasswordCorrect = viewModel.existingPasswordCorrect, existingPasswordCorrect == false {
-                                Group {
-                                    Text("Incorrect password").alertText()
+                            PasswordEntry(viewModel: .init(keyManager: viewModel.keyManager, passwordBinding: $viewModel.existingPassword, stateUpdate: { state in
+                                guard case .valid(let existingPassword) = state else {
+                                    return
                                 }
-                            }
+                                viewModel.existingPassword = existingPassword
+                                try? viewModel.checkExistingPasswordAndAuth()
+                            }))
                         }
                     )
                 }
@@ -375,12 +376,12 @@ Each key will store data in its own directory.
         
         if isSelected.wrappedValue == true {
             output
-                .foregroundColor(Color.black)
-                .background(background.fill(Color.white))
+                .foregroundColor(Color.background)
+                .background(background.fill(Color.foregroundPrimary))
 
         } else {
             output
-                .overlay(background.stroke(Color.gray, lineWidth: 3))
+                .overlay(background.stroke(Color.foregroundSecondary, lineWidth: 3))
 
         }
     }
