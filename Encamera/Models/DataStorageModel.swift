@@ -86,4 +86,15 @@ extension DataStorageModel {
             }
         })
     }
+    
+    func deleteAllFiles() throws {
+        for url in enumeratorForStorageDirectory() {
+            do {
+                try FileManager.default.removeItem(at: url)
+                debugPrint("Deleted item at \(url)")
+            } catch {
+                debugPrint("Error deleting item at \(url): ", error)
+            }
+        }
+    }
 }

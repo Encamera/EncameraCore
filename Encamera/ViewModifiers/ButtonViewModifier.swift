@@ -14,7 +14,7 @@ struct ButtonViewModifier: ViewModifier {
         content
             .font(.system(size: 16, weight: .bold))
             .padding(7.0)
-            .foregroundColor(.black)
+            .foregroundColor(.background)
             .background(Color.foregroundPrimary)
             .cornerRadius(10)
             .frame(minHeight: 60)

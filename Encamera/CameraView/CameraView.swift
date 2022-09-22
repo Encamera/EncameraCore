@@ -71,7 +71,7 @@ struct CameraView: View {
                 .frame(width: 60, height: 60, alignment: .center)
                 .overlay(
                     Image(systemName: "camera.rotate.fill")
-                        .foregroundColor(.background))
+                        .foregroundColor(.foregroundPrimary))
         })
         .rotateForOrientation()
     }

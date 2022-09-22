@@ -285,11 +285,17 @@ extension DiskFileAccess: FileWriter {
         try FileManager.default.removeItem(at: url)
     }
     func deleteAllMedia() async throws {
-        let local = LocalStorageModel(keyName: "")
-        try FileManager.default.removeItem(at: local.baseURL)
-        
-        let remote = iCloudStorageModel(keyName: "")
-        try FileManager.default.removeItem(at: local.baseURL)
+        let storset = DataStorageUserDefaultsSetting()
+        for type in StorageType.allCases {
+            guard case .available = storset.isStorageTypeAvailable(type: type) else {
+                continue
+            }
+            do {
+                try type.modelForType.init(keyName: "").deleteAllFiles()
+            } catch {
+                print("Could not delete all files for \(type): ", error)
+            }
+        }
     }
     
     func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws {
