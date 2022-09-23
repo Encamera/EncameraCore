@@ -306,25 +306,7 @@ private extension CameraConfigurationService {
     
     //  MARK: Session Management
     
-    private func configureVolumeButtons() {
-        //        let audioSession = AVAudioSession.sharedInstance()
-        //        do {
-        //            try audioSession.setActive(true)
-        //        } catch {
-        //            fatalError("Could not configure audio session \(error.localizedDescription)")
-        //        }
-        //
-        //        volumeObservation = audioSession.observe(\.outputVolume) { [weak self] _, _ in
-        //            DispatchQueue.main.async {
-        //                self?.capturePhoto()
-        //            }
-        //        }
-        //        DispatchQueue.main.async {
-        //            let volumeView = MPVolumeView(frame: .zero)
-        //            volumeView.layer.opacity = 0.0
-        //            UIApplication.shared.keyWindow?.addSubview(volumeView)
-        //        }
-    }
+    
     
     /// Add photo output to session
     /// Note: must call commit() to session after this
@@ -434,7 +416,6 @@ private extension CameraConfigurationService {
         guard model.setupResult == .authorized else {
             return
         }
-        configureVolumeButtons()
         do {
             session.beginConfiguration()
             defer {

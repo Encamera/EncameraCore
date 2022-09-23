@@ -9,6 +9,7 @@ import Foundation
 import AVFoundation
 import Combine
 import UIKit
+import MediaPlayer
 
 final class CameraModel: ObservableObject {
     var service: CameraConfigurationService
@@ -63,6 +64,11 @@ final class CameraModel: ObservableObject {
                 storageSettingsManager: DataStorageUserDefaultsSetting()
             )
         }
+        NotificationUtils.hardwareButtonPressedPublisher.sink { _ in
+            Task {
+                try await self.captureButtonPressed()
+            }
+        }.store(in: &cancellables)
         FileOperationBus.shared.operations.sink { operation in
             Task {
                 await self.loadThumbnail()
@@ -74,6 +80,7 @@ final class CameraModel: ObservableObject {
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)
+
     }
     
     

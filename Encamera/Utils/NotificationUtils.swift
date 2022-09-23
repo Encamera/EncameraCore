@@ -13,6 +13,18 @@ struct NotificationUtils {
     
     private static var noOp = false
     
+    enum Keys {
+        static var hardwareButtonPressedKey = "hardwareButtonPressedKey"
+    }
+    
+    static func sendHardwareButtonPressed() {
+        NotificationCenter.default.post(name: Notification.Name(Keys.hardwareButtonPressedKey), object: "pressed")
+    }
+    
+    static var hardwareButtonPressedPublisher: AnyPublisher<Notification, Never> {
+        return publisher(for: Notification.Name(Keys.hardwareButtonPressedKey))
+    }
+    
     static var didBecomeActivePublisher: AnyPublisher<Notification, Never> {
         
         return publisher(for: UIApplication.didBecomeActiveNotification)
@@ -20,7 +32,6 @@ struct NotificationUtils {
     
     static var didEnterBackgroundPublisher: AnyPublisher<Notification, Never> {
         return publisher(for: UIApplication.didEnterBackgroundNotification)
-            
     }
     
     static var willResignActivePublisher: AnyPublisher<Notification, Never> {

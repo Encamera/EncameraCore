@@ -36,6 +36,9 @@ class AsyncPhotoCaptureProcessor: NSObject {
     
     func takePhoto() async throws -> PhotoCaptureProcessorOutput {
         return try await withCheckedThrowingContinuation({ (continuation: PhotoCaptureProcessorContinuation) in
+            guard self.photoOutput.connections.count > 0 else {
+                return
+            }
             self.continuation = continuation
             self.photoOutput.capturePhoto(with: self.requestedPhotoSettings, delegate: self)
         })

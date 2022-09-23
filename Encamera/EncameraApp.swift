@@ -1,6 +1,6 @@
 import SwiftUI
 import Combine
-
+import MediaPlayer
 @main
 struct EncameraApp: App {
     class ViewModel: ObservableObject {
@@ -133,7 +133,6 @@ struct EncameraApp: App {
     var body: some Scene {
         
         WindowGroup {
-
             CameraView(cameraModel: .init(
                 keyManager: viewModel.keyManager,
                 authManager: viewModel.authManager,
