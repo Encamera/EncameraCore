@@ -28,7 +28,8 @@ struct KeyExchange: View {
             
             VStack(alignment: .center) {
                 Text("Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key.")
-                    .foregroundColor(.white)
+                    .fontType(.small)
+                
                 Spacer()
                     .frame(height: 30)
                 ZStack {

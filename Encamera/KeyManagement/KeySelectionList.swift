@@ -94,7 +94,9 @@ struct KeySelectionList: View {
                 }
             }
             if viewModel.keys.count > 0 {
-                Section(header: Text("Keys").foregroundColor(.white)) {
+                Section(header: Text("Keys")
+                    .fontType(.small)
+                    .foregroundColor(.white)) {
                     
                     if let activeKey = viewModel.activeKey {
                         keyCell(model: activeKey, isActive: true)
@@ -135,12 +137,14 @@ struct KeySelectionList: View {
                     HStack {
                         Text("Active")
                         Image(systemName: "key.fill")
-                    }.foregroundColor(.green)
+                    }
+                    
+                    .foregroundColor(.green)
                     
                 } else {
                     Image(systemName: "key")
                 }
-            }
+            }.fontType(.small)
         }
     }
 }

@@ -149,6 +149,7 @@ struct SettingsView: View {
                 }
                 
             }
+            .fontType(.small)
             .toolbar {
                 Button("Save") {
                     viewModel.savePassword()

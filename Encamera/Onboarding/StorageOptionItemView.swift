@@ -31,6 +31,7 @@ struct StorageTypeOptionItemView: View {
                     Image(systemName: storageType.iconName).resizable()
                         .aspectRatio(contentMode: .fit)
                     Text(storageType.title)
+                        
                 }.padding().frame(width: 100, height: 100)
                     .overlay(background.stroke(Color.foregroundSecondary, lineWidth: 3))
                 
@@ -55,7 +56,9 @@ struct StorageTypeOptionItemView: View {
                 Spacer()
                 
             }.fixedSize(horizontal: false, vertical: true)
-        }.onTapGesture {
+        }
+        .fontType(.small)
+        .onTapGesture {
             isSelected = true
         }
     }

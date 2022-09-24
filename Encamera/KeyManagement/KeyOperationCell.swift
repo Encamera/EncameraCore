@@ -17,7 +17,9 @@ struct KeyOperationCell: View {
             Image(systemName: imageName)
             Text(title).font(.title)
             Spacer()
-        }.padding()
+        }
+        .fontType(.small)
+        .padding()
     }
 }
 

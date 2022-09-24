@@ -136,9 +136,8 @@ You can have multiple keys for different purposes, e.g. one named "Documents" an
                                 
                                 
                             if let keySaveError = viewModel.keySaveError {
-                                Group {
-                                    Text(keySaveError.displayDescription)
-                                }.foregroundColor(.red)
+                                Text(keySaveError.displayDescription)
+                                    .alertText()
                             }
                         }
                     )

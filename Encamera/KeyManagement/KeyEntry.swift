@@ -86,6 +86,7 @@ struct KeyEntry: View {
                         .padding()
                     if $viewModel.enteredKeyString.wrappedValue.count == 0 {
                         Text("Paste the private key here.")
+                            .fontType(.medium)
                     }
                 }
                 .background(Color.foregroundSecondary)
@@ -98,7 +99,7 @@ struct KeyEntry: View {
                     
                     VStack {
                         Text("Where do you want to save this key's media?")
-                            .font(.headline)
+                            .fontType(.medium)
                         StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType)).padding()
                         
                     }.toolbar {

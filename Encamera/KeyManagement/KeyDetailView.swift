@@ -92,7 +92,9 @@ struct KeyDetailView: View {
                     Text("Delete")
                         .foregroundColor(.red)
                 }
-            }.frame(height: 300)
+            }
+            .frame(height: 300)
+            .fontType(.small)
         }
         .foregroundColor(.blue)
         .alert("Delete Key?", isPresented: $isShowingAlertForClearKey, actions: {

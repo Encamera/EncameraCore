@@ -31,10 +31,12 @@ struct KeyInformation: View {
                     Text("Created \(DateUtils.dateOnlyString(from: key.creationDate))")
                         .font(.caption)
                     Text("Key length: \(key.keyBytes.count)")
-                }.padding()
+                }
+                
+                .padding()
             }
             Spacer()
-        }
+        }.fontType(.small)
     }
 }
 

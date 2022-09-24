@@ -146,6 +146,7 @@ struct CameraView: View {
                 }
                 .rotateForOrientation()
                 Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
+                    .fontType(.small)
                     .foregroundColor(.foregroundPrimary)
                 Spacer()
                 Button(action: {
@@ -164,6 +165,7 @@ struct CameraView: View {
             .foregroundColor(.white)
             if cameraModel.isRecordingVideo {
                 Text("\(cameraModel.recordingDuration.durationText)")
+                    .fontType(.small)
                     .padding(5)
                     .background(Color.videoRecordingIndicator)
                     .cornerRadius(10)

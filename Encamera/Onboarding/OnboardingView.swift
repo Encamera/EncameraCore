@@ -10,7 +10,7 @@ import SwiftUI
 
 struct OnboardingViewViewModel {
     var title: String
-    var subheading: String
+    var subheading: LocalizedStringKey
     var image: Image
     var bottomButtonTitle: String
     var bottomButtonAction: (() throws -> Void)?
@@ -35,6 +35,7 @@ struct OnboardingView<Next>: View where Next: View {
             let frame = geo.frame(in: .global)
             VStack(alignment: .leading, spacing: 2) {
                 Text(viewModel.subheading)
+                    .fontType(.small)
                 
 //
 //                viewModel.image
@@ -63,10 +64,9 @@ struct OnboardingView<Next>: View where Next: View {
                 
 //                Spacer().frame(height: 50.0)
             }
-            .foregroundColor(.white)
             
         }
-        
+        .foregroundColor(.foregroundPrimary)
         .padding()
         .navigationTitle(viewModel.title)
             

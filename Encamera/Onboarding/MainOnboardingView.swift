@@ -230,14 +230,16 @@ private extension MainOnboardingView {
         switch flow {
         case .intro:
             return .init(
-                title: "Welcome!",
+                title: "Take back your media",
                 subheading: """
-                                            Thank you for downloading Encamera.\n
-                                            Encamera encrypts every photo it takes,
-                                            preventing your most sensitive and private
-                                            media from being leaked or hacked.\n
-                                            
-                                            """,
+                            Encamera encrypts all the media it creates.\n
+                            Take back control of what is rightfully yours, your privacy,
+                            with Encamera.\n
+                            Your media, once encrypted, stays away from the prying eyes
+                            of AI, media analysis, and other violations of privacy.\n
+                            Take pictures knowing that they are for **your eyes only**,
+                            not to be fed into some machine learning algorithm for training AI.
+                            """,
                              
                 image: Image(systemName: "camera"),
                 bottomButtonTitle: "Next")
@@ -320,7 +322,8 @@ You can have multiple keys for different purposes, e.g. one named "Documents" an
                                 .noAutoModification()
                                 
                             if let keySaveError = viewModel.keySaveError {
-                                Text(keySaveError.displayDescription).alertText()
+                                Text(keySaveError.displayDescription)
+                                    .alertText()
                             }
                         }
                     )
@@ -375,6 +378,7 @@ Each key will store data in its own directory.
                     .aspectRatio(contentMode: .fit)
                 
                 Text(text)
+                    .fontType(.small)
             }.padding()
         })
         .frame(width: 100, height: 100)

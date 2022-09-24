@@ -64,6 +64,7 @@ struct CameraModePicker: View {
                         let itemActive = item.rawValue == stateModel.activeIndex
                         let foreground = itemActive ? Color.activeCameraMode : Color.foregroundPrimary
                         Text(item.title)
+                            .fontType(.small)
                             .foregroundColor(foreground)
                         
                     }

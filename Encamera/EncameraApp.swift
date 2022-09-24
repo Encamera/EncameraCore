@@ -92,8 +92,6 @@ struct EncameraApp: App {
                         self.rotationFromOrientation = rotation
                     }
                 }.store(in: &cancellables)
-            setupAppearances()
-
         }
         
         func copyOpenedFile(media: EncryptedMedia) {
@@ -114,17 +112,6 @@ struct EncameraApp: App {
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
             }
-        }
-        
-        private func setupAppearances() {
-            let navBarAppearance = UINavigationBar.appearance()
-            navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
-            navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor.white]
-            navBarAppearance.backgroundColor = .black
-            UITableView.appearance().separatorStyle = .none
-            UITableViewCell.appearance().backgroundColor = .gray
-            UITableView.appearance().backgroundColor = .black
-            
         }
     }
     
@@ -161,6 +148,7 @@ struct EncameraApp: App {
                         }
                     } else {
                         Text("No private key or media found.")
+                            .fontType(.medium)
                     }
                 }
                 .overlay {

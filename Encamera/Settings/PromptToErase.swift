@@ -82,14 +82,16 @@ struct PromptToErase: View {
             VStack(spacing: 10) {
                 confirmationPlaceholder
                     .frame(maxWidth: .infinity, minHeight: 60)
-                Text(viewModel.scope.explanationString)
-                Text("Hold to erase")
-                    .gesture(DragGesture(minimumDistance: 0).onChanged({ ended in
-                        viewModel.holding = true
-                    }).onEnded({ _ in
-                        viewModel.holding = false
-                    }))
-                    .primaryButton()
+                Group {
+                    Text(viewModel.scope.explanationString)
+                    Text("Hold to erase")
+                        .gesture(DragGesture(minimumDistance: 0).onChanged({ ended in
+                            viewModel.holding = true
+                        }).onEnded({ _ in
+                            viewModel.holding = false
+                        }))
+                        .primaryButton()
+                }.fontType(.small)
                 Spacer()
             }.padding()
                 .navigationTitle("Erase app data")
@@ -100,7 +102,7 @@ struct PromptToErase: View {
         var confirmationPlaceholder: AnyView = AnyView(Color.clear)
         if viewModel.holding == true {
             confirmationPlaceholder = AnyView(Text("Erasing in \(viewModel.countdown)")
-                .font(.largeTitle)
+                .fontType(.large)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .foregroundColor(.background)
                                               

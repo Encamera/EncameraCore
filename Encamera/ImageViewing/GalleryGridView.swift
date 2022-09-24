@@ -108,6 +108,7 @@ struct GalleryGridView<Content: View>: View {
                             Spacer()
                         } else {
                             Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
+                                .fontType(.small)
                                 .foregroundColor(.white)
                         }
                         
@@ -124,6 +125,7 @@ struct GalleryGridView<Content: View>: View {
                                             .frame(width: 5)
                                     } else {
                                         Text("\(viewModel.downloadPendingMediaCount)")
+                                            .fontType(.small)
                                     }
                                     Image(systemName: "icloud.and.arrow.down")
                                 }

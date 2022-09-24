@@ -40,7 +40,9 @@ struct KeySelectionCell: View {
             } else {
                 Image(systemName: "key")
             }
-        }.padding()
+        }
+        .fontType(.small)
+        .padding()
     }
 }
 

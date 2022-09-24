@@ -126,6 +126,12 @@
 			</dict>
 		</dict>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Lato-Regular.ttf</string>
+		<string>Fonts/Lato-Black.ttf</string>
+		<string>Fonts/Lato-Thin.ttf</string>
+	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>
