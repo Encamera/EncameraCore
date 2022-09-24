@@ -33,6 +33,9 @@ class KeySelectionListViewModel: ObservableObject {
     
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
+        keyManager.keyPublisher.sink { _ in
+            self.loadKeys()
+        }.store(in: &cancellables)
     }
     
     func loadKeys() {
@@ -45,6 +48,8 @@ class KeySelectionListViewModel: ObservableObject {
             }
             if let currentKey = keyManager.currentKey {
                 activeKey = keys.first(where: {$0.key == currentKey})
+            } else {
+                activeKey = nil
             }
             selectionError = nil
         } catch {
