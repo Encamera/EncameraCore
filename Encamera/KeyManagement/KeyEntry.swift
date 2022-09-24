@@ -99,7 +99,7 @@ struct KeyEntry: View {
                     VStack {
                         Text("Where do you want to save this key's media?")
                             .font(.headline)
-                        StorageSettingView(viewModel: .init(), keyStorageType: $viewModel.keyStorageType).padding()
+                        StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType)).padding()
                         
                     }.toolbar {
                         Button("Save") {

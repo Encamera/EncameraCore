@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct StorageAvailabilityModel: Identifiable {
+struct StorageAvailabilityModel: Identifiable, Equatable {
     let storageType: StorageType
     let availability: StorageType.Availability
     var id: StorageType {
@@ -19,7 +19,7 @@ enum StorageType: String {
     case icloud
     case local
     
-    enum Availability {
+    enum Availability: Equatable {
         case available
         case unavailable(reason: String)
     }

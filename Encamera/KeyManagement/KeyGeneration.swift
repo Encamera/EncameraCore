@@ -26,6 +26,12 @@ class KeyGenerationViewModel: ObservableObject {
     
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
+        Task {
+            await MainActor.run {
+                self.keyStorageType = DataStorageUserDefaultsSetting().preselectedStorageSetting?.storageType
+            }
+        }
+
     }
     
     @MainActor
@@ -153,7 +159,7 @@ Each key will store data in its own directory.
             } content: {
                 AnyView(
                     VStack {
-                        StorageSettingView(keyStorageType: $viewModel.keyStorageType)
+                        StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType))
                         if case .missingStorageType = viewModel.generalError {
                             Text("Select a place to keep media for this key.")
                                 .alertText()

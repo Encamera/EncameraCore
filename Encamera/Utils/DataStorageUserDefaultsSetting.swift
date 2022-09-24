@@ -14,6 +14,10 @@ protocol DataStorageSetting {
 
 extension DataStorageSetting {
     
+    var preselectedStorageSetting: StorageAvailabilityModel? {
+        storageAvailabilities().filter({$0.availability == .available}).first
+    }
+    
     func isStorageTypeAvailable(type: StorageType) -> StorageType.Availability {
         switch type {
         case .icloud:

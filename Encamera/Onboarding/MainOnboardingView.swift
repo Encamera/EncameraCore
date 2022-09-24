@@ -70,6 +70,11 @@ class OnboardingViewModel: ObservableObject {
         self.keyManager = keyManager
         self.authManager = authManager
         onboardingFlow = onboardingManager.generateOnboardingFlow()
+        Task {
+            await MainActor.run {
+                self.keyStorageType = DataStorageUserDefaultsSetting().preselectedStorageSetting?.storageType
+            }
+        }
     }
     
     func validatePassword() -> PasswordValidation {
@@ -335,7 +340,7 @@ Each key will store data in its own directory.
             } content: {
                 AnyView(
                     VStack {
-                        StorageSettingView(keyStorageType: $viewModel.keyStorageType)
+                        StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType))
                         if case .missingStorageType = viewModel.generalError as? OnboardingViewError {
                             Text("Please select a storage location.")
                                 .alertText()

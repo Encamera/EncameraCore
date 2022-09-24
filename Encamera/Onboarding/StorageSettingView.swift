@@ -10,27 +10,29 @@ import SwiftUI
 class StorageSettingViewModel: ObservableObject {
     
     @Published var storageAvailabilities: [StorageAvailabilityModel] = DataStorageUserDefaultsSetting().storageAvailabilities()
-    
-    init(storageAvailabilities: [StorageAvailabilityModel] = DataStorageUserDefaultsSetting().storageAvailabilities()) {
-        self.storageAvailabilities = storageAvailabilities
+    var keyStorageType: Binding<StorageType?>
+    init(keyStorageType: Binding<StorageType?>) {
+        self.keyStorageType = keyStorageType
     }
 }
 
 struct StorageSettingView: View {
     
-    @StateObject var viewModel: StorageSettingViewModel = StorageSettingViewModel()
-    @Binding var keyStorageType: StorageType?
+    @StateObject var viewModel: StorageSettingViewModel
     var body: some View {
         VStack(spacing: 20) {
-            
             ForEach(viewModel.storageAvailabilities) { data in
-                let binding = Binding {
-                    data.storageType == keyStorageType
+                let binding = Binding<Bool> {
+                    if data.storageType == viewModel.keyStorageType.wrappedValue {
+                        return true
+                    }
+                    return data.storageType == viewModel.keyStorageType.wrappedValue
                 } set: { value in
-                    guard case .available = data.availability else {
+                    guard value == true,
+                          case .available = data.availability else {
                         return
                     }
-                    keyStorageType = data.storageType
+                    viewModel.keyStorageType.wrappedValue = data.storageType
                 }
                 StorageTypeOptionItemView(
                     storageType: data.storageType,
@@ -44,6 +46,6 @@ struct StorageSettingView: View {
 
 struct StorageSettingView_Previews: PreviewProvider {
     static var previews: some View {
-        StorageSettingView(viewModel: .init(storageAvailabilities: [.init(storageType: .local, availability: .available), .init(storageType: .icloud, availability: .available)]), keyStorageType: .constant(.local))
+        StorageSettingView(viewModel: .init(keyStorageType: .constant(.local)))
     }
 }
