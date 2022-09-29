@@ -13,7 +13,7 @@ struct OnboardingViewViewModel {
     var subheading: LocalizedStringKey
     var image: Image
     var bottomButtonTitle: String
-    var bottomButtonAction: (() throws -> Void)?
+    var bottomButtonAction: (() async throws -> Void)?
     var content: (() -> AnyView)?
 }
 
@@ -50,19 +50,20 @@ struct OnboardingView<Next>: View where Next: View {
                 } label: {
                 }.isDetailLink(false)
                 Spacer()
-                Button(viewModel.bottomButtonTitle, action: {
-                    do {
-                        try viewModel.bottomButtonAction?()
-                        nextActive = true
-                    } catch {
-                        print("Error on bottom button action", error)
+                Text(viewModel.bottomButtonTitle)
+                    .frame(width: frame.width)
+                    .primaryButton()
+                    .onTapGesture {
+                        Task {
+                            do {
+                                try await viewModel.bottomButtonAction?()
+                                nextActive = true
+                            } catch {
+                                print("Error on bottom button action", error)
+                            }
+                        }
                     }
-                })
-                .frame(width: frame.width)
-                .primaryButton()
                 
-                
-//                Spacer().frame(height: 50.0)
             }
             
         }

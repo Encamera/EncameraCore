@@ -85,13 +85,13 @@ struct KeySelectionList: View {
                 } label: {
                     KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
                 }
-                KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
-                    guard let doc = try? viewModel.keyManager.createBackupDocument() else {
-                        return
-                    }
-                    let pasteboard = UIPasteboard.general
-                    pasteboard.string = doc
-                }
+//                KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
+//                    guard let doc = try? viewModel.keyManager.createBackupDocument() else {
+//                        return
+//                    }
+//                    let pasteboard = UIPasteboard.general
+//                    pasteboard.string = doc
+//                }
             }
             if viewModel.keys.count > 0 {
                 Section(header: Text("Keys")

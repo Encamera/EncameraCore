@@ -48,12 +48,13 @@ struct KeyExchange: View {
                 .cornerRadius(20)
                 
                 Text("Hold to reveal")
+                    .primaryButton()
                     .gesture(DragGesture(minimumDistance: 0).onChanged({ ended in
                         setBlur(to: false)
                     }).onEnded({ ended in
                         setBlur(to: true)
                     }))
-                    .primaryButton()
+                    
 
             }
         }
