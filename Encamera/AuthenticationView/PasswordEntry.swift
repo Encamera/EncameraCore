@@ -85,7 +85,6 @@ struct PasswordEntry: View {
                 }
                 
             }
-            let _ = print("passwordState", viewModel.passwordState)
             if case .invalid = viewModel.passwordState {
                 Text("Invalid Password")
                     .alertText()

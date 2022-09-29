@@ -31,10 +31,17 @@ struct EncameraApp: App {
             self.keyManager = manager
             
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager, settingsManager: settingsManager)
-            self.onboardingManager.observables.$shouldShowOnboarding.dropFirst().sink { value in
+            self.onboardingManager
+                .observables
+                .$shouldShowOnboarding
+                .dropFirst()
+                .sink { value in
                 self.showOnboarding = value
             }.store(in: &cancellables)
-            self.authManager.isAuthenticatedPublisher.sink { value in
+            self.authManager
+                .isAuthenticatedPublisher
+                .receive(on: DispatchQueue.main)
+                .sink { value in
                 self.isAuthenticated = value
             }.store(in: &cancellables)
             

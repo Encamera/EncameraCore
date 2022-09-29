@@ -157,22 +157,20 @@ class OnboardingViewModel: ObservableObject {
         }
     }
     
-    func saveState() {
-        Task {
-            
-            do {
-                let savedState = OnboardingState.completed
-                if existingPassword.isEmpty == false {
-                    try authManager.authorize(with: existingPassword, using: keyManager)
-                } else if let storageType = await keyStorageType {
-                    try authManager.authorize(with: password1, using: keyManager)
-                    try keyManager.generateNewKey(name: keyName, storageType: storageType)
-                }
-                try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
-                
-            } catch {
-                try await handle(error: error)
+    func saveState() async throws {
+        
+        do {
+            let savedState = OnboardingState.completed
+            if existingPassword.isEmpty == false {
+                try authManager.authorize(with: existingPassword, using: keyManager)
+            } else if let storageType = await keyStorageType {
+                try authManager.authorize(with: password1, using: keyManager)
+                try keyManager.generateNewKey(name: keyName, storageType: storageType)
             }
+            try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
+            
+        } catch {
+            try await handle(error: error)
         }
     }
 }
@@ -356,11 +354,11 @@ Each key will store data in its own directory.
         case .finished:
             return .init(
                 title: "Done!",
-                subheading: "All set up! Your captured media is now protected with top-notch encryption.",
+                subheading: "All set up! You're now ready to take photos securely with top-notch encryption.",
                 image: Image(systemName: "faceid"),
                 bottomButtonTitle: "Done",
                 bottomButtonAction: {
-                    viewModel.saveState()
+                    try await viewModel.saveState()
                     throw OnboardingViewError.onboardingEnded
                 })
         }

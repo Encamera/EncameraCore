@@ -107,7 +107,7 @@ class DeviceAuthManager: AuthManager {
     }
     
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
-        isAuthenticatedSubject.receive(on: DispatchQueue.main).eraseToAnyPublisher()
+        isAuthenticatedSubject.eraseToAnyPublisher()
     }
     
     private(set) var isAuthenticated: Bool = false {
