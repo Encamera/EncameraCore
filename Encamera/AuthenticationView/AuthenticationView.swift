@@ -98,6 +98,7 @@ struct AuthenticationView: View {
     
     var body: some View {
         VStack {
+            Image("Logo").frame(height: 100)
             PasswordEntry(viewModel: .init(
                 keyManager: viewModel.keyManager, stateUpdate: { update in
                     if case .valid(let password) = update {
