@@ -15,7 +15,8 @@ struct KeyOperationCell: View {
     var body: some View {
         HStack {
             Image(systemName: imageName)
-            Text(title).font(.title)
+            Text(title)
+                .fontType(.medium)
             Spacer()
         }
         .fontType(.small)

@@ -26,9 +26,9 @@ struct KeySelectionCell: View {
         HStack {
             VStack(alignment: .leading) {
                 Text(viewModel.key.name)
-                    .font(.title)
+                    .fontType(.medium)
                 Text(DateUtils.dateOnlyString(from: viewModel.key.creationDate))
-                    .font(.caption)
+                    .fontType(.small)
             }
             Spacer()
             if viewModel.isActive {

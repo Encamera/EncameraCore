@@ -22,7 +22,7 @@ class AddExchangedKeyConfirmationViewModel: ObservableObject {
         guard let storageType = selectedStorageType else {
             return
         }
-        try keyManager.save(key: key, storageType: storageType)
+        try keyManager.save(key: key, storageType: storageType, setNewKeyToCurrent: true)
         
     }
     

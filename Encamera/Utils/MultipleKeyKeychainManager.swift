@@ -83,7 +83,14 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         let bytes = Sodium().secretStream.xchacha20poly1305.key()
         
         let key = PrivateKey(name: name, keyBytes: bytes, creationDate: Date())
-        try save(key: key, storageType: storageType)
+        var setNewKeyToCurrent: Bool
+        do {
+            let storedKeys = try storedKeys()
+            setNewKeyToCurrent = storedKeys.count == 0
+        } catch {
+            setNewKeyToCurrent = true
+        }
+        try save(key: key, storageType: storageType, setNewKeyToCurrent: setNewKeyToCurrent)
         return key
     }
     
@@ -101,14 +108,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }.joined(separator: "\n").appending("\n\nCopy the code into the \"Key Entry\" form in the app to use it again.")
     }
     
-    func save(key: PrivateKey, storageType: StorageType) throws {
-        var setNewKeyToCurrent: Bool
-        do {
-            let storedKeys = try storedKeys()
-            setNewKeyToCurrent = storedKeys.count == 0
-        } catch {
-            setNewKeyToCurrent = true
-        }
+    func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool) throws {
         let query = key.keychainQueryDictForKeychain
         let status = SecItemAdd(query as CFDictionary, nil)
         try checkStatus(status: status)

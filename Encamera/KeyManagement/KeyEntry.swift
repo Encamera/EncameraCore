@@ -46,6 +46,7 @@ struct KeyEntry: View {
             if let storageModel = DataStorageUserDefaultsSetting().determineStorageModelFor(keyName: enteredKey.name) {
                 keyStorageType = storageModel.storageType
                 try saveKey()
+                dismiss?.wrappedValue = false
             } else {
                 showStorageSelectionSheet = true
             }
@@ -58,7 +59,7 @@ struct KeyEntry: View {
                     return
                 }
                 
-                try keyManager.save(key: enteredKey, storageType: storageType)
+                try keyManager.save(key: enteredKey, storageType: storageType, setNewKeyToCurrent: true)
             } catch let managerError as KeyManagerError {
                 self.keyManagerError = managerError
                 throw managerError

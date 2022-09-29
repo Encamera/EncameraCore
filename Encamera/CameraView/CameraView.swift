@@ -49,7 +49,7 @@ struct CameraView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .foregroundColor(.white)
+                    .foregroundColor(.foregroundPrimary)
                     .onTapGesture {
                         cameraModel.showGalleryView = true
                     }
@@ -162,14 +162,14 @@ struct CameraView: View {
                 
             }
             .tint(.white)
-            .foregroundColor(.white)
+            .foregroundColor(.foregroundPrimary)
             if cameraModel.isRecordingVideo {
                 Text("\(cameraModel.recordingDuration.durationText)")
                     .fontType(.small)
                     .padding(5)
                     .background(Color.videoRecordingIndicator)
                     .cornerRadius(10)
-                    .foregroundColor(.white)
+                    .foregroundColor(.foregroundPrimary)
             }
         }
     }
@@ -222,6 +222,7 @@ struct CameraView: View {
                 .navigationBarHidden(true)
                 .navigationTitle("")
             }
+            .background(Color.background)
             .screenBlocked()
             .alert(isPresented: $cameraModel.showAlertForMissingKey) {
                 

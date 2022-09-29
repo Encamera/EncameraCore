@@ -90,14 +90,25 @@ struct SettingsView: View {
     
     
     var body: some View {
-        Form {
+        let form = Form {
             
             Section {
                 changePassword
                 reset
             }
+            .listRowBackground(Color.foregroundSecondary)
             .navigationTitle("Settings")
         }
+        .background(Color.background)
+        .fontType(.small)
+        
+        
+        if #available(iOS 16.0, *) {
+            form.scrollContentBackground(.hidden)
+        } else {
+            form
+        }
+        
     }
     
     private var reset: some View {
@@ -106,16 +117,12 @@ struct SettingsView: View {
                 NavigationLink {
                     PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
                 } label: {
-                    Button("Erase keychain data") {
-                        
-                    }
+                    Text("Erase keychain data")
                 }
                 NavigationLink {
                     PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
                 } label: {
-                    Button("Erase all data") {
-
-                    }
+                    Text("Erase all data")
                 }
             }
             .foregroundColor(.red)

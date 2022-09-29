@@ -37,9 +37,9 @@ struct KeyExchange: View {
                         .frame(width: frame.width, height: frame.width)
                         .blur(radius: viewModel.blurView ? 10 : 0)
                     Text("\(viewModel.key.name)")
-                        .font(.largeTitle)
+                        .fontType(.medium)
                         .frame(maxWidth: .infinity)
-                        .foregroundColor(.white)
+                        .foregroundColor(.foregroundPrimary)
                         .background(Color.foregroundSecondary)
                         .opacity(viewModel.blurView ? 1.0 : 0.0)
                 }

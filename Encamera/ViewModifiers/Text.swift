@@ -45,7 +45,7 @@ extension Text {
             .fontType(.small)
             .lineLimit(3)
             .padding(10)
-            .foregroundColor(.white)
+            .foregroundColor(.foregroundPrimary)
             .background(Color.red)
             .cornerRadius(10)
             
@@ -56,7 +56,9 @@ extension Text {
 
 extension View {
     func fontType(_ fontType: EncameraFont) -> some View {
-        return self.font(fontType.font)
+        return self
+            .font(fontType.font)
+            .foregroundColor(.foregroundPrimary)
     }
 }
 

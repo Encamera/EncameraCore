@@ -28,6 +28,7 @@ class KeySelectionListViewModel: ObservableObject {
     @Published var selectionError: KeySelectionError?
     @Published var activeKey: KeyItemModel?
     @Published var isShowingAddKeyView: Bool = false
+    @Published var isShowingAddExistingKeyView: Bool = false
     private var cancellables = Set<AnyCancellable>()
     
     
@@ -62,56 +63,75 @@ class KeySelectionListViewModel: ObservableObject {
 struct KeySelectionList: View {
     
     @State var presentingAddKeySheet: Bool = false
-    @State var isShowingAddKeyView: Bool = false
     
     @StateObject var viewModel: KeySelectionListViewModel
     
+    
     var body: some View {
-        let binding = Binding<Bool> {
-            viewModel.isShowingAddKeyView
-        } set: { newValue in
-            viewModel.isShowingAddKeyView = newValue
-        }
+        
 
-        List {
+        let list = List {
             Section {
-                NavigationLink(isActive: binding) {
-                    KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: binding)
+                let createNewKeyActive = Binding<Bool> {
+                    viewModel.isShowingAddKeyView
+                } set: { newValue in
+                    viewModel.isShowingAddKeyView = newValue
+                }
+                NavigationLink(isActive: createNewKeyActive) {
+                    KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
                 } label: {
                     KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
                 }
-                NavigationLink {
-                    KeyEntry(viewModel: .init(keyManager: viewModel.keyManager))
+                let addExistingKeyActive = Binding<Bool> {
+                    viewModel.isShowingAddExistingKeyView
+                } set: { newValue in
+                    viewModel.isShowingAddExistingKeyView = newValue
+                }
+                NavigationLink(isActive: addExistingKeyActive) {
+                    KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, dismiss: addExistingKeyActive))
                 } label: {
                     KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
                 }
-//                KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
-//                    guard let doc = try? viewModel.keyManager.createBackupDocument() else {
-//                        return
-//                    }
-//                    let pasteboard = UIPasteboard.general
-//                    pasteboard.string = doc
-//                }
-            }
+                //                KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
+                //                    guard let doc = try? viewModel.keyManager.createBackupDocument() else {
+                //                        return
+                //                    }
+                //                    let pasteboard = UIPasteboard.general
+                //                    pasteboard.string = doc
+                //                }
+            }.listRowBackground(Color.foregroundSecondary)
             if viewModel.keys.count > 0 {
                 Section(header: Text("Keys")
                     .fontType(.small)
-                    .foregroundColor(.white)) {
-                    
-                    if let activeKey = viewModel.activeKey {
-                        keyCell(model: activeKey, isActive: true)
+                    .foregroundColor(.foregroundPrimary)) {
+                        
+                        if let activeKey = viewModel.activeKey {
+                            keyCell(model: activeKey, isActive: true)
+                        }
+                        
+                        ForEach(viewModel.keys.filter({$0.key != viewModel.activeKey?.key})) { key in
+                            keyCell(model: key, isActive: false)
+                        }
                     }
+                    .listRowBackground(Color.foregroundSecondary)
                     
-                    ForEach(viewModel.keys.filter({$0.key != viewModel.activeKey?.key})) { key in
-                        keyCell(model: key, isActive: false)
-                    }
-                }
             }
-        }.listStyle(InsetGroupedListStyle())
+        }
+            
+        .listStyle(InsetGroupedListStyle())
         .screenBlocked()
+        .background(Color.background)
         .onAppear {
             viewModel.loadKeys()
-        }.navigationTitle("Key Management")
+        }
+        .navigationTitle("Key Management")
+        
+        if #available(iOS 16.0, *) {
+            list.scrollContentBackground(.hidden)
+        } else {
+            list
+        }
+        
         
     }
     
@@ -123,13 +143,13 @@ struct KeySelectionList: View {
             HStack {
                 HStack {
                     Text("\(model.imageCount)")
-                        .font(.caption)
+                        .fontType(.small)
                         .frame(width: 30)
                     VStack(alignment: .leading) {
                         Text(key.name)
-                            .font(.title)
+                            .fontType(.medium)
                         Text(DateUtils.dateOnlyString(from: key.creationDate))
-                            .font(.caption)
+                            .fontType(.small)
                     }
                     Spacer()
                 }.padding()
@@ -138,13 +158,13 @@ struct KeySelectionList: View {
                         Text("Active")
                         Image(systemName: "key.fill")
                     }
-                    
-                    .foregroundColor(.green)
+                    .foregroundColor(.activeKey)
                     
                 } else {
                     Image(systemName: "key")
                 }
             }.fontType(.small)
+                
         }
     }
 }

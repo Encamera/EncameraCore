@@ -66,9 +66,12 @@ class DemoFileEnumerator: FileAccess {
     }
     
     func loadMediaInMemory<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
-        let url = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
+        guard let url = Bundle(for: type(of: self))
+            .url(forResource: "dog", withExtension: "jpg"), let data = try? Data(contentsOf: url) else {
+            return CleartextMedia(source: Data())
+        }
 
-        return CleartextMedia(source: try! Data(contentsOf: url))
+        return CleartextMedia(source: data)
     }
     
     func save<T>(media: CleartextMedia<T>) async throws -> EncryptedMedia where T : MediaSourcing {
@@ -76,8 +79,10 @@ class DemoFileEnumerator: FileAccess {
     }
     
     func loadMediaPreview<T: MediaDescribing>(for media: T) async -> PreviewModel {
-        let source = media.source as! URL
-        let data = try! Data(contentsOf: source)
+        guard let source = media.source as? URL,
+              let data = try? Data(contentsOf: source) else {
+            return PreviewModel(source: CleartextMedia(source: Data()))
+        }
         let cleartext = CleartextMedia<Data>(source: data)
         var preview = PreviewModel(thumbnailMedia: cleartext)
         preview.videoDuration = "0:34"
@@ -208,7 +213,7 @@ class DemoKeyManager: KeyManager {
         
     }
     
-    func save(key: PrivateKey, storageType: StorageType) throws {
+    func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool) throws {
         
     }
     

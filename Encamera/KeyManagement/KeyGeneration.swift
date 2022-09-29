@@ -39,6 +39,7 @@ class KeyGenerationViewModel: ObservableObject {
         do {
             if let keyStorageType = keyStorageType {
                 try keyManager.generateNewKey(name: keyName, storageType: keyStorageType)
+                try keyManager.setActiveKey(keyName)
             } else {
                 throw KeyGenerationError.missingStorageType
             }

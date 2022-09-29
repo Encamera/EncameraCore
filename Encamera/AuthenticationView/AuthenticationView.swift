@@ -116,7 +116,7 @@ struct AuthenticationView: View {
                 } label: {
                     Image(systemName: biometric.imageNameForMethod)
                         .resizable()
-                        .foregroundColor(.white)
+                        .foregroundColor(.foregroundPrimary)
                         .frame(width: 50.0, height: 50.0)
                 }.padding()
             }

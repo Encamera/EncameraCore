@@ -63,38 +63,46 @@ struct KeyDetailView: View {
     }
     var body: some View {
         GalleryGridView(viewModel: .init(privateKey: viewModel.key, blurImages: viewModel.blurImages)) {
-            List {
-                Button("Set Active") {
-                    viewModel.setActive()
-                    dismiss()
-                }
-                NavigationLink {
-                    KeyInformation(key: viewModel.key, keyManagerError: .constant(nil))
-                } label: {
-                    Text("Key Info")
-                }
-                NavigationLink {
-                    KeyExchange(viewModel: .init(key: viewModel.key))
-                } label: {
-                    Button("Share Key") {
-                        
+            let list = List {
+                Group {
+                    Button("Set Active") {
+                        viewModel.setActive()
+                        dismiss()
                     }
-                }
-                
-                Button("Copy to clipboard") {
-                    let key = viewModel.key.base64String
-                    let pasteboard = UIPasteboard.general
-                    pasteboard.string = key
-                }
-                Button {
-                    isShowingAlertForClearKey = true
-                } label: {
-                    Text("Delete")
-                        .foregroundColor(.red)
-                }
+                    NavigationLink {
+                        KeyInformation(key: viewModel.key, keyManagerError: .constant(nil))
+                    } label: {
+                        Text("Key Info")
+                    }
+                    NavigationLink {
+                        KeyExchange(viewModel: .init(key: viewModel.key))
+                    } label: {
+                        Text("Share Key")
+                    }
+                    
+                    Button("Copy to clipboard") {
+                        let key = viewModel.key.base64String
+                        let pasteboard = UIPasteboard.general
+                        pasteboard.string = key
+                    }
+                    Button {
+                        isShowingAlertForClearKey = true
+                    } label: {
+                        Text("Delete")
+                            .foregroundColor(.red)
+                    }
+                }.listRowBackground(Color.foregroundSecondary)
             }
+                
             .frame(height: 300)
             .fontType(.small)
+            .background(Color.background)
+            
+            if #available(iOS 16.0, *) {
+                 list.scrollContentBackground(.hidden)
+            } else {
+                 list
+            }
         }
         .foregroundColor(.blue)
         .alert("Delete Key?", isPresented: $isShowingAlertForClearKey, actions: {

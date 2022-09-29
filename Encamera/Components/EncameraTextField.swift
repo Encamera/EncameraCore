@@ -12,7 +12,7 @@ private struct EncameraInputTextField: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding()
-            .background(Color.gray)
+            .background(Color.foregroundSecondary)
             .cornerRadius(10.0)
     }
 }
@@ -43,7 +43,7 @@ struct EncameraTextField: View {
             if text.isEmpty {
                 Text(placeholder)
                     .fontType(.small)
-                    .foregroundColor(.white)
+                    .foregroundColor(.foregroundPrimary)
                     .onTapGesture {
                         isFieldFocused = true
                     }

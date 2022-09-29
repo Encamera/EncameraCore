@@ -24,12 +24,12 @@ struct KeyInformation: View {
                     .frame(width: 44)
                 VStack(alignment: .leading, spacing: 10) {
                     Text("\(key.name)")
-                        .font(.largeTitle)
+                        .fontType(.large)
                     
                     Text("\(key.keyString)")
                     
                     Text("Created \(DateUtils.dateOnlyString(from: key.creationDate))")
-                        .font(.caption)
+                        .fontType(.small)
                     Text("Key length: \(key.keyBytes.count)")
                 }
                 

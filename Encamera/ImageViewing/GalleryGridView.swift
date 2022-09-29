@@ -83,7 +83,7 @@ struct GalleryGridView<Content: View>: View {
     @StateObject var viewModel: GalleryGridViewModel
     var content: Content
     
-    init(viewModel: GalleryGridViewModel, content: () -> Content = { EmptyView() }) {
+    init(viewModel: GalleryGridViewModel, @ViewBuilder content: () -> Content = { EmptyView() }) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.content = content()
     }
@@ -103,13 +103,14 @@ struct GalleryGridView<Content: View>: View {
                     HStack {
                         if viewModel.blurImages {
                             Toggle("Hide", isOn: $viewModel.blurImages)
-                                .foregroundColor(.white)
+                                .foregroundColor(.foregroundPrimary)
                                 .frame(width: 100)
+                                .fontType(.small)
                             Spacer()
                         } else {
                             Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
                                 .fontType(.small)
-                                .foregroundColor(.white)
+                                .foregroundColor(.foregroundPrimary)
                         }
                         
                         if viewModel.downloadPendingMediaCount > 0 {
@@ -129,11 +130,12 @@ struct GalleryGridView<Content: View>: View {
                                     }
                                     Image(systemName: "icloud.and.arrow.down")
                                 }
+                                .foregroundColor(.foregroundPrimary)
                                 
                                 
-                            }.foregroundColor(.white)
-                                .padding(5)
-                                .background(Color.actionButton)
+                            }.foregroundColor(.foregroundPrimary)
+                                .padding(7)
+                                .background(Color.foregroundSecondary)
                                 .cornerRadius(10)
                         }
                         Spacer()
@@ -142,6 +144,7 @@ struct GalleryGridView<Content: View>: View {
                         } label: {
                             Image(systemName: "folder")
                         }
+                        .foregroundColor(.foregroundPrimary)
                         
                         
                     }
@@ -174,6 +177,7 @@ struct GalleryGridView<Content: View>: View {
                 await viewModel.enumerateMedia()
             }
             .screenBlocked()
+            .background(Color.background)
             .navigationBarTitle(viewModel.privateKey.name, displayMode: .large)
             
         }
