@@ -91,12 +91,15 @@ struct PromptToErase: View {
                         }).onEnded({ _ in
                             viewModel.holding = false
                         }))
-                        
-                }.fontType(.small)
+                    
+                }
+                .fontType(.small)
                 Spacer()
             }.padding()
                 .navigationTitle("Erase app data")
-        }.animation(.easeIn, value: viewModel.holding)
+        }
+        .animation(.easeIn, value: viewModel.holding)
+        .background(Color.background)
     }
     
     var confirmationPlaceholder: some View {
@@ -110,12 +113,12 @@ struct PromptToErase: View {
                 .background(Color.videoRecordingIndicator)
                                               
             )
-                
+            
         }
         return confirmationPlaceholder
-            
+        
             .transition(.move(edge: .top))
-
+        
     }
 }
 

@@ -63,7 +63,7 @@ struct KeyDetailView: View {
     }
     var body: some View {
         GalleryGridView(viewModel: .init(privateKey: viewModel.key, blurImages: viewModel.blurImages)) {
-            let list = List {
+            List {
                 Group {
                     Button("Set Active") {
                         viewModel.setActive()
@@ -92,17 +92,11 @@ struct KeyDetailView: View {
                             .foregroundColor(.red)
                     }
                 }.listRowBackground(Color.foregroundSecondary)
-            }
-                
+            }  
             .frame(height: 300)
             .fontType(.small)
-            .background(Color.background)
+            .scrollContentBackgroundColor(Color.background)
             
-            if #available(iOS 16.0, *) {
-                 list.scrollContentBackground(.hidden)
-            } else {
-                 list
-            }
         }
         .foregroundColor(.blue)
         .alert("Delete Key?", isPresented: $isShowingAlertForClearKey, actions: {

@@ -90,7 +90,7 @@ struct SettingsView: View {
     
     
     var body: some View {
-        let form = Form {
+        Form {
             
             Section {
                 changePassword
@@ -99,35 +99,39 @@ struct SettingsView: View {
             .listRowBackground(Color.foregroundSecondary)
             .navigationTitle("Settings")
         }
-        .background(Color.background)
+        .scrollContentBackgroundColor(Color.background)
         .fontType(.small)
         
         
-        if #available(iOS 16.0, *) {
-            form.scrollContentBackground(.hidden)
-        } else {
-            form
-        }
+        
         
     }
     
     private var reset: some View {
         NavigationLink("Erase") {
             Form {
-                NavigationLink {
-                    PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
-                } label: {
-                    Text("Erase keychain data")
-                }
-                NavigationLink {
-                    PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
-                } label: {
-                    Text("Erase all data")
-                }
+                Group {
+                    NavigationLink {
+                        PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
+                        
+                    } label: {
+                        Text("Erase keychain data")
+                    }
+                    NavigationLink {
+                        PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
+                        
+                    } label: {
+                        Text("Erase all data")
+                    }
+                }.listRowBackground(Color.foregroundSecondary)
             }
+            
             .foregroundColor(.red)
             .navigationTitle("Erase")
+            .fontType(.small)
+            .scrollContentBackgroundColor(.background)
         }
+        
         .sheet(isPresented: $viewModel.showPromptToErase) {
             promptToErase
         }
@@ -156,6 +160,7 @@ struct SettingsView: View {
                 }
                 
             }
+            .scrollContentBackgroundColor(.background)
             .fontType(.small)
             .toolbar {
                 Button("Save") {

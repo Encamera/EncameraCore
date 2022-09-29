@@ -70,7 +70,7 @@ struct KeySelectionList: View {
     var body: some View {
         
 
-        let list = List {
+        List {
             Section {
                 let createNewKeyActive = Binding<Bool> {
                     viewModel.isShowingAddKeyView
@@ -120,19 +120,11 @@ struct KeySelectionList: View {
             
         .listStyle(InsetGroupedListStyle())
         .screenBlocked()
-        .background(Color.background)
+        .scrollContentBackgroundColor(Color.background)
         .onAppear {
             viewModel.loadKeys()
         }
         .navigationTitle("Key Management")
-        
-        if #available(iOS 16.0, *) {
-            list.scrollContentBackground(.hidden)
-        } else {
-            list
-        }
-        
-        
     }
     
     func keyCell(model: KeySelectionListViewModel.KeyItemModel, isActive: Bool) -> some View {
