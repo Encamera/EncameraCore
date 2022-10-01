@@ -76,7 +76,7 @@ struct StorageOptionItemView_Previews: PreviewProvider {
                 } set: { newVlue in
                     selectedValue = data
                 }
-                StorageTypeOptionItemView(storageType: data, availability: data == .icloud ? .unavailable(reason: "Unavailable: iCloud needs to be verified in the Settings app.") : .available, isSelected: selected)
+                StorageTypeOptionItemView(storageType: data, availability: .available, isSelected: selected)
             }
         }.padding()
             .previewDevice("iPhone 8")

@@ -159,7 +159,12 @@ Each key will store data in its own directory.
             } content: {
                 AnyView(
                     VStack {
-                        StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType))
+                        let binding = Binding<StorageType?> {
+                            return viewModel.keyStorageType
+                        } set: { type in
+                            viewModel.keyStorageType = type
+                        }
+                        StorageSettingView(viewModel: .init(), keyStorageType: binding)
                         if case .missingStorageType = viewModel.generalError {
                             Text("Select a place to keep media for this key.")
                                 .alertText()

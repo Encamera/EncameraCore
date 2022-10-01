@@ -341,7 +341,7 @@ Each key will store data in its own directory.
             } content: {
                 AnyView(
                     VStack {
-                        StorageSettingView(viewModel: .init(keyStorageType: $viewModel.keyStorageType))
+                        StorageSettingView(viewModel: .init(), keyStorageType: $viewModel.keyStorageType)
                         if case .missingStorageType = viewModel.generalError as? OnboardingViewError {
                             Text("Please select a storage location.")
                                 .alertText()
