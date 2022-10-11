@@ -55,8 +55,7 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
                             Spacer()
                             Text(duration)
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.foregroundPrimary)
-                                .padding(2.0)
+                                        .padding(2.0)
                         }
                         
                     }
@@ -66,8 +65,7 @@ struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable whe
         } else if viewModel.error != nil {
             bodyContainer {
                 Image(systemName: "x.square")
-                    .foregroundColor(.foregroundPrimary)
-            }
+                                }
             
         
         } else {

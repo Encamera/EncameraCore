@@ -81,7 +81,6 @@ struct PasswordEntry: View {
                     Image(systemName: "lock.circle")
                         .resizable()
                         .frame(width: 50.0, height: 50.0)
-                        .foregroundColor(.foregroundPrimary)
                 }
                 
             }

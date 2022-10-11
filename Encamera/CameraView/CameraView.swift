@@ -32,8 +32,7 @@ struct CameraView: View {
                     .frame(width: Constants.minCaptureButtonEdge, height: Constants.minCaptureButtonEdge, alignment: .center)
             } else {
                 Circle()
-                    .foregroundColor(.foregroundPrimary)
-                    .frame(maxWidth: Constants.minCaptureButtonEdge, maxHeight: Constants.minCaptureButtonEdge, alignment: .center)
+                                        .frame(maxWidth: Constants.minCaptureButtonEdge, maxHeight: Constants.minCaptureButtonEdge, alignment: .center)
                     .overlay(
                         Circle()
                             .stroke(Color.background, lineWidth: Constants.innerCaptureButtonLineWidth)
@@ -50,8 +49,7 @@ struct CameraView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .foregroundColor(.foregroundPrimary)
-                    .onTapGesture {
+                                        .onTapGesture {
                         cameraModel.showGalleryView = true
                     }
             } else {
@@ -128,15 +126,13 @@ struct CameraView: View {
                 } label: {
                     Image(systemName: "key.fill")
                         .frame(width: 44, height: 44)
-                        .foregroundColor(.foregroundPrimary)
                         .symbolRenderingMode(.monochrome)
 
                 }
                 .rotateForOrientation()
                 Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
                     .fontType(.small)
-                    .foregroundColor(.foregroundPrimary)
-                Spacer()
+                                    Spacer()
                 Button(action: {
                     cameraModel.switchFlash()
                 }, label: {
@@ -150,15 +146,13 @@ struct CameraView: View {
                 
             }
             .tint(.white)
-            .foregroundColor(.foregroundPrimary)
-            if cameraModel.isRecordingVideo {
+                        if cameraModel.isRecordingVideo {
                 Text("\(cameraModel.recordingDuration.durationText)")
                     .fontType(.small)
                     .padding(5)
                     .background(Color.videoRecordingIndicator)
                     .cornerRadius(10)
-                    .foregroundColor(.foregroundPrimary)
-            }
+                                }
         }
     }
     
@@ -176,8 +170,7 @@ struct CameraView: View {
                                 Image(systemName: "gear")
                             }
                             .isDetailLink(false)
-                            .foregroundColor(.foregroundPrimary)
-                        }
+                            }
                 } label: {
                     EmptyView()
                 }.isDetailLink(false)

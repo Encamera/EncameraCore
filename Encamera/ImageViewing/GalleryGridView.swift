@@ -103,15 +103,13 @@ struct GalleryGridView<Content: View>: View {
                     HStack {
                         if viewModel.blurImages {
                             Toggle("Hide", isOn: $viewModel.blurImages)
-                                .foregroundColor(.foregroundPrimary)
-                                .frame(width: 100)
+                                        .frame(width: 100)
                                 .fontType(.small)
                             Spacer()
                         } else {
                             Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
                                 .fontType(.small)
-                                .foregroundColor(.foregroundPrimary)
-                        }
+                                }
                         
                         if viewModel.downloadPendingMediaCount > 0 {
                             Button {
@@ -130,11 +128,9 @@ struct GalleryGridView<Content: View>: View {
                                     }
                                     Image(systemName: "icloud.and.arrow.down")
                                 }
-                                .foregroundColor(.foregroundPrimary)
+                                        
                                 
-                                
-                            }.foregroundColor(.foregroundPrimary)
-                                .padding(7)
+                            }                                .padding(7)
                                 .background(Color.foregroundSecondary)
                                 .cornerRadius(10)
                         }
@@ -144,7 +140,6 @@ struct GalleryGridView<Content: View>: View {
                         } label: {
                             Image(systemName: "folder")
                         }
-                        .foregroundColor(.foregroundPrimary)
                         
                         
                     }

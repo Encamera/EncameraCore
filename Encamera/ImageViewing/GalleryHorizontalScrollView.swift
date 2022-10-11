@@ -205,7 +205,6 @@ struct GalleryHorizontalScrollView: View {
                                 Image(systemName: "trash")
                             }
                         }
-                        .foregroundColor(.foregroundPrimary)
                         .frame(maxWidth: .infinity)
                     }
                     .padding()

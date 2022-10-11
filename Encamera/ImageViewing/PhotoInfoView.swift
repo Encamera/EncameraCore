@@ -29,8 +29,7 @@ struct PhotoInfoView: View {
                 .padding()
                 .frame(width: 50, height: 50)
             }
-            .foregroundColor(.foregroundPrimary)
-            .padding()
+                        .padding()
             Spacer()
         }
         .background(Color.background)

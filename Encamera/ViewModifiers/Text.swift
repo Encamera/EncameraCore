@@ -45,8 +45,7 @@ extension Text {
             .fontType(.small)
             .lineLimit(3)
             .padding(10)
-            .foregroundColor(.foregroundPrimary)
-            .background(Color.red)
+                        .background(Color.red)
             .cornerRadius(10)
             
     }
@@ -58,8 +57,7 @@ extension View {
     func fontType(_ fontType: EncameraFont) -> some View {
         return self
             .font(fontType.font)
-            .foregroundColor(.foregroundPrimary)
-    }
+                }
 }
 
 struct Text_Previews: PreviewProvider {
