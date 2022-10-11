@@ -89,26 +89,21 @@ struct CameraView: View {
             .padding(.horizontal, 20)
         }
     }
-    
+    @GestureState var magnificationGesture = false
+    @State var finalZoomFactor: CGFloat = 1.0
     private var cameraPreview: some View {
         GeometryReader { reader in
             CameraPreview(session: cameraModel.session, modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
                 .gesture(
-                    DragGesture().onChanged({ (val) in
-                        //  Only accept vertical drag
-                        if abs(val.translation.height) > abs(val.translation.width) {
-                            //  Get the percentage of vertical screen space covered by drag
-                            let percentage: CGFloat = -(val.translation.height / reader.size.height)
-                            //  Calculate new zoom factor
-                            let calc = currentZoomFactor + percentage
-                            //  Limit zoom factor to a maximum of 5x and a minimum of 1x
-                            let zoomFactor: CGFloat = min(max(calc, 1), 5)
-                            //  Store the newly calculated zoom factor
-                            currentZoomFactor = zoomFactor
-                            //  Sets the zoom factor to the capture device session
-                            cameraModel.zoom(with: zoomFactor)
-                        }
-                    })
+                    MagnificationGesture()
+                        .onChanged({ scale in
+                            currentZoomFactor = scale
+                            cameraModel.zoom(with: finalZoomFactor * currentZoomFactor)
+                        })
+                        .onEnded({ scale in
+                            finalZoomFactor *= currentZoomFactor
+                            currentZoomFactor = .zero
+                        })
                 )
                 .onChange(of: rotationFromOrientation, perform: { newValue in
                     Task {
