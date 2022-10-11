@@ -999,7 +999,7 @@
 			baseConfigurationReference = D85AFFF69DE741F555B05A79 /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = Blue;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = ForegroundPrimaryColor;
 				CODE_SIGN_ENTITLEMENTS = ./Encamera/Encamera.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = KGJCC745S9;
@@ -1020,7 +1020,7 @@
 			baseConfigurationReference = 5B5BD74DF33D218275BF0976 /* release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = Blue;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = ForegroundPrimaryColor;
 				CODE_SIGN_ENTITLEMENTS = ./Encamera/Encamera.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = KGJCC745S9;

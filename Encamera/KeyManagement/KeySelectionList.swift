@@ -105,8 +105,7 @@ struct KeySelectionList: View {
             }.listRowBackground(Color.foregroundSecondary)
             if viewModel.keys.count > 0 {
                 Section(header: Text("Keys")
-                    .fontType(.small)
-                    .foregroundColor(.foregroundPrimary)) {
+                    .fontType(.small)) {
                         
                         if let activeKey = viewModel.activeKey {
                             keyCell(model: activeKey, isActive: true)
