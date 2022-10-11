@@ -30,6 +30,9 @@ final class CameraModel: ObservableObject {
     @Published var showGalleryView: Bool = false
     @Published var showingKeySelection = false
     @Published var showAlertForMissingKey = false
+    @Published var currentZoomFactor: CGFloat = 1.0
+    @Published var finalZoomFactor: CGFloat = 1.0
+
     var authManager: AuthManager
     var keyManager: KeyManager
     var alertError: AlertError!
@@ -184,6 +187,16 @@ final class CameraModel: ObservableObject {
     
     func switchFlash() {
         flashMode = flashMode.nextMode
+    }
+    
+    func handleMagnificationOnChanged(scale: CGFloat) {
+        currentZoomFactor = scale
+        zoom(with: finalZoomFactor * currentZoomFactor)
+    }
+    
+    func handleMagnificationEnded(scale: CGFloat) {
+        finalZoomFactor *= currentZoomFactor
+        currentZoomFactor = .zero
     }
 }
 

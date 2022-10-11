@@ -13,8 +13,9 @@ struct CameraView: View {
     }
     
     @StateObject var cameraModel: CameraModel
-    @State private var currentZoomFactor: CGFloat = 1.0
     @State var cameraModeStateModel = CameraModeStateModel()
+    @GestureState var magnificationGesture = false
+
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
 
     
@@ -89,21 +90,13 @@ struct CameraView: View {
             .padding(.horizontal, 20)
         }
     }
-    @GestureState var magnificationGesture = false
-    @State var finalZoomFactor: CGFloat = 1.0
     private var cameraPreview: some View {
         GeometryReader { reader in
             CameraPreview(session: cameraModel.session, modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
                 .gesture(
                     MagnificationGesture()
-                        .onChanged({ scale in
-                            currentZoomFactor = scale
-                            cameraModel.zoom(with: finalZoomFactor * currentZoomFactor)
-                        })
-                        .onEnded({ scale in
-                            finalZoomFactor *= currentZoomFactor
-                            currentZoomFactor = .zero
-                        })
+                        .onChanged(cameraModel.handleMagnificationOnChanged)
+                        .onEnded(cameraModel.handleMagnificationEnded)
                 )
                 .onChange(of: rotationFromOrientation, perform: { newValue in
                     Task {
@@ -170,8 +163,6 @@ struct CameraView: View {
     }
     
     var body: some View {
-        let _ = Self._printChanges()
-
         NavigationView {
             
             ZStack {
