@@ -57,7 +57,8 @@ extension View {
     func fontType(_ fontType: EncameraFont) -> some View {
         return self
             .font(fontType.font)
-                }
+            .foregroundColor(.foregroundPrimary)
+    }
 }
 
 struct Text_Previews: PreviewProvider {

@@ -130,7 +130,8 @@ struct GalleryGridView<Content: View>: View {
                                 }
                                         
                                 
-                            }                                .padding(7)
+                            }
+                            .padding(7)
                                 .background(Color.foregroundSecondary)
                                 .cornerRadius(10)
                         }
@@ -139,6 +140,7 @@ struct GalleryGridView<Content: View>: View {
                             LocalDeeplinkingUtils.openKeyContentsInFiles(keyName: viewModel.privateKey.name)
                         } label: {
                             Image(systemName: "folder")
+                                .foregroundColor(.foregroundPrimary)
                         }
                         
                         

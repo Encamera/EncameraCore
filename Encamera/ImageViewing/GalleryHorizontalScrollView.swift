@@ -99,7 +99,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
 struct GalleryHorizontalScrollView: View {
     
     
-    typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<GestureStateGesture<MagnificationGesture, Bool>>>
+    typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnificationGesture>>
     typealias TapGestureType = _EndedGesture<TapGesture>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
     
@@ -296,11 +296,8 @@ struct GalleryHorizontalScrollView: View {
     }
     
     private var magnificationGesture: MagnificationGestureType {
-        MagnificationGesture().updating($state, body: { value, state, transaction in
-            print(value, state, transaction)
-        }).onChanged({ value in
+        MagnificationGesture().onChanged({ value in
             currentScale = 	value
-            
         })
         .onEnded({ amount in
             let final = finalScale * currentScale
