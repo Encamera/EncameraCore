@@ -24,6 +24,7 @@ class KeySelectionListViewModel: ObservableObject {
     }
     
     var keyManager: KeyManager
+    @MainActor
     @Published var keys: [KeyItemModel] = []
     @Published var selectionError: KeySelectionError?
     @Published var activeKey: KeyItemModel?
@@ -34,12 +35,14 @@ class KeySelectionListViewModel: ObservableObject {
     
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
-        keyManager.keyPublisher.sink { _ in
-            self.loadKeys()
+        keyManager.keyPublisher.receive(on: DispatchQueue.main).sink { _ in
+            Task {
+                await self.loadKeys()
+            }
         }.store(in: &cancellables)
     }
     
-    func loadKeys() {
+    @MainActor func loadKeys() {
         do {
             let storage = DataStorageUserDefaultsSetting()
             keys = try keyManager.storedKeys().map { key in

@@ -216,7 +216,7 @@ extension DiskFileAccess: FileReader {
         } else {
             fatalError()
         }
-        let resizer = ImageResizer(targetWidth: 50)
+        let resizer = ImageResizer(targetWidth: AppConstants.thumbnailWidth)
         guard let thumbnailData = resizer.resize(data: thumbnailSourceData)?.pngData() else {
             fatalError()
         }

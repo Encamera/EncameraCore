@@ -18,6 +18,7 @@ targets:
       DEVELOPMENT_TEAM: KGJCC745S9
       PRODUCT_BUNDLE_IDENTIFIER: me.freas.encamera
       CODE_SIGN_ENTITLEMENTS: ./Encamera/Encamera.entitlements
+      ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: Blue
     dependencies:
       - package: Sodium
     scheme:

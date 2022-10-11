@@ -13,6 +13,9 @@ class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identifiable {
     var mediaType: MediaType = .unknown
     var id: String
     var source: URL
+    lazy var timestamp: Date? = {
+        try? FileManager.default.attributesOfItem(atPath: source.absoluteString)[FileAttributeKey.creationDate] as? Date
+    }()
     
     required init(source: URL, mediaType: MediaType, id: String) {
         self.source = source

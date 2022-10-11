@@ -12,6 +12,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     
     @Published var media: [EncryptedMedia]
     @Published var selectedMedia: EncryptedMedia
+    @Published var showInfoSheet = false
     var showActionBar = true
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
@@ -182,23 +183,30 @@ struct GalleryHorizontalScrollView: View {
                 }
                 if viewModel.showActionBar {
                     HStack(alignment: .center) {
-                        Button {
-                            showingShareSheet = true
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
+                        Group {
+                            Button {
+                                showingShareSheet = true
+                            } label: {
+                                Image(systemName: "square.and.arrow.up")
+                            }
+                            Button {
+                                viewModel.openInFiles()
+                            } label: {
+                                Image(systemName: "folder")
+                            }
+                            Button {
+                                viewModel.showInfoSheet = true
+                            } label: {
+                                Image(systemName: "info.circle")
+                            }
+                            Button {
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Image(systemName: "trash")
+                            }
                         }
-                        Spacer()
-                        Button {
-                            viewModel.openInFiles()
-                        } label: {
-                            Image(systemName: "folder")
-                        }
-                        Spacer()
-                        Button {
-                            showingDeleteConfirmation = true
-                        } label: {
-                            Image(systemName: "trash")
-                        }
+                        .foregroundColor(.foregroundPrimary)
+                        .frame(maxWidth: .infinity)
                     }
                     .padding()
                     .frame(height: 44)
@@ -222,6 +230,22 @@ struct GalleryHorizontalScrollView: View {
                 .simultaneously(with: magnificationGesture)
                 .simultaneously(with: tapGesture)
             )
+        }
+        .sheet(isPresented: $viewModel.showInfoSheet) {
+            let content = Group {
+                
+                PhotoInfoView(media: viewModel.selectedMedia, isPresented: $viewModel.showInfoSheet)
+            }
+            if #available(iOS 16.0, *) {
+                VStack {
+                    content
+                }
+                .presentationDetents([.fraction(0.2)])
+            } else {
+                VStack {
+                    content
+                }
+            }
         }
     }
     

@@ -16,7 +16,7 @@ class DateUtilsTests: XCTestCase {
         let date = DateComponents(year: 2022, month: 2, day: 1)
         let string = DateUtils.dateOnlyString(from: Calendar(identifier: .gregorian).date(from: date)!)
         
-        XCTAssertEqual(string, "2022.02.01")
+        XCTAssertEqual(string, "2/1/22")
         
     }
 }

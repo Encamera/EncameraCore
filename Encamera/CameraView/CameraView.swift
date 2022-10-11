@@ -174,8 +174,9 @@ struct CameraView: View {
                                 SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, fileAccess: cameraModel.fileAccess))
                             } label: {
                                 Image(systemName: "gear")
-                            }.isDetailLink(false)
-
+                            }
+                            .isDetailLink(false)
+                            .foregroundColor(.foregroundPrimary)
                         }
                 } label: {
                     EmptyView()
