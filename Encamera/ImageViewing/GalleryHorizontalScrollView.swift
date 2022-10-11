@@ -110,7 +110,7 @@ struct GalleryHorizontalScrollView: View {
     @State var currentScrollViewXOffset: CGFloat = .zero
     @State var isDragging = false
     @State var finalScale: CGFloat = 1.0
-    @State var currentScale: CGFloat = .zero
+    @State var currentScale: CGFloat = 1.0
     @State var finalOffset: CGSize = .zero
     @State var currentOffset: CGSize = .zero
     @State var showingShareSheet = false
@@ -136,7 +136,7 @@ struct GalleryHorizontalScrollView: View {
     func scaleBinding(for item: EncryptedMedia) -> Binding<CGFloat> {
         return Binding<CGFloat> {
             if viewModel.selectedMedia == item {
-                return finalScale + currentScale
+                return finalScale * currentScale
             } else {
                 return 1.0
             }
@@ -276,13 +276,13 @@ struct GalleryHorizontalScrollView: View {
         MagnificationGesture().updating($state, body: { value, state, transaction in
             print(value, state, transaction)
         }).onChanged({ value in
-            currentScale = value - 1
+            currentScale = 	value
             
         })
         .onEnded({ amount in
-            let final = finalScale + currentScale
+            let final = finalScale * currentScale
             finalScale = final < 1.0 ? 1.0 : final
-            currentScale = 0.0
+            currentScale = 1.0
         })
     }
 }
