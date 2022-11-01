@@ -19,7 +19,7 @@ class AsyncVideoCaptureProcessor: NSObject {
     private var cancellables = Set<AnyCancellable>()
 
     let videoId = NSUUID().uuidString
-    let tempFileUrl: URL! = nil
+    let tempFileUrl: URL! = URL.tempMediaURL
     
     
     var durationPublisher: AnyPublisher<CMTime, Never> {

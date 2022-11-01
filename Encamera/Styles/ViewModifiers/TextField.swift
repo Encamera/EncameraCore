@@ -11,7 +11,7 @@ import SwiftUI
 extension View {
     
     func noAutoModification() -> some View {
-        self.textCase(.lowercase)
+        self
             .disableAutocorrection(true)
             .textInputAutocapitalization(.never)
     }

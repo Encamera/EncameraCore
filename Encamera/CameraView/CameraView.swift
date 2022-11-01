@@ -161,7 +161,7 @@ struct CameraView: View {
             
             ZStack {
                 NavigationLink(isActive: $cameraModel.showingKeySelection) {
-                    KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager))
+                    KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager))
                         .toolbar {
                             NavigationLink {
         
@@ -187,6 +187,9 @@ struct CameraView: View {
                     topBar
                     cameraPreview
                         .edgesIgnoringSafeArea(.all)
+                    if FeatureToggle.isEnabled(feature: .enableVideo) {
+                        cameraModePicker
+                    }
                     bottomButtonPanel
                 }
                 .onChange(of: cameraModel.authManager.isAuthenticated, perform: { newValue in
@@ -256,7 +259,7 @@ private extension AVCaptureDevice.FlashMode {
 
 struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(cameraModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), storageSettingsManager: DemoStorageSettingsManager()))
+        CameraView(cameraModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), storageSettingsManager: DemoStorageSettingsManager(), purchaseManager: DemoPurchasedPermissionManaging()))
         
     }
 }

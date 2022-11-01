@@ -39,7 +39,9 @@ struct EncameraTextField: View {
     var body: some View {
         ZStack(alignment: .leading) {
             
-            field.focused($isFieldFocused).modifier(EncameraInputTextField())
+            field
+                .focused($isFieldFocused)
+                .modifier(EncameraInputTextField())
             if text.isEmpty {
                 Text(placeholder)
                     .fontType(.small)

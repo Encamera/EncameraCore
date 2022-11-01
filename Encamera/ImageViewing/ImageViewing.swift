@@ -37,6 +37,7 @@ protocol MediaViewingViewModel: AnyObject {
     var fileAccess: FileAccess? { get set }
     var error: MediaViewingError? { get set }
     
+    @MainActor
     var decryptedFileRef: CleartextMedia<TargetT>? { get set }
     init(media: SourceType, fileAccess: FileAccess)
     
@@ -44,10 +45,13 @@ protocol MediaViewingViewModel: AnyObject {
 }
 
 extension MediaViewingViewModel {
-    @MainActor
     func decryptAndSet() async {
         do {
-            self.decryptedFileRef = try await decrypt()
+            let decrypted = try await decrypt()
+            await MainActor.run {
+                self.decryptedFileRef = decrypted
+            }
+            
         } catch {
             
             self.error = .decryptError(wrapped: error)

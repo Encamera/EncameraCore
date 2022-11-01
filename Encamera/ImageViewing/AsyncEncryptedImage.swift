@@ -8,7 +8,7 @@
 import Combine
 import SwiftUI
 
-struct AsyncImage<Placeholder: View, T: MediaDescribing>: View, Identifiable where T.MediaSource == URL {
+struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identifiable where T.MediaSource == URL {
     
     @MainActor
     class ViewModel: ObservableObject {

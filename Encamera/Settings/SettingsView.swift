@@ -93,6 +93,7 @@ struct SettingsView: View {
         Form {
             
             Section {
+                premium
                 changePassword
                 reset
             }
@@ -105,6 +106,12 @@ struct SettingsView: View {
         
         
         
+    }
+    
+    private var premium: some View {
+        NavigationLink("Premium") {
+            SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
+        }
     }
     
     private var reset: some View {

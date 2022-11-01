@@ -139,23 +139,25 @@ private struct Carousel<Items: View>: View {
             items
         }
         .offset(x: CGFloat(calcOffset), y: 0)
-        .gesture(DragGesture().updating($isDetectingLongPress) { currentState, gestureState, transaction in
-            guard self.stateModel.isModeActive == false else {
-                return
-            }
-            self.stateModel.screenDrag = Float(currentState.translation.width)
-        }.onEnded { value in
-            guard self.stateModel.isModeActive == false else {
-                return
-            }
-            self.stateModel.screenDrag = 0
-            
-            if value.translation.width < -Constants.snapTolerance {
-                self.stateModel.activeIndex = self.stateModel.activeIndex + 1
-            }
-            
-            if value.translation.width > Constants.snapTolerance {
-                self.stateModel.activeIndex = min(max(0, self.stateModel.activeIndex - 1), Int(self.numberOfItems))
+        .gesture(DragGesture()
+//            .updating(GestureState(wrappedValue: true)) { currentState, gestureState, transaction in
+//                guard self.stateModel.isModeActive == false else {
+//                    return
+//                }
+//                self.stateModel.screenDrag = Float(currentState.translation.width)
+//            }
+            .onEnded { value in
+                guard self.stateModel.isModeActive == false else {
+                    return
+                }
+                self.stateModel.screenDrag = 0
+                
+                if value.translation.width < -Constants.snapTolerance {
+                    self.stateModel.activeIndex = self.stateModel.activeIndex + 1
+                }
+                
+                if value.translation.width > Constants.snapTolerance {
+                    self.stateModel.activeIndex = min(max(0, self.stateModel.activeIndex - 1), Int(self.numberOfItems))
             }
         })
     }

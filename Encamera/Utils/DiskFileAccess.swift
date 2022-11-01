@@ -41,10 +41,10 @@ actor DiskFileAccess: FileEnumerator {
             return []
         }
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
-        
+        let filter = FeatureToggle.isEnabled(feature: .enableVideo) ? [MediaType.photo.fileExtension, MediaType.video.fileExtension] : [MediaType.photo.fileExtension]
         let urls: [URL] = directoryModel.enumeratorForStorageDirectory(
             resourceKeys: resourceKeys,
-            fileExtensionFilter: [MediaType.photo.fileExtension]
+            fileExtensionFilter: filter
         )
         
         let imageItems: [T] = urls
@@ -122,7 +122,7 @@ extension DiskFileAccess: FileReader {
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted)
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted, targetURL: URL.tempMediaURL)
         fileHandler.progress
             .receive(on: DispatchQueue.main)
             .sink { percent in

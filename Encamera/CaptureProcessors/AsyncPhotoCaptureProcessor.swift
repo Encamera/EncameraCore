@@ -41,6 +41,7 @@ class AsyncPhotoCaptureProcessor: NSObject {
             }
             self.continuation = continuation
             self.photoOutput.capturePhoto(with: self.requestedPhotoSettings, delegate: self)
+            
         })
     }
 

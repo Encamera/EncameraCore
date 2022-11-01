@@ -42,5 +42,4 @@ private extension URL {
     func driveDeeplink() -> URL? {
         return URL(string: absoluteString.replacingOccurrences(of: "file://", with: "shareddocuments://"))
     }
-    
 }

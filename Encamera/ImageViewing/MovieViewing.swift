@@ -13,7 +13,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     var fileAccess: FileAccess?
     
     @Published var decryptedFileRef: CleartextMedia<URL>?
-    
+    @Binding var isPlaying: Bool
     @MainActor
     @Published var decryptProgress: Double = 0.0
     var error: MediaViewingError?
@@ -24,6 +24,12 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     required init(media: SourceType, fileAccess: FileAccess) {
         self.sourceMedia = media
         self.fileAccess = fileAccess
+        _isPlaying = .constant(false)
+    }
+    
+    convenience init(media: SourceType, fileAccess: FileAccess, isPlaying: Binding<Bool>) {
+        self.init(media: media, fileAccess: fileAccess)
+        _isPlaying = isPlaying
     }
     
     @MainActor
@@ -39,14 +45,22 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
 
 struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
     @State var progress = 0.0
-    @ObservedObject var viewModel: MovieViewingViewModel<M>
+    @StateObject var viewModel: MovieViewingViewModel<M>
     
     var body: some View {
         VStack {
+            
             if let movieUrl = viewModel.decryptedFileRef?.source {
                 let player = AVPlayer(url: movieUrl)
-                VideoPlayer(player: player).onDisappear {
-                }
+                
+                VideoPlayer(player: player)
+                    .onChange(of: viewModel.isPlaying) { newValue in
+                        if newValue == true {
+                            player.play()
+                        } else {
+                            player.pause()
+                        }
+                    }
             } else if let error = viewModel.error {
                 Text("Could not decrypt movie: \(error.localizedDescription)")
                     .foregroundColor(.red)
@@ -59,7 +73,6 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                 
             }
         }
-        
     }
 }
 //

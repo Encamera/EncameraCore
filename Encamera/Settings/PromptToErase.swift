@@ -11,7 +11,7 @@ import Combine
 class PromptToEraseViewModel: ObservableObject {
     
     enum Constants {
-        static var defaultCountdown = 5
+        static let defaultCountdown = 5
     }
     
     @Published var eraseButtonPressed = false

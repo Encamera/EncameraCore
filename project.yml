@@ -21,6 +21,8 @@ targets:
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ForegroundPrimaryColor
     dependencies:
       - package: Sodium
+      - framework: StoreKit.framework
+        embed: false
     scheme:
       testTargets:
         - EncameraTests

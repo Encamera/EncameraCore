@@ -10,15 +10,19 @@ import Foundation
 enum URLType: Equatable {
     
     private static var keyDataQueryParam = "data"
+    private static var featureToggleQueryParam = "feature"
     
     case media(encryptedMedia: EncryptedMedia)
     case key(key: PrivateKey)
+    case featureToggle(feature: Feature)
     
     init?(url: URL) {
         if let key = URLType.extractKey(url: url) {
             self = .key(key: key)
         } else if let media = URLType.extractMediaSource(url: url) {
             self = .media(encryptedMedia: media)
+        } else if let feature = URLType.extractFeatureToggle(url: url) {
+            self = .featureToggle(feature: feature)
         } else {
             return nil
         }
@@ -30,7 +34,17 @@ enum URLType: Equatable {
             return encryptedMedia.source
         case .key(let key):
             return keyURL(key: key)
+        case .featureToggle(feature: let feature):
+            return featureToggleURL(feature: feature)
         }
+    }
+    
+    private func featureToggleURL(feature: Feature) -> URL? {
+        var components = URLComponents()
+        components.scheme = AppConstants.deeplinkSchema
+        components.host = "featureToggle"
+        components.queryItems = [URLQueryItem(name: URLType.featureToggleQueryParam, value: feature.rawValue)]
+        return components.url
     }
     
     private func keyURL(key: PrivateKey) -> URL? {
@@ -68,6 +82,15 @@ enum URLType: Equatable {
             return nil
         }
         return EncryptedMedia(source: url)
+    }
+    
+    private static func extractFeatureToggle(url: URL) -> Feature? {
+        let urlParams = URLComponents(url: url, resolvingAgainstBaseURL: false)
+
+        guard let featureParam = urlParams?.queryItems?.first(where: {$0.name == URLType.featureToggleQueryParam})?.value else {
+            return nil
+        }
+            return Feature(rawValue: featureParam)
     }
     
 }

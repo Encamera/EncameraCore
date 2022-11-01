@@ -18,6 +18,7 @@ struct EncameraApp: App {
         var cameraServiceModel = CameraConfigurationServiceModel()
         var onboardingManager: OnboardingManager
         var storageSettingsManager: DataStorageSetting = DataStorageUserDefaultsSetting()
+        var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
         var settingsManager: SettingsManager
         private(set) var authManager: AuthManager
         private var cancellables = Set<AnyCancellable>()
@@ -62,18 +63,22 @@ struct EncameraApp: App {
                 .sink { _ in
                     
                     self.showScreenBlocker = true
+                    try? FileManager.default.removeItem(at: URL.tempMediaURL)
+
                 }.store(in: &cancellables)
 
             NotificationUtils.willResignActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = true
+                    try? FileManager.default.removeItem(at: URL.tempMediaURL)
                 }
                 .store(in: &cancellables)
 
             NotificationUtils.didBecomeActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = false
-                    
+                    try? FileManager.default.removeItem(at: URL.tempMediaURL)
+
                 }.store(in: &cancellables)
             
             NotificationUtils.orientationDidChangePublisher
@@ -132,7 +137,8 @@ struct EncameraApp: App {
                 authManager: viewModel.authManager,
                 cameraService: viewModel.cameraService,
                 fileAccess: viewModel.fileAccess,
-                storageSettingsManager: viewModel.storageSettingsManager
+                storageSettingsManager: viewModel.storageSettingsManager,
+                purchaseManager: viewModel.purchasedPermissions
             ))
                 .preferredColorScheme(.dark)
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
@@ -152,7 +158,12 @@ struct EncameraApp: App {
 
                                 KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true, dismiss: dismissBinding ))
                             }
+                        case .featureToggle(feature: let feature):
+                            Text("Feature \"\(feature.rawValue)\" activated").onAppear {
+                                FeatureToggle.enable(feature: feature)
+                            }
                         }
+                        
                     } else {
                         Text("No private key or media found.")
                             .fontType(.medium)
@@ -196,7 +207,8 @@ struct EncameraApp: App {
                         media: [media],
                         selectedMedia: media,
                         fileAccess: fileAccess,
-                        showActionBar: false
+                        showActionBar: false,
+                        purchasedPermissions: viewModel.purchasedPermissions
                     )
                 ).toolbar {
                     Button("Close") {

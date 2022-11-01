@@ -21,7 +21,11 @@ final class CameraModel: ObservableObject {
     @Published var showAlertError = false
 
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
-    @Published var isRecordingVideo = false
+    @Published var isRecordingVideo = false {
+        didSet {
+            UIApplication.shared.isIdleTimerDisabled = isRecordingVideo
+        }
+    }
     @Published var recordingDuration: CMTime = .zero
     @Published var willCapturePhoto = false
     @Published var selectedCameraMode: CameraMode = .photo
@@ -38,7 +42,10 @@ final class CameraModel: ObservableObject {
     var alertError: AlertError!
     var storageSettingsManager: DataStorageSetting
     var fileAccess: FileAccess
-    
+    var userDefaultsUtil = UserDefaultUtils()
+    var purchaseManager: PurchasedPermissionManaging
+    private var currentVideoProcessor: AsyncVideoCaptureProcessor?
+
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -46,10 +53,11 @@ final class CameraModel: ObservableObject {
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
-         storageSettingsManager: DataStorageSetting) {
+         storageSettingsManager: DataStorageSetting,
+         purchaseManager: PurchasedPermissionManaging) {
         self.service = cameraService
         self.fileAccess = fileAccess
-        
+        self.purchaseManager = purchaseManager
         self.keyManager = keyManager
         
         self.authManager = authManager
@@ -114,9 +122,12 @@ final class CameraModel: ObservableObject {
     }
     
     func captureButtonPressed() async throws {
-
+        
         switch selectedCameraMode {
         case .photo:
+            
+            UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
+            
             let photoProcessor = await service.createPhotoProcessor(flashMode: flashMode)
             
             let photoObject = try await photoProcessor.takePhoto()
@@ -149,25 +160,25 @@ final class CameraModel: ObservableObject {
                 willCapturePhoto = false
             })
         case .video:
-//            if let currentVideoProcessor = currentVideoProcessor {
-//                currentVideoProcessor.stop()
-//                self.currentVideoProcessor = nil
-//                return
-//            }
-//            let videoProcessor = try await service.createVideoProcessor()
-//            await MainActor.run(body: {
-//                isRecordingVideo = true
-//            })
-//            currentVideoProcessor = videoProcessor
-//            currentVideoProcessor?.durationPublisher.sink(receiveValue: { value in
-//                self.recordingDuration = value
-//            }).store(in: &cancellables)
-//            let video = try await videoProcessor.takeVideo()
-//            await MainActor.run(body: {
-//                isRecordingVideo = false
-//            })
-//            currentVideoProcessor = nil
-//            try await fileAccess.save(media: video)
+            if let currentVideoProcessor = currentVideoProcessor {
+                currentVideoProcessor.stop()
+                self.currentVideoProcessor = nil
+                return
+            }
+            let videoProcessor = try await service.createVideoProcessor()
+            await MainActor.run(body: {
+                isRecordingVideo = true
+            })
+            currentVideoProcessor = videoProcessor
+            currentVideoProcessor?.durationPublisher.sink(receiveValue: { value in
+                self.recordingDuration = value
+            }).store(in: &cancellables)
+            let video = try await videoProcessor.takeVideo()
+            await MainActor.run(body: {
+                isRecordingVideo = false
+            })
+            currentVideoProcessor = nil
+            try await fileAccess.save(media: video)
             break
         }
         await loadThumbnail()

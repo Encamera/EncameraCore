@@ -29,7 +29,7 @@ struct PhotoInfoView: View {
                 .padding()
                 .frame(width: 50, height: 50)
             }
-                        .padding()
+            .padding()
             Spacer()
         }
         .background(Color.background)
@@ -41,7 +41,7 @@ struct PhotoInfoView: View {
 struct PhotoInfoView_Previews: PreviewProvider {
     
     static var media: EncryptedMedia {
-        var media = EncryptedMedia(source: URL(string: "file://")!, mediaType: .photo, id: NSUUID().uuidString)
+        let media = EncryptedMedia(source: URL(string: "file://")!, mediaType: .photo, id: NSUUID().uuidString)
         let dateComponents = DateComponents(timeZone: TimeZone(identifier: "gmt"), year: 2022, month: 2, day: 9, hour: 5, minute: 0, second: 0)
         let date = Calendar(identifier: .gregorian).date(from: dateComponents)
         media.timestamp = date

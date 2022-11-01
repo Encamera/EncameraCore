@@ -13,6 +13,7 @@ import Combine
 class GalleryGridViewModel: ObservableObject {
     
     var privateKey: PrivateKey
+    var purchasedPermissions: PurchasedPermissionManaging
     @Published var media: [EncryptedMedia] = []
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
@@ -36,7 +37,8 @@ class GalleryGridViewModel: ObservableObject {
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,
          carouselTarget: EncryptedMedia? = nil,
-         fileAccess: FileAccess = DiskFileAccess()
+         fileAccess: FileAccess = DiskFileAccess(),
+         purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
     ) {
         self.blurImages = blurImages
         self.privateKey = privateKey
@@ -44,6 +46,7 @@ class GalleryGridViewModel: ObservableObject {
         self.downloadPendingMediaCount = downloadPendingMediaCount
         self.carouselTarget = carouselTarget
         self.fileAccess = fileAccess
+        self.purchasedPermissions = purchasedPermissions
     }
     
     func startiCloudDownload() {
@@ -76,6 +79,19 @@ class GalleryGridViewModel: ObservableObject {
         media = enumerated
         enumerateiCloudUndownloaded()
     }
+    
+    func blurItemAt(index: Int) -> Bool {
+        return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(index))) == false
+    }
+    
+}
+
+private enum Constants {
+    static let hideButtonWidth = 100.0
+    static let numberOfImagesWide = 3.0
+    static let blurRadius = AppConstants.blockingBlurRadius
+    static let buttonPadding = 7.0
+    static let buttonCornerRadius = 10.0
 }
 
 struct GalleryGridView<Content: View>: View {
@@ -88,10 +104,11 @@ struct GalleryGridView<Content: View>: View {
         self.content = content()
     }
     
+    
     var body: some View {
         GeometryReader { geo in
             let frame = geo.frame(in: .global)
-            let side = frame.width / 3
+            let side = frame.width / Constants.numberOfImagesWide
             let gridItems = [
                 GridItem(.fixed(side), spacing: 1),
                 GridItem(.fixed(side), spacing: 1),
@@ -103,7 +120,7 @@ struct GalleryGridView<Content: View>: View {
                     HStack {
                         if viewModel.blurImages {
                             Toggle("Hide", isOn: $viewModel.blurImages)
-                                        .frame(width: 100)
+                                .frame(width: Constants.hideButtonWidth)
                                 .fontType(.small)
                             Spacer()
                         } else {
@@ -112,28 +129,7 @@ struct GalleryGridView<Content: View>: View {
                                 }
                         
                         if viewModel.downloadPendingMediaCount > 0 {
-                            Button {
-                                viewModel.startiCloudDownload()
-                            } label: {
-                                
-                                HStack {
-                                    if viewModel.downloadInProgress {
-                                        ProgressView()
-                                            .tint(Color.foregroundPrimary)
-                                        Spacer()
-                                            .frame(width: 5)
-                                    } else {
-                                        Text("\(viewModel.downloadPendingMediaCount)")
-                                            .fontType(.small)
-                                    }
-                                    Image(systemName: "icloud.and.arrow.down")
-                                }
-                                        
-                                
-                            }
-                            .padding(7)
-                                .background(Color.foregroundSecondary)
-                                .cornerRadius(10)
+                            downloadFromiCloudButton
                         }
                         Spacer()
                         Button {
@@ -147,14 +143,15 @@ struct GalleryGridView<Content: View>: View {
                     }
                     .padding()
                     LazyVGrid(columns: gridItems, spacing: 1) {
-                        ForEach(viewModel.media, id: \.gridID) { mediaItem in
-                            AsyncImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView())
+                        ForEach(Array(viewModel.media.enumerated()), id: \.element) { index, mediaItem in
+                            AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView())
                                 .onTapGesture {
                                     viewModel.carouselTarget = mediaItem
                                 }
+                                .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
                         }
                     }
-                    .blur(radius: viewModel.blurImages ? 10.0 : 0.0)
+                    .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
                     .animation(.easeIn, value: viewModel.blurImages)
                 }
                 
@@ -163,7 +160,12 @@ struct GalleryGridView<Content: View>: View {
                     if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
                         
                         GalleryHorizontalScrollView(
-                            viewModel: .init(media: viewModel.media, selectedMedia: carouselTarget, fileAccess: viewModel.fileAccess))
+                            viewModel: .init(
+                                media: viewModel.media,
+                                selectedMedia: carouselTarget,
+                                fileAccess: viewModel.fileAccess,
+                                purchasedPermissions: viewModel.purchasedPermissions
+                            ))
                     }
                 } label: {
                     EmptyView()
@@ -178,6 +180,31 @@ struct GalleryGridView<Content: View>: View {
             .navigationBarTitle(viewModel.privateKey.name, displayMode: .large)
             
         }
+    }
+    
+    
+    var downloadFromiCloudButton: some View {
+        Button {
+            viewModel.startiCloudDownload()
+        } label: {
+            
+            HStack {
+                if viewModel.downloadInProgress {
+                    ProgressView()
+                        .tint(Color.foregroundPrimary)
+                    Spacer()
+                        .frame(width: 5)
+                } else {
+                    Text("\(viewModel.downloadPendingMediaCount)")
+                        .fontType(.small)
+                }
+                Image(systemName: "icloud.and.arrow.down")
+            }
+        }
+        .padding(Constants.buttonPadding)
+            .background(Color.foregroundSecondary)
+            .cornerRadius(Constants.buttonCornerRadius)
+
     }
 }
 

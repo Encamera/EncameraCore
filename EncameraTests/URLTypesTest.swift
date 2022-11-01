@@ -41,6 +41,12 @@ class URLTypesTest: XCTestCase {
         
     }
     
+    func testFeatureToggleType() throws {
+        let url = try XCTUnwrap(URL(string: "encamera://featureToggle?feature=enableVideo"))
+        let converted = URLType(url: url)
+        XCTAssertEqual(converted, .featureToggle(feature: .enableVideo))
+    }
+    
     func testConvertMediaLocationType() throws {
         
         let url = try XCTUnwrap(URL(string: "file:///private/var/mobile/Library/Mobile%20Documents/iCloud~Encamera/Documents/peaches/25280ADA-BEB5-4896-BFEF-ACC0D804653A.encimage"))

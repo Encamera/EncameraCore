@@ -25,11 +25,12 @@ class OnboardingViewModel: ObservableObject {
     
     
     @Published var password1: String = ""
+    @Published var showPassword = false
     @Published var password2: String = ""
     @Published var keyName: String = ""
     @Published var existingPassword: String = ""
     var onboardingFlow: [OnboardingFlowScreen]
-    @Published var passwordState: PasswordValidation?
+    @Published var passwordState: PasswordValidation? 
     @MainActor
     @Published var stateError: OnboardingManagerError?
     @MainActor
@@ -269,20 +270,34 @@ private extension MainOnboardingView {
                 bottomButtonAction: {
                     try viewModel.savePassword()
                 }) {
-                    AnyView(VStack {
-                        EncameraTextField("Password", type: .secure, text: $viewModel.password1).onSubmit {
-                            password2Focused = true
-                        }
-                        EncameraTextField("Repeat Password", type: .secure, text: $viewModel.password2)
-                            .focused($password2Focused)
-                            .onSubmit {
-                            password2Focused = false
-                        }
-                        if let passwordState = viewModel.passwordState, passwordState != .valid {
-                            Group {
-                                Text(passwordState.validationDescription).alertText()
+                    AnyView(
+                        VStack(alignment: .leading) {
+                            HStack {
+                                VStack {
+                                    Group {
+                                        EncameraTextField("Password", type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password1).onSubmit {
+                                            password2Focused = true
+                                        }
+                                        EncameraTextField("Repeat Password", type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password2)
+                                            .focused($password2Focused)
+                                            .onSubmit {
+                                                password2Focused = false
+                                            }
+                                    }.noAutoModification()
+                                    
+                                }
+                                Button {
+                                    viewModel.showPassword.toggle()
+                                } label: {
+                                    Image(systemName: viewModel.showPassword ? "eye" : "eye.slash")
+                                }
                             }
-                        }})
+                            if let passwordState = viewModel.passwordState, passwordState != .valid {
+                                Group {
+                                    Text(passwordState.validationDescription).alertText()
+                                }
+                            }
+                        })
                     
                 }
         case .biometrics:

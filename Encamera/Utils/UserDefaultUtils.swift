@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 struct UserDefaultUtils {
     
@@ -13,12 +14,38 @@ struct UserDefaultUtils {
         UserDefaults.standard
     }
     
+    static var defaultsPublisher: AnyPublisher<(UserDefaultKey, Any?), Never> {
+        defaultsSubject.eraseToAnyPublisher()
+    }
+    
+    private static var defaultsSubject: PassthroughSubject = PassthroughSubject<(UserDefaultKey, Any?), Never>()
+    
+    static func increaseInteger(forKey key: UserDefaultKey) {
+        var currentValue = value(forKey: key) as? Int ?? 0
+        currentValue += 1
+        set(currentValue, forKey: key)
+        
+    }
+    
+    static func publisher(for observedKey: UserDefaultKey) -> AnyPublisher<Any?, Never> {
+        return defaultsPublisher.filter { key, value in
+            return observedKey == key
+        }.map { key, value in
+            return value
+        } .eraseToAnyPublisher()
+    }
+    
     static func set(_ value: Any?, forKey key: UserDefaultKey) {
         defaults.set(value, forKey: key.rawValue)
+        defaultsSubject.send((key, value))
     }
     
     static func value(forKey key: UserDefaultKey) -> Any? {
         return defaults.value(forKey: key.rawValue)
+    }
+    
+    static func bool(forKey key: UserDefaultKey) -> Bool {
+        return defaults.bool(forKey: key.rawValue)
     }
     
     static func removeObject(forKey key: UserDefaultKey) {

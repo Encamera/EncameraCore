@@ -24,6 +24,7 @@ class KeySelectionListViewModel: ObservableObject {
     }
     
     var keyManager: KeyManager
+    var purchaseManager: PurchasedPermissionManaging
     @MainActor
     @Published var keys: [KeyItemModel] = []
     @Published var selectionError: KeySelectionError?
@@ -33,8 +34,10 @@ class KeySelectionListViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     
-    init(keyManager: KeyManager) {
+    init(keyManager: KeyManager, purchaseManager: PurchasedPermissionManaging) {
         self.keyManager = keyManager
+        self.purchaseManager = purchaseManager
+
         keyManager.keyPublisher.receive(on: DispatchQueue.main).sink { _ in
             Task {
                 await self.loadKeys()
@@ -60,6 +63,16 @@ class KeySelectionListViewModel: ObservableObject {
             selectionError = .loadKeysError
         }
     }
+    
+    @MainActor
+    var shouldShowPurchaseScreenForKeys: Bool {
+        
+        if self.keys.count == 0 {
+            return false
+        }
+        
+        return purchaseManager.isAllowedAccess(feature: .createKey(count: .infinity)) == false
+    }
 
 }
 
@@ -71,7 +84,6 @@ struct KeySelectionList: View {
     
     
     var body: some View {
-        
 
         List {
             Section {
@@ -81,7 +93,11 @@ struct KeySelectionList: View {
                     viewModel.isShowingAddKeyView = newValue
                 }
                 NavigationLink(isActive: createNewKeyActive) {
-                    KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
+                    if viewModel.shouldShowPurchaseScreenForKeys {
+                        SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
+                    } else {
+                        KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
+                    }
                 } label: {
                     KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
                 }
@@ -91,7 +107,11 @@ struct KeySelectionList: View {
                     viewModel.isShowingAddExistingKeyView = newValue
                 }
                 NavigationLink(isActive: addExistingKeyActive) {
-                    KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, dismiss: addExistingKeyActive))
+                    if viewModel.shouldShowPurchaseScreenForKeys {
+                        SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
+                    } else {
+                        KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, dismiss: addExistingKeyActive))
+                    }
                 } label: {
                     KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
                 }
@@ -176,6 +196,6 @@ struct KeySelectionList_Previews: PreviewProvider {
     }()
     
     static var previews: some View {
-        KeySelectionList(viewModel: .init(keyManager: keyManager))
+        KeySelectionList(viewModel: .init(keyManager: keyManager, purchaseManager: AppPurchasedPermissionUtils()))
     }
 }

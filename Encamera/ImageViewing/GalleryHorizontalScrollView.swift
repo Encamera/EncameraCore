@@ -13,15 +13,18 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     @Published var media: [EncryptedMedia]
     @Published var selectedMedia: EncryptedMedia
     @Published var showInfoSheet = false
+    @Published var showPurchaseSheet = false
+    var purchasedPermissions: PurchasedPermissionManaging
     var showActionBar = true
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
     
-    init(media: [EncryptedMedia], selectedMedia: EncryptedMedia, fileAccess: FileAccess, showActionBar: Bool = true) {
+    init(media: [EncryptedMedia], selectedMedia: EncryptedMedia, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging) {
         self.media = media
         self.fileAccess = fileAccess
         self.selectedMedia = selectedMedia
         self.showActionBar = showActionBar
+        self.purchasedPermissions = purchasedPermissions
     }
     
     var selectedIndex: Int {
@@ -47,7 +50,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
         Task {
             let targetIndex = selectedIndex
             let targetMedia = selectedMedia
-
+            
             await MainActor.run {
                 if targetIndex > 0 {
                     rewindIndex()
@@ -94,6 +97,14 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
         
     }
     
+    func canAccessPhoto(at index: Int) -> Bool {
+        return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(index)))
+    }
+    
+    func showPurchaseScreen() {
+        showPurchaseSheet = true
+    }
+    
 }
 
 struct GalleryHorizontalScrollView: View {
@@ -116,6 +127,7 @@ struct GalleryHorizontalScrollView: View {
     @State var currentOffset: CGSize = .zero
     @State var showingShareSheet = false
     @State var showingDeleteConfirmation = false
+    @State var isPlayingVideo = false
     var dragGestureRef = DragGesture(minimumDistance: 0)
     
     
@@ -150,65 +162,9 @@ struct GalleryHorizontalScrollView: View {
         GeometryReader { geo in
             let frame = geo.frame(in: .global)
             VStack {
-                let gridItems = [
-                    GridItem(.fixed(frame.width), spacing: 0)
-                ]
-                
-                ScrollViewReader { proxy in
-                    
-                    ScrollView(.horizontal) {
-                        LazyHGrid(rows: gridItems) {
-                            ForEach(viewModel.media, id: \.id) { item in
-                                
-                                let model = ImageViewingViewModel(media: item, fileAccess: viewModel.fileAccess)
-                                ImageViewing(
-                                    currentScale: scaleBinding(for: item),
-                                    finalOffset: offsetBinding(for: item),
-                                    viewModel: model, externalGesture: dragGestureRef)
-                                .frame(
-                                    width: frame.width,
-                                    height: frame.height)
-                                
-                            }
-                        }.frame(maxHeight: .infinity)
-                    }
-                    .onChange(of: viewModel.selectedMedia) { newValue in
-                        scrollTo(media: newValue, with: proxy)
-                    }
-                    .onAppear {
-                        scrollTo(media: viewModel.selectedMedia, with: proxy)
-                    }
-                    
-                    
-                }
+                scrollView(frame: frame)
                 if viewModel.showActionBar {
-                    HStack(alignment: .center) {
-                        Group {
-                            Button {
-                                showingShareSheet = true
-                            } label: {
-                                Image(systemName: "square.and.arrow.up")
-                            }
-                            Button {
-                                viewModel.openInFiles()
-                            } label: {
-                                Image(systemName: "folder")
-                            }
-                            Button {
-                                viewModel.showInfoSheet = true
-                            } label: {
-                                Image(systemName: "info.circle")
-                            }
-                            Button {
-                                showingDeleteConfirmation = true
-                            } label: {
-                                Image(systemName: "trash")
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .padding()
-                    .frame(height: 44)
+                    actionBar
                 }
             }.confirmationDialog("Delete this image?", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
                 
@@ -232,7 +188,6 @@ struct GalleryHorizontalScrollView: View {
         }
         .sheet(isPresented: $viewModel.showInfoSheet) {
             let content = Group {
-                
                 PhotoInfoView(media: viewModel.selectedMedia, isPresented: $viewModel.showInfoSheet)
             }
             if #available(iOS 16.0, *) {
@@ -246,6 +201,105 @@ struct GalleryHorizontalScrollView: View {
                 }
             }
         }
+        .sheet(isPresented: $viewModel.showPurchaseSheet) {
+            SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
+        }
+    }
+    
+    
+    @ViewBuilder private func scrollView(frame: CGRect) -> some View {
+        let gridItems = [
+            GridItem(.fixed(frame.width), spacing: 0)
+        ]
+        let _ = Self._printChanges()
+
+        ScrollViewReader { proxy in
+            
+            ScrollView(.horizontal) {
+                LazyHGrid(rows: gridItems) {
+                    ForEach(Array(viewModel.media.enumerated()), id: \.element.id) { index, item in
+
+                        viewingFor(item: item)
+                        .blur(radius:
+                                viewModel.canAccessPhoto(at: index)
+                              ? 0.0 : AppConstants.blockingBlurRadius)
+                        .overlay {
+                            if viewModel.canAccessPhoto(at: index) {
+                                EmptyView()
+                            } else {
+                                PurchasePhotoSubscriptionOverlay {
+                                    viewModel.showPurchaseScreen()
+                                }
+                            }
+                        }
+                        .frame(
+                            width: frame.width,
+                            height: frame.height)
+                        
+                    }
+                }.frame(maxHeight: .infinity)
+            }
+            .onChange(of: viewModel.selectedMedia) { newValue in
+                isPlayingVideo = false
+                scrollTo(media: newValue, with: proxy)
+            }
+            .onAppear {
+                scrollTo(media: viewModel.selectedMedia, with: proxy)
+            }
+        }
+    }
+    @ViewBuilder private func viewingFor(item: EncryptedMedia) -> some View {
+        switch item.mediaType {
+        case .photo:
+            let model = ImageViewingViewModel(media: item, fileAccess: viewModel.fileAccess)
+
+            ImageViewing(
+                currentScale: scaleBinding(for: item),
+                finalOffset: offsetBinding(for: item),
+                viewModel: model, externalGesture: dragGestureRef)
+        case .video:
+            MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, isPlaying: $isPlayingVideo))
+        default:
+            EmptyView()
+
+        }
+    }
+    
+    private var actionBar: some View {
+        HStack(alignment: .center) {
+            Group {
+                Button {
+                    showingShareSheet = true
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                Button {
+                    viewModel.openInFiles()
+                } label: {
+                    Image(systemName: "folder")
+                }
+                Button {
+                    viewModel.showInfoSheet = true
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+                if viewModel.selectedMedia.mediaType == .video {
+                    Button {
+                        isPlayingVideo.toggle()
+                    } label: {
+                        Image(systemName: isPlayingVideo ? "pause" : "play")
+                    }
+                }
+                Button {
+                    showingDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding()
+        .frame(height: 44)
     }
     
     private func scrollTo(media: EncryptedMedia, with proxy: ScrollViewProxy) {
@@ -286,8 +340,6 @@ struct GalleryHorizontalScrollView: View {
         })
     }
     
-    
-    
     private var tapGesture: TapGestureType {
         TapGesture(count: 2).onEnded {
             finalScale = finalScale > 1.0 ? 1.0 : 3.0
@@ -310,7 +362,8 @@ struct GalleryHorizontalScrollView: View {
 struct GalleryHorizontalScrollView_Previews: PreviewProvider {
     static var previews: some View {
         let media = (0..<10).map { EncryptedMedia(source: URL(string: "/")!, mediaType: .photo, id: "\($0)") }
-        let model = GalleryHorizontalScrollViewModel(media: media, selectedMedia: media.first!, fileAccess: DemoFileEnumerator())
+        let model = GalleryHorizontalScrollViewModel(media: media, selectedMedia: media.first!, fileAccess: DemoFileEnumerator(), purchasedPermissions: AppPurchasedPermissionUtils())
         GalleryHorizontalScrollView(viewModel: model)
+            .preferredColorScheme(.dark)
     }
 }

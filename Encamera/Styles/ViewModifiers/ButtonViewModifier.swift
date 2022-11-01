@@ -23,8 +23,21 @@ struct ButtonViewModifier: ViewModifier {
     
 }
 
+struct EncameraButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        return configuration.label
+            .fontType(.small)
+            .padding(7.0)
+            .foregroundColor(.background)
+            .background(Color.foregroundSecondary)
+            .cornerRadius(10)
+            .frame(minHeight: 60)
+
+    }
+}
+
 extension View {
     func primaryButton() -> some View {
-        modifier(ButtonViewModifier())
+        buttonStyle(EncameraButtonStyle())
     }
 }
