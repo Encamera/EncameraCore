@@ -10,11 +10,11 @@ import Combine
 
 struct UserDefaultUtils {
     
-    static var defaults: UserDefaults {
+    private static var defaults: UserDefaults {
         UserDefaults.standard
     }
     
-    static var defaultsPublisher: AnyPublisher<(UserDefaultKey, Any?), Never> {
+    private static var defaultsPublisher: AnyPublisher<(UserDefaultKey, Any?), Never> {
         defaultsSubject.eraseToAnyPublisher()
     }
     
@@ -32,7 +32,7 @@ struct UserDefaultUtils {
             return observedKey == key
         }.map { key, value in
             return value
-        } .eraseToAnyPublisher()
+        }.eraseToAnyPublisher()
     }
     
     static func set(_ value: Any?, forKey key: UserDefaultKey) {

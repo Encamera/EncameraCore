@@ -213,6 +213,12 @@ struct CameraView: View {
                     cameraModel.showingKeySelection = true
                 }, secondaryButton: .cancel())
             }
+            .sheet(isPresented: $cameraModel.showExplanationForUpgrade) {
+                Text("You should upgrade, since you can only take \(Int(AppConstants.maxPhotoCountBeforePurchase)) photos before you have to pay.")
+            }
+            .sheet(isPresented: $cameraModel.showTookFirstPhotoSheet) {
+                Text("Congrats! You took your first photo! You can find your photos via the thumbnail or by opening each key's photos by tapping the \(Image(systemName: "key.fill")) icon on the top of the screen.")
+            }
         }
 
     }

@@ -13,4 +13,7 @@ enum AppConstants {
     static var deeplinkSchema = "encamera"
     static var thumbnailWidth: CGFloat = 70
     static var blockingBlurRadius: CGFloat = 10.0
+    static var numberOfPhotosBeforeInitialTutorial: Double = 1
+    static let maxPhotoCountBeforePurchase: Double = 5
+
 }

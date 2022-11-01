@@ -61,9 +61,6 @@ enum AppFeature {
     case createKey(count: Double)
 }
 
-private enum PurchaseConstants {
-    static let maxPhotoCountBeforePurchase: Double = 5
-}
 
 protocol PurchasedPermissionManaging {
     func isAllowedAccess(feature: AppFeature) -> Bool
@@ -81,7 +78,7 @@ class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject
     func isAllowedAccess(feature: AppFeature) -> Bool {
         print("Hiiii")
         switch feature {
-        case .accessPhoto(let count) where count < PurchaseConstants.maxPhotoCountBeforePurchase, .createKey(let count) where count < PurchaseConstants.maxPhotoCountBeforePurchase:
+        case .accessPhoto(let count) where count < AppConstants.maxPhotoCountBeforePurchase, .createKey(let count) where count < AppConstants.maxPhotoCountBeforePurchase:
             return true
         default:
             return subscriptionController.entitledSubscriptionID != nil

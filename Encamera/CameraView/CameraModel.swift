@@ -36,6 +36,10 @@ final class CameraModel: ObservableObject {
     @Published var showAlertForMissingKey = false
     @Published var currentZoomFactor: CGFloat = 1.0
     @Published var finalZoomFactor: CGFloat = 1.0
+    
+    // Tutorial/info sheets
+    @Published var showTookFirstPhotoSheet = false
+    @Published var showExplanationForUpgrade = false
 
     var authManager: AuthManager
     var keyManager: KeyManager
@@ -91,9 +95,27 @@ final class CameraModel: ObservableObject {
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)
-
+        setupPublishedVars()
     }
     
+    func setupPublishedVars() {
+        UserDefaultUtils.publisher(for: .capturedPhotos)
+            .compactMap({$0 as? Int})
+            .compactMap({ Double($0)})
+            .receive(on: DispatchQueue.main)
+            .sink { value in
+                
+                switch value {
+                case AppConstants.numberOfPhotosBeforeInitialTutorial:
+                    self.showTookFirstPhotoSheet = true
+                case AppConstants.maxPhotoCountBeforePurchase:
+                    self.showExplanationForUpgrade = true
+                default:
+                    self.showTookFirstPhotoSheet = false
+                    self.showExplanationForUpgrade = false
+                }
+            }.store(in: &cancellables)
+    }
     
     func loadThumbnail() async {
         
