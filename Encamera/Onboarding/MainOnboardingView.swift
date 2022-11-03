@@ -12,8 +12,6 @@ enum OnboardingViewError: Error {
     case passwordInvalid
     case onboardingEnded
     case missingStorageType
-    
-    
 }
 
 class OnboardingViewModel: ObservableObject {

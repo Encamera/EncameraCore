@@ -89,32 +89,27 @@ struct CameraView: View {
         }
     }
     private var cameraPreview: some View {
-        GeometryReader { reader in
-            CameraPreview(session: cameraModel.session, modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
-                .gesture(
-                    MagnificationGesture()
-                        .onChanged(cameraModel.handleMagnificationOnChanged)
-                        .onEnded(cameraModel.handleMagnificationEnded)
-                )
-                .onChange(of: rotationFromOrientation, perform: { newValue in
-                    Task {
-                        cameraModel.service.model.orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait
+        CameraPreview(session: cameraModel.session, modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
+            .gesture(
+                MagnificationGesture()
+                    .onChanged(cameraModel.handleMagnificationOnChanged)
+                    .onEnded(cameraModel.handleMagnificationEnded)
+            )
+            .onChange(of: rotationFromOrientation, perform: { newValue in
+                cameraModel.setOrientation(AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait)
+            }).alert(isPresented: $cameraModel.showAlertError, content: {
+                Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
+                    cameraModel.alertError.primaryAction?()
+                }))
+            })
+            .overlay(
+                Group {
+                    if cameraModel.willCapturePhoto {
+                        Color.black
                     }
-                })
-                .alert(isPresented: $cameraModel.showAlertError, content: {
-                    Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
-                        cameraModel.alertError.primaryAction?()
-                    }))
-                })
-                .overlay(
-                    Group {
-                        if cameraModel.willCapturePhoto {
-                            Color.black
-                        }
-                    }
-                )
-                .animation(.easeInOut, value: cameraModel.willCapturePhoto)
-        }
+                }
+            )
+            .animation(.easeInOut, value: cameraModel.willCapturePhoto)
     }
     
     private var topBar: some View {
@@ -155,7 +150,7 @@ struct CameraView: View {
                                 }
         }
     }
-    
+    @State var showTookFirstPhotoSheet = true
     var body: some View {
         NavigationView {
             
@@ -182,7 +177,7 @@ struct CameraView: View {
                     EmptyView()
                 }.isDetailLink(false)
                 
-                
+
                 VStack {
                     topBar
                     cameraPreview
@@ -204,6 +199,11 @@ struct CameraView: View {
                 
                 .navigationBarHidden(true)
                 .navigationTitle("")
+                if cameraModel.showTookFirstPhotoSheet {
+                    FirstPhotoTakenTutorial(shouldShow: $cameraModel.showTookFirstPhotoSheet)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
             }
             .background(Color.background)
             .screenBlocked()
@@ -216,9 +216,7 @@ struct CameraView: View {
             .sheet(isPresented: $cameraModel.showExplanationForUpgrade) {
                 Text("You should upgrade, since you can only take \(Int(AppConstants.maxPhotoCountBeforePurchase)) photos before you have to pay.")
             }
-            .sheet(isPresented: $cameraModel.showTookFirstPhotoSheet) {
-                Text("Congrats! You took your first photo! You can find your photos via the thumbnail or by opening each key's photos by tapping the \(Image(systemName: "key.fill")) icon on the top of the screen.")
-            }
+            
         }
 
     }
@@ -265,7 +263,24 @@ private extension AVCaptureDevice.FlashMode {
 
 struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraView(cameraModel: CameraModel(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), cameraService: CameraConfigurationService(model: .init()), fileAccess: DemoFileEnumerator(), storageSettingsManager: DemoStorageSettingsManager(), purchaseManager: DemoPurchasedPermissionManaging()))
+        let model = CameraModel(
+            keyManager: DemoKeyManager(),
+            authManager: DemoAuthManager(),
+            cameraService: CameraConfigurationService(model: .init()),
+            fileAccess: DemoFileEnumerator(),
+            storageSettingsManager: DemoStorageSettingsManager(),
+            purchaseManager: DemoPurchasedPermissionManaging()
+            
+        )
+        VStack {
+            Button("Show Overlay") {
+                withAnimation {
+                    model.showTookFirstPhotoSheet.toggle()
+                }
+                
+            }
+            CameraView(cameraModel: model)
+        }
         
     }
 }

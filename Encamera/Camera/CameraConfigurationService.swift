@@ -263,7 +263,7 @@ actor CameraConfigurationService: CameraConfigurationServicable {
 
 extension CameraConfigurationService {
     
-    func createVideoProcessor() throws -> AsyncVideoCaptureProcessor {
+    func createVideoProcessor() async throws -> AsyncVideoCaptureProcessor {
         guard let videoOutput = self.movieOutput else {
             fatalError()
         }
@@ -280,7 +280,7 @@ extension CameraConfigurationService {
         }
         
         if let photoOutputConnection = self.photoOutput.connection(with: .video) {
-            photoOutputConnection.videoOrientation =  model.orientation
+            photoOutputConnection.videoOrientation = model.orientation
         }
         var photoSettings = AVCapturePhotoSettings()
         // Capture HEIF photos when supported. Enable according to user settings and high-resolution photos.

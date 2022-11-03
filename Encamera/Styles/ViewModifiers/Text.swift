@@ -18,6 +18,7 @@ struct TextViewModifier: ViewModifier {
 enum EncameraFont {
     case large
     case medium
+    case mediumSmall
     case small
     
     private var baseFontName: String {
@@ -31,6 +32,8 @@ enum EncameraFont {
             return Font.custom(baseFontName, size: 35)
         case .medium:
             return Font.custom(baseFontName, size: 30)
+        case .mediumSmall:
+            return Font.custom(baseFontName, size: 24)
         case .small:
             return Font.custom(baseFontName, size: 16)
         }
@@ -54,10 +57,10 @@ extension Text {
 }
 
 extension View {
-    func fontType(_ fontType: EncameraFont) -> some View {
+    func fontType(_ fontType: EncameraFont, on surface: SurfaceType = .background) -> some View {
         return self
             .font(fontType.font)
-            .foregroundColor(.foregroundPrimary)
+            .foregroundColor(surface.textColor)
     }
 }
 
@@ -67,6 +70,8 @@ struct Text_Previews: PreviewProvider {
         VStack(alignment: .leading, spacing: 20) {
             Text("This is a large one").fontType(.large)
             Text("This is a medium one").fontType(.medium)
+            Text("This is a medium small one").fontType(.mediumSmall)
+
             Text("This is a small one").fontType(.small)
             Text("Alert!").alertText()
         }

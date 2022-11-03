@@ -38,7 +38,7 @@ final class CameraModel: ObservableObject {
     @Published var finalZoomFactor: CGFloat = 1.0
     
     // Tutorial/info sheets
-    @Published var showTookFirstPhotoSheet = false
+    @Published var showTookFirstPhotoSheet = true
     @Published var showExplanationForUpgrade = false
 
     var authManager: AuthManager
@@ -230,6 +230,10 @@ final class CameraModel: ObservableObject {
     func handleMagnificationEnded(scale: CGFloat) {
         finalZoomFactor *= currentZoomFactor
         currentZoomFactor = .zero
+    }
+    
+    func setOrientation(_ orientation: AVCaptureVideoOrientation) {
+            service.model.orientation = orientation
     }
 }
 

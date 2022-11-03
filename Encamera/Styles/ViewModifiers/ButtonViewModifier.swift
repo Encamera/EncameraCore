@@ -8,36 +8,49 @@
 import Foundation
 import SwiftUI
 
-struct ButtonViewModifier: ViewModifier {
-    
-    func body(content: Content) -> some View {
-        content
-            .font(.system(size: 16, weight: .bold))
-            .padding(7.0)
-            .foregroundColor(.background)
-            .background(Color.foregroundPrimary)
-            .cornerRadius(10)
-            .frame(minHeight: 60)
-        
-    }
-    
-}
 
 struct EncameraButtonStyle: ButtonStyle {
+    
+    var hostSurface: SurfaceType
+
+    
     func makeBody(configuration: Configuration) -> some View {
         return configuration.label
-            .fontType(.small)
-            .padding(7.0)
+            .fontType(.small, on: hostSurface)
+            .padding(12.0)
             .foregroundColor(.background)
-            .background(Color.foregroundSecondary)
+            .frame(minHeight: 44)
+            .background(hostSurface.foregroundSecondary)
             .cornerRadius(10)
-            .frame(minHeight: 60)
-
     }
 }
 
 extension View {
-    func primaryButton() -> some View {
-        buttonStyle(EncameraButtonStyle())
+    func primaryButton(on surface: SurfaceType = .background) -> some View {
+        buttonStyle(EncameraButtonStyle(hostSurface: surface))
+    }
+}
+
+struct EncameraButton_Previews: PreviewProvider {
+    static var previews: some View {
+        VStack(alignment: .leading) {
+            Button("Encrypt Everything") {
+                
+            }.primaryButton()
+            ZStack {
+                Color.background.frame(width: 100, height: 100  )
+                Button("Unlock") {
+                    
+                }.primaryButton(on: .background)
+            }
+            ZStack {
+                Color.foregroundSecondary.frame(width: 100, height: 100  )
+                Button("Share") {
+                    
+                }.primaryButton(on: .elevated)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .preferredColorScheme(.dark)
     }
 }

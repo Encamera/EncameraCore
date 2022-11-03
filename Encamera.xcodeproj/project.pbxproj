@@ -23,6 +23,8 @@
 		1983ED472910719B006F1415 /* StoreSubscriptionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1983ED462910719B006F1415 /* StoreSubscriptionController.swift */; };
 		1983ED49291071D3006F1415 /* ServiceSubscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1983ED48291071D3006F1415 /* ServiceSubscription.swift */; };
 		1983ED4B29107DCD006F1415 /* SubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1983ED4A29107DCD006F1415 /* SubscriptionView.swift */; };
+		1983ED532912CCDC006F1415 /* FirstPhotoTakenTutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1983ED522912CCDC006F1415 /* FirstPhotoTakenTutorial.swift */; };
+		198B753C2913BCFD00D12887 /* SurfaceType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198B753B2913BCFC00D12887 /* SurfaceType.swift */; };
 		19A777942909334400486351 /* EncameraProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19A777932909334400486351 /* EncameraProduct.swift */; };
 		19A777992909394900486351 /* BuyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19A777982909394800486351 /* BuyButtonStyle.swift */; };
 		19DD920328FE8F85009F3DD7 /* StoreKitTestCertificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 19DD920228FE8F85009F3DD7 /* StoreKitTestCertificate.cer */; };
@@ -177,6 +179,8 @@
 		1983ED462910719B006F1415 /* StoreSubscriptionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreSubscriptionController.swift; sourceTree = "<group>"; };
 		1983ED48291071D3006F1415 /* ServiceSubscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceSubscription.swift; sourceTree = "<group>"; };
 		1983ED4A29107DCD006F1415 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
+		1983ED522912CCDC006F1415 /* FirstPhotoTakenTutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstPhotoTakenTutorial.swift; sourceTree = "<group>"; };
+		198B753B2913BCFC00D12887 /* SurfaceType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceType.swift; sourceTree = "<group>"; };
 		19A777932909334400486351 /* EncameraProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraProduct.swift; sourceTree = "<group>"; };
 		19A777982909394800486351 /* BuyButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuyButtonStyle.swift; sourceTree = "<group>"; };
 		19DD920228FE8F85009F3DD7 /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
@@ -386,11 +390,20 @@
 			path = Store;
 			sourceTree = "<group>";
 		};
+		1983ED512912CCC9006F1415 /* Tutorial */ = {
+			isa = PBXGroup;
+			children = (
+				1983ED522912CCDC006F1415 /* FirstPhotoTakenTutorial.swift */,
+			);
+			path = Tutorial;
+			sourceTree = "<group>";
+		};
 		19A777962909392300486351 /* Styles */ = {
 			isa = PBXGroup;
 			children = (
 				3EED6C0557F35022AEDDE1B8 /* ViewModifiers */,
 				19A777972909393500486351 /* ButtonStyles */,
+				198B753B2913BCFC00D12887 /* SurfaceType.swift */,
 			);
 			path = Styles;
 			sourceTree = "<group>";
@@ -696,6 +709,7 @@
 		F8E25D1CB96BBE7C0604CA54 /* Encamera */ = {
 			isa = PBXGroup;
 			children = (
+				1983ED512912CCC9006F1415 /* Tutorial */,
 				19A777962909392300486351 /* Styles */,
 				195C8EEB28FD25EC00A1FCDA /* Store */,
 				49A2EF989B2F8643105205DF /* Assets.xcassets */,
@@ -876,6 +890,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0A18F45A6858197150EB3D52 /* AVCaptureUtils.swift in Sources */,
+				198B753C2913BCFD00D12887 /* SurfaceType.swift in Sources */,
 				A8CF1328AD8BE2D1DC0599E9 /* AddExchangedKeyConfirmation.swift in Sources */,
 				74A426CBDF114D88EFF62067 /* AlertError.swift in Sources */,
 				B48FDA6C79F0389ABD97F346 /* AppConstants.swift in Sources */,
@@ -936,6 +951,7 @@
 				6756E5B5C7BCEC5F909FF85C /* KeyManager.swift in Sources */,
 				8C75F3F31341AD03897522B0 /* KeyOperationCell.swift in Sources */,
 				753C199E4BD91DF38A25460F /* KeySelectionCell.swift in Sources */,
+				1983ED532912CCDC006F1415 /* FirstPhotoTakenTutorial.swift in Sources */,
 				6FB4B63701642073F6810B46 /* KeySelectionList.swift in Sources */,
 				1983ED472910719B006F1415 /* StoreSubscriptionController.swift in Sources */,
 				61AF31980C7C83808E95CC0B /* List.swift in Sources */,
