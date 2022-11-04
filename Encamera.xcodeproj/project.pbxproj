@@ -18,6 +18,7 @@
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
+		196179F12915230500E215A0 /* SubscriptionOptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196179F02915230500E215A0 /* SubscriptionOptionView.swift */; };
 		1983ED412910658A006F1415 /* EncameraSubscriptions.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 195C8EEE28FD91CA00A1FCDA /* EncameraSubscriptions.storekit */; };
 		1983ED4329107003006F1415 /* StoreActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1983ED4229107003006F1415 /* StoreActor.swift */; };
 		1983ED472910719B006F1415 /* StoreSubscriptionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1983ED462910719B006F1415 /* StoreSubscriptionController.swift */; };
@@ -176,6 +177,7 @@
 		1585D15F7B92351433FED0B3 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
 		195C8EEE28FD91CA00A1FCDA /* EncameraSubscriptions.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = EncameraSubscriptions.storekit; sourceTree = "<group>"; };
+		196179F02915230500E215A0 /* SubscriptionOptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOptionView.swift; sourceTree = "<group>"; };
 		1983ED4229107003006F1415 /* StoreActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreActor.swift; sourceTree = "<group>"; };
 		1983ED462910719B006F1415 /* StoreSubscriptionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreSubscriptionController.swift; sourceTree = "<group>"; };
 		1983ED48291071D3006F1415 /* ServiceSubscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceSubscription.swift; sourceTree = "<group>"; };
@@ -387,6 +389,7 @@
 			isa = PBXGroup;
 			children = (
 				1983ED4A29107DCD006F1415 /* SubscriptionView.swift */,
+				196179F02915230500E215A0 /* SubscriptionOptionView.swift */,
 				19A777932909334400486351 /* EncameraProduct.swift */,
 			);
 			path = Store;
@@ -995,6 +998,7 @@
 				21E5501110D2122E010CC0B7 /* TextField.swift in Sources */,
 				469BE8F9637C2473884C43EE /* URLTypes.swift in Sources */,
 				AC685B7C44837A93E6733C97 /* UserDefaultKeys.swift in Sources */,
+				196179F12915230500E215A0 /* SubscriptionOptionView.swift in Sources */,
 				1BE199F100EB51103E764B50 /* UserDefaultUtils.swift in Sources */,
 				821DE886AB64301064E096B6 /* VideoCaptureProcessor.swift in Sources */,
 				1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */,

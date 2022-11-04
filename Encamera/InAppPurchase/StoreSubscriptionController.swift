@@ -10,12 +10,12 @@ import StoreKit
 import Combine
 
 @MainActor
-public final class StoreSubscriptionController: ObservableObject {
-    @Published public internal(set) var subscriptions: [ServiceSubscription] = []
-    @Published public private(set) var entitledSubscriptionID: String?
-    @Published public private(set) var autoRenewPreference: String?
-    @Published public private(set) var purchaseError: (any LocalizedError)?
-    @Published public private(set) var expirationDate: Date?
+final class StoreSubscriptionController: ObservableObject {
+    @Published var subscriptions: [ServiceSubscription] = []
+    @Published private(set) var entitledSubscriptionID: String?
+    @Published private(set) var autoRenewPreference: String?
+    @Published private(set) var purchaseError: (any LocalizedError)?
+    @Published private(set) var expirationDate: Date?
     
     private let productIDs: [String]
     
@@ -23,11 +23,11 @@ public final class StoreSubscriptionController: ObservableObject {
         subscriptions.first?.subscriptionGroupID
     }
     
-    public var entitledSubscription: ServiceSubscription? {
+    var entitledSubscription: ServiceSubscription? {
         subscriptions.first { $0.id == entitledSubscriptionID }
     }
     
-    public var nextSubscription: ServiceSubscription? {
+    var nextSubscription: ServiceSubscription? {
         subscriptions.first { $0.id == autoRenewPreference }
     }
     
@@ -38,13 +38,13 @@ public final class StoreSubscriptionController: ObservableObject {
         }
     }
     
-    public enum PurchaseFinishedAction {
+    enum PurchaseFinishedAction {
         case dismissStore
         case noAction
         case displayError
     }
     
-    public func purchase(option subscription: ServiceSubscription) async -> PurchaseFinishedAction {
+    func purchase(option subscription: ServiceSubscription) async -> PurchaseFinishedAction {
         let action: PurchaseFinishedAction
         do {
             let result = try await subscription.product.purchase()

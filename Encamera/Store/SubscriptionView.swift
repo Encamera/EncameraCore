@@ -13,6 +13,7 @@ import SwiftUI
 struct SubscriptionStoreView: View {
     @ObservedObject var controller: StoreSubscriptionController
     @State private var selectedSubscription: ServiceSubscription?
+    @State private var currentActiveSubscription: ServiceSubscription?
     @State private var errorAlertIsPresented = false
     var showDismissButton = false
     @Environment(\.dismiss) private var dismiss
@@ -62,6 +63,7 @@ struct SubscriptionStoreView: View {
         .background(Color.background)
         .onAppear {
             selectedSubscription = controller.entitledSubscription
+            currentActiveSubscription = controller.entitledSubscription
         }
         .alert(
             controller.purchaseError?.errorDescription ?? "",
@@ -107,7 +109,8 @@ struct SubscriptionStoreView: View {
             if let subscriptions = controller.subscriptions {
                 SubscriptionStoreOptionsView(
                     subscriptions: subscriptions,
-                    selectedOption: $selectedSubscription
+                    selectedOption: $selectedSubscription,
+                    currentActiveSubscription: currentActiveSubscription
                 )
                 .padding(.top)
             }
@@ -119,17 +122,13 @@ struct SubscriptionStoreHeaderView: View {
     
     var body: some View {
         VStack(spacing: 5) {
-            Text("Encamera Premium")
-                .font(.largeTitle)
-                .bold()
-                .padding()
+            Image("EncameraPremiumHeader")
             Group {
                 Text("Support privacy-focused development.")
                 Text("View unlimited photos for each key.")
                 Text("Create an unlimited number of keys.")
             }
-            
-            .font(.headline)
+            .fontType(.small)
         }
         .padding(.top, 5)
         .padding(.bottom, 30)
@@ -141,6 +140,7 @@ struct SubscriptionStoreHeaderView: View {
 struct SubscriptionStoreOptionsView: View {
     let subscriptions: [ServiceSubscription]
     @Binding var selectedOption: ServiceSubscription?
+    let currentActiveSubscription: ServiceSubscription?
     
     func binding(for subscription: ServiceSubscription) -> Binding<Bool> {
         return Binding {
@@ -166,6 +166,7 @@ struct SubscriptionStoreOptionsView: View {
         return SubscriptionOptionView(
             subscription: subscription,
             savings: savingsInfo,
+            isSubscribed: currentActiveSubscription?.id == subscription.id,
             isOn: binding(for: subscription)
         )
     }
@@ -192,81 +193,6 @@ struct SubscriptionStoreOptionsView: View {
     }
 }
 
-struct SubscriptionOptionView: View {
-    let subscription: ServiceSubscription
-    let savings: SubscriptionSavings?
-
-    @Binding var isOn: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var savingsText: String? {
-        savings.map { "\($0.formattedPrice(for: subscription)) (Save \($0.formattedPercent))" }
-    }
-    
-    private static var backgroundColor: Color {
-        .foregroundSecondary
-    }
-    
-    private static var backgroundShape: some InsettableShape {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-    }
-    
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading) {
-                 Text(subscription.displayName)
-                    .font(.headline)
-                 Text(subscription.description)
-                     .padding(.bottom, 2)
-                 Text(applyKerning(to: "/", in: subscription.priceText))
-                 if let savingsText = savingsText {
-                     Text(applyKerning(to: "/()", in: savingsText))
-                         .foregroundColor(.accentColor)
-                 }
-            }
-            Spacer()
-            checkmarkImage
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(Self.backgroundColor, in: Self.backgroundShape)
-        .overlay {
-            Self.backgroundShape
-                .strokeBorder(
-                    Color.accentColor,
-                    lineWidth: isOn ? 1 : 0
-                )
-        }
-        .onTapGesture {
-            isOn.toggle()
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 5)
-    }
-    
-    private var checkmarkImage: some View {
-        Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
-         .symbolRenderingMode(.palette)
-         .foregroundStyle(
-             isOn ? Color.green : Color.background,
-             Color.clear,
-             Color.foregroundPrimary
-         )
-         .font(.title2)
-    }
-    
-    private func applyKerning(to symbols: String, in text: String, kerningValue: CGFloat = 1.0) -> AttributedString {
-        var attributedString = AttributedString(text)
-        let characters = symbols.map(String.init)
-        
-        for character in characters {
-            if let range = attributedString.range(of: character) {
-                attributedString[range].kern = kerningValue
-            }
-        }
-        return attributedString
-    }
-}
 
 struct SubscriptionPurchaseView: View {
     @State private var canRedeemIntroOffer = false
@@ -299,11 +225,12 @@ struct SubscriptionPurchaseView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical)
         .onChange(of: selectedSubscription) { newValue in
+            
             guard let selectedSubscription = newValue?.subscriptionInfo else {
                 return
             }
             Task(priority: .utility) { @MainActor in
-                canRedeemIntroOffer = await selectedSubscription.isEligibleForIntroOffer
+                canRedeemIntroOffer = await selectedSubscription.isEligibleForIntroOffer && selectedSubscription.introductoryOffer != nil
             }
         }
     }
@@ -313,9 +240,12 @@ struct SubscriptionPurchaseView: View {
 struct SubscriptionStoreView_Previews: PreviewProvider {
     
     static var previews: some View {
-        SubscriptionStoreView(
-            controller: StoreActor.shared.subscriptionController
-        ).preferredColorScheme(.dark)
+        NavigationView {
+            SubscriptionStoreView(
+                controller: StoreActor.shared.subscriptionController
+            ).preferredColorScheme(.dark)
+        }
+        
     }
     
 }

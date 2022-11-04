@@ -43,7 +43,7 @@ final class CameraModel: ObservableObject {
     @Published var showStoreSheet = false
     
     // Tutorial/info sheets
-    @Published var showTookFirstPhotoSheet = true
+    @Published var showTookFirstPhotoSheet = false
     @Published var showExplanationForUpgrade = false
 
     var authManager: AuthManager

@@ -14,6 +14,7 @@ struct PurchasePhotoSubscriptionOverlay: View {
     var body: some View {
         
         VStack(alignment: .center) {
+            Image("EncameraPremiumHeader")
             Text("Upgrade to view unlimited photos")
                 .fontType(.large)
                 .multilineTextAlignment(.center)

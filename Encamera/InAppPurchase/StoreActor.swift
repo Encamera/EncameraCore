@@ -8,9 +8,9 @@
 import Foundation
 import StoreKit
 
-@globalActor public actor StoreActor {
-    public static let unlimitedMonthlyID = "subscription.monthly.unlimitedphotosandkeys"
-    public static let unlimitedYearlyID = "subscription.yearly.unlimitedphotosandkeys"
+@globalActor actor StoreActor {
+    static let unlimitedMonthlyID = "subscription.monthly.unlimitedphotosandkeys"
+    static let unlimitedYearlyID = "subscription.yearly.unlimitedphotosandkeys"
     
     static let subscriptionIDs: Set<String> = [
         unlimitedMonthlyID,
@@ -22,7 +22,7 @@ import StoreKit
         return ids
     }()
     
-    public static let shared = StoreActor()
+    static let shared = StoreActor()
     
     private var loadedProducts: [String: Product] = [:]
     private var lastLoadError: Error?
@@ -32,7 +32,7 @@ import StoreKit
     private var statusUpdatesTask: Task<Void, Never>?
     private var storefrontUpdatesTask: Task<Void, Never>?
 
-    public nonisolated let subscriptionController: StoreSubscriptionController
+    nonisolated let subscriptionController: StoreSubscriptionController
     
     init() {
         self.subscriptionController = StoreSubscriptionController(productIDs: Array(Self.subscriptionIDs))
@@ -42,7 +42,7 @@ import StoreKit
         }
     }
     
-    public func product(identifiedBy productID: String) async -> Product? {
+    func product(identifiedBy productID: String) async -> Product? {
         await waitUntilProductsLoaded()
         return loadedProducts[productID]
     }
@@ -135,7 +135,7 @@ import StoreKit
     
 }
 
-public extension StoreKit.Transaction {
+extension StoreKit.Transaction {
     var isRevoked: Bool {
         // The revocation date is never in the future.
         revocationDate != nil

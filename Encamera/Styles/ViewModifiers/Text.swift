@@ -20,10 +20,13 @@ enum EncameraFont {
     case medium
     case mediumSmall
     case small
+    case extraSmall
     
     private var baseFontName: String {
         "Lato-Regular"
     }
+    
+    
     
     var font: Font {
         
@@ -35,6 +38,8 @@ enum EncameraFont {
         case .mediumSmall:
             return Font.custom(baseFontName, size: 24)
         case .small:
+            return Font.custom(baseFontName, size: 18)
+        case .extraSmall:
             return Font.custom(baseFontName, size: 16)
         }
     }
@@ -57,9 +62,9 @@ extension Text {
 }
 
 extension View {
-    func fontType(_ fontType: EncameraFont, on surface: SurfaceType = .background) -> some View {
+    func fontType(_ fontType: EncameraFont, on surface: SurfaceType = .background, weight: Font.Weight = .regular) -> some View {
         return self
-            .font(fontType.font)
+            .font(fontType.font.weight(weight))
             .foregroundColor(surface.textColor)
     }
 }
@@ -73,6 +78,8 @@ struct Text_Previews: PreviewProvider {
             Text("This is a medium small one").fontType(.mediumSmall)
 
             Text("This is a small one").fontType(.small)
+            Text("This is a small one").fontType(.extraSmall)
+
             Text("Alert!").alertText()
         }
         
