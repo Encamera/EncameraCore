@@ -50,19 +50,18 @@ struct OnboardingView<Next>: View where Next: View {
                 } label: {
                 }.isDetailLink(false)
                 Spacer()
-                Text(viewModel.bottomButtonTitle)
-                    .frame(width: frame.width)
-                    .primaryButton()
-                    .onTapGesture {
-                        Task {
-                            do {
-                                try await viewModel.bottomButtonAction?()
-                                nextActive = true
-                            } catch {
-                                print("Error on bottom button action", error)
-                            }
+                Button(viewModel.bottomButtonTitle) {
+                    Task {
+                        do {
+                            try await viewModel.bottomButtonAction?()
+                            nextActive = true
+                        } catch {
+                            print("Error on bottom button action", error)
                         }
                     }
+                }
+                .frame(width: frame.width)
+                .primaryButton()
                 
             }
             

@@ -177,7 +177,7 @@ struct CameraView: View {
 
     }
     
-    private var tutorialViews: some View {
+    @ViewBuilder private var tutorialViews: some View {
         Group {
             if cameraModel.showTookFirstPhotoSheet {
                 FirstPhotoTakenTutorial(
@@ -189,6 +189,7 @@ struct CameraView: View {
                     showUpgrade: $cameraModel.showStoreSheet)
             }
         }
+        .padding()
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
     

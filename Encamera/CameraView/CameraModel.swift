@@ -10,6 +10,7 @@ import AVFoundation
 import Combine
 import UIKit
 import MediaPlayer
+import SwiftUI
 
 final class CameraModel: ObservableObject {
     var service: CameraConfigurationService
@@ -108,16 +109,18 @@ final class CameraModel: ObservableObject {
             .compactMap({$0 as? Int})
             .compactMap({ Double($0)})
             .receive(on: DispatchQueue.main)
+            .delay(for: .seconds(2), scheduler: RunLoop.main)
             .sink { value in
-                
-                switch value {
-                case AppConstants.numberOfPhotosBeforeInitialTutorial:
-                    self.showTookFirstPhotoSheet = true
-                case AppConstants.maxPhotoCountBeforePurchase:
-                    self.showExplanationForUpgrade = true
-                default:
-                    self.showTookFirstPhotoSheet = false
-                    self.showExplanationForUpgrade = false
+                withAnimation {
+                    switch value {
+                    case AppConstants.numberOfPhotosBeforeInitialTutorial:
+                        self.showTookFirstPhotoSheet = true
+                    case AppConstants.maxPhotoCountBeforePurchase:
+                        self.showExplanationForUpgrade = true
+                    default:
+                        self.showTookFirstPhotoSheet = false
+                        self.showExplanationForUpgrade = false
+                    }
                 }
             }.store(in: &cancellables)
     }

@@ -162,6 +162,11 @@ struct KeySelectionList: View {
                     VStack(alignment: .leading) {
                         Text(key.name)
                             .fontType(.medium)
+                        if isActive {
+                            Text("Active")
+                                .foregroundColor(.activeKey)
+                                .fontType(.small)
+                        }
                         Text(DateUtils.dateOnlyString(from: key.creationDate))
                             .fontType(.small)
                     }
@@ -169,7 +174,6 @@ struct KeySelectionList: View {
                 }.padding()
                 if isActive {
                     HStack {
-                        Text("Active")
                         Image(systemName: "key.fill")
                     }
                     .foregroundColor(.activeKey)
@@ -187,15 +191,19 @@ struct KeySelectionList_Previews: PreviewProvider {
     
     static var keyManager: DemoKeyManager = {
         let manager = DemoKeyManager()
+        let key = PrivateKey(name: "DefaultKey", keyBytes: [], creationDate: Date())
         manager.storedKeysValue = [
-            PrivateKey(name: "first key", keyBytes: [], creationDate: Date()),
+            key,
             PrivateKey(name: "second key", keyBytes: [], creationDate: Date()),
             PrivateKey(name: "third key", keyBytes: [], creationDate: Date()),
         ]
+        manager.currentKey = key
         return manager
     }()
     
     static var previews: some View {
         KeySelectionList(viewModel: .init(keyManager: keyManager, purchaseManager: AppPurchasedPermissionUtils()))
+            .preferredColorScheme(.dark)
+            .previewDevice("iPhone 8")
     }
 }

@@ -164,7 +164,7 @@ class OnboardingViewModel: ObservableObject {
                 try authManager.authorize(with: existingPassword, using: keyManager)
             } else if let storageType = await keyStorageType {
                 try authManager.authorize(with: password1, using: keyManager)
-                try keyManager.generateNewKey(name: keyName, storageType: storageType)
+                try keyManager.generateNewKey(name: AppConstants.defaultKeyName, storageType: storageType)
             }
             try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
             

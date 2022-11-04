@@ -92,7 +92,6 @@ class OnboardingManagerTests: XCTestCase {
             .intro,
             .setPassword,
             .biometrics,
-            .setupPrivateKey,
             .dataStorageSetting,
             .finished])
     }
@@ -105,7 +104,6 @@ class OnboardingManagerTests: XCTestCase {
             .intro,
                 .setPassword,
                 .biometrics,
-                .setupPrivateKey,
                 .dataStorageSetting,
                 .finished])
 
@@ -118,7 +116,6 @@ class OnboardingManagerTests: XCTestCase {
         XCTAssertEqual(flow, [
             .intro,
             .setPassword,
-            .setupPrivateKey,
             .dataStorageSetting,
             .finished])
 

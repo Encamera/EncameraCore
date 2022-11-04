@@ -16,5 +16,5 @@ enum AppConstants {
     static var defaultCornerRadius: CGFloat = 10.0
     static var numberOfPhotosBeforeInitialTutorial: Double = 1
     static let maxPhotoCountBeforePurchase: Double = 5
-
+    static let defaultKeyName: String = "DefaultKey"
 }

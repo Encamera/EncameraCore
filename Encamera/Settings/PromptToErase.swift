@@ -84,14 +84,14 @@ struct PromptToErase: View {
                     .frame(maxWidth: .infinity, minHeight: 60)
                 Group {
                     Text(viewModel.scope.explanationString)
-                    Text("Hold to erase")
-                        .primaryButton()
-                        .gesture(DragGesture(minimumDistance: 0).onChanged({ ended in
-                            viewModel.holding = true
-                        }).onEnded({ _ in
-                            viewModel.holding = false
-                        }))
-                    
+                    Button("Hold to erase") {
+                        
+                    }
+                    .primaryButton()
+                    .onLongPressGesture(perform: {
+                    }, onPressingChanged: { value in
+                        viewModel.holding = value
+                    })
                 }
                 .fontType(.small)
                 Spacer()
