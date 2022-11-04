@@ -25,6 +25,7 @@
 		1983ED4B29107DCD006F1415 /* SubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1983ED4A29107DCD006F1415 /* SubscriptionView.swift */; };
 		1983ED532912CCDC006F1415 /* FirstPhotoTakenTutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1983ED522912CCDC006F1415 /* FirstPhotoTakenTutorial.swift */; };
 		198B753C2913BCFD00D12887 /* SurfaceType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198B753B2913BCFC00D12887 /* SurfaceType.swift */; };
+		198B753E29146C7100D12887 /* ExplanationForUpgradeTutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198B753D29146C7100D12887 /* ExplanationForUpgradeTutorial.swift */; };
 		19A777942909334400486351 /* EncameraProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19A777932909334400486351 /* EncameraProduct.swift */; };
 		19A777992909394900486351 /* BuyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19A777982909394800486351 /* BuyButtonStyle.swift */; };
 		19DD920328FE8F85009F3DD7 /* StoreKitTestCertificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 19DD920228FE8F85009F3DD7 /* StoreKitTestCertificate.cer */; };
@@ -181,6 +182,7 @@
 		1983ED4A29107DCD006F1415 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
 		1983ED522912CCDC006F1415 /* FirstPhotoTakenTutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstPhotoTakenTutorial.swift; sourceTree = "<group>"; };
 		198B753B2913BCFC00D12887 /* SurfaceType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceType.swift; sourceTree = "<group>"; };
+		198B753D29146C7100D12887 /* ExplanationForUpgradeTutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplanationForUpgradeTutorial.swift; sourceTree = "<group>"; };
 		19A777932909334400486351 /* EncameraProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraProduct.swift; sourceTree = "<group>"; };
 		19A777982909394800486351 /* BuyButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuyButtonStyle.swift; sourceTree = "<group>"; };
 		19DD920228FE8F85009F3DD7 /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
@@ -394,6 +396,7 @@
 			isa = PBXGroup;
 			children = (
 				1983ED522912CCDC006F1415 /* FirstPhotoTakenTutorial.swift */,
+				198B753D29146C7100D12887 /* ExplanationForUpgradeTutorial.swift */,
 			);
 			path = Tutorial;
 			sourceTree = "<group>";
@@ -969,6 +972,7 @@
 				5EB003D78CBE2E204B0BDA3B /* PasswordValidator.swift in Sources */,
 				382E0489FC7DDB928E86C7D9 /* PhotoCaptureProcessor.swift in Sources */,
 				1983ED4329107003006F1415 /* StoreActor.swift in Sources */,
+				198B753E29146C7100D12887 /* ExplanationForUpgradeTutorial.swift in Sources */,
 				BDA79FBD261093E01B2C31E3 /* PhotoInfoView.swift in Sources */,
 				9F732B86F9CD0DDBD8F1568D /* PreviewModel.swift in Sources */,
 				690E8852F04E73436BA5D987 /* PrivateKey.swift in Sources */,

@@ -118,14 +118,17 @@ struct SubscriptionStoreView: View {
 struct SubscriptionStoreHeaderView: View {
     
     var body: some View {
-        VStack {
+        VStack(spacing: 5) {
             Text("Encamera Premium")
                 .font(.largeTitle)
                 .bold()
                 .padding()
             Group {
-                Text("Unlimited privacy features.")
+                Text("Support privacy-focused development.")
+                Text("View unlimited photos for each key.")
+                Text("Create an unlimited number of keys.")
             }
+            
             .font(.headline)
         }
         .padding(.top, 5)
@@ -140,7 +143,6 @@ struct SubscriptionStoreOptionsView: View {
     @Binding var selectedOption: ServiceSubscription?
     
     func binding(for subscription: ServiceSubscription) -> Binding<Bool> {
-        print("selected option", selectedOption?.id)
         return Binding {
             selectedOption?.id == subscription.id
         } set: { newValue in

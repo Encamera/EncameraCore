@@ -31,11 +31,16 @@ final class CameraModel: ObservableObject {
     @Published var selectedCameraMode: CameraMode = .photo
     @MainActor
     @Published var thumbnailImage: UIImage?
+    
+    @Published var currentZoomFactor: CGFloat = 1.0
+    @Published var finalZoomFactor: CGFloat = 1.0
+    
+    
+    // View showing
     @Published var showGalleryView: Bool = false
     @Published var showingKeySelection = false
     @Published var showAlertForMissingKey = false
-    @Published var currentZoomFactor: CGFloat = 1.0
-    @Published var finalZoomFactor: CGFloat = 1.0
+    @Published var showStoreSheet = false
     
     // Tutorial/info sheets
     @Published var showTookFirstPhotoSheet = true

@@ -151,73 +151,98 @@ struct CameraView: View {
         }
     }
     @State var showTookFirstPhotoSheet = true
+    
+    
+    
     var body: some View {
         NavigationView {
             
             ZStack {
-                NavigationLink(isActive: $cameraModel.showingKeySelection) {
-                    KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager))
-                        .toolbar {
-                            NavigationLink {
-        
-                                SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, fileAccess: cameraModel.fileAccess))
-                            } label: {
-                                Image(systemName: "gear")
-                            }
-                            .isDetailLink(false)
-                            }
-                } label: {
-                    EmptyView()
-                }.isDetailLink(false)
-                NavigationLink(isActive: $cameraModel.showGalleryView) {
-                    if let key = cameraModel.keyManager.currentKey {
-                        GalleryGridView(viewModel: .init(privateKey: key))
-                    }
-                } label: {
-                    EmptyView()
-                }.isDetailLink(false)
-                
-
-                VStack {
-                    topBar
-                    cameraPreview
-                        .edgesIgnoringSafeArea(.all)
-                    if FeatureToggle.isEnabled(feature: .enableVideo) {
-                        cameraModePicker
-                    }
-                    bottomButtonPanel
-                }
-                .onChange(of: cameraModel.authManager.isAuthenticated, perform: { newValue in
-                    guard newValue == true else {
-                        return
-                    }
-                    Task {
-                        await cameraModel.service.checkForPermissions()
-                        await cameraModel.service.configure()
-                    }
-                })
-                
-                .navigationBarHidden(true)
-                .navigationTitle("")
-                if cameraModel.showTookFirstPhotoSheet {
-                    FirstPhotoTakenTutorial(shouldShow: $cameraModel.showTookFirstPhotoSheet)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-
+                keySelectionList
+                galleryView
+                mainCamera
+                tutorialViews
             }
             .background(Color.background)
             .screenBlocked()
             .alert(isPresented: $cameraModel.showAlertForMissingKey) {
-                
                 Alert(title: Text("No key selected"), message: Text("You don't have an active key selected, select one to continue saving media."), primaryButton: .default(Text("Key Selection")) {
                     cameraModel.showingKeySelection = true
                 }, secondaryButton: .cancel())
             }
-            .sheet(isPresented: $cameraModel.showExplanationForUpgrade) {
-                Text("You should upgrade, since you can only take \(Int(AppConstants.maxPhotoCountBeforePurchase)) photos before you have to pay.")
+            .sheet(isPresented: $cameraModel.showStoreSheet) {
+                SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
             }
-            
         }
+
+    }
+    
+    private var tutorialViews: some View {
+        Group {
+            if cameraModel.showTookFirstPhotoSheet {
+                FirstPhotoTakenTutorial(
+                    shouldShow: $cameraModel.showTookFirstPhotoSheet
+                )
+            } else if cameraModel.showExplanationForUpgrade {
+                ExplanationForUpgradeTutorial(
+                    shouldShow: $cameraModel.showExplanationForUpgrade,
+                    showUpgrade: $cameraModel.showStoreSheet)
+            }
+        }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+    
+    private var galleryView: some View {
+        NavigationLink(isActive: $cameraModel.showGalleryView) {
+            if let key = cameraModel.keyManager.currentKey {
+                GalleryGridView(viewModel: .init(privateKey: key))
+            }
+        } label: {
+            EmptyView()
+        }.isDetailLink(false)
+
+    }
+    
+    private var keySelectionList: some View {
+        NavigationLink(isActive: $cameraModel.showingKeySelection) {
+            KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager))
+                .toolbar {
+                    NavigationLink {
+
+                        SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, fileAccess: cameraModel.fileAccess))
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+                    .isDetailLink(false)
+                    }
+        } label: {
+            EmptyView()
+        }.isDetailLink(false)
+
+    }
+    
+    private var mainCamera: some View {
+        VStack {
+            topBar
+            cameraPreview
+                .edgesIgnoringSafeArea(.all)
+            if FeatureToggle.isEnabled(feature: .enableVideo) {
+                cameraModePicker
+            }
+            bottomButtonPanel
+        }
+        .onChange(of: cameraModel.authManager.isAuthenticated, perform: { newValue in
+            guard newValue == true else {
+                return
+            }
+            Task {
+                await cameraModel.service.checkForPermissions()
+                await cameraModel.service.configure()
+            }
+        })
+        
+        .navigationBarHidden(true)
+        .navigationTitle("")
 
     }
 }
