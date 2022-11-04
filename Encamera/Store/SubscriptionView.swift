@@ -15,50 +15,23 @@ struct SubscriptionStoreView: View {
     @State private var selectedSubscription: ServiceSubscription?
     @State private var currentActiveSubscription: ServiceSubscription?
     @State private var errorAlertIsPresented = false
-    var showDismissButton = false
+    var showDismissButton = true
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        Group {
-            GeometryReader { proxy in
-                if proxy.size.height > proxy.size.width {
-                    VStack(spacing: 0) {
-                        SubscriptionStoreHeaderView()
-                            .frame(maxWidth: .infinity)
-                        subscriptionCellsView
-                    }
-                    .safeAreaInset(edge: .bottom) {
-                        subscriptionPurchaseView
-                    }
-                    
-                    .overlay(alignment: .topTrailing) {
-                        if showDismissButton {
-                            dismissButton
-                                .padding()
-                        }
-                    }
-                } else {
-                    HStack(spacing: 0) {
-                        SubscriptionStoreHeaderView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        Divider().ignoresSafeArea()
-                        VStack {
-                            subscriptionCellsView
-                                .padding(.top, 30)
-                                .frame(width: 400)
-                                .ignoresSafeArea()
-                            subscriptionPurchaseView
-                                .padding(.horizontal, 30)
-                        }
-                    }
-                    .ignoresSafeArea()
-                    .overlay(alignment: .topTrailing) {
-                        dismissButton
-                            .padding(.top, 8)
-                    }
-                }
+        VStack(spacing: 0) {
+            SubscriptionStoreHeaderView()
+                .frame(maxWidth: .infinity)
+            subscriptionCellsView
+        }
+        .overlay(alignment: .topTrailing) {
+            if showDismissButton {
+                dismissButton
+                    .padding()
             }
-            
+        }
+        .safeAreaInset(edge: .bottom) {
+            subscriptionPurchaseView
         }
         .background(Color.background)
         .onAppear {
@@ -130,11 +103,9 @@ struct SubscriptionStoreHeaderView: View {
             }
             .fontType(.small)
         }
-        .padding(.top, 5)
+        .padding(.top, 0)
         .padding(.bottom, 30)
-        .foregroundColor(.white)
     }
-    
 }
 
 struct SubscriptionStoreOptionsView: View {
@@ -218,7 +189,7 @@ struct SubscriptionPurchaseView: View {
                 .padding(5)
                 .frame(maxWidth: .infinity)
             }
-            .primaryButton()
+            .primaryButton(on: .elevated)
             .disabled(selectedSubscription == nil)
             .padding(.horizontal)
         }
@@ -240,12 +211,10 @@ struct SubscriptionPurchaseView: View {
 struct SubscriptionStoreView_Previews: PreviewProvider {
     
     static var previews: some View {
-        NavigationView {
-            SubscriptionStoreView(
-                controller: StoreActor.shared.subscriptionController
-            ).preferredColorScheme(.dark)
-        }
-        
+        SubscriptionStoreView(
+            controller: StoreActor.shared.subscriptionController
+        ).preferredColorScheme(.dark)
+            .previewDevice(PreviewDevice(rawValue: "iPhone 8"))
     }
     
 }

@@ -25,6 +25,7 @@ class SettingsViewViewModel: ObservableObject {
     @Published var showDetailView: Bool = false
     @Published var readyToErase: Bool = false
     @Published var showPromptToErase: Bool = false
+    @Published var showPremium: Bool = false
     @Published fileprivate var successMessage: SettingsViewMessage?
     var keyManager: KeyManager
     var fileAccess: FileAccess
@@ -93,7 +94,9 @@ struct SettingsView: View {
         Form {
             
             Section {
-                premium
+                Button("✨ Premium ✨") {
+                    viewModel.showPremium = true
+                }
                 changePassword
                 reset
             }
@@ -102,16 +105,16 @@ struct SettingsView: View {
         }
         .scrollContentBackgroundColor(Color.background)
         .fontType(.small)
-        
+        .sheet(isPresented: $viewModel.showPremium) {
+            premium
+        }
         
         
         
     }
     
     private var premium: some View {
-        NavigationLink("Premium") {
-            SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
-        }
+        SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
     }
     
     private var reset: some View {
@@ -187,7 +190,7 @@ struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             SettingsView(viewModel: .init(keyManager: DemoKeyManager(), fileAccess: DemoFileEnumerator()))
-        }
+        }.preferredColorScheme(.dark)
         
     }
 }

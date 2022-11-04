@@ -53,12 +53,12 @@ struct SubscriptionSavings {
     
 //    @available(iOS 16.0, *)
     func formattedPrice(for subscription: ServiceSubscription) -> String {
-        let currency = granularPrice.formatted(subscription.priceFormatStyle)
         if #available(iOS 16.0, *) {
+            let currency = granularPrice.formatted(subscription.priceFormatStyle)
             let period = granularPricePeriod.formatted(subscription.subscriptionPeriodUnitFormatStyle).lowercased()
             return "\(currency)/\(period)"
         } else {
-            return "Ble"
+            return subscription.priceText
         }
         
     }
