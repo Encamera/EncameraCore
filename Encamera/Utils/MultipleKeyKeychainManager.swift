@@ -54,7 +54,6 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     func clearKeychainData() throws {
         
-        try checkAuthenticated()
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey
         ]

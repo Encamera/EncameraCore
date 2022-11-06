@@ -248,7 +248,7 @@ private extension MainOnboardingView {
                     try viewModel.checkExistingPasswordAndAuth()
                 }) {
                     AnyView(
-                        VStack {
+                        VStack(alignment: .leading) {
                             PasswordEntry(viewModel: .init(keyManager: viewModel.keyManager, passwordBinding: $viewModel.existingPassword, stateUpdate: { state in
                                 guard case .valid(let existingPassword) = state else {
                                     return
@@ -256,6 +256,12 @@ private extension MainOnboardingView {
                                 viewModel.existingPassword = existingPassword
                                 try? viewModel.checkExistingPasswordAndAuth()
                             }))
+                            NavigationLink {
+                                PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: DiskFileAccess()))
+                            } label: {
+                                Text("Erase Device Data")
+                            }.primaryButton()
+
                         }
                     )
                 }

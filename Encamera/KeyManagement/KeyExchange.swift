@@ -46,13 +46,15 @@ struct KeyExchange: View {
                 .background(Color.foregroundSecondary)
                 .cornerRadius(20)
                 
-                Text("Hold to reveal")
+                Button("Hold to reveal") {
+                    
+                }.onLongPressGesture(perform: {
+                    
+                }, onPressingChanged: { pressed in
+                    setBlur(to: !pressed)
+                })
                     .primaryButton()
-                    .gesture(DragGesture(minimumDistance: 0).onChanged({ ended in
-                        setBlur(to: false)
-                    }).onEnded({ ended in
-                        setBlur(to: true)
-                    }))
+                    
                     
 
             }
