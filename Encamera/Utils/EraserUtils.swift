@@ -21,20 +21,20 @@ struct EraserUtils {
     func erase() async throws {
         switch erasureScope {
         case .appData:
-            try await eraseAppData()
+            await eraseAppData()
         case .allData:
-            try await eraseAllData()
+            await eraseAllData()
         }
     }
     
-    private func eraseAllData() async throws {
-        try await fileAccess.deleteAllMedia()
-        try keyManager.clearKeychainData()
+    private func eraseAllData() async {
+        try? await fileAccess.deleteAllMedia()
+        keyManager.clearKeychainData()
         eraseUserDefaults()
     }
     
-    private func eraseAppData() async throws {
-        try keyManager.clearKeychainData()
+    private func eraseAppData() async {
+        keyManager.clearKeychainData()
         eraseUserDefaults()
     }
     

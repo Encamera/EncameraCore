@@ -261,7 +261,7 @@ class DemoKeyManager: KeyManager {
         
     var keyPublisher: AnyPublisher<PrivateKey?, Never>
     
-    func clearKeychainData() throws {
+    func clearKeychainData() {
         
     }
     

@@ -52,24 +52,22 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
     }
     
-    func clearKeychainData() throws {
+    func clearKeychainData() {
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey
         ]
         
-        let status = SecItemDelete(query as CFDictionary)
+        let _ = SecItemDelete(query as CFDictionary)
         
-        try? checkStatus(status: status)
         
         let passwordQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword
         ]
         
-        let passwordStatus = SecItemDelete(passwordQuery as CFDictionary)
+        let _ = SecItemDelete(passwordQuery as CFDictionary)
         
-        try? checkStatus(status: passwordStatus)
-        try setActiveKey(nil)
+        try? setActiveKey(nil)
         print("Keychain data cleared")
     }
     

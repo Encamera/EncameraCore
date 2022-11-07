@@ -19,9 +19,7 @@ class OnboardingViewModel: ObservableObject {
     enum OnboardingKeyError: Error {
         case unhandledError
     }
-    
-    
-    
+
     @Published var password1: String = ""
     @Published var showPassword = false
     @Published var password2: String = ""
@@ -184,12 +182,11 @@ struct MainOnboardingView: View {
     var body: some View {
         NavigationView {
             buildOnboarding()
-        }.ignoresSafeArea(.keyboard)
-
+                .background(Color.background)
+            }
+        .ignoresSafeArea(.keyboard)
     }
-    
-    
-    
+
     private func canGoTo(tab: OnboardingFlowScreen) -> Bool {
         if let currentIndex = viewModel.onboardingFlow.firstIndex(of: currentSelection),
            let targetIndex = viewModel.onboardingFlow.firstIndex(of: tab),
@@ -203,9 +200,13 @@ struct MainOnboardingView: View {
 
 private extension MainOnboardingView {
     
-    @ViewBuilder func viewFor<Next: View>(flow: OnboardingFlowScreen, next: @escaping () -> Next) -> AnyView {
-        AnyView(OnboardingView(
-            viewModel: viewModel(for: flow), nextScreen: {
+    func viewFor<Next: View>(flow: OnboardingFlowScreen, next: @escaping () -> Next) -> AnyView {
+        let index = (viewModel.onboardingFlow.firstIndex(of: flow) ?? 0) + 1
+        
+        var model = viewModel(for: flow)
+        model.progress = (index, viewModel.onboardingFlow.count)
+        return AnyView(OnboardingView(
+            viewModel: model, nextScreen: {
                 next()
             })
         )
@@ -224,22 +225,35 @@ private extension MainOnboardingView {
     }
     
     func viewModel(for flow: OnboardingFlowScreen) -> OnboardingViewViewModel {
+        
         switch flow {
         case .intro:
             return .init(
-                title: "Take back your media",
-                subheading: """
-                            Encamera encrypts all the media it creates.\n
-                            Take back control of what is rightfully yours, your privacy,
-                            with Encamera.\n
-                            Your media, once encrypted, stays away from the prying eyes
-                            of AI, media analysis, and other violations of privacy.\n
-                            Take pictures knowing that they are for **your eyes only**,
-                            not to be fed into some machine learning algorithm for training AI.
-                            """,
-                             
+                title: "",
+                subheading: "",
                 image: Image(systemName: "camera"),
-                bottomButtonTitle: "Next")
+                bottomButtonTitle: "Next",
+                bottomButtonAction: {
+                    
+                }) {
+                    AnyView(VStack(alignment: .leading, spacing: 10) {
+                        Image("EncameraBanner")
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        Text("Ready to take back your media? 📸")
+                            .fontType(.medium, weight: .bold)
+                        Text("Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.")
+                            .fontType(.small)
+                        Text("Key-based encryption 🔑")
+                            .fontType(.medium, weight: .bold)
+                        Text("Your media is safely secured behind a key and stored locally on your device or cloud of choice.")
+                        Text("For your eyes only 👀")
+                            .fontType(.medium, weight: .bold)
+                        Text("No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy.")
+                            .fontType(.small)
+                        Spacer()
+                    })
+                    
+                }
             
         case .enterExistingPassword:
             return .init(
@@ -268,7 +282,7 @@ private extension MainOnboardingView {
         case .setPassword:
             return .init(
                 title: "Set Password",
-                subheading: "This allows you to access the app. Store this in a safe place, you cannot recover it later!",
+                subheading: "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅",
                 image: Image(systemName: "lock.iphone"),
                 bottomButtonTitle: "Set Password",
                 bottomButtonAction: {
@@ -276,7 +290,6 @@ private extension MainOnboardingView {
                 }) {
                     AnyView(
                         VStack(alignment: .leading) {
-                            HStack {
                                 VStack {
                                     Group {
                                         EncameraTextField("Password", type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password1).onSubmit {
@@ -288,13 +301,15 @@ private extension MainOnboardingView {
                                                 password2Focused = false
                                             }
                                     }.noAutoModification()
-                                    
-                                }
-                                Button {
-                                    viewModel.showPassword.toggle()
-                                } label: {
-                                    Image(systemName: viewModel.showPassword ? "eye" : "eye.slash")
-                                }
+                                    HStack {
+                                        Button {
+                                            viewModel.showPassword.toggle()
+                                        } label: {
+                                            Image(systemName: viewModel.showPassword ? "eye" : "eye.slash")
+                                        }.padding()
+                                        Spacer()
+                                    }
+                                
                             }
                             if let passwordState = viewModel.passwordState, passwordState != .valid {
                                 Group {
@@ -310,11 +325,12 @@ private extension MainOnboardingView {
             }
             return .init(
                 title: "Use \(method.nameForMethod)?",
-                subheading: "Quickly and securely gain access to the app.",
+                subheading: "Enable \(method.nameForMethod) to quickly and securely gain access to the app.",
                 image: Image(systemName: method.imageNameForMethod),
                 bottomButtonTitle: "Next", content:  {
                     AnyView(Group {HStack {
                         Toggle("Enable \(method.nameForMethod)", isOn: $viewModel.useBiometrics)
+                            .fontType(.small)
                     }})
                 })
         case .setupPrivateKey:
@@ -348,11 +364,9 @@ You can have multiple keys for different purposes, e.g. one named "Documents" an
         case .dataStorageSetting:
 
 
-            return .init(title: "Storage Settings",
+            return .init(title: "Select Storage",
                          subheading: """
-Where do you want to store media for files encrypted with this key?
-
-Each key will store data in its own directory.
+Where do you want to store your media? Each key will store data in its own directory once encrypted. 💾
 """,
                          image: Image(systemName: ""),
                          bottomButtonTitle: "Next") {
@@ -373,7 +387,7 @@ Each key will store data in its own directory.
         case .finished:
             return .init(
                 title: "Done!",
-                subheading: "All set up! You're now ready to take photos securely with top-notch encryption.",
+                subheading: "Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐",
                 image: Image(systemName: "faceid"),
                 bottomButtonTitle: "Done",
                 bottomButtonAction: {
@@ -417,6 +431,9 @@ Each key will store data in its own directory.
 struct MainOnboardingView_Previews: PreviewProvider {
     static var previews: some View {
         MainOnboardingView(viewModel: .init(onboardingManager: DemoOnboardingManager(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), settingsManager: SettingsManager()), keyManager: DemoKeyManager(), authManager: DemoAuthManager()))
+            .preferredColorScheme(.dark)
+            .previewDevice("iPhone 8")
+            .background(Color.background)
     }
 }
 

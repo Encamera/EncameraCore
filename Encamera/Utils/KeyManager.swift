@@ -50,7 +50,7 @@ protocol KeyManager {
     var currentKey: PrivateKey? { get }
     var keyPublisher: AnyPublisher<PrivateKey?, Never> { get }
     var keyDirectoryStorage: DataStorageSetting { get }
-    func clearKeychainData() throws
+    func clearKeychainData()
     func storedKeys() throws -> [PrivateKey]
     func deleteKey(_ key: PrivateKey) throws
     func setActiveKey(_ name: KeyName?) throws
