@@ -218,23 +218,21 @@ struct GalleryHorizontalScrollView: View {
             ScrollView(.horizontal) {
                 LazyHGrid(rows: gridItems) {
                     ForEach(Array(viewModel.media.enumerated()), id: \.element.id) { index, item in
-
-                        viewingFor(item: item)
-                        .blur(radius:
-                                viewModel.canAccessPhoto(at: index)
-                              ? 0.0 : AppConstants.blockingBlurRadius)
-                        .overlay {
-                            if viewModel.canAccessPhoto(at: index) {
-                                EmptyView()
-                            } else {
+                        ZStack {
+                            
+                            viewingFor(item: item)
+                                .blur(radius:
+                                        viewModel.canAccessPhoto(at: index)
+                                      ? 0.0 : AppConstants.blockingBlurRadius)
+                                .frame(
+                                    width: frame.width,
+                                    height: frame.height)
+                            if !viewModel.canAccessPhoto(at: index) {
                                 PurchasePhotoSubscriptionOverlay {
                                     viewModel.showPurchaseScreen()
-                                }
+                                }.frame(width: frame.width)
                             }
                         }
-                        .frame(
-                            width: frame.width,
-                            height: frame.height)
                         
                     }
                 }.frame(maxHeight: .infinity)

@@ -97,9 +97,9 @@ struct SubscriptionStoreHeaderView: View {
         VStack(spacing: 5) {
             Image("EncameraPremiumHeader")
             Group {
-                Text("Support privacy-focused development.")
                 Text("View unlimited photos for each key.")
                 Text("Create an unlimited number of keys.")
+                Text("Support privacy-focused development.")
             }
             .fontType(.small)
         }

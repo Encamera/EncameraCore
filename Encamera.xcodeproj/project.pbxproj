@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 51;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -19,6 +19,7 @@
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
+		19CF621A2919093D002F5370 /* dog.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 94DDBF06C1BD9949FE4F53BA /* dog.jpg */; };
 		1BE199F100EB51103E764B50 /* UserDefaultUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C29C8FE7F7500229D3FF293 /* UserDefaultUtils.swift */; };
 		1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */; };
 		1D99F465F8AFC10EA75EDB1F /* DemoFileHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70DF8856410B3044FBFDCE31 /* DemoFileHelpers.swift */; };
@@ -209,7 +210,7 @@
 		458DFC8B3BB9794E5B68F326 /* URLTypesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTypesTest.swift; sourceTree = "<group>"; };
 		48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		49A2EF989B2F8643105205DF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
+		49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
 		4ACD9CDA1D7DDA26F5FBBCC7 /* NotificationUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationUtils.swift; sourceTree = "<group>"; };
 		4B8D6AA4203944ABFC972E85 /* EncryptedMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptedMedia.swift; sourceTree = "<group>"; };
 		5052BBC248EA5FBC111DBC96 /* DataStorageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStorageModel.swift; sourceTree = "<group>"; };
@@ -284,7 +285,7 @@
 		C7F31A3C960455C9A8F534B1 /* SettingsManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManagerTests.swift; sourceTree = "<group>"; };
 		CB0AF4D110AAADF74FE13DAC /* MovieViewing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieViewing.swift; sourceTree = "<group>"; };
 		CB580774C2A1B0E3A6D54F50 /* EncameraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraApp.swift; sourceTree = "<group>"; };
-		CCF0EF58B44429CC4E927EA2 /* EncameraSubscriptions.storekit */ = {isa = PBXFileReference; path = EncameraSubscriptions.storekit; sourceTree = "<group>"; };
+		CCF0EF58B44429CC4E927EA2 /* EncameraSubscriptions.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = EncameraSubscriptions.storekit; sourceTree = "<group>"; };
 		CDF2E435357C74D9D5B3132B /* StorageSettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageSettingView.swift; sourceTree = "<group>"; };
 		D159D92569E26A0C488780FB /* VideoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCaptureProcessor.swift; sourceTree = "<group>"; };
 		D44DDD90E617BE3BA3A10655 /* DateUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtilsTests.swift; sourceTree = "<group>"; };
@@ -856,6 +857,7 @@
 				BD0376BEC181135B76461C9E /* LaunchScreen.storyboard in Resources */,
 				1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */,
 				4D6890B6437216E4444DE608 /* StoreKitTestCertificate.cer in Resources */,
+				19CF621A2919093D002F5370 /* dog.jpg in Resources */,
 				B94BEC77BD5E38D9DBD9EDA5 /* file-icon.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
