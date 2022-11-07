@@ -12,13 +12,16 @@ targets:
       Debug: ./xcconfigs/debug.xcconfig
       Release: ./xcconfigs/release.xcconfig
     platform: iOS
-    deploymentTarget: "15.0"
+    deploymentTarget: "15.4"
     sources: [Encamera]
     settings:
       DEVELOPMENT_TEAM: KGJCC745S9
       PRODUCT_BUNDLE_IDENTIFIER: me.freas.encamera
       CODE_SIGN_ENTITLEMENTS: ./Encamera/Encamera.entitlements
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ForegroundPrimaryColor
+      SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+      SUPPORTS_MACCATALYST: NO
+      SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
     dependencies:
       - package: Sodium
       - framework: StoreKit.framework
@@ -28,7 +31,7 @@ targets:
         - EncameraTests
   EncameraTests:
     platform: iOS
-    deploymentTarget: "15.0"
+    deploymentTarget: "15.4"
     sources: [EncameraTests]
     type: bundle.unit-test
     dependencies:
