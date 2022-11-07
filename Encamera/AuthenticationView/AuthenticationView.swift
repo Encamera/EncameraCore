@@ -115,10 +115,15 @@ struct AuthenticationView: View {
                 Button {
                     viewModel.authenticateWithBiometrics()
                 } label: {
-                    Image(systemName: biometric.imageNameForMethod)
-                        .resizable()
-                        .frame(width: 50.0, height: 50.0)
+                    VStack {
+                        Image(systemName: biometric.imageNameForMethod)
+                            .resizable()
+                            .frame(width: 50.0, height: 50.0)
+                        Text("Unlock with \(biometric.nameForMethod)")
+                            .fontType(.small)
+                    }
                 }.padding()
+                
             }
             Spacer()
         }
@@ -138,5 +143,6 @@ struct AuthenticationView: View {
 struct AuthenticationView_Previews: PreviewProvider {
     static var previews: some View {
         AuthenticationView(viewModel: .init(authManager: DemoAuthManager(), keyManager: DemoKeyManager()))
+            .preferredColorScheme(.dark)
     }
 }

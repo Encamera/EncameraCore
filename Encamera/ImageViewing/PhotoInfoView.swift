@@ -17,7 +17,11 @@ struct PhotoInfoView: View {
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
-                Text(verbatim: DateUtils.dateTimeString(from: media.timestamp ?? Date()))
+                if let timestamp = media.timestamp {
+                    Text(verbatim: DateUtils.dateTimeString(from: timestamp))
+                } else {
+                    Text("No info available")
+                }
                 Spacer()
                 Button {
                     isPresented = false

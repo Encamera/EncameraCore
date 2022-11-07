@@ -14,7 +14,10 @@ class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identifiable {
     var id: String
     var source: URL
     lazy var timestamp: Date? = {
-        try? FileManager.default.attributesOfItem(atPath: source.absoluteString)[FileAttributeKey.creationDate] as? Date
+        _ = source.startAccessingSecurityScopedResource()
+        let date = try? FileManager.default.attributesOfItem(atPath: source.path)[FileAttributeKey.creationDate] as? Date
+        source.stopAccessingSecurityScopedResource()
+        return date
     }()
     
     required init(source: URL, mediaType: MediaType, id: String) {
