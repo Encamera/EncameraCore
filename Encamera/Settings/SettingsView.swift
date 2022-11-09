@@ -92,16 +92,36 @@ struct SettingsView: View {
     
     var body: some View {
         Form {
-            
-            Section {
-                Button("✨ Premium ✨") {
-                    viewModel.showPremium = true
+            Group {
+                Section {
+                    Button("✨ Premium ✨") {
+                        viewModel.showPremium = true
+                    }
+                    changePassword
+                    reset
                 }
-                changePassword
-                reset
-            }
-            .listRowBackground(Color.foregroundSecondary)
-            .navigationTitle("Settings")
+                
+                .navigationTitle("Settings")
+                
+                Section("Legal") {
+                    Button("Privacy Policy") {
+                        guard let url = URL(string: "https://encrypted.camera/privacy") else {
+                            return
+                        }
+                        Task {
+                            await UIApplication.shared.open(url)
+                        }
+                    }
+                    Button("License Agreement") {
+                        guard let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") else {
+                            return
+                        }
+                        Task {
+                            await UIApplication.shared.open(url)
+                        }
+                    }
+                }
+            }.listRowBackground(Color.foregroundSecondary)
         }
         .scrollContentBackgroundColor(Color.background)
         .fontType(.small)

@@ -22,7 +22,7 @@ class URLTypesTest: XCTestCase {
     }
     
     override func tearDown() {
-        try? keyManager.clearKeychainData()
+        keyManager.clearKeychainData()
     }
     
     func testCreateKeyURL() throws {
