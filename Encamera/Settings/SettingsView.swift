@@ -112,7 +112,7 @@ struct SettingsView: View {
                             await UIApplication.shared.open(url)
                         }
                     }
-                    Button("License Agreement") {
+                    Button("Terms of Use") {
                         guard let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") else {
                             return
                         }
