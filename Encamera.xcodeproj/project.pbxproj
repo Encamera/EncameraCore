@@ -19,7 +19,6 @@
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
-		19CF621A2919093D002F5370 /* dog.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 94DDBF06C1BD9949FE4F53BA /* dog.jpg */; };
 		1BE199F100EB51103E764B50 /* UserDefaultUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C29C8FE7F7500229D3FF293 /* UserDefaultUtils.swift */; };
 		1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */; };
 		1D99F465F8AFC10EA75EDB1F /* DemoFileHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70DF8856410B3044FBFDCE31 /* DemoFileHelpers.swift */; };
@@ -181,6 +180,7 @@
 		14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptToErase.swift; sourceTree = "<group>"; };
 		1585D15F7B92351433FED0B3 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
+		19CF621C291918AC002F5370 /* Encamera.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Encamera.storekit; sourceTree = "<group>"; };
 		1AD23C6426D4D73F9E8994C9 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		1D16E0EA60C4E61C60609E92 /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
@@ -378,6 +378,7 @@
 			isa = PBXGroup;
 			children = (
 				CCF0EF58B44429CC4E927EA2 /* EncameraSubscriptions.storekit */,
+				19CF621C291918AC002F5370 /* Encamera.storekit */,
 				7363071BCA6ED2C04B2EA698 /* PurchasePhotoSubscriptionOverlay.swift */,
 				E06E7696773361F39FE4A2D4 /* ServiceSubscription.swift */,
 				E26E3296A9EC818CD4D6B0A3 /* StoreActor.swift */,
@@ -857,7 +858,6 @@
 				BD0376BEC181135B76461C9E /* LaunchScreen.storyboard in Resources */,
 				1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */,
 				4D6890B6437216E4444DE608 /* StoreKitTestCertificate.cer in Resources */,
-				19CF621A2919093D002F5370 /* dog.jpg in Resources */,
 				B94BEC77BD5E38D9DBD9EDA5 /* file-icon.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

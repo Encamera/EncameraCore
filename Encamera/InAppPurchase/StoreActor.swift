@@ -9,8 +9,8 @@ import Foundation
 import StoreKit
 
 @globalActor actor StoreActor {
-    static let unlimitedMonthlyID = "subscription.monthly.unlimitedphotosandkeys"
-    static let unlimitedYearlyID = "subscription.yearly.unlimitedphotosandkeys"
+    static let unlimitedMonthlyID = "subscription.monthly.unlimitedkeysandphotos"
+    static let unlimitedYearlyID = "subscription.yearly.unlimitedkeysandphotos"
     
     static let subscriptionIDs: Set<String> = [
         unlimitedMonthlyID,

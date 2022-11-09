@@ -62,7 +62,9 @@ struct OnboardingView<Next>: View where Next: View {
                     }
                     .primaryButton()
                     Spacer()
-                    ProgressViewCircular(progress: viewModel.progress.0, total: viewModel.progress.1)
+                    if viewModel.progress.1 > 0 {
+                        ProgressViewCircular(progress: viewModel.progress.0, total: viewModel.progress.1)
+                    }
                 }
 
             }

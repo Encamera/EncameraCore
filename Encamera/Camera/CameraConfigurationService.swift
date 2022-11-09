@@ -79,7 +79,6 @@ actor CameraConfigurationService: CameraConfigurationServicable {
     private lazy var metadataProcessor = QRCodeCaptureProcessor()
     private var movieOutput: AVCaptureMovieFileOutput?
     private let photoOutput = AVCapturePhotoOutput()
-    private var volumeObservation: NSKeyValueObservation?
     private var videoDeviceInput: AVCaptureDeviceInput?
     private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTrueDepthCamera], mediaType: .video, position: .unspecified)
     private var cancellables = Set<AnyCancellable>()

@@ -61,6 +61,7 @@ struct KeyExchange: View {
         }
         .padding(30)
         .navigationTitle("Share Key")
+        .background(Color.background)
         .screenBlocked()
     }
     

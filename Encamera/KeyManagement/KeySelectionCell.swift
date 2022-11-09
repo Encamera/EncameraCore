@@ -48,6 +48,6 @@ struct KeySelectionCell: View {
 
 struct KeySelectionCell_Previews: PreviewProvider {
     static var previews: some View {
-        KeySelectionCell(viewModel: .init(key: PrivateKey(name: "test", keyBytes: [], creationDate: Date()), isActive: true))
+        KeySelectionCell(viewModel: .init(key: PrivateKey(name: "secrets", keyBytes: [], creationDate: Date()), isActive: true))
     }
 }

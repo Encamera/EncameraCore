@@ -89,6 +89,11 @@ struct CameraView: View {
         }
     }
     private var cameraPreview: some View {
+        #if targetEnvironment(simulator)
+        Color.clear.background {
+            Image("kristina-flour").resizable().clipped().aspectRatio(contentMode: .fill)
+        }
+        #else
         CameraPreview(session: cameraModel.session, modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
             .gesture(
                 MagnificationGesture()
@@ -110,6 +115,7 @@ struct CameraView: View {
                 }
             )
             .animation(.easeInOut, value: cameraModel.willCapturePhoto)
+        #endif
     }
     
     private var topBar: some View {
@@ -296,18 +302,9 @@ struct CameraView_Previews: PreviewProvider {
             fileAccess: DemoFileEnumerator(),
             storageSettingsManager: DemoStorageSettingsManager(),
             purchaseManager: DemoPurchasedPermissionManaging()
-            
         )
-        VStack {
-            Button("Show Overlay") {
-                withAnimation {
-                    model.showTookFirstPhotoSheet.toggle()
-                }
-                
-            }
-            CameraView(cameraModel: model)
-        }
-        
+        CameraView(cameraModel: model)
+            .preferredColorScheme(.dark)
     }
 }
 

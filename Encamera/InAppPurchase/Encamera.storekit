@@ -1,5 +1,5 @@
 {
-  "identifier" : "46EDDE48",
+  "identifier" : "45BEDFA6",
   "nonRenewingSubscriptions" : [
 
   ],
@@ -7,16 +7,17 @@
 
   ],
   "settings" : {
-    "_compatibilityTimeRate" : 6,
-    "_timeRate" : 15
+    "_applicationInternalID" : "1639202616",
+    "_developerTeamID" : "KGJCC745S9",
+    "_lastSynchronizedDate" : 689621381.39268994
   },
   "subscriptionGroups" : [
     {
-      "id" : "B632EB42",
+      "id" : "21023642",
       "localizations" : [
 
       ],
-      "name" : "Enacamera Feature Subscriptions",
+      "name" : "Encamera Photos",
       "subscriptions" : [
         {
           "adHocOffers" : [
@@ -27,12 +28,12 @@
           ],
           "displayPrice" : "0.99",
           "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "363F1BD6",
+          "groupNumber" : 2,
+          "internalID" : "6444257273",
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Use premium features, renewed monthly",
+              "description" : "Use premium features, billed monthly",
               "displayName" : "Unlimited Monthly",
               "locale" : "en_US"
             }
@@ -40,7 +41,7 @@
           "productID" : "subscription.monthly.unlimitedkeysandphotos",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "UnlimitedKeysAndPhotosMonthly",
-          "subscriptionGroupID" : "B632EB42",
+          "subscriptionGroupID" : "21023642",
           "type" : "RecurringSubscription"
         },
         {
@@ -52,13 +53,9 @@
           ],
           "displayPrice" : "9.99",
           "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "C6C907A4",
-          "introductoryOffer" : {
-            "internalID" : "007E4A51",
-            "paymentMode" : "free",
-            "subscriptionPeriod" : "P1W"
-          },
+          "groupNumber" : 3,
+          "internalID" : "6444257244",
+          "introductoryOffer" : null,
           "localizations" : [
             {
               "description" : "Use premium features, renewed yearly",
@@ -69,7 +66,7 @@
           "productID" : "subscription.yearly.unlimitedkeysandphotos",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "UnlimitedKeysAndPhotosYearly",
-          "subscriptionGroupID" : "B632EB42",
+          "subscriptionGroupID" : "21023642",
           "type" : "RecurringSubscription"
         }
       ]

@@ -253,7 +253,7 @@ class DemoKeyManager: KeyManager {
     
     required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
         self.isAuthenticated = isAuthenticated
-        self.currentKey = PrivateKey(name: "test", keyBytes: [], creationDate: Date())
+        self.currentKey = PrivateKey(name: "secrets", keyBytes: [], creationDate: Date())
         self.keyPublisher = PassthroughSubject<PrivateKey?, Never>().eraseToAnyPublisher()
     }
     

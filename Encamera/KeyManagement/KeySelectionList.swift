@@ -94,7 +94,10 @@ struct KeySelectionList: View {
                 }
                 NavigationLink(isActive: createNewKeyActive) {
                     if viewModel.shouldShowPurchaseScreenForKeys {
-                        SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
+                        SubscriptionStoreView(
+                            controller: StoreActor.shared.subscriptionController,
+                            showDismissButton: false
+                        )
                     } else {
                         KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
                     }
@@ -108,7 +111,10 @@ struct KeySelectionList: View {
                 }
                 NavigationLink(isActive: addExistingKeyActive) {
                     if viewModel.shouldShowPurchaseScreenForKeys {
-                        SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
+                        SubscriptionStoreView(
+                            controller: StoreActor.shared.subscriptionController,
+                            showDismissButton: false
+                        )
                     } else {
                         KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, dismiss: addExistingKeyActive))
                     }
