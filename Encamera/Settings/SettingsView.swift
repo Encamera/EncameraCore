@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import StoreKit
 import Combine
 
 private enum SettingsViewMessage: String {
@@ -93,17 +94,34 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Group {
+                
                 Section {
                     Button("✨ Premium ✨") {
                         viewModel.showPremium = true
                     }
+                    Button("Restore Purchases") {
+                        Task(priority: .userInitiated) {
+                            try await AppStore.sync()
+                        }
+                    }
+                }
+                
+                Section {
                     changePassword
                     reset
                 }
-                
                 .navigationTitle("Settings")
-                
-                Section("Legal") {
+            
+                Section {
+                    Button("Contact") {
+                        guard let url = URL(string: "https://encrypted.camera/contact") else {
+                            return
+                        }
+                        Task {
+                            await UIApplication.shared.open(url)
+                        }
+
+                    }
                     Button("Privacy Policy") {
                         guard let url = URL(string: "https://encrypted.camera/privacy") else {
                             return

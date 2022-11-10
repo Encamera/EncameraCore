@@ -1,16 +1,6 @@
 {
   "images" : [
     {
-      "filename" : "Group 12.pdf",
-      "idiom" : "universal"
-    },
-    {
-      "appearances" : [
-        {
-          "appearance" : "luminosity",
-          "value" : "dark"
-        }
-      ],
       "filename" : "Group 11.pdf",
       "idiom" : "universal"
     }
