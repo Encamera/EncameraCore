@@ -192,22 +192,24 @@ struct SettingsView: View {
     private var changePassword: some View {
         NavigationLink("Change Password", isActive: $viewModel.showDetailView) {
             Form {
-                
-                SecureField("Current Password", text: $viewModel.currentPassword)
-                if let keyManagerError = viewModel.keyManagerError {
-                    Text(keyManagerError.displayDescription).foregroundColor(.red)
-
-                }
-                SecureField("New Password", text: $viewModel.newPassword1)
-                SecureField("Repeat Password", text: $viewModel.newPassword2)
-                if let validation = viewModel.passwordState {
-                    Text(validation.validationDescription).foregroundColor(.red)
-                }
-                if let message = viewModel.successMessage {
-                    Text(message.rawValue).foregroundColor(.green)
-                }
-                
+                Group {
+                    SecureField("Current Password", text: $viewModel.currentPassword)
+                    if let keyManagerError = viewModel.keyManagerError {
+                        Text(keyManagerError.displayDescription).foregroundColor(.red)
+                        
+                    }
+                    SecureField("New Password", text: $viewModel.newPassword1)
+                    
+                    SecureField("Repeat Password", text: $viewModel.newPassword2)
+                    if let validation = viewModel.passwordState {
+                        Text(validation.validationDescription).foregroundColor(.red)
+                    }
+                    if let message = viewModel.successMessage {
+                        Text(message.rawValue).foregroundColor(.green)
+                    }
+                }.listRowBackground(Color.foregroundSecondary)
             }
+            
             .scrollContentBackgroundColor(.background)
             .fontType(.small)
             .toolbar {
