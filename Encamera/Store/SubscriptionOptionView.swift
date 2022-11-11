@@ -76,7 +76,6 @@ struct SubscriptionOptionView: View {
         .onTapGesture {
             isOn.toggle()
         }
-        .padding(.horizontal)
         .padding(.vertical, 5)
         .task {
             let selectedSubscription = subscription.subscriptionInfo

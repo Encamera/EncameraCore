@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-
+import StoreKit
 
 
 struct SubscriptionStoreView: View {
@@ -126,7 +126,17 @@ struct SubscriptionStoreOptionsView: View {
             ForEach(subscriptions) { subscription in
                 subscriptionOptionCell(for: subscription)
             }
-        }
+            Button {
+                Task(priority: .userInitiated) {
+                    try await AppStore.sync()
+                }
+            } label: {
+                   Text("Restore Purchases")
+                    .foregroundColor(.foregroundPrimary)
+                    .frame(maxWidth: .infinity)
+                       .textPill(color: .foregroundSecondary)
+            }
+        }.padding(.horizontal)
     }
 
     func subscriptionOptionCell(for subscription: ServiceSubscription) -> some View {
@@ -189,6 +199,7 @@ struct SubscriptionPurchaseView: View {
                 .padding(5)
                 .frame(maxWidth: .infinity)
             }
+            
             .primaryButton(on: .elevated)
             .disabled(selectedSubscription == nil)
             .padding(.horizontal)
