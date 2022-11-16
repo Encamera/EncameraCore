@@ -31,6 +31,7 @@ import StoreKit
     private var transactionUpdatesTask: Task<Void, Never>?
     private var statusUpdatesTask: Task<Void, Never>?
     private var storefrontUpdatesTask: Task<Void, Never>?
+    private var paymentQueue = SKPaymentQueue()
 
     nonisolated let subscriptionController: StoreSubscriptionController
     
@@ -45,6 +46,10 @@ import StoreKit
     func product(identifiedBy productID: String) async -> Product? {
         await waitUntilProductsLoaded()
         return loadedProducts[productID]
+    }
+    
+    func presentCodeRedemptionSheet() {
+        paymentQueue.presentCodeRedemptionSheet()
     }
     
     private func setupListenerTasksIfNecessary() {

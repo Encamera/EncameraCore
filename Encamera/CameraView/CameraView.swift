@@ -90,9 +90,10 @@ struct CameraView: View {
     }
     private var cameraPreview: some View {
         #if targetEnvironment(simulator)
-        Color.clear.background {
-            Image("kristina-flour").resizable().clipped().aspectRatio(contentMode: .fill)
-        }
+//        Color.clear.background {
+//            Image("kristina-flour").resizable().clipped().aspectRatio(contentMode: .fill)
+//        }
+        missingPermissionsView
         #else
         CameraPreview(session: cameraModel.session, modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
             .gesture(
@@ -168,6 +169,9 @@ struct CameraView: View {
                 galleryView
                 mainCamera
                 tutorialViews
+                if cameraModel.service.model.setupResult == .notAuthorized {
+                    missingPermissionsView
+                }
             }
             .background(Color.background)
             .screenBlocked()
@@ -181,6 +185,28 @@ struct CameraView: View {
             }
         }
 
+    }
+    
+    @ViewBuilder private var missingPermissionsView: some View {
+        Color.clear.background {
+            
+            VStack {
+                Group {
+                    Text("Missing camera access.")
+                    Button {
+                        guard let url = URL(string: UIApplication.openSettingsURLString) else {
+                            return
+                        }
+                        UIApplication.shared.open(url)
+                    } label: {
+                        Text("Open settings to allow camera access permission")
+                    }.textPill(color: .foregroundSecondary)
+                    
+                }
+            }
+            .fontType(.medium)
+            .padding()
+        }
     }
     
     @ViewBuilder private var tutorialViews: some View {
