@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Encamera</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -30,7 +32,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.1</string>
+	<string>1.0.1</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -156,7 +158,5 @@
 			</dict>
 		</dict>
 	</array>
-	<key>CFBundleDisplayName</key>
-	<string>Encamera</string>
 </dict>
 </plist>
