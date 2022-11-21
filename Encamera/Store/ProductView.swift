@@ -10,8 +10,8 @@ import SwiftUI
 import StoreKit
 
 
-struct SubscriptionStoreView: View {
-    @ObservedObject var controller: StoreSubscriptionController
+struct ProductStoreView: View {
+    @ObservedObject var controller: StoreProductController
     @State private var selectedSubscription: ServiceSubscription?
     @State private var currentActiveSubscription: ServiceSubscription?
     @State private var errorAlertIsPresented = false
@@ -20,7 +20,7 @@ struct SubscriptionStoreView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            SubscriptionStoreHeaderView()
+            ProductStoreHeaderView()
                 .frame(maxWidth: .infinity)
             subscriptionCellsView
         }
@@ -31,13 +31,9 @@ struct SubscriptionStoreView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            subscriptionPurchaseView
+            productPurchaseView
         }
         .background(Color.background)
-        .onAppear {
-            selectedSubscription = controller.entitledSubscription
-            currentActiveSubscription = controller.entitledSubscription
-        }
         .alert(
             controller.purchaseError?.errorDescription ?? "",
             isPresented: $errorAlertIsPresented,
@@ -62,28 +58,26 @@ struct SubscriptionStoreView: View {
         .font(.title)
     }
     
-    var subscriptionPurchaseView: some View {
-        SubscriptionPurchaseView(selectedSubscription: selectedSubscription) {
-            if let subscription = selectedSubscription {
-                Task(priority: .userInitiated) { @MainActor in
-                    let action = await controller.purchase(option: subscription)
-                    switch action {
-                    case .dismissStore: dismiss()
-                    case .displayError: errorAlertIsPresented = true
-                    case .noAction: break
-                    }
+    var productPurchaseView: some View {
+        ProductPurchaseView(selectedSubscription: selectedSubscription) {
+            Task(priority: .userInitiated) { @MainActor in
+                let action = await controller.purchase()
+                switch action {
+                case .dismissStore: dismiss()
+                case .displayError: errorAlertIsPresented = true
+                case .noAction: break
                 }
             }
+            
         }
     }
     
     var subscriptionCellsView: some View {
         ScrollView(.vertical) {
-            if let subscriptions = controller.subscriptions {
-                SubscriptionStoreOptionsView(
-                    subscriptions: subscriptions,
-                    selectedOption: $selectedSubscription,
-                    currentActiveSubscription: currentActiveSubscription
+            if let products = controller.products {
+                ProductStoreOptionsView(
+                    products: products,
+                    purchasedProducts: controller.isEntitled ? products : []
                 )
                 .padding(.top)
             }
@@ -91,7 +85,7 @@ struct SubscriptionStoreView: View {
     }
 }
      
-struct SubscriptionStoreHeaderView: View {
+struct ProductStoreHeaderView: View {
     
     var body: some View {
         VStack(spacing: 5) {
@@ -108,23 +102,16 @@ struct SubscriptionStoreHeaderView: View {
     }
 }
 
-struct SubscriptionStoreOptionsView: View {
-    let subscriptions: [ServiceSubscription]
-    @Binding var selectedOption: ServiceSubscription?
-    let currentActiveSubscription: ServiceSubscription?
+struct ProductStoreOptionsView: View {
+    let products: [OneTimePurchase]
+    let purchasedProducts: [OneTimePurchase]
     
-    func binding(for subscription: ServiceSubscription) -> Binding<Bool> {
-        return Binding {
-            selectedOption?.id == subscription.id
-        } set: { newValue in
-            selectedOption = newValue ? subscription : nil
-        }
-    }
+    
     
     var body: some View {
         VStack {
-            ForEach(subscriptions) { subscription in
-                subscriptionOptionCell(for: subscription)
+            ForEach(products) { product in
+                productCell(for: product)
             }
             Button {
                 Task(priority: .userInitiated) {
@@ -152,43 +139,16 @@ struct SubscriptionStoreOptionsView: View {
             
     }
 
-    func subscriptionOptionCell(for subscription: ServiceSubscription) -> some View {
-        var savingsInfo: SubscriptionSavings?
-        if subscription.id == StoreActor.unlimitedYearlyID {
-            savingsInfo = self.savings()
-        }
-        return SubscriptionOptionView(
-            subscription: subscription,
-            savings: savingsInfo,
-            isSubscribed: currentActiveSubscription?.id == subscription.id,
-            isOn: binding(for: subscription)
+    func productCell(for product: OneTimePurchase) -> some View {
+        let hasPurchased = purchasedProducts.contains(product)
+        return ProductOptionView(
+            product: product, isPurchased: hasPurchased
         )
-    }
-    
-    func savings() -> SubscriptionSavings? {
-        guard let yearlySubscription = subscriptions.first(where: { $0.id == StoreActor.unlimitedYearlyID }) else {
-            return nil
-        }
-        guard let monthlySubscription = subscriptions.first(where: { $0.id == StoreActor.unlimitedMonthlyID }) else {
-            return nil
-        }
-        
-        let yearlyPriceForMonthlySubscription = 12 * monthlySubscription.price
-        let amountSaved = yearlyPriceForMonthlySubscription - yearlySubscription.price
-        
-        guard amountSaved > 0 else {
-            return nil
-        }
-        
-        let percentSaved = amountSaved / yearlyPriceForMonthlySubscription
-        let monthlyPrice = yearlySubscription.price / 12
-        
-        return SubscriptionSavings(percentSavings: percentSaved, granularPrice: monthlyPrice, granularPricePeriod: .month)
     }
 }
 
 
-struct SubscriptionPurchaseView: View {
+struct ProductPurchaseView: View {
     @State private var canRedeemIntroOffer = false
     @State private var redeemSheetIsPresented = false
     
@@ -232,7 +192,7 @@ struct SubscriptionPurchaseView: View {
 
 }
 
-struct SubscriptionStoreView_Previews: PreviewProvider {
+struct ProductStoreView_Previews: PreviewProvider {
     
     static var previews: some View {
         ProductStoreView(

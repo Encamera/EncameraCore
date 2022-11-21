@@ -152,7 +152,7 @@ struct SettingsView: View {
     }
     
     private var premium: some View {
-        SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
+        ProductStoreView(controller: StoreActor.shared.productController)
     }
     
     private var reset: some View {

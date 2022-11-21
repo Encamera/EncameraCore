@@ -68,8 +68,8 @@ protocol PurchasedPermissionManaging {
 
 class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject {
     
-    let products = EncameraSubscription.allCases.map({$0.productId})
     let subscriptionController = StoreActor.shared.subscriptionController
+    let purchaseController = StoreActor.shared.productController
     init() {
     }
     
@@ -77,10 +77,11 @@ class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject
     @MainActor
     func isAllowedAccess(feature: AppFeature) -> Bool {
         switch feature {
-        case .accessPhoto(let count) where count < AppConstants.maxPhotoCountBeforePurchase, .createKey(let count) where count < AppConstants.maxPhotoCountBeforePurchase:
+        case .accessPhoto(let count) where count < AppConstants.maxPhotoCountBeforePurchase,
+            .createKey(let count) where count < AppConstants.maxPhotoCountBeforePurchase:
             return true
         default:
-            return subscriptionController.entitledSubscriptionID != nil
+            return subscriptionController.entitledSubscriptionID != nil || purchaseController.isEntitled
         }
     }
 }

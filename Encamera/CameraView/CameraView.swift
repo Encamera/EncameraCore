@@ -181,7 +181,7 @@ struct CameraView: View {
                 }, secondaryButton: .cancel())
             }
             .sheet(isPresented: $cameraModel.showStoreSheet) {
-                SubscriptionStoreView(controller: StoreActor.shared.subscriptionController)
+                ProductStoreView(controller: StoreActor.shared.productController)
             }
         }
 

@@ -4,7 +4,21 @@
 
   ],
   "products" : [
-
+    {
+      "displayPrice" : "12.99",
+      "familyShareable" : true,
+      "internalID" : "7578F18B",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "purchase.lifetimeunlimitedbasic",
+      "referenceName" : "LifetimeUnlimitedBasic",
+      "type" : "NonConsumable"
+    }
   ],
   "settings" : {
     "_compatibilityTimeRate" : 6,

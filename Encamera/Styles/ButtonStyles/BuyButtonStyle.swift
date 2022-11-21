@@ -16,15 +16,16 @@ struct BuyButtonStyle: ButtonStyle {
     }
 
     func makeBody(configuration: Self.Configuration) -> some View {
-        var bgColor: Color = isPurchased ? Color.green : Color.foregroundSecondary
+        let interactable = isPurchased == false && configuration.isPressed
+        var bgColor: Color = isPurchased ? Color.green : Color.foregroundPrimary
         bgColor = configuration.isPressed ? bgColor.opacity(0.7) : bgColor.opacity(1)
 
         return configuration.label
-            .fontType(.small)
+            .fontType(.small, on: .elevated)
             .frame(width: 50)
             .padding(10)
             .background(bgColor)
             .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
+            .scaleEffect(interactable ? 0.9 : 1.0)
     }
 }

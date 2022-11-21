@@ -94,8 +94,8 @@ struct KeySelectionList: View {
                 }
                 NavigationLink(isActive: createNewKeyActive) {
                     if viewModel.shouldShowPurchaseScreenForKeys {
-                        SubscriptionStoreView(
-                            controller: StoreActor.shared.subscriptionController,
+                        ProductStoreView(
+                            controller: StoreActor.shared.productController,
                             showDismissButton: false
                         )
                     } else {
@@ -111,8 +111,8 @@ struct KeySelectionList: View {
                 }
                 NavigationLink(isActive: addExistingKeyActive) {
                     if viewModel.shouldShowPurchaseScreenForKeys {
-                        SubscriptionStoreView(
-                            controller: StoreActor.shared.subscriptionController,
+                        ProductStoreView(
+                            controller: StoreActor.shared.productController,
                             showDismissButton: false
                         )
                     } else {

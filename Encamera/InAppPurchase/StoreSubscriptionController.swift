@@ -38,11 +38,6 @@ final class StoreSubscriptionController: ObservableObject {
         }
     }
     
-    enum PurchaseFinishedAction {
-        case dismissStore
-        case noAction
-        case displayError
-    }
     
     func purchase(option subscription: ServiceSubscription) async -> PurchaseFinishedAction {
         let action: PurchaseFinishedAction

@@ -11,10 +11,10 @@ import StoreKit
 @globalActor actor StoreActor {
     static let unlimitedMonthlyID = "subscription.monthly.unlimitedkeysandphotos"
     static let unlimitedYearlyID = "subscription.yearly.unlimitedkeysandphotos"
+    static let lifetimeUnlimitedBasic = "purchase.lifetimeunlimitedbasic"
     
     static let subscriptionIDs: Set<String> = [
-        unlimitedMonthlyID,
-        unlimitedYearlyID
+        lifetimeUnlimitedBasic
     ]
     
     static let allProductIDs: Set<String> = {
@@ -34,9 +34,11 @@ import StoreKit
     private var paymentQueue = SKPaymentQueue()
 
     nonisolated let subscriptionController: StoreSubscriptionController
+    nonisolated let productController: StoreProductController
     
     init() {
         self.subscriptionController = StoreSubscriptionController(productIDs: Array(Self.subscriptionIDs))
+        self.productController = StoreProductController()
         Task(priority: .background) {
             await self.setupListenerTasksIfNecessary()
             await self.loadProducts()
@@ -99,12 +101,10 @@ import StoreKit
             loadedProducts = products.reduce(into: [:]) {
                 $0[$1.id] = $1
             }
+            
             Task(priority: .utility) { @MainActor in
-                self.subscriptionController.subscriptions = products
-                    .compactMap { ServiceSubscription(subscription: $0) }
-                // Now that you have loaded the products, have the subscription
-                // controller update the entitlement based on the group ID.
-                await self.subscriptionController.updateEntitlement()
+                self.productController.products = products.compactMap({ OneTimePurchase(product: $0)
+                })
             }
         } catch {
             print("Failed to get in-app products: \(error)")
