@@ -146,11 +146,15 @@ class OnboardingViewModel: ObservableObject {
         }
     }
     
-    func checkExistingPasswordAndAuth() throws {
-        
-        existingPasswordCorrect = try keyManager.checkPassword(existingPassword)
-        if existingPasswordCorrect == false {
-            throw OnboardingViewError.passwordInvalid
+    @MainActor
+    func checkExistingPasswordAndAuth() {
+        do {
+            existingPasswordCorrect = try keyManager.checkPassword(existingPassword)
+            if existingPasswordCorrect == false {
+                generalError = OnboardingViewError.passwordInvalid
+            }
+        } catch {
+            generalError = OnboardingViewError.passwordInvalid
         }
     }
     
@@ -259,7 +263,7 @@ private extension MainOnboardingView {
             return .init(
                 title: "Enter Password",
                 subheading: "You have an existing password for this device.", image: Image(systemName: "key.fill"), bottomButtonTitle: "Next", bottomButtonAction: {
-                    try viewModel.checkExistingPasswordAndAuth()
+                    viewModel.checkExistingPasswordAndAuth()
                 }) {
                     AnyView(
                         VStack(alignment: .leading) {
@@ -268,14 +272,19 @@ private extension MainOnboardingView {
                                     return
                                 }
                                 viewModel.existingPassword = existingPassword
-                                try? viewModel.checkExistingPasswordAndAuth()
+                                viewModel.checkExistingPasswordAndAuth()
                             }))
+                            if let error = viewModel.generalError as? OnboardingViewError, case .passwordInvalid = error {
+                                Group {
+                                    Text(error.localizedDescription).alertText()
+                                }
+                            }
+
                             NavigationLink {
                                 PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: DiskFileAccess()))
                             } label: {
                                 Text("Erase Device Data")
                             }.primaryButton()
-
                         }
                     )
                 }
