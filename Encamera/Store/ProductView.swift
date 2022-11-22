@@ -74,10 +74,10 @@ struct ProductStoreView: View {
     
     var subscriptionCellsView: some View {
         ScrollView(.vertical) {
-            if let products = controller.product {
+            if let product = controller.product {
                 ProductStoreOptionsView(
-                    products: [products],
-                    purchasedProducts: controller.isEntitled ? [products] : []
+                    products: [product],
+                    purchasedProducts: controller.isEntitled ? [product] : []
                 )
                 .padding(.top)
             }
@@ -113,23 +113,13 @@ struct ProductStoreOptionsView: View {
             ForEach(products) { product in
                 productCell(for: product)
             }
-            Button {
-                Task(priority: .userInitiated) {
-                    try await AppStore.sync()
-                }
-            } label: {
-                   Text("Restore Purchases")
-                    .foregroundColor(.foregroundPrimary)
-                    .frame(maxWidth: .infinity)
-                       .textPill(color: .foregroundSecondary)
-            }
         }.padding(.horizontal)
             
     }
 
     func productCell(for product: OneTimePurchase) -> some View {
         let hasPurchased = purchasedProducts.contains(product)
-        return ProductOptionView(
+            return ProductOptionView(
             product: product, isPurchased: hasPurchased
         )
     }
@@ -146,23 +136,7 @@ struct ProductPurchaseView: View {
     let onPurchase: () -> Void
     
     var body: some View {
-        VStack {
-            Button {
-                onPurchase()
-            } label: {
-                Group {
-                    if canRedeemIntroOffer {
-                        Text("Start trial offer")
-                    } else {
-                        Text("Subscribe")
-                    }
-                }
-                .padding(5)
-                .frame(maxWidth: .infinity)
-            }
-            .primaryButton(on: .elevated)
-            .disabled(selectedSubscription == nil)
-            HStack {
+        VStack(spacing: 24) {
                 Button {
                     Task(priority: .userInitiated) {
                         await StoreActor.shared.presentCodeRedemptionSheet()
@@ -172,9 +146,18 @@ struct ProductPurchaseView: View {
                      .foregroundColor(.foregroundPrimary)
                      .frame(maxWidth: .infinity)
 
-                }.padding()
+                }
+            Button {
+                Task(priority: .userInitiated) {
+                    try await AppStore.sync()
+                }
+            } label: {
+                   Text("Restore Purchases")
+                    .foregroundColor(.foregroundPrimary)
+                    .frame(maxWidth: .infinity)
             }
         }
+        
         .padding(.horizontal)
 
         .frame(maxWidth: .infinity)

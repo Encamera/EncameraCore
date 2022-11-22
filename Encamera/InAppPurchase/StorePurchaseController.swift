@@ -69,7 +69,7 @@ final class StoreProductController: ObservableObject {
         case .unverified(_, let error):
             print("Unverified entitlement for \(productID): \(error)")
             fallthrough
-        case .none:
+        case nil:
             isEntitled = false
         }
     }
