@@ -74,10 +74,10 @@ struct ProductStoreView: View {
     
     var subscriptionCellsView: some View {
         ScrollView(.vertical) {
-            if let products = controller.products {
+            if let products = controller.product {
                 ProductStoreOptionsView(
-                    products: products,
-                    purchasedProducts: controller.isEntitled ? products : []
+                    products: [products],
+                    purchasedProducts: controller.isEntitled ? [products] : []
                 )
                 .padding(.top)
             }
@@ -123,18 +123,6 @@ struct ProductStoreOptionsView: View {
                     .frame(maxWidth: .infinity)
                        .textPill(color: .foregroundSecondary)
             }
-            Button {
-                Task(priority: .userInitiated) {
-                    
-                    await StoreActor.shared.presentCodeRedemptionSheet()
-                }
-            } label: {
-                Text("Enter Promo Code")
-                 .foregroundColor(.foregroundPrimary)
-                 .frame(maxWidth: .infinity)
-                    .textPill(color: .foregroundSecondary)
-
-            }
         }.padding(.horizontal)
             
     }
@@ -172,11 +160,23 @@ struct ProductPurchaseView: View {
                 .padding(5)
                 .frame(maxWidth: .infinity)
             }
-            
             .primaryButton(on: .elevated)
             .disabled(selectedSubscription == nil)
-            .padding(.horizontal)
+            HStack {
+                Button {
+                    Task(priority: .userInitiated) {
+                        await StoreActor.shared.presentCodeRedemptionSheet()
+                    }
+                } label: {
+                    Text("Enter Promo Code")
+                     .foregroundColor(.foregroundPrimary)
+                     .frame(maxWidth: .infinity)
+
+                }.padding()
+            }
         }
+        .padding(.horizontal)
+
         .frame(maxWidth: .infinity)
         .padding(.vertical)
         .onChange(of: selectedSubscription) { newValue in
@@ -188,6 +188,7 @@ struct ProductPurchaseView: View {
                 canRedeemIntroOffer = await selectedSubscription.isEligibleForIntroOffer && selectedSubscription.introductoryOffer != nil
             }
         }
+        
     }
 
 }

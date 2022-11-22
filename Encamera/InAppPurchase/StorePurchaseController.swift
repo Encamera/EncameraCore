@@ -11,9 +11,9 @@ import Combine
 
 @MainActor
 final class StoreProductController: ObservableObject {
-    @Published public var products: [OneTimePurchase] = []
-    @Published public private(set) var isEntitled: Bool = false
-    @Published public private(set) var purchaseError: (any LocalizedError)?
+    @Published var product: OneTimePurchase?
+    @Published private(set) var isEntitled: Bool = false
+    @Published private(set) var purchaseError: (any LocalizedError)?
     
     private let productID: String
     
@@ -26,7 +26,7 @@ final class StoreProductController: ObservableObject {
     
     func purchase() async -> PurchaseFinishedAction {
         let action: PurchaseFinishedAction
-        guard let product = products.first else {
+        guard let product = product else {
             print("Product has not loaded yet")
             return .noAction
         }
@@ -61,13 +61,16 @@ final class StoreProductController: ObservableObject {
         self.isEntitled = isEntitled
     }
     
-    private func updateEntitlement() async {
-        switch await StoreKit.Transaction.currentEntitlement(for: productID) {
-        case .verified: isEntitled = true
+    func updateEntitlement() async {
+        let currentEntitlement = await StoreKit.Transaction.currentEntitlement(for: productID)
+        switch currentEntitlement {
+        case .verified:
+            isEntitled = true
         case .unverified(_, let error):
             print("Unverified entitlement for \(productID): \(error)")
             fallthrough
-        case .none: isEntitled = false
+        case .none:
+            isEntitled = false
         }
     }
     

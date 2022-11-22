@@ -103,8 +103,11 @@ import StoreKit
             }
             
             Task(priority: .utility) { @MainActor in
-                self.productController.products = products.compactMap({ OneTimePurchase(product: $0)
-                })
+                guard let product = await loadedProducts[Self.lifetimeUnlimitedBasic] else {
+                    return
+                }
+                self.productController.product = OneTimePurchase(product: product)
+                await self.productController.updateEntitlement()
             }
         } catch {
             print("Failed to get in-app products: \(error)")
@@ -122,6 +125,9 @@ import StoreKit
         // full status instead.
         if transaction.productType == .autoRenewable {
             await subscriptionController.updateEntitlement()
+        }
+        else if transaction.productID == Self.lifetimeUnlimitedBasic {
+            await productController.set(isEntitled: !transaction.isRevoked)
         }
         await transaction.finish()
     }
