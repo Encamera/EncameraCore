@@ -1,5 +1,5 @@
 //
-//  PurchaseUpgradeOptionsView.swift
+//  PurchaseUpgradeOptionsListView.swift
 //  Encamera
 //
 //  Created by Alexander Freas on 23.11.22.
@@ -8,7 +8,7 @@
 import SwiftUI
 import StoreKit
 
-struct PurchaseUpgradeOptionsView: View {
+struct PurchaseUpgradeOptionsListView: View {
     let subscriptions: [ServiceSubscription]
     let products: [OneTimePurchase]
     let purchasedProducts: [OneTimePurchase]

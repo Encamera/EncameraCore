@@ -27,9 +27,11 @@ struct ProductOptionView: View {
     
     var body: some View {
         VStack(alignment: .leading) {
+            Text(product.displayName)
+                .fontType(.small, weight: .bold)
             HStack(alignment: .firstTextBaseline) {
-                Text(product.displayName)
-                    .fontType(.small, weight: .bold)
+                Text(product.description)
+                   .fontType(.small)
                 Spacer()
                 PurchaseButton(priceText: product.priceText, isPurchased: isPurchased) {
                     Task(priority: .userInitiated) {
@@ -37,8 +39,6 @@ struct ProductOptionView: View {
                     }
                 }
             }
-            Text(product.description)
-               .fontType(.small)
         }
         .padding()
         .frame(maxWidth: .infinity)
@@ -58,4 +58,10 @@ struct ProductOptionView: View {
          .font(.title2)
     }
     
+}
+
+struct ProductOptionView_Previews: PreviewProvider {
+    static var previews: some View {
+        Text("Hey")
+    }
 }

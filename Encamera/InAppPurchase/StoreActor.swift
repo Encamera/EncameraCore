@@ -12,7 +12,7 @@ import StoreKit
     static let unlimitedMonthlyID = "subscription.monthly.unlimitedkeysandphotos"
     static let unlimitedYearlyID = "subscription.yearly.unlimitedkeysandphotos"
     static let lifetimeUnlimitedBasic = "purchase.lifetimeunlimitedbasic"
-    
+    static let lifetimeUnlimitedBasicFamily = "purchase.lifetimeunlimitedbasicfamily"
     
     static let subscriptionIDs: Set<String> = [
         unlimitedYearlyID,
@@ -20,7 +20,8 @@ import StoreKit
     ]
     
     static let productIDs: Set<String> = [
-        lifetimeUnlimitedBasic
+        lifetimeUnlimitedBasic,
+        lifetimeUnlimitedBasicFamily
     ]
     
     static let allProductIDs: Set<String> = {

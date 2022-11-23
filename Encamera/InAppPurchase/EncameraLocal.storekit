@@ -6,17 +6,32 @@
   "products" : [
     {
       "displayPrice" : "19.99",
-      "familyShareable" : true,
+      "familyShareable" : false,
       "internalID" : "7578F18B",
       "localizations" : [
         {
-          "description" : "",
-          "displayName" : "",
+          "description" : "Unlimited photos and keys, forever",
+          "displayName" : "Lifetime Unlimited",
           "locale" : "en_US"
         }
       ],
       "productID" : "purchase.lifetimeunlimitedbasic",
       "referenceName" : "LifetimeUnlimitedBasic",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "25.99",
+      "familyShareable" : true,
+      "internalID" : "D8E1484F",
+      "localizations" : [
+        {
+          "description" : "Unlimited photos and keys, forever",
+          "displayName" : "Lifetime Unlimited Family",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "purchase.lifetimeunlimitedbasicfamily",
+      "referenceName" : "LifetimeUnlimtedBasicFamily",
       "type" : "NonConsumable"
     }
   ],
@@ -46,14 +61,14 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Use premium features, renewed monthly",
-              "displayName" : "Unlimited Monthly",
+              "description" : "Unlimited photos and keys, billed monthly",
+              "displayName" : "Monthly Unlimited",
               "locale" : "en_US"
             }
           ],
           "productID" : "subscription.monthly.unlimitedkeysandphotos",
           "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "UnlimitedKeysAndPhotosMonthly",
+          "referenceName" : "MonthlyUnlimitedBasic",
           "subscriptionGroupID" : "B632EB42",
           "type" : "RecurringSubscription"
         },
@@ -75,14 +90,14 @@
           },
           "localizations" : [
             {
-              "description" : "Use premium features, renewed yearly",
-              "displayName" : "Unlimited Yearly",
+              "description" : "Unlimited photos and keys, billed annually",
+              "displayName" : "Yearly Unlimited",
               "locale" : "en_US"
             }
           ],
           "productID" : "subscription.yearly.unlimitedkeysandphotos",
           "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "UnlimitedKeysAndPhotosYearly",
+          "referenceName" : "YearlyUnlimitedBasic",
           "subscriptionGroupID" : "B632EB42",
           "type" : "RecurringSubscription"
         }

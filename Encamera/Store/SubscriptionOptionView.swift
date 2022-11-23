@@ -35,11 +35,10 @@ struct SubscriptionOptionView: View {
             VStack(alignment: .leading) {
                 
                 if isSubscribed {
-                    Text("Subscribed")
+                    Text( "Subscribed")
                         .fontType(.extraSmall, on: .elevated)
                         .textPill(color: .green)
-                }
-                if hasFreeTrial {
+                } else if hasFreeTrial {
                     Text("Free Trial Available")
                         .fontType(.extraSmall, on: .elevated)
                         .textPill(color: .orange)

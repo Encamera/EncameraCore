@@ -86,7 +86,7 @@ struct PurchaseUpgradeView: View {
         ScrollView(.vertical) {
             if let subscriptions = subscriptionController.subscriptions,
                let products = productController.products {
-                PurchaseUpgradeOptionsView(
+                PurchaseUpgradeOptionsListView(
                     subscriptions: subscriptions,
                     products: products,
                     purchasedProducts: productController.purchasedProducts,
