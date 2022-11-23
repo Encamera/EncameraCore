@@ -25,7 +25,7 @@ struct PurchaseUpgradeView: View {
         VStack(spacing: 0) {
             PurchaseUpgradeHeaderView()
                 .frame(maxWidth: .infinity)
-            subscriptionCellsView
+            productCellsScrollView
         }
         .overlay(alignment: .topTrailing) {
             if showDismissButton {
@@ -34,7 +34,9 @@ struct PurchaseUpgradeView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            subscriptionPurchaseView
+            if selectedSubscription != nil {
+                subscriptionPurchaseView
+            }
         }
         .background(Color.background)
         .onAppear {
@@ -80,7 +82,7 @@ struct PurchaseUpgradeView: View {
         }
     }
     
-    var subscriptionCellsView: some View {
+    var productCellsScrollView: some View {
         ScrollView(.vertical) {
             if let subscriptions = subscriptionController.subscriptions,
                let products = productController.products {

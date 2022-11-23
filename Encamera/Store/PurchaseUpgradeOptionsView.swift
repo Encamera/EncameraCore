@@ -31,29 +31,6 @@ struct PurchaseUpgradeOptionsView: View {
             ForEach(subscriptions) { subscription in
                 subscriptionOptionCell(for: subscription)
             }
-//
-//            Button {
-//                Task(priority: .userInitiated) {
-//                    try await AppStore.sync()
-//                }
-//            } label: {
-//                   Text("Restore Purchases")
-//                    .foregroundColor(.foregroundPrimary)
-//                    .frame(maxWidth: .infinity)
-//                       .textPill(color: .foregroundSecondary)
-//            }
-//            Button {
-//                Task(priority: .userInitiated) {
-//
-//                    await StoreActor.shared.presentCodeRedemptionSheet()
-//                }
-//            } label: {
-//                Text("Enter Promo Code")
-//                 .foregroundColor(.foregroundPrimary)
-//                 .frame(maxWidth: .infinity)
-//                    .textPill(color: .foregroundSecondary)
-//
-//            }
         }.padding(.horizontal)
             
     }
