@@ -18,12 +18,27 @@
       "productID" : "purchase.lifetimeunlimitedbasic",
       "referenceName" : "LifetimeUnlimitedBasic",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "24.99",
+      "familyShareable" : true,
+      "internalID" : "6444687090",
+      "localizations" : [
+        {
+          "description" : "Unlimited photos and keys, family shared",
+          "displayName" : "Lifetime Unlimited Family",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "purchase.lifetimeunlimitedbasicfamily",
+      "referenceName" : "LifetimeUnlimitedBasicFamily",
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {
     "_applicationInternalID" : "1639202616",
     "_developerTeamID" : "KGJCC745S9",
-    "_lastSynchronizedDate" : 690756428.72023106
+    "_lastSynchronizedDate" : 690935012.18681002
   },
   "subscriptionGroups" : [
     {
@@ -75,7 +90,7 @@
           "groupNumber" : 1,
           "internalID" : "6444257244",
           "introductoryOffer" : {
-            "internalID" : "3CD63514",
+            "internalID" : "025CF59A",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
             "subscriptionPeriod" : "P1W"

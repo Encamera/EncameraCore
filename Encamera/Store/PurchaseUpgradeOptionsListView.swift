@@ -24,7 +24,6 @@ struct PurchasedProductCell: View {
         }
         .frame(maxWidth: .infinity)
         .productCell()
-        
         .task {
             transactionDate = await product.product.latestTransaction?.signedDate
         }
@@ -53,7 +52,7 @@ struct PurchaseUpgradeOptionsListView: View {
          subscription. When there are more, this will need
          to be updated.
          */
-        VStack {
+        VStack(spacing: 25) {
             if purchasedProducts.isEmpty {
                 
                 Text("One-Time Purchase")
