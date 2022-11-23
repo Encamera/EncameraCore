@@ -11,25 +11,23 @@ import Combine
 
 @MainActor
 final class StoreProductController: ObservableObject {
-    @Published var product: OneTimePurchase?
+    @Published var products: [OneTimePurchase] = []
+    @Published var purchasedProducts: [OneTimePurchase] = []
     @Published private(set) var isEntitled: Bool = false
     @Published private(set) var purchaseError: (any LocalizedError)?
     
-    private let productID: String
+    private let productIDs: [String]
     
-    internal nonisolated init() {
-        self.productID = "purchase.lifetimeunlimitedbasic"
+    internal nonisolated init(productIDs: [String]) {
+        self.productIDs = productIDs
         Task(priority: .background) {
             await self.updateEntitlement()
         }
     }
     
-    func purchase() async -> PurchaseFinishedAction {
+    func purchase(product: OneTimePurchase) async -> PurchaseFinishedAction {
         let action: PurchaseFinishedAction
-        guard let product = product else {
-            print("Product has not loaded yet")
-            return .noAction
-        }
+        
         do {
             let result = try await product.product.purchase()
             switch result {
@@ -62,16 +60,13 @@ final class StoreProductController: ObservableObject {
     }
     
     func updateEntitlement() async {
-        let currentEntitlement = await StoreKit.Transaction.currentEntitlement(for: productID)
-        switch currentEntitlement {
-        case .verified:
-            isEntitled = true
-        case .unverified(_, let error):
-            print("Unverified entitlement for \(productID): \(error)")
-            fallthrough
-        case nil:
-            isEntitled = false
+        for productID in productIDs {
+            let entitlementForProduct = await StoreKit.Transaction.currentEntitlement(for: productID)
+            
+            guard case .verified(let transaction) = entitlementForProduct else {
+                return
+            }
+            purchasedProducts += products.filter({$0.product.id == transaction.productID})
         }
     }
-    
 }

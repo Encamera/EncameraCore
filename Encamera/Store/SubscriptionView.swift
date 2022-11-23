@@ -231,14 +231,3 @@ struct SubscriptionPurchaseView: View {
     }
 
 }
-
-struct SubscriptionStoreView_Previews: PreviewProvider {
-    
-    static var previews: some View {
-        ProductStoreView(
-            controller: StoreActor.shared.productController
-        ).preferredColorScheme(.dark)
-            .previewDevice(PreviewDevice(rawValue: "iPhone 8"))
-    }
-    
-}

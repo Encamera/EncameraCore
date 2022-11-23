@@ -13,13 +13,18 @@ import StoreKit
     static let unlimitedYearlyID = "subscription.yearly.unlimitedkeysandphotos"
     static let lifetimeUnlimitedBasic = "purchase.lifetimeunlimitedbasic"
     
+    
     static let subscriptionIDs: Set<String> = [
+        unlimitedYearlyID,
+        unlimitedMonthlyID
+    ]
+    
+    static let productIDs: Set<String> = [
         lifetimeUnlimitedBasic
     ]
     
     static let allProductIDs: Set<String> = {
-        var ids = subscriptionIDs
-        return ids
+        return subscriptionIDs.union(productIDs)
     }()
     
     static let shared = StoreActor()
@@ -38,7 +43,7 @@ import StoreKit
     
     init() {
         self.subscriptionController = StoreSubscriptionController(productIDs: Array(Self.subscriptionIDs))
-        self.productController = StoreProductController()
+        self.productController = StoreProductController(productIDs: Array(Self.productIDs))
         Task(priority: .background) {
             await self.setupListenerTasksIfNecessary()
             await self.loadProducts()
@@ -103,10 +108,11 @@ import StoreKit
             }
             
             Task(priority: .utility) { @MainActor in
-                guard let product = await loadedProducts[Self.lifetimeUnlimitedBasic] else {
-                    return
-                }
-                self.productController.product = OneTimePurchase(product: product)
+                self.subscriptionController.subscriptions = products.compactMap({ ServiceSubscription(subscription: $0) })
+                await self.subscriptionController.updateEntitlement()
+
+                self.productController.products = products
+                    .compactMap({ OneTimePurchase(product: $0) })
                 await self.productController.updateEntitlement()
             }
         } catch {

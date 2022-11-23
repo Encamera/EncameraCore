@@ -33,7 +33,7 @@ struct ProductOptionView: View {
                 Spacer()
                 PurchaseButton(priceText: product.priceText, isPurchased: isPurchased) {
                     Task(priority: .userInitiated) {
-                        await StoreActor.shared.productController.purchase()
+                        await StoreActor.shared.productController.purchase(product: product)
                     }
                 }
             }

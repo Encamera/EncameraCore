@@ -202,7 +202,7 @@ struct GalleryHorizontalScrollView: View {
             }
         }
         .sheet(isPresented: $viewModel.showPurchaseSheet) {
-            ProductStoreView(controller: StoreActor.shared.productController)
+            ProductStoreView()
         }
     }
     

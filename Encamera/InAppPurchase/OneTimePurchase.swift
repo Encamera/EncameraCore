@@ -8,6 +8,9 @@ struct OneTimePurchase: Identifiable, Equatable {
     var id: String { product.id }
     
     init?(product: Product) {
+        guard product.subscription == nil else {
+            return nil
+        }
         self.product = product
     }
     

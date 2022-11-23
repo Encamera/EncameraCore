@@ -94,10 +94,7 @@ struct KeySelectionList: View {
                 }
                 NavigationLink(isActive: createNewKeyActive) {
                     if viewModel.shouldShowPurchaseScreenForKeys {
-                        ProductStoreView(
-                            controller: StoreActor.shared.productController,
-                            showDismissButton: false
-                        )
+                        ProductStoreView(showDismissButton: false)
                     } else {
                         KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
                     }
@@ -111,9 +108,7 @@ struct KeySelectionList: View {
                 }
                 NavigationLink(isActive: addExistingKeyActive) {
                     if viewModel.shouldShowPurchaseScreenForKeys {
-                        ProductStoreView(
-                            controller: StoreActor.shared.productController,
-                            showDismissButton: false
+                        ProductStoreView(showDismissButton: false
                         )
                     } else {
                         KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, dismiss: addExistingKeyActive))
