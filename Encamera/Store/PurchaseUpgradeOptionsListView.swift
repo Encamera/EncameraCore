@@ -20,10 +20,11 @@ struct PurchasedProductCell: View {
                     Text(DateUtils.dateOnlyString(from:  transactionDate))
                 }
                 Text("Thank you for your support!")
-                
             }
         }
+        .frame(maxWidth: .infinity)
         .productCell()
+        
         .task {
             transactionDate = await product.product.latestTransaction?.signedDate
         }
