@@ -79,8 +79,8 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "9.99",
-          "familyShareable" : false,
+          "displayPrice" : "12.99",
+          "familyShareable" : true,
           "groupNumber" : 1,
           "internalID" : "C6C907A4",
           "introductoryOffer" : {

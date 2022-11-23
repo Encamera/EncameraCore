@@ -12,7 +12,6 @@ import StoreKit
 struct SubscriptionOptionView: View {
     let subscription: ServiceSubscription
     let savings: SubscriptionSavings?
-    @State private var hasFreeTrial: Bool = false
     let isSubscribed: Bool
 
     @Binding var isOn: Bool
@@ -35,13 +34,9 @@ struct SubscriptionOptionView: View {
             VStack(alignment: .leading) {
                 
                 if isSubscribed {
-                    Text( "Subscribed")
+                    Text("Subscribed")
                         .fontType(.extraSmall, on: .elevated)
                         .textPill(color: .green)
-                } else if hasFreeTrial {
-                    Text("Free Trial Available")
-                        .fontType(.extraSmall, on: .elevated)
-                        .textPill(color: .orange)
                 }
                 
                 
@@ -65,11 +60,10 @@ struct SubscriptionOptionView: View {
         .onTapGesture {
             isOn.toggle()
         }
-        .productCell(isOn: isOn)
-        .task {
-            let selectedSubscription = subscription.subscriptionInfo
-            hasFreeTrial = await selectedSubscription.isEligibleForIntroOffer && selectedSubscription.introductoryOffer != nil
-        }
+        .productCell(
+            product: subscription.product,
+            isOn: isOn
+        )
     }
     
     private var checkmarkImage: some View {

@@ -28,7 +28,7 @@ struct ProductOptionView: View {
                     }
                 }
             }
-        }.productCell()
+        }.productCell(product: product.product)
     }
     
     private var checkmarkImage: some View {

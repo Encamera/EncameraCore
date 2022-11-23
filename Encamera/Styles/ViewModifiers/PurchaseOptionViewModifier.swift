@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import StoreKit
 
 struct PurchaseOptionViewModifier: ViewModifier {
     
@@ -18,13 +19,40 @@ struct PurchaseOptionViewModifier: ViewModifier {
     }
     
     let isOn: Bool
-    
+    let product: Product?
+    @State private var hasFreeTrial: Bool = false
+
     func body(content: Content) -> some View {
-     content.padding()
+        VStack {
+            if let product = product,  product.isFamilyShareable == true || hasFreeTrial {
+                HStack(spacing: 0) {
+                    if product.isFamilyShareable {
+                        Color.orange.overlay {
+                            Text("Family Shareable")
+                        }
+                    }
+                    if hasFreeTrial {
+                        
+                        Color.green.overlay {
+                            Text("Free Trial")
+                        }
+                        
+                    }
+                }
+                .foregroundColor(.foregroundSecondary)
+                .fontType(.small, weight: .bold).frame(height: 25)
+            }
+            content.padding()
+        }.task {
+            guard let selectedSubscription = product?.subscription else {
+                return
+            }
+            hasFreeTrial = await selectedSubscription.isEligibleForIntroOffer && selectedSubscription.introductoryOffer != nil
+        }
         
             .frame(maxWidth: .infinity)
             .background(Self.backgroundColor, in: Self.backgroundShape)
-            
+            .clipShape(Self.backgroundShape)
             .overlay {
                 Self.backgroundShape
                     .strokeBorder(
@@ -32,11 +60,12 @@ struct PurchaseOptionViewModifier: ViewModifier {
                         lineWidth: isOn ? 1 : 0
                     )
             }
+            .fontType(.small)
     }
 }
 
 extension View {
-    func productCell(isOn: Bool = false) -> some View {
-        self.modifier(PurchaseOptionViewModifier(isOn: isOn))
+    func productCell(product: Product? = nil, isOn: Bool = false) -> some View {
+        self.modifier(PurchaseOptionViewModifier(isOn: isOn, product: product))
     }
 }

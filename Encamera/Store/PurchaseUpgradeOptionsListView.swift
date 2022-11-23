@@ -8,6 +8,28 @@
 import SwiftUI
 import StoreKit
 
+struct PurchasedProductCell: View {
+    
+    @State private var transactionDate: Date?
+    let product: OneTimePurchase
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text("**Purchased: \(product.displayName)**")
+                if let transactionDate = transactionDate {
+                    Text(DateUtils.dateOnlyString(from:  transactionDate))
+                }
+                Text("Thank you for your support!")
+                
+            }
+        }
+        .productCell()
+        .task {
+            transactionDate = await product.product.latestTransaction?.signedDate
+        }
+    }
+}
+
 struct PurchaseUpgradeOptionsListView: View {
     let subscriptions: [ServiceSubscription]
     let products: [OneTimePurchase]
@@ -24,19 +46,34 @@ struct PurchaseUpgradeOptionsListView: View {
     }
     
     var body: some View {
+        /*
+         This is setup this way because currently there
+         is only one "premium" purchasable product or
+         subscription. When there are more, this will need
+         to be updated.
+         */
         VStack {
             if purchasedProducts.isEmpty {
+                
+                Text("One-Time Purchase")
+                    .fontType(.mediumSmall)
                 ForEach(products) { product in
                     productCell(for: product)
                 }
+                Text("Subscription")
+                    .fontType(.mediumSmall)
+                ForEach(subscriptions) { subscription in
+                    subscriptionOptionCell(for: subscription)
+                }
             } else {
+                ForEach(purchasedProducts) { product in
+                    purchasedProductCell(for: product)
+                }
                 
             }
-            ForEach(subscriptions) { subscription in
-                subscriptionOptionCell(for: subscription)
-            }
-        }.padding(.horizontal)
             
+        }.padding(.horizontal)
+        
     }
     
     func productCell(for product: OneTimePurchase) -> some View {
@@ -45,7 +82,11 @@ struct PurchaseUpgradeOptionsListView: View {
             product: product, isPurchased: hasPurchased
         )
     }
-
+    
+    func purchasedProductCell(for product: OneTimePurchase) -> some View {
+        return PurchasedProductCell(product: product)
+    }
+    
     func subscriptionOptionCell(for subscription: ServiceSubscription) -> some View {
         var savingsInfo: SubscriptionSavings?
         if subscription.id == StoreActor.unlimitedYearlyID {
