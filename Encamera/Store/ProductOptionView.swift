@@ -9,21 +9,10 @@
 import SwiftUI
 import StoreKit
 
-
 struct ProductOptionView: View {
     let product: OneTimePurchase
     let isPurchased: Bool
-
-    @Environment(\.colorScheme) private var colorScheme
     
-    
-    private static var backgroundColor: Color {
-        .foregroundSecondary
-    }
-    
-    private static var backgroundShape: some InsettableShape {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-    }
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -39,12 +28,7 @@ struct ProductOptionView: View {
                     }
                 }
             }
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(Self.backgroundColor, in: Self.backgroundShape)
-        
-        .padding(.vertical, 5.0)
+        }.productCell()
     }
     
     private var checkmarkImage: some View {

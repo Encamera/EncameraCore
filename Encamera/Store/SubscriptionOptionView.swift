@@ -62,20 +62,10 @@ struct SubscriptionOptionView: View {
             Spacer()
             checkmarkImage
         }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(Self.backgroundColor, in: Self.backgroundShape)
-        .overlay {
-            Self.backgroundShape
-                .strokeBorder(
-                    Color.accentColor,
-                    lineWidth: isOn ? 1 : 0
-                )
-        }
         .onTapGesture {
             isOn.toggle()
         }
-        .padding(.vertical, 5)
+        .productCell(isOn: isOn)
         .task {
             let selectedSubscription = subscription.subscriptionInfo
             hasFreeTrial = await selectedSubscription.isEligibleForIntroOffer && selectedSubscription.introductoryOffer != nil

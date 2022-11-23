@@ -60,13 +60,15 @@ final class StoreProductController: ObservableObject {
     }
     
     func updateEntitlement() async {
+        print("product ids", productIDs)
         for productID in productIDs {
             let entitlementForProduct = await StoreKit.Transaction.currentEntitlement(for: productID)
-            
+
             guard case .verified(let transaction) = entitlementForProduct else {
-                return
+                continue
             }
             purchasedProducts += products.filter({$0.product.id == transaction.productID})
         }
+        isEntitled = purchasedProducts.isEmpty == false
     }
 }

@@ -25,8 +25,12 @@ struct PurchaseUpgradeOptionsListView: View {
     
     var body: some View {
         VStack {
-            ForEach(products) { product in
-                productCell(for: product)
+            if purchasedProducts.isEmpty {
+                ForEach(products) { product in
+                    productCell(for: product)
+                }
+            } else {
+                
             }
             ForEach(subscriptions) { subscription in
                 subscriptionOptionCell(for: subscription)
