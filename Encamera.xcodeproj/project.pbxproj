@@ -21,6 +21,8 @@
 		13B65527C7EC4009666692A2 /* test.mov in Resources */ = {isa = PBXBuildFile; fileRef = E99B1F67FDB24F9B433CB03A /* test.mov */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
+		198C936F2935990000CD0FAA /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198C936E2935990000CD0FAA /* KeySelectionGridItem.swift */; };
+		198C937129359F0C00CD0FAA /* KeyItemModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198C937029359F0C00CD0FAA /* KeyItemModel.swift */; };
 		19D31C3F292EBC9E006BD218 /* PurchaseOptionViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D31C3E292EBC9E006BD218 /* PurchaseOptionViewModifier.swift */; };
 		1BE199F100EB51103E764B50 /* UserDefaultUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C29C8FE7F7500229D3FF293 /* UserDefaultUtils.swift */; };
 		1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */; };
@@ -190,6 +192,8 @@
 		14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptToErase.swift; sourceTree = "<group>"; };
 		1585D15F7B92351433FED0B3 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
+		198C936E2935990000CD0FAA /* KeySelectionGridItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionGridItem.swift; sourceTree = "<group>"; };
+		198C937029359F0C00CD0FAA /* KeyItemModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyItemModel.swift; sourceTree = "<group>"; };
 		19D31C3E292EBC9E006BD218 /* PurchaseOptionViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseOptionViewModifier.swift; sourceTree = "<group>"; };
 		1AD23C6426D4D73F9E8994C9 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		1D16E0EA60C4E61C60609E92 /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
@@ -677,7 +681,9 @@
 				B197301286602327AC9EB11A /* KeyInformation.swift */,
 				24DEE57B92A4A089C5A570BC /* KeyOperationCell.swift */,
 				661F4FF6682E53B6870C8665 /* KeySelectionCell.swift */,
+				198C936E2935990000CD0FAA /* KeySelectionGridItem.swift */,
 				1025DA125F361EE6FA441219 /* KeySelectionList.swift */,
+				198C937029359F0C00CD0FAA /* KeyItemModel.swift */,
 			);
 			path = KeyManagement;
 			sourceTree = "<group>";
@@ -1002,6 +1008,7 @@
 				AD8F6464844061B17FAFE50E /* OnboardingView.swift in Sources */,
 				745F016F12F4880C0231FF8E /* OneTimePurchase.swift in Sources */,
 				4A0642E9B1818B0BAF0489ED /* PasswordEntry.swift in Sources */,
+				198C936F2935990000CD0FAA /* KeySelectionGridItem.swift in Sources */,
 				5EB003D78CBE2E204B0BDA3B /* PasswordValidator.swift in Sources */,
 				382E0489FC7DDB928E86C7D9 /* PhotoCaptureProcessor.swift in Sources */,
 				BDA79FBD261093E01B2C31E3 /* PhotoInfoView.swift in Sources */,
@@ -1044,6 +1051,7 @@
 				1BE199F100EB51103E764B50 /* UserDefaultUtils.swift in Sources */,
 				821DE886AB64301064E096B6 /* VideoCaptureProcessor.swift in Sources */,
 				1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */,
+				198C937129359F0C00CD0FAA /* KeyItemModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

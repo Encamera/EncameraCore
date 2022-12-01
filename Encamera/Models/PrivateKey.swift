@@ -81,6 +81,13 @@ struct PrivateKey: Codable {
     
 }
 
+extension PrivateKey: Identifiable {
+    
+    var id: Array<UInt8>  {
+        keyBytes
+    }
+}
+
 extension PrivateKey: Equatable {
     
     static func ==(lhs: PrivateKey, rhs: PrivateKey) -> Bool {

@@ -82,6 +82,24 @@ extension DiskFileAccess: FileReader {
         }
     }
     
+    func loadLeadingThumbnail() async throws -> UIImage? {
+        let media: [EncryptedMedia] = await enumerateMedia()
+        guard let firstMedia = media.first else {
+            return nil
+        }
+        do {
+            let cleartextPreview = try await loadMediaPreview(for: firstMedia)
+            guard let thumbnail = UIImage(data: cleartextPreview.thumbnailMedia.source) else {
+                return nil
+            }
+            return thumbnail
+            
+        } catch {
+            debugPrint("Error loading media preview")
+            return nil
+        }
+    }
+    
     func loadMediaInMemory<T: MediaDescribing>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> {
         
         if let encrypted = media as? EncryptedMedia {

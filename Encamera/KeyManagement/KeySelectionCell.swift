@@ -11,10 +11,12 @@ class KeySelectionCellViewModel: ObservableObject {
     
     var isActive: Bool
     var key: PrivateKey
+    var imageCount: Int
     
-    init(key: PrivateKey, isActive: Bool) {
+    init(key: PrivateKey, isActive: Bool, imageCount: Int) {
         self.isActive = isActive
         self.key = key
+        self.imageCount = imageCount
     }
 }
 
@@ -24,30 +26,38 @@ struct KeySelectionCell: View {
     
     var body: some View {
         HStack {
-            VStack(alignment: .leading) {
-                Text(viewModel.key.name)
-                    .fontType(.medium)
-                Text(DateUtils.dateOnlyString(from: viewModel.key.creationDate))
+            HStack {
+                Text("\(viewModel.imageCount)")
                     .fontType(.small)
-            }
-            Spacer()
+                    .frame(width: 30)
+                VStack(alignment: .leading) {
+                    Text(viewModel.key.name)
+                        .fontType(.medium)
+                    if viewModel.isActive {
+                        Text("Active")
+                            .foregroundColor(.activeKey)
+                            .fontType(.small)
+                    }
+                    Text(DateUtils.dateOnlyString(from: viewModel.key.creationDate))
+                        .fontType(.small)
+                }
+                Spacer()
+            }.padding()
             if viewModel.isActive {
                 HStack {
-                    Text("Active")
                     Image(systemName: "key.fill")
-                }.foregroundColor(.green)
+                }
+                .foregroundColor(.activeKey)
                 
             } else {
                 Image(systemName: "key")
             }
-        }
-        .fontType(.small)
-        .padding()
+        }.fontType(.small)
     }
 }
 
 struct KeySelectionCell_Previews: PreviewProvider {
     static var previews: some View {
-        KeySelectionCell(viewModel: .init(key: PrivateKey(name: "secrets", keyBytes: [], creationDate: Date()), isActive: true))
+        KeySelectionCell(viewModel: .init(key: PrivateKey(name: "secrets", keyBytes: [], creationDate: Date()), isActive: true, imageCount: 32))
     }
 }
