@@ -238,21 +238,20 @@ struct CameraView: View {
     
     private var keySelectionList: some View {
         NavigationLink(isActive: $cameraModel.showingKeySelection) {
-            KeySelectionGrid(viewModel: .init(keyManager: cameraModel.keyManager))
-//            KeySelectionList(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager))
+            KeySelectionGrid(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager))
                 .toolbar {
                     NavigationLink {
-
+                        
                         SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, fileAccess: cameraModel.fileAccess))
                     } label: {
                         Image(systemName: "gear")
                     }
                     .isDetailLink(false)
-                    }
+                }
         } label: {
             EmptyView()
         }.isDetailLink(false)
-
+        
     }
     
     private var mainCamera: some View {

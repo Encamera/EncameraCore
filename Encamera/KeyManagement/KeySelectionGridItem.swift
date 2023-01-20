@@ -11,23 +11,17 @@ import Combine
 actor KeyInfoFetcher {
     
 }
-
 class KeySelectionGridItemModel: ObservableObject {
-    var imageCount: Int?
-    @Published var leadingImage: UIImage?
-    var keyName: String
-    var isActiveKey: Bool = false
+    
+    var fileReader: FileReader = DiskFileAccess()
     var storageModel: DataStorageModel?
     var storageType: StorageType? {
         storageModel?.storageType
     }
-    var fileReader: FileReader
+    
+    @Published var countOfMedia: Int = 0
 
-    init(key: PrivateKey, isActiveKey: Bool) {
-        keyName = key.name
-        storageModel = DataStorageUserDefaultsSetting().storageModelFor(keyName: key.name)
-        fileReader = DiskFileAccess()
-        self.isActiveKey = isActiveKey
+    init(key: PrivateKey) {
         Task {
             await fileReader.configure(
                 with: key,
@@ -35,37 +29,38 @@ class KeySelectionGridItemModel: ObservableObject {
             )
             
         }
+        storageModel = DataStorageUserDefaultsSetting().storageModelFor(keyName: key.name)
+        self.countOfMedia = storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension]) ?? 0
+
     }
+}
+struct KeySelectionGridItem: View {
     
-    init(imageCount: Int, leadingImage: UIImage? = nil, keyName: String, storageType: StorageType? = .icloud, fileReader: FileReader) {
-        self.imageCount = imageCount
-        self.leadingImage = leadingImage
-        self.keyName = keyName
-        self.storageModel = storageType?.modelForType.init(keyName: keyName)
-        self.fileReader = fileReader
+    @ObservedObject var viewModel: KeySelectionGridItemModel
+    @State var imageCount: Int?
+    @State var leadingImage: UIImage?
+    var keyName: String
+    var isActiveKey: Bool = false
+
+    init(key: PrivateKey, isActiveKey: Bool) {
+        keyName = key.name
+        self.viewModel = KeySelectionGridItemModel(key: key)
+        self.isActiveKey = isActiveKey
     }
     
     func load() {
         Task {
-            self.imageCount = storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension])
-            let thumb = try await fileReader.loadLeadingThumbnail()
+            let thumb = try await viewModel.fileReader.loadLeadingThumbnail()
             await MainActor.run {
+                self.imageCount = viewModel.countOfMedia
                 self.leadingImage = thumb
             }
         }
     }
     
-}
-
-struct KeySelectionGridItem: View {
-    
-    @StateObject var viewModel: KeySelectionGridItemModel
-    
-    
-    
     var body: some View {
             VStack {
-                if viewModel.isActiveKey {
+                if isActiveKey {
                     Text("Active")
                         .fontType(.extraSmall)
                         .padding(4)
@@ -76,7 +71,7 @@ struct KeySelectionGridItem: View {
                 }
                 
                 HStack {
-                    Text(viewModel.keyName)
+                    Text(keyName)
                         .fontType(.mediumSmall)
                         .frame(maxWidth: .infinity)
                     
@@ -85,7 +80,7 @@ struct KeySelectionGridItem: View {
                 }.padding()
                 Spacer()
                 HStack {
-                    if let imageCount = viewModel.imageCount {
+                    if let imageCount = imageCount {
                         Text("\(imageCount)")
                     }
                     Spacer()
@@ -100,7 +95,7 @@ struct KeySelectionGridItem: View {
             }
             .background {
                 Group {
-                    if let leadingImage = viewModel.leadingImage {
+                    if let leadingImage = leadingImage {
                         Image(uiImage: leadingImage)
                             .resizable()
                             .aspectRatio(contentMode:.fill)
@@ -116,7 +111,7 @@ struct KeySelectionGridItem: View {
             .clipped()
 
         .task {
-            viewModel.load()
+            load()
         }
         
     }
@@ -126,25 +121,37 @@ class KeySelectionGridViewModel: ObservableObject {
     @Published var keys: [PrivateKey] = []
     @Published var activeKey: PrivateKey?
     var keyManager: KeyManager
-    
+    @Published var isShowingAddKeyView: Bool = false
+    @Published var isShowingAddExistingKeyView: Bool = false
+    var purchaseManager: PurchasedPermissionManaging
+
     private var cancellables = Set<AnyCancellable>()
 
-    
-    init(keyManager: KeyManager) {
-        
+    init(keyManager: KeyManager, purchaseManager: PurchasedPermissionManaging) {
+        self.purchaseManager = purchaseManager
+
         self.keyManager = keyManager
         keyManager.keyPublisher.receive(on: DispatchQueue.main).sink { key in
-            self.loadKeys(activeKey: key)
+            self.loadKeys()
         }.store(in: &cancellables)
-        loadKeys(activeKey: keyManager.currentKey)
+        loadKeys()
     }
     
-    private func loadKeys(activeKey: PrivateKey?) {
-        if let storedKeys = try? keyManager.storedKeys().filter({ keyManager.currentKey != $0 }) {
-            self.keys = storedKeys
+    func loadKeys() {
+        self.keys = (try? keyManager.storedKeys().filter({ keyManager.currentKey != $0 })) ?? []
+        if let activeKey = keyManager.currentKey {
+            self.activeKey = keyManager.currentKey
+            self.keys.insert(activeKey, at: 0)
         }
-        self.activeKey = activeKey
-
+    }
+    @MainActor
+    var shouldShowPurchaseScreenForKeys: Bool {
+        
+        if self.keys.count == 0 {
+            return false
+        }
+        
+        return purchaseManager.isAllowedAccess(feature: .createKey(count: .infinity)) == false
     }
     
 }
@@ -153,6 +160,9 @@ struct KeySelectionGrid: View {
     
     
     @StateObject var viewModel: KeySelectionGridViewModel
+    
+    
+    
     var body: some View {
         
         GeometryReader { geo in
@@ -167,31 +177,62 @@ struct KeySelectionGrid: View {
                 LazyVGrid(columns: columns, spacing: spacing) {
                     Group {
                         Group {
-                            Text("New Key")
-                            Text("Backup")
+                            VStack(spacing: spacing) {
+                                
+                                let createNewKeyActive = Binding<Bool> {
+                                    viewModel.isShowingAddKeyView
+                                } set: { newValue in
+                                    viewModel.isShowingAddKeyView = newValue
+                                }
+                                NavigationLink(isActive: createNewKeyActive) {
+                                    if viewModel.shouldShowPurchaseScreenForKeys {
+                                                            ProductStoreView(showDismissButton: false)
+                                                        } else {
+                                                            KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
+                                                        }
+                                } label: {
+                                    Text("Create New Key")
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .background(Color.foregroundSecondary)
+                                }
+                                let addExistingKeyActive = Binding<Bool> {
+                                    viewModel.isShowingAddExistingKeyView
+                                } set: { newValue in
+                                    viewModel.isShowingAddExistingKeyView = newValue
+                                }
+                                NavigationLink(isActive: addExistingKeyActive) {
+                                    if viewModel.shouldShowPurchaseScreenForKeys {
+                                        ProductStoreView(showDismissButton: false)
+                                    } else {
+                                        KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, dismiss: addExistingKeyActive))
+                                    }
+                                } label: {
+                                    Text("Add Existing Key")
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .background(Color.foregroundSecondary)
+                                }
+
+                            }.fontType(.small, on: .background, weight: .bold)
+
                         }
-                        if let activeKey = viewModel.activeKey {
-                            NavigationLink {
-                                KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: activeKey))
-                            } label: {
-                                KeySelectionGridItem(viewModel: .init(key: activeKey, isActiveKey: true))
-                            }
-                        }
-                        ForEach(viewModel.keys) { key in
+                        
+                        ForEach(viewModel.keys, id: \.id) { key in
                             NavigationLink {
                                 KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
                             } label: {
-                                KeySelectionGridItem(viewModel: .init(key: key, isActiveKey: false))
+                                KeySelectionGridItem(key: key, isActiveKey: key == viewModel.activeKey)
                             }
-                            
                         }
                     }.frame(height: side)
                 }
             }
         }
+        .onAppear {
+            viewModel.loadKeys()
+        }
+        .navigationBarTitle("My Keys")
     }
     
-//    private func gridItemFor(key: PrivateKey) -> some View {
 }
 
 struct KeySelectionGridItem_Previews: PreviewProvider {
@@ -203,7 +244,7 @@ struct KeySelectionGridItem_Previews: PreviewProvider {
                                                          DemoPrivateKey.dummyKey(name: "mice"),
                                                          DemoPrivateKey.dummyKey(name: "cows"),
                                                          DemoPrivateKey.dummyKey(name: "very very very very very very long name that could overflow"),
-                                            ])))
+                                                                           ]), purchaseManager: AppPurchasedPermissionUtils()))
 
     }
 }

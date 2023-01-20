@@ -110,13 +110,16 @@ final class CameraModel: ObservableObject {
             .compactMap({ Double($0)})
             .receive(on: DispatchQueue.main)
             .delay(for: .seconds(2), scheduler: RunLoop.main)
-            .sink { value in
+            .sink { [weak self] value in
+                guard let `self` = self else {
+                    return
+                }
                 withAnimation {
                     switch value {
                     case AppConstants.numberOfPhotosBeforeInitialTutorial:
                         self.showTookFirstPhotoSheet = true
                     case AppConstants.maxPhotoCountBeforePurchase:
-                        self.showExplanationForUpgrade = true
+                        self.showExplanationForUpgrade = !self.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: AppConstants.maxPhotoCountBeforePurchase))
                     default:
                         self.showTookFirstPhotoSheet = false
                         self.showExplanationForUpgrade = false
