@@ -121,15 +121,16 @@ class KeySelectionGridViewModel: ObservableObject {
     @Published var keys: [PrivateKey] = []
     @Published var activeKey: PrivateKey?
     var keyManager: KeyManager
+    var fileManager: FileAccess
     @Published var isShowingAddKeyView: Bool = false
     @Published var isShowingAddExistingKeyView: Bool = false
     var purchaseManager: PurchasedPermissionManaging
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(keyManager: KeyManager, purchaseManager: PurchasedPermissionManaging) {
+    init(keyManager: KeyManager, purchaseManager: PurchasedPermissionManaging, fileManager: FileAccess) {
         self.purchaseManager = purchaseManager
-
+        self.fileManager = fileManager
         self.keyManager = keyManager
         keyManager.keyPublisher.receive(on: DispatchQueue.main).sink { key in
             self.loadKeys()
@@ -218,7 +219,7 @@ struct KeySelectionGrid: View {
                         
                         ForEach(viewModel.keys, id: \.id) { key in
                             NavigationLink {
-                                KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
+                                KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key, fileManager: viewModel.fileManager))
                             } label: {
                                 KeySelectionGridItem(key: key, isActiveKey: key == viewModel.activeKey)
                             }
@@ -244,7 +245,7 @@ struct KeySelectionGridItem_Previews: PreviewProvider {
                                                          DemoPrivateKey.dummyKey(name: "mice"),
                                                          DemoPrivateKey.dummyKey(name: "cows"),
                                                          DemoPrivateKey.dummyKey(name: "very very very very very very long name that could overflow"),
-                                                                           ]), purchaseManager: AppPurchasedPermissionUtils()))
+                                                                           ]), purchaseManager: AppPurchasedPermissionUtils(), fileManager: DemoFileEnumerator()))
 
     }
 }

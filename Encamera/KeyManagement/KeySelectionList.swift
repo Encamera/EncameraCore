@@ -31,13 +31,14 @@ class KeySelectionListViewModel: ObservableObject {
     @Published var activeKey: KeyItemModel?
     @Published var isShowingAddKeyView: Bool = false
     @Published var isShowingAddExistingKeyView: Bool = false
+    var fileManager: FileAccess
     private var cancellables = Set<AnyCancellable>()
     
     
-    init(keyManager: KeyManager, purchaseManager: PurchasedPermissionManaging) {
+    init(keyManager: KeyManager, purchaseManager: PurchasedPermissionManaging, fileManager: FileAccess) {
         self.keyManager = keyManager
         self.purchaseManager = purchaseManager
-
+        self.fileManager = fileManager
         keyManager.keyPublisher.receive(on: DispatchQueue.main).sink { _ in
             Task {
                 await self.loadKeys()
@@ -155,7 +156,7 @@ struct KeySelectionList: View {
     func keyCell(model: KeySelectionListViewModel.KeyItemModel, isActive: Bool) -> some View {
         let key = model.key
         return NavigationLink {
-            KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
+            KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key, fileManager: viewModel.fileManager))
         } label: {
             HStack {
                 HStack {
@@ -205,7 +206,7 @@ struct KeySelectionList_Previews: PreviewProvider {
     }()
     
     static var previews: some View {
-        KeySelectionList(viewModel: .init(keyManager: keyManager, purchaseManager: AppPurchasedPermissionUtils()))
+        KeySelectionList(viewModel: .init(keyManager: keyManager, purchaseManager: AppPurchasedPermissionUtils(), fileManager: DemoFileEnumerator()))
             .preferredColorScheme(.dark)
             .previewDevice("iPhone 8")
     }

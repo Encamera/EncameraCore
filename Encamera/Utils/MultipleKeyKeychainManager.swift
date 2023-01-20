@@ -145,7 +145,6 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     }
     
     func deleteKey(_ key: PrivateKey) throws {
-        
         try checkAuthenticated()
         let key = try getKey(by: key.name)
         let query = key.keychainQueryDictForKeychain

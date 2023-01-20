@@ -238,7 +238,7 @@ struct CameraView: View {
     
     private var keySelectionList: some View {
         NavigationLink(isActive: $cameraModel.showingKeySelection) {
-            KeySelectionGrid(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager))
+            KeySelectionGrid(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager, fileManager: cameraModel.fileAccess))
                 .toolbar {
                     NavigationLink {
                         
