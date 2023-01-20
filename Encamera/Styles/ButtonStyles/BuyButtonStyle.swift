@@ -22,7 +22,6 @@ struct BuyButtonStyle: ButtonStyle {
 
         return configuration.label
             .fontType(.small, on: .elevated)
-            .frame(width: 50)
             .padding(10)
             .background(bgColor)
             .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))

@@ -54,17 +54,18 @@ struct PurchaseUpgradeOptionsListView: View {
          */
         VStack(spacing: 25) {
             if purchasedProducts.isEmpty {
+                Text("Subscription")
+                    .fontType(.mediumSmall)
+                ForEach(subscriptions) { subscription in
+                    subscriptionOptionCell(for: subscription)
+                }
                 
                 Text("One-Time Purchase")
                     .fontType(.mediumSmall)
                 ForEach(products) { product in
                     productCell(for: product)
                 }
-                Text("Subscription")
-                    .fontType(.mediumSmall)
-                ForEach(subscriptions) { subscription in
-                    subscriptionOptionCell(for: subscription)
-                }
+                
             } else {
                 ForEach(purchasedProducts) { product in
                     purchasedProductCell(for: product)

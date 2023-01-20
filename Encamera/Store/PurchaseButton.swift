@@ -13,25 +13,25 @@ struct PurchaseButton: View {
     var isPurchased: Bool
     var action: () -> Void
     var body: some View {
-        
-        Button {
-            if isPurchased == false {
-                action()
+        HStack {
+            Spacer()
+            
+            Button {
+                if isPurchased == false {
+                    action()
+                }
+            } label: {
+                if isPurchased {
+                    Text(Image(systemName: "checkmark"))
+                        .bold()
+                        .foregroundColor(.foregroundSecondary)
+                } else {
+                    Text(priceText)
+                }
             }
-        } label: {
-            if isPurchased {
-                Text(Image(systemName: "checkmark"))
-                    .bold()
-                    .foregroundColor(.foregroundSecondary)
-            } else {
-
-                Text(priceText)
-                    
-                    .frame(width: 100)
-                    
-
-            }
-        }.buttonStyle(BuyButtonStyle(isPurchased: isPurchased))
+            .buttonStyle(BuyButtonStyle(isPurchased: isPurchased))
+        }
+        .frame(maxWidth: 120)
     }
 }
 
