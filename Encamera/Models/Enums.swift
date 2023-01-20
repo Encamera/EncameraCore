@@ -38,8 +38,10 @@ enum MediaType: Int, CaseIterable, Codable {
     }
     
     private static func typeFromURL(_ url: URL) -> MediaType {
-        let fileExtension = url.pathExtension
-        guard let type = self.allCases.filter({$0.fileExtension == fileExtension}).first else {
+        
+        guard let fileExtension = url.lastPathComponent.split(separator: ".")[safe: 1],
+              let type = self.allCases.filter({$0.fileExtension == fileExtension }).first
+        else {
             return .unknown
         }
         return type

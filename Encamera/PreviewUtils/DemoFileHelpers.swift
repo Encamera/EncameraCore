@@ -16,22 +16,10 @@ enum DemoError: Error {
 
 class DemoFileEnumerator: FileAccess {
     required init() {
-        guard let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg"),
-              let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg") else {
-            return
+        
+        Task {
+            mediaList = await enumerateMedia()
         }
-        
-        mediaList = (0..<5).map { val in
-            EncryptedMedia(source: url, mediaType: .photo, id: "\(NSUUID().uuidString)")
-        }
-        
-        
-        
-        mediaList += (6..<10).map { val in
-            EncryptedMedia(source: dog, mediaType: .photo, id: "\(NSUUID().uuidString)")
-        }
-        
-        mediaList.shuffle()
     }
     
     func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
@@ -85,7 +73,7 @@ class DemoFileEnumerator: FileAccess {
         }
         let cleartext = CleartextMedia<Data>(source: data)
         var preview = PreviewModel(thumbnailMedia: cleartext)
-        preview.videoDuration = "0:34"
+//        preview.videoDuration = "0:34"
         return preview
 //        let source = media.source as! URL
 //        let data = try! Data(contentsOf: source)
@@ -106,20 +94,14 @@ class DemoFileEnumerator: FileAccess {
     
     
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
-         
-        let url = Bundle(for: type(of: self)).url(forResource: "image", withExtension: "jpg")!
-        
-        var retVal = (0..<5).map { val in
-            T(source: url, mediaType: .photo, id: "\(val)")
+        let retVal: [T?] = (1...6).map { val in
+            if let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG") {
+                return T(source: url, mediaType: .photo, id: "\(val)")
+            }
+            return nil
         }
-        
-        let dog = Bundle(for: type(of: self)).url(forResource: "dog", withExtension: "jpg")!
-        
-        retVal += (0..<5).map { val in
-            T(source: dog, mediaType: .photo, id: "\(val)")
-        }
-        
-        return retVal.shuffled()
+            
+        return retVal.compactMap({$0}).shuffled()
     }
     func delete(media: EncryptedMedia) async throws {
         
@@ -325,8 +307,8 @@ class DemoPrivateKey {
         let hash: Array<UInt8> = [36,97,114,103,111,110,50,105,100,36,118,61,49,57,36,109,61,54,53,53,51,54,44,116,61,50,44,112,61,49,36,76,122,73,48,78,103,67,57,90,69,89,76,81,80,70,76,85,49,69,80,119,65,36,83,66,66,49,65,85,86,74,55,82,85,90,116,79,67,111,104,82,100,89,67,71,57,114,90,119,109,81,47,118,74,77,121,48,85,71,108,69,103,66,122,79,77]
         let dateComponents = DateComponents(timeZone: TimeZone(identifier: "Europe/Berlin"), year: 2022, month: 2, day: 9, hour: 5, minute: 0, second: 0)
         let date = Calendar(identifier: .gregorian).date(from: dateComponents)
-        print("date", date!)
-        return PrivateKey(name: "test", keyBytes: hash, creationDate: date!)
+        
+        return PrivateKey(name: "test", keyBytes: hash, creationDate: date ?? Date())
     }
 }
 

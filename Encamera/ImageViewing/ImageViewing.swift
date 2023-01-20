@@ -63,6 +63,7 @@ extension MediaViewingViewModel {
 class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
     
     @Published var decryptedFileRef: CleartextMedia<Data>?
+    @Published var loadingProgress: Double = 0.0
     var sourceMedia: SourceType
     var fileAccess: FileAccess?
     var error: MediaViewingError?
@@ -76,7 +77,7 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
         Task {
             do {
                 let result = try await fileAccess!.loadMediaInMemory(media: sourceMedia) { progress in
-                    
+                    self.loadingProgress = progress
                 }
                 await MainActor.run {
                     self.decryptedFileRef = result
@@ -137,8 +138,9 @@ struct ImageViewing_Previews: PreviewProvider {
     
     static var previews: some View {
         NavigationView {
-            let url = Bundle.main.url(forResource: "image", withExtension: "jpg")!
+            let url = Bundle.main.url(forResource: "1", withExtension: "JPG")!
             ImageViewing(currentScale: .constant(1.0), finalOffset: .constant(.zero), viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()), externalGesture: DragGesture())
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

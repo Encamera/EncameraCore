@@ -14,6 +14,9 @@ struct CleartextMedia<T: MediaSourcing>: MediaDescribing, Codable {
     var source: T
     var mediaType: MediaType = .unknown
     var id: String
+    var needsDownload: Bool {
+        false
+    }
     
     init(source: T, mediaType: MediaType, id: String) {
         self.init(source: source)

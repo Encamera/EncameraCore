@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 protocol DataStorageModel {
     var baseURL: URL { get }
@@ -15,7 +16,11 @@ protocol DataStorageModel {
     
     init(keyName: KeyName)
     func initializeDirectories() throws
-    
+}
+
+enum DataStorageModelError: Error {
+    case noURLForiCloudDownload
+    case couldNotCreateMedia
 }
 
 extension DataStorageModel {
@@ -68,25 +73,21 @@ extension DataStorageModel {
                 guard components.count > 1 else {
                     return false
                 }
-                let fileExtension = String(components.last ?? "")
+                
+                //Account for .icloud final extension, just take the "middle" extension
+                guard let fileExtension = components[safe: 1] else { return false }
                 return fileExtensionFilter.contains(where: {$0 == fileExtension})
             })
         }
         return mapped
     }
-    
+    //TODO: This should take a MediaType, not a String. It should search for .icloud as well
     func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
         return enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension).count
     }
     
-    func triggerDownload() {
-        enumeratorForStorageDirectory(fileExtensionFilter: ["icloud"]).forEach({
-            if $0.pathExtension == "icloud" {
-                try? FileManager.default.startDownloadingUbiquitousItem(at: $0)
-            }
-        })
-    }
-    
+   
+        
     func deleteAllFiles() throws {
         for url in enumeratorForStorageDirectory() {
             do {

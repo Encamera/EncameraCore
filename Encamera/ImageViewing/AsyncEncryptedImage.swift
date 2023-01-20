@@ -17,6 +17,10 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
         @Published var cleartextMedia: PreviewModel?
         @Published var error: Error?
         
+        var needsDownload: Bool {
+            targetMedia.needsDownload
+        }
+        
         init(targetMedia: T, loader: FileReader) {
             self.targetMedia = targetMedia
             self.loader = loader
@@ -46,6 +50,18 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
+                }
+                if viewModel.needsDownload {
+                    ZStack(alignment: .bottomTrailing) {
+                        Rectangle().foregroundColor(.clear)
+                        Image(systemName: "icloud.and.arrow.down")
+                            .foregroundColor(.white)
+                    }
+                    .padding(5)
+                    .onTapGesture {
+                        
+                    }
+                        
                 }
                 
                 if let duration = viewModel.cleartextMedia?.videoDuration {
@@ -93,7 +109,15 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
 struct AsyncImage_Previews: PreviewProvider {
     
     static var previews: some View {
-        
-        GalleryGridView(viewModel: GalleryGridViewModel(privateKey: DemoPrivateKey.dummyKey()))
+        NavigationView {
+
+            GalleryGridView(viewModel: GalleryGridViewModel(
+
+                privateKey: DemoPrivateKey.dummyKey(),
+                blurImages: false,
+                downloadPendingMediaCount: 20,
+                fileAccess: DemoFileEnumerator()
+            ))
+        }
     }
 }

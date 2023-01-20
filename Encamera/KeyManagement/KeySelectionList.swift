@@ -50,7 +50,9 @@ class KeySelectionListViewModel: ObservableObject {
             let storage = DataStorageUserDefaultsSetting()
             keys = try keyManager.storedKeys().map { key in
                 let model = storage.storageModelFor(keyName: key.name)
-                let count = model?.countOfFiles() ?? 0
+                let count = model?.countOfFiles(matchingFileExtension: [
+                    MediaType.photo.fileExtension,
+                ]) ?? 0
                 return KeyItemModel(key: key, imageCount: count)
             }
             if let currentKey = keyManager.currentKey {

@@ -23,6 +23,13 @@
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
 		198C936F2935990000CD0FAA /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198C936E2935990000CD0FAA /* KeySelectionGridItem.swift */; };
 		198C937129359F0C00CD0FAA /* KeyItemModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198C937029359F0C00CD0FAA /* KeyItemModel.swift */; };
+		19D1767F2979B5DE00C6D145 /* 2.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19D176792979B5DE00C6D145 /* 2.JPG */; };
+		19D176802979B5DE00C6D145 /* 5.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19D1767A2979B5DE00C6D145 /* 5.JPG */; };
+		19D176812979B5DE00C6D145 /* 1.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19D1767B2979B5DE00C6D145 /* 1.JPG */; };
+		19D176822979B5DE00C6D145 /* 3.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19D1767C2979B5DE00C6D145 /* 3.JPG */; };
+		19D176832979B5DE00C6D145 /* 4.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19D1767D2979B5DE00C6D145 /* 4.JPG */; };
+		19D176842979B5DE00C6D145 /* 6.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19D1767E2979B5DE00C6D145 /* 6.JPG */; };
+		19D17686297A860800C6D145 /* Collections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D17685297A860800C6D145 /* Collections.swift */; };
 		19D31C3F292EBC9E006BD218 /* PurchaseOptionViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D31C3E292EBC9E006BD218 /* PurchaseOptionViewModifier.swift */; };
 		1BE199F100EB51103E764B50 /* UserDefaultUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C29C8FE7F7500229D3FF293 /* UserDefaultUtils.swift */; };
 		1C4E1CB549997C0CCA482AEA /* iCloudDirectoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408A2CB2373DC48BE35F135D /* iCloudDirectoryModel.swift */; };
@@ -194,6 +201,13 @@
 		16FE928B797E2D5DF38F6F0E /* CMTimeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMTimeUtils.swift; sourceTree = "<group>"; };
 		198C936E2935990000CD0FAA /* KeySelectionGridItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionGridItem.swift; sourceTree = "<group>"; };
 		198C937029359F0C00CD0FAA /* KeyItemModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyItemModel.swift; sourceTree = "<group>"; };
+		19D176792979B5DE00C6D145 /* 2.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 2.JPG; sourceTree = "<group>"; };
+		19D1767A2979B5DE00C6D145 /* 5.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 5.JPG; sourceTree = "<group>"; };
+		19D1767B2979B5DE00C6D145 /* 1.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.JPG; sourceTree = "<group>"; };
+		19D1767C2979B5DE00C6D145 /* 3.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 3.JPG; sourceTree = "<group>"; };
+		19D1767D2979B5DE00C6D145 /* 4.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 4.JPG; sourceTree = "<group>"; };
+		19D1767E2979B5DE00C6D145 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
+		19D17685297A860800C6D145 /* Collections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Collections.swift; sourceTree = "<group>"; };
 		19D31C3E292EBC9E006BD218 /* PurchaseOptionViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseOptionViewModifier.swift; sourceTree = "<group>"; };
 		1AD23C6426D4D73F9E8994C9 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		1D16E0EA60C4E61C60609E92 /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
@@ -282,7 +296,7 @@
 		A5E2FA1268C0C6B4843E6E57 /* KeyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyEntry.swift; sourceTree = "<group>"; };
 		A71427AB575B7040A923D05C /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
 		AA1408F1B24F65F9206EFEC2 /* FirstPhotoTakenTutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstPhotoTakenTutorial.swift; sourceTree = "<group>"; };
-		AD8594B39C00DCD662DD5B08 /* Encamera.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Encamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD8594B39C00DCD662DD5B08 /* Encamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Encamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE667C90AC53488E5C411BEE /* AsyncVideoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncVideoCaptureProcessor.swift; sourceTree = "<group>"; };
 		AF3D409D97BC49AEDA21BB6B /* ChunkedFilesProcessing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChunkedFilesProcessing.swift; sourceTree = "<group>"; };
 		AF45077C2F581A4AAF9AA146 /* PurchaseUpgradeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseUpgradeView.swift; sourceTree = "<group>"; };
@@ -535,6 +549,12 @@
 		5B883A2DE9C594C331EA43DC /* Preview Content */ = {
 			isa = PBXGroup;
 			children = (
+				19D1767B2979B5DE00C6D145 /* 1.JPG */,
+				19D176792979B5DE00C6D145 /* 2.JPG */,
+				19D1767C2979B5DE00C6D145 /* 3.JPG */,
+				19D1767D2979B5DE00C6D145 /* 4.JPG */,
+				19D1767A2979B5DE00C6D145 /* 5.JPG */,
+				19D1767E2979B5DE00C6D145 /* 6.JPG */,
 				0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
@@ -632,6 +652,7 @@
 				7995FDA3D610A1AFB4937EC6 /* SettingsManager.swift */,
 				2C29C8FE7F7500229D3FF293 /* UserDefaultUtils.swift */,
 				4F6562565D7C4998CC1AD341 /* IO */,
+				19D17685297A860800C6D145 /* Collections.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -876,20 +897,26 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				19D176842979B5DE00C6D145 /* 6.JPG in Resources */,
 				7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */,
 				F0DF6BB6EECF8FA580D3FE74 /* EncameraLocal.storekit in Resources */,
 				94B2E1C745E8B2F89B9A9410 /* Lato-Black.ttf in Resources */,
+				19D176822979B5DE00C6D145 /* 3.JPG in Resources */,
 				5368A128262A326183BCCED6 /* Lato-BlackItalic.ttf in Resources */,
 				0D4D676792A0200D6CC317D0 /* Lato-Bold.ttf in Resources */,
 				3701356CE656135AB9B90340 /* Lato-BoldItalic.ttf in Resources */,
 				8D986A9119D2BFEC1DFCA286 /* Lato-Italic.ttf in Resources */,
 				5987B7C8B055B2632BEC7782 /* Lato-Light.ttf in Resources */,
+				19D1767F2979B5DE00C6D145 /* 2.JPG in Resources */,
+				19D176802979B5DE00C6D145 /* 5.JPG in Resources */,
 				1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */,
 				2AC7523CF9F950C533C63CB8 /* Lato-Regular.ttf in Resources */,
 				26168F98ECFE26D3D975B7C7 /* Lato-Thin.ttf in Resources */,
 				95D7968C302ABFED7C72B67B /* Lato-ThinItalic.ttf in Resources */,
 				BD0376BEC181135B76461C9E /* LaunchScreen.storyboard in Resources */,
+				19D176812979B5DE00C6D145 /* 1.JPG in Resources */,
 				1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */,
+				19D176832979B5DE00C6D145 /* 4.JPG in Resources */,
 				4D6890B6437216E4444DE608 /* StoreKitTestCertificate.cer in Resources */,
 				B94BEC77BD5E38D9DBD9EDA5 /* file-icon.png in Resources */,
 			);
@@ -1032,6 +1059,7 @@
 				ED38F0906954ABE98F9A73FF /* ServiceSubscription.swift in Sources */,
 				849748E50FE439D8287AA897 /* SettingsManager.swift in Sources */,
 				864AABB66247E3165F272A54 /* SettingsView.swift in Sources */,
+				19D17686297A860800C6D145 /* Collections.swift in Sources */,
 				12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */,
 				E9C36D15F15ACB3E66847F49 /* StorageSettingView.swift in Sources */,
 				A9FDEF968B61A782A81DA127 /* StorageType.swift in Sources */,
@@ -1172,6 +1200,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = ForegroundPrimaryColor;
 				CODE_SIGN_ENTITLEMENTS = ./Encamera/Encamera.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_ASSET_PATHS = "Encamera/Preview\\ Content/Preview\\ Assets.xcassets Encamera/Preview\\ Content";
 				DEVELOPMENT_TEAM = KGJCC745S9;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1200,6 +1229,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = ForegroundPrimaryColor;
 				CODE_SIGN_ENTITLEMENTS = ./Encamera/Encamera.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_ASSET_PATHS = "Encamera/Preview\\ Content/Preview\\ Assets.xcassets Encamera/Preview\\ Content";
 				DEVELOPMENT_TEAM = KGJCC745S9;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",

@@ -36,12 +36,19 @@ actor DiskFileAccess: FileEnumerator {
         try? self.directoryModel?.initializeDirectories()
     }
     
+    
     func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
         guard let directoryModel = directoryModel else {
             return []
         }
         let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
-        let filter = FeatureToggle.isEnabled(feature: .enableVideo) ? [MediaType.photo.fileExtension, MediaType.video.fileExtension] : [MediaType.photo.fileExtension]
+        
+        var filter = [MediaType.photo.fileExtension]
+        
+        if FeatureToggle.isEnabled(feature: .enableVideo) {
+            filter += [MediaType.video.fileExtension]
+        }
+        
         let urls: [URL] = directoryModel.enumeratorForStorageDirectory(
             resourceKeys: resourceKeys,
             fileExtensionFilter: filter
@@ -87,6 +94,7 @@ extension DiskFileAccess: FileReader {
         guard let firstMedia = media.first else {
             return nil
         }
+        
         do {
             let cleartextPreview = try await loadMediaPreview(for: firstMedia)
             guard let thumbnail = UIImage(data: cleartextPreview.thumbnailMedia.source) else {
@@ -102,7 +110,12 @@ extension DiskFileAccess: FileReader {
     
     func loadMediaInMemory<T: MediaDescribing>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> {
         
-        if let encrypted = media as? EncryptedMedia {
+        if var encrypted = media as? EncryptedMedia {
+            if encrypted.needsDownload, let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
+                encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
+                    progress(prog)
+                }
+            }
             return try await decryptMedia(encrypted: encrypted, progress: progress)
         } else {
             fatalError()
@@ -110,7 +123,12 @@ extension DiskFileAccess: FileReader {
     }
     
     func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<URL> {
-        if let encrypted = media as? EncryptedMedia {
+        if var encrypted = media as? EncryptedMedia {
+            if encrypted.needsDownload, let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
+                encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
+                    progress(prog)
+                }
+            }
             return try await decryptMedia(encrypted: encrypted, progress: progress)
         } else if let cleartext = media as? CleartextMedia<URL> {
             return cleartext

@@ -203,7 +203,7 @@ struct EncameraApp: App {
         case .photo:
             NavigationView {
                 GalleryHorizontalScrollView(
-                    viewModel: .init(
+                    viewModel: GalleryHorizontalScrollViewModel.init(
                         media: [media],
                         selectedMedia: media,
                         fileAccess: fileAccess,

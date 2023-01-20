@@ -14,6 +14,7 @@ class GalleryGridViewModel: ObservableObject {
     
     var privateKey: PrivateKey
     var purchasedPermissions: PurchasedPermissionManaging
+    @MainActor
     @Published var media: [EncryptedMedia] = []
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
@@ -51,7 +52,11 @@ class GalleryGridViewModel: ObservableObject {
     
     func startiCloudDownload() {
         let directory = storageSetting.storageModelFor(keyName: privateKey.name)
-        directory?.triggerDownload()
+        if let iCloudStorageDirectory = directory as? iCloudStorageModel {
+            iCloudStorageDirectory.triggerDownloadOfAllFilesFromiCloud()
+        } else {
+            return
+        }
         downloadInProgress = true
         Timer.publish(every: 1, on: .main, in: .default)
             .autoconnect()
@@ -65,8 +70,7 @@ class GalleryGridViewModel: ObservableObject {
     }
     
     func enumerateiCloudUndownloaded() {
-        let directory = storageSetting.storageModelFor(keyName: privateKey.name)
-        downloadPendingMediaCount = directory?.enumeratorForStorageDirectory(fileExtensionFilter: ["icloud"]).count ?? 0
+        downloadPendingMediaCount = media.filter({$0.needsDownload == true}).count
         if downloadPendingMediaCount == 0 {
             downloadInProgress = false
             cancellables.forEach({$0.cancel()})
@@ -138,8 +142,6 @@ struct GalleryGridView<Content: View>: View {
                             Image(systemName: "folder")
                                 .foregroundColor(.foregroundPrimary)
                         }
-                        
-                        
                     }
                     .padding()
                     LazyVGrid(columns: gridItems, spacing: 1) {
@@ -179,6 +181,11 @@ struct GalleryGridView<Content: View>: View {
             .background(Color.background)
             .navigationBarTitle(viewModel.privateKey.name, displayMode: .large)
             
+        }
+        .onAppear {
+            Task {
+                await viewModel.enumerateMedia()
+            }
         }
     }
     

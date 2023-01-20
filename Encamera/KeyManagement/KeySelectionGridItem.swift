@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 actor KeyInfoFetcher {
     
@@ -46,7 +47,7 @@ class KeySelectionGridItemModel: ObservableObject {
     
     func load() {
         Task {
-            self.imageCount = storageModel?.countOfFiles()
+            self.imageCount = storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension])
             let thumb = try await fileReader.loadLeadingThumbnail()
             await MainActor.run {
                 self.leadingImage = thumb
@@ -59,6 +60,7 @@ class KeySelectionGridItemModel: ObservableObject {
 struct KeySelectionGridItem: View {
     
     @StateObject var viewModel: KeySelectionGridItemModel
+    
     
     
     var body: some View {
@@ -76,6 +78,7 @@ struct KeySelectionGridItem: View {
                 HStack {
                     Text(viewModel.keyName)
                         .fontType(.mediumSmall)
+                        .frame(maxWidth: .infinity)
                     
                     Spacer()
 
@@ -83,7 +86,7 @@ struct KeySelectionGridItem: View {
                 Spacer()
                 HStack {
                     if let imageCount = viewModel.imageCount {
-                        Text("\(imageCount) \(Image(systemName: "photo.fill"))")
+                        Text("\(imageCount)")
                     }
                     Spacer()
 
@@ -93,18 +96,22 @@ struct KeySelectionGridItem: View {
                     }
                                     }
                 .fontType(.small)
-                .padding(.vertical, 3)
+                .padding(10)
             }
             .background {
-                if let leadingImage = viewModel.leadingImage {
-                    Image(uiImage: leadingImage)
-                        .resizable()
-                        .aspectRatio(contentMode:.fill)
-                        .opacity(0.3)
+                Group {
+                    if let leadingImage = viewModel.leadingImage {
+                        Image(uiImage: leadingImage)
+                            .resizable()
+                            .aspectRatio(contentMode:.fill)
+                    } else {
+                        Color.foregroundPrimary
+                    }
                 }
+                .opacity(0.3)
+                .blur(radius: 5)
+                
             }
-//            .frame(maxWidth: .infinity)
-//            .aspectRatio(contentMode:.fill)
             .contentShape(Rectangle())
             .clipped()
 
@@ -116,18 +123,28 @@ struct KeySelectionGridItem: View {
 }
 
 class KeySelectionGridViewModel: ObservableObject {
-    var keys: [PrivateKey] = []
-    var activeKey: PrivateKey?
+    @Published var keys: [PrivateKey] = []
+    @Published var activeKey: PrivateKey?
     var keyManager: KeyManager
     
-    
+    private var cancellables = Set<AnyCancellable>()
+
     
     init(keyManager: KeyManager) {
+        
+        self.keyManager = keyManager
+        keyManager.keyPublisher.receive(on: DispatchQueue.main).sink { key in
+            self.loadKeys(activeKey: key)
+        }.store(in: &cancellables)
+        loadKeys(activeKey: keyManager.currentKey)
+    }
+    
+    private func loadKeys(activeKey: PrivateKey?) {
         if let storedKeys = try? keyManager.storedKeys().filter({ keyManager.currentKey != $0 }) {
             self.keys = storedKeys
         }
-        self.activeKey = keyManager.currentKey
-        self.keyManager = keyManager
+        self.activeKey = activeKey
+
     }
     
 }
@@ -154,10 +171,18 @@ struct KeySelectionGrid: View {
                             Text("Backup")
                         }
                         if let activeKey = viewModel.activeKey {
-                            KeySelectionGridItem(viewModel: .init(key: activeKey, isActiveKey: true))
+                            NavigationLink {
+                                KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: activeKey))
+                            } label: {
+                                KeySelectionGridItem(viewModel: .init(key: activeKey, isActiveKey: true))
+                            }
                         }
                         ForEach(viewModel.keys) { key in
-                            KeySelectionGridItem(viewModel: .init(key: key, isActiveKey: false))
+                            NavigationLink {
+                                KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
+                            } label: {
+                                KeySelectionGridItem(viewModel: .init(key: key, isActiveKey: false))
+                            }
                             
                         }
                     }.frame(height: side)
@@ -169,16 +194,6 @@ struct KeySelectionGrid: View {
 //    private func gridItemFor(key: PrivateKey) -> some View {
 }
 
-private extension View {
-    func navigationLinkFor(key: PrivateKey) -> some View {
-        NavigationLink {
-            
-        } label: {
-            self
-        }
-    }
-}
-
 struct KeySelectionGridItem_Previews: PreviewProvider {
     static var previews: some View {
         
@@ -187,7 +202,7 @@ struct KeySelectionGridItem_Previews: PreviewProvider {
                                                          DemoPrivateKey.dummyKey(name: "rats"),
                                                          DemoPrivateKey.dummyKey(name: "mice"),
                                                          DemoPrivateKey.dummyKey(name: "cows"),
-                                                         DemoPrivateKey.dummyKey(name: "very long name that could overflow"),
+                                                         DemoPrivateKey.dummyKey(name: "very very very very very very long name that could overflow"),
                                             ])))
 
     }

@@ -10,6 +10,10 @@ import Foundation
 class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identifiable {
     typealias MediaSource = URL
     
+    var needsDownload: Bool {
+        return source != downloadedSource
+    }
+    
     var mediaType: MediaType = .unknown
     var id: String
     var source: URL

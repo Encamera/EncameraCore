@@ -219,7 +219,6 @@ struct GalleryHorizontalScrollView: View {
                 LazyHGrid(rows: gridItems) {
                     ForEach(Array(viewModel.media.enumerated()), id: \.element.id) { index, item in
                         ZStack {
-                            
                             viewingFor(item: item)
                                 .blur(radius:
                                         viewModel.canAccessPhoto(at: index)
@@ -250,7 +249,6 @@ struct GalleryHorizontalScrollView: View {
         switch item.mediaType {
         case .photo:
             let model = ImageViewingViewModel(media: item, fileAccess: viewModel.fileAccess)
-
             ImageViewing(
                 currentScale: scaleBinding(for: item),
                 finalOffset: offsetBinding(for: item),

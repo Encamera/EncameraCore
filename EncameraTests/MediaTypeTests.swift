@@ -29,4 +29,18 @@ class MediaTypeTests: XCTestCase {
         XCTAssertEqual(cleartext.mediaType, .photo)
     }
     
+    func testiCloudURLResolvesToCorrectMediaType() throws {
+        let url = try XCTUnwrap(URL(string: "file:///private/var/mobile/Library/Mobile%20Documents/iCloud~Encamera/Documents/fitness/.50004CBC-D721-4DF9-9E19-ED04875023CF.encimage.icloud"))
+        let encrypted = try XCTUnwrap(EncryptedMedia(source: url))
+        XCTAssertEqual(encrypted.mediaType, .photo)
+        
+    }
+    
+    func testDownloadedSourceIsCorrect() throws {
+        let url = try XCTUnwrap(URL(string: "file:///private/var/mobile/Library/Mobile%20Documents/iCloud~Encamera/Documents/fitness/.50004CBC-D721-4DF9-9E19-ED04875023CF.encimage.icloud"))
+        let encrypted = try XCTUnwrap(EncryptedMedia(source: url))
+
+        XCTAssertEqual(encrypted.downloadedSource, URL(string:"file:///private/var/mobile/Library/Mobile%20Documents/iCloud~Encamera/Documents/fitness/50004CBC-D721-4DF9-9E19-ED04875023CF.encimage"))
+    }
+    
 }
