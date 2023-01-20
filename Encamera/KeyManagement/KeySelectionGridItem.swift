@@ -103,7 +103,7 @@ struct KeySelectionGridItem: View {
                         Color.foregroundPrimary
                     }
                 }
-                .opacity(0.3)
+                .opacity(0.7)
                 .blur(radius: 5)
                 
             }

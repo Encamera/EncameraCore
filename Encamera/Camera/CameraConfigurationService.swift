@@ -384,7 +384,7 @@ private extension CameraConfigurationService {
                 session.addInput(videoDeviceInput)
                 self.videoDeviceInput = videoDeviceInput
             } else {
-                throw SetupError.couldNotAddVideoInputToSession
+                debugPrint("Could not add input to session")
             }
         } catch {
             throw SetupError.couldNotCreateVideoDeviceInput(avFoundationError: error)
