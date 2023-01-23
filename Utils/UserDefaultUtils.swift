@@ -11,7 +11,7 @@ import Combine
 public struct UserDefaultUtils {
     
     private static var defaults: UserDefaults {
-        UserDefaults.standard
+        UserDefaults(suiteName: "group.me.freas.encamera")!
     }
     
     private static var defaultsPublisher: AnyPublisher<(UserDefaultKey, Any?), Never> {
