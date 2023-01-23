@@ -6,14 +6,14 @@
 //
 
 import Foundation
-enum MediaType: Int, CaseIterable, Codable {
+public enum MediaType: Int, CaseIterable, Codable {
     
     case photo
     case video
     case unknown
     case preview
     
-    static func typeFromMedia<T: MediaDescribing>(source: T) -> MediaType {
+    public static func typeFromMedia<T: MediaDescribing>(source: T) -> MediaType {
         
         switch source {
         case let media as CleartextMedia<Data>:
@@ -51,7 +51,7 @@ enum MediaType: Int, CaseIterable, Codable {
         return .photo
     }
     
-    var fileExtension: String {
+    public var fileExtension: String {
         switch self {
         case .video:
             return "encvideo"

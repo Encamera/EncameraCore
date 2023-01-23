@@ -7,12 +7,12 @@
 
 import Foundation
 
-protocol DataStorageSetting {
+public protocol DataStorageSetting {
     func storageModelFor(keyName: KeyName?) -> DataStorageModel?
     func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType)
 }
 
-extension DataStorageSetting {
+public extension DataStorageSetting {
     
     var preselectedStorageSetting: StorageAvailabilityModel? {
         storageAvailabilities().filter({$0.availability == .available}).first

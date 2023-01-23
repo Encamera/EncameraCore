@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import SwiftUI
 
 class ChunkedFilesProcessingSubscription<S: Subscriber, T: MediaDescribing>: Subscription where S.Input == ([UInt8], Double, Bool), S.Failure == Error {
     

@@ -8,7 +8,7 @@
 import Foundation
 
 
-class DateUtils {
+public class DateUtils {
     
     private static var dateOnlyFormatter: DateFormatter = {
        let formatter = DateFormatter()
@@ -22,11 +22,11 @@ class DateUtils {
         return formatter
     }()
     
-    static func dateOnlyString(from date: Date) -> String {
+    public static func dateOnlyString(from date: Date) -> String {
         DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none)
     }
     
-    static func dateTimeString(from date: Date) -> String {
+    public static func dateTimeString(from date: Date) -> String {
         DateFormatter.localizedString(from: date, dateStyle: .long, timeStyle: .long)
     }
 }

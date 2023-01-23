@@ -36,6 +36,8 @@ targets:
       TARGETED_DEVICE_FAMILY: "1"
     dependencies:
       - package: Sodium
+      - framework: EncameraCore.framework
+        embed: true
       - framework: StoreKit.framework
         embed: false
     scheme:

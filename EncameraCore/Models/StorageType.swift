@@ -7,24 +7,24 @@
 
 import Foundation
 
-struct StorageAvailabilityModel: Identifiable, Equatable {
-    let storageType: StorageType
-    let availability: StorageType.Availability
-    var id: StorageType {
+public struct StorageAvailabilityModel: Identifiable, Equatable {
+    public let storageType: StorageType
+    public let availability: StorageType.Availability
+    public var id: StorageType {
         storageType
     }
 }
 
-enum StorageType: String {
+public enum StorageType: String {
     case icloud
     case local
     
-    enum Availability: Equatable {
+    public enum Availability: Equatable {
         case available
         case unavailable(reason: String)
     }
     
-    var modelForType: DataStorageModel.Type {
+    public var modelForType: DataStorageModel.Type {
         switch self {
         case .icloud:
             return iCloudStorageModel.self
@@ -36,7 +36,7 @@ enum StorageType: String {
 }
 
 extension StorageType: Identifiable, CaseIterable {
-    var id: Self { self }
+    public var id: Self { self }
     var title: String {
         switch self {
         case .icloud:

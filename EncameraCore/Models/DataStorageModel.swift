@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-protocol DataStorageModel {
+public protocol DataStorageModel {
     var baseURL: URL { get }
     var keyName: KeyName { get }
     var thumbnailDirectory: URL { get }
@@ -32,7 +32,7 @@ extension DataStorageModel {
         return thumbnailDirectory
     }
     
-    func initializeDirectories() throws {
+    public func initializeDirectories() throws {
         if FileManager.default.fileExists(atPath: thumbnailDirectory.path) == false {
             try FileManager.default.createDirectory(atPath: thumbnailDirectory.path, withIntermediateDirectories: true)
         }

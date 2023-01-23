@@ -6,15 +6,15 @@
 //
 
 import Foundation
-struct PreviewModel: Codable {
+public struct PreviewModel: Codable {
     
-    var id: String
+    public var id: String
     
-    var thumbnailMedia: CleartextMedia<Data>
-    var gridID: String {
+    public var thumbnailMedia: CleartextMedia<Data>
+    public var gridID: String {
         "\(thumbnailMedia.mediaType.fileExtension)_\(thumbnailMedia.id)"
     }
-    var videoDuration: String?
+    public var videoDuration: String?
     
     init(source: CleartextMedia<Data>) {
         let decoded = try! JSONDecoder().decode(PreviewModel.self, from: source.source)

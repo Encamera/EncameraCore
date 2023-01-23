@@ -9,17 +9,17 @@ import Foundation
 import Combine
 import UIKit
 
-enum FileAccessError: Error {
+public enum FileAccessError: Error {
     case missingDirectoryModel
     case missingPrivateKey
 }
 
-protocol FileEnumerator {
+public protocol FileEnumerator {
     func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async
     func enumerateMedia<T: MediaDescribing>() async -> [T] where T.MediaSource == URL
 }
 
-protocol FileReader {
+public protocol FileReader {
     func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async
     func loadLeadingThumbnail() async throws -> UIImage?
     func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel where T.MediaSource == URL
@@ -27,7 +27,7 @@ protocol FileReader {
     func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (Double) -> Void) async throws -> CleartextMedia<Data>
 }
 
-protocol FileWriter {
+public protocol FileWriter {
         
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia
     @discardableResult func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data>
@@ -38,7 +38,7 @@ protocol FileWriter {
     func deleteAllMedia() async throws
 }
 
-protocol FileAccess: FileEnumerator, FileReader, FileWriter {
+public protocol FileAccess: FileEnumerator, FileReader, FileWriter {
     init()
 }
 

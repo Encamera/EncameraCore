@@ -8,6 +8,7 @@
 
 import SwiftUI
 import StoreKit
+import EncameraCore
 
 struct ProductOptionView: View {
     let product: OneTimePurchase
