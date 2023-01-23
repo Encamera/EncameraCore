@@ -8,27 +8,27 @@
 import Foundation
 import StoreKit
 
-@globalActor actor StoreActor {
+@globalActor public actor StoreActor {
     static let unlimitedMonthlyID = "subscription.monthly.unlimitedkeysandphotos"
     static let unlimitedYearlyID = "subscription.yearly.unlimitedkeysandphotos"
     static let lifetimeUnlimitedBasic = "purchase.lifetimeunlimitedbasic"
     static let lifetimeUnlimitedBasicFamily = "purchase.lifetimeunlimitedbasicfamily"
     
-    static let subscriptionIDs: Set<String> = [
+    public static let subscriptionIDs: Set<String> = [
         unlimitedYearlyID,
         unlimitedMonthlyID
     ]
     
-    static let productIDs: Set<String> = [
+    public static let productIDs: Set<String> = [
         lifetimeUnlimitedBasic,
         lifetimeUnlimitedBasicFamily
     ]
     
-    static let allProductIDs: Set<String> = {
+    public static let allProductIDs: Set<String> = {
         return subscriptionIDs.union(productIDs)
     }()
     
-    static let shared = StoreActor()
+    public static let shared = StoreActor()
     
     private var loadedProducts: [String: Product] = [:]
     private var lastLoadError: Error?

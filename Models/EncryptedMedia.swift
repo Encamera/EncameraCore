@@ -7,24 +7,24 @@
 
 import Foundation
 
-class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identifiable {
-    typealias MediaSource = URL
+public class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identifiable {
+    public typealias MediaSource = URL
     
-    var needsDownload: Bool {
+    public var needsDownload: Bool {
         return source != downloadedSource
     }
     
-    var mediaType: MediaType = .unknown
-    var id: String
-    var source: URL
-    lazy var timestamp: Date? = {
+    public var mediaType: MediaType = .unknown
+    public var id: String
+    public var source: URL
+    public lazy var timestamp: Date? = {
         _ = source.startAccessingSecurityScopedResource()
         let date = try? FileManager.default.attributesOfItem(atPath: source.path)[FileAttributeKey.creationDate] as? Date
         source.stopAccessingSecurityScopedResource()
         return date
     }()
     
-    required init(source: URL, mediaType: MediaType, id: String) {
+    public required init(source: URL, mediaType: MediaType, id: String) {
         self.source = source
         self.mediaType = mediaType
         self.id = id
@@ -35,7 +35,7 @@ class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identifiable {
         self.mediaType = type
     }
     
-    required init?(source: URL) {
+    public required init?(source: URL) {
         self.source = source
         guard let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first else {
             return nil
@@ -46,11 +46,11 @@ class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identifiable {
 }
 
 extension EncryptedMedia: Hashable {
-    static func == (lhs: EncryptedMedia, rhs: EncryptedMedia) -> Bool {
+    public static func == (lhs: EncryptedMedia, rhs: EncryptedMedia) -> Bool {
         lhs.id == rhs.id
     }
     
-    func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
     

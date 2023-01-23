@@ -14,46 +14,46 @@ enum DemoError: Error {
     case general
 }
 
-class DemoFileEnumerator: FileAccess {
-    required init() {
+public class DemoFileEnumerator: FileAccess {
+    public required init() {
         
         Task {
             mediaList = await enumerateMedia()
         }
     }
     
-    func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
+    public func configure(with key: PrivateKey?, storageSettingsManager: DataStorageSetting) async {
         
     }
     
     
-    func copy(media: EncryptedMedia) async throws {
+    public func copy(media: EncryptedMedia) async throws {
         
     }
     
     var mediaList: [EncryptedMedia] = []
     
-    func savePreview<T>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+    public func savePreview<T>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
         fatalError()
     }
     func loadThumbnails<T>(for: DataStorageModel) async -> [T] where T : MediaDescribing, T.MediaSource == Data {
         []
     }
     
-    func deleteMedia(for key: PrivateKey) async throws {
+    public func deleteMedia(for key: PrivateKey) async throws {
         
     }
     
-    func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws {
+    public func moveAllMedia(for keyName: KeyName, toRenamedKey newKeyName: KeyName) async throws {
         
     }
     
-    func loadMediaToURL<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
+    public func loadMediaToURL<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<URL> where T : MediaDescribing {
 
         CleartextMedia(source: URL(fileURLWithPath: ""))
     }
     
-    func loadMediaInMemory<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+    public func loadMediaInMemory<T>(media: T, progress: (Double) -> Void) async throws -> CleartextMedia<Data> where T : MediaDescribing {
         guard let url = Bundle(for: type(of: self))
             .url(forResource: "dog", withExtension: "jpg"), let data = try? Data(contentsOf: url) else {
             return CleartextMedia(source: Data())
@@ -62,11 +62,11 @@ class DemoFileEnumerator: FileAccess {
         return CleartextMedia(source: data)
     }
     
-    func save<T>(media: CleartextMedia<T>) async throws -> EncryptedMedia where T : MediaSourcing {
+    public func save<T>(media: CleartextMedia<T>) async throws -> EncryptedMedia where T : MediaSourcing {
         EncryptedMedia(source: URL(fileURLWithPath: ""), mediaType: .photo, id: "1234")
     }
     
-    func loadMediaPreview<T: MediaDescribing>(for media: T) async -> PreviewModel {
+    public func loadMediaPreview<T: MediaDescribing>(for media: T) async -> PreviewModel {
         guard let source = media.source as? URL,
               let data = try? Data(contentsOf: source) else {
             return PreviewModel(source: CleartextMedia(source: Data()))
@@ -93,7 +93,7 @@ class DemoFileEnumerator: FileAccess {
     
     
     
-    func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
+    public func enumerateMedia<T>() async -> [T] where T : MediaDescribing, T.MediaSource == URL {
         let retVal: [T?] = (1...6).map { val in
             if let url = Bundle(for: type(of: self)).url(forResource: "\(val)", withExtension: "JPG") {
                 return T(source: url, mediaType: .photo, id: "\(val)")
@@ -103,28 +103,28 @@ class DemoFileEnumerator: FileAccess {
             
         return retVal.compactMap({$0}).shuffled()
     }
-    func delete(media: EncryptedMedia) async throws {
+    public func delete(media: EncryptedMedia) async throws {
         
     }
-    func deleteAllMedia() async throws {
+    public func deleteAllMedia() async throws {
         
     }
     
-    func loadLeadingThumbnail() async throws -> UIImage? {
+    public func loadLeadingThumbnail() async throws -> UIImage? {
         return UIImage(named: "dog")
     }
 }
 
-class DemoDirectoryModel: DataStorageModel {
-    var storageType: StorageType = .local
+public class DemoDirectoryModel: DataStorageModel {
+    public var storageType: StorageType = .local
     
-    var keyName: KeyName = "testSuite"
+    public var keyName: KeyName = "testSuite"
     
-    var baseURL: URL
+    public var baseURL: URL
     
-    var thumbnailDirectory: URL
+    public var thumbnailDirectory: URL
     
-    required init(keyName: KeyName) {
+    public required init(keyName: KeyName) {
         self.baseURL = URL(fileURLWithPath: NSTemporaryDirectory(),
                            isDirectory: true).appendingPathComponent("base")
         self.thumbnailDirectory = URL(fileURLWithPath: NSTemporaryDirectory(),
@@ -156,23 +156,23 @@ class DemoDirectoryModel: DataStorageModel {
         
 }
 
-class DemoKeyManager: KeyManager {
+public class DemoKeyManager: KeyManager {
     
-    var keyDirectoryStorage: DataStorageSetting = DemoStorageSettingsManager()
+    public var keyDirectoryStorage: DataStorageSetting = DemoStorageSettingsManager()
     
      
     
     private var hasExistingPassword = false
-    var throwError = false
-    var password: String? {
+    public var throwError = false
+    public var password: String? {
         didSet {
             hasExistingPassword = password != nil
         }
     }
-    func createBackupDocument() throws -> String {
+    public func createBackupDocument() throws -> String {
         return ""
     }
-    func passwordExists() -> Bool {
+    public func passwordExists() -> Bool {
         return hasExistingPassword
     }
     
@@ -180,32 +180,32 @@ class DemoKeyManager: KeyManager {
         return .valid
     }
     
-    func changePassword(newPassword: String, existingPassword: String) throws {
+    public func changePassword(newPassword: String, existingPassword: String) throws {
         
     }
     
-    func checkPassword(_ password: String) throws -> Bool {
+    public func checkPassword(_ password: String) throws -> Bool {
         if self.password != password {
             throw KeyManagerError.invalidPassword
         }
         return self.password == password
     }
     
-    func setPassword(_ password: String) throws {
+    public func setPassword(_ password: String) throws {
         self.password = password
     }
     
-    func deleteKey(_ key: PrivateKey) throws {
+    public func deleteKey(_ key: PrivateKey) throws {
         
     }
     
-    func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool) throws {
+    public func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool) throws {
         
     }
     
-    var currentKey: PrivateKey?
+    public var currentKey: PrivateKey?
     
-    func setActiveKey(_ name: KeyName?) throws {
+    public func setActiveKey(_ name: KeyName?) throws {
         
     }
     
@@ -220,15 +220,15 @@ class DemoKeyManager: KeyManager {
         
     }
     
-    func generateNewKey(name: String, storageType: StorageType) throws -> PrivateKey {
+    public func generateNewKey(name: String, storageType: StorageType) throws -> PrivateKey {
         return try PrivateKey(base64String: "")
     }
     
-    func storedKeys() throws -> [PrivateKey] {
+    public func storedKeys() throws -> [PrivateKey] {
         return storedKeysValue
     }
     
-    func validateKeyName(name: String) throws {
+    public func validateKeyName(name: String) throws {
         
     }
     
@@ -242,17 +242,17 @@ class DemoKeyManager: KeyManager {
         self.storedKeysValue = keys
     }
     
-    required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
+    public required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
         self.isAuthenticated = isAuthenticated
         self.currentKey = PrivateKey(name: "secrets", keyBytes: [], creationDate: Date())
         self.keyPublisher = PassthroughSubject<PrivateKey?, Never>().eraseToAnyPublisher()
     }
     
-    var isAuthenticated: AnyPublisher<Bool, Never>
+    public var isAuthenticated: AnyPublisher<Bool, Never>
         
-    var keyPublisher: AnyPublisher<PrivateKey?, Never>
+    public var keyPublisher: AnyPublisher<PrivateKey?, Never>
     
-    func clearKeychainData() {
+    public func clearKeychainData() {
         
     }
     
@@ -265,7 +265,7 @@ class DemoKeyManager: KeyManager {
     }
 }
 
-class DemoOnboardingManager: OnboardingManaging {
+public class DemoOnboardingManager: OnboardingManaging {
     required init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager) {
         
     }
@@ -281,20 +281,20 @@ class DemoOnboardingManager: OnboardingManaging {
     
 }
 
-class DemoStorageSettingsManager: DataStorageSetting {
+public class DemoStorageSettingsManager: DataStorageSetting {
     
-    func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
+    public func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
         return LocalStorageModel(keyName: keyName!)
     }
     
-    func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
+    public func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
         
     }
     
     
 }
 
-class DemoPrivateKey {
+public class DemoPrivateKey {
     static func dummyKey(name: String) -> PrivateKey {
         let hash: Array<UInt8> = Sodium().secretStream.xchacha20poly1305.key()
         let dateComponents = DateComponents(timeZone: TimeZone(identifier: "Europe/Berlin"), year: 2022, month: Int.random(in: 1..<12), day: Int.random(in: 1..<28), hour: Int.random(in: 1..<11), minute: 0, second: 0)
@@ -303,7 +303,7 @@ class DemoPrivateKey {
         return PrivateKey(name: name, keyBytes: hash, creationDate: date!)
     }
     
-    static func dummyKey() -> PrivateKey {
+    public static func dummyKey() -> PrivateKey {
         let hash: Array<UInt8> = [36,97,114,103,111,110,50,105,100,36,118,61,49,57,36,109,61,54,53,53,51,54,44,116,61,50,44,112,61,49,36,76,122,73,48,78,103,67,57,90,69,89,76,81,80,70,76,85,49,69,80,119,65,36,83,66,66,49,65,85,86,74,55,82,85,90,116,79,67,111,104,82,100,89,67,71,57,114,90,119,109,81,47,118,74,77,121,48,85,71,108,69,103,66,122,79,77]
         let dateComponents = DateComponents(timeZone: TimeZone(identifier: "Europe/Berlin"), year: 2022, month: 2, day: 9, hour: 5, minute: 0, second: 0)
         let date = Calendar(identifier: .gregorian).date(from: dateComponents)

@@ -7,11 +7,11 @@
 
 import Foundation
 
-protocol MediaReference {
+public protocol MediaReference {
     
 }
 
-protocol MediaSourcing: Hashable, Codable {
+public protocol MediaSourcing: Hashable, Codable {
     
 }
 
@@ -23,7 +23,7 @@ extension URL: MediaSourcing {
     
 }
 
-protocol MediaDescribing: Hashable {
+public protocol MediaDescribing: Hashable {
     
     associatedtype MediaSource: MediaSourcing
         
@@ -36,7 +36,7 @@ protocol MediaDescribing: Hashable {
     init(source: MediaSource, mediaType: MediaType, id: String)
 }
 
-extension MediaDescribing where MediaSource == URL {
+public extension MediaDescribing where MediaSource == URL {
     
     var downloadedSource: URL {
         var lastComponent = source

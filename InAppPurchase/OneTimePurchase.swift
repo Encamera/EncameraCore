@@ -2,23 +2,23 @@ import Foundation
 import StoreKit
 
 @dynamicMemberLookup
-struct OneTimePurchase: Identifiable, Equatable {
-    let product: Product
+public struct OneTimePurchase: Identifiable, Equatable {
+    public let product: Product
    
-    var id: String { product.id }
+    public var id: String { product.id }
     
-    init?(product: Product) {
+    public init?(product: Product) {
         guard product.subscription == nil else {
             return nil
         }
         self.product = product
     }
     
-    subscript<T>(dynamicMember keyPath: KeyPath<Product, T>) -> T {
+    public subscript<T>(dynamicMember keyPath: KeyPath<Product, T>) -> T {
         product[keyPath: keyPath]
     }
     
-    var priceText: String {
+    public var priceText: String {
         "\(self.displayPrice)"
     }
 }

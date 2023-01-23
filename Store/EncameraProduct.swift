@@ -19,14 +19,14 @@ extension Product: ProductProviding {
     
 }
 
-struct EncameraProduct: ProductProviding {
+public struct EncameraProduct: ProductProviding {
     var displayName: String
     
-    var id: String
+    public var id: String
     
-    var displayPrice: String
+    public var displayPrice: String
     
-    var subscription: Product.SubscriptionInfo?
+    public var subscription: Product.SubscriptionInfo?
     
     static var monthly = EncameraProduct(displayName: "Unlimited Monthly", id: "123", displayPrice: "$0.99")
     static var yearly = EncameraProduct(displayName: "Unlimited Yearly", id: "456", displayPrice: "$9.99")

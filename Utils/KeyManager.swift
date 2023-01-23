@@ -9,7 +9,7 @@ import Foundation
 import Sodium
 import Combine
 
-enum KeyManagerError: ErrorDescribable {
+public enum KeyManagerError: ErrorDescribable {
     case deleteKeychainItemsFailed
     case unhandledError
     case notAuthenticatedError
@@ -19,7 +19,7 @@ enum KeyManagerError: ErrorDescribable {
     case keyExists
     case invalidPassword
     
-    var displayDescription: String {
+    public var displayDescription: String {
         switch self {
         case .deleteKeychainItemsFailed:
             return "Could not delete keychain items."
@@ -42,7 +42,7 @@ enum KeyManagerError: ErrorDescribable {
     
 }
 
-protocol KeyManager {
+public protocol KeyManager {
     
     init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting)
     

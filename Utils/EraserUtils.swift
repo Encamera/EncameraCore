@@ -7,18 +7,18 @@
 
 import Foundation
 
-enum ErasureScope {
+public enum ErasureScope {
     case appData
     case allData
 }
 
-struct EraserUtils {
+public struct EraserUtils {
     
-    var keyManager: KeyManager
-    var fileAccess: FileAccess
-    var erasureScope: ErasureScope
+    public var keyManager: KeyManager
+    public var fileAccess: FileAccess
+    public var erasureScope: ErasureScope
     
-    func erase() async throws {
+    public func erase() async throws {
         switch erasureScope {
         case .appData:
             await eraseAppData()

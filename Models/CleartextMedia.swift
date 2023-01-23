@@ -7,24 +7,24 @@
 
 import Foundation
 
-struct CleartextMedia<T: MediaSourcing>: MediaDescribing, Codable {
+public struct CleartextMedia<T: MediaSourcing>: MediaDescribing, Codable {
     
-    typealias MediaSource = T
+    public typealias MediaSource = T
     
-    var source: T
-    var mediaType: MediaType = .unknown
-    var id: String
-    var needsDownload: Bool {
+    public var source: T
+    public var mediaType: MediaType = .unknown
+    public var id: String
+    public var needsDownload: Bool {
         false
     }
     
-    init(source: T, mediaType: MediaType, id: String) {
+    public init(source: T, mediaType: MediaType, id: String) {
         self.init(source: source)
         self.mediaType = mediaType
         self.id = id
     }
     
-    init(source: T) {
+    public init(source: T) {
         self.source = source
         if let source = source as? URL {
             self.id = source.deletingPathExtension().lastPathComponent

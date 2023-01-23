@@ -13,14 +13,14 @@ enum ImageKeyEncodingError: Error {
     case invalidKeychainItemData
 }
 
-typealias KeyName = String
-typealias KeyBytes = Array<UInt8>
+public typealias KeyName = String
+public typealias KeyBytes = Array<UInt8>
 
-struct PrivateKey: Codable {
+public struct PrivateKey: Codable {
     
-    var name: KeyName
-    var keyBytes: KeyBytes
-    var creationDate: Date
+    public var name: KeyName
+    public private (set) var keyBytes: KeyBytes
+    public var creationDate: Date
     private static let keyPrefix = "com.encamera.key."
     
     private enum CodingKeys: CodingKey {
@@ -83,17 +83,17 @@ struct PrivateKey: Codable {
 
 extension PrivateKey: Identifiable {
     
-    var id: Array<UInt8>  {
+    public var id: Array<UInt8>  {
         keyBytes
     }
 }
 
 extension PrivateKey: Equatable {
     
-    static func ==(lhs: PrivateKey, rhs: PrivateKey) -> Bool {
+    public static func ==(lhs: PrivateKey, rhs: PrivateKey) -> Bool {
         return lhs.name == rhs.name && lhs.keyBytes == rhs.keyBytes
     }
-    var keyString: String {
+    public var keyString: String {
         return keyBytes.map({String($0)}).joined(separator: " ")
     }
 }
