@@ -65,7 +65,7 @@ public enum MediaType: Int, CaseIterable, Codable {
     }
 }
 
-enum CameraMode: Int {
+public enum CameraMode: Int {
     case photo
     case video
 }

@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum UserDefaultKey {
+public enum UserDefaultKey {
     
     
     case authenticationPolicy
@@ -36,7 +36,7 @@ enum UserDefaultKey {
 }
 
 extension UserDefaultKey: Equatable {
-    static func ==(lhs: UserDefaultKey, rhs: UserDefaultKey) -> Bool {
+    public static func ==(lhs: UserDefaultKey, rhs: UserDefaultKey) -> Bool {
         return lhs.rawValue == rhs.rawValue
     }
 }

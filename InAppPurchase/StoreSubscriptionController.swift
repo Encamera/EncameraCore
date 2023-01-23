@@ -10,7 +10,7 @@ import StoreKit
 import Combine
 
 @MainActor
-final class StoreSubscriptionController: ObservableObject {
+public final class StoreSubscriptionController: ObservableObject {
     @Published var subscriptions: [ServiceSubscription] = []
     @Published private(set) var entitledSubscriptionID: String?
     @Published private(set) var autoRenewPreference: String?

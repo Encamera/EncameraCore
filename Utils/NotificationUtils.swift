@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 import Combine
 
-struct NotificationUtils {
+public struct NotificationUtils {
     
     private static var noOp = false
     
@@ -17,32 +17,32 @@ struct NotificationUtils {
         static var hardwareButtonPressedKey = "hardwareButtonPressedKey"
     }
     
-    static func sendHardwareButtonPressed() {
+    public static func sendHardwareButtonPressed() {
         NotificationCenter.default.post(name: Notification.Name(Keys.hardwareButtonPressedKey), object: "pressed")
     }
     
-    static var hardwareButtonPressedPublisher: AnyPublisher<Notification, Never> {
+    public static var hardwareButtonPressedPublisher: AnyPublisher<Notification, Never> {
         return publisher(for: Notification.Name(Keys.hardwareButtonPressedKey))
     }
     
-    static var didBecomeActivePublisher: AnyPublisher<Notification, Never> {
+    public static var didBecomeActivePublisher: AnyPublisher<Notification, Never> {
         
         return publisher(for: UIApplication.didBecomeActiveNotification)
     }
     
-    static var didEnterBackgroundPublisher: AnyPublisher<Notification, Never> {
+    public static var didEnterBackgroundPublisher: AnyPublisher<Notification, Never> {
         return publisher(for: UIApplication.didEnterBackgroundNotification)
     }
     
-    static var willResignActivePublisher: AnyPublisher<Notification, Never> {
+    public static var willResignActivePublisher: AnyPublisher<Notification, Never> {
         return publisher(for: UIApplication.willResignActiveNotification)
     }
     
-    static var orientationDidChangePublisher: AnyPublisher<Notification, Never> {
+    public static var orientationDidChangePublisher: AnyPublisher<Notification, Never> {
         return publisher(for: UIDevice.orientationDidChangeNotification)
     }
     
-    static var systemClockDidChangePublisher: AnyPublisher<Notification, Never> {
+    public static var systemClockDidChangePublisher: AnyPublisher<Notification, Never> {
         return publisher(for: .NSSystemClockDidChange)
     }
     

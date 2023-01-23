@@ -9,17 +9,17 @@ import Foundation
 import Combine
 
 
-enum FileOperation {
+public enum FileOperation {
     case create(EncryptedMedia)
     case delete(EncryptedMedia)
 }
 
 
-struct FileOperationBus {
+public struct FileOperationBus {
     
-    static var shared: FileOperationBus = FileOperationBus()
+    public static var shared: FileOperationBus = FileOperationBus()
     
-    var operations: AnyPublisher<FileOperation, Never> {
+    public var operations: AnyPublisher<FileOperation, Never> {
         operationSubject.share().eraseToAnyPublisher()
     }
     

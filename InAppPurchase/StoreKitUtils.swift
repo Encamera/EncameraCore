@@ -56,17 +56,17 @@ extension Product {
     }
 }
 
-enum AppFeature {
+public enum AppFeature {
     case accessPhoto(count: Double)
     case createKey(count: Double)
 }
 
 
-protocol PurchasedPermissionManaging {
+public protocol PurchasedPermissionManaging {
     func isAllowedAccess(feature: AppFeature) -> Bool
 }
 
-class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject {
+public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject {
     
     let subscriptionController = StoreActor.shared.subscriptionController
     let purchaseController = StoreActor.shared.productController
@@ -75,7 +75,7 @@ class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject
     
     
     @MainActor
-    func isAllowedAccess(feature: AppFeature) -> Bool {
+    public func isAllowedAccess(feature: AppFeature) -> Bool {
         switch feature {
         case .accessPhoto(let count) where count < AppConstants.maxPhotoCountBeforePurchase,
             .createKey(let count) where count < AppConstants.maxPhotoCountBeforePurchase:

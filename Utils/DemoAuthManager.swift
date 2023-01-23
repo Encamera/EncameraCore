@@ -8,34 +8,37 @@
 import Foundation
 import Combine
 
-class DemoAuthManager: AuthManager {
-    func waitForAuthResponse() async -> AuthManagerState {
+public class DemoAuthManager: AuthManager {
+    public func waitForAuthResponse() async -> AuthManagerState {
         return .unauthenticated
     }
-    
-    var availableBiometric: AuthenticationMethod? = .faceID
-    
-    var isAuthenticatedPublisher: AnyPublisher<Bool, Never> = PassthroughSubject<Bool, Never>().eraseToAnyPublisher()
-    
-    var isAuthenticated: Bool = false
-    
-    var canAuthenticateWithBiometrics: Bool = true
-    
-    func deauthorize() {
+    public init() {
         
     }
     
-    func checkAuthorizationWithCurrentPolicy() async throws {
+    public var availableBiometric: AuthenticationMethod? = .faceID
+    
+    public var isAuthenticatedPublisher: AnyPublisher<Bool, Never> = PassthroughSubject<Bool, Never>().eraseToAnyPublisher()
+    
+    public var isAuthenticated: Bool = false
+    
+    public var canAuthenticateWithBiometrics: Bool = true
+    
+    public func deauthorize() {
         
     }
-    func evaluateWithBiometrics() async throws -> Bool {
+    
+    public func checkAuthorizationWithCurrentPolicy() async throws {
+        
+    }
+    public func evaluateWithBiometrics() async throws -> Bool {
         return false
     }
-    func authorize(with password: String, using keyManager: KeyManager) throws {
+    public func authorize(with password: String, using keyManager: KeyManager) throws {
         
     }
     
-    func authorizeWithBiometrics() async throws {
+    public func authorizeWithBiometrics() async throws {
         
     }
     

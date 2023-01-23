@@ -10,7 +10,7 @@ import Sodium
 import Combine
 
 
-enum SecretFilesError: Error {
+public enum SecretFilesError: Error {
     case keyError
     case encryptError
     case decryptError
