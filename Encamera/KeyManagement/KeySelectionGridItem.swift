@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import EncameraCore
 
 actor KeyInfoFetcher {
     

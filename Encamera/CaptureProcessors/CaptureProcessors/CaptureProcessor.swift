@@ -7,6 +7,7 @@
 
 import Foundation
 import AVFoundation
+import EncameraCore
 
 protocol CaptureProcessor {
     init(

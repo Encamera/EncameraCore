@@ -11,8 +11,8 @@ import Combine
 
 @MainActor
 public final class StoreProductController: ObservableObject {
-    @Published var products: [OneTimePurchase] = []
-    @Published var purchasedProducts: [OneTimePurchase] = []
+    @Published public var products: [OneTimePurchase] = []
+    @Published public var purchasedProducts: [OneTimePurchase] = []
     @Published private(set) var isEntitled: Bool = false
     @Published private(set) var purchaseError: (any LocalizedError)?
     

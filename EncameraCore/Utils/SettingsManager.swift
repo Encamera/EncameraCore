@@ -8,8 +8,8 @@
 import Foundation
 
 
-enum SettingsValidation: Equatable {
-    static func == (lhs: SettingsValidation, rhs: SettingsValidation) -> Bool {
+public enum SettingsValidation: Equatable {
+    public static func == (lhs: SettingsValidation, rhs: SettingsValidation) -> Bool {
         switch (lhs, rhs) {
         case (.valid, .valid):
             return true
@@ -30,8 +30,8 @@ enum SettingsValidation: Equatable {
     case invalid([(key: SavedSettings.CodingKeys, message: String)])
 }
 
-enum SettingsManagerError: Error, Equatable {
-    static func == (lhs: SettingsManagerError, rhs: SettingsManagerError) -> Bool {
+public enum SettingsManagerError: Error, Equatable {
+    public static func == (lhs: SettingsManagerError, rhs: SettingsManagerError) -> Bool {
         switch (lhs, rhs) {
         case (.couldNotSerialize, .couldNotSerialize):
             return true
@@ -61,13 +61,16 @@ enum SettingsManagerError: Error, Equatable {
     case validationFailed(SettingsValidation)
 }
 
-struct SavedSettings: Codable, Equatable {
+public struct SavedSettings: Codable, Equatable {
     
-    enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case useBiometricsForAuth
     }
     
     var useBiometricsForAuth: Bool?
+    public init(useBiometricsForAuth: Bool? = nil) {
+        self.useBiometricsForAuth = useBiometricsForAuth
+    }
 }
 
 

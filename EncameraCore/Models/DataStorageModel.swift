@@ -25,7 +25,7 @@ enum DataStorageModelError: Error {
 
 extension DataStorageModel {
     
-    var thumbnailDirectory: URL {
+    public var thumbnailDirectory: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         let documentsDirectory = paths[0]
         let thumbnailDirectory = documentsDirectory.appendingPathComponent("thumbs")
@@ -82,7 +82,7 @@ extension DataStorageModel {
         return mapped
     }
     //TODO: This should take a MediaType, not a String. It should search for .icloud as well
-    func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
+    public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.fileExtension]) -> Int {
         return enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension).count
     }
     

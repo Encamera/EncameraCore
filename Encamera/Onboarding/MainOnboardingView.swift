@@ -7,6 +7,7 @@
 
 import SwiftUI
 import LocalAuthentication
+import EncameraCore
 
 enum OnboardingViewError: Error {
     case passwordInvalid

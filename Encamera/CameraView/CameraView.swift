@@ -1,7 +1,7 @@
 import SwiftUI
 import Combine
 import AVFoundation
-
+import EncameraCore
 
 struct CameraView: View {
     

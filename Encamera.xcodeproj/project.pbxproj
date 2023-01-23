@@ -51,7 +51,6 @@
 		40C7605DB284B18C4C8ED36C /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */; };
 		40F00B2AD0640BD7DDEB2BCB /* QRCodeCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B38487A8D486B96422862A /* QRCodeCaptureProcessor.swift */; };
 		4181352A80A953D0FCFF4A3D /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5720BD1A41F26A9A62182C26 /* AuthManager.swift */; };
-		41F9F9B7C5C254998F54C15D /* EncameraCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8D75BC66B1FCF6F6CDE98BF /* EncameraCore.framework */; };
 		44494B8589FFD53D0DCF3C41 /* CameraService+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C4D9AA72B7AE9BFDECD696 /* CameraService+Extensions.swift */; };
 		4479253E8ADD2D7F810D69B7 /* OnboardingManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7647783C20C8ABCD587291B3 /* OnboardingManagerTests.swift */; };
 		44FAA251D8ABA1C631FD57E5 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AD85A4C0DBA0BFA87EFA00 /* SettingsManager.swift */; };
@@ -62,6 +61,7 @@
 		4B34A3BACAAE910FCFF72639 /* PurchasePhotoSubscriptionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7363071BCA6ED2C04B2EA698 /* PurchasePhotoSubscriptionOverlay.swift */; };
 		4D05292066CC564599287AAD /* URLTypesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458DFC8B3BB9794E5B68F326 /* URLTypesTest.swift */; };
 		4D6890B6437216E4444DE608 /* StoreKitTestCertificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */; };
+		4E4D098AA9729888925B554A /* EncameraCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C031BA644A8BAE7A9BFC3A2 /* EncameraCore.framework */; };
 		50529B72DE9097178A5F9E7C /* TextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1501FC1F4E2E580DA0638C2 /* TextField.swift */; };
 		5368A128262A326183BCCED6 /* Lato-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D680B9DED6A8F3E15603E4CD /* Lato-BlackItalic.ttf */; };
 		5987B7C8B055B2632BEC7782 /* Lato-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 91D97CC729ED3FBCA56BFFA9 /* Lato-Light.ttf */; };
@@ -98,6 +98,7 @@
 		8E95127603E03838DAF27507 /* ExplanationForUpgradeTutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C3DD8AA70CBF44BA670B82 /* ExplanationForUpgradeTutorial.swift */; };
 		8EB83AA688E0F774B2690A6D /* URLTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87ED5AB250FD378B2F9E8E1E /* URLTypes.swift */; };
 		8F201785CD1B1B9C034D3386 /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C6738E921CCEB0FD88E6D /* KeychainTests.swift */; };
+		8F34A9D6B3EC2F6E645F6089 /* EncameraCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0C031BA644A8BAE7A9BFC3A2 /* EncameraCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8FAAB60400F06FFECD16D2F1 /* VideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C970B292DF28E11560738D0B /* VideoCaptureProcessor.swift */; };
 		8FDA1D902D28A3B2DD5AA4BF /* 2.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 22736C3DC1ED7B0010E2C563 /* 2.JPG */; };
 		9034B480E2A8336CB09F8397 /* FileLikeBlockReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685C1845A374D0047B22E7C5 /* FileLikeBlockReader.swift */; };
@@ -136,7 +137,6 @@
 		C4F9182CF6F11FE38DC99EBB /* MediaDescribing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16EA4CD7867931DF2907B89C /* MediaDescribing.swift */; };
 		C8E8FF58DFF729F50509D4EA /* OnboardingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78071D38AA47B2501C7EC1F4 /* OnboardingViewModelTests.swift */; };
 		CD159265DABBF289AD7F0068 /* ImageResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1DE416B891C3D16F5D6B672 /* ImageResizer.swift */; };
-		CFDA630F5D61D4E2C0028FC7 /* EncameraCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = D8D75BC66B1FCF6F6CDE98BF /* EncameraCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CFDC30E8A3DB64BAC077C503 /* KeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BA87A596813E76344EBBE5A /* KeyManager.swift */; };
 		D07558D048E53689F36C3156 /* FeatureToggles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DBC8FAF016D838A1FA3408C /* FeatureToggles.swift */; };
 		D17376FCAC2213C2AFF0EE81 /* ChunkedFilesProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32A8881AC9B48EAF4D069FA4 /* ChunkedFilesProcessing.swift */; };
@@ -187,6 +187,13 @@
 			remoteGlobalIDString = 00569D33CDF0C8B9A50A5F86;
 			remoteInfo = Encamera;
 		};
+		6B4145FCC7694E2568F2E3A5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A47DB3FD4772EE1BAC336831 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9CF4D2C84C0A7C198266EA5A;
+			remoteInfo = EncameraCore;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -196,7 +203,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				CFDA630F5D61D4E2C0028FC7 /* EncameraCore.framework in Embed Frameworks */,
+				8F34A9D6B3EC2F6E645F6089 /* EncameraCore.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -354,7 +361,6 @@
 		D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyDetailView.swift; sourceTree = "<group>"; };
 		D6F2E71821680D09E037004E /* 4.JPG */ = {isa = PBXFileReference; path = 4.JPG; sourceTree = "<group>"; };
 		D85AFFF69DE741F555B05A79 /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = debug.xcconfig; sourceTree = "<group>"; };
-		D8D75BC66B1FCF6F6CDE98BF /* EncameraCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = EncameraCore.framework; sourceTree = "<group>"; };
 		D9E040DE4298869CF563F016 /* DecryptErrorExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptErrorExplanation.swift; sourceTree = "<group>"; };
 		DCCD2933432968AEAD8C641E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DD2A007BFB3DF3F2BA4AB7D7 /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
@@ -389,7 +395,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */,
-				41F9F9B7C5C254998F54C15D /* EncameraCore.framework in Frameworks */,
+				4E4D098AA9729888925B554A /* EncameraCore.framework in Frameworks */,
 				112CE54F53B1EE09771F0D6F /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -589,7 +595,6 @@
 		50150E889AE54E765316DB1B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D8D75BC66B1FCF6F6CDE98BF /* EncameraCore.framework */,
 				F87130057593981EF7E23745 /* StoreKit.framework */,
 			);
 			name = Frameworks;
@@ -924,14 +929,14 @@
 			path = xcconfigs;
 			sourceTree = "<group>";
 		};
-		"TEMP_7B30EB5F-1A04-43B0-833A-5867848141A0" /* Utils */ = {
+		"TEMP_459001D0-0719-4A5F-B053-BD11489D4157" /* Utils */ = {
 			isa = PBXGroup;
 			children = (
 			);
 			path = Utils;
 			sourceTree = "<group>";
 		};
-		"TEMP_C9EBA744-D479-45EA-B91C-50D9F8179F7D" /* FileAccess */ = {
+		"TEMP_EDC2E5C7-CD43-4866-B7E3-9E4F19E4E884" /* FileAccess */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -964,6 +969,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F16A539E45659C62EE13B5D8 /* PBXTargetDependency */,
 			);
 			name = Encamera;
 			packageProductDependencies = (
@@ -1263,6 +1269,11 @@
 			isa = PBXTargetDependency;
 			target = 00569D33CDF0C8B9A50A5F86 /* Encamera */;
 			targetProxy = 4FBD0FFA0D0ABA143F7A822E /* PBXContainerItemProxy */;
+		};
+		F16A539E45659C62EE13B5D8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9CF4D2C84C0A7C198266EA5A /* EncameraCore */;
+			targetProxy = 6B4145FCC7694E2568F2E3A5 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

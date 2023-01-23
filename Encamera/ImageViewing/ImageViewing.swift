@@ -7,7 +7,7 @@
 
 import SwiftUI
 import Combine
-import PDFKit
+import EncameraCore
 
 enum MediaViewingError: ErrorDescribable {
     case noKeyAvailable

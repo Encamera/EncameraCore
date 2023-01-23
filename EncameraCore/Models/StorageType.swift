@@ -32,12 +32,13 @@ public enum StorageType: String {
             return LocalStorageModel.self
         }
     }
+
     
 }
 
 extension StorageType: Identifiable, CaseIterable {
     public var id: Self { self }
-    var title: String {
+    public var title: String {
         switch self {
         case .icloud:
             return "iCloud"
@@ -46,7 +47,7 @@ extension StorageType: Identifiable, CaseIterable {
         }
     }
     
-    var iconName: String {
+    public var iconName: String {
         switch self {
         case .icloud:
             return "lock.icloud"
@@ -55,7 +56,7 @@ extension StorageType: Identifiable, CaseIterable {
         }
     }
     
-    var description: String {
+    public var description: String {
         switch self {
         case .icloud:
             return "Saves encrypted files to iCloud Drive."

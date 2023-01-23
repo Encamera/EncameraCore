@@ -68,7 +68,7 @@ public struct DataStorageUserDefaultsSetting: DataStorageSetting {
         return model
     }
     
-    func determineStorageModelFor(keyName: KeyName) -> DataStorageModel? {
+    public func determineStorageModelFor(keyName: KeyName) -> DataStorageModel? {
         
         let local = LocalStorageModel(keyName: keyName)
         if FileManager.default.fileExists(atPath: local.baseURL.path) {

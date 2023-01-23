@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import EncameraCore
+
 
 protocol TutorialView {
     var shouldShow: Bool { get }

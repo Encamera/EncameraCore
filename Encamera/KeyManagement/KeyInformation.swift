@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-
+import EncameraCore
 
 struct KeyInformation: View {
     

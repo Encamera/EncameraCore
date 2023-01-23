@@ -8,9 +8,9 @@
 import Foundation
 import UIKit
 
-class LocalDeeplinkingUtils {
+public class LocalDeeplinkingUtils {
     
-    static func openInFiles<T: MediaDescribing>(media: T) where T.MediaSource == URL {
+    public static func openInFiles<T: MediaDescribing>(media: T) where T.MediaSource == URL {
         guard let url = media.source.driveDeeplink() else {
             debugPrint("Could not create deeplink")
             return
@@ -19,7 +19,7 @@ class LocalDeeplinkingUtils {
         UIApplication.shared.open(url)
     }
     
-    static func openKeyContentsInFiles(keyName: KeyName) {
+    public static func openKeyContentsInFiles(keyName: KeyName) {
         
         let storageSetting = DataStorageUserDefaultsSetting()
         let model = storageSetting.storageModelFor(keyName: keyName)
@@ -31,7 +31,7 @@ class LocalDeeplinkingUtils {
         UIApplication.shared.open(url)
     }
     
-    static func deeplinkFor(key: PrivateKey) -> URL? {
+    public static func deeplinkFor(key: PrivateKey) -> URL? {
         
         return URLType.key(key: key).url
     }

@@ -8,6 +8,8 @@
 import Foundation
 import AVFoundation
 import Combine
+import EncameraCore
+
 
 class DemoCameraService: CameraConfigurationServicable {
     var session: AVCaptureSession

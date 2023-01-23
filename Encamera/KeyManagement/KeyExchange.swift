@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import EncameraCore
+
 
 class KeyExchangeViewModel: ObservableObject {
     

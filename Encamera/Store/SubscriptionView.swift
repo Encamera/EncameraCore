@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import StoreKit
+import EncameraCore
 
 
 struct SubscriptionStoreView: View {

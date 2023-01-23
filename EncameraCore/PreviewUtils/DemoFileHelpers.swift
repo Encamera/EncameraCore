@@ -212,7 +212,7 @@ public class DemoKeyManager: KeyManager {
     }
     
     
-    var storedKeysValue: [PrivateKey] = []
+    public var storedKeysValue: [PrivateKey] = []
     
     func deleteKey(by name: KeyName) throws {
         
@@ -268,15 +268,15 @@ public class DemoKeyManager: KeyManager {
 }
 
 public class DemoOnboardingManager: OnboardingManaging {
-    required init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager) {
+    required public init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager) {
         
     }
     
-    func generateOnboardingFlow() -> [OnboardingFlowScreen] {
+    public func generateOnboardingFlow() -> [OnboardingFlowScreen] {
         return [.enterExistingPassword]
     }
     
-    func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
+    public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
         
     }
     
@@ -284,7 +284,7 @@ public class DemoOnboardingManager: OnboardingManaging {
 }
 
 public class DemoStorageSettingsManager: DataStorageSetting {
-    
+    public init() {}
     public func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
         return LocalStorageModel(keyName: keyName!)
     }
@@ -297,7 +297,7 @@ public class DemoStorageSettingsManager: DataStorageSetting {
 }
 
 public class DemoPrivateKey {
-    static func dummyKey(name: String) -> PrivateKey {
+    public static func dummyKey(name: String) -> PrivateKey {
         let hash: Array<UInt8> = Sodium().secretStream.xchacha20poly1305.key()
         let dateComponents = DateComponents(timeZone: TimeZone(identifier: "Europe/Berlin"), year: 2022, month: Int.random(in: 1..<12), day: Int.random(in: 1..<28), hour: Int.random(in: 1..<11), minute: 0, second: 0)
         let date = Calendar(identifier: .gregorian).date(from: dateComponents)
@@ -314,12 +314,14 @@ public class DemoPrivateKey {
     }
 }
 
-class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
+public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
+    
+    public init() {}
     func requestProducts() async {
         
     }
     
-    func isAllowedAccess(feature: AppFeature) -> Bool {
+    public func isAllowedAccess(feature: AppFeature) -> Bool {
         return false
     }
     

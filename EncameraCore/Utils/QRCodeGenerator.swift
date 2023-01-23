@@ -10,9 +10,9 @@ import UIKit
 import CoreImage
 import CoreImage.CIFilterBuiltins
 
-class QRCodeGenerator {
+public class QRCodeGenerator {
     
-    static func generateQRCode(from string: String, size: CGSize) -> UIImage {
+    public static func generateQRCode(from string: String, size: CGSize) -> UIImage {
         let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
         

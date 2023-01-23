@@ -8,6 +8,7 @@
 import SwiftUI
 import StoreKit
 import Combine
+import EncameraCore
 
 private enum SettingsViewMessage: String {
     case changePasswordSuccess = "Password successfully changed"

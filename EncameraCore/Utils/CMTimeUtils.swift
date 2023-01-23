@@ -9,7 +9,7 @@ import Foundation
 import CoreMedia
 
 extension CMTime {
-    var durationText: String {
+    public var durationText: String {
         let totalSeconds = Int(CMTimeGetSeconds(self))
         let hours:Int = Int(totalSeconds / 3600)
         let minutes:Int = Int(totalSeconds % 3600 / 60)

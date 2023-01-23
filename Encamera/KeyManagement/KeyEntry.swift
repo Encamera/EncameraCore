@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import EncameraCore
 
 struct KeyEntry: View {
     @Environment(\.dismiss) var dismiss

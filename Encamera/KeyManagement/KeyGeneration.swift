@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import EncameraCore
 
 enum KeyGenerationError: Error {
     case missingStorageType
