@@ -6,6 +6,17 @@ packages:
     url: https://github.com/jedisct1/swift-sodium.git
     branch: master
 targets:
+  EncameraCore:
+    type: framework
+    configFiles:
+      Debug: ./xcconfigs/debug.xcconfig
+      Release: ./xcconfigs/release.xcconfig
+    platform: iOS
+    deploymentTarget: "15.4"
+    sources: [EncameraCore]
+    dependencies:
+      - package: Sodium
+ 
   Encamera:
     type: application
     configFiles:

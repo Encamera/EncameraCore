@@ -1,0 +1,66 @@
+//
+//  AsyncVideoCaptureProcessor.swift
+//  Encamera
+//
+//  Created by Alexander Freas on 01.07.22.
+//
+
+import Foundation
+import AVFoundation
+import Combine
+
+class AsyncVideoCaptureProcessor: NSObject {
+    
+    private typealias VideoCaptureProcessorContinuation = CheckedContinuation<CleartextMedia<URL>, Error>
+    
+    private var continuation: VideoCaptureProcessorContinuation?
+    private let captureOutput: AVCaptureMovieFileOutput
+    private let durationSubject: PassthroughSubject<CMTime, Never> = .init()
+    private var cancellables = Set<AnyCancellable>()
+
+    let videoId = NSUUID().uuidString
+    let tempFileUrl: URL! = URL.tempMediaURL
+    
+    
+    var durationPublisher: AnyPublisher<CMTime, Never> {
+        durationSubject.eraseToAnyPublisher()
+    }
+
+    
+ 
+    required init(videoCaptureOutput: AVCaptureMovieFileOutput) {
+        self.captureOutput = videoCaptureOutput
+    }
+    
+    func takeVideo() async throws -> CleartextMedia<URL> {
+        return try await withCheckedThrowingContinuation({ (continuation: VideoCaptureProcessorContinuation) in
+            Timer.publish(every: 0.3, on: .main, in: .default).autoconnect().receive(on: DispatchQueue.main).sink { _ in
+                self.durationSubject.send(self.captureOutput.recordedDuration)
+            }.store(in: &cancellables)
+            self.captureOutput.startRecording(to: tempFileUrl, recordingDelegate: self)
+            self.continuation = continuation
+        })
+    }
+    
+    func stop() {
+        cancellables.forEach({$0.cancel()})
+        captureOutput.stopRecording()
+    }
+    
+}
+
+extension AsyncVideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
+    
+    
+    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
+        debugPrint(outputFileURL)
+        
+        let cleartextVideo = CleartextMedia(source: outputFileURL, mediaType: .video, id: videoId)
+        continuation?.resume(returning: cleartextVideo)
+    }
+    
+    func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
+    }
+    
+    
+}
