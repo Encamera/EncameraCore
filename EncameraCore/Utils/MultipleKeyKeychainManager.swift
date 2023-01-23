@@ -16,26 +16,26 @@ private enum KeychainConstants {
 }
 
 
-class MultipleKeyKeychainManager: ObservableObject, KeyManager {
+public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
-    var isAuthenticated: AnyPublisher<Bool, Never>
+    public var isAuthenticated: AnyPublisher<Bool, Never>
     private var authenticated: Bool = false
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
     private var passwordValidator = PasswordValidator()
-    var keyDirectoryStorage: DataStorageSetting
-    private (set) var currentKey: PrivateKey?  {
+    public var keyDirectoryStorage: DataStorageSetting
+    private (set) public var currentKey: PrivateKey?  {
         didSet {
             keySubject.send(currentKey)
         }
     }
-    var keyPublisher: AnyPublisher<PrivateKey?, Never> {
+    public var keyPublisher: AnyPublisher<PrivateKey?, Never> {
         keySubject.eraseToAnyPublisher()
     }
     
     private var keySubject: PassthroughSubject<PrivateKey?, Never> = .init()
     
-    required init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
+    required public init(isAuthenticated: AnyPublisher<Bool, Never>, keyDirectoryStorage: DataStorageSetting) {
         self.isAuthenticated = isAuthenticated
         self.keyDirectoryStorage = keyDirectoryStorage
         self.isAuthenticated.sink { newValue in
@@ -52,7 +52,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
     }
     
-    func clearKeychainData() {
+    public func clearKeychainData() {
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey
@@ -71,7 +71,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         print("Keychain data cleared")
     }
     
-    @discardableResult func generateNewKey(name: String, storageType: StorageType) throws -> PrivateKey {
+    @discardableResult public func generateNewKey(name: String, storageType: StorageType) throws -> PrivateKey {
         
         try checkAuthenticated()
         
@@ -91,13 +91,13 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         return key
     }
     
-    func validateKeyName(name: String) throws {
+    public func validateKeyName(name: String) throws {
         guard name.count > KeychainConstants.minKeyLength else {
             throw KeyManagerError.keyNameError
         }
     }
     
-    func createBackupDocument() throws -> String {
+    public func createBackupDocument() throws -> String {
         let keys = try storedKeys()
         
         return keys.map { key in
@@ -105,7 +105,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }.joined(separator: "\n").appending("\n\nCopy the code into the \"Key Entry\" form in the app to use it again.")
     }
     
-    func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool) throws {
+    public func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool) throws {
         let query = key.keychainQueryDictForKeychain
         let status = SecItemAdd(query as CFDictionary, nil)
         try checkStatus(status: status)
@@ -116,7 +116,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }
     }
     
-    func storedKeys() throws -> [PrivateKey] {
+    public func storedKeys() throws -> [PrivateKey] {
         try checkAuthenticated()
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
@@ -144,7 +144,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         return keys
     }
     
-    func deleteKey(_ key: PrivateKey) throws {
+    public func deleteKey(_ key: PrivateKey) throws {
         try checkAuthenticated()
         let key = try getKey(by: key.name)
         let query = key.keychainQueryDictForKeychain
@@ -155,7 +155,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }
     }
     
-    func setActiveKey(_ name: KeyName?) throws {
+    public func setActiveKey(_ name: KeyName?) throws {
         try checkAuthenticated {
             self.currentKey = nil
         }
@@ -205,7 +205,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
     }
     
-    func passwordExists() -> Bool {
+    public func passwordExists() -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -223,7 +223,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         return item != nil
     }
     
-    func setPassword(_ password: String) throws {
+    public func setPassword(_ password: String) throws {
         let hashed = try hashFrom(password: password)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -235,7 +235,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         try checkStatus(status: setPasswordStatus)
     }
     
-    func changePassword(newPassword: String, existingPassword: String) throws {
+    public func changePassword(newPassword: String, existingPassword: String) throws {
         guard try checkPassword(existingPassword) == true else {
             throw KeyManagerError.invalidPassword
         }
@@ -253,7 +253,7 @@ class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         try setPassword(newPassword)
     }
     
-    func checkPassword(_ password: String) throws -> Bool {
+    public func checkPassword(_ password: String) throws -> Bool {
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

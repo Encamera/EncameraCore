@@ -70,7 +70,7 @@ public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, Observabl
     
     let subscriptionController = StoreActor.shared.subscriptionController
     let purchaseController = StoreActor.shared.productController
-    init() {
+    public init() {
     }
     
     
