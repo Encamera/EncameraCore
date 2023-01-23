@@ -7,9 +7,7 @@
 		<key>NSExtensionAttributes</key>
 		<dict>
 			<key>NSExtensionActivationRule</key>
-			<string>SUBQUERY($extensionItem.attachments, $attachment, 
-    ANY $attachment.registeredTypeIdentifiers 
-    UTI-CONFORMS-TO "public.image").@count &gt;= 1</string>
+			<string>TRUEPREDICATE</string>
 		</dict>
 		<key>NSExtensionMainStoryboard</key>
 		<string>MainInterface</string>

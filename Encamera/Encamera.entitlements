@@ -14,5 +14,9 @@
 	<array>
 		<string>iCloud.Encamera</string>
 	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.me.freas.encamera</string>
+	</array>
 </dict>
 </plist>

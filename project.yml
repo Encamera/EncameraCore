@@ -17,6 +17,36 @@ targets:
     dependencies:
       - package: Sodium
  
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    sources: [ShareExtension]
+    dependencies:
+      - package: Sodium
+      - target: EncameraCore
+        embed: true
+    settings:
+      DEVELOPMENT_TEAM: KGJCC745S9
+      PRODUCT_BUNDLE_IDENTIFIER: me.freas.encamera.ShareExtension
+      CLANG_CXX_LANGUAGE_STANDARD: "gnu++20"
+      CODE_SIGN_IDENTITY: "iPhone Developer"
+      CODE_SIGN_STYLE: Automatic
+      CURRENT_PROJECT_VERSION: 1
+      DEVELOPMENT_TEAM: KGJCC745S9
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_FILE: ShareExtension/Info.plist
+      INFOPLIST_KEY_CFBundleDisplayName: ShareExtension
+      INFOPLIST_KEY_NSHumanReadableCopyright: ""
+      IPHONEOS_DEPLOYMENT_TARGET: 16.2
+      MARKETING_VERSION: 1.0
+      PRODUCT_BUNDLE_IDENTIFIER: me.freas.encamera.ShareExtension
+      PRODUCT_NAME: "$(TARGET_NAME)"
+      SKIP_INSTALL: YES
+      SWIFT_EMIT_LOC_STRINGS: YES
+      SWIFT_VERSION: 5.0
+      TARGETED_DEVICE_FAMILY: "1,2"
+
+ 
   Encamera:
     type: application
     configFiles:
@@ -36,6 +66,7 @@ targets:
       TARGETED_DEVICE_FAMILY: "1"
     dependencies:
       - package: Sodium
+      - target: ShareExtension
       - target: EncameraCore
         embed: true
       - framework: StoreKit.framework

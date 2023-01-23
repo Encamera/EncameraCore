@@ -14,6 +14,7 @@ struct EncameraApp: App {
         @Published var showScreenBlocker: Bool = true
         @Published var showOnboarding = false
         @Published var isAuthenticated = false
+        @Published var hasSharedMedia: Bool = false
         var openedUrl: URL?
         var keyManager: KeyManager
         var cameraService: CameraConfigurationService
@@ -125,6 +126,11 @@ struct EncameraApp: App {
         private func setupWith(key: PrivateKey?) {
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
+                guard (key != nil) else { return }
+                await MainActor.run {
+                    let data = SharedFileAccess.getSharedCleartextData()
+                    self.hasSharedMedia = data != nil
+                }
             }
         }
     }
@@ -143,6 +149,9 @@ struct EncameraApp: App {
                 purchaseManager: viewModel.purchasedPermissions
             ))
                 .preferredColorScheme(.dark)
+                .sheet(isPresented: $viewModel.hasSharedMedia) {
+                    ShareHandling(cleartextData: SharedFileAccess.getSharedCleartextData()!, fileAccess: viewModel.fileAccess)
+                }
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     if let url = viewModel.openedUrl,
                        let urlType = URLType(url: url),

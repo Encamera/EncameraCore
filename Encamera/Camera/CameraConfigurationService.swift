@@ -348,7 +348,7 @@ private extension CameraConfigurationService {
     private func addMetadataOutputToSession() throws {
         let metadataOutput = AVCaptureMetadataOutput()
         guard session.canAddOutput(metadataOutput) else {
-            throw SetupError.couldNotAddMetadataOutputToSession
+            return
         }
         session.addOutput(metadataOutput)
         metadataOutput.setMetadataObjectsDelegate(metadataProcessor, queue: .main)

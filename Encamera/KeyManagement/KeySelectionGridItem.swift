@@ -133,7 +133,7 @@ class KeySelectionGridViewModel: ObservableObject {
         self.purchaseManager = purchaseManager
         self.fileManager = fileManager
         self.keyManager = keyManager
-        keyManager.keyPublisher.receive(on: DispatchQueue.main).sink { key in
+            keyManager.keyPublisher.receive(on: DispatchQueue.main).sink { key in
             self.loadKeys()
         }.store(in: &cancellables)
         loadKeys()
