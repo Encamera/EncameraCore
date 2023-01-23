@@ -9,10 +9,10 @@ import Foundation
 import StoreKit
 
 @globalActor public actor StoreActor {
-    static let unlimitedMonthlyID = "subscription.monthly.unlimitedkeysandphotos"
-    static let unlimitedYearlyID = "subscription.yearly.unlimitedkeysandphotos"
-    static let lifetimeUnlimitedBasic = "purchase.lifetimeunlimitedbasic"
-    static let lifetimeUnlimitedBasicFamily = "purchase.lifetimeunlimitedbasicfamily"
+    static public let unlimitedMonthlyID = "subscription.monthly.unlimitedkeysandphotos"
+    static public let unlimitedYearlyID = "subscription.yearly.unlimitedkeysandphotos"
+    static public let lifetimeUnlimitedBasic = "purchase.lifetimeunlimitedbasic"
+    static public let lifetimeUnlimitedBasicFamily = "purchase.lifetimeunlimitedbasicfamily"
     
     public static let subscriptionIDs: Set<String> = [
         unlimitedYearlyID,
@@ -56,7 +56,7 @@ import StoreKit
         return loadedProducts[productID]
     }
     
-    func presentCodeRedemptionSheet() {
+    public func presentCodeRedemptionSheet() {
         paymentQueue.presentCodeRedemptionSheet()
     }
     

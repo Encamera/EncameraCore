@@ -16,7 +16,7 @@ public enum URLType: Equatable {
     case key(key: PrivateKey)
     case featureToggle(feature: Feature)
     
-    init?(url: URL) {
+    public init?(url: URL) {
         if let key = URLType.extractKey(url: url) {
             self = .key(key: key)
         } else if let media = URLType.extractMediaSource(url: url) {

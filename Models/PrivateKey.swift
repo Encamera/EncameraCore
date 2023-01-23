@@ -29,13 +29,13 @@ public struct PrivateKey: Codable {
         case creationDate
     }
     
-    init(name: String, keyBytes: Array<UInt8>, creationDate: Date) {
+    public init(name: String, keyBytes: Array<UInt8>, creationDate: Date) {
         self.name = name
         self.keyBytes = keyBytes
         self.creationDate = creationDate
     }
     
-    init(base64String: String) throws {
+    public init(base64String: String) throws {
         guard let data = Data(base64Encoded: base64String) else {
             throw ImageKeyEncodingError.invalidBase64Data
         }
@@ -75,7 +75,7 @@ public struct PrivateKey: Codable {
 
         return name.replacingOccurrences(of: keyPrefix, with: "")
     }
-    var base64String: String? {
+    public var base64String: String? {
         return try? String(data: JSONEncoder().encode(self).base64EncodedData(), encoding: .utf8)
     }
     

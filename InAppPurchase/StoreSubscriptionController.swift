@@ -11,11 +11,11 @@ import Combine
 
 @MainActor
 public final class StoreSubscriptionController: ObservableObject {
-    @Published var subscriptions: [ServiceSubscription] = []
-    @Published private(set) var entitledSubscriptionID: String?
-    @Published private(set) var autoRenewPreference: String?
-    @Published private(set) var purchaseError: (any LocalizedError)?
-    @Published private(set) var expirationDate: Date?
+    @Published public var subscriptions: [ServiceSubscription] = []
+    @Published private(set) public var entitledSubscriptionID: String?
+    @Published private(set) public var autoRenewPreference: String?
+    @Published private(set) public var purchaseError: (any LocalizedError)?
+    @Published private(set) public var expirationDate: Date?
     
     private let productIDs: [String]
     
@@ -23,7 +23,7 @@ public final class StoreSubscriptionController: ObservableObject {
         subscriptions.first?.subscriptionGroupID
     }
     
-    var entitledSubscription: ServiceSubscription? {
+    public var entitledSubscription: ServiceSubscription? {
         subscriptions.first { $0.id == entitledSubscriptionID }
     }
     
@@ -39,7 +39,7 @@ public final class StoreSubscriptionController: ObservableObject {
     }
     
     
-    func purchase(option subscription: ServiceSubscription) async -> PurchaseFinishedAction {
+    public func purchase(option subscription: ServiceSubscription) async -> PurchaseFinishedAction {
         let action: PurchaseFinishedAction
         do {
             let result = try await subscription.product.purchase()

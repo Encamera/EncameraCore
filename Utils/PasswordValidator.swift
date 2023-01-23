@@ -8,14 +8,14 @@
 import Foundation
 
 
-enum PasswordValidation {
+public enum PasswordValidation {
     case notDetermined
     case valid
     case invalidTooShort
     case invalidDifferent
     case invalidTooLong
     
-    var validationDescription: String {
+    public var validationDescription: String {
         switch self {
         case .notDetermined:
             return "Not determined."
@@ -35,8 +35,10 @@ enum PasswordValidation {
     static let maxPasswordLength = 30
 }
 
-struct PasswordValidator {
-    func validate(password: String) -> PasswordValidation {
+public struct PasswordValidator {
+    
+    public init() {}
+    public func validate(password: String) -> PasswordValidation {
         let validationState: PasswordValidation
         switch (password) {
         case password where password.count > PasswordValidation.maxPasswordLength:
@@ -50,7 +52,7 @@ struct PasswordValidator {
 
     }
     
-    func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
+    public func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
         let validationState: PasswordValidation
         switch (password1, password2) {
         case (password2, password1):

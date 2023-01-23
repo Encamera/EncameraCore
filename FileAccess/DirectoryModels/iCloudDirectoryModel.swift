@@ -8,20 +8,21 @@
 import Foundation
 import Combine
 
-class iCloudStorageModel: DataStorageModel {
+public class iCloudStorageModel: DataStorageModel {
     
-    var storageType: StorageType {
+    public var storageType: StorageType {
         .icloud
     }
     
-    let keyName: KeyName
     
-    required init(keyName: KeyName) {
+    public let keyName: KeyName
+    
+    required public init(keyName: KeyName) {
         self.keyName = keyName
     }
     
     private var localCancellables = Set<AnyCancellable>()
-    var baseURL: URL {
+    public var baseURL: URL {
         guard let driveURL = FileManager.default
             .url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
             fatalError("Could not get drive url")
@@ -31,13 +32,13 @@ class iCloudStorageModel: DataStorageModel {
         return destURL
     }
     
-    func triggerDownloadOfAllFilesFromiCloud() {
+    public func triggerDownloadOfAllFilesFromiCloud() {
         enumeratorForStorageDirectory().forEach({
             try? FileManager.default.startDownloadingUbiquitousItem(at: $0)
         })
     }
     
-    func resolveDownloadedMedia<T: MediaDescribing>(media: T) throws -> T? where T.MediaSource == URL {
+    public func resolveDownloadedMedia<T: MediaDescribing>(media: T) throws -> T? where T.MediaSource == URL {
         if FileManager.default.fileExists(atPath: media.downloadedSource.path) {
             if let downloaded = T(source: media.downloadedSource) {
                 return downloaded

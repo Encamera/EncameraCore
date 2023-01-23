@@ -8,7 +8,7 @@
 import Foundation
 
 
-enum OnboardingState: Codable, Equatable {
+public enum OnboardingState: Codable, Equatable {
     case completed
     case notStarted
     case hasPasswordAndNotOnboarded
@@ -31,7 +31,7 @@ enum OnboardingState: Codable, Equatable {
 }
 
 
-enum OnboardingFlowScreen: Int, Identifiable {
+public enum OnboardingFlowScreen: Int, Identifiable {
     case intro
     case enterExistingPassword
     case setPassword
@@ -39,11 +39,11 @@ enum OnboardingFlowScreen: Int, Identifiable {
     case setupPrivateKey
     case dataStorageSetting
     case finished
-    var id: Self { self }
+    public var id: Self { self }
 }
 
-enum OnboardingManagerError: Error, Equatable {
-    static func == (lhs: OnboardingManagerError, rhs: OnboardingManagerError) -> Bool {
+public enum OnboardingManagerError: Error, Equatable {
+    public static func == (lhs: OnboardingManagerError, rhs: OnboardingManagerError) -> Bool {
         switch (lhs, rhs) {
         case (.couldNotSerialize, .couldNotSerialize):
             return true
@@ -70,14 +70,14 @@ enum OnboardingManagerError: Error, Equatable {
     case unknownError
 }
 
-protocol OnboardingManaging {
+public protocol OnboardingManaging {
     init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager)
     func generateOnboardingFlow() -> [OnboardingFlowScreen]
     func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws
 }
 
-class OnboardingManagerObservable {
-    @Published var onboardingState: OnboardingState = .notStarted {
+public class OnboardingManagerObservable {
+    @Published public var onboardingState: OnboardingState = .notStarted {
         didSet {
             let showOnboarding: Bool
             switch onboardingState {
@@ -94,7 +94,7 @@ class OnboardingManagerObservable {
         }
     }
     
-    @Published var shouldShowOnboarding: Bool = true
+    @Published public var shouldShowOnboarding: Bool = true
 
 }
 
@@ -103,7 +103,7 @@ public class OnboardingManager: OnboardingManaging {
     private enum Constants {
         static var onboardingStateKey = "onboardingState"
     }
-    var observables: OnboardingManagerObservable
+    public var observables: OnboardingManagerObservable
     
     private var keyManager: KeyManager
     private var authManager: AuthManager
@@ -133,7 +133,7 @@ public class OnboardingManager: OnboardingManaging {
         
     }
     
-    func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
+    public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
         debugPrint("onboarding state", state)
         switch state {
         case .completed:
@@ -165,12 +165,12 @@ public class OnboardingManager: OnboardingManaging {
 
     }
     
-    @discardableResult func loadOnboardingState() throws -> OnboardingState {
+    @discardableResult public func loadOnboardingState() throws -> OnboardingState {
         observables.onboardingState = try getOnboardingStateFromDefaults()
         return observables.onboardingState
     }
     
-    func generateOnboardingFlow() -> [OnboardingFlowScreen] {
+    public func generateOnboardingFlow() -> [OnboardingFlowScreen] {
         var screens: [OnboardingFlowScreen] = [.intro]
         if keyManager.passwordExists() {
             screens += [.enterExistingPassword]
