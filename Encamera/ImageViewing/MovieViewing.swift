@@ -8,6 +8,7 @@
 import SwiftUI
 import AVKit
 import Combine
+import EncameraCore
 
 class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, MediaViewingViewModel {
     var fileAccess: FileAccess?

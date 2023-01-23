@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import EncameraCore
 
 enum CameraModeSelection: Int, CaseIterable {
     case photo

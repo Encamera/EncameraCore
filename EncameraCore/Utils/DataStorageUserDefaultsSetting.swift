@@ -41,7 +41,7 @@ public extension DataStorageSetting {
     }
 }
 
-struct DataStorageUserDefaultsSetting: DataStorageSetting {
+public struct DataStorageUserDefaultsSetting: DataStorageSetting {
     
     private enum Constants {
         static func directoryTypeKeyFor(keyName: KeyName) -> String {
@@ -49,7 +49,9 @@ struct DataStorageUserDefaultsSetting: DataStorageSetting {
         }
     }
     
-    func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
+    public init() {}
+    
+    public func storageModelFor(keyName: KeyName?) -> DataStorageModel? {
         
         guard let keyName = keyName else {
             return nil
@@ -88,7 +90,7 @@ struct DataStorageUserDefaultsSetting: DataStorageSetting {
         return nil
     }
     
-    func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
+    public func setStorageTypeFor(keyName: KeyName, directoryModelType: StorageType) {
         UserDefaultUtils.set(directoryModelType.rawValue, forKey: .directoryTypeKeyFor(keyName: keyName))
         
     }

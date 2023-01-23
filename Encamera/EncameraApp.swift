@@ -1,6 +1,8 @@
 import SwiftUI
 import Combine
 import MediaPlayer
+import EncameraCore
+
 @main
 struct EncameraApp: App {
     class ViewModel: ObservableObject {

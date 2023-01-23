@@ -169,6 +169,8 @@ public class DemoKeyManager: KeyManager {
             hasExistingPassword = password != nil
         }
     }
+    
+    
     public func createBackupDocument() throws -> String {
         return ""
     }
@@ -233,11 +235,11 @@ public class DemoKeyManager: KeyManager {
     }
     
     
-    convenience init() {
+    public convenience init() {
         self.init(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
     }
     
-    convenience init(keys: [PrivateKey]) {
+    public convenience init(keys: [PrivateKey]) {
         self.init(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
         self.storedKeysValue = keys
     }

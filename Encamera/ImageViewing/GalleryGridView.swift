@@ -7,7 +7,7 @@
 
 import SwiftUI
 import Combine
-
+import EncameraCore
 
 @MainActor
 class GalleryGridViewModel: ObservableObject {

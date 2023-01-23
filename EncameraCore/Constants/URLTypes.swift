@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum URLType: Equatable {
+public enum URLType: Equatable {
     
     private static var keyDataQueryParam = "data"
     private static var featureToggleQueryParam = "feature"

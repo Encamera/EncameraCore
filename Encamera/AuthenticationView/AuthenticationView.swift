@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import EncameraCore
 
 private enum AuthenticationViewError: ErrorDescribable {
     case noPasswordGiven

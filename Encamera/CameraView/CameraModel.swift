@@ -11,6 +11,7 @@ import Combine
 import UIKit
 import MediaPlayer
 import SwiftUI
+import EncameraCore
 
 final class CameraModel: ObservableObject {
     var service: CameraConfigurationService

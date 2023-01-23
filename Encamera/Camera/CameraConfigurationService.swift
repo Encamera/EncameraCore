@@ -8,6 +8,7 @@
 import Foundation
 import AVFoundation
 import Combine
+import EncameraCore
 
     enum LivePhotoMode {
         case on
@@ -71,7 +72,7 @@ class CameraConfigurationServiceModel {
     @Published var orientation: AVCaptureVideoOrientation = .portrait
 }
 
-actor CameraConfigurationService: CameraConfigurationServicable {
+public actor CameraConfigurationService: CameraConfigurationServicable {
     
     let session = AVCaptureSession()
     let model: CameraConfigurationServiceModel

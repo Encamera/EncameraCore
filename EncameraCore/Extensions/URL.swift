@@ -8,7 +8,7 @@
 import Foundation
 
 extension URL {
-    static var tempMediaURL: URL {
+    public static var tempMediaURL: URL {
         URL(fileURLWithPath: NSTemporaryDirectory(),
                                     isDirectory: true)
         .appendingPathComponent("current")

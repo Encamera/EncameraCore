@@ -7,6 +7,6 @@
 
 import Foundation
 
-protocol ErrorDescribable: Error {
+public protocol ErrorDescribable: Error {
     var displayDescription: String { get }
 }

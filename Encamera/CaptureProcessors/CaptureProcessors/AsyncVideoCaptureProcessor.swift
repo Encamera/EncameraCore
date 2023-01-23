@@ -8,6 +8,7 @@
 import Foundation
 import AVFoundation
 import Combine
+import EncameraCore
 
 class AsyncVideoCaptureProcessor: NSObject {
     

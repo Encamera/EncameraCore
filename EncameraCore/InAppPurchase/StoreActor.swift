@@ -39,8 +39,8 @@ import StoreKit
     private var storefrontUpdatesTask: Task<Void, Never>?
     private var paymentQueue = SKPaymentQueue()
 
-    nonisolated let subscriptionController: StoreSubscriptionController
-    nonisolated let productController: StoreProductController
+    public nonisolated let subscriptionController: StoreSubscriptionController
+    public nonisolated let productController: StoreProductController
     
     init() {
         self.subscriptionController = StoreSubscriptionController(productIDs: Array(Self.subscriptionIDs))

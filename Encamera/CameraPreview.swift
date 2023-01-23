@@ -2,6 +2,7 @@ import SwiftUI
 import AVFoundation
 import Combine
 import MediaPlayer
+import EncameraCore
 
 struct CameraPreview: UIViewRepresentable {
     

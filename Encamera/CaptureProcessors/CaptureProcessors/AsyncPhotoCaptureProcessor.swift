@@ -11,6 +11,7 @@ import Foundation
 import AVFoundation
 import CoreImage
 import Combine
+import EncameraCore
 
 struct PhotoCaptureProcessorOutput {
     var photo: CleartextMedia<Data>?

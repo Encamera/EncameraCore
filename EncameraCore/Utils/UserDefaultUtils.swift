@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-struct UserDefaultUtils {
+public struct UserDefaultUtils {
     
     private static var defaults: UserDefaults {
         UserDefaults.standard
@@ -20,14 +20,16 @@ struct UserDefaultUtils {
     
     private static var defaultsSubject: PassthroughSubject = PassthroughSubject<(UserDefaultKey, Any?), Never>()
     
-    static func increaseInteger(forKey key: UserDefaultKey) {
+    public init() {}
+    
+    public static func increaseInteger(forKey key: UserDefaultKey) {
         var currentValue = value(forKey: key) as? Int ?? 0
         currentValue += 1
         set(currentValue, forKey: key)
         
     }
     
-    static func publisher(for observedKey: UserDefaultKey) -> AnyPublisher<Any?, Never> {
+    public static func publisher(for observedKey: UserDefaultKey) -> AnyPublisher<Any?, Never> {
         return defaultsPublisher.filter { key, value in
             return observedKey == key
         }.map { key, value in
@@ -35,28 +37,28 @@ struct UserDefaultUtils {
         }.eraseToAnyPublisher()
     }
     
-    static func set(_ value: Any?, forKey key: UserDefaultKey) {
+    public static func set(_ value: Any?, forKey key: UserDefaultKey) {
         defaults.set(value, forKey: key.rawValue)
         defaultsSubject.send((key, value))
     }
     
-    static func value(forKey key: UserDefaultKey) -> Any? {
+    public static func value(forKey key: UserDefaultKey) -> Any? {
         return defaults.value(forKey: key.rawValue)
     }
     
-    static func bool(forKey key: UserDefaultKey) -> Bool {
+    public static func bool(forKey key: UserDefaultKey) -> Bool {
         return defaults.bool(forKey: key.rawValue)
     }
     
-    static func removeObject(forKey key: UserDefaultKey) {
+    public static func removeObject(forKey key: UserDefaultKey) {
         return defaults.removeObject(forKey: key.rawValue)
     }
     
-    static func data(forKey key: UserDefaultKey) -> Data? {
+    public static func data(forKey key: UserDefaultKey) -> Data? {
         defaults.data(forKey: key.rawValue)
     }
     
-    static func removeAll() {
+    public static func removeAll() {
         defaults.dictionaryRepresentation().keys.forEach { key in
             defaults.removeObject(forKey: key)
         }

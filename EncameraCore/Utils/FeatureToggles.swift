@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum Feature: String {
+public enum Feature: String {
     case enableVideo
     
     var userDefaultsKey: String {
@@ -15,13 +15,13 @@ enum Feature: String {
     }
 }
 
-struct FeatureToggle {
+public struct FeatureToggle {
     
-    static func enable(feature: Feature) {
+    public static func enable(feature: Feature) {
         UserDefaultUtils.set(true, forKey: .featureToggle(feature: feature))
     }
     
-    static func isEnabled(feature: Feature) -> Bool {
+    public static func isEnabled(feature: Feature) -> Bool {
         return UserDefaultUtils.bool(forKey: .featureToggle(feature: feature))
     }
     

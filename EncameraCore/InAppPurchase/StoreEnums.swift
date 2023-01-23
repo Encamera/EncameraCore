@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum PurchaseFinishedAction {
+public enum PurchaseFinishedAction {
     case dismissStore
     case noAction
     case displayError

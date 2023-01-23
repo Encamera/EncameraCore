@@ -7,6 +7,7 @@
 
 import Combine
 import SwiftUI
+import EncameraCore
 
 struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identifiable where T.MediaSource == URL {
     

@@ -10,19 +10,19 @@ import LocalAuthentication
 import Combine
 import UIKit
 
-enum AuthManagerError: Error {
+public enum AuthManagerError: Error {
     case passwordIncorrect
     case biometricsFailed
     case biometricsNotAvailable
     case userCancelledBiometrics
 }
 
-enum AuthenticationMethod: Codable {
+public enum AuthenticationMethod: Codable {
     case touchID
     case faceID
     case password
     
-    var nameForMethod: String {
+    public var nameForMethod: String {
         switch self {
         case .touchID:
             return "Touch ID"
@@ -33,7 +33,7 @@ enum AuthenticationMethod: Codable {
         }
     }
     
-    var imageNameForMethod: String {
+    public var imageNameForMethod: String {
         switch self {
             
         case .touchID:
@@ -45,7 +45,7 @@ enum AuthenticationMethod: Codable {
         }
     }
     
-    static func methodFrom(biometryType: LABiometryType) -> AuthenticationMethod? {
+    public static func methodFrom(biometryType: LABiometryType) -> AuthenticationMethod? {
         switch biometryType {
         case .none:
             return nil
@@ -59,7 +59,7 @@ enum AuthenticationMethod: Codable {
     }
 }
 
-enum AuthManagerState: Equatable {
+public enum AuthManagerState: Equatable {
     case authenticated(with: AuthenticationMethod)
     case unauthenticated
 }
@@ -73,7 +73,7 @@ struct AuthenticationPolicy: Codable {
     }
 }
 
-protocol AuthManager {
+public protocol AuthManager {
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
     var isAuthenticated: Bool { get }
     var availableBiometric: AuthenticationMethod? { get }
@@ -86,7 +86,7 @@ protocol AuthManager {
     func waitForAuthResponse() async -> AuthManagerState
 }
 
-class DeviceAuthManager: AuthManager {
+public class DeviceAuthManager: AuthManager {
     
     var context: LAContext {
         let context = LAContext()
@@ -95,7 +95,7 @@ class DeviceAuthManager: AuthManager {
     }
     
     var _availableBiometric: AuthenticationMethod?
-    var availableBiometric: AuthenticationMethod? {
+    public var availableBiometric: AuthenticationMethod? {
         if let _availableBiometric = _availableBiometric {
             return _availableBiometric
         }
@@ -106,11 +106,12 @@ class DeviceAuthManager: AuthManager {
         return _availableBiometric
     }
     
-    var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
+    public var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
         isAuthenticatedSubject.eraseToAnyPublisher()
     }
     
-    private(set) var isAuthenticated: Bool = false {
+    
+    public private(set) var isAuthenticated: Bool = false {
         didSet {
             isAuthenticatedSubject.send(isAuthenticated)
         }
@@ -126,7 +127,7 @@ class DeviceAuthManager: AuthManager {
         }
     }
     
-    var canAuthenticateWithBiometrics: Bool {
+    public var canAuthenticateWithBiometrics: Bool {
         
         return availableBiometric == .faceID || availableBiometric == .touchID
     }
@@ -138,17 +139,17 @@ class DeviceAuthManager: AuthManager {
     private var generalCancellables = Set<AnyCancellable>()
     private var settingsManager: SettingsManager
     
-    init(settingsManager: SettingsManager) {
+    public init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
         setupNotificationObservers()
     }
     
 
-    func deauthorize() {
+    public func deauthorize() {
         authState = .unauthenticated
     }
     
-    func checkAuthorizationWithCurrentPolicy() async throws {
+    public func checkAuthorizationWithCurrentPolicy() async throws {
         
         guard case .unauthenticated = authState else {
             return
@@ -166,7 +167,7 @@ class DeviceAuthManager: AuthManager {
         return
     }
 
-    func waitForAuthResponse() async -> AuthManagerState {
+    public func waitForAuthResponse() async -> AuthManagerState {
         await waitForAuthResponse(delay: AppConstants.authenticationTimeout)
     }
     
@@ -190,7 +191,7 @@ class DeviceAuthManager: AuthManager {
         })
     }
     
-    func authorize(with password: String, using keyManager: KeyManager) throws {
+    public func authorize(with password: String, using keyManager: KeyManager) throws {
         let newState: AuthManagerState
         let check = try keyManager.checkPassword(password)
         if check {
@@ -201,7 +202,7 @@ class DeviceAuthManager: AuthManager {
         authState = newState
     }
     
-    @discardableResult func evaluateWithBiometrics() async throws -> Bool {
+    @discardableResult public func evaluateWithBiometrics() async throws -> Bool {
         cancelNotificationObservers()
         
                 
@@ -236,7 +237,7 @@ class DeviceAuthManager: AuthManager {
         return false
     }
     
-    func authorizeWithBiometrics() async throws {
+    public func authorizeWithBiometrics() async throws {
         guard let method = availableBiometric else {
             throw AuthManagerError.biometricsNotAvailable
         }

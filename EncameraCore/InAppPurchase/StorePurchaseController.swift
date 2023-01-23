@@ -10,7 +10,7 @@ import StoreKit
 import Combine
 
 @MainActor
-final class StoreProductController: ObservableObject {
+public final class StoreProductController: ObservableObject {
     @Published var products: [OneTimePurchase] = []
     @Published var purchasedProducts: [OneTimePurchase] = []
     @Published private(set) var isEntitled: Bool = false
@@ -25,7 +25,7 @@ final class StoreProductController: ObservableObject {
         }
     }
     
-    func purchase(product: OneTimePurchase) async -> PurchaseFinishedAction {
+    public func purchase(product: OneTimePurchase) async -> PurchaseFinishedAction {
         let action: PurchaseFinishedAction
         
         do {

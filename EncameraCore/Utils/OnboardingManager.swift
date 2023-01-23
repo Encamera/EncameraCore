@@ -98,7 +98,7 @@ class OnboardingManagerObservable {
 
 }
 
-class OnboardingManager: OnboardingManaging {
+public class OnboardingManager: OnboardingManaging {
     
     private enum Constants {
         static var onboardingStateKey = "onboardingState"
@@ -109,7 +109,7 @@ class OnboardingManager: OnboardingManaging {
     private var authManager: AuthManager
     private var settingsManager: SettingsManager
     
-    required init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager) {
+    public required init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager) {
         self.keyManager = keyManager
         self.authManager = authManager
         self.settingsManager = settingsManager

@@ -18,6 +18,12 @@ public struct EraserUtils {
     public var fileAccess: FileAccess
     public var erasureScope: ErasureScope
     
+    public init(keyManager: KeyManager, fileAccess: FileAccess, erasureScope: ErasureScope) {
+        self.keyManager = keyManager
+        self.fileAccess = fileAccess
+        self.erasureScope = erasureScope
+    }
+    
     public func erase() async throws {
         switch erasureScope {
         case .appData:

@@ -71,8 +71,9 @@ struct SavedSettings: Codable, Equatable {
 }
 
 
-struct SettingsManager {
+public struct SettingsManager {
 
+    public init() {}
 
     func loadSettings() throws -> SavedSettings  {
         guard let value = UserDefaultUtils.value(forKey: .savedSettings) as? Data else {
