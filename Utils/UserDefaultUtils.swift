@@ -10,8 +10,10 @@ import Combine
 
 public struct UserDefaultUtils {
     
+    private static var appGroup = "group.me.freas.encamera"
+    
     private static var defaults: UserDefaults {
-        UserDefaults(suiteName: "group.me.freas.encamera")!
+        UserDefaults(suiteName: appGroup) ?? UserDefaults.standard
     }
     
     private static var defaultsPublisher: AnyPublisher<(UserDefaultKey, Any?), Never> {
@@ -35,6 +37,14 @@ public struct UserDefaultUtils {
         }.map { key, value in
             return value
         }.eraseToAnyPublisher()
+    }
+    
+    public static func integer(forKey key: UserDefaultKey) -> Int {
+        return defaults.integer(forKey: key.rawValue)
+    }
+    
+    public static func string(forKey key: UserDefaultKey) -> String? {
+        return defaults.string(forKey: key.rawValue)
     }
     
     public static func set(_ value: Any?, forKey key: UserDefaultKey) {
@@ -62,6 +72,34 @@ public struct UserDefaultUtils {
         defaults.dictionaryRepresentation().keys.forEach { key in
             defaults.removeObject(forKey: key)
         }
+    }
+    
+    public static func migrateUserDefaultsToAppGroups() {
+        
+        // User Defaults - Old
+        let userDefaults = UserDefaults.standard
+        
+        // App Groups Default - New
+        let groupDefaults = UserDefaults(suiteName: appGroup)
+        
+        // Key to track if we migrated
+        let didMigrateToAppGroups = "DidMigrateToAppGroups"
+        
+        if let groupDefaults = groupDefaults {
+            if !groupDefaults.bool(forKey: didMigrateToAppGroups) {
+                for (key, value) in userDefaults.dictionaryRepresentation() {
+                    groupDefaults.set(value, forKey: key)
+                }
+                groupDefaults.set(true, forKey: didMigrateToAppGroups)
+                groupDefaults.synchronize()
+                print("Successfully migrated defaults")
+            } else {
+                print("No need to migrate defaults")
+            }
+        } else {
+            print("Unable to create NSUserDefaults with given app group")
+        }
+        
     }
     
 }

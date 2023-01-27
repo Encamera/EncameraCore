@@ -17,6 +17,8 @@ public enum UserDefaultKey {
     case savedSettings
     case capturedPhotos
     case featureToggle(feature: Feature)
+    case viewGalleryCount
+    case lastVersionReviewRequested
     
     var rawValue: String {
         switch self {
