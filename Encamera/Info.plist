@@ -45,7 +45,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>1.1.1</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -54,8 +54,6 @@
 	<string>Encamera needs access to your camera to capture photo and video</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to keep your keys safe</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Encamera captures photos and saves them with an encryption key</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.Encamera</key>

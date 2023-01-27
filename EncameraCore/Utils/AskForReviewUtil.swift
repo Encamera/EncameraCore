@@ -34,7 +34,10 @@ public class AskForReviewUtil {
                     return
                 }
                 
-                await SKStoreReviewController.requestReview(in: currentScene)
+                await MainActor.run {
+                    SKStoreReviewController.requestReview(in: currentScene)
+                }
+                
                 UserDefaultUtils.set(currentVersion, forKey: .lastVersionReviewRequested)
             }
         }
