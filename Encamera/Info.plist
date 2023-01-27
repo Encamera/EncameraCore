@@ -51,7 +51,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Encamera needs access to your camera to capture photo and video</string>
+	<string>Encamera needs access to your camera to capture photos that it will encrypt.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to keep your keys safe</string>
 	<key>NSUbiquitousContainers</key>
