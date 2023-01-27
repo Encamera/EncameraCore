@@ -8,7 +8,7 @@
 import Foundation
 import UIKit
 import Combine
-@testable import Encamera
+@testable import EncameraCore
 
 class TempFilesManager {
     static var shared: TempFilesManager = TempFilesManager()

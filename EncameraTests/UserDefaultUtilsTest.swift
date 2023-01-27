@@ -8,7 +8,7 @@
 import Foundation
 import XCTest
 import Combine
-@testable import Encamera
+@testable import EncameraCore
 
 class UserDefaultsUtilsTest: XCTestCase {
     

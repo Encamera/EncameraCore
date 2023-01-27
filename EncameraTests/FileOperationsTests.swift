@@ -9,7 +9,7 @@ import Foundation
 import XCTest
 import Sodium
 import Combine
-@testable import Encamera
+@testable import EncameraCore
 
 class FileOperationsTests: XCTestCase {
     

@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-@testable import Encamera
+@testable import EncameraCore
 
 class MediaTypeTests: XCTestCase {
     

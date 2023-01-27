@@ -80,4 +80,8 @@ targets:
     sources: [EncameraTests]
     type: bundle.unit-test
     dependencies:
+      - package: Sodium
       - target: Encamera
+      - target: EncameraCore
+        embed: true
+

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import Encamera
+@testable import EncameraCore
 import XCTest
 
 class DateUtilsTests: XCTestCase {
