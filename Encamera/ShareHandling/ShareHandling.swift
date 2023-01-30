@@ -23,8 +23,8 @@ struct ShareHandling: View {
                         .resizable()
                         .scaledToFit()
                 }
-                .navigationTitle("Shared Media")
-                .navigationBarItems(trailing: Button("Save") {
+                .navigationTitle(L10n.sharedMedia)
+                .navigationBarItems(trailing: Button(L10n.save) {
                     Task {
                         try await fileAccess.save(media: CleartextMedia(source: cleartextData))
                         SharedFileAccess.deleteSharedData()

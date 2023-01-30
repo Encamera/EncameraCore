@@ -119,16 +119,16 @@ struct KeyGeneration: View {
         
         case .setupPrivateKey:
             return .init(
-                title: "New Key",
-                subheading: "New Key Subheading",
+                title: L10n.newKey,
+                subheading: L10n.newKeySubheading,
                 image: Image(systemName: "key.fill"),
-                bottomButtonTitle: "Next",
+                bottomButtonTitle: L10n.next,
                 bottomButtonAction: {
                     try viewModel.validateKeyName()
                 }) {
                     AnyView(
                         VStack {
-                            EncameraTextField("Key Name", text: $viewModel.keyName)
+                            EncameraTextField(L10n.keyName, text: $viewModel.keyName)
                                 .noAutoModification()
                                 
                                 
@@ -142,14 +142,10 @@ struct KeyGeneration: View {
         case .dataStorageSetting:
 
 
-            return .init(title: "Storage Settings",
-                         subheading: """
-Where do you want to store media for files encrypted with this key?
-
-Each key will store data in its own directory.
-""",
+            return .init(title: L10n.storageSettings,
+                         subheading: L10n.storageSettingsSubheading,
                          image: Image(systemName: ""),
-                         bottomButtonTitle: "Save Key") {
+                         bottomButtonTitle: L10n.saveKey) {
                 try saveKey()
                 throw OnboardingViewError.onboardingEnded
             } content: {
@@ -162,7 +158,7 @@ Each key will store data in its own directory.
                         }
                         StorageSettingView(viewModel: .init(), keyStorageType: binding)
                         if case .missingStorageType = viewModel.generalError {
-                            Text("Select a place to keep media for this key.")
+                            Text(L10n.selectAPlaceToKeepMediaForThisKey)
                                 .alertText()
                         }
                     }

@@ -167,7 +167,7 @@ struct EncameraApp: App {
                         }
                         
                     } else {
-                        Text("No private key or media found.")
+                        Text(L10n.noPrivateKeyOrMediaFound)
                             .fontType(.medium)
                     }
                 }
@@ -216,16 +216,16 @@ struct EncameraApp: App {
                         purchasedPermissions: viewModel.purchasedPermissions
                     )
                 ).toolbar {
-                    Button("Close") {
+                    Button(L10n.close) {
                         self.viewModel.promptToSaveMedia = true
                     }
                 }
-                .alert("Save this media?", isPresented: $viewModel.promptToSaveMedia) {
-                    Text("This will save the media to your library.")
-                    Button("Cancel", role: .cancel) {
+                .alert(L10n.saveThisMedia, isPresented: $viewModel.promptToSaveMedia) {
+                    Text(L10n.thisWillSaveTheMediaToYourLibrary)
+                    Button(L10n.cancel, role: .cancel) {
                         self.viewModel.hasOpenedURL = false
                     }
-                    Button("Save") {
+                    Button(L10n.save) {
                         viewModel.copyOpenedFile(media: media)
                     }
                 }

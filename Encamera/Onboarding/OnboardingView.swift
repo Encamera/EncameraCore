@@ -10,7 +10,7 @@ import SwiftUI
 
 struct OnboardingViewViewModel {
     var title: String
-    var subheading: LocalizedStringKey?
+    var subheading: String?
     var progress: (Int, Int) = (0, 0)
     var image: Image
     var bottomButtonTitle: String
@@ -93,16 +93,16 @@ struct OnboardingView_Previews: PreviewProvider {
                     AnyView(VStack(alignment: .leading, spacing: 10) {
                         Image("EncameraBanner")
                             .frame(maxWidth: .infinity, alignment: .center)
-                        Text("Ready to take back your media?")
+                        Text(L10n.readyToTakeBackYourMedia📸)
                             .fontType(.medium, weight: .bold)
-                        Text("Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.")
+                        Text(L10n.encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy)
                             .fontType(.small)
-                        Text("Key-based encryption 🔑")
+                        Text(L10n.keyBasedEncryption🔑)
                             .fontType(.medium, weight: .bold)
-                        Text("Your media is safely secured behind a key and stored locally on your device or cloud of choice.")
-                        Text("For your eyes only 👀")
+                        Text(L10n.yourMediaIsSafelySecuredBehindAKeyAndStoredLocallyOnYourDeviceOrCloudOfChoice)
+                        Text(L10n.forYourEyesOnly👀)
                             .fontType(.medium, weight: .bold)
-                        Text("No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy.")
+                        Text(L10n.NoTrackingNoFunnyBusiness.takeControlOfWhatSRightfullyYoursYourMediaYourDataYourPrivacy)
                             .fontType(.small)
                         Spacer()
                     })

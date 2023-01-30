@@ -29,7 +29,7 @@ struct KeyExchange: View {
             let frame = geo.frame(in: .global)
             
             VStack(alignment: .center) {
-                Text("Share your encryption key with someone you trust.\n\nSharing it with them means they can decrypt any media you share with them that is encrypted with this key.")
+                Text(L10n.ShareYourEncryptionKeyWithSomeoneYouTrust.sharingItWithThemMeansTheyCanDecryptAnyMediaYouShareWithThemThatIsEncryptedWithThisKey)
                     .fontType(.small)
                 
                 Spacer()
@@ -48,7 +48,7 @@ struct KeyExchange: View {
                 .background(Color.foregroundSecondary)
                 .cornerRadius(20)
                 
-                Button("Hold to reveal") {
+                Button(L10n.holdToReveal) {
                     
                 }.onLongPressGesture(perform: {
                     
@@ -62,7 +62,7 @@ struct KeyExchange: View {
             }
         }
         .padding(30)
-        .navigationTitle("Share Key")
+        .navigationTitle(L10n.shareKey)
         .background(Color.background)
         .screenBlocked()
     }

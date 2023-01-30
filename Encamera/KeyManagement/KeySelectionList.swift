@@ -103,7 +103,7 @@ struct KeySelectionList: View {
                         KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
                     }
                 } label: {
-                    KeyOperationCell(title: "Create New Key", imageName: "plus.app.fill")
+                    KeyOperationCell(title: L10n.createNewKey, imageName: "plus.app.fill")
                 }
                 let addExistingKeyActive = Binding<Bool> {
                     viewModel.isShowingAddExistingKeyView
@@ -118,7 +118,7 @@ struct KeySelectionList: View {
                         KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, dismiss: addExistingKeyActive))
                     }
                 } label: {
-                    KeyOperationCell(title: "Add Existing Key", imageName: "lock.doc.fill")
+                    KeyOperationCell(title: L10n.addExistingKey, imageName: "lock.doc.fill")
                 }
                 //                KeyOperationCell(title: "Backup Keys", imageName: "doc.on.doc.fill").onTapGesture {
                 //                    guard let doc = try? viewModel.keyManager.createBackupDocument() else {
@@ -129,7 +129,7 @@ struct KeySelectionList: View {
                 //                }
             }.listRowBackground(Color.foregroundSecondary)
             if viewModel.keys.count > 0 {
-                Section(header: Text("Keys")
+                Section(header: Text(L10n.keys)
                     .fontType(.small)) {
                         
                         if let activeKey = viewModel.activeKey {
@@ -151,7 +151,7 @@ struct KeySelectionList: View {
         .onAppear {
             viewModel.loadKeys()
         }
-        .navigationTitle("Key Management")
+        .navigationTitle(L10n.keyManagement)
     }
     
     func keyCell(model: KeySelectionListViewModel.KeyItemModel, isActive: Bool) -> some View {
@@ -168,7 +168,7 @@ struct KeySelectionList: View {
                         Text(key.name)
                             .fontType(.medium)
                         if isActive {
-                            Text("Active")
+                            Text(L10n.active)
                                 .foregroundColor(.activeKey)
                                 .fontType(.small)
                         }

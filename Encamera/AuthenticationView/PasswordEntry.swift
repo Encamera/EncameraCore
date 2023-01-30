@@ -19,7 +19,7 @@ class PasswordEntryViewModel: ObservableObject {
     typealias PasswordStateUpdate = (PasswordEntryState) -> Void
     @Published var password: String = ""
     var passwordBinding: Binding<String>?
-    var placeholderText = "Password"
+    var placeholderText = L10n.password
     var keyManager: KeyManager
     var stateUpdate: PasswordStateUpdate
     @Published var attempts: Int = 0
@@ -27,7 +27,7 @@ class PasswordEntryViewModel: ObservableObject {
     @Published var passwordState: PasswordEntryState 
     private var cancellables = Set<AnyCancellable>()
 
-    init(placeholderText: String = "Password", keyManager: KeyManager, passwordBinding: Binding<String>? = nil, stateUpdate: @escaping (PasswordEntryState) -> Void) {
+    init(placeholderText: String = L10n.password, keyManager: KeyManager, passwordBinding: Binding<String>? = nil, stateUpdate: @escaping (PasswordEntryState) -> Void) {
         self.passwordBinding = passwordBinding
         self.placeholderText = placeholderText
         self.stateUpdate = stateUpdate
@@ -86,7 +86,7 @@ struct PasswordEntry: View {
                 
             }
             if case .invalid = viewModel.passwordState {
-                Text("Invalid Password")
+                Text(L10n.invalidPassword)
                     .alertText()
                     .offset(viewModel.offset)
                     .animation(.spring(), value: viewModel.offset)
@@ -103,10 +103,3 @@ struct PasswordEntry: View {
 
     
 }
-
-//struct PasswordEntry_Previews: PreviewProvider {
-//    static var previews: some View {
-//        
-//        PasswordEntry(viewModel: .init(state: .constant(.invalid), keyManager: DemoKeyManager()))
-//    }
-//}

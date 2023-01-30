@@ -63,10 +63,10 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                         }
                     }
             } else if let error = viewModel.error {
-                Text("Could not decrypt movie: \(error.localizedDescription)")
+                Text(L10n.couldNotDecryptMovie(error.localizedDescription))
                     .foregroundColor(.red)
             } else {
-                ProgressView("Decrypting...", value: progress).onReceive(viewModel.$decryptProgress) { out in
+                ProgressView(L10n.decrypting, value: progress).onReceive(viewModel.$decryptProgress) { out in
                     self.progress = out
                 }.task {
                     await viewModel.decryptAndSet()

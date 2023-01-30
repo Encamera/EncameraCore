@@ -42,7 +42,7 @@ class KeyDetailViewModel: ObservableObject {
             try keyManager.deleteKey(key)
         } catch {
             
-            deleteActionError = "Error deleting key. Please try again."
+            deleteActionError = L10n.ErrorDeletingKey.pleaseTryAgain
             showDeleteActionError = true
             debugPrint("Error clearing keychain", error)
 
@@ -56,7 +56,7 @@ class KeyDetailViewModel: ObservableObject {
                 try keyManager.deleteKey(key)
             } catch {
                 await MainActor.run {
-                    deleteActionError = "Error deleting key and associated files. Please try again or try to delete files manually via the Files app."
+                    deleteActionError = L10n.ErrorDeletingKeyAndAssociatedFiles.pleaseTryAgainOrTryToDeleteFilesManuallyViaTheFilesApp
                     showDeleteActionError = true
                     debugPrint("Error deleting all files")
                 
@@ -90,22 +90,22 @@ struct KeyDetailView: View {
         GalleryGridView(viewModel: .init(privateKey: viewModel.key, blurImages: viewModel.blurImages)) {
             List {
                 Group {
-                    Button("Set Active") {
+                    Button(L10n.setActive) {
                         viewModel.setActive()
                         dismiss()
                     }
                     NavigationLink {
                         KeyInformation(key: viewModel.key, keyManagerError: .constant(nil))
                     } label: {
-                        Text("Key Info")
+                        Text(L10n.keyInfo)
                     }
                     NavigationLink {
                         KeyExchange(viewModel: .init(key: viewModel.key))
                     } label: {
-                        Text("Share Key")
+                        Text(L10n.shareKey)
                     }
                     
-                    Button("Copy to clipboard") {
+                    Button(L10n.copyToClipboard) {
                         let key = viewModel.key.base64String
                         let pasteboard = UIPasteboard.general
                         pasteboard.string = key
@@ -114,13 +114,13 @@ struct KeyDetailView: View {
                     Button {
                         isShowingAlertForClearKey = true
                     } label: {
-                        Text("Delete Key")
+                        Text(L10n.deleteKey)
                             .foregroundColor(.red)
                     }
                     Button {
                         isShowingAlertForDeleteAllKeyData = true
                     } label: {
-                        Text("Delete All Key Data")
+                        Text(L10n.deleteAllKeyData)
                             .foregroundColor(.red)
                     }
                 }.listRowBackground(Color.foregroundSecondary)
@@ -131,58 +131,58 @@ struct KeyDetailView: View {
             
         }
         .foregroundColor(.blue)
-        .alert("Copied to Clipboard", isPresented: $isShowingAlertForCopyKey, actions: {
-            Button("OK") {
+        .alert(L10n.copiedToClipboard, isPresented: $isShowingAlertForCopyKey, actions: {
+            Button(L10n.ok) {
                 isShowingAlertForCopyKey = false
             }
         }, message: {
-            Text("Key copied to clipboard. Store this in a password manager or other secure place.")
+            Text(L10n.KeyCopiedToClipboard.storeThisInAPasswordManagerOrOtherSecurePlace)
         })
-        .alert("Delete All Associated Data?", isPresented: $isShowingAlertForDeleteAllKeyData, actions: {
+        .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllKeyData, actions: {
             if #available(iOS 16.0, *) {
-                TextField("Key name", text: $viewModel.deleteKeyConfirmation)
+                TextField(L10n.keyName, text: $viewModel.deleteKeyConfirmation)
                     .noAutoModification()
             }
-            Button("Delete Everything", role: .destructive) {
+            Button(L10n.deleteEverything, role: .destructive) {
                 if viewModel.canDeleteKey() {
                     viewModel.deleteAllKeyData()
                     dismiss()
                 }
             }
-            Button("Cancel", role: .cancel) {
+            Button(L10n.cancel, role: .cancel) {
                 isShowingAlertForClearKey = false
             }
         }, message: {
             if #available(iOS 16.0, *) {
-                Text("Enter the name of the key to delete all its data, including saved media, forever.")
+                Text(L10n.enterTheNameOfTheKeyToDeleteAllItsDataIncludingSavedMediaForever)
             } else {
-                Text("Do you want to delete this key and all media associated with it forever?")
+                Text(L10n.doYouWantToDeleteThisKeyAndAllMediaAssociatedWithItForever)
             }
             
         })
-        .alert("Delete Key?", isPresented: $isShowingAlertForClearKey, actions: {
+        .alert(L10n.deleteKeyQuestion, isPresented: $isShowingAlertForClearKey, actions: {
             if #available(iOS 16.0, *) {
-                TextField("Key name", text: $viewModel.deleteKeyConfirmation)
+                TextField(L10n.keyName, text: $viewModel.deleteKeyConfirmation)
                     .noAutoModification()
             }
-            Button("Delete", role: .destructive) {
+            Button(L10n.delete, role: .destructive) {
                 if viewModel.canDeleteKey() {
                     viewModel.deleteKey()
                     dismiss()
                 }
             }
-            Button("Cancel", role: .cancel) {
+            Button(L10n.cancel, role: .cancel) {
                 isShowingAlertForClearKey = false
             }
         }, message: {
             if #available(iOS 16.0, *) {
-                Text("Enter the name of the key to delete it forever. All media will remain saved.")
+                Text(L10n.EnterTheNameOfTheKeyToDeleteItForever.allMediaWillRemainSaved)
             } else {
-                Text("Do you want to delete this key forever? All media will remain saved.")
+                Text(L10n.doYouWantToDeleteThisKeyForeverAllMediaWillRemainSaved)
             }
         })
-        .alert("Deletion Error", isPresented: $viewModel.showDeleteActionError, actions: {
-            Button("OK") {
+        .alert(L10n.deletionError, isPresented: $viewModel.showDeleteActionError, actions: {
+            Button(L10n.ok) {
                 viewModel.showDeleteActionError = false
             }
         }, message: {

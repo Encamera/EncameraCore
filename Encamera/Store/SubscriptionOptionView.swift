@@ -19,7 +19,7 @@ struct SubscriptionOptionView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var savingsText: String? {
-        savings.map { "\($0.formattedPrice(for: subscription)) (Save \($0.formattedPercent))" }
+        savings.map { L10n.saveAmount($0.formattedPrice(for: subscription), $0.formattedPercent) }
     }
     
     private static var backgroundColor: Color {
@@ -35,7 +35,7 @@ struct SubscriptionOptionView: View {
             VStack(alignment: .leading) {
                 
                 if isSubscribed {
-                    Text("Subscribed")
+                    Text(L10n.subscribed)
                         .fontType(.extraSmall, on: .elevated)
                         .textPill(color: .green)
                 }

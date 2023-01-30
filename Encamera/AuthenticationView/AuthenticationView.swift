@@ -19,13 +19,13 @@ private enum AuthenticationViewError: ErrorDescribable {
     var displayDescription: String {
         switch self {
         case .noPasswordGiven:
-            return "Missing password"
+            return L10n.missingPassword
         case .passwordIncorrect:
-            return "Password incorrect"
+            return L10n.passwordIncorrect
         case .biometricsFailed:
-            return "Biometrics failed"
+            return L10n.biometricsFailed
         case .biometricsNotAvailable:
-            return "Biometrics unavailable"
+            return L10n.biometricsUnavailable
         case .keychainError(let keyManagerError):
             return keyManagerError.displayDescription
         }
@@ -120,7 +120,7 @@ struct AuthenticationView: View {
                         Image(systemName: biometric.imageNameForMethod)
                             .resizable()
                             .frame(width: 50.0, height: 50.0)
-                        Text("Unlock with \(biometric.nameForMethod)")
+                        Text(L10n.unlockWith(biometric.nameForMethod))
                             .fontType(.small)
                     }
                 }.padding()

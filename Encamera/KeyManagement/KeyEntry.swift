@@ -87,7 +87,7 @@ struct KeyEntry: View {
                     TextEditor(text: $viewModel.enteredKeyString)
                         .padding()
                     if $viewModel.enteredKeyString.wrappedValue.count == 0 {
-                        Text("Paste the private key here.")
+                        Text(L10n.pasteThePrivateKeyHere)
                             .fontType(.medium)
                     }
                 }
@@ -100,12 +100,12 @@ struct KeyEntry: View {
                 let view =  NavigationView {
                     
                     VStack {
-                        Text("Where do you want to save this key's media?")
+                        Text(L10n.whereDoYouWantToSaveThisKeySMedia)
                             .fontType(.medium)
                         StorageSettingView(viewModel: .init(), keyStorageType: $viewModel.keyStorageType).padding()
                         
                     }.toolbar {
-                        Button("Save") {
+                        Button(L10n.save) {
                             do {
                                 try viewModel.saveKey()
                                 viewModel.showStorageSelectionSheet = false
@@ -124,12 +124,12 @@ struct KeyEntry: View {
                 
             }
             .frame(maxWidth: .infinity)
-            .navigationTitle("Key Entry")
+            .navigationTitle(L10n.keyEntry)
         
         if viewModel.showCancelButton {
             vstack.toolbar {
                 ToolbarItemGroup(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(L10n.cancel) {
                         dismissAction()
                     }
                 }
@@ -153,7 +153,7 @@ struct KeyEntry: View {
     private var saveKeyToolbar: ToolbarItemGroup<some View> {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             if viewModel.enteredKey != nil {
-                Button("Save Key") {
+                Button(L10n.saveKey) {
                     do {
                         try viewModel.saveButtonPressed()
                     } catch {

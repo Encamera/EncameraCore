@@ -123,12 +123,12 @@ struct GalleryGridView<Content: View>: View {
                     content
                     HStack {
                         if viewModel.blurImages {
-                            Toggle("Hide", isOn: $viewModel.blurImages)
+                            Toggle(L10n.hide, isOn: $viewModel.blurImages)
                                 .frame(width: Constants.hideButtonWidth)
                                 .fontType(.small)
                             Spacer()
                         } else {
-                            Text("\(viewModel.media.count) image\(viewModel.media.count == 1 ? "" : "s")")
+                            Text(L10n.imageS(viewModel.media.count))
                                 .fontType(.small)
                                 }
                         

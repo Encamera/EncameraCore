@@ -10,12 +10,6 @@ import StoreKit
 import Combine
 import EncameraCore
 
-private enum SettingsViewMessage: String {
-    case changePasswordSuccess = "Password successfully changed"
-    
-    
-}
-
 class SettingsViewViewModel: ObservableObject {
     
     
@@ -28,7 +22,7 @@ class SettingsViewViewModel: ObservableObject {
     @Published var readyToErase: Bool = false
     @Published var showPromptToErase: Bool = false
     @Published var showPremium: Bool = false
-    @Published fileprivate var successMessage: SettingsViewMessage?
+    @Published fileprivate var successMessage: String?
     var keyManager: KeyManager
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
@@ -61,7 +55,7 @@ class SettingsViewViewModel: ObservableObject {
                     self.showDetailView = false
                     self.successMessage = nil
                 }.store(in: &cancellables)
-            self.successMessage = .changePasswordSuccess
+            self.successMessage = L10n.passwordSuccessfullyChanged
             resetPasswordInputs()
         } catch let keyManagerError as KeyManagerError {
             self.keyManagerError = keyManagerError
@@ -97,10 +91,10 @@ struct SettingsView: View {
             Group {
                 
                 Section {
-                    Button("✨ Premium ✨") {
+                    Button(L10n.premiumSparkles) {
                         viewModel.showPremium = true
                     }
-                    Button("Restore Purchases") {
+                    Button(L10n.restorePurchases) {
                         Task(priority: .userInitiated) {
                             try await AppStore.sync()
                         }
@@ -111,10 +105,10 @@ struct SettingsView: View {
                     changePassword
                     reset
                 }
-                .navigationTitle("Settings")
+                .navigationTitle(L10n.settings)
             
                 Section {
-                    Button("Contact") {
+                    Button(L10n.contact) {
                         guard let url = URL(string: "https://encrypted.camera/contact") else {
                             return
                         }
@@ -123,7 +117,7 @@ struct SettingsView: View {
                         }
 
                     }
-                    Button("Privacy Policy") {
+                    Button(L10n.privacyPolicy) {
                         guard let url = URL(string: "https://encrypted.camera/privacy") else {
                             return
                         }
@@ -131,7 +125,7 @@ struct SettingsView: View {
                             await UIApplication.shared.open(url)
                         }
                     }
-                    Button("Terms of Use") {
+                    Button(L10n.termsOfUse) {
                         guard let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") else {
                             return
                         }
@@ -157,26 +151,26 @@ struct SettingsView: View {
     }
     
     private var reset: some View {
-        NavigationLink("Erase") {
+        NavigationLink(L10n.erase) {
             Form {
                 Group {
                     NavigationLink {
                         PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
                         
                     } label: {
-                        Text("Erase keychain data")
+                        Text(L10n.eraseKeychainData)
                     }
                     NavigationLink {
                         PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
                         
                     } label: {
-                        Text("Erase all data")
+                        Text(L10n.eraseAllData)
                     }
                 }.listRowBackground(Color.foregroundSecondary)
             }
             
             .foregroundColor(.red)
-            .navigationTitle("Erase")
+            .navigationTitle(L10n.erase)
             .fontType(.small)
             .scrollContentBackgroundColor(.background)
         }
@@ -191,22 +185,22 @@ struct SettingsView: View {
     }
     
     private var changePassword: some View {
-        NavigationLink("Change Password", isActive: $viewModel.showDetailView) {
+        NavigationLink(L10n.changePassword, isActive: $viewModel.showDetailView) {
             Form {
                 Group {
-                    SecureField("Current Password", text: $viewModel.currentPassword)
+                    SecureField(L10n.currentPassword, text: $viewModel.currentPassword)
                     if let keyManagerError = viewModel.keyManagerError {
                         Text(keyManagerError.displayDescription).foregroundColor(.red)
                         
                     }
-                    SecureField("New Password", text: $viewModel.newPassword1)
+                    SecureField(L10n.newPassword, text: $viewModel.newPassword1)
                     
-                    SecureField("Repeat Password", text: $viewModel.newPassword2)
+                    SecureField(L10n.repeatPassword, text: $viewModel.newPassword2)
                     if let validation = viewModel.passwordState {
                         Text(validation.validationDescription).foregroundColor(.red)
                     }
                     if let message = viewModel.successMessage {
-                        Text(message.rawValue).foregroundColor(.green)
+                        Text(message).foregroundColor(.green)
                     }
                 }.listRowBackground(Color.foregroundSecondary)
             }
@@ -214,11 +208,11 @@ struct SettingsView: View {
             .scrollContentBackgroundColor(.background)
             .fontType(.small)
             .toolbar {
-                Button("Save") {
+                Button(L10n.save) {
                     viewModel.savePassword()
                 }
             }
-            .navigationTitle("Change Password")
+            .navigationTitle(L10n.changePassword)
             .onDisappear {
                 viewModel.resetPasswordInputs()
             }

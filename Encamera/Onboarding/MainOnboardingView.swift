@@ -237,23 +237,23 @@ private extension MainOnboardingView {
                 title: "",
                 subheading: "",
                 image: Image(systemName: "camera"),
-                bottomButtonTitle: "Next",
+                bottomButtonTitle: L10n.next,
                 bottomButtonAction: {
                     
                 }) {
                     AnyView(VStack(alignment: .leading, spacing: 10) {
                         Image("EncameraBanner")
                             .frame(maxWidth: .infinity, alignment: .center)
-                        Text("Ready to take back your media? 📸")
+                        Text(L10n.readyToTakeBackYourMedia📸)
                             .fontType(.medium, weight: .bold)
-                        Text("Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.")
+                        Text(L10n.encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy)
                             .fontType(.small)
-                        Text("Key-based encryption 🔑")
+                        Text(L10n.keyBasedEncryption🔑)
                             .fontType(.medium, weight: .bold)
-                        Text("Your media is safely secured behind a key and stored locally on your device or cloud of choice.")
-                        Text("For your eyes only 👀")
+                        Text(L10n.yourMediaIsSafelySecuredBehindAKeyAndStoredLocallyOnYourDeviceOrCloudOfChoice)
+                        Text(L10n.forYourEyesOnly👀)
                             .fontType(.medium, weight: .bold)
-                        Text("No tracking, no funny business. Take control of what’s rightfully yours, your media, your data, your privacy.")
+                        Text(L10n.NoTrackingNoFunnyBusiness.takeControlOfWhatSRightfullyYoursYourMediaYourDataYourPrivacy)
                             .fontType(.small)
                         Spacer()
                     })
@@ -262,8 +262,8 @@ private extension MainOnboardingView {
             
         case .enterExistingPassword:
             return .init(
-                title: "Enter Password",
-                subheading: "You have an existing password for this device.", image: Image(systemName: "key.fill"), bottomButtonTitle: "Next", bottomButtonAction: {
+                title: L10n.enterPassword,
+                subheading: L10n.youHaveAnExistingPasswordForThisDevice, image: Image(systemName: "key.fill"), bottomButtonTitle: L10n.next, bottomButtonAction: {
                     viewModel.checkExistingPasswordAndAuth()
                 }) {
                     AnyView(
@@ -284,17 +284,17 @@ private extension MainOnboardingView {
                             NavigationLink {
                                 PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: DiskFileAccess()))
                             } label: {
-                                Text("Erase Device Data")
+                                Text(L10n.eraseDeviceData)
                             }.primaryButton()
                         }
                     )
                 }
         case .setPassword:
             return .init(
-                title: "Set Password",
-                subheading: "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later. 🙅",
+                title: L10n.setPassword,
+                subheading: L10n.SetAPasswordToAccessTheApp.BeSureToStoreItInASafePlaceYouCannotRecoverItLater.🙅,
                 image: Image(systemName: "lock.iphone"),
-                bottomButtonTitle: "Set Password",
+                bottomButtonTitle: L10n.setPassword,
                 bottomButtonAction: {
                     try viewModel.savePassword()
                 }) {
@@ -302,10 +302,10 @@ private extension MainOnboardingView {
                         VStack(alignment: .leading) {
                                 VStack {
                                     Group {
-                                        EncameraTextField("Password", type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password1).onSubmit {
+                                        EncameraTextField(L10n.password, type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password1).onSubmit {
                                             password2Focused = true
                                         }
-                                        EncameraTextField("Repeat Password", type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password2)
+                                        EncameraTextField(L10n.repeatPassword, type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password2)
                                             .focused($password2Focused)
                                             .onSubmit {
                                                 password2Focused = false
@@ -334,34 +334,28 @@ private extension MainOnboardingView {
                 return viewModel(for: .finished)
             }
             return .init(
-                title: "Use \(method.nameForMethod)?",
-                subheading: "Enable \(method.nameForMethod) to quickly and securely gain access to the app.",
+                title: L10n.use(method.nameForMethod),
+                subheading: L10n.enableToQuicklyAndSecurelyGainAccessToTheApp(method.nameForMethod),
                 image: Image(systemName: method.imageNameForMethod),
-                bottomButtonTitle: "Next", content:  {
+                bottomButtonTitle: L10n.next, content:  {
                     AnyView(Group {HStack {
-                        Toggle("Enable \(method.nameForMethod)", isOn: $viewModel.useBiometrics)
+                        Toggle(L10n.enable(method.nameForMethod), isOn: $viewModel.useBiometrics)
                             .fontType(.small)
                     }})
                 })
         case .setupPrivateKey:
             return .init(
-                title: "Encryption Key",
+                title: L10n.encryptionKey,
                 subheading:
-                                            """
-Set the name for the first key.
-
-This is different from your password, and will be used to encrypt data.
-
-You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
-""",
+                    L10n.newKeySubheading,
                 image: Image(systemName: "key.fill"),
-                bottomButtonTitle: "Next",
+                bottomButtonTitle: L10n.next,
                 bottomButtonAction: {
                     try viewModel.validateKeyName()
                 }) {
                     AnyView(
                         VStack {
-                            EncameraTextField("Key Name", text: $viewModel.keyName)
+                            EncameraTextField(L10n.keyName, text: $viewModel.keyName)
                                 .noAutoModification()
                                 
                             if let keySaveError = viewModel.keySaveError {
@@ -374,19 +368,17 @@ You can have multiple keys for different purposes, e.g. one named "Documents" an
         case .dataStorageSetting:
 
 
-            return .init(title: "Select Storage",
-                         subheading: """
-Where do you want to store your media? Each key will store data in its own directory once encrypted. 💾
-""",
+            return .init(title: L10n.selectStorage,
+                         subheading: L10n.storageLocationOnboarding,
                          image: Image(systemName: ""),
-                         bottomButtonTitle: "Next") {
+                         bottomButtonTitle: L10n.next) {
                 try viewModel.validateStorageSelection()
             } content: {
                 AnyView(
                     VStack {
                         StorageSettingView(viewModel: .init(), keyStorageType: $viewModel.keyStorageType)
                         if case .missingStorageType = viewModel.generalError as? OnboardingViewError {
-                            Text("Please select a storage location.")
+                            Text(L10n.pleaseSelectAStorageLocation)
                                 .alertText()
                         }
                     }
@@ -396,10 +388,10 @@ Where do you want to store your media? Each key will store data in its own direc
 
         case .finished:
             return .init(
-                title: "Done!",
-                subheading: "Looks like you’re all set up! 🎊 Enjoy taking photos securely with Encamera’s top-notch encryption. 💪🔐",
+                title: L10n.doneOnboarding,
+                subheading: L10n.allSetupOnboarding,
                 image: Image(systemName: "faceid"),
-                bottomButtonTitle: "Done",
+                bottomButtonTitle: L10n.done,
                 bottomButtonAction: {
                     try await viewModel.saveState()
                     throw OnboardingViewError.onboardingEnded

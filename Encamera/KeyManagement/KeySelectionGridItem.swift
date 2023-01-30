@@ -62,7 +62,7 @@ struct KeySelectionGridItem: View {
     var body: some View {
             VStack {
                 if isActiveKey {
-                    Text("Active")
+                    Text(L10n.active)
                         .fontType(.extraSmall)
                         .padding(4)
                         .frame(maxWidth: .infinity)
@@ -193,7 +193,7 @@ struct KeySelectionGrid: View {
                                                             KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
                                                         }
                                 } label: {
-                                    Text("Create New Key")
+                                    Text(L10n.createNewKey)
                                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                                         .background(Color.foregroundSecondary)
                                 }
@@ -209,7 +209,7 @@ struct KeySelectionGrid: View {
                                         KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, dismiss: addExistingKeyActive))
                                     }
                                 } label: {
-                                    Text("Add Existing Key")
+                                    Text(L10n.addExistingKey)
                                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                                         .background(Color.foregroundSecondary)
                                 }
@@ -232,7 +232,7 @@ struct KeySelectionGrid: View {
         .onAppear {
             viewModel.loadKeys()
         }
-        .navigationBarTitle("My Keys")
+        .navigationBarTitle(L10n.myKeys)
     }
     
 }

@@ -17,13 +17,13 @@ enum MediaViewingError: ErrorDescribable {
     var displayDescription: String {
         switch self {
         case .noKeyAvailable:
-            return "No key available."
+            return L10n.noKeyAvailable
         case .fileAccessNotAvailable:
-            return "No file access available."
+            return L10n.noFileAccessAvailable
         case .decryptError(let wrapped as ErrorDescribable):
-            return "Decryption error: \(wrapped.displayDescription)"
+            return L10n.decryptionError(wrapped.displayDescription)
         case .decryptError(wrapped: let wrapped):
-            return "Decryption error: \(wrapped.localizedDescription)"
+            return L10n.decryptionError(wrapped.localizedDescription)
         }
     }
 }

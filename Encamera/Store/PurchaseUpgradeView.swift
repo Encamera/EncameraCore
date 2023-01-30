@@ -117,9 +117,9 @@ struct SubscriptionPurchaseButton: View {
             } label: {
                 Group {
                     if canRedeemIntroOffer {
-                        Text("Start trial offer")
+                        Text(L10n.startTrialOffer)
                     } else {
-                        Text("Subscribe")
+                        Text(L10n.subscribe)
                     }
                 }
                 .padding(5)

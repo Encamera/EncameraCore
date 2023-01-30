@@ -28,9 +28,9 @@ struct KeyInformation: View {
                     
                     Text("\(key.keyString)")
                     
-                    Text("Created \(DateUtils.dateOnlyString(from: key.creationDate))")
+                    Text(L10n.created(DateUtils.dateOnlyString(from: key.creationDate)))
                         .fontType(.small)
-                    Text("Key length: \(key.keyBytes.count)")
+                    Text(L10n.keyLength(key.keyBytes.count))
                 }
                 
                 .padding()

@@ -37,19 +37,19 @@ struct AddExchangedKeyConfirmation: View {
     var body: some View {
         VStack {
             
-            Text("Key Name: \(viewModel.key.name)")
-            Text("Creation Date: \(DateUtils.dateOnlyString(from: viewModel.key.creationDate))")
+            Text(L10n.keyName(viewModel.key.name))
+            Text(L10n.creationDate(DateUtils.dateOnlyString(from: viewModel.key.creationDate)))
             
             Button {
                 
             } label: {
-                Text("Save Key")
+                Text(L10n.saveKey)
             }
 
             
             
         }
-        .navigationTitle("Confirm adding key")
+        .navigationTitle(L10n.confirmAddingKey)
     }
 }
 

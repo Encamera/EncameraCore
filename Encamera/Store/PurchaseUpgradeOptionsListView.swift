@@ -16,11 +16,11 @@ struct PurchasedProductCell: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading) {
-                Text("**Purchased: \(product.displayName)**")
+                Text(L10n.purchased(product.displayName))
                 if let transactionDate = transactionDate {
                     Text(DateUtils.dateOnlyString(from:  transactionDate))
                 }
-                Text("Thank you for your support!")
+                Text(L10n.thankYouForYourSupport)
             }
         }
         .frame(maxWidth: .infinity)
@@ -55,13 +55,13 @@ struct PurchaseUpgradeOptionsListView: View {
          */
         VStack(spacing: 25) {
             if purchasedProducts.isEmpty {
-                Text("Subscription")
+                Text(L10n.subscription)
                     .fontType(.mediumSmall)
                 ForEach(subscriptions) { subscription in
                     subscriptionOptionCell(for: subscription)
                 }
                 
-                Text("One-Time Purchase")
+                Text(L10n.oneTimePurchase)
                     .fontType(.mediumSmall)
                 ForEach(products) { product in
                     productCell(for: product)

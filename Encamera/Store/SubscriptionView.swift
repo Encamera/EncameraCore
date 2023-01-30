@@ -21,7 +21,7 @@ struct SubscriptionStoreView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            SubscriptionStoreHeaderView()
+            PurchaseUpgradeHeaderView()
                 .frame(maxWidth: .infinity)
             subscriptionCellsView
         }
@@ -91,23 +91,6 @@ struct SubscriptionStoreView: View {
         }
     }
 }
-     
-struct SubscriptionStoreHeaderView: View {
-    
-    var body: some View {
-        VStack(spacing: 5) {
-            Image("EncameraPremiumHeader")
-            Group {
-                Text("View unlimited photos for each key.")
-                Text("Create an unlimited number of keys.")
-                Text("Support privacy-focused development.")
-            }
-            .fontType(.small)
-        }
-        .padding(.top, 0)
-        .padding(.bottom, 30)
-    }
-}
 
 struct SubscriptionStoreOptionsView: View {
     let subscriptions: [ServiceSubscription]
@@ -132,7 +115,7 @@ struct SubscriptionStoreOptionsView: View {
                     try await AppStore.sync()
                 }
             } label: {
-                   Text("Restore Purchases")
+                Text(L10n.restorePurchases)
                     .foregroundColor(.foregroundPrimary)
                     .frame(maxWidth: .infinity)
                        .textPill(color: .foregroundSecondary)
@@ -143,7 +126,7 @@ struct SubscriptionStoreOptionsView: View {
                     await StoreActor.shared.presentCodeRedemptionSheet()
                 }
             } label: {
-                Text("Enter Promo Code")
+                Text(L10n.enterPromoCode)
                  .foregroundColor(.foregroundPrimary)
                  .frame(maxWidth: .infinity)
                     .textPill(color: .foregroundSecondary)
@@ -205,9 +188,9 @@ struct SubscriptionPurchaseView: View {
             } label: {
                 Group {
                     if canRedeemIntroOffer {
-                        Text("Start trial offer")
+                        Text(L10n.startTrialOffer)
                     } else {
-                        Text("Subscribe")
+                        Text(L10n.subscribe)
                     }
                 }
                 .padding(5)

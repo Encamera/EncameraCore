@@ -14,14 +14,14 @@ struct FirstPhotoTakenTutorial: View, TutorialView {
 
     var body: some View {
         VStack(alignment: .leading, spacing: spacing) {
-            Text("Congratulations!")
+            Text(L10n.congratulations)
                 .fontType(.large)
             Group {
-                Text("You took your first photo! 📸 🥳")
-                Text("See the photos that belong to a key by tapping the ") + Text(Image(systemName: "key.fill")) + Text(" icon on the top left of the screen.")
+                Text(L10n.youTookYourFirstPhoto📸🥳)
+                Text(L10n.seeThePhotosThatBelongToAKeyByTappingThe) + Text(Image(systemName: "key.fill")) + Text(L10n.iconOnTheTopLeftOfTheScreen)
             }.fontType(.mediumSmall)
             HStack {
-                Button("Got it!") {
+                Button(L10n.gotIt) {
                     withAnimation {
                         shouldShow = false
                     }

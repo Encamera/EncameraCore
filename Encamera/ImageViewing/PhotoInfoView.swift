@@ -21,7 +21,7 @@ struct PhotoInfoView: View {
                 if let timestamp = media.timestamp {
                     Text(verbatim: DateUtils.dateTimeString(from: timestamp))
                 } else {
-                    Text("No info available")
+                    Text(L10n.noInfoAvailable)
                 }
                 Spacer()
                 Button {

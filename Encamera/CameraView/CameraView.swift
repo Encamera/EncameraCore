@@ -132,7 +132,7 @@ struct CameraView: View {
 
                 }
                 .rotateForOrientation()
-                Text(cameraModel.keyManager.currentKey?.name ?? "No Key")
+                Text(cameraModel.keyManager.currentKey?.name ?? L10n.noKey)
                     .fontType(.small)
                                     Spacer()
                 Button(action: {
@@ -176,7 +176,7 @@ struct CameraView: View {
             .background(Color.background)
             .screenBlocked()
             .alert(isPresented: $cameraModel.showAlertForMissingKey) {
-                Alert(title: Text("No key selected"), message: Text("You don't have an active key selected, select one to continue saving media."), primaryButton: .default(Text("Key Selection")) {
+                Alert(title: Text(L10n.noKeySelected), message: Text(L10n.youDonTHaveAnActiveKeySelectedSelectOneToContinueSavingMedia), primaryButton: .default(Text(L10n.keySelection)) {
                     cameraModel.showingKeySelection = true
                 }, secondaryButton: .cancel())
             }
@@ -192,14 +192,14 @@ struct CameraView: View {
             
             VStack {
                 Group {
-                    Text("Missing camera access.")
+                    Text(L10n.missingCameraAccess)
                     Button {
                         guard let url = URL(string: UIApplication.openSettingsURLString) else {
                             return
                         }
                         UIApplication.shared.open(url)
                     } label: {
-                        Text("Open settings to allow camera access permission")
+                        Text(L10n.openSettingsToAllowCameraAccessPermission)
                     }.textPill(color: .foregroundSecondary)
                     
                 }

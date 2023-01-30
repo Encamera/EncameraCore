@@ -28,13 +28,13 @@ struct PurchaseOptionViewModifier: ViewModifier {
                 HStack(spacing: 0) {
                     if product.isFamilyShareable {
                         Color.orange.overlay {
-                            Text("Family Shareable")
+                            Text(L10n.familyShareable)
                         }
                     }
                     if hasFreeTrial {
                         
                         Color.green.overlay {
-                            Text("Free Trial")
+                            Text(L10n.freeTrial)
                         }
                         
                     }

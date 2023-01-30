@@ -85,7 +85,7 @@ struct PromptToErase: View {
                     .frame(maxWidth: .infinity, minHeight: 60)
                 Group {
                     Text(viewModel.scope.explanationString)
-                    Button("Hold to erase") {
+                    Button(L10n.holdToErase) {
                         
                     }
                     .primaryButton()
@@ -97,7 +97,7 @@ struct PromptToErase: View {
                 .fontType(.small)
                 Spacer()
             }.padding()
-                .navigationTitle("Erase app data")
+                .navigationTitle(L10n.eraseAppData)
         }
         .animation(.easeIn, value: viewModel.holding)
         .background(Color.background)
@@ -106,7 +106,7 @@ struct PromptToErase: View {
     var confirmationPlaceholder: some View {
         var confirmationPlaceholder: AnyView = AnyView(Color.clear)
         if viewModel.holding == true {
-            confirmationPlaceholder = AnyView(Text("Erasing in \(viewModel.countdown)")
+            confirmationPlaceholder = AnyView(Text(L10n.erasingIn(viewModel.countdown))
                 .fontType(.large)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .foregroundColor(.background)
@@ -126,7 +126,7 @@ struct PromptToErase: View {
 
 extension ErasureScope {
     
-    var explanationString: LocalizedStringKey {
+    var explanationString: String {
         switch self {
         case .appData:
             return appDataExplanation
@@ -135,44 +135,13 @@ extension ErasureScope {
         }
     }
     
-    private var allDataExplanation: LocalizedStringKey {
-                """
-                Are you sure you want to erase __all__ app data?
-                
-                __This will erase:__
-                
-                • All your stored keys 🔑
-                • Your password 🔐
-                • App settings 🎛
-                • Media you have stored locally or on iCloud 💾
-                
-                You can create a backup of your keys from the key management screen.
-                
-                The app will quit after erase is finished.
-                
-                """
+    private var allDataExplanation: String {
+        L10n.allDataExplanation
         
     }
     
-    private var appDataExplanation: LocalizedStringKey {
-        """
-        Are you sure you want to erase all app data?
-        
-        __This will erase:__
-        
-        • All your stored keys 🔑
-        • Your password 🔐
-        • App settings 🎛
-        
-        __This will not erase:__
-        
-        • Media you have stored locally or on iCloud 💾
-        
-        You can create a backup of your keys from the key management screen.
-        
-        The app will quit after erase is finished.
-        
-        """
+    private var appDataExplanation: String {
+        L10n.appDataExplanation
     }
 }
 

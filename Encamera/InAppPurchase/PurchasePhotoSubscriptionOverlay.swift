@@ -16,12 +16,12 @@ struct PurchasePhotoSubscriptionOverlay: View {
             Color.black.opacity(0.5)
             VStack(alignment: .center) {
                 Image("EncameraPremiumHeader")
-                Text("Upgrade to view unlimited photos")
+                Text(L10n.upgradeToViewUnlimitedPhotos)
                     .fontType(.large)
                     .lineLimit(3)
                     .frame(maxWidth: .infinity)
                 Button(action: upgradeTapped, label: {
-                    Text("Tap to Upgrade")
+                    Text(L10n.tapToUpgrade)
                 })
                 .primaryButton()
             }            

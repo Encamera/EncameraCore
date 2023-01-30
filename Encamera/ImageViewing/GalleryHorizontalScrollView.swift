@@ -167,17 +167,17 @@ struct GalleryHorizontalScrollView: View {
                 if viewModel.showActionBar {
                     actionBar
                 }
-            }.confirmationDialog("Delete this image?", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
+            }.confirmationDialog(L10n.deleteThisImage, isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
                 
-                Button("Delete", role: .destructive) {
+                Button(L10n.delete, role: .destructive) {
                     viewModel.deleteAction()
                 }
             }
-            .confirmationDialog("Share Image", isPresented: $showingShareSheet) {
-                Button("Share Encrypted") {
+            .confirmationDialog(L10n.shareThisImage, isPresented: $showingShareSheet) {
+                Button(L10n.shareEncrypted) {
                     viewModel.shareEncrypted()
                 }
-                Button("Share Decrypted") {
+                Button(L10n.shareDecrypted) {
                     viewModel.shareDecrypted()
                 }
             }

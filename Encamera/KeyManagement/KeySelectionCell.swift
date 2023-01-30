@@ -35,7 +35,7 @@ struct KeySelectionCell: View {
                     Text(viewModel.key.name)
                         .fontType(.medium)
                     if viewModel.isActive {
-                        Text("Active")
+                        Text(L10n.active)
                             .foregroundColor(.activeKey)
                             .fontType(.small)
                     }

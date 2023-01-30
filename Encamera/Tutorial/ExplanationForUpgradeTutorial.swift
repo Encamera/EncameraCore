@@ -28,23 +28,23 @@ struct ExplanationForUpgradeTutorial: View, TutorialView {
     
     var body: some View {
         VStack(alignment: .leading, spacing: spacing) {
-            Text("Want more?")
+            Text(L10n.wantMore)
                 .fontType(.large)
             Group {
-                Text("Support privacy-focused development by upgrading!")
-                Text("View unlimited photos 😍 ")
-                Text("Create unlimited keys 🔑 ")
+                Text(L10n.supportPrivacyFocusedDevelopmentByUpgrading)
+                Text(L10n.viewUnlimitedPhotos😍)
+                Text(L10n.createUnlimitedKeys🔑)
             }
             .fontType(.mediumSmall)
             HStack {
                 Group {
-                    Button("Free Trial") {
+                    Button(L10n.freeTrial) {
                         withAnimation {
                             shouldShow = false
                             showUpgrade = true
                         }
                     }
-                    Button("No, thanks") {
+                    Button(L10n.noThanks) {
                         withAnimation {
                             shouldShow = false
                         }
