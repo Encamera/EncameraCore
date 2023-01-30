@@ -22,7 +22,7 @@ public extension DataStorageSetting {
         switch type {
         case .icloud:
             if FileManager.default.ubiquityIdentityToken == nil {
-                return .unavailable(reason: "No iCloud account found on this device.")
+                return .unavailable(reason: L10n.noICloudAccountFoundOnThisDevice)
             } else {
                 return .available
             }

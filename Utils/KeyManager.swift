@@ -22,21 +22,21 @@ public enum KeyManagerError: ErrorDescribable {
     public var displayDescription: String {
         switch self {
         case .deleteKeychainItemsFailed:
-            return "Could not delete keychain items."
+            return L10n.couldNotDeleteKeychainItems
         case .unhandledError:
-            return "Unhandled error."
+            return L10n.unhandledError
         case .notAuthenticatedError:
-            return "Not authenticated for this operation."
+            return L10n.notAuthenticatedForThisOperation
         case .keyNameError:
-            return "Key name is invalid, must be more than two characters"
+            return L10n.keyNameIsInvalidMustBeMoreThanTwoCharacters
         case .notFound:
-            return "Key not found."
+            return L10n.keyNotFound
         case .dataError:
-            return "Error coding keychain data."
+            return L10n.errorCodingKeychainData
         case .keyExists:
-            return "A key with this name already exists."
+            return L10n.aKeyWithThisNameAlreadyExists
         case .invalidPassword:
-            return "Invalid password."
+            return L10n.invalidPassword
         }
     }
     

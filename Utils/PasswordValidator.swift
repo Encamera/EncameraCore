@@ -18,15 +18,15 @@ public enum PasswordValidation {
     public var validationDescription: String {
         switch self {
         case .notDetermined:
-            return "Not determined."
+            return L10n.notDetermined
         case .valid:
-            return "Password is valid."
+            return L10n.passwordIsValid
         case .invalidTooShort:
-            return "Password is too short, <\(PasswordValidation.minPasswordLength)"
+            return L10n.passwordIsTooShort(PasswordValidation.minPasswordLength)
         case .invalidDifferent:
-            return "Passwords do not match."
+            return L10n.passwordsDoNotMatch
         case .invalidTooLong:
-            return "Password is too long, >\(PasswordValidation.maxPasswordLength)"
+            return L10n.passwordIsTooLong(PasswordValidation.maxPasswordLength)
             
         }
     }
