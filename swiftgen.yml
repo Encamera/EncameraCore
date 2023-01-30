@@ -12,10 +12,12 @@
 ##   SwiftGen will parse all `.strings` files found in that folder.
  strings:
    inputs:
-     - Encamera/en.lproj
+     - EncameraCore/Localizable.strings
    outputs:
      - templateName: structured-swift5
-       output: Encamera/Strings+Generated.swift
+       output: EncameraCore/Strings+Generated.swift
+       params:
+         publicAccess: true
 
 
 ## Generate constants for your Assets Catalogs, including constants for images, colors, ARKit resources, etc.

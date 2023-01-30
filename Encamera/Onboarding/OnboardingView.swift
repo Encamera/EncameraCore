@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-
+import EncameraCore
 
 struct OnboardingViewViewModel {
     var title: String

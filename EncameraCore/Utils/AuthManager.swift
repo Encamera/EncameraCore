@@ -25,11 +25,11 @@ public enum AuthenticationMethod: Codable {
     public var nameForMethod: String {
         switch self {
         case .touchID:
-            return "Touch ID"
+            return L10n.touchID
         case .faceID:
-            return "Face ID"
+            return L10n.faceID
         case .password:
-            return "Password"
+            return L10n.password
         }
     }
     
@@ -90,7 +90,7 @@ public class DeviceAuthManager: AuthManager {
     
     var context: LAContext {
         let context = LAContext()
-        context.localizedCancelTitle = "Use Password"
+        context.localizedCancelTitle = L10n.usePassword
         return context
     }
     
@@ -211,7 +211,7 @@ public class DeviceAuthManager: AuthManager {
         }
         do {
             print("Attempting LA auth")
-            let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Keep your encrypted data safe by using \(method.nameForMethod).")
+            let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: L10n.keepYourEncryptedDataSafeByUsing(method.nameForMethod))
             setupNotificationObservers()
             return result
         } catch let localAuthError as LAError {

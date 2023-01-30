@@ -28,7 +28,6 @@
 		1C1E98FD3A310D016777F02B /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2A007BFB3DF3F2BA4AB7D7 /* AppConstants.swift */; };
 		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
 		1DE130BD8F743C2B3E11A1C8 /* CleartextMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F788DAE6ED3B6CD8232944E /* CleartextMedia.swift */; };
-		1DED6819BDB318EB272B6711 /* Strings+Generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9887DBA486F4D9291A8D20A6 /* Strings+Generated.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
 		1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */; };
 		213C1A88507685FD8FA0CA31 /* AsyncVideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50FC5C236ADF934DC4F81EF /* AsyncVideoCaptureProcessor.swift */; };
@@ -37,7 +36,6 @@
 		24E55E5C74E12CB0921F1C3A /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 7FEAF11972744A5837011C99 /* Sodium */; };
 		25C37BA84B85B035E3523603 /* FileOperationBus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B09F5D5DC50CDC8341377F /* FileOperationBus.swift */; };
 		26168F98ECFE26D3D975B7C7 /* Lato-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7E935404249D04E62DD75E68 /* Lato-Thin.ttf */; };
-		2662AD277A4CFAC5A331BF7D /* EncameraProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1378482ABDBC000094C6E10D /* EncameraProduct.swift */; };
 		2A17D2E3E58EF37D19B2E388 /* DemoAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E515C8C78BE95F08824CFF /* DemoAuthManager.swift */; };
 		2AC7523CF9F950C533C63CB8 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3FE55829F2B997DDCA81B18F /* Lato-Regular.ttf */; };
 		2E669B5C3F6FE1D9FE150A21 /* OnboardingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE95F6492DFFB4EF8892BF9B /* OnboardingManager.swift */; };
@@ -61,6 +59,7 @@
 		45AAD8BB492A3C69CDE5A6B9 /* DataStorageUserDefaultsSetting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 712CC74A0B09302DC4C2C96E /* DataStorageUserDefaultsSetting.swift */; };
 		46FE519B7B7561AB4DED166A /* DiskBlockReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1D228CC080287AD04D13F9A /* DiskBlockReader.swift */; };
 		48908B2B2975FB2FD9509940 /* PasswordValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2199F81E461AA6A8D686E5A6 /* PasswordValidator.swift */; };
+		4A04A04C3A1EA574F7E83313 /* Strings+Generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B1AB72D7CF6C0123396F29 /* Strings+Generated.swift */; };
 		4A0642E9B1818B0BAF0489ED /* PasswordEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629711F137AF404054258CDB /* PasswordEntry.swift */; };
 		4B34A3BACAAE910FCFF72639 /* PurchasePhotoSubscriptionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7363071BCA6ED2C04B2EA698 /* PurchasePhotoSubscriptionOverlay.swift */; };
 		4C2EEC738B2E3C0FC18C2C67 /* EncameraCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C031BA644A8BAE7A9BFC3A2 /* EncameraCore.framework */; };
@@ -127,7 +126,6 @@
 		A5C4BA7B650F72C1CB318FA6 /* PhotoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194A9CEF964B3C0B22164AC7 /* PhotoCaptureProcessor.swift */; };
 		A6750793EF49F39EC9AFB8CB /* AsyncPhotoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4592B92CB2E57F7BBDE6788 /* AsyncPhotoCaptureProcessor.swift */; };
 		A7FFA0723B19BF8AFC18E8F4 /* DemoCameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AEA7125C21D361A1F6011ED /* DemoCameraService.swift */; };
-		A8A274F962EBFC8E83AFF73B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7CAE239AD061BB95D7E1C52A /* Localizable.strings */; };
 		A8CF1328AD8BE2D1DC0599E9 /* AddExchangedKeyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */; };
 		AACB64F8B3E0692251214E0D /* KeyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */; };
 		ACC448F8AA2707A93D2B9167 /* 1.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 8661160CC93C7FDBB741D152 /* 1.JPG */; };
@@ -288,6 +286,7 @@
 		0683512F5DED40B7E10F6C6C /* Lato-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Italic.ttf"; sourceTree = "<group>"; };
 		071F6A11B150B89A33FB5F1B /* MediaTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTypeTests.swift; sourceTree = "<group>"; };
 		07718A95BF75F0E5E6FC3A6A /* Encamera.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Encamera.entitlements; sourceTree = "<group>"; };
+		07B1AB72D7CF6C0123396F29 /* Strings+Generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Strings+Generated.swift"; sourceTree = "<group>"; };
 		0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuyButtonStyle.swift; sourceTree = "<group>"; };
 		0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Encamera.storekit; sourceTree = "<group>"; };
 		0BA87A596813E76344EBBE5A /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
@@ -298,9 +297,7 @@
 		1025DA125F361EE6FA441219 /* KeySelectionList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySelectionList.swift; sourceTree = "<group>"; };
 		11EB354FCE2DD69B37D3B066 /* AlertError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertError.swift; sourceTree = "<group>"; };
 		125FF8D9748539D7751DD810 /* MultipleKeyKeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipleKeyKeychainManager.swift; sourceTree = "<group>"; };
-		1378482ABDBC000094C6E10D /* EncameraProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraProduct.swift; sourceTree = "<group>"; };
 		14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptToErase.swift; sourceTree = "<group>"; };
-		1502C040838F3770BEF5B8E0 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		16EA4CD7867931DF2907B89C /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
 		194A9CEF964B3C0B22164AC7 /* PhotoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureProcessor.swift; sourceTree = "<group>"; };
@@ -320,7 +317,6 @@
 		2C5750002695031DE6CAA92A /* StorePurchaseController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorePurchaseController.swift; sourceTree = "<group>"; };
 		2D0C6738E921CCEB0FD88E6D /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
 		3073659A5E54F5D6BA701BE0 /* StoreActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreActor.swift; sourceTree = "<group>"; };
-		31AB13EE6FE68BA8614D0253 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3237449B062E865D537211D4 /* EncameraTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EncameraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		32A8881AC9B48EAF4D069FA4 /* ChunkedFilesProcessing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChunkedFilesProcessing.swift; sourceTree = "<group>"; };
 		3304A219AA521A12DE3A30AF /* Lato-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Bold.ttf"; sourceTree = "<group>"; };
@@ -394,7 +390,6 @@
 		93BD2E6D2DFBF7562EBC70FB /* PurchaseUpgradeHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseUpgradeHeaderView.swift; sourceTree = "<group>"; };
 		94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddExchangedKeyConfirmation.swift; sourceTree = "<group>"; };
 		94DDBF06C1BD9949FE4F53BA /* dog.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = dog.jpg; sourceTree = "<group>"; };
-		9887DBA486F4D9291A8D20A6 /* Strings+Generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Strings+Generated.swift"; sourceTree = "<group>"; };
 		991BC151E6CA0B910FB4655F /* 3.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 3.JPG; sourceTree = "<group>"; };
 		9A012593B1702A54AB8C4728 /* EncryptedMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptedMedia.swift; sourceTree = "<group>"; };
 		9CB04178627848E3A8C56CDA /* ShareHandling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHandling.swift; sourceTree = "<group>"; };
@@ -809,7 +804,6 @@
 		655C3BF6258F7E1ABDC76DAF /* Store */ = {
 			isa = PBXGroup;
 			children = (
-				1378482ABDBC000094C6E10D /* EncameraProduct.swift */,
 			);
 			path = Store;
 			sourceTree = "<group>";
@@ -956,6 +950,7 @@
 				E1DE416B891C3D16F5D6B672 /* ImageResizer.swift */,
 				DCCD2933432968AEAD8C641E /* Info.plist */,
 				7315F66EBA06BD536538DE61 /* Localizable.strings */,
+				07B1AB72D7CF6C0123396F29 /* Strings+Generated.swift */,
 				30D12BDF81F694638A056C14 /* Constants */,
 				7EBEADEC28E27010BEE56C88 /* Extensions */,
 				BF745C390EF378083F5ABB32 /* FileAccess */,
@@ -1021,8 +1016,6 @@
 				CB580774C2A1B0E3A6D54F50 /* EncameraApp.swift */,
 				F6C7B4340F9BA5AC5E1CABBD /* file-icon.png */,
 				1F73DDBFEC2444064423AE2A /* Info.plist */,
-				7CAE239AD061BB95D7E1C52A /* Localizable.strings */,
-				9887DBA486F4D9291A8D20A6 /* Strings+Generated.swift */,
 				0C20870C6D07E0D977285AD2 /* AuthenticationView */,
 				8F0B02C67441662524C1279B /* Camera */,
 				33B572A9212B787C5B487149 /* CameraView */,
@@ -1234,7 +1227,6 @@
 				26168F98ECFE26D3D975B7C7 /* Lato-Thin.ttf in Resources */,
 				95D7968C302ABFED7C72B67B /* Lato-ThinItalic.ttf in Resources */,
 				BD0376BEC181135B76461C9E /* LaunchScreen.storyboard in Resources */,
-				A8A274F962EBFC8E83AFF73B /* Localizable.strings in Resources */,
 				1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */,
 				4D6890B6437216E4444DE608 /* StoreKitTestCertificate.cer in Resources */,
 				B94BEC77BD5E38D9DBD9EDA5 /* file-icon.png in Resources */,
@@ -1286,7 +1278,6 @@
 				46FE519B7B7561AB4DED166A /* DiskBlockReader.swift in Sources */,
 				21AB610A3AC3927C3E2C14A7 /* DiskFileAccess.swift in Sources */,
 				3ABB0E7B9117D9486CA6CD5E /* EncameraCore.docc in Sources */,
-				2662AD277A4CFAC5A331BF7D /* EncameraProduct.swift in Sources */,
 				02B22FC46971E7B64A56771F /* EncryptedMedia.swift in Sources */,
 				AEBE6DF46BCA91B6B3FFA34A /* Enums.swift in Sources */,
 				D710988418CA083A8873AB19 /* EraserUtils.swift in Sources */,
@@ -1321,6 +1312,7 @@
 				723464A5B6C15400F63345BC /* StoreKitUtils.swift in Sources */,
 				D9BD52AEAA8452433683CE27 /* StorePurchaseController.swift in Sources */,
 				73D00ED1EDDCE228B8BA9BBF /* StoreSubscriptionController.swift in Sources */,
+				4A04A04C3A1EA574F7E83313 /* Strings+Generated.swift in Sources */,
 				E82F1201A4C32878A06F17D9 /* URL.swift in Sources */,
 				8EB83AA688E0F774B2690A6D /* URLTypes.swift in Sources */,
 				F4A648CED095EE5E02AA4F15 /* UserDefaultKeys.swift in Sources */,
@@ -1415,7 +1407,6 @@
 				9ABE907C48A1E28D32511ED8 /* ShareHandling.swift in Sources */,
 				12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */,
 				E9C36D15F15ACB3E66847F49 /* StorageSettingView.swift in Sources */,
-				1DED6819BDB318EB272B6711 /* Strings+Generated.swift in Sources */,
 				6EB8ECF5ECF2C40FAEFB792B /* SubscriptionOptionView.swift in Sources */,
 				2F4FED2E99F8D79E178058BA /* SubscriptionView.swift in Sources */,
 				B0A033D892BE1DB82330FBD9 /* SurfaceType.swift in Sources */,
@@ -1464,15 +1455,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		7CAE239AD061BB95D7E1C52A /* Localizable.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				1502C040838F3770BEF5B8E0 /* de */,
-				31AB13EE6FE68BA8614D0253 /* en */,
-			);
-			name = Localizable.strings;
-			sourceTree = "<group>";
-		};
 		D930FB945D2EB837B0DFD238 /* MainInterface.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (

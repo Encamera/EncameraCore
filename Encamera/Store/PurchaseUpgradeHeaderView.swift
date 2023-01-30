@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import EncameraCore
 
 
 struct PurchaseUpgradeHeaderView: View {
