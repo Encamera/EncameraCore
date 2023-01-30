@@ -25,6 +25,7 @@
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
 		183FE195C4237C4BA34B979E /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BA0FED66DCF9A54E46648C /* KeySelectionGridItem.swift */; };
+		1949DAB32987A8F100A83AE1 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 1949DAB52987A8F100A83AE1 /* Localizable.strings */; };
 		1C1E98FD3A310D016777F02B /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2A007BFB3DF3F2BA4AB7D7 /* AppConstants.swift */; };
 		1DE130BD8F743C2B3E11A1C8 /* CleartextMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F788DAE6ED3B6CD8232944E /* CleartextMedia.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
@@ -269,6 +270,8 @@
 		14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptToErase.swift; sourceTree = "<group>"; };
 		16EA4CD7867931DF2907B89C /* MediaDescribing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescribing.swift; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
+		1949DAB42987A8F100A83AE1 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		1949DAB62987A90500A83AE1 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		194A9CEF964B3C0B22164AC7 /* PhotoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureProcessor.swift; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
 		1F2196319B74951A8E857E62 /* EraserUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EraserUtils.swift; sourceTree = "<group>"; };
@@ -992,6 +995,7 @@
 				76113746610057E30849FE77 /* Storyboards */,
 				F2E9B6C256D4A1310BB45638 /* Styles */,
 				2E24F8696D214DA704579ADE /* Tutorial */,
+				1949DAB52987A8F100A83AE1 /* Localizable.strings */,
 			);
 			path = Encamera;
 			sourceTree = "<group>";
@@ -1106,6 +1110,7 @@
 			knownRegions = (
 				Base,
 				en,
+				de,
 			);
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
@@ -1139,6 +1144,7 @@
 				5368A128262A326183BCCED6 /* Lato-BlackItalic.ttf in Resources */,
 				0D4D676792A0200D6CC317D0 /* Lato-Bold.ttf in Resources */,
 				3701356CE656135AB9B90340 /* Lato-BoldItalic.ttf in Resources */,
+				1949DAB32987A8F100A83AE1 /* Localizable.strings in Resources */,
 				8D986A9119D2BFEC1DFCA286 /* Lato-Italic.ttf in Resources */,
 				5987B7C8B055B2632BEC7782 /* Lato-Light.ttf in Resources */,
 				1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */,
@@ -1356,6 +1362,15 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		1949DAB52987A8F100A83AE1 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1949DAB42987A8F100A83AE1 /* en */,
+				1949DAB62987A90500A83AE1 /* de */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
 		D930FB945D2EB837B0DFD238 /* MainInterface.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -1414,6 +1429,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -1575,6 +1591,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";

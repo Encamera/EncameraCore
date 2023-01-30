@@ -18,7 +18,7 @@ struct FirstPhotoTakenTutorial: View, TutorialView {
                 .fontType(.large)
             Group {
                 Text("You took your first photo! 📸 🥳")
-                Text("See the photos that belong to a key by tapping the \(Image(systemName: "key.fill")) icon on the top left of the screen.")
+                Text("See the photos that belong to a key by tapping the ") + Text(Image(systemName: "key.fill")) + Text(" icon on the top left of the screen.")
             }.fontType(.mediumSmall)
             HStack {
                 Button("Got it!") {

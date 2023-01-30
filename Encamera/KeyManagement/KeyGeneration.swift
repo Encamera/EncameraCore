@@ -120,12 +120,7 @@ struct KeyGeneration: View {
         case .setupPrivateKey:
             return .init(
                 title: "New Key",
-                subheading:
-                                            """
-Set the name for this key.
-
-You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
-""",
+                subheading: "New Key Subheading",
                 image: Image(systemName: "key.fill"),
                 bottomButtonTitle: "Next",
                 bottomButtonAction: {
