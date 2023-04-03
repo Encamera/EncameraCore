@@ -20,6 +20,18 @@
 				<string>me.freas.encamera.image</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Encamera Encrypted Video</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>me.freas.encamera.video</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
@@ -54,6 +66,8 @@
 	<string>Encamera needs access to your camera to capture photos that it will encrypt.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to keep your keys safe</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Use the microphone when recording video.</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.Encamera</key>
@@ -125,6 +139,29 @@
 				<key>public.mime-type</key>
 				<array>
 					<string>application/x-encimage</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Encamera Encrypted Media</string>
+			<key>UTTypeIconFiles</key>
+			<array/>
+			<key>UTTypeIdentifier</key>
+			<string>me.freas.encamera.video</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>encvideo</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-encvideo</string>
 				</array>
 			</dict>
 		</dict>

@@ -14,54 +14,123 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     var fileAccess: FileAccess?
     
     @Published var decryptedFileRef: CleartextMedia<URL>?
-    @Binding var isPlaying: Bool
+    var isPlaying: AnyPublisher<Bool, Never>
     @MainActor
     @Published var decryptProgress: Double = 0.0
+    @Published var player: AVPlayer?
+    @Published fileprivate var internalIsPlaying: Bool = false
+    @Published fileprivate var videoDuration: Double = 0.0
+    fileprivate var cancellables = Set<AnyCancellable>()
+
+
     var error: MediaViewingError?
     
     
     var sourceMedia: SourceType
+    
 
     required init(media: SourceType, fileAccess: FileAccess) {
         self.sourceMedia = media
         self.fileAccess = fileAccess
-        _isPlaying = .constant(false)
+        self.isPlaying = Just(false).eraseToAnyPublisher()
     }
     
-    convenience init(media: SourceType, fileAccess: FileAccess, isPlaying: Binding<Bool>) {
+    convenience init(media: SourceType, fileAccess: FileAccess, isPlaying: Published<Bool>.Publisher) {
+        
         self.init(media: media, fileAccess: fileAccess)
-        _isPlaying = isPlaying
+        
+        self.isPlaying = isPlaying.eraseToAnyPublisher()
+        self.isPlaying.sink { value in
+            self.internalIsPlaying = value
+        }.store(in: &cancellables)
+        
     }
     
+    func seek(to position: Double) {
+        let time = CMTime(seconds: position, preferredTimescale: 600)
+        player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero)
+    }
+    
+    func setupVideoObserver(updateHandler: @escaping (Double) -> Void) {
+        let interval = CMTime(seconds: 0.1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        let mainQueue = DispatchQueue.main
+        player?.addPeriodicTimeObserver(forInterval: interval, queue: mainQueue) { [weak self] time in
+            let currentTime = CMTimeGetSeconds(time)
+            updateHandler(currentTime)
+        }
+    }
+
+    private var durationObservation: NSKeyValueObservation?
+
     @MainActor
     func decrypt() async throws -> CleartextMedia<URL> {
         guard let fileAccess = fileAccess else {
             throw MediaViewingError.fileAccessNotAvailable
         }
-        return try await fileAccess.loadMediaToURL(media: sourceMedia) { progress in
+        let cleartextMedia = try await fileAccess.loadMediaToURL(media: sourceMedia) { progress in
             self.decryptProgress = progress
         }
+        
+        // Initialize the AVPlayer when the media is decrypted
+        self.player = AVPlayer(url: cleartextMedia.source)
+        // Observe changes in the duration property
+        durationObservation = self.player?.currentItem?.observe(\.duration, options: [.new]) { [weak self] _, change in
+            guard let self = self else { return }
+            if let newDuration = change.newValue {
+                let durationSeconds = newDuration.seconds
+                if !durationSeconds.isNaN {
+                    self.videoDuration = durationSeconds
+                    print("duration", durationSeconds)
+                }
+            }
+        }
+        
+        return cleartextMedia
+        
     }
+    
 }
 
 struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
     @State var progress = 0.0
     @StateObject var viewModel: MovieViewingViewModel<M>
-    
+    @State private var videoPosition: Double = 0
+
+    private func videoPositionBinding() -> Binding<Double> {
+        Binding(
+            get: { self.videoPosition },
+            set: { newPosition in
+                videoPosition = newPosition
+                viewModel.seek(to: newPosition)
+            }
+        )
+    }
     var body: some View {
         VStack {
             
-            if let movieUrl = viewModel.decryptedFileRef?.source {
-                let player = AVPlayer(url: movieUrl)
-                
-                VideoPlayer(player: player)
-                    .onChange(of: viewModel.isPlaying) { newValue in
+            if viewModel.decryptedFileRef?.source != nil {
+                VideoPlayer(player: viewModel.player)
+                    .onChange(of: viewModel.internalIsPlaying) { newValue in
                         if newValue == true {
-                            player.play()
+                            viewModel.player?.play()
                         } else {
-                            player.pause()
+                            viewModel.player?.pause()
                         }
                     }
+                    .scaledToFill()
+                if viewModel.videoDuration > 0 {
+                    Slider(value: videoPositionBinding(), in: 0...viewModel.videoDuration)
+                        .padding()
+                        .onTapGesture {
+                            viewModel.player?.pause()
+                        }
+                        .onAppear {
+                            viewModel.setupVideoObserver { position in
+                                videoPosition = position
+                            }
+                        }
+                }
+
             } else if let error = viewModel.error {
                 Text(L10n.couldNotDecryptMovie(error.localizedDescription))
                     .foregroundColor(.red)

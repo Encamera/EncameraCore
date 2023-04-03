@@ -9,12 +9,14 @@ import SwiftUI
 import Combine
 import EncameraCore
 
+
 class GalleryHorizontalScrollViewModel: ObservableObject {
     
     @Published var media: [EncryptedMedia]
     @Published var selectedMedia: EncryptedMedia
     @Published var showInfoSheet = false
     @Published var showPurchaseSheet = false
+    @Published var isPlayingVideo = false
     var purchasedPermissions: PurchasedPermissionManaging
     var showActionBar = true
     var fileAccess: FileAccess
@@ -53,21 +55,25 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
             let targetMedia = selectedMedia
             
             await MainActor.run {
-                if targetIndex > 0 {
-                    rewindIndex()
+                if media.count > 1 {
+                    if targetIndex < media.count - 1 {
+                        advanceIndex()
+                    } else if targetIndex > 0 {
+                        rewindIndex()
+                    }
                 } else {
-                    advanceIndex()
+                    // handle the case when there's only one item left
+                    // you can dismiss the view or show an empty view
                 }
                 
                 _ = withAnimation {
                     media.remove(at: targetIndex)
                 }
-                
             }
             try await fileAccess.delete(media: targetMedia)
-            
         }
     }
+
     
     func shareEncrypted() {
         shareSheet(data: selectedMedia.source)
@@ -115,6 +121,25 @@ struct GalleryHorizontalScrollView: View {
     typealias TapGestureType = _EndedGesture<TapGesture>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
     
+    struct GestureModifier: ViewModifier {
+        let isPlayingVideo: Bool
+        let dragGesture: DragGestureType
+        let magnificationGesture: MagnificationGestureType
+        let tapGesture: TapGestureType
+        
+        func body(content: Content) -> some View {
+            if isPlayingVideo {
+                content
+            } else {
+                content
+                    .gesture(dragGesture)
+                    .gesture(magnificationGesture)
+                    .gesture(tapGesture)
+            }
+        }
+    }
+    @State var isGesturesDisabled = false
+
     
     @StateObject var viewModel: GalleryHorizontalScrollViewModel
     @State var nextScrollViewXOffset: CGFloat = .zero
@@ -128,7 +153,7 @@ struct GalleryHorizontalScrollView: View {
     @State var currentOffset: CGSize = .zero
     @State var showingShareSheet = false
     @State var showingDeleteConfirmation = false
-    @State var isPlayingVideo = false
+//    @State var isPlayingVideo = false
     var dragGestureRef = DragGesture(minimumDistance: 0)
     
     
@@ -182,10 +207,12 @@ struct GalleryHorizontalScrollView: View {
                 }
             }
             .screenBlocked()
-            .gesture(dragGesture(with: frame)
-                .simultaneously(with: magnificationGesture)
-                .simultaneously(with: tapGesture)
-            )
+            .gesture(isGesturesDisabled ? nil : dragGesture(with: frame))
+            .gesture(isGesturesDisabled ? nil : magnificationGesture)
+            .gesture(isGesturesDisabled ? nil : tapGesture)
+            .onChange(of: viewModel.isPlayingVideo) { isPlaying in
+                isGesturesDisabled = isPlaying
+            }
         }
         .sheet(isPresented: $viewModel.showInfoSheet) {
             let content = Group {
@@ -238,7 +265,7 @@ struct GalleryHorizontalScrollView: View {
                 }.frame(maxHeight: .infinity)
             }
             .onChange(of: viewModel.selectedMedia) { newValue in
-                isPlayingVideo = false
+                viewModel.isPlayingVideo = false
                 scrollTo(media: newValue, with: proxy)
             }
             .onAppear {
@@ -255,7 +282,7 @@ struct GalleryHorizontalScrollView: View {
                 finalOffset: offsetBinding(for: item),
                 viewModel: model, externalGesture: dragGestureRef)
         case .video:
-            MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, isPlaying: $isPlayingVideo))
+            MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, isPlaying: viewModel.$isPlayingVideo))
         default:
             EmptyView()
 
@@ -282,9 +309,9 @@ struct GalleryHorizontalScrollView: View {
                 }
                 if viewModel.selectedMedia.mediaType == .video {
                     Button {
-                        isPlayingVideo.toggle()
+                        viewModel.isPlayingVideo.toggle()
                     } label: {
-                        Image(systemName: isPlayingVideo ? "pause" : "play")
+                        Image(systemName: viewModel.isPlayingVideo ? "pause" : "play")
                     }
                 }
                 Button {

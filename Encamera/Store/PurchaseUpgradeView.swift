@@ -85,8 +85,8 @@ struct PurchaseUpgradeView: View {
     
     var productCellsScrollView: some View {
         ScrollView(.vertical) {
-            if let subscriptions = subscriptionController.subscriptions,
-               let products = productController.products {
+            let subscriptions = subscriptionController.subscriptions
+            let products = productController.products
                 PurchaseUpgradeOptionsListView(
                     subscriptions: subscriptions,
                     products: products,
@@ -95,7 +95,7 @@ struct PurchaseUpgradeView: View {
                     currentActiveSubscription: currentActiveSubscription
                 )
                 .padding(.top)
-            }
+            
         }
     }
 }

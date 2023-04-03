@@ -80,14 +80,14 @@ struct SubscriptionStoreView: View {
     
     var subscriptionCellsView: some View {
         ScrollView(.vertical) {
-            if let subscriptions = controller.subscriptions {
+            let subscriptions = controller.subscriptions
                 SubscriptionStoreOptionsView(
                     subscriptions: subscriptions,
                     selectedOption: $selectedSubscription,
                     currentActiveSubscription: currentActiveSubscription
                 )
                 .padding(.top)
-            }
+            
         }
     }
 }

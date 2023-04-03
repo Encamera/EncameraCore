@@ -63,7 +63,7 @@ struct EncameraApp: App {
             
             NotificationUtils.didEnterBackgroundPublisher
                 .sink { _ in
-                    
+
                     self.showScreenBlocker = true
                     try? FileManager.default.removeItem(at: URL.tempMediaURL)
 
@@ -72,14 +72,14 @@ struct EncameraApp: App {
             NotificationUtils.willResignActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = true
-                    try? FileManager.default.removeItem(at: URL.tempMediaURL)
+//                    try? FileManager.default.removeItem(at: URL.tempMediaURL)
                 }
                 .store(in: &cancellables)
 
             NotificationUtils.didBecomeActivePublisher
                 .sink { _ in
                     self.showScreenBlocker = false
-                    try? FileManager.default.removeItem(at: URL.tempMediaURL)
+//                    try? FileManager.default.removeItem(at: URL.tempMediaURL)
 
                 }.store(in: &cancellables)
             

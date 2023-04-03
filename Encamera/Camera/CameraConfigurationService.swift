@@ -166,7 +166,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
         
         do {
             try device.lockForConfiguration()
-            device.videoZoomFactor = factor
+            let clampedZoomFactor = min(factor, device.activeFormat.videoMaxZoomFactor)
+            device.videoZoomFactor = clampedZoomFactor
             device.unlockForConfiguration()
         }
         catch {
@@ -331,6 +332,7 @@ private extension CameraConfigurationService {
         debugPrint("Calling addVideoOutputToSession")
 
         let movieOutput = AVCaptureMovieFileOutput()
+        
         guard session.canAddOutput(movieOutput) else {
             throw SetupError.couldNotAddVideoOutputToSession
         }
@@ -422,6 +424,7 @@ private extension CameraConfigurationService {
             // There is an unhandled case here, where if the video input
             // cannot be added to the session, it fails but does nothing
             try setupVideoCaptureDevice()
+            try setupAudioCaptureDevice()
             try addMetadataOutputToSession()
             try addPhotoOutputToSession()
         } catch {
