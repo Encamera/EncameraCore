@@ -128,6 +128,31 @@
 				</array>
 			</dict>
 		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Encamera Encrypted Media</string>
+			<key>UTTypeIconFiles</key>
+			<array/>
+			<key>UTTypeIdentifier</key>
+			<string>me.freas.encamera.video</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>encvideo</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-encvideo</string>
+				</array>
+			</dict>
+		</dict>
+
+
 	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
