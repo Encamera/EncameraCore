@@ -37,7 +37,7 @@ public class DemoFileEnumerator: FileAccess {
     
     public func createPreview<T>(for media: T) async throws -> PreviewModel where T : MediaDescribing {
 
-        fatalError()
+        return PreviewModel(thumbnailMedia: CleartextMedia(source: Data(), mediaType: .preview, id: "sdf"))
     }
     func loadThumbnails<T>(for: DataStorageModel) async -> [T] where T : MediaDescribing, T.MediaSource == Data {
         []
@@ -160,6 +160,7 @@ public class DemoDirectoryModel: DataStorageModel {
 }
 
 public class DemoKeyManager: KeyManager {
+   
     
     public var keyDirectoryStorage: DataStorageSetting = DemoStorageSettingsManager()
     
@@ -204,7 +205,7 @@ public class DemoKeyManager: KeyManager {
         
     }
     
-    public func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool) throws {
+    public func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
         
     }
     
@@ -225,7 +226,7 @@ public class DemoKeyManager: KeyManager {
         
     }
     
-    public func generateNewKey(name: String, storageType: StorageType) throws -> PrivateKey {
+    public func generateNewKey(name: String, storageType: StorageType, backupToiCloud: Bool) throws -> PrivateKey {
         return try PrivateKey(base64String: "")
     }
     
