@@ -145,8 +145,6 @@ struct GalleryHorizontalScrollView: View {
     @State var nextScrollViewXOffset: CGFloat = .zero
     @Namespace var scrollSpace
     @GestureState private var state = false
-    @State var currentScrollViewXOffset: CGFloat = .zero
-    @State var isDragging = false
     @State var finalScale: CGFloat = 1.0
     @State var currentScale: CGFloat = 1.0
     @State var finalOffset: CGSize = .zero
@@ -185,33 +183,35 @@ struct GalleryHorizontalScrollView: View {
     }
     
     var body: some View {
-        GeometryReader { geo in
-            let frame = geo.frame(in: .global)
-            VStack {
-                scrollView(frame: frame)
-                if viewModel.showActionBar {
-                    actionBar
+        VStack {
+            GeometryReader { geo in
+                let frame = geo.frame(in: .global)
+                VStack {
+                    scrollView(frame: frame)
+                }.confirmationDialog(L10n.deleteThisImage, isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
+                    
+                    Button(L10n.delete, role: .destructive) {
+                        viewModel.deleteAction()
+                    }
                 }
-            }.confirmationDialog(L10n.deleteThisImage, isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
-                
-                Button(L10n.delete, role: .destructive) {
-                    viewModel.deleteAction()
+                .confirmationDialog(L10n.shareThisImage, isPresented: $showingShareSheet) {
+                    Button(L10n.shareEncrypted) {
+                        viewModel.shareEncrypted()
+                    }
+                    Button(L10n.shareDecrypted) {
+                        viewModel.shareDecrypted()
+                    }
+                }
+                .screenBlocked()
+                .gesture(dragGesture(with: frame))
+                .gesture(isGesturesDisabled ? nil : magnificationGesture)
+                .gesture(isGesturesDisabled ? nil : tapGesture)
+                .onChange(of: viewModel.isPlayingVideo) { isPlaying in
+                    isGesturesDisabled = isPlaying
                 }
             }
-            .confirmationDialog(L10n.shareThisImage, isPresented: $showingShareSheet) {
-                Button(L10n.shareEncrypted) {
-                    viewModel.shareEncrypted()
-                }
-                Button(L10n.shareDecrypted) {
-                    viewModel.shareDecrypted()
-                }
-            }
-            .screenBlocked()
-            .gesture(isGesturesDisabled ? nil : dragGesture(with: frame))
-            .gesture(isGesturesDisabled ? nil : magnificationGesture)
-            .gesture(isGesturesDisabled ? nil : tapGesture)
-            .onChange(of: viewModel.isPlayingVideo) { isPlaying in
-                isGesturesDisabled = isPlaying
+            if viewModel.showActionBar {
+                actionBar
             }
         }
         .sheet(isPresented: $viewModel.showInfoSheet) {
@@ -242,7 +242,6 @@ struct GalleryHorizontalScrollView: View {
         let _ = Self._printChanges()
 
         ScrollViewReader { proxy in
-            
             ScrollView(.horizontal) {
                 LazyHGrid(rows: gridItems) {
                     ForEach(Array(viewModel.media.enumerated()), id: \.element.id) { index, item in
@@ -335,6 +334,9 @@ struct GalleryHorizontalScrollView: View {
     }
     private func dragGesture(with frame: CGRect) -> DragGestureType {
         dragGestureRef.onChanged({ value in
+            guard isGesturesDisabled == false else {
+                return
+            }
             if finalScale > 1.0 {
                 var newOffset = value.translation
                 if newOffset.height > frame.height * finalScale {

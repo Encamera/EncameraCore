@@ -27,6 +27,7 @@
 		183FE195C4237C4BA34B979E /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BA0FED66DCF9A54E46648C /* KeySelectionGridItem.swift */; };
 		191857A729F8E363005CF9C0 /* TopBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191857A629F8E363005CF9C0 /* TopBarView.swift */; };
 		191857A929F8F0CC005CF9C0 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = 191857A829F8F0CC005CF9C0 /* Localizable.stringsdict */; };
+		191857AB29F8FE95005CF9C0 /* VideoScrubbingSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191857AA29F8FE95005CF9C0 /* VideoScrubbingSlider.swift */; };
 		1C1E98FD3A310D016777F02B /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2A007BFB3DF3F2BA4AB7D7 /* AppConstants.swift */; };
 		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
 		1DE130BD8F743C2B3E11A1C8 /* CleartextMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F788DAE6ED3B6CD8232944E /* CleartextMedia.swift */; };
@@ -303,6 +304,7 @@
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
 		191857A629F8E363005CF9C0 /* TopBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopBarView.swift; sourceTree = "<group>"; };
 		191857A829F8F0CC005CF9C0 /* Localizable.stringsdict */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; path = Localizable.stringsdict; sourceTree = "<group>"; };
+		191857AA29F8FE95005CF9C0 /* VideoScrubbingSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoScrubbingSlider.swift; sourceTree = "<group>"; };
 		194A9CEF964B3C0B22164AC7 /* PhotoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureProcessor.swift; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
 		1F2196319B74951A8E857E62 /* EraserUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EraserUtils.swift; sourceTree = "<group>"; };
@@ -979,6 +981,7 @@
 			children = (
 				2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */,
 				5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */,
+				191857AA29F8FE95005CF9C0 /* VideoScrubbingSlider.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1356,6 +1359,7 @@
 				950FBFFE68B35AEDBBF975D3 /* CameraPreview.swift in Sources */,
 				44494B8589FFD53D0DCF3C41 /* CameraService+Extensions.swift in Sources */,
 				140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */,
+				191857AB29F8FE95005CF9C0 /* VideoScrubbingSlider.swift in Sources */,
 				C22180C6534679A91CDD688B /* CaptureProcessor.swift in Sources */,
 				05BE9E64DF81E360A090F9E5 /* Color.swift in Sources */,
 				8DA5313062B4B0A3BAA23C4A /* DecryptErrorExplanation.swift in Sources */,

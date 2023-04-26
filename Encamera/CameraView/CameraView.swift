@@ -119,44 +119,6 @@ struct CameraView: View {
         #endif
     }
     
-    private var topBar: some View {
-        ZStack {
-            HStack {
-                
-                Button {
-                    cameraModel.showingKeySelection = true
-                } label: {
-                    Image(systemName: "key.fill")
-                        .frame(width: 44, height: 44)
-                        .symbolRenderingMode(.monochrome)
-
-                }
-                .rotateForOrientation()
-                Text(cameraModel.keyManager.currentKey?.name ?? L10n.noKey)
-                    .fontType(.small)
-                                    Spacer()
-                Button(action: {
-                    cameraModel.switchFlash()
-                }, label: {
-                    Image(systemName: cameraModel.flashMode.systemIconForMode)
-                        .foregroundColor(cameraModel.flashMode.colorForMode)
-                        .frame(width: 44, height: 44)
-                    
-                })
-                .rotateForOrientation()
-                
-                
-            }
-            .tint(.white)
-                        if cameraModel.isRecordingVideo {
-                Text("\(cameraModel.recordingDuration.durationText)")
-                    .fontType(.small)
-                    .padding(5)
-                    .background(Color.videoRecordingIndicator)
-                    .cornerRadius(10)
-                                }
-        }
-    }
     @State var showTookFirstPhotoSheet = true
     
     
@@ -165,6 +127,7 @@ struct CameraView: View {
         NavigationView {
             
             ZStack {
+                settingsScreen
                 keySelectionList
                 galleryView
                 mainCamera
@@ -239,20 +202,22 @@ struct CameraView: View {
     private var keySelectionList: some View {
         NavigationLink(isActive: $cameraModel.showingKeySelection) {
             KeySelectionGrid(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager, fileManager: cameraModel.fileAccess))
-                .toolbar {
-                    NavigationLink {
-                        
-                        SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, fileAccess: cameraModel.fileAccess))
-                    } label: {
-                        Image(systemName: "gear")
-                    }
-                    .isDetailLink(false)
-                }
+                
         } label: {
             EmptyView()
         }.isDetailLink(false)
         
     }
+
+    private var settingsScreen: some View {
+        NavigationLink(isActive: $cameraModel.showSettingsScreen) {
+            SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, fileAccess: cameraModel.fileAccess))
+        } label: {
+            EmptyView()
+        }.isDetailLink(false)
+    }
+    
+    
     
     private var mainCamera: some View {
         VStack {
@@ -263,12 +228,13 @@ struct CameraView: View {
         }
 
             TopBarView(showingKeySelection: $cameraModel.showingKeySelection,
-                       
                        isRecordingVideo: $cameraModel.isRecordingVideo,
                        recordingDuration: $cameraModel.recordingDuration,
                        currentKeyName: currrentKeyName,
-                       flashMode: $cameraModel.flashMode
-            ) {
+                       flashMode: $cameraModel.flashMode,
+                       settingsButtonTapped: {
+                self.cameraModel.showSettingsScreen = true
+            }) {
                 self.cameraModel.switchFlash()
             }
             cameraPreview

@@ -117,9 +117,9 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                             viewModel.player?.pause()
                         }
                     }
-                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if viewModel.videoDuration > 0 {
-                    Slider(value: videoPositionBinding(), in: 0...viewModel.videoDuration)
+                    VideoScrubbingSlider(value: videoPositionBinding(), range: 0...viewModel.videoDuration)
                         .padding()
                         .onTapGesture {
                             viewModel.player?.pause()
@@ -129,6 +129,7 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                                 videoPosition = position
                             }
                         }
+                        .frame(maxWidth: .infinity, maxHeight: 50.0)
                 }
 
             } else if let error = viewModel.error {

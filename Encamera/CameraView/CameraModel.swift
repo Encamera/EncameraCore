@@ -43,6 +43,7 @@ final class CameraModel: ObservableObject {
     @Published var showingKeySelection = false
     @Published var showAlertForMissingKey = false
     @Published var showStoreSheet = false
+    @Published var showSettingsScreen = false
     
     // Tutorial/info sheets
     @Published var showTookFirstPhotoSheet = false
