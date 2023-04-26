@@ -33,6 +33,8 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
                 await MainActor.run {
                     cleartextMedia = preview
                 }
+            } catch let err as SecretFilesError {
+                self.error = err
             } catch {
                 self.error = SecretFilesError.sourceFileAccessError
             }
@@ -79,12 +81,21 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
                 }
             }
             
-        } else if viewModel.error != nil {
-            bodyContainer {
-                Image(systemName: "x.square")
-                                }
+        } else if let error = viewModel.error {
             
-        
+            bodyContainer {
+                switch error {
+                case SecretFilesError.createVideoThumbnailError:
+                    Image(systemName: "play.rectangle.fill")
+                default:
+                    Image(systemName: "x.square")
+                }
+                
+            }.task {
+                await viewModel.loadPreview()
+            }
+            
+            
         } else {
             bodyContainer {
                 placeholder.task {

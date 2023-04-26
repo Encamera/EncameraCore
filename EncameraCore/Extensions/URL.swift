@@ -8,10 +8,11 @@
 import Foundation
 
 extension URL {
-    public static var tempMediaURL: URL {
-        URL(fileURLWithPath: NSTemporaryDirectory(),
+    
+    public static var tempMediaDirectory: URL {
+        URL(fileURLWithPath: NSTemporaryDirectory().appending("decrypted"),
                                     isDirectory: true)
-        .appendingPathComponent("current")
-        .appendingPathExtension("mov")
     }
+    
+    
 }

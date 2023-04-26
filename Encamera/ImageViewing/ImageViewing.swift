@@ -46,6 +46,10 @@ protocol MediaViewingViewModel: AnyObject {
 
 extension MediaViewingViewModel {
     func decryptAndSet() async {
+        guard await decryptedFileRef == nil else {
+            debugPrint("decryptAndSet: not decrypting because we already have a ref")
+            return
+        }
         do {
             let decrypted = try await decrypt()
             await MainActor.run {

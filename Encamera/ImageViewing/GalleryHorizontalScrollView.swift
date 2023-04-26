@@ -205,7 +205,6 @@ struct GalleryHorizontalScrollView: View {
                 .screenBlocked()
                 .gesture(dragGesture(with: frame))
                 .gesture(isGesturesDisabled ? nil : magnificationGesture)
-                .gesture(isGesturesDisabled ? nil : tapGesture)
                 .onChange(of: viewModel.isPlayingVideo) { isPlaying in
                     isGesturesDisabled = isPlaying
                 }
@@ -239,7 +238,6 @@ struct GalleryHorizontalScrollView: View {
         let gridItems = [
             GridItem(.fixed(frame.width), spacing: 0)
         ]
-        let _ = Self._printChanges()
 
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
@@ -327,12 +325,31 @@ struct GalleryHorizontalScrollView: View {
     
     private func scrollTo(media: EncryptedMedia, with proxy: ScrollViewProxy) {
         withAnimation {
-            finalScale = 1.0
+            resetViewState()
             proxy.scrollTo(media.id)
         }
         
     }
+    
+    private func resetViewState() {
+        finalScale = 1.0
+        currentScale = 1.0
+        finalOffset = .zero
+        currentOffset = .zero
+
+    }
+    private func didResetViewStateIfNeeded() -> Bool {
+        debugPrint("didResetViewStateIfNeeded: finalScale \(finalScale), finalOffset \(finalOffset), currentOffset \(currentOffset), currentScale \(currentScale)")
+
+        if finalScale <= 1.0 && finalOffset != .zero {
+            resetViewState()
+            return true
+        }
+        return false
+    }
+    
     private func dragGesture(with frame: CGRect) -> DragGestureType {
+        
         dragGestureRef.onChanged({ value in
             guard isGesturesDisabled == false else {
                 return
@@ -342,11 +359,14 @@ struct GalleryHorizontalScrollView: View {
                 if newOffset.height > frame.height * finalScale {
                     newOffset.height = frame.height * finalScale
                 }
-                
+
                 currentOffset = newOffset
             }
             
         }).onEnded({ value in
+            if didResetViewStateIfNeeded() {
+                return
+            }
             if finalScale <= 1.0 {
                 if value.location.x > value.startLocation.x {
                     viewModel.rewindIndex()
@@ -357,10 +377,10 @@ struct GalleryHorizontalScrollView: View {
                 let nextOffset: CGSize = .init(
                     width: finalOffset.width + currentOffset.width,
                     height: finalOffset.height + currentOffset.height)
-                
+
                 finalOffset = nextOffset
                 currentOffset = .zero
-                
+
             }
             
         })
@@ -378,6 +398,9 @@ struct GalleryHorizontalScrollView: View {
             currentScale = 	value
         })
         .onEnded({ amount in
+            if didResetViewStateIfNeeded() {
+                return
+            }
             let final = finalScale * currentScale
             finalScale = final < 1.0 ? 1.0 : final
             currentScale = 1.0

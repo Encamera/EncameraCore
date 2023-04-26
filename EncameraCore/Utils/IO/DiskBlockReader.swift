@@ -6,7 +6,7 @@
 //
 
 import Foundation
-
+// TODO: rename to DiskBlockIO
 class DiskBlockReader: FileLikeBlockReader {
     
     
@@ -44,6 +44,12 @@ class DiskBlockReader: FileLikeBlockReader {
         
         guard mode == .writing else {
             return
+        }
+        
+        // Create directory if it doesn't exist
+        let directoryURL = source.deletingLastPathComponent()
+        if !FileManager.default.fileExists(atPath: directoryURL.path) {
+            try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
         }
         
         if FileManager.default.fileExists(atPath: source.path) == false {

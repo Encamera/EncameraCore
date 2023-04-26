@@ -84,6 +84,11 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
                 }
             }
         }
+        do {
+            let _ = try await fileAccess.createPreview(for: cleartextMedia)
+        } catch {
+            debugPrint("Could not create preview for movie")
+        }
         
         return cleartextMedia
         
