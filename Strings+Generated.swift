@@ -15,8 +15,8 @@ public enum L10n {
   ///  icon on the top left of the screen.
   public static let iconOnTheTopLeftOfTheScreen = L10n.tr("Localizable", " icon on the top left of the screen.", fallback: " icon on the top left of the screen.")
   /// Toggle("Hide", isOn: $viewModel.blurImages)
-  public static func imageS(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "%@ image(s)", String(describing: p1), fallback: "%@ image(s)")
+  public static func imageS(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "%@ image(s)", p1, fallback: "%@ image(s)")
   }
   /// ./EncameraCore/Utils/SettingsManager.swift
   public static func mustBeSet(_ p1: Any) -> String {
