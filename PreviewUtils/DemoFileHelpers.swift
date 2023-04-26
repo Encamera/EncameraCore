@@ -15,6 +15,8 @@ enum DemoError: Error {
 }
 
 public class DemoFileEnumerator: FileAccess {
+   
+    
     public required init() {
         
         Task {
@@ -33,7 +35,8 @@ public class DemoFileEnumerator: FileAccess {
     
     var mediaList: [EncryptedMedia] = []
     
-    public func savePreview<T>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data> where T : MediaDescribing {
+    public func createPreview<T>(for media: T) async throws -> PreviewModel where T : MediaDescribing {
+
         fatalError()
     }
     func loadThumbnails<T>(for: DataStorageModel) async -> [T] where T : MediaDescribing, T.MediaSource == Data {

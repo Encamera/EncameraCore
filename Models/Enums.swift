@@ -34,7 +34,9 @@ public enum MediaType: Int, CaseIterable, Codable {
     }
     
     private static func typeFrom(media: CleartextMedia<URL>) -> MediaType {
-        return typeFromURL(media.source)
+        // We only support one type of media that we decrypt
+        // to a URL, and that is video
+        return .video
     }
     
     private static func typeFromURL(_ url: URL) -> MediaType {

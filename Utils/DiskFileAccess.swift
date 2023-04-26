@@ -85,7 +85,19 @@ extension DiskFileAccess: FileReader {
             let existingPreview = try await loadMediaInMemory(media: preview) { _ in }
             return PreviewModel(source: existingPreview)
         } catch {
-            return try await self.createPreview(for: media)
+            switch media.mediaType {
+            case .photo:
+                return try await createPreview(for: media)
+            case .video:
+                // We are signaling here that there is no thumbnail for the
+                // video at this time. The preview strategy should be changed
+                // so that an encrypted preview is stored in a certain region
+                // of the file, so we can load the preview without decrypting
+                // the entire file
+                throw SecretFilesError.createVideoThumbnailError
+            default:
+                throw SecretFilesError.createThumbnailError
+            }
         }
     }
     
@@ -158,7 +170,14 @@ extension DiskFileAccess: FileReader {
         let sourceURL = encrypted.source
         
         _ = sourceURL.startAccessingSecurityScopedResource()
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted, targetURL: URL.tempMediaURL)
+        let targetURL = URL.tempMediaDirectory
+            .appendingPathComponent(encrypted.id)
+            .appendingPathExtension("mov")
+        if FileManager.default.fileExists(atPath: targetURL.path) {
+            return CleartextMedia(source: targetURL)
+        }
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted, targetURL: targetURL
+        )
         fileHandler.progress
             .receive(on: DispatchQueue.main)
             .sink { percent in
@@ -183,7 +202,7 @@ extension DiskFileAccess: FileReader {
         }
     }
     
-    @discardableResult private func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
+    @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
         
         let thumbnail = try await createThumbnail(for: media)
         var preview = PreviewModel(thumbnailMedia: thumbnail)

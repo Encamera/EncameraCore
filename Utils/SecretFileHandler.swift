@@ -198,7 +198,6 @@ private extension SecretFileHandler {
         }
     }
     
-    @available(*, deprecated, message: "Do not use decryptFile, as there will be no unencrypted media written to disk, ever.")
     private func decryptFile() async throws -> CleartextMedia<URL> {
         guard let destinationURL = self.targetURL else {
             throw SecretFilesError.sourceFileAccessError
@@ -230,6 +229,7 @@ private extension SecretFileHandler {
             }
             
         } catch {
+            try FileManager.default.removeItem(at: destinationURL)
             throw SecretFilesError.destinationFileAccessError
         }
     }

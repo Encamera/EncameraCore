@@ -30,7 +30,7 @@ public protocol FileReader {
 public protocol FileWriter {
         
     @discardableResult func save<T: MediaSourcing>(media: CleartextMedia<T>) async throws -> EncryptedMedia
-    @discardableResult func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia<Data>
+    @discardableResult func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel
     func copy(media: EncryptedMedia) async throws
     func delete(media: EncryptedMedia) async throws
     func deleteMedia(for key: PrivateKey) async throws
