@@ -57,14 +57,7 @@ public struct PrivateKey: Codable {
         self.init(name: name, keyBytes: keyBytes, creationDate: creationDate)
     }
     
-    var keychainQueryDict: [String: Any] {
-        [
-            kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: name.data(using: .utf8)!,
-            kSecAttrCreationDate as String: creationDate,
-            kSecValueData as String: Data(keyBytes)
-        ]
-    }
+    
     
     static func keychainNameEntry(keyName: String) -> String {
         return "\(keyPrefix)\(keyName)"
