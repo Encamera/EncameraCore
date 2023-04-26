@@ -20,7 +20,7 @@ extension SurfaceType {
         case .background:
             return Color.foregroundPrimary
         case .elevated:
-            return Color.background
+            return Color.foregroundSecondary
         }
     }
     

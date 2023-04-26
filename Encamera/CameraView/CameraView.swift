@@ -256,7 +256,21 @@ struct CameraView: View {
     
     private var mainCamera: some View {
         VStack {
-            topBar
+        let currrentKeyName = Binding<String> {
+            return cameraModel.keyManager.currentKey?.name ?? L10n.noKey
+        } set: { _, _ in
+            
+        }
+
+            TopBarView(showingKeySelection: $cameraModel.showingKeySelection,
+                       
+                       isRecordingVideo: $cameraModel.isRecordingVideo,
+                       recordingDuration: $cameraModel.recordingDuration,
+                       currentKeyName: currrentKeyName,
+                       flashMode: $cameraModel.flashMode
+            ) {
+                self.cameraModel.switchFlash()
+            }
             cameraPreview
                 .edgesIgnoringSafeArea(.all)
             if FeatureToggle.isEnabled(feature: .enableVideo) {
@@ -273,7 +287,7 @@ struct CameraView: View {
                 await cameraModel.service.configure()
             }
         })
-        
+
         .navigationBarHidden(true)
         .navigationTitle("")
 
@@ -294,7 +308,7 @@ private extension CameraView {
     
 }
 
-private extension AVCaptureDevice.FlashMode {
+extension AVCaptureDevice.FlashMode {
     
     var systemIconForMode: String {
         switch self {

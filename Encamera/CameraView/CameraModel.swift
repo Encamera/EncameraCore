@@ -59,7 +59,9 @@ final class CameraModel: ObservableObject {
 
     
     private var cancellables = Set<AnyCancellable>()
-    
+    var isProcessingEvent = false
+    let eventSubject = PassthroughSubject<Void, Never>()
+
     init(keyManager: KeyManager,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
@@ -86,11 +88,32 @@ final class CameraModel: ObservableObject {
                 storageSettingsManager: DataStorageUserDefaultsSetting()
             )
         }
-        NotificationUtils.hardwareButtonPressedPublisher.sink { _ in
-            Task {
-                try await self.captureButtonPressed()
-            }
-        }.store(in: &cancellables)
+
+        eventSubject
+            .handleEvents(receiveOutput: { _ in
+                if !self.isProcessingEvent {
+                    self.isProcessingEvent = true
+
+                    Task {
+                        guard authManager.isAuthenticated else {
+                            return
+                        }
+                        try await self.captureButtonPressed()
+                    }
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        self.isProcessingEvent = false
+                    }
+                }
+            })
+            .sink { _ in }
+            .store(in: &cancellables)
+
+        NotificationUtils.hardwareButtonPressedPublisher
+            .sink { _ in
+                self.eventSubject.send()
+
+            }.store(in: &cancellables)
         FileOperationBus.shared.operations.sink { operation in
             Task {
                 await self.loadThumbnail()

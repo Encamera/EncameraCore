@@ -89,7 +89,11 @@ public actor CameraConfigurationService: CameraConfigurationServicable {
     }
     
     func configure() async {
-        await self.initialSessionConfiguration()
+        if model.setupResult == .setupComplete {
+            await start()
+        } else {
+            await self.initialSessionConfiguration()
+        }
     }
     
     func checkForPermissions() async {

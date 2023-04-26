@@ -122,16 +122,20 @@ struct GalleryGridView<Content: View>: View {
                 ScrollView {
                     content
                     HStack {
-                        if viewModel.blurImages {
-                            Toggle(L10n.hide, isOn: $viewModel.blurImages)
-                                .frame(width: Constants.hideButtonWidth)
-                                .fontType(.small)
-                            Spacer()
-                        } else {
-                            Text(L10n.imageS(viewModel.media.count))
-                                .fontType(.small)
-                                }
-                        
+                        Group {
+                            if viewModel.blurImages {
+                                Toggle(L10n.hide, isOn: $viewModel.blurImages)
+                                    .frame(width: Constants.hideButtonWidth)
+
+                                    .fontType(.small)
+                                Spacer()
+                            } else {
+                                Text(L10n.imageS(viewModel.media.count))
+                                    .fontType(.small)
+                            }
+                        }.onTapGesture {
+                            viewModel.blurImages.toggle()
+                        }
                         if viewModel.downloadPendingMediaCount > 0 {
                             downloadFromiCloudButton
                         }
@@ -144,6 +148,7 @@ struct GalleryGridView<Content: View>: View {
                         }
                     }
                     .padding()
+                    
                     LazyVGrid(columns: gridItems, spacing: 1) {
                         ForEach(Array(viewModel.media.enumerated()), id: \.element) { index, mediaItem in
                             AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView())
