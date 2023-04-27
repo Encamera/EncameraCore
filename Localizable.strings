@@ -53,6 +53,9 @@
 "Shared Media" = "Shared Media";
 "Save" = "Save";
 /* ./Encamera/Settings/SettingsView.swift */
+"What is Encamera?" = "What is Encamera?";
+"Why Encrypt Media?" = "Why Encrypt Media?";
+"Open Source" = "Open Source";
 "Password successfully changed" = "Password successfully changed";
 "premium sparkles" = "✨ Premium ✨";
 "Restore Purchases" = "Restore Purchases";
@@ -109,12 +112,13 @@
 "Error clearing keychain" = "Error clearing keychain";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.";
 "Error deleting all files" = "Error deleting all files";
-"Set Active" = "Set Active";
+"Set as Active Key" = "Set as Active Key";
 "Key Info" = "Key Info";
 "Share Key" = "Share Key";
 "Copy to clipboard" = "Copy to clipboard";
 "Delete Key" = "Delete Key";
 "Delete All Key Data" = "Delete All Key Data";
+"Save Key to iCloud" = "Save Key to iCloud";
 "Copied to Clipboard" = "Copied to Clipboard";
 "OK" = "OK";
 "Key copied to clipboard. Store this in a password manager or other secure place." = "Key copied to clipboard. Store this in a password manager or other secure place.";
@@ -242,6 +246,8 @@
 "New Key Subheading" = "Set the name for this key.\n\nYou can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".";
 "Next" = "Next";
 "Key Name" = "Key Name";
+"Key Value" = "Key Value";
+"If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe." = "If you don't use iCloud backup, it's highly recommended that you backup your keys to a password manager or somewhere else safe.";
 "Select Storage" = "Select Storage";
 "Next" = "Next";
 "Please select a storage location." = "Please select a storage location.";

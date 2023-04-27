@@ -20,6 +20,7 @@ public struct PrivateKey: Codable {
     
     public var name: KeyName
     public private (set) var keyBytes: KeyBytes
+    public private (set) var savedToiCloud: Bool = false
     public var creationDate: Date
     private static let keyPrefix = "com.encamera.key."
     
@@ -55,6 +56,9 @@ public struct PrivateKey: Codable {
             [UInt8](UnsafeRawBufferPointer(body))
         })
         self.init(name: name, keyBytes: keyBytes, creationDate: creationDate)
+        if let synced = keychainItem[kSecAttrSynchronizable as String] as? Bool, synced == true {
+            self.savedToiCloud = true
+        }
     }
     
     

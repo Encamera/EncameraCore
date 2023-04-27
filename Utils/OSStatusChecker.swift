@@ -8,7 +8,7 @@
 import Foundation
 func determineOSStatus(status: OSStatus) {
     #if DEBUG
-    var printString = "OSStatus was "
+    var printString = ""
     switch status {
     case errSecSuccess: printString += "errSecSuccess"
     case errSecUnimplemented: printString += "errSecUnimplemented"
