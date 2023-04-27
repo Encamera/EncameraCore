@@ -26,6 +26,7 @@ struct TopBarView: View {
     var body: some View {
         ZStack {
                 HStack(spacing: 0.0) {
+                    Spacer().frame(width: 10.0)
                     HStack(spacing: 0.0) {
                         Button {
                             self.settingsButtonTapped()
@@ -64,7 +65,6 @@ struct TopBarView: View {
                     .cornerRadius(cornerRadius)
                     
                     Spacer()
-                        .frame(maxWidth: .infinity)
                     
                     Button(action: {
                         flashButtonPressed()
@@ -90,7 +90,7 @@ struct TopBarView: View {
 
 struct TopBarView_Previews: PreviewProvider {
     static var previews: some View {
-        TopBarView(showingKeySelection: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("A key"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
+        TopBarView(showingKeySelection: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("A key with a really long name"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
             .preferredColorScheme(.dark)
     }
 }
