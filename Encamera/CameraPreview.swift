@@ -77,7 +77,7 @@ struct CameraPreview: UIViewRepresentable {
                     self.videoPreviewLayer.session = self.session
                     
                 }.store(in: &cancellables)
-            
+            self.videoPreviewLayer.videoGravity = .resizeAspectFill
             setupVolumeButton()
         }
         
@@ -85,7 +85,7 @@ struct CameraPreview: UIViewRepresentable {
             switch mode {
 
             case .photo:
-                self.videoPreviewLayer.videoGravity = .resizeAspect
+                self.videoPreviewLayer.videoGravity = .resizeAspectFill
             case .video:
                 self.videoPreviewLayer.videoGravity = .resizeAspectFill
             }

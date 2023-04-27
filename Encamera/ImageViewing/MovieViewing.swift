@@ -73,6 +73,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
         
         // Initialize the AVPlayer when the media is decrypted
         self.player = AVPlayer(url: cleartextMedia.source)
+
         // Observe changes in the duration property
         durationObservation = self.player?.currentItem?.observe(\.duration, options: [.new]) { [weak self] _, change in
             guard let self = self else { return }

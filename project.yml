@@ -5,26 +5,20 @@ packages:
   Sodium:
     url: https://github.com/jedisct1/swift-sodium.git
     branch: master
-targets:
   EncameraCore:
-    type: framework
-    configFiles:
-      Debug: ./xcconfigs/debug.xcconfig
-      Release: ./xcconfigs/release.xcconfig
-    platform: iOS
-    deploymentTarget: "15.4"
-    sources: [EncameraCore]
-    dependencies:
-      - package: Sodium
- 
+    path: ../EncameraCore
+      #url: https://github.com/akfreas/EncameraCore.git
+      #branch: master
+
+targets:
+
   ShareExtension:
     type: app-extension
     platform: iOS
     sources: [ShareExtension]
     dependencies:
       - package: Sodium
-      - target: EncameraCore
-        embed: true
+      - package: EncameraCore
     settings:
       DEVELOPMENT_TEAM: KGJCC745S9
       PRODUCT_BUNDLE_IDENTIFIER: me.freas.encamera.ShareExtension
@@ -46,7 +40,6 @@ targets:
       SWIFT_VERSION: 5.0
       TARGETED_DEVICE_FAMILY: "1,2"
 
- 
   Encamera:
     type: application
     configFiles:
@@ -67,8 +60,7 @@ targets:
     dependencies:
       - package: Sodium
       - target: ShareExtension
-      - target: EncameraCore
-        embed: true
+      - package: EncameraCore
       - framework: StoreKit.framework
         embed: false
     scheme:
@@ -82,6 +74,4 @@ targets:
     dependencies:
       - package: Sodium
       - target: Encamera
-      - target: EncameraCore
-        embed: true
-
+      - package: EncameraCore
