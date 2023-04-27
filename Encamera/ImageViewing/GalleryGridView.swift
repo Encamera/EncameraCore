@@ -126,7 +126,6 @@ struct GalleryGridView<Content: View>: View {
                             if viewModel.blurImages {
                                 Toggle(L10n.hide, isOn: $viewModel.blurImages)
                                     .frame(width: Constants.hideButtonWidth)
-
                                     .fontType(.small)
                                 Spacer()
                             } else {

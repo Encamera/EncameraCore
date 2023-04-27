@@ -109,9 +109,13 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
     
     public func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws {
         var query = key.keychainQueryDictForKeychain
+        
         if backupToiCloud {
             query[kSecAttrSynchronizable as String] = kCFBooleanTrue
+        } else {
+            query[kSecAttrSynchronizable as String] = kCFBooleanFalse
         }
+        
         query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
         let status = SecItemAdd(query as CFDictionary, nil)
         try checkStatus(status: status)
@@ -122,13 +126,12 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
         }
     }
 
-    public func update(key: PrivateKey, storageType: StorageType, backupToiCloud: Bool) throws {
+    public func update(key: PrivateKey, backupToiCloud: Bool) throws {
         try checkAuthenticated()
-        let updateDict = createKeychainDictForWrite(with: key, backupToiCloud: backupToiCloud)
-        let query = key.keychainQueryDict
-        let status = SecItemUpdate(query as CFDictionary, updateDict)
+        let updateDict = createKeychainQueryForWrite(with: key, backupToiCloud: backupToiCloud)
+        let query = updateKeyQuery(for: key.name)
+        let status = SecItemUpdate(query, updateDict)
         try checkStatus(status: status)
-        keyDirectoryStorage.setStorageTypeFor(keyName: key.name, directoryModelType: storageType)
     }
     
     public func storedKeys() throws -> [PrivateKey] {
@@ -202,14 +205,7 @@ public class MultipleKeyKeychainManager: ObservableObject, KeyManager {
 
         try checkAuthenticated()
         
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecReturnData as String: true,
-            kSecReturnAttributes as String: true,
-            kSecAttrLabel as String: keyName,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny 
-        ]
+        let query = getKeyQuery(for: keyName)
         
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -353,8 +349,30 @@ private extension MultipleKeyKeychainManager {
         try setActiveKey(keyObject.name)
     }
     
-    private func createKeychainDictForWrite(with key: PrivateKey, backupToiCloud: Bool) -> CFDictionary {
-        var query = key.keychainQueryDictForKeychain
+    private func getKeyQuery(for keyName: KeyName) -> CFDictionary {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnData as String: true,
+            kSecReturnAttributes as String: true,
+            kSecAttrLabel as String: keyName,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+        return query as CFDictionary
+    }
+    
+    private func updateKeyQuery(for keyName: KeyName) -> CFDictionary {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrLabel as String: keyName,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+        return query as CFDictionary
+
+    }
+    
+    private func createKeychainQueryForWrite(with key: PrivateKey, backupToiCloud: Bool) -> CFDictionary {
+        var query = [String: Any]()//= key.keychainQueryDictForKeychain
         if backupToiCloud {
             query[kSecAttrSynchronizable as String] = kCFBooleanTrue
         } else {
@@ -376,15 +394,18 @@ private extension PrivateKey {
     var keychainQueryDict: [String: Any] {
         [
             kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: name.data(using: .utf8)!,
-            kSecAttrCreationDate as String: creationDate,
+            kSecAttrLabel as String: name,
             kSecValueData as String: Data(keyBytes)
         ]
     }
     
+    var applicationLabel: String {
+        "\(KeychainConstants.applicationTag).\(name)"
+    }
+    
     var keychainQueryDictForKeychain: [String: Any] {
         var query = keychainQueryDict
-        query[kSecAttrApplicationLabel as String] = "\(KeychainConstants.applicationTag).\(name)"
+        query[kSecAttrApplicationLabel as String] = applicationLabel
         return query
     }
 }

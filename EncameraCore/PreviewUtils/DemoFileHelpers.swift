@@ -209,6 +209,10 @@ public class DemoKeyManager: KeyManager {
         
     }
     
+    public func update(key: PrivateKey, backupToiCloud: Bool) throws {
+        
+    }
+    
     public var currentKey: PrivateKey?
     
     public func setActiveKey(_ name: KeyName?) throws {

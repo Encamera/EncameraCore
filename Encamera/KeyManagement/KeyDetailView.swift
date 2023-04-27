@@ -7,6 +7,8 @@
 
 import SwiftUI
 import EncameraCore
+import Combine
+
 
 class KeyDetailViewModel: ObservableObject {
     
@@ -20,13 +22,34 @@ class KeyDetailViewModel: ObservableObject {
     @Published var blurImages = true
     @Published var deleteActionError: String = ""
     @Published var showDeleteActionError = false
+    @Published var isActiveKey = false
+    @Published var saveKeyToiCloud = false
     var fileManager: FileAccess
     var key: PrivateKey
     
+    private var cancellables = Set<AnyCancellable>()
+
+    
     init(keyManager: KeyManager, key: PrivateKey, fileManager: FileAccess) {
         self.keyManager = keyManager
+        self.isActiveKey = keyManager.currentKey == key
         self.fileManager = fileManager
         self.key = key
+        keyManager.keyPublisher.sink { newKey in
+            self.isActiveKey = newKey == key
+            self.key = key
+            self.saveKeyToiCloud = newKey?.savedToiCloud ?? false
+        }.store(in: &cancellables)
+        saveKeyToiCloud = key.savedToiCloud
+        $saveKeyToiCloud.dropFirst().sink { value in
+            do {
+                try self.keyManager.update(key: self.key, backupToiCloud: value)
+                debugPrint("Updated key, backupToiCloud: \(value)")
+            } catch {
+                debugPrint("Could not update key", error)
+            }
+        }.store(in: &cancellables)
+
     }
     
     func setActive() {
@@ -86,25 +109,43 @@ struct KeyDetailView: View {
     private struct Constants {
         static var outerPadding = 20.0
     }
+    
+    var keyInformationLink: some View {
+        NavigationLink {
+            KeyInformation(key: viewModel.key, keyManagerError: .constant(nil))
+        } label: {
+            Text(L10n.keyInfo)
+        }
+    }
+    
+    var keyExchangeLink: some View {
+        NavigationLink {
+            KeyExchange(viewModel: .init(key: viewModel.key))
+        } label: {
+            Text(L10n.shareKey)
+        }
+
+    }
+    
+    var toggleBackupToiCloud: some View {
+        Toggle(isOn: $viewModel.saveKeyToiCloud) {
+            Text(L10n.saveKeyToICloud)
+        }
+    }
+    
     var body: some View {
         GalleryGridView(viewModel: .init(privateKey: viewModel.key, blurImages: viewModel.blurImages)) {
             List {
                 Group {
-                    Button(L10n.setActive) {
-                        viewModel.setActive()
-                        dismiss()
+                    if !viewModel.isActiveKey {
+                        Button(L10n.setAsActiveKey) {
+                            viewModel.setActive()
+                            dismiss()
+                        }
                     }
-                    NavigationLink {
-                        KeyInformation(key: viewModel.key, keyManagerError: .constant(nil))
-                    } label: {
-                        Text(L10n.keyInfo)
-                    }
-                    NavigationLink {
-                        KeyExchange(viewModel: .init(key: viewModel.key))
-                    } label: {
-                        Text(L10n.shareKey)
-                    }
-                    
+                    keyInformationLink
+                    keyExchangeLink
+                    toggleBackupToiCloud
                     Button(L10n.copyToClipboard) {
                         let key = viewModel.key.base64String
                         let pasteboard = UIPasteboard.general

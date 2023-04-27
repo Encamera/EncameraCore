@@ -50,6 +50,7 @@ class OnboardingViewModel: ObservableObject {
             }
         }
     }
+    @Published var saveToiCloud = false
     
     var availableBiometric: AuthenticationMethod? {
         return authManager.availableBiometric
@@ -167,7 +168,7 @@ class OnboardingViewModel: ObservableObject {
                 try authManager.authorize(with: existingPassword, using: keyManager)
             } else if let storageType = await keyStorageType {
                 try authManager.authorize(with: password1, using: keyManager)
-                try keyManager.generateNewKey(name: AppConstants.defaultKeyName, storageType: storageType)
+                try keyManager.generateNewKey(name: AppConstants.defaultKeyName, storageType: storageType, backupToiCloud: saveToiCloud)
             }
             try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
             
@@ -381,6 +382,13 @@ private extension MainOnboardingView {
                             Text(L10n.pleaseSelectAStorageLocation)
                                 .alertText()
                         }
+                        Group {
+                            Toggle(L10n.saveKeyToICloud, isOn: $viewModel.saveToiCloud)
+                            Text(L10n.ifYouDonTUseICloudBackupItSHighlyRecommendedThatYouBackupYourKeysToAPasswordManagerOrSomewhereElseSafe)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .fontType(.small)
+
                     }
                 )
                 

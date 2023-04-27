@@ -28,6 +28,7 @@
 		191857A729F8E363005CF9C0 /* TopBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191857A629F8E363005CF9C0 /* TopBarView.swift */; };
 		191857A929F8F0CC005CF9C0 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = 191857A829F8F0CC005CF9C0 /* Localizable.stringsdict */; };
 		191857AB29F8FE95005CF9C0 /* VideoScrubbingSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191857AA29F8FE95005CF9C0 /* VideoScrubbingSlider.swift */; };
+		194CF8C329F98D2E004480C1 /* Strings+Manual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194CF8C229F98D2E004480C1 /* Strings+Manual.swift */; };
 		1C1E98FD3A310D016777F02B /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2A007BFB3DF3F2BA4AB7D7 /* AppConstants.swift */; };
 		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
 		1DE130BD8F743C2B3E11A1C8 /* CleartextMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F788DAE6ED3B6CD8232944E /* CleartextMedia.swift */; };
@@ -306,6 +307,7 @@
 		191857A829F8F0CC005CF9C0 /* Localizable.stringsdict */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; path = Localizable.stringsdict; sourceTree = "<group>"; };
 		191857AA29F8FE95005CF9C0 /* VideoScrubbingSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoScrubbingSlider.swift; sourceTree = "<group>"; };
 		194A9CEF964B3C0B22164AC7 /* PhotoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureProcessor.swift; sourceTree = "<group>"; };
+		194CF8C229F98D2E004480C1 /* Strings+Manual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Strings+Manual.swift"; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
 		1F2196319B74951A8E857E62 /* EraserUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EraserUtils.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -958,6 +960,7 @@
 				603B0C3B4AC305538DA81078 /* Protocols */,
 				53395E4EE6F2DE3E15BB8C3E /* Utils */,
 				191857A829F8F0CC005CF9C0 /* Localizable.stringsdict */,
+				194CF8C229F98D2E004480C1 /* Strings+Manual.swift */,
 			);
 			path = EncameraCore;
 			sourceTree = "<group>";
@@ -1300,6 +1303,7 @@
 				48908B2B2975FB2FD9509940 /* PasswordValidator.swift in Sources */,
 				D8ED9D58601C7A9DC1489564 /* PreviewModel.swift in Sources */,
 				E7ED8B9039D1A3616EB81804 /* PrivateKey.swift in Sources */,
+				194CF8C329F98D2E004480C1 /* Strings+Manual.swift in Sources */,
 				3F87C92509C4EED8098D075A /* QRCodeGenerator.swift in Sources */,
 				9DD230D6C9AD5864652E2EC2 /* SecretFileHandler.swift in Sources */,
 				D4D49349AFBB33C75DFC67EF /* ServiceSubscription.swift in Sources */,

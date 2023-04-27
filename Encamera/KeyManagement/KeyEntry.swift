@@ -26,6 +26,7 @@ struct KeyEntry: View {
         @Published var enteredKey: PrivateKey?
         @Published var keyManagerError: KeyManagerError?
         @Published var showStorageSelectionSheet = false
+        @Published var saveKeyToiCloud = false
         var showCancelButton = false
         private var cancellables = Set<AnyCancellable>()
         var keyManager: KeyManager
@@ -60,9 +61,10 @@ struct KeyEntry: View {
                     return
                 }
                 
-                try keyManager.save(key: enteredKey, storageType: storageType, setNewKeyToCurrent: true)
+                try keyManager.save(key: enteredKey, storageType: storageType, setNewKeyToCurrent: true, backupToiCloud: saveKeyToiCloud)
             } catch let managerError as KeyManagerError {
                 self.keyManagerError = managerError
+                debugPrint("Error saving key", managerError)
                 throw managerError
             } catch {
                 debugPrint("Error saving key", error)
@@ -81,17 +83,63 @@ struct KeyEntry: View {
     var body: some View {
         let vstack = VStack(alignment: .center) {
             if let matchedKey = viewModel.enteredKey {
-                KeyInformation(key: matchedKey, keyManagerError: $viewModel.keyManagerError)
+                if let error = viewModel.keyManagerError {
+                    Text(error.displayDescription)
+                        .alertText()
+                }
+                List {
+                    Group {
+                        Text("\(matchedKey.name)")
+                            .fontType(.large)
+                        
+                        
+                        Text("\(matchedKey.keyString)")
+                        
+                        Text(L10n.created(DateUtils.dateOnlyString(from: matchedKey.creationDate)))
+                            .fontType(.small)
+                        Text(L10n.keyLength(matchedKey.keyBytes.count))
+
+                        Section {
+                            Toggle(L10n.saveKeyToICloud, isOn: $viewModel.saveKeyToiCloud)
+                                .fontType(.small)
+
+                        }
+                        Button {
+                            do {
+                                try viewModel.saveButtonPressed()
+                            } catch {
+                                
+                            }
+                        } label: {
+                            Text(L10n.saveKey)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .foregroundColor(.green)
+                                .fontType(.small, weight: .bold)
+                                
+                        }
+                    }
+                    .listRowBackground(Color.foregroundSecondary)
+                    
+                    //.listRowBackground(Color.activeKey)
+                }
+                .listStyle(InsetGroupedListStyle())
+
+                    
+                Spacer()
             } else {
                 ZStack {
                     TextEditor(text: $viewModel.enteredKeyString)
+                        .cornerRadius(AppConstants.defaultCornerRadius)
                         .padding()
+
+
                     if $viewModel.enteredKeyString.wrappedValue.count == 0 {
                         Text(L10n.pasteThePrivateKeyHere)
                             .fontType(.medium)
                     }
                 }
                 .background(Color.foregroundSecondary)
+                .cornerRadius(AppConstants.defaultCornerRadius)
                 .padding()
                 Spacer()
             }
@@ -133,13 +181,10 @@ struct KeyEntry: View {
                         dismissAction()
                     }
                 }
-                saveKeyToolbar
             }
             
         } else {
-            vstack.toolbar {
-                saveKeyToolbar
-            }
+            vstack
         }
     }
     
@@ -148,19 +193,6 @@ struct KeyEntry: View {
             dismissBinding.wrappedValue = true
         } else {
             dismiss()
-        }
-    }
-    private var saveKeyToolbar: ToolbarItemGroup<some View> {
-        ToolbarItemGroup(placement: .navigationBarTrailing) {
-            if viewModel.enteredKey != nil {
-                Button(L10n.saveKey) {
-                    do {
-                        try viewModel.saveButtonPressed()
-                    } catch {
-                        
-                    }                    
-                }
-            }
         }
     }
     
@@ -176,5 +208,6 @@ struct KeyEntry_Previews: PreviewProvider {
                 keyStorageType: .local,
                 keyManager: MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager()), dismiss: .constant(true)))
         }
+        .preferredColorScheme(.dark)
     }
 }

@@ -55,6 +55,7 @@ public protocol KeyManager {
     func deleteKey(_ key: PrivateKey) throws
     func setActiveKey(_ name: KeyName?) throws
     func save(key: PrivateKey, storageType: StorageType, setNewKeyToCurrent: Bool, backupToiCloud: Bool) throws
+    func update(key: PrivateKey, backupToiCloud: Bool) throws
     func generateNewKey(name: String, storageType: StorageType, backupToiCloud: Bool) throws -> PrivateKey
     func validateKeyName(name: String) throws
     func createBackupDocument() throws -> String

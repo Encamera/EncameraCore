@@ -22,7 +22,8 @@ class KeyGenerationViewModel: ObservableObject {
     @MainActor
     @Published var keyStorageType: StorageType?
     @Published var generalError: KeyGenerationError?
-
+    @Published var saveToiCloud = false
+    
     var keyManager: KeyManager
     
     init(keyManager: KeyManager) {
@@ -32,14 +33,14 @@ class KeyGenerationViewModel: ObservableObject {
                 self.keyStorageType = DataStorageUserDefaultsSetting().preselectedStorageSetting?.storageType
             }
         }
-
+        
     }
     
     @MainActor
     func saveKey() throws {
         do {
             if let keyStorageType = keyStorageType {
-                try keyManager.generateNewKey(name: keyName, storageType: keyStorageType)
+                let _ = try keyManager.generateNewKey(name: keyName, storageType: keyStorageType, backupToiCloud: saveToiCloud)
                 try keyManager.setActiveKey(keyName)
             } else {
                 throw KeyGenerationError.missingStorageType
@@ -104,19 +105,22 @@ struct KeyGeneration: View {
     var body: some View {
         let lastView: AnyView? = nil
         
-        let views = [OnboardingFlowScreen.setupPrivateKey, .dataStorageSetting]
+        let views = [
+            OnboardingFlowScreen.setupPrivateKey,
+                .dataStorageSetting
+        ]
             .reversed().reduce(lastView) { partialResult, screen in
-            return viewFor(flow: screen, next: {
-                partialResult
-            })
-        }
+                return viewFor(flow: screen, next: {
+                    partialResult
+                })
+            }
         views
-
+        
     }
     
     func viewModel(for flow: OnboardingFlowScreen) -> OnboardingViewViewModel {
         switch flow {
-        
+            
         case .setupPrivateKey:
             return .init(
                 title: L10n.newKey,
@@ -130,8 +134,8 @@ struct KeyGeneration: View {
                         VStack {
                             EncameraTextField(L10n.keyName, text: $viewModel.keyName)
                                 .noAutoModification()
-                                
-                                
+                            
+                            
                             if let keySaveError = viewModel.keySaveError {
                                 Text(keySaveError.displayDescription)
                                     .alertText()
@@ -140,8 +144,7 @@ struct KeyGeneration: View {
                     )
                 }
         case .dataStorageSetting:
-
-
+            
             return .init(title: L10n.storageSettings,
                          subheading: L10n.storageSettingsSubheading,
                          image: Image(systemName: ""),
@@ -161,6 +164,13 @@ struct KeyGeneration: View {
                             Text(L10n.selectAPlaceToKeepMediaForThisKey)
                                 .alertText()
                         }
+                        Group {
+                            Toggle(L10n.saveKeyToICloud, isOn: $viewModel.saveToiCloud)
+                            Text(L10n.ifYouDonTUseICloudBackupItSHighlyRecommendedThatYouBackupYourKeysToAPasswordManagerOrSomewhereElseSafe)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .fontType(.small)
+
                     }
                     
                 )
@@ -185,8 +195,10 @@ struct KeyGeneration: View {
     }
 }
 
-//struct KeyGeneration_Previews: PreviewProvider {
-//    static var previews: some View {
-//        KeyGeneration(viewModel: .init(keyManager: DemoKeyManager()), shouldBeActive: false)
-//    }
-//}
+
+struct KeyGeneration_Previews: PreviewProvider {
+    static var previews: some View {
+        KeyGeneration(viewModel: .init(keyManager: DemoKeyManager()), shouldBeActive: .constant(true))
+            .preferredColorScheme(.dark)
+    }
+}
