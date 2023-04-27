@@ -72,8 +72,14 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
         }
         
         // Initialize the AVPlayer when the media is decrypted
-        self.player = AVPlayer(url: cleartextMedia.source)
-
+        let player = AVPlayer(url: cleartextMedia.source)
+        NotificationCenter.default
+            .addObserver(self,
+            selector: #selector(playerDidFinishPlaying),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: player.currentItem
+        )
+        self.player = player
         // Observe changes in the duration property
         durationObservation = self.player?.currentItem?.observe(\.duration, options: [.new]) { [weak self] _, change in
             guard let self = self else { return }
@@ -81,7 +87,6 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
                 let durationSeconds = newDuration.seconds
                 if !durationSeconds.isNaN {
                     self.videoDuration = durationSeconds
-                    print("duration", durationSeconds)
                 }
             }
         }
@@ -93,6 +98,12 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
         
         return cleartextMedia
         
+    }
+    
+    @objc func playerDidFinishPlaying() {
+        print("did finish playing")
+        player?.seek(to: .zero)
+        internalIsPlaying = false
     }
     
 }
@@ -115,7 +126,7 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
         VStack {
             
             if viewModel.decryptedFileRef?.source != nil {
-                AVPlayerViewRepresentable(player: viewModel.player)
+                AVPlayerLayerRepresentable(player: viewModel.player)
                     .onChange(of: viewModel.internalIsPlaying) { newValue in
                         if newValue == true {
                             viewModel.player?.play()
