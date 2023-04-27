@@ -12,6 +12,7 @@ import SwiftUI
 
 struct VideoScrubbingSlider: View {
     @Binding var value: Double
+    @Binding var isExpanded: Bool
     let range: ClosedRange<Double>
     
     @State private var lastCoordinateValue: CGFloat = 0.0
@@ -30,28 +31,39 @@ struct VideoScrubbingSlider: View {
             let radius = geometry.size.height * 0.5
             let minValue = geometry.size.width * 0.015
             let maxValue = (geometry.size.width * 0.98) - thumbSize
-            
-            ZStack {
-                RoundedRectangle(cornerRadius: radius)
-                    .foregroundColor(.foregroundSecondary)
-                HStack {
-                    Circle()
-                        .foregroundColor(Color.foregroundPrimary)
-                        .frame(width: thumbSize, height: thumbSize)
-                        .offset(x: minValue + (maxValue - minValue) * normalizedValue())
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { gestureValue in
-                                    if (abs(gestureValue.translation.width) < 0.1) {
-                                        self.lastCoordinateValue = self.normalizedValue()
+            HStack(spacing: 5.0) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: radius)
+                        .foregroundColor(.foregroundSecondary)
+                    HStack {
+                        Circle()
+                            .foregroundColor(Color.foregroundPrimary)
+                            .frame(width: thumbSize, height: thumbSize)
+                            .offset(x: minValue + (maxValue - minValue) * normalizedValue())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { gestureValue in
+                                        if (abs(gestureValue.translation.width) < 0.1) {
+                                            self.lastCoordinateValue = self.normalizedValue()
+                                        }
+                                        let proposedValue = self.lastCoordinateValue + gestureValue.translation.width / (maxValue - minValue)
+                                        let clampedValue = min(max(proposedValue, 0), 1)
+                                        self.value = denormalizeValue(clampedValue)
                                     }
-                                    let proposedValue = self.lastCoordinateValue + gestureValue.translation.width / (maxValue - minValue)
-                                    let clampedValue = min(max(proposedValue, 0), 1)
-                                    self.value = denormalizeValue(clampedValue)
-                                }
-                        )
-                    Spacer()
+                            )
+                        Spacer()
+                    }
                 }
+                Button {
+                    isExpanded.toggle()
+                } label: {
+                    if isExpanded {
+                        Image(systemName: "rectangle.portrait.arrowtriangle.2.inward")
+                    } else {
+                        Image(systemName: "rectangle.portrait.arrowtriangle.2.outward")
+                    }
+                }
+
             }
         }
     }
@@ -60,7 +72,7 @@ struct VideoScrubbingSlider: View {
 
 struct VideoScrubbingSlider_Previews: PreviewProvider {
     static var previews: some View {
-        VideoScrubbingSlider(value: .constant(4), range: 0...10)
+        VideoScrubbingSlider(value: .constant(4), isExpanded: .constant(false), range: 0...10)
             .frame(width: 300, height: 20)
             .preferredColorScheme(.dark)
     }

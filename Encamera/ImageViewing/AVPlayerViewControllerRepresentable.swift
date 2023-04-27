@@ -24,6 +24,7 @@ struct AVPlayerLayerRepresentable: UIViewRepresentable {
             super.init(frame: .zero)
             playerLayer.player = player
             playerLayer.videoGravity = .resizeAspectFill
+            clipsToBounds = true
             layer.addSublayer(playerLayer)
         }
         required init?(coder: NSCoder) {
@@ -32,13 +33,19 @@ struct AVPlayerLayerRepresentable: UIViewRepresentable {
         override func layoutSubviews() {
             super.layoutSubviews()
             playerLayer.frame = bounds
+            layer.masksToBounds = true
+            playerLayer.masksToBounds = true
+            print("bounds", layer.bounds, playerLayer.bounds, frame)
         }
     }
     
     let player: AVPlayer?
+    let isExpanded: Bool
     
-    init(player: AVPlayer?) {
+    init(player: AVPlayer?, isExpanded: Bool) {
         self.player = player
+        self.isExpanded = isExpanded
+        
     }
     
     func makeUIView(context: Context) -> PlayerUIView {
@@ -47,13 +54,7 @@ struct AVPlayerLayerRepresentable: UIViewRepresentable {
     }
     
     func updateUIView(_ view: PlayerUIView, context: Context) {
-        
-        //        let layer = AVPlayerLayer(player: self.player)
-        //        layer.backgroundColor = UIColor.orange.cgColor
-        //        layer.bounds = view.frame
-        //        view.layer.insertSublayer(layer, at: 0)
-        //        view.layer.layoutIfNeeded()
-        //        view.layer.backgroundColor = UIColor.green.cgColor
+        view.isExpanded = self.isExpanded
     }
     
 }

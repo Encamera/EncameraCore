@@ -20,6 +20,11 @@ struct PurchaseUpgradeHeaderView: View {
                 Text(L10n.supportPrivacyFocusedDevelopment)
             }
             .fontType(.small)
+            Button("Enter Promo Code") {
+                Task {
+                    await StoreActor.shared.presentCodeRedemptionSheet()
+                }
+            }
         }
         .padding(.top, 0)
         .padding(.bottom, 30)

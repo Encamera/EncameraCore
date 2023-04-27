@@ -20,6 +20,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     @Published var player: AVPlayer?
     @Published fileprivate var internalIsPlaying: Bool = false
     @Published fileprivate var videoDuration: Double = 0.0
+    @Published var isExpanded: Bool = true
     fileprivate var cancellables = Set<AnyCancellable>()
 
 
@@ -126,7 +127,7 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
         VStack {
             
             if viewModel.decryptedFileRef?.source != nil {
-                AVPlayerLayerRepresentable(player: viewModel.player)
+                AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: viewModel.isExpanded)
                     .onChange(of: viewModel.internalIsPlaying) { newValue in
                         if newValue == true {
                             viewModel.player?.play()
@@ -137,7 +138,7 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                     .aspectRatio(contentMode: .fill)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if viewModel.videoDuration > 0 {
-                    VideoScrubbingSlider(value: videoPositionBinding(), range: 0...viewModel.videoDuration)
+                    VideoScrubbingSlider(value: videoPositionBinding(), isExpanded: $viewModel.isExpanded, range: 0...viewModel.videoDuration)
                         .padding()
                         .onTapGesture {
                             viewModel.player?.pause()
@@ -161,7 +162,8 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                 }.padding()
                 
             }
-        }
+        }                    .clipped()
+
     }
 }
 //

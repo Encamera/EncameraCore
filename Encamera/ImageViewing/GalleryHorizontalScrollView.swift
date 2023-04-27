@@ -256,7 +256,7 @@ struct GalleryHorizontalScrollView: View {
                                     viewModel.showPurchaseScreen()
                                 }.frame(width: frame.width)
                             }
-                        }
+                        }.clipped()
                         
                     }
                 }.frame(maxHeight: .infinity)
