@@ -115,7 +115,7 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
         VStack {
             
             if viewModel.decryptedFileRef?.source != nil {
-                VideoPlayer(player: viewModel.player)
+                AVPlayerViewRepresentable(player: viewModel.player)
                     .onChange(of: viewModel.internalIsPlaying) { newValue in
                         if newValue == true {
                             viewModel.player?.play()
@@ -123,6 +123,7 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                             viewModel.player?.pause()
                         }
                     }
+                    .aspectRatio(contentMode: .fill)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if viewModel.videoDuration > 0 {
                     VideoScrubbingSlider(value: videoPositionBinding(), range: 0...viewModel.videoDuration)

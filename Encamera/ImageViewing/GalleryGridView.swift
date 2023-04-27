@@ -184,11 +184,11 @@ struct GalleryGridView<Content: View>: View {
             .onAppear {
                 AskForReviewUtil.askForReviewIfNeeded()
             }
-            .screenBlocked()
             .background(Color.background)
             .navigationBarTitle(viewModel.privateKey.name, displayMode: .large)
             
         }
+        .screenBlocked()
         .onAppear {
             Task {
                 await viewModel.enumerateMedia()
