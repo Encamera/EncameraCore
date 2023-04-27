@@ -176,6 +176,11 @@ struct KeySelectionGrid: View {
                 GridItem(.fixed(side))
             ]
             ScrollView {
+                
+                VStack {
+                    Text("Hey!")
+                    Text("It's super important that you back up your keys. Encamera doesn't back up keys , the keys on this device will be the only copy")
+                }
                 LazyVGrid(columns: columns, spacing: spacing) {
                     Group {
                         Group {

@@ -89,7 +89,11 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Group {
-                
+                Section {
+                    Text("What is Encamera?")
+                    Text("About Encryption")
+                    Text("Open Source")
+                }
                 Section {
                     Button(L10n.premiumSparkles) {
                         viewModel.showPremium = true

@@ -64,7 +64,7 @@ struct EncameraApp: App {
                 .sink { _ in
 
                     self.showScreenBlocker = true
-                    self.cleanupTemporaryFiles()
+                    TempFileAccess.cleanupTemporaryFiles()
 
                 }.store(in: &cancellables)
 
@@ -103,7 +103,7 @@ struct EncameraApp: App {
                         self.rotationFromOrientation = rotation
                     }
                 }.store(in: &cancellables)
-            cleanupTemporaryFiles()
+            TempFileAccess.cleanupTemporaryFiles()
         }
         
         
@@ -125,19 +125,6 @@ struct EncameraApp: App {
         private func setupWith(key: PrivateKey?) {
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
-            }
-        }
-        
-        private func cleanupTemporaryFiles() {
-            do {
-                if FileManager.default.fileExists(atPath: URL.tempMediaDirectory.path) {
-                    try FileManager.default.removeItem(at: URL.tempMediaDirectory)
-                    debugPrint("Deleted files at \(URL.tempMediaDirectory)")
-                } else {
-                    debugPrint("No temporary media directory, not deleting")
-                }
-            } catch let error {
-                debugPrint("Could not delete files: \(error)")
             }
         }
     }
