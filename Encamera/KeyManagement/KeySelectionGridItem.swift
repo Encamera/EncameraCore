@@ -193,10 +193,11 @@ struct KeySelectionGrid: View {
                                 }
                                 NavigationLink(isActive: createNewKeyActive) {
                                     if viewModel.shouldShowPurchaseScreenForKeys {
-                                                            ProductStoreView(showDismissButton: false)
-                                                        } else {
-                                                            KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
-                                                        }
+                                        ProductStoreView(showDismissButton: false)
+                                        
+                                    } else {
+                                        KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
+                                    }
                                 } label: {
                                     Text(L10n.createNewKey)
                                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -233,6 +234,7 @@ struct KeySelectionGrid: View {
                     }.frame(height: side)
                 }
             }
+            .screenBlocked()
         }
         .onAppear {
             viewModel.loadKeys()

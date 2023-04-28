@@ -303,10 +303,12 @@ private extension MainOnboardingView {
                         VStack(alignment: .leading) {
                                 VStack {
                                     Group {
-                                        EncameraTextField(L10n.password, type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password1).onSubmit {
+                                        EncameraTextField(L10n.password, type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password1, accessibilityIdentifier: "password").onSubmit {
                                             password2Focused = true
                                         }
-                                        EncameraTextField(L10n.repeatPassword, type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password2)
+                                        EncameraTextField(L10n.repeatPassword, type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password2,
+                                                          accessibilityIdentifier: "passwordConfirmation"
+                                        )
                                             .focused($password2Focused)
                                             .onSubmit {
                                                 password2Focused = false
@@ -386,6 +388,7 @@ private extension MainOnboardingView {
                             Toggle(L10n.saveKeyToICloud, isOn: $viewModel.saveToiCloud)
                             Text(L10n.ifYouDonTUseICloudBackupItSHighlyRecommendedThatYouBackupYourKeysToAPasswordManagerOrSomewhereElseSafe)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .lineLimit(nil)
                         }
                         .fontType(.small)
 

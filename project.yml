@@ -46,7 +46,7 @@ targets:
       Debug: ./xcconfigs/debug.xcconfig
       Release: ./xcconfigs/release.xcconfig
     platform: iOS
-    deploymentTarget: "15.4"
+    deploymentTarget: "15.6"
     sources: [Encamera]
     settings:
       DEVELOPMENT_TEAM: KGJCC745S9
@@ -68,7 +68,7 @@ targets:
         - EncameraTests
   EncameraTests:
     platform: iOS
-    deploymentTarget: "15.4"
+    deploymentTarget: "15.6"
     sources: [EncameraTests]
     type: bundle.unit-test
     dependencies:

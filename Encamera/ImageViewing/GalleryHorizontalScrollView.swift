@@ -81,13 +81,27 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     
     func shareDecrypted() {
         Task {
-            let decrypted = try await fileAccess.loadMediaInMemory(media: selectedMedia) { _ in
+            switch selectedMedia.mediaType {
+            case .photo:
+                let decrypted = try await fileAccess.loadMediaInMemory(media: selectedMedia) { _ in
+                    
+                }
+                await MainActor.run {
+                    let image = UIImage(data: decrypted.source)!
+                    shareSheet(data: image)
+                }
                 
+            case .video:
+                let decrypted = try await fileAccess.loadMediaToURL(media: selectedMedia) {_ in
+                    
+                }
+                await MainActor.run {
+                    shareSheet(data: decrypted.source)
+                }
+            default:
+                return
             }
-            await MainActor.run {
-                let image = UIImage(data: decrypted.source)!
-                shareSheet(data: image)
-            }
+            
         }
     }
     

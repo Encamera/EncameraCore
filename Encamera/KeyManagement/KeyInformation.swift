@@ -16,7 +16,7 @@ struct KeyInformation: View {
     var body: some View {
         
                 Group {
-                    Text("\(L10n.keyName)\(key.name)")
+                    Text("\(key.name)")
                         .fontType(.large)
                     
                     

@@ -90,11 +90,6 @@ struct SettingsView: View {
         Form {
             Group {
                 Section {
-                    Text("What is Encamera?")
-                    Text("About Encryption")
-                    Text("Open Source")
-                }
-                Section {
                     Button(L10n.premiumSparkles) {
                         viewModel.showPremium = true
                     }

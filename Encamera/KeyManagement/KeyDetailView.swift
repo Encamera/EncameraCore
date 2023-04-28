@@ -112,7 +112,9 @@ struct KeyDetailView: View {
     
     var keyInformationLink: some View {
         NavigationLink {
-            KeyInformation(key: viewModel.key, keyManagerError: .constant(nil))
+            List {
+                KeyInformation(key: viewModel.key, keyManagerError: .constant(nil))
+            }
         } label: {
             Text(L10n.keyInfo)
         }
@@ -171,6 +173,7 @@ struct KeyDetailView: View {
             .scrollContentBackgroundColor(Color.background)
             
         }
+        .screenBlocked()
         .foregroundColor(.blue)
         .alert(L10n.copiedToClipboard, isPresented: $isShowingAlertForCopyKey, actions: {
             Button(L10n.ok) {

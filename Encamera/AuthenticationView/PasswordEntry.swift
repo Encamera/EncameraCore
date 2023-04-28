@@ -75,7 +75,11 @@ struct PasswordEntry: View {
     var body: some View {
         VStack {
             ZStack(alignment: .trailing) {
-                EncameraTextField(viewModel.placeholderText, type: .secure, text: $viewModel.password)
+                EncameraTextField(viewModel.placeholderText,
+                                  type: .secure,
+                                  text: $viewModel.password,
+                                  accessibilityIdentifier: "password"
+                )
                     .onSubmit(viewModel.validatePassword)
                     .cornerRadius(25)
                 Button(action: viewModel.validatePassword) {

@@ -27,12 +27,14 @@ struct EncameraTextField: View {
     
     private var placeholder: String
     private var fieldType: FieldType = .normal
+    private var accessibilityIdentifier: String?
     @Binding var text: String
     @FocusState var isFieldFocused
     
-    init(_ placeholder: String, type: FieldType = .normal, text: Binding<String>) {
+    init(_ placeholder: String, type: FieldType = .normal, text: Binding<String>, accessibilityIdentifier: String? = nil) {
         self.placeholder = placeholder
         self.fieldType = type
+        self.accessibilityIdentifier = accessibilityIdentifier
         _text = text
     }
     
@@ -54,11 +56,16 @@ struct EncameraTextField: View {
     }
     
     @ViewBuilder private var field: some View {
+        
         switch fieldType {
         case .normal:
             TextField("", text: $text)
+                .accessibilityIdentifier(self.accessibilityIdentifier ?? "")
         case .secure:
             SecureField("", text: $text)
+                .textContentType(.newPassword)
+                .accessibilityIdentifier(self.accessibilityIdentifier ?? "")
         }
+        
     }
 }

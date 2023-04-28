@@ -28,6 +28,7 @@ struct PurchaseUpgradeView: View {
                 .frame(maxWidth: .infinity)
             productCellsScrollView
         }
+        .navigationBarTitle(L10n.upgradeToday)
         .overlay(alignment: .topTrailing) {
             if showDismissButton {
                 dismissButton
