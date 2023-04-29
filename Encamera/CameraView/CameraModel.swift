@@ -181,10 +181,14 @@ final class CameraModel: ObservableObject {
     
     func captureButtonPressed() async throws {
         
+        guard keyManager.currentKey != nil else {
+            showAlertForMissingKey = true
+            return
+        }
+        
         switch selectedCameraMode {
         case .photo:
             
-            UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
             
             let photoProcessor = await service.createPhotoProcessor(flashMode: flashMode)
             
@@ -201,6 +205,8 @@ final class CameraModel: ObservableObject {
                 if let livePhoto = photoObject.livePhoto {
                     try await fileAccess.save(media: livePhoto)
                 }
+                UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
+
             } catch let filesError as FileAccessError {
                 await MainActor.run {
                     switch filesError {
@@ -237,7 +243,7 @@ final class CameraModel: ObservableObject {
             })
             currentVideoProcessor = nil
             try await fileAccess.save(media: video)
-            break
+            UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
         }
         await loadThumbnail()
     }

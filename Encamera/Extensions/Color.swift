@@ -24,4 +24,5 @@ extension Color {
     static let background = Color("BackgroundColor")
     static let videoRecordingIndicator = Color("VideoRecordingIndicatorColor")
     static let warningColor = Color("WarningColor")
+    static let upgradePillColor = Color("UpgradePillColor")
 }

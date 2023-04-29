@@ -24,18 +24,22 @@ class KeyDetailViewModel: ObservableObject {
     @Published var showDeleteActionError = false
     @Published var isActiveKey = false
     @Published var saveKeyToiCloud = false
-    var fileManager: FileAccess
+    var storageSetting = DataStorageUserDefaultsSetting()
+
+    var fileManager: FileAccess?
     var key: PrivateKey
     
     private var cancellables = Set<AnyCancellable>()
 
     
-    init(keyManager: KeyManager, key: PrivateKey, fileManager: FileAccess) {
+    init(keyManager: KeyManager, key: PrivateKey) {
         self.keyManager = keyManager
         self.isActiveKey = keyManager.currentKey == key
-        self.fileManager = fileManager
         self.key = key
-        keyManager.keyPublisher.sink { newKey in
+        keyManager
+            .keyPublisher
+            .receive(on: RunLoop.main)
+            .sink { newKey in
             self.isActiveKey = newKey == key
             self.key = key
             self.saveKeyToiCloud = newKey?.savedToiCloud ?? false
@@ -49,6 +53,10 @@ class KeyDetailViewModel: ObservableObject {
                 debugPrint("Could not update key", error)
             }
         }.store(in: &cancellables)
+        
+        Task {
+            self.fileManager = await DiskFileAccess(with: key, storageSettingsManager: DataStorageUserDefaultsSetting())
+        }
 
     }
     
@@ -75,7 +83,7 @@ class KeyDetailViewModel: ObservableObject {
     func deleteAllKeyData() {
         Task {
             do {
-                try await fileManager.deleteMedia(for: key)
+                try await fileManager?.deleteMediaForKey()
                 try keyManager.deleteKey(key)
             } catch {
                 await MainActor.run {
@@ -234,12 +242,12 @@ struct KeyDetailView: View {
         })
     }
 }
-
-struct KeyPickerView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-
-            KeyDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date()), fileManager: DemoFileEnumerator()))
-        }
-    }
-}
+//
+//struct KeyPickerView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        NavigationView {
+//
+//            KeyDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
+//        }
+//    }
+//}

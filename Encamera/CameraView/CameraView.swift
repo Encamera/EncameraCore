@@ -227,7 +227,7 @@ struct CameraView: View {
             
         }
 
-            TopBarView(viewModel: .init(purchaseManager: cameraModel.purchaseManager), showingKeySelection: $cameraModel.showingKeySelection,
+            TopBarView(viewModel: .init(purchaseManager: cameraModel.purchaseManager), showingKeySelection: $cameraModel.showingKeySelection, showStoreSheet: $cameraModel.showStoreSheet,
                        isRecordingVideo: $cameraModel.isRecordingVideo,
                        recordingDuration: $cameraModel.recordingDuration,
                        currentKeyName: currrentKeyName,

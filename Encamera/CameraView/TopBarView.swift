@@ -9,36 +9,84 @@ import Foundation
 import SwiftUI
 import AVFoundation
 import EncameraCore
-
+import Combine
 
 class TopBarViewViewModel: ObservableObject {
     
     var purchaseManager: PurchasedPermissionManaging
-    
+    private var cancellables = Set<AnyCancellable>()
+    @Published var currentTutorialPillState: TopBarTutorialPillState = .notShown
+
     init(purchaseManager: PurchasedPermissionManaging) {
         self.purchaseManager = purchaseManager
+        
     }
     
     
-    var currentTutorialPillState: TopBarTutorialPillState {
+    
+    @MainActor
+    func setupObservers() async {
+            
+            let purchasedProductsPublisher = StoreActor.shared
+                .productController
+                .$purchasedProducts
+                .map { $0 as Any? }
+                .eraseToAnyPublisher()
+                
+            
+            let purchasedSubscriptionPublisher = StoreActor.shared
+                .subscriptionController
+                .$entitledSubscriptionID
+                .map { $0 as Any? }
+                .eraseToAnyPublisher()
+
+
+            Publishers.Merge4(
+                UserDefaultUtils.publisher(for: .capturedPhotos) as AnyPublisher<Any?, Never>,
+                UserDefaultUtils.publisher(for: .hasOpenedKeySelection) as AnyPublisher<Any?, Never>,
+                purchasedProductsPublisher,
+                purchasedSubscriptionPublisher)
+
+            .receive(on: RunLoop.main)
+            .sink { _ in
+                self.determinePillState()
+            }.store(in: &cancellables)
+    }
+    
+    func determinePillState() {
         let capturedPhotos = UserDefaultUtils.integer(forKey: .capturedPhotos)
+        let hasOpenedKeys = UserDefaultUtils.bool(forKey: .hasOpenedKeySelection)
         let hasPhotoAccess = purchaseManager.isAllowedAccess(feature: .accessPhoto(count: Double(capturedPhotos)))
         
-        switch (capturedPhotos, hasPhotoAccess) {
-        case (0, true):
-            return .noPhotosTaken
+        var retVal: TopBarTutorialPillState
+        switch (capturedPhotos, hasPhotoAccess, hasOpenedKeys) {
+        case (0, true, false):
+            retVal = .noPhotosTaken
+        case (_, true, false):
+            retVal = .showTapOnKey
+
+        case (let count, true, _) where Double(count) < AppConstants.maxPhotoCountBeforePurchase:
+            let leftCount = max(0, Int(AppConstants.maxPhotoCountBeforePurchase) - capturedPhotos)
+            retVal = .numberOfPhotosLeft(photoCount: leftCount)
+        
+        case (_, false, _):
+            retVal = .noPhotosLeft
         default:
-            return .notShown
+            retVal = .notShown
         }
+        currentTutorialPillState = retVal
     }
+    
+    
     
 }
 
 struct TopBarView: View {
     
-    @ObservedObject var viewModel: TopBarViewViewModel
+    @StateObject var viewModel: TopBarViewViewModel
     @Binding var showingKeySelection: Bool
-    
+    @Binding var showStoreSheet: Bool
+
     @Binding var isRecordingVideo: Bool
     @Binding var recordingDuration: CMTime
     @Binding var currentKeyName: String
@@ -64,12 +112,27 @@ struct TopBarView: View {
             .tint(.white)
             
             durationText
-        }.animation(.easeIn(duration: 0.1), value: isRecordingVideo)
+        }
+        .task {
+            await viewModel.setupObservers()
+            viewModel.determinePillState()
+        }
+        .animation(.easeIn(duration: 0.1), value: isRecordingVideo)
     }
     
+    
+    
     private var tutorialPill: some View {
-       
-        TopBarTutorialPill(currentState: viewModel.currentTutorialPillState)
+        
+        TopBarTutorialPill(currentState: $viewModel.currentTutorialPillState, showStoreSheet: $showStoreSheet)
+            .onTapGesture {
+                switch viewModel.currentTutorialPillState {
+                case .numberOfPhotosLeft(_), .noPhotosLeft:
+                    showStoreSheet = true
+                default:
+                    break
+                }
+            }
         
     }
     private var settingsAndKeyButton: some View {
@@ -132,9 +195,9 @@ struct TopBarView: View {
     }
 }
 
-struct TopBarView_Previews: PreviewProvider {
-    static var previews: some View {
-        TopBarView(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging()), showingKeySelection: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("DefaultKey"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
-            .preferredColorScheme(.dark)
-    }
-}
+//struct TopBarView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        TopBarView(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging()), showingKeySelection: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("DefaultKey"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
+//            .preferredColorScheme(.dark)
+//    }
+//}

@@ -13,14 +13,16 @@ enum TopBarTutorialPillState {
     case noPhotosTaken
     case showTapOnKey
     case numberOfPhotosLeft(photoCount: Int)
+    case noPhotosLeft
     case notShown
 }
 
 struct TopBarTutorialPill: View {
     
-    @State var currentState: TopBarTutorialPillState
+    @Binding var currentState: TopBarTutorialPillState
     @State var shift: Double = 0.0
     @State var scaleAnimation: Double = 1.0
+    @Binding var showStoreSheet: Bool
     var body: some View {
         
         Group {
@@ -34,14 +36,17 @@ struct TopBarTutorialPill: View {
                 stateForNumberOfPhotosLeft(photosLeft: photos)
             case .notShown:
                 notShown
+            case .noPhotosLeft:
+                noPhotosLeft
             }
         }
     
         
     }
-    private var notShown: some View {
-        return EmptyView()
-    }
+    
+    
+    
+    
     @State private var photosLeft = 10
     @State private var displayPhotosLeft = true
     @State private var opacity: Double = 1.0
@@ -92,6 +97,16 @@ struct TopBarTutorialPill: View {
             }
     }
     
+    private var noPhotosLeft: some View {
+        Text("\(L10n.tapToUpgrade)")
+        .textPill(color: .green)
+        .foregroundColor(.background)
+    }
+    
+    private var notShown: some View {
+        return EmptyView()
+    }
+    
 }
 
 struct TopBarTutorialPill_Previews: PreviewProvider {
@@ -99,10 +114,11 @@ struct TopBarTutorialPill_Previews: PreviewProvider {
     static var previews: some View {
         
         VStack {
-            TopBarTutorialPill(currentState: .noPhotosTaken)
-            TopBarTutorialPill(currentState: .numberOfPhotosLeft(photoCount: 3))
-            TopBarTutorialPill(currentState: .showTapOnKey)
-            TopBarTutorialPill(currentState: .notShown)
+            TopBarTutorialPill(currentState: .constant(.noPhotosTaken), showStoreSheet: .constant(false))
+            TopBarTutorialPill(currentState: .constant(.numberOfPhotosLeft(photoCount: 3)), showStoreSheet: .constant(false))
+            TopBarTutorialPill(currentState: .constant(.showTapOnKey), showStoreSheet: .constant(false))
+            TopBarTutorialPill(currentState: .constant(.notShown), showStoreSheet: .constant(false))
+            TopBarTutorialPill(currentState: .constant(.noPhotosLeft), showStoreSheet: .constant(false))
         }
             .preferredColorScheme(.dark)
     }

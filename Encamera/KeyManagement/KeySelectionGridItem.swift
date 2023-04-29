@@ -125,6 +125,7 @@ class KeySelectionGridViewModel: ObservableObject {
     var fileManager: FileAccess
     @Published var isShowingAddKeyView: Bool = false
     @Published var isShowingAddExistingKeyView: Bool = false
+    @Published var isKeyTutorialClosed: Bool = true
     var purchaseManager: PurchasedPermissionManaging
 
     private var cancellables = Set<AnyCancellable>()
@@ -137,9 +138,17 @@ class KeySelectionGridViewModel: ObservableObject {
             self.loadKeys()
         }.store(in: &cancellables)
         loadKeys()
+        self.isKeyTutorialClosed = UserDefaultUtils.bool(forKey: .keyTutorialClosed)
+        UserDefaultUtils.publisher(for: .keyTutorialClosed).sink { value in
+            guard let closed = value as? Bool else {
+                return
+            }
+            self.isKeyTutorialClosed = closed
+        }.store(in: &cancellables)
     }
     
     func loadKeys() {
+        UserDefaultUtils.set(true, forKey: .hasOpenedKeySelection)
         self.keys = (try? keyManager.storedKeys().filter({ keyManager.currentKey != $0 })) ?? []
         if let activeKey = keyManager.currentKey {
             self.activeKey = keyManager.currentKey
@@ -158,11 +167,11 @@ class KeySelectionGridViewModel: ObservableObject {
     
 }
 
+
 struct KeySelectionGrid: View {
     
     
     @StateObject var viewModel: KeySelectionGridViewModel
-    
     
     
     var body: some View {
@@ -177,9 +186,14 @@ struct KeySelectionGrid: View {
             ]
             ScrollView {
                 
-                VStack {
-                    Text("Hey!")
-                    Text("It's super important that you back up your keys. Encamera doesn't back up keys , the keys on this device will be the only copy")
+                if !viewModel.isKeyTutorialClosed {
+                    VStack(alignment: .leading) {
+                        TutorialCardView(title: L10n.keyTutorialTitle, tutorialText: L10n.keyTutorialText) {
+                            UserDefaultUtils.set(true, forKey: .keyTutorialClosed)
+                        }
+                        .padding(spacing*2)
+                        
+                    }.opacity(viewModel.isKeyTutorialClosed ? 0.0 : 1.0)
                 }
                 LazyVGrid(columns: columns, spacing: spacing) {
                     Group {
@@ -226,7 +240,7 @@ struct KeySelectionGrid: View {
                         
                         ForEach(viewModel.keys, id: \.id) { key in
                             NavigationLink {
-                                KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key, fileManager: viewModel.fileManager))
+                                KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
                             } label: {
                                 KeySelectionGridItem(key: key, isActiveKey: key == viewModel.activeKey)
                             }
@@ -254,6 +268,7 @@ struct KeySelectionGridItem_Previews: PreviewProvider {
                                                          DemoPrivateKey.dummyKey(name: "cows"),
                                                          DemoPrivateKey.dummyKey(name: "very very very very very very long name that could overflow"),
                                                                            ]), purchaseManager: AppPurchasedPermissionUtils(), fileManager: DemoFileEnumerator()))
-
+        .preferredColorScheme(.dark)
     }
+        
 }

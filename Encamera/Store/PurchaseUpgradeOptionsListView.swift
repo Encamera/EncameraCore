@@ -57,6 +57,7 @@ struct PurchaseUpgradeOptionsListView: View {
             if purchasedProducts.isEmpty {
                 Text(L10n.subscription)
                     .fontType(.mediumSmall)
+                let _ = print(subscriptions.map({$0.displayName}))
                 ForEach(subscriptions) { subscription in
                     subscriptionOptionCell(for: subscription)
                 }

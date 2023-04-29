@@ -22,11 +22,11 @@
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
 		183FE195C4237C4BA34B979E /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BA0FED66DCF9A54E46648C /* KeySelectionGridItem.swift */; };
 		19171D7629FC276A0002E69B /* TopBarTutorialPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19171D7529FC276A0002E69B /* TopBarTutorialPill.swift */; };
-		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
+		19171D7829FD2F800002E69B /* LockScreenKeypad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19171D7729FD2F800002E69B /* LockScreenKeypad.swift */; };
+		19171D7A29FD761D0002E69B /* TutorialCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19171D7929FD761D0002E69B /* TutorialCardView.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
 		1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */; };
 		213C1A88507685FD8FA0CA31 /* AsyncVideoCaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50FC5C236ADF934DC4F81EF /* AsyncVideoCaptureProcessor.swift */; };
-		24E55E5C74E12CB0921F1C3A /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 7FEAF11972744A5837011C99 /* Sodium */; };
 		26168F98ECFE26D3D975B7C7 /* Lato-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7E935404249D04E62DD75E68 /* Lato-Thin.ttf */; };
 		2AC7523CF9F950C533C63CB8 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3FE55829F2B997DDCA81B18F /* Lato-Regular.ttf */; };
 		2F4FED2E99F8D79E178058BA /* SubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25B2718DA5A7D489DF898C8 /* SubscriptionView.swift */; };
@@ -45,14 +45,12 @@
 		5BDE17D39CBF70B6A5C2857B /* BuyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */; };
 		5D8A8BBF90E59B7E75FE8DF9 /* KeyGeneration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26C4CC1724CE208C558D81E /* KeyGeneration.swift */; };
 		61AF31980C7C83808E95CC0B /* List.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6930675B73ADF4E2B6F10CC6 /* List.swift */; };
-		634B0425B9F4BF25AF3C2AF2 /* ShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C078E03BCFAAA274C5A52366 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6C17DD325876225EA9C2E3DE /* PurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76DC7343E9ECEFF44132872C /* PurchaseButton.swift */; };
 		6EB8ECF5ECF2C40FAEFB792B /* SubscriptionOptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF0490EEC4512041C781765 /* SubscriptionOptionView.swift */; };
 		70661EDDF1C6AB200CCB26DD /* AVPlayerViewControllerRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F02011D6358CD65EAA6ED453 /* AVPlayerViewControllerRepresentable.swift */; };
 		70AC154CF1FE49A51C0C72A1 /* AsyncEncryptedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAD610E4351444AD4DE851A /* AsyncEncryptedImage.swift */; };
 		70D8B277BC2C42A22907B619 /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57C54146880DB6F836B1AB7F /* Rotation.swift */; };
 		74A426CBDF114D88EFF62067 /* AlertError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EB354FCE2DD69B37D3B066 /* AlertError.swift */; };
-		7511C8921B5ABCC3B4813BEE /* MainInterface.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D930FB945D2EB837B0DFD238 /* MainInterface.storyboard */; };
 		753C199E4BD91DF38A25460F /* KeySelectionCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661F4FF6682E53B6870C8665 /* KeySelectionCell.swift */; };
 		7B124E21D239AA4744DC0168 /* KeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9962EDE6F5712DA02FF64 /* KeyExchange.swift */; };
 		7BCF636563DB94B36DE0487A /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 09BA6D46FE4EA6BAF2AD1E44 /* Sodium */; };
@@ -91,7 +89,6 @@
 		BDA79FBD261093E01B2C31E3 /* PhotoInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */; };
 		C22180C6534679A91CDD688B /* CaptureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B98AA011C6732026DA9DA875 /* CaptureProcessor.swift */; };
 		D194EDB732253ABF3A1259D8 /* 6.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 1731780E1EBEEBA4C8D49F33 /* 6.JPG */; };
-		D38FDF91C4F82594EC3C2852 /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = D3DE825F6B01C343316B8034 /* EncameraCore */; };
 		D6A68AA78C8F5FD15DA3360C /* EncameraTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */; };
 		D9593E17F428493E19AC0277 /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DF70D2CC410A637C7BB925 /* EncameraState.swift */; };
 		D95B5A20ECD8C5784FDD63D0 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
@@ -113,13 +110,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		1CC902B53D26B6273104326B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = A47DB3FD4772EE1BAC336831 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C94ABACC9710142683E2AD12;
-			remoteInfo = ShareExtension;
-		};
 		4FBD0FFA0D0ABA143F7A822E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A47DB3FD4772EE1BAC336831 /* Project object */;
@@ -136,7 +126,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				634B0425B9F4BF25AF3C2AF2 /* ShareExtension.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -155,6 +144,8 @@
 		14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptToErase.swift; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
 		19171D7529FC276A0002E69B /* TopBarTutorialPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopBarTutorialPill.swift; sourceTree = "<group>"; };
+		19171D7729FD2F800002E69B /* LockScreenKeypad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenKeypad.swift; sourceTree = "<group>"; };
+		19171D7929FD761D0002E69B /* TutorialCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialCardView.swift; sourceTree = "<group>"; };
 		194A9CEF964B3C0B22164AC7 /* PhotoCaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureProcessor.swift; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -222,7 +213,6 @@
 		B98AA011C6732026DA9DA875 /* CaptureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureProcessor.swift; sourceTree = "<group>"; };
 		BB3EF10EE91927485D25DD47 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		BD80B31ED188E0F75FCF32A4 /* Encamera.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Encamera.entitlements; sourceTree = "<group>"; };
-		C078E03BCFAAA274C5A52366 /* ShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryHorizontalScrollView.swift; sourceTree = "<group>"; };
 		C1DF70D2CC410A637C7BB925 /* EncameraState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraState.swift; sourceTree = "<group>"; };
 		C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-LightItalic.ttf"; sourceTree = "<group>"; };
@@ -255,15 +245,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		14AD72BDAF4FC0A5D51398CF /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				24E55E5C74E12CB0921F1C3A /* Sodium in Frameworks */,
-				D38FDF91C4F82594EC3C2852 /* EncameraCore in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		1D83513717205D38C66336F0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -321,6 +302,7 @@
 			children = (
 				48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */,
 				629711F137AF404054258CDB /* PasswordEntry.swift */,
+				19171D7729FD2F800002E69B /* LockScreenKeypad.swift */,
 			);
 			path = AuthenticationView;
 			sourceTree = "<group>";
@@ -340,6 +322,7 @@
 			isa = PBXGroup;
 			children = (
 				B7C3DD8AA70CBF44BA670B82 /* ExplanationForUpgradeTutorial.swift */,
+				19171D7929FD761D0002E69B /* TutorialCardView.swift */,
 				AA1408F1B24F65F9206EFEC2 /* FirstPhotoTakenTutorial.swift */,
 			);
 			path = Tutorial;
@@ -462,7 +445,6 @@
 			children = (
 				AD8594B39C00DCD662DD5B08 /* Encamera.app */,
 				3237449B062E865D537211D4 /* EncameraTests.xctest */,
-				C078E03BCFAAA274C5A52366 /* ShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -654,7 +636,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				A510232A9177F3B2780C2FBE /* PBXTargetDependency */,
 			);
 			name = Encamera;
 			packageProductDependencies = (
@@ -664,27 +645,6 @@
 			productName = Encamera;
 			productReference = AD8594B39C00DCD662DD5B08 /* Encamera.app */;
 			productType = "com.apple.product-type.application";
-		};
-		C94ABACC9710142683E2AD12 /* ShareExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = D2E4CF113FEF1A07F4392956 /* Build configuration list for PBXNativeTarget "ShareExtension" */;
-			buildPhases = (
-				C8A434E9761A21FBBA9E82C2 /* Sources */,
-				924DEAB05D524F0E7EEB5C84 /* Resources */,
-				14AD72BDAF4FC0A5D51398CF /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = ShareExtension;
-			packageProductDependencies = (
-				7FEAF11972744A5837011C99 /* Sodium */,
-				D3DE825F6B01C343316B8034 /* EncameraCore */,
-			);
-			productName = ShareExtension;
-			productReference = C078E03BCFAAA274C5A52366 /* ShareExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
 		};
 		E2DB70F0EB3A8AE4E6B164DA /* EncameraTests */ = {
 			isa = PBXNativeTarget;
@@ -718,10 +678,6 @@
 					00569D33CDF0C8B9A50A5F86 = {
 						DevelopmentTeam = KGJCC745S9;
 					};
-					C94ABACC9710142683E2AD12 = {
-						DevelopmentTeam = KGJCC745S9;
-						ProvisioningStyle = Automatic;
-					};
 				};
 			};
 			buildConfigurationList = 1A8CCF54D871FA62B49F8929 /* Build configuration list for PBXProject "Encamera" */;
@@ -742,20 +698,11 @@
 			targets = (
 				00569D33CDF0C8B9A50A5F86 /* Encamera */,
 				E2DB70F0EB3A8AE4E6B164DA /* EncameraTests */,
-				C94ABACC9710142683E2AD12 /* ShareExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		924DEAB05D524F0E7EEB5C84 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				7511C8921B5ABCC3B4813BEE /* MainInterface.storyboard in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		B4545275888342CD9909D040 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -831,6 +778,7 @@
 				3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */,
 				AACB64F8B3E0692251214E0D /* KeyDetailView.swift in Sources */,
 				E0D2C3611EF60B4DFE85F4D8 /* KeyEntry.swift in Sources */,
+				19171D7829FD2F800002E69B /* LockScreenKeypad.swift in Sources */,
 				7B124E21D239AA4744DC0168 /* KeyExchange.swift in Sources */,
 				5D8A8BBF90E59B7E75FE8DF9 /* KeyGeneration.swift in Sources */,
 				A304084AA6D9282D8B4AD28E /* KeyInformation.swift in Sources */,
@@ -859,6 +807,7 @@
 				970C997C472D9D4A5A2B9CC8 /* ScreenBlock.swift in Sources */,
 				FE04B140AFA338829E09F7FF /* ScreenBlocking.swift in Sources */,
 				864AABB66247E3165F272A54 /* SettingsView.swift in Sources */,
+				19171D7A29FD761D0002E69B /* TutorialCardView.swift in Sources */,
 				9ABE907C48A1E28D32511ED8 /* ShareHandling.swift in Sources */,
 				12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */,
 				E9C36D15F15ACB3E66847F49 /* StorageSettingView.swift in Sources */,
@@ -873,22 +822,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C8A434E9761A21FBBA9E82C2 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		A510232A9177F3B2780C2FBE /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C94ABACC9710142683E2AD12 /* ShareExtension */;
-			targetProxy = 1CC902B53D26B6273104326B /* PBXContainerItemProxy */;
-		};
 		E857B4708FFF396537CCE649 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 00569D33CDF0C8B9A50A5F86 /* Encamera */;
@@ -909,35 +845,6 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		18E56D32AA8DF199A1CDE182 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = KGJCC745S9;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ShareExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ShareExtension;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.ShareExtension;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 		2013426EC1687E6DCA4C4884 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1015,35 +922,6 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		8AC9BD78D53F7516575C2E91 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = KGJCC745S9;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ShareExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ShareExtension;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.ShareExtension;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -1206,15 +1084,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		D2E4CF113FEF1A07F4392956 /* Build configuration list for PBXNativeTarget "ShareExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				8AC9BD78D53F7516575C2E91 /* Debug */,
-				18E56D32AA8DF199A1CDE182 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -1242,19 +1111,10 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = EncameraCore;
 		};
-		7FEAF11972744A5837011C99 /* Sodium */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;
-			productName = Sodium;
-		};
 		9BDB467AF8E2ABBB52B964F4 /* Sodium */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;
 			productName = Sodium;
-		};
-		D3DE825F6B01C343316B8034 /* EncameraCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EncameraCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
