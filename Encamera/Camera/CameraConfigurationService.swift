@@ -274,9 +274,11 @@ extension CameraConfigurationService {
         }
         let connection = videoOutput.connection(with: .video)
         connection?.videoOrientation = model.orientation
-
+        
+        
         return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
     }
+
     
     func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode) async -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
@@ -303,6 +305,29 @@ extension CameraConfigurationService {
         
         return AsyncPhotoCaptureProcessor(output: photoOutput, requestedPhotoSettings: photoSettings)
     }
+    
+    nonisolated func toggleTorch(on: Bool) {
+        guard let device = AVCaptureDevice.default(for: .video) else { return }
+        
+        if device.hasTorch {
+            do {
+                try device.lockForConfiguration()
+                
+                if on == true {
+                    device.torchMode = .on
+                } else {
+                    device.torchMode = .off
+                }
+                
+                device.unlockForConfiguration()
+            } catch {
+                debugPrint("Torch could not be used")
+            }
+        } else {
+            debugPrint("Torch is not available")
+        }
+    }
+    
 }
 
 private extension CameraConfigurationService {
@@ -437,27 +462,6 @@ private extension CameraConfigurationService {
         await self.start()
     }
     
-    private func toggleTorch(on: Bool) {
-        guard let device = AVCaptureDevice.default(for: .video) else { return }
-        
-        if device.hasTorch {
-            do {
-                try device.lockForConfiguration()
-                
-                if on == true {
-                    device.torchMode = .on
-                } else {
-                    device.torchMode = .off
-                }
-                
-                device.unlockForConfiguration()
-            } catch {
-                debugPrint("Torch could not be used")
-            }
-        } else {
-            debugPrint("Torch is not available")
-        }
-    }
     
     
 }

@@ -232,6 +232,7 @@ final class CameraModel: ObservableObject {
             let videoProcessor = try await service.createVideoProcessor()
             await MainActor.run(body: {
                 isRecordingVideo = true
+                setupTorchForVideo()
             })
             currentVideoProcessor = videoProcessor
             currentVideoProcessor?.durationPublisher.sink(receiveValue: { value in
@@ -240,12 +241,24 @@ final class CameraModel: ObservableObject {
             let video = try await videoProcessor.takeVideo()
             await MainActor.run(body: {
                 isRecordingVideo = false
+                setupTorchForVideo()
             })
             currentVideoProcessor = nil
             try await fileAccess.save(media: video)
             UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
         }
         await loadThumbnail()
+    }
+    
+    func setupTorchForVideo() {
+        switch flashMode {
+        case .off:
+            service.toggleTorch(on: false)
+        case .on, .auto:
+            service.toggleTorch(on: isRecordingVideo)
+        @unknown default:
+            service.toggleTorch(on: false)
+        }
     }
     
     func flipCamera() {
