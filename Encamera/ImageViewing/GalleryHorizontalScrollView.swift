@@ -76,8 +76,9 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
                     
                 }
                 await MainActor.run {
-                    let image = UIImage(data: decrypted.source)!
-                    shareSheet(data: image)
+                    if let image = UIImage(data: decrypted.source) {
+                        shareSheet(data: image)
+                    }
                 }
                 
             case .video:

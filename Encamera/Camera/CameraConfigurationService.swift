@@ -401,18 +401,15 @@ private extension CameraConfigurationService {
     
     private func setupAudioCaptureDevice() throws {
         
-        do {
-            let audioDevice = AVCaptureDevice.default(for: .audio)!
-            let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
-            if session.canAddInput(audioDeviceInput) {
-                session.addInput(audioDeviceInput)
-            } else {
-                throw SetupError.couldNotAddAudioInputToSession
+            guard let audioDevice = AVCaptureDevice.default(for: .audio),
+            let audioDeviceInput = try? AVCaptureDeviceInput(device: audioDevice)else {
+                return
             }
             
-        } catch {
-            throw error
-        }
+            if session.canAddInput(audioDeviceInput) {
+                session.addInput(audioDeviceInput)
+            }
+           
         
     }
     

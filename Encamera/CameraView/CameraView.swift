@@ -131,6 +131,7 @@ struct CameraView: View {
                 keySelectionList
                 galleryView
                 mainCamera
+                
                 tutorialViews
                 if cameraModel.service.model.setupResult == .notAuthorized {
                     missingPermissionsView
@@ -157,10 +158,7 @@ struct CameraView: View {
                 Group {
                     Text(L10n.missingCameraAccess)
                     Button {
-                        guard let url = URL(string: UIApplication.openSettingsURLString) else {
-                            return
-                        }
-                        UIApplication.shared.open(url)
+                        openSettings()
                     } label: {
                         Text(L10n.openSettingsToAllowCameraAccessPermission)
                     }.textPill(color: .foregroundSecondary)
@@ -237,8 +235,18 @@ struct CameraView: View {
             }) {
                 self.cameraModel.switchFlash()
             }
-            cameraPreview
-                .edgesIgnoringSafeArea(.all)
+            ZStack {
+                cameraPreview
+                    .edgesIgnoringSafeArea(.all)
+                if cameraModel.selectedCameraMode == .video &&  AVCaptureDevice.authorizationStatus(for: .audio) != .authorized {
+                    VStack {
+                        Spacer()
+                        Button("\(Image(systemName: "mic.slash.fill")) \(L10n.openSettings)") {
+                            openSettings()
+                        }.primaryButton()
+                    }
+                }
+            }
             if FeatureToggle.isEnabled(feature: .enableVideo) {
                 cameraModePicker
             }
@@ -257,6 +265,13 @@ struct CameraView: View {
         .navigationBarHidden(true)
         .navigationTitle("")
 
+    }
+    
+    private func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else {
+            return
+        }
+        UIApplication.shared.open(url)
     }
 }
 
