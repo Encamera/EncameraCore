@@ -29,7 +29,7 @@ struct KeyExchange: View {
             let frame = geo.frame(in: .global)
             
             VStack(alignment: .center) {
-                Text(L10n.ShareYourEncryptionKeyWithSomeoneYouTrust.sharingItWithThemMeansTheyCanDecryptAnyMediaYouShareWithThemThatIsEncryptedWithThisKey)
+                Text(L10n.shareKeyExplanation)
                     .fontType(.small)
                 
                 Spacer()

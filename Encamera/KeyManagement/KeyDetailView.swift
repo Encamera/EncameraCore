@@ -156,7 +156,7 @@ struct KeyDetailView: View {
                     keyInformationLink
                     keyExchangeLink
                     toggleBackupToiCloud
-                    Button(L10n.copyToClipboard) {
+                    Button(L10n.backUpKey) {
                         let key = viewModel.key.base64String
                         let pasteboard = UIPasteboard.general
                         pasteboard.string = key
