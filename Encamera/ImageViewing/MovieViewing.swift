@@ -14,11 +14,10 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     var fileAccess: FileAccess?
     
     @Published var decryptedFileRef: CleartextMedia<URL>?
-    var isPlaying: AnyPublisher<Bool, Never>
     @MainActor
     @Published var decryptProgress: Double = 0.0
     @Published var player: AVPlayer?
-    @Published fileprivate var internalIsPlaying: Bool = false
+    @Published fileprivate var didFinishPlaying: Bool = false
     @Published fileprivate var videoDuration: Double = 0.0
     @Published var isExpanded: Bool = true
     fileprivate var cancellables = Set<AnyCancellable>()
@@ -33,18 +32,6 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     required init(media: SourceType, fileAccess: FileAccess) {
         self.sourceMedia = media
         self.fileAccess = fileAccess
-        self.isPlaying = Just(false).eraseToAnyPublisher()
-    }
-    
-    convenience init(media: SourceType, fileAccess: FileAccess, isPlaying: Published<Bool>.Publisher) {
-        
-        self.init(media: media, fileAccess: fileAccess)
-        
-        self.isPlaying = isPlaying.eraseToAnyPublisher()
-        self.isPlaying.sink { value in
-            self.internalIsPlaying = value
-        }.store(in: &cancellables)
-        
     }
     
     func seek(to position: Double) {
@@ -55,7 +42,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     func setupVideoObserver(updateHandler: @escaping (Double) -> Void) {
         let interval = CMTime(seconds: 0.1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         let mainQueue = DispatchQueue.main
-        player?.addPeriodicTimeObserver(forInterval: interval, queue: mainQueue) { [weak self] time in
+        player?.addPeriodicTimeObserver(forInterval: interval, queue: mainQueue) {  time in
             let currentTime = CMTimeGetSeconds(time)
             updateHandler(currentTime)
         }
@@ -101,10 +88,18 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
         
     }
     
+    func playVideo() {
+        player?.play()
+    }
+    
+    func pauseVideo() {
+        player?.pause()
+    }
+    
     @objc func playerDidFinishPlaying() {
         print("did finish playing")
         player?.seek(to: .zero)
-        internalIsPlaying = false
+        didFinishPlaying = true
     }
     
 }
@@ -113,7 +108,8 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
     @State var progress = 0.0
     @StateObject var viewModel: MovieViewingViewModel<M>
     @State private var videoPosition: Double = 0
-
+    @Binding var isPlayingVideo: Bool
+    
     private func videoPositionBinding() -> Binding<Double> {
         Binding(
             get: { self.videoPosition },
@@ -128,17 +124,10 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
             
             if viewModel.decryptedFileRef?.source != nil {
                 AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: viewModel.isExpanded)
-                    .onChange(of: viewModel.internalIsPlaying) { newValue in
-                        if newValue == true {
-                            viewModel.player?.play()
-                        } else {
-                            viewModel.player?.pause()
-                        }
-                    }
                     .aspectRatio(contentMode: .fill)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if viewModel.videoDuration > 0 {
-                    VideoScrubbingSlider(value: videoPositionBinding(), isExpanded: $viewModel.isExpanded, range: 0...viewModel.videoDuration)
+                    VideoScrubbingSlider(value: videoPositionBinding(), isPlayingVideo: $isPlayingVideo, isExpanded: $viewModel.isExpanded, range: 0...viewModel.videoDuration)
                         .padding()
                         .onTapGesture {
                             viewModel.player?.pause()
@@ -162,16 +151,30 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                 }.padding()
                 
             }
-        }                    .clipped()
+        }
+        .clipped()
+        .onChange(of: isPlayingVideo) { newValue in
+            if newValue == true {
+                viewModel.playVideo()
+            } else {
+                viewModel.pauseVideo()
+            }
+        }
+        .onChange(of: viewModel.didFinishPlaying) { newValue in
+            if newValue == true {
+                viewModel.player?.pause()
+            }
+            isPlayingVideo = !newValue
+        }
 
     }
 }
 //
-struct MovieViewing_Previews: PreviewProvider {
-    static var previews: some View {
-        MovieViewing<EncryptedMedia>(progress: 20.0, viewModel: .init(media: EncryptedMedia(source: URL(fileURLWithPath: ""),
-                                                                            mediaType: .video,
-                                                                            id: "234"),
-                                                      fileAccess: DemoFileEnumerator()))
-    }
-}
+//struct MovieViewing_Previews: PreviewProvider {
+//    static var previews: some View {
+//        MovieViewing<EncryptedMedia>(progress: 20.0, viewModel: .init(media: EncryptedMedia(source: URL(fileURLWithPath: ""),
+//                                                                            mediaType: .video,
+//                                                                            id: "234"),
+//                                                      fileAccess: DemoFileEnumerator()))
+//    }
+//}

@@ -283,7 +283,7 @@ struct GalleryHorizontalScrollView: View {
                 finalOffset: offsetBinding(for: item),
                 viewModel: model, externalGesture: dragGestureRef)
         case .video:
-            MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, isPlaying: viewModel.$isPlayingVideo))
+            MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess), isPlayingVideo: $viewModel.isPlayingVideo)
         default:
             EmptyView()
 
@@ -307,13 +307,6 @@ struct GalleryHorizontalScrollView: View {
                     viewModel.showInfoSheet = true
                 } label: {
                     Image(systemName: "info.circle")
-                }
-                if viewModel.selectedMedia.mediaType == .video {
-                    Button {
-                        viewModel.isPlayingVideo.toggle()
-                    } label: {
-                        Image(systemName: viewModel.isPlayingVideo ? "pause" : "play")
-                    }
                 }
                 Button {
                     showingDeleteConfirmation = true

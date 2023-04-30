@@ -232,7 +232,13 @@ struct EncameraApp: App {
                 
             }
         case .video:
-            MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess))
+            var isPlaying = false
+            let playBinding = Binding<Bool>(get: {
+                isPlaying
+            }, set: { value in
+                isPlaying = value
+            })
+            MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess), isPlayingVideo: playBinding)
         default:
             EmptyView()
         }
