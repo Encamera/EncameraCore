@@ -90,6 +90,20 @@ struct SettingsView: View {
         Form {
             Group {
                 Section {
+                    Text(L10n.feedbackRequest)
+                    Button(L10n.contact) {
+                        guard let url = URL(string: "https://encrypted.camera/contact") else {
+                            return
+                        }
+                        Task {
+                            await UIApplication.shared.open(url)
+                        }
+                    }
+                    Button(L10n.leaveAReview) {
+                        AskForReviewUtil.requestReview()
+                    }
+                }
+                Section {
                     Button(L10n.premiumSparkles) {
                         viewModel.showPremium = true
                     }
@@ -107,14 +121,13 @@ struct SettingsView: View {
                 .navigationTitle(L10n.settings)
             
                 Section {
-                    Button(L10n.contact) {
-                        guard let url = URL(string: "https://encrypted.camera/contact") else {
+                    Button(L10n.openSource) {
+                        guard let url = URL(string: "https://encrypted.camera/open-source") else {
                             return
                         }
                         Task {
                             await UIApplication.shared.open(url)
                         }
-
                     }
                     Button(L10n.privacyPolicy) {
                         guard let url = URL(string: "https://encrypted.camera/privacy") else {

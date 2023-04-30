@@ -242,10 +242,11 @@ private extension MainOnboardingView {
                 bottomButtonAction: {
                     
                 }) {
+                    
                     AnyView(VStack(alignment: .leading, spacing: 10) {
                         Image("EncameraBanner")
                             .frame(maxWidth: .infinity, alignment: .center)
-                        Text(L10n.readyToTakeBackYourMedia📸)
+                        Text(L10n.encryptionExplanation)
                             .fontType(.medium, weight: .bold)
                         Text(L10n.encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy)
                             .fontType(.small)
@@ -254,7 +255,7 @@ private extension MainOnboardingView {
                         Text(L10n.yourMediaIsSafelySecuredBehindAKeyAndStoredLocallyOnYourDeviceOrCloudOfChoice)
                         Text(L10n.forYourEyesOnly👀)
                             .fontType(.medium, weight: .bold)
-                        Text(L10n.NoTrackingNoFunnyBusiness.takeControlOfWhatSRightfullyYoursYourMediaYourDataYourPrivacy)
+                        Text(LocalizedStringKey(L10n.noTrackingExplanation))
                             .fontType(.small)
                         Spacer()
                     })
@@ -400,13 +401,23 @@ private extension MainOnboardingView {
         case .finished:
             return .init(
                 title: L10n.doneOnboarding,
-                subheading: L10n.allSetupOnboarding,
+                subheading: "",
                 image: Image(systemName: "faceid"),
                 bottomButtonTitle: L10n.done,
                 bottomButtonAction: {
                     try await viewModel.saveState()
                     throw OnboardingViewError.onboardingEnded
-                })
+                }) {
+                    AnyView(
+                        VStack(alignment: .leading, spacing: 15.0) {
+                            Text(L10n.storageExplanationHeader)
+                                .fontType(.medium)
+                            Text(L10n.storageExplanation)
+                            Text(L10n.backUpKeysHeader)
+                                .fontType(.medium)
+                            Text(L10n.backUpKeysExplanation)
+                        })
+                }
         }
     }
     

@@ -93,7 +93,7 @@ struct OnboardingView_Previews: PreviewProvider {
                     AnyView(VStack(alignment: .leading, spacing: 10) {
                         Image("EncameraBanner")
                             .frame(maxWidth: .infinity, alignment: .center)
-                        Text(L10n.readyToTakeBackYourMedia📸)
+                        Text(L10n.encryptionExplanation)
                             .fontType(.medium, weight: .bold)
                         Text(L10n.encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy)
                             .fontType(.small)
@@ -102,7 +102,7 @@ struct OnboardingView_Previews: PreviewProvider {
                         Text(L10n.yourMediaIsSafelySecuredBehindAKeyAndStoredLocallyOnYourDeviceOrCloudOfChoice)
                         Text(L10n.forYourEyesOnly👀)
                             .fontType(.medium, weight: .bold)
-                        Text(L10n.NoTrackingNoFunnyBusiness.takeControlOfWhatSRightfullyYoursYourMediaYourDataYourPrivacy)
+                        Text(L10n.noTrackingExplanation)
                             .fontType(.small)
                         Spacer()
                     })
