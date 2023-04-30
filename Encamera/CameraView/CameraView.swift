@@ -102,7 +102,7 @@ struct CameraView: View {
                     .onEnded(cameraModel.handleMagnificationEnded)
             )
             .onChange(of: rotationFromOrientation, perform: { newValue in
-                cameraModel.setOrientation(AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? .portrait)
+                cameraModel.setOrientation(AVCaptureVideoOrientation(rawValue: UIDevice.current.orientation.rawValue) ?? .portrait)
             }).alert(isPresented: $cameraModel.showAlertError, content: {
                 Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
                     cameraModel.alertError.primaryAction?()
@@ -121,8 +121,6 @@ struct CameraView: View {
     
     @State var showTookFirstPhotoSheet = true
     
-    
-    
     var body: some View {
         NavigationView {
             
@@ -133,7 +131,7 @@ struct CameraView: View {
                 mainCamera
                 
                 tutorialViews
-                if cameraModel.service.model.setupResult == .notAuthorized {
+                if cameraModel.cameraSetupResult == .notAuthorized {
                     missingPermissionsView
                 }
             }

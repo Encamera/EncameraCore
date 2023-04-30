@@ -48,6 +48,8 @@ final class CameraModel: ObservableObject {
     // Tutorial/info sheets
     @Published var showTookFirstPhotoSheet = false
     @Published var showExplanationForUpgrade = false
+    
+    @Published var cameraSetupResult: SessionSetupResult = .notDetermined
 
     var authManager: AuthManager
     var keyManager: KeyManager
@@ -84,6 +86,7 @@ final class CameraModel: ObservableObject {
         }
         .store(in: &self.cancellables)
         Task {
+            self.cameraSetupResult = await cameraService.model.setupResult
             await self.fileAccess.configure(
                 with: keyManager.currentKey,
                 storageSettingsManager: DataStorageUserDefaultsSetting()
@@ -288,7 +291,7 @@ final class CameraModel: ObservableObject {
     }
     
     func setOrientation(_ orientation: AVCaptureVideoOrientation) {
-            service.model.orientation = orientation
+//        service.model.orientation = orientation
     }
 }
 
