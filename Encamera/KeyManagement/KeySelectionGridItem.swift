@@ -31,7 +31,7 @@ class KeySelectionGridItemModel: ObservableObject {
             
         }
         storageModel = DataStorageUserDefaultsSetting().storageModelFor(keyName: key.name)
-        self.countOfMedia = storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension]) ?? 0
+        self.countOfMedia = storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension, MediaType.video.fileExtension]) ?? 0
 
     }
 }

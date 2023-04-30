@@ -55,17 +55,6 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
             let targetMedia = selectedMedia
             
             await MainActor.run {
-                if media.count > 1 {
-                    if targetIndex < media.count - 1 {
-                        advanceIndex()
-                    } else if targetIndex > 0 {
-                        rewindIndex()
-                    }
-                } else {
-                    // handle the case when there's only one item left
-                    // you can dismiss the view or show an empty view
-                }
-                
                 _ = withAnimation {
                     media.remove(at: targetIndex)
                 }

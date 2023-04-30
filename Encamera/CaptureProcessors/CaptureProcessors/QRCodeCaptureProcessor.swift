@@ -29,7 +29,6 @@ extension QRCodeCaptureProcessor: AVCaptureMetadataOutputObjectsDelegate {
             guard let readableObject = object as? AVMetadataMachineReadableCodeObject,
                   let string = readableObject.stringValue,
                   lastCaptured != string else {
-                print("last captured same")
                 return
             }
             lastCaptured = string
