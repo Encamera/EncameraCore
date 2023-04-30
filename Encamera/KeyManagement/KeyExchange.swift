@@ -38,11 +38,15 @@ struct KeyExchange: View {
                     createQrImage(geo: geo)
                         .frame(width: frame.width, height: frame.width)
                         .blur(radius: viewModel.blurView ? 10 : 0)
-                    Text("\(viewModel.key.name)")
-                        .fontType(.medium)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.foregroundSecondary)
+                    VStack {
+                        Text("\(viewModel.key.name)")
+                            .fontType(.medium)
+                        Text(L10n.scanWithEncameraApp)
+                            .fontType(.small)
+                    }.frame(maxWidth: .infinity).background(Color.foregroundSecondary)
                         .opacity(viewModel.blurView ? 1.0 : 0.0)
+                        
+                    
                 }
                 
                 .background(Color.foregroundSecondary)
@@ -98,6 +102,7 @@ struct KeyExchange_Previews: PreviewProvider {
         NavigationView {
             KeyExchange(viewModel: .init(key: DemoPrivateKey.dummyKey()))
         }
+        .preferredColorScheme(.dark)
         
     }
 }
