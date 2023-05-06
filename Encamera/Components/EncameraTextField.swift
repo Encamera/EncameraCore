@@ -28,11 +28,13 @@ struct EncameraTextField: View {
     private var placeholder: String
     private var fieldType: FieldType = .normal
     private var accessibilityIdentifier: String?
+    private var contentType: UITextContentType?
     @Binding var text: String
     @FocusState var isFieldFocused
     
-    init(_ placeholder: String, type: FieldType = .normal, text: Binding<String>, accessibilityIdentifier: String? = nil) {
+    init(_ placeholder: String, type: FieldType = .normal, contentType: UITextContentType? = nil, text: Binding<String>, accessibilityIdentifier: String? = nil) {
         self.placeholder = placeholder
+        self.contentType = contentType
         self.fieldType = type
         self.accessibilityIdentifier = accessibilityIdentifier
         _text = text
@@ -60,12 +62,11 @@ struct EncameraTextField: View {
         switch fieldType {
         case .normal:
             TextField("", text: $text)
+                .textContentType(contentType)
                 .accessibilityIdentifier(self.accessibilityIdentifier ?? "")
         case .secure:
             SecureField("", text: $text)
-                .textContentType(.newPassword)
-                .accessibilityIdentifier(self.accessibilityIdentifier ?? "")
+                .textContentType(contentType)
         }
-        
     }
 }

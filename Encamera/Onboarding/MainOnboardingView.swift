@@ -8,6 +8,7 @@
 import SwiftUI
 import LocalAuthentication
 import EncameraCore
+import Combine
 
 enum OnboardingViewError: Error {
     case passwordInvalid
@@ -20,7 +21,7 @@ class OnboardingViewModel: ObservableObject {
     enum OnboardingKeyError: Error {
         case unhandledError
     }
-
+    
     @Published var password1: String = ""
     @Published var showPassword = false
     @Published var password2: String = ""
@@ -55,6 +56,7 @@ class OnboardingViewModel: ObservableObject {
     var availableBiometric: AuthenticationMethod? {
         return authManager.availableBiometric
     }
+    private var cancellables = Set<AnyCancellable>()
     
     
     private var onboardingManager: OnboardingManaging
@@ -62,7 +64,7 @@ class OnboardingViewModel: ObservableObject {
     var keyManager: KeyManager
     private var authManager: AuthManager
     
-    
+    private var lastPasswordLength = 0
     
     init(onboardingManager: OnboardingManaging, keyManager: KeyManager, authManager: AuthManager) {
         self.onboardingManager = onboardingManager
@@ -74,6 +76,14 @@ class OnboardingViewModel: ObservableObject {
                 self.keyStorageType = DataStorageUserDefaultsSetting().preselectedStorageSetting?.storageType
             }
         }
+        self.$password1.sink { password in
+            let newLength = password.lengthOfBytes(using: .utf8)
+            if password != self.password1 && newLength - self.lastPasswordLength > 2 {
+                self.password2 = password
+            }
+            self.lastPasswordLength = newLength
+        }.store(in: &cancellables)
+        
     }
     
     func validatePassword() -> PasswordValidation {
@@ -93,7 +103,7 @@ class OnboardingViewModel: ObservableObject {
                 break
             case .biometricsFailed:
                 
-                    generalError = authError
+                generalError = authError
                 
             case .biometricsNotAvailable, .userCancelledBiometrics:
                 
@@ -189,10 +199,10 @@ struct MainOnboardingView: View {
         NavigationView {
             buildOnboarding()
                 .background(Color.background)
-            }
+        }
         .ignoresSafeArea(.keyboard)
     }
-
+    
     private func canGoTo(tab: OnboardingFlowScreen) -> Bool {
         if let currentIndex = viewModel.onboardingFlow.firstIndex(of: currentSelection),
            let targetIndex = viewModel.onboardingFlow.firstIndex(of: tab),
@@ -282,7 +292,7 @@ private extension MainOnboardingView {
                                     Text(error.localizedDescription).alertText()
                                 }
                             }
-
+                            
                             NavigationLink {
                                 PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: DiskFileAccess()))
                             } label: {
@@ -302,27 +312,28 @@ private extension MainOnboardingView {
                 }) {
                     AnyView(
                         VStack(alignment: .leading) {
-                                VStack {
-                                    Group {
-                                        EncameraTextField(L10n.password, type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password1, accessibilityIdentifier: "password").onSubmit {
-                                            password2Focused = true
-                                        }
-                                        EncameraTextField(L10n.repeatPassword, type: viewModel.showPassword ? .normal : .secure, text: $viewModel.password2,
-                                                          accessibilityIdentifier: "passwordConfirmation"
-                                        )
-                                            .focused($password2Focused)
-                                            .onSubmit {
-                                                password2Focused = false
-                                            }
-                                    }.noAutoModification()
-                                    HStack {
-                                        Button {
-                                            viewModel.showPassword.toggle()
-                                        } label: {
-                                            Image(systemName: viewModel.showPassword ? "eye" : "eye.slash")
-                                        }.padding()
-                                        Spacer()
+                            VStack {
+                                Group {
+                                    EncameraTextField(L10n.password, type: viewModel.showPassword ? .normal : .secure, contentType: .newPassword, text: $viewModel.password1, accessibilityIdentifier: "password").onSubmit {
+                                        password2Focused = true
                                     }
+                                    EncameraTextField(L10n.repeatPassword, type: viewModel.showPassword ? .normal : .secure, contentType: .newPassword, text: $viewModel.password2,
+                                                      accessibilityIdentifier: "passwordConfirmation"
+                                    )
+                                    .focused($password2Focused)
+                                    .onSubmit {
+                                        password2Focused = false
+                                    }
+                                }
+                                .noAutoModification()
+                                HStack {
+                                    Button {
+                                        viewModel.showPassword.toggle()
+                                    } label: {
+                                        Image(systemName: viewModel.showPassword ? "eye" : "eye.slash")
+                                    }.padding()
+                                    Spacer()
+                                }
                                 
                             }
                             if let passwordState = viewModel.passwordState, passwordState != .valid {
@@ -361,7 +372,7 @@ private extension MainOnboardingView {
                         VStack {
                             EncameraTextField(L10n.keyName, text: $viewModel.keyName)
                                 .noAutoModification()
-                                
+                            
                             if let keySaveError = viewModel.keySaveError {
                                 Text(keySaveError.displayDescription)
                                     .alertText()
@@ -370,8 +381,8 @@ private extension MainOnboardingView {
                     )
                 }
         case .dataStorageSetting:
-
-
+            
+            
             return .init(title: L10n.selectStorage,
                          subheading: L10n.storageLocationOnboarding,
                          image: Image(systemName: ""),
@@ -392,12 +403,12 @@ private extension MainOnboardingView {
                                 .lineLimit(nil)
                         }
                         .fontType(.small)
-
+                        
                     }
                 )
                 
             }
-
+            
         case .finished:
             return .init(
                 title: L10n.doneOnboarding,
@@ -436,20 +447,20 @@ private extension MainOnboardingView {
                     .fontType(.small)
             }.padding()
         })
-        .frame(width: 100, height: 100)
+            .frame(width: 100, height: 100)
         
         if isSelected.wrappedValue == true {
             output
                 .foregroundColor(Color.background)
                 .background(background.fill(Color.foregroundPrimary))
-
+            
         } else {
             output
                 .overlay(background.stroke(Color.foregroundSecondary, lineWidth: 3))
-
+            
         }
     }
-
+    
 }
 
 struct MainOnboardingView_Previews: PreviewProvider {

@@ -65,7 +65,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Encamera needs access to your camera to capture photos that it will encrypt.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Use Face ID to keep your keys safe</string>
+	<string>Use Face ID to keep your private media safe</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Use the microphone when recording video.</string>
 	<key>NSUbiquitousContainers</key>
@@ -125,9 +125,11 @@
 				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Encamera Encrypted Media</string>
+			<string>Encamera Encrypted Image</string>
 			<key>UTTypeIconFiles</key>
-			<array/>
+			<array>
+				<string>EncryptedImageIcon.png</string>
+			</array>
 			<key>UTTypeIdentifier</key>
 			<string>me.freas.encamera.image</string>
 			<key>UTTypeTagSpecification</key>
@@ -148,9 +150,11 @@
 				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Encamera Encrypted Media</string>
+			<string>Encamera Encrypted Video</string>
 			<key>UTTypeIconFiles</key>
-			<array/>
+			<array>
+				<string>EncryptedVideoIcon.png</string>
+			</array>
 			<key>UTTypeIdentifier</key>
 			<string>me.freas.encamera.video</string>
 			<key>UTTypeTagSpecification</key>
@@ -176,7 +180,10 @@
 			<key>UTTypeDescription</key>
 			<string>Encamera Encrypted Media</string>
 			<key>UTTypeIconFiles</key>
-			<array/>
+			<array>
+				<string>EncryptedImageIcon.png</string>
+				<string>EncryptedVideoIcon.png</string>
+			</array>
 			<key>UTTypeIdentifier</key>
 			<string>me.freas.encamera.image</string>
 			<key>UTTypeTagSpecification</key>

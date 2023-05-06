@@ -165,13 +165,7 @@ struct KeyDetailView: View {
                     Button {
                         isShowingAlertForClearKey = true
                     } label: {
-                        Text(L10n.deleteKey)
-                            .foregroundColor(.red)
-                    }
-                    Button {
-                        isShowingAlertForDeleteAllKeyData = true
-                    } label: {
-                        Text(L10n.deleteAllKeyData)
+                        Text(L10n.delete)
                             .foregroundColor(.red)
                     }
                 }.listRowBackground(Color.foregroundSecondary)

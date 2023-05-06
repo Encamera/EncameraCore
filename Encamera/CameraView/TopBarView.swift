@@ -57,14 +57,19 @@ class TopBarViewViewModel: ObservableObject {
         let capturedPhotos = UserDefaultUtils.integer(forKey: .capturedPhotos)
         let hasOpenedKeys = UserDefaultUtils.bool(forKey: .hasOpenedKeySelection)
         let hasPhotoAccess = purchaseManager.isAllowedAccess(feature: .accessPhoto(count: Double(capturedPhotos)))
-        
+        let hasEntitlement = purchaseManager.hasEntitlement()
         var retVal: TopBarTutorialPillState
+        
+        if hasEntitlement {
+            currentTutorialPillState = .notShown
+            return
+        }
+        
         switch (capturedPhotos, hasPhotoAccess, hasOpenedKeys) {
         case (0, true, false):
             retVal = .noPhotosTaken
         case (_, true, false):
             retVal = .showTapOnKey
-
         case (let count, true, _) where Double(count) < AppConstants.maxPhotoCountBeforePurchase:
             let leftCount = max(0, Int(AppConstants.maxPhotoCountBeforePurchase) - capturedPhotos)
             retVal = .numberOfPhotosLeft(photoCount: leftCount)
