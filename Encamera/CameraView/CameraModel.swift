@@ -13,7 +13,7 @@ import MediaPlayer
 import SwiftUI
 import EncameraCore
 
-final class CameraModel: ObservableObject {
+final class CameraModel: NSObject, ObservableObject {
     var service: CameraConfigurationService
     
     var session: AVCaptureSession {
@@ -50,7 +50,6 @@ final class CameraModel: ObservableObject {
     @Published var showExplanationForUpgrade = false
     
     @Published var cameraSetupResult: SessionSetupResult = .notDetermined
-
     var authManager: AuthManager
     var keyManager: KeyManager
     var alertError: AlertError!
@@ -64,13 +63,14 @@ final class CameraModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     var isProcessingEvent = false
     let eventSubject = PassthroughSubject<Void, Never>()
-
+    
     init(keyManager: KeyManager,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
          storageSettingsManager: DataStorageSetting,
          purchaseManager: PurchasedPermissionManaging) {
+        
         self.service = cameraService
         self.fileAccess = fileAccess
         self.purchaseManager = purchaseManager
@@ -78,15 +78,20 @@ final class CameraModel: ObservableObject {
         
         self.authManager = authManager
         self.storageSettingsManager = storageSettingsManager
-        
-        self.$selectedCameraMode.sink { newMode in
+        super.init()
+        self.$selectedCameraMode
+            .receive(on: RunLoop.main)
+            .sink { newMode in
             Task {
                  await self.service.configureForMode(targetMode: newMode)
             }
         }
         .store(in: &self.cancellables)
         Task {
-            self.cameraSetupResult = await cameraService.model.setupResult
+            let result = await cameraService.model.setupResult
+            await MainActor.run {
+                self.cameraSetupResult = result
+            }
             await self.fileAccess.configure(
                 with: keyManager.currentKey,
                 storageSettingsManager: DataStorageUserDefaultsSetting()
@@ -112,7 +117,7 @@ final class CameraModel: ObservableObject {
             })
             .sink { _ in }
             .store(in: &cancellables)
-
+        
         NotificationUtils.hardwareButtonPressedPublisher
             .sink { _ in
                 self.eventSubject.send()

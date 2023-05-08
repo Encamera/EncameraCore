@@ -88,6 +88,7 @@ struct CameraView: View {
             .padding(.horizontal, 20)
         }
     }
+    
     private var cameraPreview: some View {
         #if targetEnvironment(simulator)
 //        Color.clear.background {
@@ -95,7 +96,8 @@ struct CameraView: View {
 //        }
         missingPermissionsView
         #else
-        CameraPreview(session: cameraModel.session, modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
+        CameraPreview(session: cameraModel.session,
+                      modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
             .gesture(
                 MagnificationGesture()
                     .onChanged(cameraModel.handleMagnificationOnChanged)
@@ -108,6 +110,13 @@ struct CameraView: View {
                     cameraModel.alertError.primaryAction?()
                 }))
             })
+            .onDisappear {
+                VolumeCaptureUtils.shared.stopObservingCaptureButton()
+            }
+            .onAppear {
+                VolumeCaptureUtils.shared.setupVolumeView()
+                VolumeCaptureUtils.shared.startObservingCaptureButton()
+            }
             .overlay(
                 Group {
                     if cameraModel.willCapturePhoto {
