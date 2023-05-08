@@ -24,6 +24,7 @@
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		183FE195C4237C4BA34B979E /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BA0FED66DCF9A54E46648C /* KeySelectionGridItem.swift */; };
 		1985134B2A092E3C009CA23D /* HardwareVolumeButtonCaptureUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1985134A2A092E3C009CA23D /* HardwareVolumeButtonCaptureUtils.swift */; };
+		198513912A09823B009CA23D /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 198513932A09823B009CA23D /* Localizable.strings */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
 		1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */; };
 		26168F98ECFE26D3D975B7C7 /* Lato-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7E935404249D04E62DD75E68 /* Lato-Thin.ttf */; };
@@ -124,6 +125,7 @@
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
 		198513482A06A16E009CA23D /* EncameraCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = EncameraCore; path = ../EncameraCore; sourceTree = "<group>"; };
 		1985134A2A092E3C009CA23D /* HardwareVolumeButtonCaptureUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareVolumeButtonCaptureUtils.swift; sourceTree = "<group>"; };
+		198513922A09823B009CA23D /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraTextField.swift; sourceTree = "<group>"; };
@@ -543,6 +545,7 @@
 				76113746610057E30849FE77 /* Storyboards */,
 				F2E9B6C256D4A1310BB45638 /* Styles */,
 				2E24F8696D214DA704579ADE /* Tutorial */,
+				198513932A09823B009CA23D /* Localizable.strings */,
 			);
 			path = Encamera;
 			sourceTree = "<group>";
@@ -621,6 +624,7 @@
 			knownRegions = (
 				Base,
 				en,
+				de,
 			);
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
@@ -649,6 +653,7 @@
 				7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */,
 				A456B80AC53939E5895E9DFD /* Encamera.storekit in Resources */,
 				F0DF6BB6EECF8FA580D3FE74 /* EncameraLocal.storekit in Resources */,
+				198513912A09823B009CA23D /* Localizable.strings in Resources */,
 				2FCFC8C5F90FE5E93B0F290E /* EncryptedImageIcon.png in Resources */,
 				17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */,
 				94B2E1C745E8B2F89B9A9410 /* Lato-Black.ttf in Resources */,
@@ -757,6 +762,17 @@
 			targetProxy = 4FBD0FFA0D0ABA143F7A822E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		198513932A09823B009CA23D /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				198513922A09823B009CA23D /* de */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		2013426EC1687E6DCA4C4884 /* Release */ = {
