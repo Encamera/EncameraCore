@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import MediaPlayer
 import EncameraCore
+import AVFoundation
 
 @main
 struct EncameraApp: App {
@@ -26,6 +27,9 @@ struct EncameraApp: App {
         private var cancellables = Set<AnyCancellable>()
         
         init() {
+            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try? AVAudioSession.sharedInstance().setActive(true)
+
             self.settingsManager = SettingsManager()
             self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)

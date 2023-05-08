@@ -111,11 +111,11 @@ struct CameraView: View {
                 }))
             })
             .onDisappear {
-                VolumeCaptureUtils.shared.stopObservingCaptureButton()
+                HardwareVolumeButtonCaptureUtils.shared.stopObservingCaptureButton()
             }
             .onAppear {
-                VolumeCaptureUtils.shared.setupVolumeView()
-                VolumeCaptureUtils.shared.startObservingCaptureButton()
+                HardwareVolumeButtonCaptureUtils.shared.setupVolumeView()
+                HardwareVolumeButtonCaptureUtils.shared.startObservingCaptureButton()
             }
             .overlay(
                 Group {

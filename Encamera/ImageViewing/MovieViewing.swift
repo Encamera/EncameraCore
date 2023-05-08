@@ -32,6 +32,10 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     required init(media: SourceType, fileAccess: FileAccess) {
         self.sourceMedia = media
         self.fileAccess = fileAccess
+        
+        NotificationUtils.didEnterBackgroundPublisher.sink { _ in
+            self.player?.pause()
+        }.store(in: &cancellables)
     }
     
     func seek(to position: Double) {
@@ -165,6 +169,10 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                 viewModel.player?.pause()
             }
             isPlayingVideo = !newValue
+        }
+        .onDisappear {
+            isPlayingVideo = false
+            viewModel.player?.pause()
         }
 
     }

@@ -1,5 +1,5 @@
 //
-//  VolumeCaptureUtils.swift
+//  HardwareVolumeButtonCaptureUtils.swift
 //  Encamera
 //
 //  Created by Alexander Freas on 08.05.23.
@@ -10,10 +10,10 @@ import AVKit
 import Combine
 import MediaPlayer
 import EncameraCore
-class VolumeCaptureUtils: NSObject {
+class HardwareVolumeButtonCaptureUtils: NSObject {
     
     let audioSession = AVAudioSession()
-    static var shared = VolumeCaptureUtils()
+    static var shared = HardwareVolumeButtonCaptureUtils()
     private let volumeView = MPVolumeView(frame: CGRect(x: 0, y: -100, width: 0, height: 0)) // override volume view
 
     var captureButtonPublisher: AnyPublisher<Bool, Never> {
@@ -44,6 +44,7 @@ class VolumeCaptureUtils: NSObject {
         
         try? self.audioSession.setActive(true)
         self.audioSession.addObserver(self, forKeyPath: "outputVolume", options: NSKeyValueObservingOptions.new, context: nil)
+        debugPrint("HardwareVolumeButtonCaptureUtils.startObservingCaptureButton")
 
     }
     
@@ -52,6 +53,7 @@ class VolumeCaptureUtils: NSObject {
         try? self.audioSession.setActive(false)
 
         self.audioSession.removeObserver(self, forKeyPath: "outputVolume")
+        debugPrint("HardwareVolumeButtonCaptureUtils.stopObservingCaptureButton")
     }
     
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
