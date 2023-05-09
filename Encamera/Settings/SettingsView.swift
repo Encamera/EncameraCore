@@ -23,15 +23,26 @@ class SettingsViewViewModel: ObservableObject {
     @Published var showPromptToErase: Bool = false
     @Published var showPremium: Bool = false
     @Published fileprivate var successMessage: String?
+    @Published var useBiometrics: Bool = false
     var keyManager: KeyManager
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
     private var passwordValidator = PasswordValidator()
+    var authManager: AuthManager
+    var availableBiometric: AuthenticationMethod? {
+        return authManager.availableBiometric
+    }
     
-    init(keyManager: KeyManager, fileAccess: FileAccess) {
+    init(keyManager: KeyManager, authManager: AuthManager, fileAccess: FileAccess) {
         self.keyManager = keyManager
         self.fileAccess = fileAccess
+        self.authManager = authManager
+        self.useBiometrics = authManager.useBiometricsForAuth
+        self.$useBiometrics.sink { value in
+            self.authManager.useBiometricsForAuth = value
+        }.store(in: &cancellables)
     }
+    
     func resetPasswordInputs() {
         keyManagerError = nil
         passwordState = nil
@@ -92,9 +103,14 @@ struct SettingsView: View {
                 Section {
                     Text(L10n.feedbackRequest)
                     Button(L10n.contact) {
-                        guard let url = URL(string: "https://encrypted.camera/contact") else {
+                        let email = "mailto:alex+contact@freas.me"
+                        let subject = "Encamera - Contact"
+                        let urlString = "\(email)?subject=\(subject)"
+                        
+                        guard let url = URL(string: urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "") else {
                             return
                         }
+                        
                         Task {
                             await UIApplication.shared.open(url)
                         }
@@ -116,6 +132,9 @@ struct SettingsView: View {
                 
                 Section {
                     changePassword
+                    if viewModel.authManager.canAuthenticateWithBiometrics {
+                        biometricsToggle
+                    }
                     reset
                 }
                 .navigationTitle(L10n.settings)
@@ -196,6 +215,18 @@ struct SettingsView: View {
         return EmptyView()
     }
     
+    private var biometricsToggle: some View {
+        return Group {
+            if let method = viewModel.availableBiometric {
+                Toggle(isOn: $viewModel.useBiometrics) {
+                    Text(L10n.use(method.nameForMethod))
+                }
+            } else {
+                EmptyView()
+            }
+        }
+    }
+    
     private var changePassword: some View {
         NavigationLink(L10n.changePassword, isActive: $viewModel.showDetailView) {
             Form {
@@ -236,7 +267,7 @@ struct SettingsView: View {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            SettingsView(viewModel: .init(keyManager: DemoKeyManager(), fileAccess: DemoFileEnumerator()))
+            SettingsView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), fileAccess: DemoFileEnumerator()))
         }.preferredColorScheme(.dark)
         
     }

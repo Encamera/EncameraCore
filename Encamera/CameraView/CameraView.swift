@@ -216,7 +216,7 @@ struct CameraView: View {
 
     private var settingsScreen: some View {
         NavigationLink(isActive: $cameraModel.showSettingsScreen) {
-            SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, fileAccess: cameraModel.fileAccess))
+            SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, authManager: cameraModel.authManager, fileAccess: cameraModel.fileAccess))
         } label: {
             EmptyView()
         }.isDetailLink(false)

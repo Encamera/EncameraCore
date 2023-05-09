@@ -39,7 +39,11 @@ class AuthenticationViewModel: ObservableObject {
     @Published fileprivate var displayedError: AuthenticationViewError?
     var cancellables = Set<AnyCancellable>()
     var availableBiometric: AuthenticationMethod? {
-        authManager.availableBiometric
+        if authManager.useBiometricsForAuth {
+            return authManager.availableBiometric
+        } else {
+            return nil
+        }
     }
     
     init(authManager: AuthManager, keyManager: KeyManager) {

@@ -23,8 +23,7 @@
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		183FE195C4237C4BA34B979E /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BA0FED66DCF9A54E46648C /* KeySelectionGridItem.swift */; };
-		1985134B2A092E3C009CA23D /* HardwareVolumeButtonCaptureUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1985134A2A092E3C009CA23D /* HardwareVolumeButtonCaptureUtils.swift */; };
-		198513912A09823B009CA23D /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 198513932A09823B009CA23D /* Localizable.strings */; };
+		198513982A0A6A3F009CA23D /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = 1985139A2A0A6A3F009CA23D /* Localizable.stringsdict */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
 		1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */; };
 		26168F98ECFE26D3D975B7C7 /* Lato-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7E935404249D04E62DD75E68 /* Lato-Thin.ttf */; };
@@ -71,12 +70,14 @@
 		A304084AA6D9282D8B4AD28E /* KeyInformation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B197301286602327AC9EB11A /* KeyInformation.swift */; };
 		A456B80AC53939E5895E9DFD /* Encamera.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */; };
 		A74281B97A34B8875ACC3477 /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4E3AE2C8A473E74CE2D40B6F /* EncameraCore */; };
+		A8A274F962EBFC8E83AFF73B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7CAE239AD061BB95D7E1C52A /* Localizable.strings */; };
 		A8CF1328AD8BE2D1DC0599E9 /* AddExchangedKeyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */; };
 		AACB64F8B3E0692251214E0D /* KeyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */; };
 		AC972FB4992D0382B145AFB0 /* TutorialCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98E3603108C8C52D93454589 /* TutorialCardView.swift */; };
 		ACC448F8AA2707A93D2B9167 /* 1.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 8661160CC93C7FDBB741D152 /* 1.JPG */; };
 		AD8F6464844061B17FAFE50E /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DC9B1566E5F63DD273CBCA /* OnboardingView.swift */; };
 		B0A033D892BE1DB82330FBD9 /* SurfaceType.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B049D6954401D9414853A9 /* SurfaceType.swift */; };
+		B285EF9833A810953F3BB899 /* HardwareVolumeButtonCaptureUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 040E7A97A59AEF4C2BA2F5FB /* HardwareVolumeButtonCaptureUtils.swift */; };
 		B94BEC77BD5E38D9DBD9EDA5 /* file-icon.png in Resources */ = {isa = PBXBuildFile; fileRef = F6C7B4340F9BA5AC5E1CABBD /* file-icon.png */; };
 		BAA1B34E53D05C7011774A8E /* 5.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 903B566EF13631FEF2185B1A /* 5.JPG */; };
 		BD0376BEC181135B76461C9E /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 70ED3887F4079B8FECD273DC /* LaunchScreen.storyboard */; };
@@ -115,6 +116,7 @@
 
 /* Begin PBXFileReference section */
 		0177DA8EC67EF187F51DA226 /* Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Text.swift; sourceTree = "<group>"; };
+		040E7A97A59AEF4C2BA2F5FB /* HardwareVolumeButtonCaptureUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareVolumeButtonCaptureUtils.swift; sourceTree = "<group>"; };
 		0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
 		0683512F5DED40B7E10F6C6C /* Lato-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Italic.ttf"; sourceTree = "<group>"; };
 		0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuyButtonStyle.swift; sourceTree = "<group>"; };
@@ -122,10 +124,11 @@
 		0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		0F7B99BF1F78CBA801CEE6C6 /* ScreenBlocking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlocking.swift; sourceTree = "<group>"; };
 		14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptToErase.swift; sourceTree = "<group>"; };
+		1502C040838F3770BEF5B8E0 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
-		198513482A06A16E009CA23D /* EncameraCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = EncameraCore; path = ../EncameraCore; sourceTree = "<group>"; };
-		1985134A2A092E3C009CA23D /* HardwareVolumeButtonCaptureUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareVolumeButtonCaptureUtils.swift; sourceTree = "<group>"; };
-		198513922A09823B009CA23D /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
+		198513992A0A6A3F009CA23D /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = de; path = de.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		1985139B2A0A6A42009CA23D /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = es; path = es.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		1985139C2A0A6A43009CA23D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraTextField.swift; sourceTree = "<group>"; };
@@ -136,6 +139,7 @@
 		25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoScrubbingSlider.swift; sourceTree = "<group>"; };
 		2A7347AE6141886EEF6FABC1 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
 		2D0C6738E921CCEB0FD88E6D /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
+		31AB13EE6FE68BA8614D0253 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3237449B062E865D537211D4 /* EncameraTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EncameraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3304A219AA521A12DE3A30AF /* Lato-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Bold.ttf"; sourceTree = "<group>"; };
 		3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
@@ -191,6 +195,7 @@
 		C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryHorizontalScrollView.swift; sourceTree = "<group>"; };
 		C1DF70D2CC410A637C7BB925 /* EncameraState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraState.swift; sourceTree = "<group>"; };
 		C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-LightItalic.ttf"; sourceTree = "<group>"; };
+		CA6EA3006B6C149A02A8AA44 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CB0AF4D110AAADF74FE13DAC /* MovieViewing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieViewing.swift; sourceTree = "<group>"; };
 		CB580774C2A1B0E3A6D54F50 /* EncameraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraApp.swift; sourceTree = "<group>"; };
 		CDF2E435357C74D9D5B3132B /* StorageSettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageSettingView.swift; sourceTree = "<group>"; };
@@ -286,14 +291,6 @@
 				49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */,
 			);
 			path = InAppPurchase;
-			sourceTree = "<group>";
-		};
-		198513492A092E24009CA23D /* Utils */ = {
-			isa = PBXGroup;
-			children = (
-				1985134A2A092E3C009CA23D /* HardwareVolumeButtonCaptureUtils.swift */,
-			);
-			path = Utils;
 			sourceTree = "<group>";
 		};
 		2E24F8696D214DA704579ADE /* Tutorial */ = {
@@ -414,6 +411,14 @@
 			path = Storyboards;
 			sourceTree = "<group>";
 		};
+		90555473A48B2722E9070D53 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				040E7A97A59AEF4C2BA2F5FB /* HardwareVolumeButtonCaptureUtils.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
 		9665760A9F8D4E3ADB2459E9 /* ButtonStyles */ = {
 			isa = PBXGroup;
 			children = (
@@ -467,7 +472,6 @@
 			isa = PBXGroup;
 			children = (
 				9095641BC76221C1446C09F5 /* EncameraCore */,
-				198513482A06A16E009CA23D /* EncameraCore */,
 			);
 			name = Packages;
 			sourceTree = SOURCE_ROOT;
@@ -518,7 +522,6 @@
 		F8E25D1CB96BBE7C0604CA54 /* Encamera */ = {
 			isa = PBXGroup;
 			children = (
-				198513492A092E24009CA23D /* Utils */,
 				49A2EF989B2F8643105205DF /* Assets.xcassets */,
 				0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */,
 				BD80B31ED188E0F75FCF32A4 /* Encamera.entitlements */,
@@ -527,6 +530,8 @@
 				3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */,
 				F6C7B4340F9BA5AC5E1CABBD /* file-icon.png */,
 				1F73DDBFEC2444064423AE2A /* Info.plist */,
+				7CAE239AD061BB95D7E1C52A /* Localizable.strings */,
+				1985139A2A0A6A3F009CA23D /* Localizable.stringsdict */,
 				0C20870C6D07E0D977285AD2 /* AuthenticationView */,
 				33B572A9212B787C5B487149 /* CameraView */,
 				CA69823AA1F6BED8E9F519C5 /* Components */,
@@ -545,7 +550,7 @@
 				76113746610057E30849FE77 /* Storyboards */,
 				F2E9B6C256D4A1310BB45638 /* Styles */,
 				2E24F8696D214DA704579ADE /* Tutorial */,
-				198513932A09823B009CA23D /* Localizable.strings */,
+				90555473A48B2722E9070D53 /* Utils */,
 			);
 			path = Encamera;
 			sourceTree = "<group>";
@@ -623,8 +628,9 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
-				en,
 				de,
+				en,
+				es,
 			);
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
@@ -653,7 +659,6 @@
 				7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */,
 				A456B80AC53939E5895E9DFD /* Encamera.storekit in Resources */,
 				F0DF6BB6EECF8FA580D3FE74 /* EncameraLocal.storekit in Resources */,
-				198513912A09823B009CA23D /* Localizable.strings in Resources */,
 				2FCFC8C5F90FE5E93B0F290E /* EncryptedImageIcon.png in Resources */,
 				17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */,
 				94B2E1C745E8B2F89B9A9410 /* Lato-Black.ttf in Resources */,
@@ -667,6 +672,8 @@
 				26168F98ECFE26D3D975B7C7 /* Lato-Thin.ttf in Resources */,
 				95D7968C302ABFED7C72B67B /* Lato-ThinItalic.ttf in Resources */,
 				BD0376BEC181135B76461C9E /* LaunchScreen.storyboard in Resources */,
+				A8A274F962EBFC8E83AFF73B /* Localizable.strings in Resources */,
+				198513982A0A6A3F009CA23D /* Localizable.stringsdict in Resources */,
 				1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */,
 				4D6890B6437216E4444DE608 /* StoreKitTestCertificate.cer in Resources */,
 				B94BEC77BD5E38D9DBD9EDA5 /* file-icon.png in Resources */,
@@ -707,6 +714,7 @@
 				9C55990B2CE14B9B92AE2D42 /* FirstPhotoTakenTutorial.swift in Sources */,
 				EB9D71FFC09A343782093FAA /* GalleryGridView.swift in Sources */,
 				1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */,
+				B285EF9833A810953F3BB899 /* HardwareVolumeButtonCaptureUtils.swift in Sources */,
 				3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */,
 				AACB64F8B3E0692251214E0D /* KeyDetailView.swift in Sources */,
 				E0D2C3611EF60B4DFE85F4D8 /* KeyEntry.swift in Sources */,
@@ -742,7 +750,6 @@
 				E9C36D15F15ACB3E66847F49 /* StorageSettingView.swift in Sources */,
 				6EB8ECF5ECF2C40FAEFB792B /* SubscriptionOptionView.swift in Sources */,
 				2F4FED2E99F8D79E178058BA /* SubscriptionView.swift in Sources */,
-				1985134B2A092E3C009CA23D /* HardwareVolumeButtonCaptureUtils.swift in Sources */,
 				B0A033D892BE1DB82330FBD9 /* SurfaceType.swift in Sources */,
 				9BFDB5BC2DF88BA72FFE49F2 /* Text.swift in Sources */,
 				50529B72DE9097178A5F9E7C /* TextField.swift in Sources */,
@@ -764,10 +771,22 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		198513932A09823B009CA23D /* Localizable.strings */ = {
+		1985139A2A0A6A3F009CA23D /* Localizable.stringsdict */ = {
 			isa = PBXVariantGroup;
 			children = (
-				198513922A09823B009CA23D /* de */,
+				198513992A0A6A3F009CA23D /* de */,
+				1985139B2A0A6A42009CA23D /* es */,
+				1985139C2A0A6A43009CA23D /* en */,
+			);
+			name = Localizable.stringsdict;
+			sourceTree = "<group>";
+		};
+		7CAE239AD061BB95D7E1C52A /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1502C040838F3770BEF5B8E0 /* de */,
+				31AB13EE6FE68BA8614D0253 /* en */,
+				CA6EA3006B6C149A02A8AA44 /* es */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";

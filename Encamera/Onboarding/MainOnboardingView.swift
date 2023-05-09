@@ -256,18 +256,21 @@ private extension MainOnboardingView {
                     AnyView(VStack(alignment: .leading, spacing: 10) {
                         Image("EncameraBanner")
                             .frame(maxWidth: .infinity, alignment: .center)
-                        Text(L10n.encryptionExplanation)
-                            .fontType(.medium, weight: .bold)
-                        Text(L10n.encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy)
-                            .fontType(.small)
-                        Text(L10n.keyBasedEncryption)
-                            .fontType(.medium, weight: .bold)
-                        Text(L10n.introStorageExplanation)
-                        Text(L10n.forYourEyesOnly👀)
-                            .fontType(.medium, weight: .bold)
-                        Text(LocalizedStringKey(L10n.noTrackingExplanation))
-                            .fontType(.small)
-                        Spacer()
+                        Group {
+                            Text(L10n.encryptionExplanation)
+                                .fontType(.medium, weight: .bold)
+                            Text(L10n.encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy)
+                                .fontType(.small)
+                            Text(L10n.keyBasedEncryption)
+                                .fontType(.medium, weight: .bold)
+                            Text(L10n.introStorageExplanation)
+                            Text(L10n.forYourEyesOnly👀)
+                                .fontType(.medium, weight: .bold)
+                            Text(LocalizedStringKey(L10n.noTrackingExplanation))
+                                .fontType(.small)
+                        }.lineLimit(nil)
+                           
+
                     })
                     
                 }

@@ -42,6 +42,7 @@ struct OnboardingView<Next>: View where Next: View {
                     Spacer().frame(height: 20)
                 }
                 self.viewModel.content?()
+                    .fixedSize(horizontal: false, vertical: true).padding(0)
                     
                 Spacer()
                 NavigationLink(isActive: $nextActive) {
