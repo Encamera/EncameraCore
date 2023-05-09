@@ -1,0 +1,15 @@
+/* 
+  Localizable.strings
+  Encamera
+
+  Created by Alexander Freas on 08.05.23.
+  
+*/
+/* Camera usage description */
+NSCameraUsageDescription = "Encamera benötigt Zugriff auf Ihre Kamera, um Fotos aufzunehmen, die es verschlüsseln wird.";
+
+/* Face ID usage description */
+NSFaceIDUsageDescription = "Encamera benötigt Zugriff auf Face ID, um Ihre Fotos zu sichern.";
+
+/* Microphone usage description */
+NSMicrophoneUsageDescription = "Encamera benötigt Zugriff auf Ihr Mikrofon, um Audio aufzunehmen, das es verschlüsseln wird.";
