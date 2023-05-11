@@ -1,50 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="j1y-V4-xli">
-    <device id="retina6_12" orientation="portrait" appearance="light"/>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_0" orientation="portrait" appearance="dark"/>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21678"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
         <!--Share View Controller-->
-        <scene sceneID="ceB-am-kn3">
+        <scene sceneID="EHf-IW-A2E">
             <objects>
-                <viewController id="j1y-V4-xli" customClass="ShareViewController" customModule="ShareExtension" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" opaque="NO" contentMode="scaleToFill" id="wbc-yd-nQP">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                <viewController id="01J-lp-oVM" customClass="ShareViewController" customModule="ShareExtension" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="390" height="844"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bcb-HN-Y4l">
-                                <rect key="frame" x="25" y="176" width="343" height="269"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="zuV-D3-LpR">
+                                <rect key="frame" x="16" y="140" width="358" height="499"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="358" id="3bM-w3-fmu"/>
+                                    <constraint firstAttribute="height" constant="499" id="h9O-Do-2ag"/>
+                                </constraints>
                             </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Xaw-rO-sRe">
-                                <rect key="frame" x="287" y="104" width="61" height="35"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <progressView hidden="YES" opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" progress="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="z69-V5-rDZ">
+                                <rect key="frame" x="16" y="635" width="358" height="4"/>
+                            </progressView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="YFB-sU-9hp">
+                                <rect key="frame" x="16" y="111" width="358" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="67i-JL-i1a">
+                                <rect key="frame" x="17" y="647" width="74" height="35"/>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="Save"/>
+                                <buttonConfiguration key="configuration" style="filled" title="Import"/>
                                 <connections>
-                                    <action selector="saveImage:" destination="j1y-V4-xli" eventType="touchUpInside" id="QeX-Zg-Pzi"/>
+                                    <action selector="importButtonPressed:" destination="01J-lp-oVM" eventType="touchUpInside" id="ChO-Mh-ane"/>
                                 </connections>
                             </button>
+                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Open the Encamera App to finish import" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Hd7-3d-zZR">
+                                <rect key="frame" x="42.666666666666657" y="418.33333333333331" width="304.66666666666674" height="20.333333333333314"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
-                        <viewLayoutGuide key="safeArea" id="1Xd-am-t49"/>
-                        <color key="backgroundColor" systemColor="systemYellowColor"/>
+                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="67i-JL-i1a" firstAttribute="top" secondItem="zuV-D3-LpR" secondAttribute="bottom" constant="8" symbolic="YES" id="5pN-p2-grc"/>
+                            <constraint firstItem="z69-V5-rDZ" firstAttribute="trailing" secondItem="zuV-D3-LpR" secondAttribute="trailing" id="7C6-Ri-uZj"/>
+                            <constraint firstItem="zuV-D3-LpR" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="16" id="8Ap-yp-l0b"/>
+                            <constraint firstItem="YFB-sU-9hp" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="16" id="HIS-uz-S5x"/>
+                            <constraint firstItem="67i-JL-i1a" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="17" id="I3a-mX-qa2"/>
+                            <constraint firstItem="z69-V5-rDZ" firstAttribute="leading" secondItem="zuV-D3-LpR" secondAttribute="leading" id="IjX-yT-Je7"/>
+                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="trailing" secondItem="YFB-sU-9hp" secondAttribute="trailing" constant="16" id="KcW-cQ-BYZ"/>
+                            <constraint firstItem="zuV-D3-LpR" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" constant="93" id="OIm-WC-aCz"/>
+                            <constraint firstItem="Hd7-3d-zZR" firstAttribute="centerX" secondItem="Bcu-3y-fUS" secondAttribute="centerX" id="boS-F5-qYW"/>
+                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="trailing" secondItem="zuV-D3-LpR" secondAttribute="trailing" constant="16" id="f72-vM-d1g"/>
+                            <constraint firstItem="zuV-D3-LpR" firstAttribute="top" secondItem="YFB-sU-9hp" secondAttribute="bottom" constant="8" symbolic="YES" id="sfk-Qu-U45"/>
+                            <constraint firstItem="Hd7-3d-zZR" firstAttribute="centerY" secondItem="Bcu-3y-fUS" secondAttribute="centerY" id="vwY-B2-J6E"/>
+                            <constraint firstItem="z69-V5-rDZ" firstAttribute="bottom" secondItem="zuV-D3-LpR" secondAttribute="bottom" id="xaO-bE-Tm6"/>
+                        </constraints>
                     </view>
                     <connections>
-                        <outlet property="img" destination="Bcb-HN-Y4l" id="D6G-9a-nTW"/>
+                        <outlet property="firstImage" destination="zuV-D3-LpR" id="KL3-JQ-2hR"/>
+                        <outlet property="importButton" destination="67i-JL-i1a" id="0X7-fm-dxS"/>
+                        <outlet property="importFinishedLabel" destination="Hd7-3d-zZR" id="vuU-1z-4dQ"/>
+                        <outlet property="progressView" destination="z69-V5-rDZ" id="qIC-7k-yZY"/>
+                        <outlet property="summaryLabel" destination="YFB-sU-9hp" id="iIU-93-667"/>
                     </connections>
                 </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="CEy-Cv-SGf" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="130.53435114503816" y="-49.295774647887328"/>
+            <point key="canvasLocation" x="52.307692307692307" y="374.64454976303318"/>
         </scene>
     </scenes>
     <resources>
-        <systemColor name="systemYellowColor">
-            <color red="1" green="0.80000000000000004" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
     </resources>
 </document>

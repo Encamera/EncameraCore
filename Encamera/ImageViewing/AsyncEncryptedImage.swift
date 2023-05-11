@@ -22,7 +22,7 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
             targetMedia.needsDownload
         }
         
-        init(targetMedia: T, loader: FileReader) {
+        init(targetMedia: T, loader: FileReader, isInSelectionMode: Bool = false, isSelected: Bool = false) {
             self.targetMedia = targetMedia
             self.loader = loader
         }
@@ -44,6 +44,8 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
     
     @StateObject var viewModel: ViewModel
     var placeholder: Placeholder
+    @Binding var isInSelectionMode: Bool
+    @Binding var isSelected: Bool
     
     var body: some View {
         if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.source,
@@ -53,6 +55,18 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
+                }
+                if isInSelectionMode && isSelected {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.blue)
+                                .background(Circle().foregroundColor(.white))
+                                .padding(5.0)
+                        }
+                    }
                 }
                 if viewModel.needsDownload {
                     ZStack(alignment: .bottomTrailing) {
@@ -117,19 +131,19 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
 
     }
 }
-
-struct AsyncImage_Previews: PreviewProvider {
-    
-    static var previews: some View {
-        NavigationView {
-
-            GalleryGridView(viewModel: GalleryGridViewModel(
-
-                privateKey: DemoPrivateKey.dummyKey(),
-                blurImages: false,
-                downloadPendingMediaCount: 20,
-                fileAccess: DemoFileEnumerator()
-            ))
-        }
-    }
-}
+//
+//struct AsyncImage_Previews: PreviewProvider {
+//
+//    static var previews: some View {
+//        NavigationView {
+//
+//            GalleryGridView(viewModel: GalleryGridViewModel(
+//
+//                privateKey: DemoPrivateKey.dummyKey(),
+//                blurImages: false,
+//                downloadPendingMediaCount: 20,
+//                fileAccess: DemoFileEnumerator()
+//            ))
+//        }
+//    }
+//}

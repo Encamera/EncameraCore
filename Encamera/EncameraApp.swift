@@ -10,11 +10,13 @@ struct EncameraApp: App {
         @Published var hasOpenedURL: Bool = false
         @Published var promptToSaveMedia: Bool = false
         var fileAccess: FileAccess = DiskFileAccess()
+        var appGroupFileAccess = AppGroupFileReader()
         @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
         @Published var showOnboarding = false
         @Published var isAuthenticated = false
+        @Published var showImportedMediaScreen = false
         var openedUrl: URL?
         var keyManager: KeyManager
         var cameraService: CameraConfigurationService
@@ -112,10 +114,10 @@ struct EncameraApp: App {
         
         
         
-        func copyOpenedFile(media: EncryptedMedia) {
+        func moveOpenedFile(media: EncryptedMedia) {
             Task {
                 do {
-                    try await fileAccess.copy(media: media)
+                    try await fileAccess.move(media: media)
                 } catch {
                     print("Could not copy: ", error)
                 }
@@ -129,8 +131,23 @@ struct EncameraApp: App {
         private func setupWith(key: PrivateKey?) {
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
+                guard key != nil else { return }
+                await checkForImportedImages()
             }
         }
+        
+        private func checkForImportedImages() async {
+            
+            let images: [CleartextMedia<URL>] = await appGroupFileAccess.enumerateMedia()
+            
+            if images.count > 0 {
+                await MainActor.run {
+                    showImportedMediaScreen = true
+                }
+            }
+
+        }
+        
     }
     
     @StateObject var viewModel: ViewModel = .init()
@@ -148,32 +165,10 @@ struct EncameraApp: App {
             ))
                 .preferredColorScheme(.dark)
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
-                    if let url = viewModel.openedUrl,
-                       let urlType = URLType(url: url),
-                       viewModel.authManager.isAuthenticated {
-                        switch urlType {
-                        case .media(let encryptedMedia):
-                            galleryForMedia(media: encryptedMedia)
-                        case .key(let key):
-                            NavigationView {
-                                let dismissBinding = Binding {
-                                    !viewModel.hasOpenedURL
-                                } set: { value in
-                                    viewModel.hasOpenedURL = !value
-                                }
-
-                                KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true, dismiss: dismissBinding ))
-                            }
-                        case .featureToggle(feature: let feature):
-                            Text("Feature \"\(feature.rawValue)\" activated").onAppear {
-                                FeatureToggle.enable(feature: feature)
-                            }
-                        }
-                        
-                    } else {
-                        Text(L10n.noPrivateKeyOrMediaFound)
-                            .fontType(.medium)
-                    }
+                    openUrlSheet
+                }
+                .sheet(isPresented: $viewModel.showImportedMediaScreen) {
+                    mediaImportSheet
                 }
                 .overlay {
                     if viewModel.showOnboarding {
@@ -200,10 +195,43 @@ struct EncameraApp: App {
                     \.isScreenBlockingActive,
                      self.viewModel.showScreenBlocker
                 )
-                .onAppear {
-                    UserDefaultUtils.migrateUserDefaultsToAppGroups()
-                }
         }
+    }
+    
+    @ViewBuilder private var mediaImportSheet: some View {
+        
+        MediaImportView(viewModel: .init(keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
+        
+    }
+    
+    @ViewBuilder private var openUrlSheet: some View {
+        if let url = viewModel.openedUrl,
+           let urlType = URLType(url: url),
+           viewModel.authManager.isAuthenticated {
+            switch urlType {
+            case .media(let encryptedMedia):
+                galleryForMedia(media: encryptedMedia)
+            case .key(let key):
+                NavigationView {
+                    let dismissBinding = Binding {
+                        !viewModel.hasOpenedURL
+                    } set: { value in
+                        viewModel.hasOpenedURL = !value
+                    }
+
+                    KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true, dismiss: dismissBinding ))
+                }
+            case .featureToggle(feature: let feature):
+                Text("Feature \"\(feature.rawValue)\" activated").onAppear {
+                    FeatureToggle.enable(feature: feature)
+                }
+            }
+            
+        } else {
+            Text(L10n.noPrivateKeyOrMediaFound)
+                .fontType(.medium)
+        }
+
     }
     
     @ViewBuilder private func galleryForMedia(media: EncryptedMedia) -> some View {
@@ -230,7 +258,7 @@ struct EncameraApp: App {
                         self.viewModel.hasOpenedURL = false
                     }
                     Button(L10n.save) {
-                        viewModel.copyOpenedFile(media: media)
+                        viewModel.moveOpenedFile(media: media)
                     }
                 }
                 

@@ -207,11 +207,11 @@ final class CameraModel: NSObject, ObservableObject {
             })
             do {
                 if let photo = photoObject.photo {
-                    try await fileAccess.save(media: photo)
+                    try await fileAccess.save(media: photo) { _ in }
                 }
                 
                 if let livePhoto = photoObject.livePhoto {
-                    try await fileAccess.save(media: livePhoto)
+                    try await fileAccess.save(media: livePhoto) { _ in }
                 }
                 UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
 
@@ -219,10 +219,11 @@ final class CameraModel: NSObject, ObservableObject {
                 await MainActor.run {
                     switch filesError {
                         
-                    case .missingDirectoryModel:
-                        break
+                    
                     case .missingPrivateKey:
                         showAlertForMissingKey = true
+                    default:
+                        break
                     }
                 }
             } catch {
@@ -252,7 +253,7 @@ final class CameraModel: NSObject, ObservableObject {
                 setupTorchForVideo()
             })
             currentVideoProcessor = nil
-            try await fileAccess.save(media: video)
+            try await fileAccess.save(media: video) { _ in }
             UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
         }
         await loadThumbnail()

@@ -196,7 +196,7 @@ struct CameraView: View {
     private var galleryView: some View {
         NavigationLink(isActive: $cameraModel.showGalleryView) {
             if let key = cameraModel.keyManager.currentKey {
-                GalleryGridView(viewModel: .init(privateKey: key))
+                GalleryGridView<EmptyView, EncryptedMedia>(viewModel: .init(privateKey: key))
             }
         } label: {
             EmptyView()

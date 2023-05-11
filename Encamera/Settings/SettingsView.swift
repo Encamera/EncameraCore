@@ -38,6 +38,10 @@ class SettingsViewViewModel: ObservableObject {
         self.fileAccess = fileAccess
         self.authManager = authManager
         self.useBiometrics = authManager.useBiometricsForAuth
+        
+    }
+    
+    func setupBiometricToggleObserver() {
         self.$useBiometrics.sink { value in
             self.authManager.useBiometricsForAuth = value
         }.store(in: &cancellables)
@@ -220,6 +224,8 @@ struct SettingsView: View {
             if let method = viewModel.availableBiometric {
                 Toggle(isOn: $viewModel.useBiometrics) {
                     Text(L10n.use(method.nameForMethod))
+                }.onAppear {
+                    viewModel.setupBiometricToggleObserver()
                 }
             } else {
                 EmptyView()

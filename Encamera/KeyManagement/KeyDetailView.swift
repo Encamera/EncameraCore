@@ -144,7 +144,7 @@ struct KeyDetailView: View {
     }
     
     var body: some View {
-        GalleryGridView(viewModel: .init(privateKey: viewModel.key, blurImages: viewModel.blurImages)) {
+        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: viewModel.key, blurImages: viewModel.blurImages)) {
             List {
                 Group {
                     if !viewModel.isActiveKey {

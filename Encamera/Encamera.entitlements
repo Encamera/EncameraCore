@@ -22,5 +22,9 @@
 	<array>
 		<string>group.me.freas.encamera</string>
 	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)me.freas.encamera</string>
+	</array>
 </dict>
 </plist>

@@ -10,7 +10,7 @@ import Combine
 import EncameraCore
 
 @MainActor
-class GalleryGridViewModel: ObservableObject {
+class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     
     var privateKey: PrivateKey
     var purchasedPermissions: PurchasedPermissionManaging
@@ -98,12 +98,12 @@ private enum Constants {
     static let buttonCornerRadius = 10.0
 }
 
-struct GalleryGridView<Content: View>: View {
+struct GalleryGridView<Content: View, T: MediaDescribing>: View {
     
-    @StateObject var viewModel: GalleryGridViewModel
+    @StateObject var viewModel: GalleryGridViewModel<T>
     var content: Content
     
-    init(viewModel: GalleryGridViewModel, @ViewBuilder content: () -> Content = { EmptyView() }) {
+    init(viewModel: GalleryGridViewModel<T>, @ViewBuilder content: () -> Content = { EmptyView() }) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.content = content()
     }
@@ -150,7 +150,7 @@ struct GalleryGridView<Content: View>: View {
                     
                     LazyVGrid(columns: gridItems, spacing: 1) {
                         ForEach(Array(viewModel.media.enumerated()), id: \.element) { index, mediaItem in
-                            AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView())
+                            AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView(), isInSelectionMode: .constant(false), isSelected: .constant(false))
                                 .onTapGesture {
                                     viewModel.carouselTarget = mediaItem
                                 }
@@ -222,18 +222,18 @@ struct GalleryGridView<Content: View>: View {
     }
 }
 
-struct GalleryView_Previews: PreviewProvider {
-    
-    static var previews: some View {
-        NavigationView {
-            GalleryGridView(viewModel: GalleryGridViewModel(
-                
-                privateKey: DemoPrivateKey.dummyKey(),
-                blurImages: true,
-                downloadPendingMediaCount: 20,
-                
-                fileAccess: DemoFileEnumerator()
-            ))
-        }
-    }
-}
+//struct GalleryView_Previews: PreviewProvider {
+//    
+//    static var previews: some View {
+//        NavigationView {
+//            GalleryGridView<AnyView, EncryptedMedia>(viewModel: GalleryGridViewModel<EncryptedMedia>(
+//                
+//                privateKey: DemoPrivateKey.dummyKey(),
+//                blurImages: true,
+//                downloadPendingMediaCount: 20,
+//                
+//                fileAccess: DemoFileEnumerator()
+//            ))
+//        }
+//    }
+//}

@@ -24,11 +24,31 @@ struct EncameraButtonStyle: ButtonStyle {
             .cornerRadius(10)
     }
 }
+struct EncameraDestructiveButtonStyle: ButtonStyle {
+    
+    var hostSurface: SurfaceType
+
+    
+    func makeBody(configuration: Configuration) -> some View {
+        return configuration.label
+            .fontType(.small, on: hostSurface)
+            .padding(12.0)
+            .foregroundColor(.red)
+            .frame(minHeight: 44)
+            .background(.red)
+            .cornerRadius(10)
+    }
+}
 
 extension View {
     func primaryButton(on surface: SurfaceType = .background) -> some View {
         buttonStyle(EncameraButtonStyle(hostSurface: surface))
     }
+    
+    func destructiveButton(on surface: SurfaceType = .background) -> some View {
+        buttonStyle(EncameraDestructiveButtonStyle(hostSurface: surface))
+    }
+    
 }
 
 struct EncameraButton_Previews: PreviewProvider {
@@ -48,6 +68,12 @@ struct EncameraButton_Previews: PreviewProvider {
                 Button("Share") {
                     
                 }.primaryButton(on: .elevated)
+            }
+            ZStack {
+                Color.foregroundSecondary.frame(width: 100, height: 100  )
+                Button("Destroy") {
+                    
+                }.destructiveButton(on: .elevated)
             }
         }
         .frame(maxWidth: .infinity)

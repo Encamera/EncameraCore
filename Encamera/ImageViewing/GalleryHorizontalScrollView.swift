@@ -59,7 +59,11 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
                     media.remove(at: targetIndex)
                 }
             }
-            try await fileAccess.delete(media: targetMedia)
+            do {
+                try await fileAccess.delete(media: targetMedia)
+            } catch {
+                debugPrint("Error deleting media", error)
+            }
         }
     }
 
