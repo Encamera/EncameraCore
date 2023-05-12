@@ -15,9 +15,9 @@ struct CameraView: View {
     @StateObject var cameraModel: CameraModel
     @State var cameraModeStateModel = CameraModeStateModel()
     @GestureState var magnificationGesture = false
-
+    @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
-
+    
     
     private var captureButton: some View {
         
@@ -32,7 +32,7 @@ struct CameraView: View {
                     .frame(width: Constants.minCaptureButtonEdge, height: Constants.minCaptureButtonEdge, alignment: .center)
             } else {
                 Circle()
-                                        .frame(maxWidth: Constants.minCaptureButtonEdge, maxHeight: Constants.minCaptureButtonEdge, alignment: .center)
+                    .frame(maxWidth: Constants.minCaptureButtonEdge, maxHeight: Constants.minCaptureButtonEdge, alignment: .center)
                     .overlay(
                         Circle()
                             .stroke(Color.background, lineWidth: Constants.innerCaptureButtonLineWidth)
@@ -49,7 +49,7 @@ struct CameraView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                        .onTapGesture {
+                    .onTapGesture {
                         cameraModel.showGalleryView = true
                     }
             } else {
@@ -90,42 +90,42 @@ struct CameraView: View {
     }
     
     private var cameraPreview: some View {
-        #if targetEnvironment(simulator)
-//        Color.clear.background {
-//            Image("kristina-flour").resizable().clipped().aspectRatio(contentMode: .fill)
-//        }
+#if targetEnvironment(simulator)
+        //        Color.clear.background {
+        //            Image("kristina-flour").resizable().clipped().aspectRatio(contentMode: .fill)
+        //        }
         missingPermissionsView
-        #else
+#else
         CameraPreview(session: cameraModel.session,
                       modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
-            .gesture(
-                MagnificationGesture()
-                    .onChanged(cameraModel.handleMagnificationOnChanged)
-                    .onEnded(cameraModel.handleMagnificationEnded)
-            )
-            .onChange(of: rotationFromOrientation, perform: { newValue in
-                cameraModel.setOrientation(AVCaptureVideoOrientation(rawValue: UIDevice.current.orientation.rawValue) ?? .portrait)
-            }).alert(isPresented: $cameraModel.showAlertError, content: {
-                Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
-                    cameraModel.alertError.primaryAction?()
-                }))
-            })
-            .onDisappear {
-                HardwareVolumeButtonCaptureUtils.shared.stopObservingCaptureButton()
-            }
-            .onAppear {
-                HardwareVolumeButtonCaptureUtils.shared.setupVolumeView()
-                HardwareVolumeButtonCaptureUtils.shared.startObservingCaptureButton()
-            }
-            .overlay(
-                Group {
-                    if cameraModel.willCapturePhoto {
-                        Color.black
-                    }
+        .gesture(
+            MagnificationGesture()
+                .onChanged(cameraModel.handleMagnificationOnChanged)
+                .onEnded(cameraModel.handleMagnificationEnded)
+        )
+        .onChange(of: rotationFromOrientation, perform: { newValue in
+            cameraModel.setOrientation(AVCaptureVideoOrientation(rawValue: UIDevice.current.orientation.rawValue) ?? .portrait)
+        }).alert(isPresented: $cameraModel.showAlertError, content: {
+            Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {
+                cameraModel.alertError.primaryAction?()
+            }))
+        })
+        .onDisappear {
+            HardwareVolumeButtonCaptureUtils.shared.stopObservingCaptureButton()
+        }
+        .onAppear {
+            HardwareVolumeButtonCaptureUtils.shared.setupVolumeView()
+            HardwareVolumeButtonCaptureUtils.shared.startObservingCaptureButton()
+        }
+        .overlay(
+            Group {
+                if cameraModel.willCapturePhoto {
+                    Color.black
                 }
-            )
-            .animation(.easeInOut, value: cameraModel.willCapturePhoto)
-        #endif
+            }
+        )
+        .animation(.easeInOut, value: cameraModel.willCapturePhoto)
+#endif
     }
     
     @State var showTookFirstPhotoSheet = true
@@ -154,8 +154,14 @@ struct CameraView: View {
             .sheet(isPresented: $cameraModel.showStoreSheet) {
                 ProductStoreView()
             }
+            .sheet(isPresented: $cameraModel.showImportedMediaScreen) {
+                MediaImportView(viewModel: .init(
+                    keyManager: cameraModel.keyManager,
+                    fileAccess: cameraModel.fileAccess
+                ))
+            }
         }
-
+        
     }
     
     @ViewBuilder private var missingPermissionsView: some View {
@@ -201,19 +207,19 @@ struct CameraView: View {
         } label: {
             EmptyView()
         }.isDetailLink(false)
-
+        
     }
     
     private var keySelectionList: some View {
         NavigationLink(isActive: $cameraModel.showingKeySelection) {
             KeySelectionGrid(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager, fileManager: cameraModel.fileAccess))
-                
+            
         } label: {
             EmptyView()
         }.isDetailLink(false)
         
     }
-
+    
     private var settingsScreen: some View {
         NavigationLink(isActive: $cameraModel.showSettingsScreen) {
             SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, authManager: cameraModel.authManager, fileAccess: cameraModel.fileAccess))
@@ -226,12 +232,12 @@ struct CameraView: View {
     
     private var mainCamera: some View {
         VStack {
-        let currrentKeyName = Binding<String> {
-            return cameraModel.keyManager.currentKey?.name ?? L10n.noKey
-        } set: { _, _ in
+            let currrentKeyName = Binding<String> {
+                return cameraModel.keyManager.currentKey?.name ?? L10n.noKey
+            } set: { _, _ in
+                
+            }
             
-        }
-
             TopBarView(viewModel: .init(purchaseManager: cameraModel.purchaseManager), showingKeySelection: $cameraModel.showingKeySelection, showStoreSheet: $cameraModel.showStoreSheet,
                        isRecordingVideo: $cameraModel.isRecordingVideo,
                        recordingDuration: $cameraModel.recordingDuration,
@@ -241,6 +247,16 @@ struct CameraView: View {
                 self.cameraModel.showSettingsScreen = true
             }) {
                 self.cameraModel.switchFlash()
+            }
+            if hasMediaToImport {
+                HStack {
+                    Text(L10n.finishImportingMedia)
+                        .fontType(.mediumSmall, on: .elevated)
+                }.frame(maxWidth: .infinity)
+                    .background(Color.green)
+                    .onTapGesture {
+                        cameraModel.showImportedMediaScreen = true
+                    }
             }
             ZStack {
                 cameraPreview
@@ -268,10 +284,10 @@ struct CameraView: View {
                 await cameraModel.service.configure()
             }
         })
-
+        
         .navigationBarHidden(true)
         .navigationTitle("")
-
+        
     }
     
     private func openSettings() {
@@ -331,7 +347,7 @@ struct CameraView_Previews: PreviewProvider {
             storageSettingsManager: DemoStorageSettingsManager(),
             purchaseManager: DemoPurchasedPermissionManaging()
         )
-        CameraView(cameraModel: model)
+        CameraView(cameraModel: model, hasMediaToImport: .constant(true))
             .preferredColorScheme(.dark)
     }
 }

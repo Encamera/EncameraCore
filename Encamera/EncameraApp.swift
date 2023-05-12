@@ -16,6 +16,7 @@ struct EncameraApp: App {
         @Published var showScreenBlocker: Bool = true
         @Published var showOnboarding = false
         @Published var isAuthenticated = false
+        @Published var hasMediaToImport = false
         @Published var showImportedMediaScreen = false
         var openedUrl: URL?
         var keyManager: KeyManager
@@ -132,22 +133,28 @@ struct EncameraApp: App {
             Task {
                 await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
                 guard key != nil else { return }
-                await checkForImportedImages()
+                await showImportScreenIfNeeded()
             }
         }
         
-        private func checkForImportedImages() async {
+        func checkForImportedImages() async {
             
             let images: [CleartextMedia<URL>] = await appGroupFileAccess.enumerateMedia()
+            let hasMedia = images.count > 0
+            await MainActor.run {
+                hasMediaToImport = hasMedia
+            }
+
+
+        }
+        func showImportScreenIfNeeded() async {
+            await checkForImportedImages()
             
-            if images.count > 0 {
-                await MainActor.run {
-                    showImportedMediaScreen = true
-                }
+            await MainActor.run {
+                showImportedMediaScreen = hasMediaToImport
             }
 
         }
-        
     }
     
     @StateObject var viewModel: ViewModel = .init()
@@ -162,13 +169,17 @@ struct EncameraApp: App {
                 fileAccess: viewModel.fileAccess,
                 storageSettingsManager: viewModel.storageSettingsManager,
                 purchaseManager: viewModel.purchasedPermissions
-            ))
+            ), hasMediaToImport: $viewModel.hasMediaToImport)
                 .preferredColorScheme(.dark)
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     openUrlSheet
                 }
                 .sheet(isPresented: $viewModel.showImportedMediaScreen) {
-                    mediaImportSheet
+                    mediaImportSheet.onDisappear {
+                        Task {
+                            await viewModel.checkForImportedImages()
+                        }
+                    }
                 }
                 .overlay {
                     if viewModel.showOnboarding {

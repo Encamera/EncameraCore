@@ -4,10 +4,18 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21678"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
-        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
+    <customFonts key="customFonts">
+        <array key="Lato-Bold.ttf">
+            <string>Lato-Bold</string>
+        </array>
+        <array key="Lato-Regular.ttf">
+            <string>Lato-Regular</string>
+        </array>
+    </customFonts>
     <scenes>
         <!--Share View Controller-->
         <scene sceneID="EHf-IW-A2E">
@@ -17,61 +25,164 @@
                         <rect key="frame" x="0.0" y="0.0" width="390" height="844"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="zuV-D3-LpR">
-                                <rect key="frame" x="16" y="140" width="358" height="499"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="358" id="3bM-w3-fmu"/>
-                                    <constraint firstAttribute="height" constant="499" id="h9O-Do-2ag"/>
-                                </constraints>
-                            </imageView>
-                            <progressView hidden="YES" opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" progress="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="z69-V5-rDZ">
-                                <rect key="frame" x="16" y="635" width="358" height="4"/>
-                            </progressView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="YFB-sU-9hp">
-                                <rect key="frame" x="16" y="111" width="358" height="21"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                <nil key="textColor"/>
-                                <nil key="highlightedColor"/>
-                            </label>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="67i-JL-i1a">
-                                <rect key="frame" x="17" y="647" width="74" height="35"/>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="filled" title="Import"/>
-                                <connections>
-                                    <action selector="importButtonPressed:" destination="01J-lp-oVM" eventType="touchUpInside" id="ChO-Mh-ane"/>
-                                </connections>
-                            </button>
-                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Open the Encamera App to finish import" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Hd7-3d-zZR">
-                                <rect key="frame" x="42.666666666666657" y="418.33333333333331" width="304.66666666666674" height="20.333333333333314"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                <nil key="textColor"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="fCx-qo-Vn0">
+                                <rect key="frame" x="23" y="91.000000000000028" width="344" height="331.66666666666674"/>
+                                <subviews>
+                                    <stackView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="A8E-ib-twc">
+                                        <rect key="frame" x="0.0" y="0.0" width="344" height="60"/>
+                                        <subviews>
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="EncameraLogo" translatesAutoresizingMaskIntoConstraints="NO" id="kqg-fD-eIx">
+                                                <rect key="frame" x="0.0" y="0.0" width="60" height="60"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" constant="60" id="F0y-nE-4vL"/>
+                                                    <constraint firstAttribute="height" constant="60" id="dGN-sw-gfi"/>
+                                                </constraints>
+                                            </imageView>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Import Media" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="YFB-sU-9hp">
+                                                <rect key="frame" x="60" y="0.0" width="284" height="60"/>
+                                                <fontDescription key="fontDescription" name="Lato-Bold" family="Lato" pointSize="32"/>
+                                                <nil key="textColor"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                        </subviews>
+                                    </stackView>
+                                    <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Open the Encamera app to finish importing." textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Nrv-Bi-g1P">
+                                        <rect key="frame" x="0.0" y="70" width="344" height="0.0"/>
+                                        <fontDescription key="fontDescription" name="Lato-Bold" family="Lato" pointSize="17"/>
+                                        <nil key="textColor"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="ja0-8J-GYc">
+                                        <rect key="frame" x="0.0" y="79.999999999999986" width="344" height="251.66666666666663"/>
+                                        <subviews>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="You are about to import:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="fSW-YD-GUV">
+                                                <rect key="frame" x="0.0" y="0.0" width="344" height="20.666666666666668"/>
+                                                <fontDescription key="fontDescription" name="Lato-Regular" family="Lato" pointSize="17"/>
+                                                <nil key="textColor"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                            <stackView opaque="NO" contentMode="scaleToFill" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="oN0-Le-w6K">
+                                                <rect key="frame" x="0.0" y="30.666666666666657" width="344" height="167"/>
+                                                <subviews>
+                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="G8A-9Q-cMU" userLabel="ImagesSummaryContainer">
+                                                        <rect key="frame" x="0.0" y="0.0" width="167" height="167"/>
+                                                        <subviews>
+                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="12 Images" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="pw8-20-pcq" userLabel="ImagesSummaryLabel">
+                                                                <rect key="frame" x="8" y="32" width="151" height="25.333333333333329"/>
+                                                                <fontDescription key="fontDescription" name="Lato-Bold" family="Lato" pointSize="21"/>
+                                                                <nil key="textColor"/>
+                                                                <nil key="highlightedColor"/>
+                                                            </label>
+                                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="photo.stack" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="QMM-3m-Hra">
+                                                                <rect key="frame" x="55.666666666666671" y="73.333333333333343" width="56" height="59"/>
+                                                                <color key="tintColor" name="ForegroundPrimaryColor"/>
+                                                                <constraints>
+                                                                    <constraint firstAttribute="height" constant="58.666666666666657" id="603-YN-gBm"/>
+                                                                    <constraint firstAttribute="width" constant="56" id="ns0-Ny-zJT"/>
+                                                                </constraints>
+                                                            </imageView>
+                                                        </subviews>
+                                                        <color key="backgroundColor" name="ForegroundSecondaryColor"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="trailing" secondItem="pw8-20-pcq" secondAttribute="trailing" constant="8" id="IJS-dN-6XW"/>
+                                                            <constraint firstItem="QMM-3m-Hra" firstAttribute="top" secondItem="pw8-20-pcq" secondAttribute="bottom" constant="16" id="N3r-if-S6t"/>
+                                                            <constraint firstItem="pw8-20-pcq" firstAttribute="leading" secondItem="G8A-9Q-cMU" secondAttribute="leading" constant="8" id="kzg-w8-xvF"/>
+                                                            <constraint firstAttribute="width" secondItem="G8A-9Q-cMU" secondAttribute="height" multiplier="1:1" id="utP-ue-1zD"/>
+                                                            <constraint firstItem="pw8-20-pcq" firstAttribute="top" secondItem="G8A-9Q-cMU" secondAttribute="top" constant="32" id="z9e-wP-SmZ"/>
+                                                            <constraint firstItem="QMM-3m-Hra" firstAttribute="centerX" secondItem="G8A-9Q-cMU" secondAttribute="centerX" id="zmZ-ao-oCC"/>
+                                                        </constraints>
+                                                    </view>
+                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="niF-cb-f6b" userLabel="VideoSummaryContainer">
+                                                        <rect key="frame" x="177" y="0.0" width="167" height="167"/>
+                                                        <subviews>
+                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="12 Videos" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WjC-Ce-ins" userLabel="VideoSummaryLabel">
+                                                                <rect key="frame" x="8" y="32" width="151" height="25.333333333333329"/>
+                                                                <fontDescription key="fontDescription" name="Lato-Bold" family="Lato" pointSize="21"/>
+                                                                <nil key="textColor"/>
+                                                                <nil key="highlightedColor"/>
+                                                            </label>
+                                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="video.fill" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="lXE-EW-TEf">
+                                                                <rect key="frame" x="55.666666666666657" y="75.666666666666671" width="56" height="58.999999999999986"/>
+                                                                <color key="tintColor" name="ForegroundPrimaryColor"/>
+                                                                <constraints>
+                                                                    <constraint firstAttribute="height" constant="63.666666666666671" id="rBG-B4-dnP"/>
+                                                                    <constraint firstAttribute="width" constant="56" id="yms-nJ-bYS"/>
+                                                                </constraints>
+                                                            </imageView>
+                                                        </subviews>
+                                                        <color key="backgroundColor" name="ForegroundSecondaryColor"/>
+                                                        <constraints>
+                                                            <constraint firstItem="WjC-Ce-ins" firstAttribute="leading" secondItem="niF-cb-f6b" secondAttribute="leading" constant="8" id="FLi-om-JD2"/>
+                                                            <constraint firstItem="lXE-EW-TEf" firstAttribute="top" secondItem="WjC-Ce-ins" secondAttribute="bottom" constant="16" id="FaB-QY-VkA"/>
+                                                            <constraint firstItem="lXE-EW-TEf" firstAttribute="centerX" secondItem="niF-cb-f6b" secondAttribute="centerX" id="LTP-GN-pei"/>
+                                                            <constraint firstAttribute="width" secondItem="niF-cb-f6b" secondAttribute="height" multiplier="1:1" id="j5G-X0-wlx"/>
+                                                            <constraint firstAttribute="trailing" secondItem="WjC-Ce-ins" secondAttribute="trailing" constant="8" id="t6g-a5-1cg"/>
+                                                            <constraint firstItem="WjC-Ce-ins" firstAttribute="top" secondItem="niF-cb-f6b" secondAttribute="top" constant="32" id="yH2-mM-f9F"/>
+                                                        </constraints>
+                                                    </view>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" secondItem="oN0-Le-w6K" secondAttribute="height" multiplier="344:167" id="g7e-pi-35X"/>
+                                                </constraints>
+                                            </stackView>
+                                            <stackView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="g5U-Tx-CLq">
+                                                <rect key="frame" x="0.0" y="207.66666666666669" width="344" height="44"/>
+                                                <subviews>
+                                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="67i-JL-i1a">
+                                                        <rect key="frame" x="0.0" y="0.0" width="100" height="44"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="100" id="YGq-RJ-Jcs"/>
+                                                        </constraints>
+                                                        <color key="tintColor" name="ForegroundSecondaryColor"/>
+                                                        <state key="normal" title="Button"/>
+                                                        <buttonConfiguration key="configuration" style="filled">
+                                                            <attributedString key="attributedTitle">
+                                                                <fragment content="Import">
+                                                                    <attributes>
+                                                                        <font key="NSFont" size="16" name="Lato-Bold"/>
+                                                                        <font key="NSOriginalFont" size="12" name="Helvetica"/>
+                                                                    </attributes>
+                                                                </fragment>
+                                                            </attributedString>
+                                                            <color key="baseForegroundColor" name="ForegroundPrimaryColor"/>
+                                                        </buttonConfiguration>
+                                                        <connections>
+                                                            <action selector="importButtonPressed:" destination="01J-lp-oVM" eventType="touchUpInside" id="ChO-Mh-ane"/>
+                                                        </connections>
+                                                    </button>
+                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="fQV-9r-Wbd">
+                                                        <rect key="frame" x="100" y="0.0" width="244" height="44"/>
+                                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" id="Qhg-3S-jqu"/>
+                                                        </constraints>
+                                                    </view>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="44" id="93V-wV-tMN"/>
+                                                </constraints>
+                                            </stackView>
+                                        </subviews>
+                                    </stackView>
+                                </subviews>
+                            </stackView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" name="BackgroundColor"/>
                         <constraints>
-                            <constraint firstItem="67i-JL-i1a" firstAttribute="top" secondItem="zuV-D3-LpR" secondAttribute="bottom" constant="8" symbolic="YES" id="5pN-p2-grc"/>
-                            <constraint firstItem="z69-V5-rDZ" firstAttribute="trailing" secondItem="zuV-D3-LpR" secondAttribute="trailing" id="7C6-Ri-uZj"/>
-                            <constraint firstItem="zuV-D3-LpR" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="16" id="8Ap-yp-l0b"/>
-                            <constraint firstItem="YFB-sU-9hp" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="16" id="HIS-uz-S5x"/>
-                            <constraint firstItem="67i-JL-i1a" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="17" id="I3a-mX-qa2"/>
-                            <constraint firstItem="z69-V5-rDZ" firstAttribute="leading" secondItem="zuV-D3-LpR" secondAttribute="leading" id="IjX-yT-Je7"/>
-                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="trailing" secondItem="YFB-sU-9hp" secondAttribute="trailing" constant="16" id="KcW-cQ-BYZ"/>
-                            <constraint firstItem="zuV-D3-LpR" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" constant="93" id="OIm-WC-aCz"/>
-                            <constraint firstItem="Hd7-3d-zZR" firstAttribute="centerX" secondItem="Bcu-3y-fUS" secondAttribute="centerX" id="boS-F5-qYW"/>
-                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="trailing" secondItem="zuV-D3-LpR" secondAttribute="trailing" constant="16" id="f72-vM-d1g"/>
-                            <constraint firstItem="zuV-D3-LpR" firstAttribute="top" secondItem="YFB-sU-9hp" secondAttribute="bottom" constant="8" symbolic="YES" id="sfk-Qu-U45"/>
-                            <constraint firstItem="Hd7-3d-zZR" firstAttribute="centerY" secondItem="Bcu-3y-fUS" secondAttribute="centerY" id="vwY-B2-J6E"/>
-                            <constraint firstItem="z69-V5-rDZ" firstAttribute="bottom" secondItem="zuV-D3-LpR" secondAttribute="bottom" id="xaO-bE-Tm6"/>
+                            <constraint firstItem="fCx-qo-Vn0" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" constant="44" id="GDi-f2-HgB"/>
+                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="trailing" secondItem="fCx-qo-Vn0" secondAttribute="trailing" constant="23" id="maI-A4-xkj"/>
+                            <constraint firstItem="fCx-qo-Vn0" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="23" id="x0c-yQ-VR3"/>
                         </constraints>
                     </view>
                     <connections>
-                        <outlet property="firstImage" destination="zuV-D3-LpR" id="KL3-JQ-2hR"/>
-                        <outlet property="importButton" destination="67i-JL-i1a" id="0X7-fm-dxS"/>
-                        <outlet property="importFinishedLabel" destination="Hd7-3d-zZR" id="vuU-1z-4dQ"/>
-                        <outlet property="progressView" destination="z69-V5-rDZ" id="qIC-7k-yZY"/>
+                        <outlet property="finishImportInstructionsLabel" destination="Nrv-Bi-g1P" id="ISB-vn-VXa"/>
+                        <outlet property="imagesSummaryContainer" destination="G8A-9Q-cMU" id="UQ4-dp-DLR"/>
+                        <outlet property="imagesSummaryLabel" destination="pw8-20-pcq" id="tYL-3W-Gtl"/>
+                        <outlet property="importSummaryStackView" destination="ja0-8J-GYc" id="xL2-Ql-Eys"/>
                         <outlet property="summaryLabel" destination="YFB-sU-9hp" id="iIU-93-667"/>
+                        <outlet property="videoSummaryContainer" destination="niF-cb-f6b" id="79X-yk-a04"/>
+                        <outlet property="videoSummaryLabel" destination="WjC-Ce-ins" id="44V-fU-CFb"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -80,8 +191,17 @@
         </scene>
     </scenes>
     <resources>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
+        <image name="EncameraLogo" width="800" height="800"/>
+        <image name="photo.stack" catalog="system" width="128" height="122"/>
+        <image name="video.fill" catalog="system" width="128" height="81"/>
+        <namedColor name="BackgroundColor">
+            <color red="0.023529411764705882" green="0.023529411764705882" blue="0.094117647058823528" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <namedColor name="ForegroundPrimaryColor">
+            <color red="0.023529411764705882" green="0.027450980392156862" blue="0.098039215686274508" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <namedColor name="ForegroundSecondaryColor">
+            <color red="0.85882352941176465" green="0.85882352941176465" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
     </resources>
 </document>

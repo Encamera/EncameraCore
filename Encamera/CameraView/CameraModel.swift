@@ -49,6 +49,7 @@ final class CameraModel: NSObject, ObservableObject {
     @Published var showTookFirstPhotoSheet = false
     @Published var showExplanationForUpgrade = false
     
+    @Published var showImportedMediaScreen = false
     @Published var cameraSetupResult: SessionSetupResult = .notDetermined
     var authManager: AuthManager
     var keyManager: KeyManager

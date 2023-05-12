@@ -16,7 +16,7 @@ struct ProgressViewCircular: View {
         ZStack {
             ProgressView(value: Float(progress), total: Float(total))
                 .progressViewStyle(ProgressViewCircularStyle())
-            Text("\(total - progress)")
+            Text("\( progress)")
                 .fontType(.small)
         }
     }

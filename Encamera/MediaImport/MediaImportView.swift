@@ -134,6 +134,8 @@ struct MediaImportView: View {
                     
                     ProgressViewCircular(progress: Int(viewModel.saveProgress*100), total: 100)
                         .frame(width: 100, height: 100)
+                    Text(L10n.encrypting)
+                        .fontType(.mediumSmall)
                     Spacer()
                 }
                 

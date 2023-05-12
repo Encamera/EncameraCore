@@ -11,19 +11,15 @@ import EncameraCore
 struct TweetToShareView: View {
     @Environment(\.dismiss) var dismiss
 
-        var body: some View {
-            NavigationView {
-                
+    var body: some View {
+        NavigationView {
+            ScrollView {
                 VStack {
-                    Text(L10n.getOneYearFree)
-                        .fontType(.large)
-                        .padding()
-                    
-                    
                     Text(L10n.tweetToRedeemOfferExplanation)
                         .padding()
                         .fontType(.mediumSmall)
-                    
+                        .lineLimit(nil)
+
                     Button(action: {
                         if let url = URL(string: "https://twitter.com/encamera_app") {
                             openURL(url)
@@ -36,10 +32,12 @@ struct TweetToShareView: View {
                                 .frame(width: 64, height: 64)
                             Text(L10n.followUs)
                                 .fontType(.medium)
+                                .lineLimit(nil)
                         }
                     }
                     .primaryButton()
                     .padding()
+
                     Button(action: {
                         if let url = URL(string: "https://ctt.ac/R93eX") {
                             openURL(url)
@@ -52,31 +50,34 @@ struct TweetToShareView: View {
                                 .frame(width: 64, height: 64)
                             Text(L10n.tapToTweet)
                                 .fontType(.medium)
+                                .lineLimit(nil)
                         }
                     }
                     .primaryButton()
                     .padding()
+
                     Text(L10n.youWillBeSentAPromoCode)
                         .padding()
                         .fontType(.mediumSmall)
-                    
-                    Spacer()
-                }.navigationTitle("")
-                    .toolbar {
-                        Button(L10n.close) {
-                            dismiss()
-                        }
+                        .lineLimit(nil)
+                }
+                .navigationTitle(L10n.getOneYearFree)
+                .toolbar {
+                    Button(L10n.close) {
+                        dismiss()
                     }
-            }
+                }
+                
+            }.background(Color.background)
         }
-        
-        // Function to open the URL
-        func openURL(_ url: URL) {
-            if UIApplication.shared.canOpenURL(url) {
-                UIApplication.shared.open(url, options: [:], completionHandler: nil)
-            }
-        }
+    }
 
+    // Function to open the URL
+    func openURL(_ url: URL) {
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
+    }
 }
 
 struct TweetToShareView_Previews: PreviewProvider {

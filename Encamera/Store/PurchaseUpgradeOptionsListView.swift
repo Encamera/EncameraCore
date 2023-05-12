@@ -66,6 +66,7 @@ struct PurchaseUpgradeOptionsListView: View {
                     Image(systemName: "dollarsign.circle.fill")
                         .resizable()
                         .frame(width: 30, height: 30)
+                        .foregroundStyle(.white, .pink)
                 }.productCell()
                     .onTapGesture {
                         freeUnlimitedTapped()
