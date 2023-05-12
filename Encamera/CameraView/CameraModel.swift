@@ -198,7 +198,7 @@ final class CameraModel: NSObject, ObservableObject {
         case .photo:
             
             
-            let photoProcessor = await service.createPhotoProcessor(flashMode: flashMode)
+            let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode)
             
             let photoObject = try await photoProcessor.takePhoto()
             

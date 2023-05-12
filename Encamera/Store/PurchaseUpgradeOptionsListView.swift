@@ -35,9 +35,10 @@ struct PurchaseUpgradeOptionsListView: View {
     let subscriptions: [ServiceSubscription]
     let products: [OneTimePurchase]
     let purchasedProducts: [OneTimePurchase]
+    
     @Binding var selectedOption: ServiceSubscription?
     let currentActiveSubscription: ServiceSubscription?
-    
+    let freeUnlimitedTapped: () -> ()
     func binding(for subscription: ServiceSubscription) -> Binding<Bool> {
         return Binding {
             selectedOption?.id == subscription.id
@@ -58,6 +59,17 @@ struct PurchaseUpgradeOptionsListView: View {
                 Text(L10n.subscription)
                     .fontType(.mediumSmall)
                 let _ = print(subscriptions.map({$0.displayName}))
+                HStack {
+                    Text("\(L10n.unlockUnlimitedForFree) 👉")
+                        .fontType(.mediumSmall)
+                    Spacer()
+                    Image(systemName: "dollarsign.circle.fill")
+                        .resizable()
+                        .frame(width: 30, height: 30)
+                }.productCell()
+                    .onTapGesture {
+                        freeUnlimitedTapped()
+                    }
                 ForEach(subscriptions) { subscription in
                     subscriptionOptionCell(for: subscription)
                 }

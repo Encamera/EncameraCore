@@ -19,6 +19,7 @@ struct PurchaseUpgradeView: View {
     @State private var selectedSubscription: ServiceSubscription?
     @State private var currentActiveSubscription: ServiceSubscription?
     @State private var errorAlertIsPresented = false
+    @State private var showTweetForFreeView = false
     var showDismissButton = true
     @Environment(\.dismiss) private var dismiss
     
@@ -50,6 +51,9 @@ struct PurchaseUpgradeView: View {
             isPresented: $errorAlertIsPresented,
             actions: {}
         )
+        .sheet(isPresented: $showTweetForFreeView) {
+            TweetToShareView()
+        }
     }
     
     var dismissButton: some View {
@@ -93,7 +97,10 @@ struct PurchaseUpgradeView: View {
                     products: products,
                     purchasedProducts: productController.purchasedProducts,
                     selectedOption: $selectedSubscription,
-                    currentActiveSubscription: currentActiveSubscription
+                    currentActiveSubscription: currentActiveSubscription,
+                    freeUnlimitedTapped: {
+                        self.showTweetForFreeView = true
+                    }
                 )
                 .padding(.top)
             

@@ -20,13 +20,16 @@ struct PurchaseUpgradeHeaderView: View {
                 Text(L10n.supportPrivacyFocusedDevelopment)
             }
             .fontType(.small)
-            Button(L10n.enterPromoCode) {
-                Task {
-                    await StoreActor.shared.presentCodeRedemptionSheet()
+            HStack(spacing: 10) {
+                Button(L10n.enterPromoCode) {
+                    Task {
+                        await StoreActor.shared.presentCodeRedemptionSheet()
+                    }
                 }
+                .fontType(.small, on: .elevated)
+                .textPill(color: .green)
             }
-            .fontType(.small, on: .elevated)
-            .textPill(color: .green)
+            
         }
         .padding(.top, 0)
         .padding(.bottom, 30)

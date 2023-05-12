@@ -34,7 +34,7 @@ class ShareViewController: UIViewController {
             // Check if the content type is the same as we expected
             let matchingMovieTypes = MediaType.supportedMovieFileTypes.filter({provider.hasItemConformingToTypeIdentifier($0.identifier)})
             let matchingPhotoTypes = MediaType.supportedPhotoFileTypes.filter({provider.hasItemConformingToTypeIdentifier($0.identifier)})
-            if let matching = matchingPhotoTypes.first {
+            if  matchingPhotoTypes.first != nil {
                 try await processImage(provider: provider)
             } else if let matching = matchingMovieTypes.first {
                 if matching == UTType.mpeg4Movie {
@@ -64,13 +64,13 @@ class ShareViewController: UIViewController {
         
         var text = ""
         if imageCount > 0 {
-            text += "\(imageCount) images"
+            text += L10n.imageS(imageCount)
         }
         if imageCount > 0 && videoCount > 0 {
             text += ", "
         }
         if videoCount > 0 {
-            text += "\(videoCount) videos"
+            text += L10n.videoS(videoCount)
         }
         self.summaryLabel.text = text
     }
@@ -78,7 +78,7 @@ class ShareViewController: UIViewController {
     func showUnknownLabel() {
         importButton.isHidden = true
         summaryLabel.isHidden = false
-        summaryLabel.text = "Cannot handle media"
+        summaryLabel.text = L10n.cannotHandleMedia
     }
     
     func processImage(provider: NSItemProvider) async throws {
