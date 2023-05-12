@@ -68,7 +68,9 @@ struct TweetToShareView: View {
                     }
                 }
                 
-            }.background(Color.background)
+            }
+
+
         }
     }
 
@@ -82,7 +84,10 @@ struct TweetToShareView: View {
 
 struct TweetToShareView_Previews: PreviewProvider {
     static var previews: some View {
-        TweetToShareView()
-            .preferredColorScheme(.dark)
+        Text("hey").sheet(isPresented: .constant(true)) {
+            TweetToShareView()
+                .preferredColorScheme(.dark)
+        }
+        
     }
 }

@@ -18,6 +18,8 @@ struct EncameraApp: App {
         @Published var isAuthenticated = false
         @Published var hasMediaToImport = false
         @Published var showImportedMediaScreen = false
+        @Published var shouldShowTweetScreen: Bool = false
+
         var openedUrl: URL?
         var keyManager: KeyManager
         var cameraService: CameraConfigurationService
@@ -68,6 +70,7 @@ struct EncameraApp: App {
             
             setupWith(key: keyManager.currentKey)
             NotificationUtils.didEnterBackgroundPublisher
+                .receive(on: RunLoop.main)
                 .sink { _ in
 
                     self.showScreenBlocker = true
@@ -76,18 +79,20 @@ struct EncameraApp: App {
                 }.store(in: &cancellables)
 
             NotificationUtils.willResignActivePublisher
+                .receive(on: RunLoop.main)
                 .sink { _ in
                     self.showScreenBlocker = true
                 }
                 .store(in: &cancellables)
 
             NotificationUtils.didBecomeActivePublisher
+                .receive(on: RunLoop.main)
                 .sink { _ in
                     self.showScreenBlocker = false
-
                 }.store(in: &cancellables)
-            
+                        
             NotificationUtils.orientationDidChangePublisher
+                .receive(on: RunLoop.main)
                 .sink { value in
                     
                     var rotation = 0.0
@@ -134,7 +139,13 @@ struct EncameraApp: App {
                 await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
                 guard key != nil else { return }
                 await showImportScreenIfNeeded()
+                UserDefaultUtils.increaseInteger(forKey: .launchCount)
+                await MainActor.run {
+                    self.setShouldShowTweetScreen()
+                }
             }
+            
+            
         }
         
         func checkForImportedImages() async {
@@ -154,6 +165,19 @@ struct EncameraApp: App {
                 showImportedMediaScreen = hasMediaToImport
             }
 
+        }
+        
+        @MainActor
+        func setShouldShowTweetScreen() {
+            let launchCount = UserDefaultUtils.integer(forKey: .launchCount)
+            var shouldShow = false
+            if purchasedPermissions.hasEntitlement() == true {
+                shouldShow = false
+            } else if launchCount % AppConstants.requestForTweetFrequency == 0  {
+                shouldShow = true
+            }
+            debugPrint("should show tweet screen", shouldShow, launchCount)
+            shouldShowTweetScreen = shouldShow
         }
     }
     
@@ -181,6 +205,9 @@ struct EncameraApp: App {
                         }
                     }
                 }
+                .sheet(isPresented: $viewModel.shouldShowTweetScreen) {
+                    TweetToShareView()
+                }
                 .overlay {
                     if viewModel.showOnboarding {
                         MainOnboardingView(
@@ -201,6 +228,7 @@ struct EncameraApp: App {
                         self.viewModel.hasOpenedURL = true
                     }
                 }
+                
                 .statusBar(hidden: true)
                 .environment(
                     \.isScreenBlockingActive,
