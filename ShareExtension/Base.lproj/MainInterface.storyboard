@@ -179,6 +179,7 @@
                         <outlet property="finishImportInstructionsLabel" destination="Nrv-Bi-g1P" id="ISB-vn-VXa"/>
                         <outlet property="imagesSummaryContainer" destination="G8A-9Q-cMU" id="UQ4-dp-DLR"/>
                         <outlet property="imagesSummaryLabel" destination="pw8-20-pcq" id="tYL-3W-Gtl"/>
+                        <outlet property="importButton" destination="67i-JL-i1a" id="0X7-fm-dxS"/>
                         <outlet property="importSummaryStackView" destination="ja0-8J-GYc" id="xL2-Ql-Eys"/>
                         <outlet property="summaryLabel" destination="YFB-sU-9hp" id="iIU-93-667"/>
                         <outlet property="videoSummaryContainer" destination="niF-cb-f6b" id="79X-yk-a04"/>

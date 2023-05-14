@@ -1,0 +1,21 @@
+
+/* Class = "UIButton"; configuration.title = "Import"; ObjectID = "67i-JL-i1a"; */
+"67i-JL-i1a.configuration.title" = "Import";
+
+/* Class = "UIButton"; normalTitle = "Button"; ObjectID = "67i-JL-i1a"; */
+"67i-JL-i1a.normalTitle" = "Button";
+
+/* Class = "UILabel"; text = "Open the Encamera app to finish importing."; ObjectID = "Nrv-Bi-g1P"; */
+"Nrv-Bi-g1P.text" = "Open the Encamera app to finish importing.";
+
+/* Class = "UILabel"; text = "12 Videos"; ObjectID = "WjC-Ce-ins"; */
+"WjC-Ce-ins.text" = "12 Videos";
+
+/* Class = "UILabel"; text = "Import Media"; ObjectID = "YFB-sU-9hp"; */
+"YFB-sU-9hp.text" = "Import Media";
+
+/* Class = "UILabel"; text = "You are about to import:"; ObjectID = "fSW-YD-GUV"; */
+"fSW-YD-GUV.text" = "You are about to import:";
+
+/* Class = "UILabel"; text = "12 Images"; ObjectID = "pw8-20-pcq"; */
+"pw8-20-pcq.text" = "12 Images";

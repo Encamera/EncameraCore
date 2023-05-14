@@ -145,7 +145,7 @@ struct SettingsView: View {
             
                 Section {
                     Button(L10n.openSource) {
-                        guard let url = URL(string: "https://encrypted.camera/open-source") else {
+                        guard let url = URL(string: "https://encrypted.camera/open-source/") else {
                             return
                         }
                         Task {
@@ -153,7 +153,15 @@ struct SettingsView: View {
                         }
                     }
                     Button(L10n.privacyPolicy) {
-                        guard let url = URL(string: "https://encrypted.camera/privacy") else {
+                        guard let url = URL(string: "https://encrypted.camera/privacy/") else {
+                            return
+                        }
+                        Task {
+                            await UIApplication.shared.open(url)
+                        }
+                    }
+                    Button(L10n.roadmap) {
+                        guard let url = URL(string: "https://encamera.featurebase.app/") else {
                             return
                         }
                         Task {

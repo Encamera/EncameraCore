@@ -177,7 +177,7 @@ struct EncameraApp: App {
                 shouldShow = true
             }
             debugPrint("should show tweet screen", shouldShow, launchCount)
-            shouldShowTweetScreen = shouldShow
+//            shouldShowTweetScreen = shouldShow
         }
     }
     

@@ -59,18 +59,7 @@ struct PurchaseUpgradeOptionsListView: View {
                 Text(L10n.subscription)
                     .fontType(.mediumSmall)
                 let _ = print(subscriptions.map({$0.displayName}))
-                HStack {
-                    Text("\(L10n.unlockUnlimitedForFree) 👉")
-                        .fontType(.mediumSmall)
-                    Spacer()
-                    Image(systemName: "dollarsign.circle.fill")
-                        .resizable()
-                        .frame(width: 30, height: 30)
-                        .foregroundStyle(.white, .pink)
-                }.productCell()
-                    .onTapGesture {
-                        freeUnlimitedTapped()
-                    }
+                
                 ForEach(subscriptions) { subscription in
                     subscriptionOptionCell(for: subscription)
                 }
@@ -90,6 +79,21 @@ struct PurchaseUpgradeOptionsListView: View {
             
         }.padding(.horizontal)
         
+    }
+    
+    var tweetForFreeView: some View {
+        HStack {
+            Text("\(L10n.unlockUnlimitedForFree) 👉")
+                .fontType(.mediumSmall)
+            Spacer()
+            Image(systemName: "dollarsign.circle.fill")
+                .resizable()
+                .frame(width: 30, height: 30)
+                .foregroundStyle(.white, .pink)
+        }.productCell()
+            .onTapGesture {
+                freeUnlimitedTapped()
+            }
     }
     
     func productCell(for product: OneTimePurchase) -> some View {
