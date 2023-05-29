@@ -179,7 +179,6 @@
                         <outlet property="finishImportInstructionsLabel" destination="Nrv-Bi-g1P" id="ISB-vn-VXa"/>
                         <outlet property="imagesSummaryContainer" destination="G8A-9Q-cMU" id="UQ4-dp-DLR"/>
                         <outlet property="imagesSummaryLabel" destination="pw8-20-pcq" id="tYL-3W-Gtl"/>
-                        <outlet property="importButton" destination="67i-JL-i1a" id="0X7-fm-dxS"/>
                         <outlet property="importSummaryStackView" destination="ja0-8J-GYc" id="xL2-Ql-Eys"/>
                         <outlet property="summaryLabel" destination="YFB-sU-9hp" id="iIU-93-667"/>
                         <outlet property="videoSummaryContainer" destination="niF-cb-f6b" id="79X-yk-a04"/>
@@ -199,10 +198,10 @@
             <color red="0.023529411764705882" green="0.023529411764705882" blue="0.094117647058823528" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <namedColor name="ForegroundPrimaryColor">
-            <color red="0.023529411764705882" green="0.027450980392156862" blue="0.098039215686274508" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.024000000208616257" green="0.027000000700354576" blue="0.097999997437000275" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <namedColor name="ForegroundSecondaryColor">
-            <color red="0.85882352941176465" green="0.85882352941176465" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.85900002717971802" green="0.85900002717971802" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
     </resources>
 </document>
