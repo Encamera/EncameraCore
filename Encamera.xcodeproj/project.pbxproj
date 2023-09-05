@@ -23,6 +23,7 @@
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		183FE195C4237C4BA34B979E /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BA0FED66DCF9A54E46648C /* KeySelectionGridItem.swift */; };
+		1928B0072AA77A1500AFC15A /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1928B0062AA77A1500AFC15A /* EncameraCore */; };
 		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
 		1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */; };
@@ -162,6 +163,7 @@
 		1502C040838F3770BEF5B8E0 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
+		1928B0042AA778B900AFC15A /* EncameraCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = EncameraCore; path = ../EncameraCore; sourceTree = "<group>"; };
 		19E2F2ED2A0EA14200CD231A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/MainInterface.strings; sourceTree = "<group>"; };
 		19E2F2EF2A0EA14600CD231A /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/MainInterface.strings; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
@@ -283,6 +285,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */,
+				1928B0072AA77A1500AFC15A /* EncameraCore in Frameworks */,
 				040E39E6A352E9AF8BA82CC9 /* EncameraCore in Frameworks */,
 				112CE54F53B1EE09771F0D6F /* StoreKit.framework in Frameworks */,
 			);
@@ -537,6 +540,7 @@
 			isa = PBXGroup;
 			children = (
 				9095641BC76221C1446C09F5 /* EncameraCore */,
+				1928B0042AA778B900AFC15A /* EncameraCore */,
 			);
 			name = Packages;
 			sourceTree = SOURCE_ROOT;
@@ -661,6 +665,7 @@
 			packageProductDependencies = (
 				9BDB467AF8E2ABBB52B964F4 /* Sodium */,
 				389FE1CC4F9A52A1AC3AD6E2 /* EncameraCore */,
+				1928B0062AA77A1500AFC15A /* EncameraCore */,
 			);
 			productName = Encamera;
 			productReference = AD8594B39C00DCD662DD5B08 /* Encamera.app */;
@@ -738,6 +743,7 @@
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
 				C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */,
+				1928B0052AA77A1500AFC15A /* XCRemoteSwiftPackageReference "EncameraCore" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -1257,6 +1263,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		1928B0052AA77A1500AFC15A /* XCRemoteSwiftPackageReference "EncameraCore" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/akfreas/EncameraCore";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jedisct1/swift-sodium.git";
@@ -1272,6 +1286,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;
 			productName = Sodium;
+		};
+		1928B0062AA77A1500AFC15A /* EncameraCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1928B0052AA77A1500AFC15A /* XCRemoteSwiftPackageReference "EncameraCore" */;
+			productName = EncameraCore;
 		};
 		389FE1CC4F9A52A1AC3AD6E2 /* EncameraCore */ = {
 			isa = XCSwiftPackageProductDependency;
