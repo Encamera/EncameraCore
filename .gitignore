@@ -104,3 +104,4 @@ xcuserdata
 **/*.xcodeproj
 !*.xcodeproj/project.pbxproj
 !*.xcworkspace/contents.xcworkspacedata
+**/Package.resolved
