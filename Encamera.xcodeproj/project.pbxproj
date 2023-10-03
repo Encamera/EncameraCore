@@ -10,6 +10,7 @@
 		003E154D889385DEACD50E3B /* PurchaseUpgradeOptionsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6160C505578FD25DED491FD /* PurchaseUpgradeOptionsListView.swift */; };
 		00E57DE0A90E34C450B3E75A /* TopBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 517FE72852CDCADB57265BCF /* TopBarView.swift */; };
 		02757804E5A10DF47478C2C5 /* ProductOptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6C0368467116B7BC1E31B9 /* ProductOptionView.swift */; };
+		0397FAEBB112978CB7CAE9DA /* Satoshi-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = 5876A43225B15FCEC1E6CF1C /* Satoshi-Light.otf */; };
 		040E39E6A352E9AF8BA82CC9 /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 389FE1CC4F9A52A1AC3AD6E2 /* EncameraCore */; };
 		05BE9E64DF81E360A090F9E5 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7347AE6141886EEF6FABC1 /* Color.swift */; };
 		09FDF76EE9CC5B0C7D927EBF /* 4.JPG in Resources */ = {isa = PBXBuildFile; fileRef = D6F2E71821680D09E037004E /* 4.JPG */; };
@@ -23,16 +24,18 @@
 		1628F1A883046A27D4808FB6 /* Lato-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		183FE195C4237C4BA34B979E /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BA0FED66DCF9A54E46648C /* KeySelectionGridItem.swift */; };
-		1928B0072AA77A1500AFC15A /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1928B0062AA77A1500AFC15A /* EncameraCore */; };
 		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
 		1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */; };
 		24E55E5C74E12CB0921F1C3A /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 7FEAF11972744A5837011C99 /* Sodium */; };
 		26168F98ECFE26D3D975B7C7 /* Lato-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7E935404249D04E62DD75E68 /* Lato-Thin.ttf */; };
+		264130246CDA58E3025649C2 /* Satoshi-Italic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 58E516504CF50C3C3775D1FF /* Satoshi-Italic.otf */; };
 		2AC7523CF9F950C533C63CB8 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3FE55829F2B997DDCA81B18F /* Lato-Regular.ttf */; };
 		2F4FED2E99F8D79E178058BA /* SubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25B2718DA5A7D489DF898C8 /* SubscriptionView.swift */; };
 		2FCFC8C5F90FE5E93B0F290E /* EncryptedImageIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = FC9BE7091B43E9BB8D1E0B7B /* EncryptedImageIcon.png */; };
+		30D6159730DF66A347500951 /* Satoshi-BoldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 4FD935CBF1B92DA44E5A6196 /* Satoshi-BoldItalic.otf */; };
 		365F533E1056DD94FC272B41 /* VideoScrubbingSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */; };
+		36E0E84AB09238B05CF4C079 /* Satoshi-MediumItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 851DD3DC1BD4F3BBDAB226B1 /* Satoshi-MediumItalic.otf */; };
 		3701356CE656135AB9B90340 /* Lato-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B6B5F8DD4E02A18E817B274D /* Lato-BoldItalic.ttf */; };
 		3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF307DAF9F7334418CF7C35A /* ImageViewing.swift */; };
 		3ECC622BE09A0394BCA79AB6 /* MediaImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE4BE3A348C71B3A9832A0E3 /* MediaImportView.swift */; };
@@ -47,6 +50,7 @@
 		5BDE17D39CBF70B6A5C2857B /* BuyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */; };
 		5D8A8BBF90E59B7E75FE8DF9 /* KeyGeneration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26C4CC1724CE208C558D81E /* KeyGeneration.swift */; };
 		61AF31980C7C83808E95CC0B /* List.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6930675B73ADF4E2B6F10CC6 /* List.swift */; };
+		630D45B83C7AF078F62D4C5F /* Satoshi-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 727626CC92C9393321DCE958 /* Satoshi-Medium.otf */; };
 		63166DA0C32EA6573493DDCF /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0D4E617FB35B8C6F46542FB9 /* Media.xcassets */; };
 		6345E84E27CE1429CDB492EA /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3A5DFF757B2443487FD43C7F /* Lato-Regular.ttf */; };
 		634B0425B9F4BF25AF3C2AF2 /* ShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C078E03BCFAAA274C5A52366 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -73,12 +77,14 @@
 		950FBFFE68B35AEDBBF975D3 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */; };
 		95D7968C302ABFED7C72B67B /* Lato-ThinItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8A27A9778336029F0375FDA7 /* Lato-ThinItalic.ttf */; };
 		970C997C472D9D4A5A2B9CC8 /* ScreenBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72935CD1CF7D9FD70DAE47B1 /* ScreenBlock.swift */; };
+		9901127C2E18890CF44CCF6F /* Satoshi-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = C6D4F6A7A4F99FA1D28BB937 /* Satoshi-Bold.otf */; };
 		9BFDB5BC2DF88BA72FFE49F2 /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0177DA8EC67EF187F51DA226 /* Text.swift */; };
 		9C55990B2CE14B9B92AE2D42 /* FirstPhotoTakenTutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1408F1B24F65F9206EFEC2 /* FirstPhotoTakenTutorial.swift */; };
 		9CF393EB3CD749F2AB88D21C /* Lato-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E777101DCE31F95103C50B4 /* Lato-Bold.ttf */; };
 		A046BFD3E3A3DC9C95468107 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = AC1D3C50276AFF5184AECA95 /* Localizable.stringsdict */; };
 		A304084AA6D9282D8B4AD28E /* KeyInformation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B197301286602327AC9EB11A /* KeyInformation.swift */; };
 		A456B80AC53939E5895E9DFD /* Encamera.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */; };
+		A67173EC4785E1088B228182 /* Satoshi-Black.otf in Resources */ = {isa = PBXBuildFile; fileRef = 1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */; };
 		A74281B97A34B8875ACC3477 /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4E3AE2C8A473E74CE2D40B6F /* EncameraCore */; };
 		A8A274F962EBFC8E83AFF73B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7CAE239AD061BB95D7E1C52A /* Localizable.strings */; };
 		A8CF1328AD8BE2D1DC0599E9 /* AddExchangedKeyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */; };
@@ -92,7 +98,9 @@
 		BAA1B34E53D05C7011774A8E /* 5.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 903B566EF13631FEF2185B1A /* 5.JPG */; };
 		BD0376BEC181135B76461C9E /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 70ED3887F4079B8FECD273DC /* LaunchScreen.storyboard */; };
 		BDA79FBD261093E01B2C31E3 /* PhotoInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */; };
+		C5A9017D90629C088B3CA53C /* Satoshi-LightItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 3CEFAA012887940F0776105B /* Satoshi-LightItalic.otf */; };
 		CA61DBCFAAFB8F7AE29C4D0B /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = D51A93C7E90C89B4D1831EE5 /* InfoPlist.strings */; };
+		CC079EB595368D6AB256E7EB /* Satoshi-BlackItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8CC3EF584D715B91450BDEA3 /* Satoshi-BlackItalic.otf */; };
 		D194EDB732253ABF3A1259D8 /* 6.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 1731780E1EBEEBA4C8D49F33 /* 6.JPG */; };
 		D38FDF91C4F82594EC3C2852 /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = D3DE825F6B01C343316B8034 /* EncameraCore */; };
 		D6A68AA78C8F5FD15DA3360C /* EncameraTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */; };
@@ -106,6 +114,7 @@
 		E9C36D15F15ACB3E66847F49 /* StorageSettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF2E435357C74D9D5B3132B /* StorageSettingView.swift */; };
 		EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0AF4D110AAADF74FE13DAC /* MovieViewing.swift */; };
 		EB9D71FFC09A343782093FAA /* GalleryGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22632598B02FA85E75C7FE91 /* GalleryGridView.swift */; };
+		EFDEAFF6596FBF2114A9F06A /* Satoshi-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 254B4401CD4663561438FCE0 /* Satoshi-Regular.otf */; };
 		F0DF6BB6EECF8FA580D3FE74 /* EncameraLocal.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 550323AF4E3EB2265755723A /* EncameraLocal.storekit */; };
 		F30D4AE8166C0034674E0DBB /* PromptToErase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */; };
 		F52B09D9AEBF17B9E89E4219 /* PurchaseUpgradeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93BD2E6D2DFBF7562EBC70FB /* PurchaseUpgradeHeaderView.swift */; };
@@ -163,9 +172,7 @@
 		1502C040838F3770BEF5B8E0 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
-		1928B0042AA778B900AFC15A /* EncameraCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = EncameraCore; path = ../EncameraCore; sourceTree = "<group>"; };
-		19E2F2ED2A0EA14200CD231A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/MainInterface.strings; sourceTree = "<group>"; };
-		19E2F2EF2A0EA14600CD231A /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/MainInterface.strings; sourceTree = "<group>"; };
+		1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Black.otf"; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraTextField.swift; sourceTree = "<group>"; };
@@ -173,26 +180,32 @@
 		22632598B02FA85E75C7FE91 /* GalleryGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryGridView.swift; sourceTree = "<group>"; };
 		22736C3DC1ED7B0010E2C563 /* 2.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 2.JPG; sourceTree = "<group>"; };
 		24DEE57B92A4A089C5A570BC /* KeyOperationCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyOperationCell.swift; sourceTree = "<group>"; };
+		254B4401CD4663561438FCE0 /* Satoshi-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Regular.otf"; sourceTree = "<group>"; };
 		25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoScrubbingSlider.swift; sourceTree = "<group>"; };
 		2A7347AE6141886EEF6FABC1 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
 		2D0C6738E921CCEB0FD88E6D /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
 		31AB13EE6FE68BA8614D0253 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3237449B062E865D537211D4 /* EncameraTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EncameraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3304A219AA521A12DE3A30AF /* Lato-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Bold.ttf"; sourceTree = "<group>"; };
+		391EB27CBC7FE5A91E4CA4F3 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/MainInterface.strings; sourceTree = "<group>"; };
 		398A5AAE1F22EC9052883DB6 /* SelectableGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectableGalleryView.swift; sourceTree = "<group>"; };
 		3A5DFF757B2443487FD43C7F /* Lato-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Regular.ttf"; sourceTree = "<group>"; };
 		3AC87A1E6FAC6F4E4C5E385B /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
+		3CEFAA012887940F0776105B /* Satoshi-LightItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-LightItalic.otf"; sourceTree = "<group>"; };
 		3D6C0368467116B7BC1E31B9 /* ProductOptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductOptionView.swift; sourceTree = "<group>"; };
 		3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = EncryptedVideoIcon.png; sourceTree = "<group>"; };
 		3FE55829F2B997DDCA81B18F /* Lato-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Regular.ttf"; sourceTree = "<group>"; };
 		48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		49A2EF989B2F8643105205DF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
+		4FD935CBF1B92DA44E5A6196 /* Satoshi-BoldItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-BoldItalic.otf"; sourceTree = "<group>"; };
 		517FE72852CDCADB57265BCF /* TopBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopBarView.swift; sourceTree = "<group>"; };
 		5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressViewCircular.swift; sourceTree = "<group>"; };
 		550323AF4E3EB2265755723A /* EncameraLocal.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = EncameraLocal.storekit; sourceTree = "<group>"; };
 		57C54146880DB6F836B1AB7F /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
+		5876A43225B15FCEC1E6CF1C /* Satoshi-Light.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Light.otf"; sourceTree = "<group>"; };
+		58E516504CF50C3C3775D1FF /* Satoshi-Italic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Italic.otf"; sourceTree = "<group>"; };
 		59D9962EDE6F5712DA02FF64 /* KeyExchange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyExchange.swift; sourceTree = "<group>"; };
 		5AF0490EEC4512041C781765 /* SubscriptionOptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionOptionView.swift; sourceTree = "<group>"; };
 		5B5BD74DF33D218275BF0976 /* release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = release.xcconfig; sourceTree = "<group>"; };
@@ -206,16 +219,20 @@
 		6E453D2B4E2D603E75AF410F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/MainInterface.storyboard; sourceTree = "<group>"; };
 		6EA6577FB500EAC600F75901 /* PurchaseOptionViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseOptionViewModifier.swift; sourceTree = "<group>"; };
 		70ED3887F4079B8FECD273DC /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		727626CC92C9393321DCE958 /* Satoshi-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Medium.otf"; sourceTree = "<group>"; };
 		72935CD1CF7D9FD70DAE47B1 /* ScreenBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlock.swift; sourceTree = "<group>"; };
 		7363071BCA6ED2C04B2EA698 /* PurchasePhotoSubscriptionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchasePhotoSubscriptionOverlay.swift; sourceTree = "<group>"; };
 		7661A4F3701B87A8341BC477 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = de; path = de.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		76DC7343E9ECEFF44132872C /* PurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseButton.swift; sourceTree = "<group>"; };
 		7E935404249D04E62DD75E68 /* Lato-Thin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Thin.ttf"; sourceTree = "<group>"; };
+		851DD3DC1BD4F3BBDAB226B1 /* Satoshi-MediumItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-MediumItalic.otf"; sourceTree = "<group>"; };
 		8661160CC93C7FDBB741D152 /* 1.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.JPG; sourceTree = "<group>"; };
 		8A188D5FF84A453469F8C3EB /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		8A27A9778336029F0375FDA7 /* Lato-ThinItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-ThinItalic.ttf"; sourceTree = "<group>"; };
 		8A749ADBA6F481389A4AB39B /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		8CC3EF584D715B91450BDEA3 /* Satoshi-BlackItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-BlackItalic.otf"; sourceTree = "<group>"; };
 		8D30DEA96F23B22DA6789DF4 /* RotationViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationViewModifier.swift; sourceTree = "<group>"; };
+		903923372525CB58F5D969EB /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/MainInterface.strings; sourceTree = "<group>"; };
 		903B566EF13631FEF2185B1A /* 5.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 5.JPG; sourceTree = "<group>"; };
 		9095641BC76221C1446C09F5 /* EncameraCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EncameraCore; path = ../EncameraCore; sourceTree = SOURCE_ROOT; };
 		9180088B6F3C787C103F69C5 /* StorageOptionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageOptionItemView.swift; sourceTree = "<group>"; };
@@ -237,10 +254,11 @@
 		B7C3DD8AA70CBF44BA670B82 /* ExplanationForUpgradeTutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplanationForUpgradeTutorial.swift; sourceTree = "<group>"; };
 		BB3EF10EE91927485D25DD47 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		BD80B31ED188E0F75FCF32A4 /* Encamera.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Encamera.entitlements; sourceTree = "<group>"; };
-		C078E03BCFAAA274C5A52366 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C078E03BCFAAA274C5A52366 /* ShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryHorizontalScrollView.swift; sourceTree = "<group>"; };
 		C1DF70D2CC410A637C7BB925 /* EncameraState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraState.swift; sourceTree = "<group>"; };
 		C5BBF4F0BB66529319FDDFDD /* Lato-LightItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-LightItalic.ttf"; sourceTree = "<group>"; };
+		C6D4F6A7A4F99FA1D28BB937 /* Satoshi-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Bold.otf"; sourceTree = "<group>"; };
 		C928D55420DA4790784059AA /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/MainInterface.strings; sourceTree = "<group>"; };
 		CA6EA3006B6C149A02A8AA44 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CB0AF4D110AAADF74FE13DAC /* MovieViewing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieViewing.swift; sourceTree = "<group>"; };
@@ -285,7 +303,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */,
-				1928B0072AA77A1500AFC15A /* EncameraCore in Frameworks */,
 				040E39E6A352E9AF8BA82CC9 /* EncameraCore in Frameworks */,
 				112CE54F53B1EE09771F0D6F /* StoreKit.framework in Frameworks */,
 			);
@@ -316,6 +333,16 @@
 				3FE55829F2B997DDCA81B18F /* Lato-Regular.ttf */,
 				7E935404249D04E62DD75E68 /* Lato-Thin.ttf */,
 				8A27A9778336029F0375FDA7 /* Lato-ThinItalic.ttf */,
+				1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */,
+				8CC3EF584D715B91450BDEA3 /* Satoshi-BlackItalic.otf */,
+				C6D4F6A7A4F99FA1D28BB937 /* Satoshi-Bold.otf */,
+				4FD935CBF1B92DA44E5A6196 /* Satoshi-BoldItalic.otf */,
+				58E516504CF50C3C3775D1FF /* Satoshi-Italic.otf */,
+				5876A43225B15FCEC1E6CF1C /* Satoshi-Light.otf */,
+				3CEFAA012887940F0776105B /* Satoshi-LightItalic.otf */,
+				727626CC92C9393321DCE958 /* Satoshi-Medium.otf */,
+				851DD3DC1BD4F3BBDAB226B1 /* Satoshi-MediumItalic.otf */,
+				254B4401CD4663561438FCE0 /* Satoshi-Regular.otf */,
 			);
 			path = Fonts;
 			sourceTree = "<group>";
@@ -540,7 +567,6 @@
 			isa = PBXGroup;
 			children = (
 				9095641BC76221C1446C09F5 /* EncameraCore */,
-				1928B0042AA778B900AFC15A /* EncameraCore */,
 			);
 			name = Packages;
 			sourceTree = SOURCE_ROOT;
@@ -665,7 +691,6 @@
 			packageProductDependencies = (
 				9BDB467AF8E2ABBB52B964F4 /* Sodium */,
 				389FE1CC4F9A52A1AC3AD6E2 /* EncameraCore */,
-				1928B0062AA77A1500AFC15A /* EncameraCore */,
 			);
 			productName = Encamera;
 			productReference = AD8594B39C00DCD662DD5B08 /* Encamera.app */;
@@ -743,7 +768,6 @@
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
 				C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */,
-				1928B0052AA77A1500AFC15A /* XCRemoteSwiftPackageReference "EncameraCore" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -797,6 +821,16 @@
 				A8A274F962EBFC8E83AFF73B /* Localizable.strings in Resources */,
 				A046BFD3E3A3DC9C95468107 /* Localizable.stringsdict in Resources */,
 				1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */,
+				A67173EC4785E1088B228182 /* Satoshi-Black.otf in Resources */,
+				CC079EB595368D6AB256E7EB /* Satoshi-BlackItalic.otf in Resources */,
+				9901127C2E18890CF44CCF6F /* Satoshi-Bold.otf in Resources */,
+				30D6159730DF66A347500951 /* Satoshi-BoldItalic.otf in Resources */,
+				264130246CDA58E3025649C2 /* Satoshi-Italic.otf in Resources */,
+				0397FAEBB112978CB7CAE9DA /* Satoshi-Light.otf in Resources */,
+				C5A9017D90629C088B3CA53C /* Satoshi-LightItalic.otf in Resources */,
+				630D45B83C7AF078F62D4C5F /* Satoshi-Medium.otf in Resources */,
+				36E0E84AB09238B05CF4C079 /* Satoshi-MediumItalic.otf in Resources */,
+				EFDEAFF6596FBF2114A9F06A /* Satoshi-Regular.otf in Resources */,
 				4D6890B6437216E4444DE608 /* StoreKitTestCertificate.cer in Resources */,
 				B94BEC77BD5E38D9DBD9EDA5 /* file-icon.png in Resources */,
 			);
@@ -943,8 +977,8 @@
 			children = (
 				6E453D2B4E2D603E75AF410F /* Base */,
 				C928D55420DA4790784059AA /* de */,
-				19E2F2ED2A0EA14200CD231A /* en */,
-				19E2F2EF2A0EA14600CD231A /* es */,
+				903923372525CB58F5D969EB /* en */,
+				391EB27CBC7FE5A91E4CA4F3 /* es */,
 			);
 			name = MainInterface.storyboard;
 			sourceTree = "<group>";
@@ -959,7 +993,7 @@
 				CODE_SIGN_ENTITLEMENTS = ./ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.0.0;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KGJCC745S9;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
@@ -971,7 +1005,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -987,7 +1021,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				INFOPLIST_FILE = EncameraTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1069,7 +1103,7 @@
 				CODE_SIGN_ENTITLEMENTS = ./ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2.0.0;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KGJCC745S9;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
@@ -1081,7 +1115,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.freas.encamera.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1097,7 +1131,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				INFOPLIST_FILE = EncameraTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1263,14 +1297,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		1928B0052AA77A1500AFC15A /* XCRemoteSwiftPackageReference "EncameraCore" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/akfreas/EncameraCore";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 		C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jedisct1/swift-sodium.git";
@@ -1286,11 +1312,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;
 			productName = Sodium;
-		};
-		1928B0062AA77A1500AFC15A /* EncameraCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 1928B0052AA77A1500AFC15A /* XCRemoteSwiftPackageReference "EncameraCore" */;
-			productName = EncameraCore;
 		};
 		389FE1CC4F9A52A1AC3AD6E2 /* EncameraCore */ = {
 			isa = XCSwiftPackageProductDependency;

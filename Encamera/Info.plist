@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Encamera</string>
+	<string>$(APP_DISPLAY_NAME)</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -77,7 +77,7 @@
 			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
 			<true/>
 			<key>NSUbiquitousContainerName</key>
-			<string>Encamera</string>
+			<string>$(ICLOUD_CONTAINER_NAME)</string>
 			<key>NSUbiquitousContainerSupportedFolderLevels</key>
 			<string>Any</string>
 		</dict>

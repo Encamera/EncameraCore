@@ -31,7 +31,7 @@ targets:
       INFOPLIST_FILE: ShareExtension/Info.plist
       INFOPLIST_KEY_CFBundleDisplayName: ShareExtension
       INFOPLIST_KEY_NSHumanReadableCopyright: ""
-      IPHONEOS_DEPLOYMENT_TARGET: 15.6
+      IPHONEOS_DEPLOYMENT_TARGET: 16.0
       MARKETING_VERSION: 1.0
       PRODUCT_BUNDLE_IDENTIFIER: me.freas.encamera.ShareExtension
       PRODUCT_NAME: "$(TARGET_NAME)"
@@ -48,11 +48,10 @@ targets:
       Debug: ./xcconfigs/debug.xcconfig
       Release: ./xcconfigs/release.xcconfig
     platform: iOS
-    deploymentTarget: "15.6"
+    deploymentTarget: "16.0"
     sources: [Encamera]
     settings:
       DEVELOPMENT_TEAM: KGJCC745S9
-      PRODUCT_BUNDLE_IDENTIFIER: me.freas.encamera
       CODE_SIGN_ENTITLEMENTS: ./Encamera/Encamera.entitlements
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ForegroundPrimaryColor
       SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
@@ -70,7 +69,7 @@ targets:
         - EncameraTests
   EncameraTests:
     platform: iOS
-    deploymentTarget: "15.6"
+    deploymentTarget: "16.0"
     sources: [EncameraTests]
     type: bundle.unit-test
     dependencies:

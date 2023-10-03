@@ -1,2 +1,3 @@
-
-
+ICLOUD_CONTAINER_NAME=EncameraDebug
+PRODUCT_BUNDLE_IDENTIFIER=me.freas.encamera-debug
+APP_DISPLAY_NAME=EncameraDebug
