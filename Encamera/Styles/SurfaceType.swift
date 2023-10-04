@@ -18,7 +18,7 @@ extension SurfaceType {
     var textColor: Color {
         switch self {
         case .background:
-            return Color.foregroundPrimary
+            return Color.primaryButtonForeground
         case .elevated:
             return Color.foregroundSecondary
         }
@@ -27,7 +27,7 @@ extension SurfaceType {
     var foregroundSecondary: Color {
         switch self {
         case .background:
-            return Color.foregroundSecondary
+            return Color.primaryButtonBackground
         case .elevated:
             return Color.foregroundPrimary
         }

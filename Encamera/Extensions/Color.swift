@@ -21,6 +21,8 @@ extension Color {
     static let activeKey = Color("ActiveKeyColor")
     static let foregroundPrimary = Color("ForegroundPrimaryColor")
     static let foregroundSecondary = Color("ForegroundSecondaryColor")
+    static let primaryButtonBackground = Color("PrimaryButtonBackgroundColor")
+    static let primaryButtonForeground = Color("PrimaryButtonForegroundColor")
     static let background = Color("BackgroundColor")
     static let videoRecordingIndicator = Color("VideoRecordingIndicatorColor")
     static let warningColor = Color("WarningColor")

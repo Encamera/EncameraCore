@@ -21,26 +21,25 @@ enum EncameraFont {
     case mediumSmall
     case small
     case extraSmall
-    
-    private var baseFontName: String {
-        "Satoshi-Regular"
+
+    enum Name: String {
+        case regular = "Satoshi-Regular"
+        case bold = "Satoshi-Bold"
     }
-    
-    
-    
+
     var font: Font {
         
         switch self {
         case .large:
-            return Font.custom(baseFontName, size: 35)
+            return Font.custom(Name.regular.rawValue, size: 35)
         case .medium:
-            return Font.custom(baseFontName, size: 30)
+            return Font.custom(Name.regular.rawValue, size: 30)
         case .mediumSmall:
-            return Font.custom(baseFontName, size: 24)
+            return Font.custom(Name.regular.rawValue, size: 24)
         case .small:
-            return Font.custom(baseFontName, size: 18)
+            return Font.custom(Name.regular.rawValue, size: 18)
         case .extraSmall:
-            return Font.custom(baseFontName, size: 16)
+            return Font.custom(Name.regular.rawValue, size: 16)
         }
     }
 }
