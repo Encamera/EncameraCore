@@ -39,7 +39,7 @@ enum EncameraFont {
         case .small:
             return Font.custom(Name.regular.rawValue, size: 18)
         case .extraSmall:
-            return Font.custom(Name.regular.rawValue, size: 16)
+            return Font.custom(Name.regular.rawValue, size: 14)
         }
     }
 }

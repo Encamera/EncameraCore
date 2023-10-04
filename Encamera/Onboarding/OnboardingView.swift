@@ -19,6 +19,15 @@ struct OnboardingViewViewModel {
 }
 
 
+private enum Constants {
+    static let lowOpacity = 0.4
+    static let backButtonTextKerning = 0.28
+    static let topElementTitleSpacing = 40.0
+    static let titleHeight = 48.0
+    static let titleContentSpacing = 20.0
+    static let subheadingMaxWidth = 255.0
+    static let imageSpacingTrailing = 4.0
+}
 
 
 struct OnboardingView<Next>: View where Next: View {
@@ -33,23 +42,40 @@ struct OnboardingView<Next>: View where Next: View {
         self.viewModel = viewModel
     }
     
-    
+
     var body: some View {
             VStack(alignment: .leading, spacing: 2) {
 
                 HStack {
+                    
+                    Image("Onboarding-Arrow-Back")
+                    Text("PROFILE SETUP")
+                        .fontType(.extraSmall, weight: .bold)
+                        .kerning(Constants.backButtonTextKerning)
+                        .opacity(Constants.lowOpacity)
                     Spacer()
                     if viewModel.progress.1 > 0 {
                         StepIndicator(numberOfItems: viewModel.progress.1, currentItem: viewModel.progress.0)
                     }
                 }
-                Text(viewModel.title)
-                    .fontType(.large, weight: .bold)
+                Spacer().frame(height: Constants.topElementTitleSpacing)
+                HStack(alignment: .top)  {
+                    Text(viewModel.title)
+                        .fontType(.mediumSmall, weight: .bold)
+                    Spacer()
+                    viewModel.image
+                        .opacity(Constants.lowOpacity)
+                    Spacer().frame(width: Constants.imageSpacingTrailing)
+                }.frame(height: Constants.titleHeight)
                 if let subheading = viewModel.subheading {
                     Text(subheading)
-                        .fontType(.small)
-                    Spacer().frame(height: 20)
+                            .fontType(.extraSmall)
+
+                            .frame(maxWidth: Constants.subheadingMaxWidth, alignment: .topLeading)
+
+                    Spacer().frame(height: Constants.titleContentSpacing)
                 }
+
                 self.viewModel.content?()
                     .fixedSize(horizontal: false, vertical: true).padding(0)
                     

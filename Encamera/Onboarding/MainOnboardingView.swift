@@ -313,7 +313,7 @@ private extension MainOnboardingView {
             return .init(
                 title: L10n.setPassword,
                 subheading: L10n.SetAPasswordToAccessTheApp.BeSureToStoreItInASafePlaceYouCannotRecoverItLater.🙅,
-                image: Image(systemName: "lock.iphone"),
+                image: Image("Onboarding-Password"),
                 bottomButtonTitle: L10n.setPassword,
                 bottomButtonAction: {
                     try viewModel.savePassword()
