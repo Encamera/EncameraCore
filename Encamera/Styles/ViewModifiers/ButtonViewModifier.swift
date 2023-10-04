@@ -18,7 +18,7 @@ struct EncameraButtonStyle: ButtonStyle {
         return configuration.label
             .fontType(.small, on: hostSurface, weight: .bold)
             .padding(12.0)
-            .frame(minHeight: 44)
+            .frame(maxWidth: .infinity, minHeight: 54)
             .background(hostSurface.foregroundSecondary)
             .cornerRadius(10)
     }
@@ -40,8 +40,9 @@ struct EncameraDestructiveButtonStyle: ButtonStyle {
 }
 
 extension View {
+    //TODO: Remove references to surface, we don't need it
     func primaryButton(on surface: SurfaceType = .background) -> some View {
-        buttonStyle(EncameraButtonStyle(hostSurface: surface))
+        buttonStyle(EncameraButtonStyle(hostSurface: .primaryButton))
     }
     
     func destructiveButton(on surface: SurfaceType = .background) -> some View {
@@ -61,6 +62,7 @@ struct EncameraButton_Previews: PreviewProvider {
                 Button("Unlock") {
                     
                 }.primaryButton(on: .background)
+
             }
             ZStack {
                 Color.foregroundSecondary.frame(width: 100, height: 100  )

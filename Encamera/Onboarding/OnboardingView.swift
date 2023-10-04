@@ -36,6 +36,15 @@ struct OnboardingView<Next>: View where Next: View {
     
     var body: some View {
             VStack(alignment: .leading, spacing: 2) {
+
+                HStack {
+                    Spacer()
+                    if viewModel.progress.1 > 0 {
+                        StepIndicator(numberOfItems: viewModel.progress.1, currentItem: viewModel.progress.0)
+                    }
+                }
+                Text(viewModel.title)
+                    .fontType(.large, weight: .bold)
                 if let subheading = viewModel.subheading {
                     Text(subheading)
                         .fontType(.small)
@@ -62,18 +71,25 @@ struct OnboardingView<Next>: View where Next: View {
                         }
                     }
                     .primaryButton()
-                    Spacer()
-                    if viewModel.progress.1 > 0 {
-                        ProgressViewCircular(progress: viewModel.progress.0, total: viewModel.progress.1)
-                    }
                 }
 
             }
             
             .padding(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 10))
-            .navigationTitle(viewModel.title)
             .navigationBarHidden(viewModel.title == "" ? true : false)
-            .background(Color.background)
+            .background {
+                ZStack {
+                    Color.background
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Image("Onboarding-Background")
+                        }
+                    }
+                }.ignoresSafeArea()
+            }
+
     }
 }
 //
@@ -85,25 +101,16 @@ struct OnboardingView_Previews: PreviewProvider {
             OnboardingView(viewModel: .init(
                 title: "",
                 subheading: "",
-                progress: (1, 3),
+                progress: (1, 5),
                 image: Image(systemName: "camera"),
                 bottomButtonTitle: "Next",
                 bottomButtonAction: {
                     
                 }) {
                     AnyView(VStack(alignment: .leading, spacing: 10) {
-                        Image("EncameraBanner")
-                            .frame(maxWidth: .infinity, alignment: .center)
-                        Text(L10n.encryptionExplanation)
+                        Text(L10n.onboardingIntroHeadingText1)
                             .fontType(.medium, weight: .bold)
-                        Text(L10n.encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy)
-                            .fontType(.small)
-                        Text(L10n.keyBasedEncryption)
-                            .fontType(.medium, weight: .bold)
-                        Text(L10n.introStorageExplanation)
-                        Text(L10n.forYourEyesOnly👀)
-                            .fontType(.medium, weight: .bold)
-                        Text(L10n.noTrackingExplanation)
+                        Text(L10n.onboardingIntroSubheadingText)
                             .fontType(.small)
                         Spacer()
                     })

@@ -248,26 +248,31 @@ private extension MainOnboardingView {
                 title: "",
                 subheading: "",
                 image: Image(systemName: "camera"),
-                bottomButtonTitle: L10n.next,
+                bottomButtonTitle: L10n.getStartedButtonText,
                 bottomButtonAction: {
                     
                 }) {
                     
-                    AnyView(VStack(alignment: .leading, spacing: 10) {
-                        Image("EncameraBanner")
-                            .frame(maxWidth: .infinity, alignment: .center)
+                    AnyView(VStack(alignment: .center, spacing: 0) {
+                        
+                        Rectangle()
+                          .foregroundColor(.clear)
+                          .frame(height: 406)
+                          .background(
+                            Image("Onboarding-Image-1")
+                              .resizable()
+                              .aspectRatio(contentMode: .fill)
+                              .clipped()
+                          )
+                          .cornerRadius(24)
+                        Spacer().frame(height: 32)
                         Group {
-                            Text(L10n.encryptionExplanation)
+                            Text(L10n.onboardingIntroHeadingText1)
                                 .fontType(.medium, weight: .bold)
-                            Text(L10n.encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy)
+                            Spacer().frame(height: 16)
+                            Text(L10n.onboardingIntroSubheadingText)
                                 .fontType(.small)
-                            Text(L10n.keyBasedEncryption)
-                                .fontType(.medium, weight: .bold)
-                            Text(L10n.introStorageExplanation)
-                            Text(L10n.forYourEyesOnly👀)
-                                .fontType(.medium, weight: .bold)
-                            Text(LocalizedStringKey(L10n.noTrackingExplanation))
-                                .fontType(.small)
+                                .multilineTextAlignment(.center)
                         }.lineLimit(nil)
                            
 

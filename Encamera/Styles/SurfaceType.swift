@@ -11,6 +11,7 @@ import SwiftUI
 enum SurfaceType {
     case background
     case elevated
+    case primaryButton
 }
 
 extension SurfaceType {
@@ -18,15 +19,20 @@ extension SurfaceType {
     var textColor: Color {
         switch self {
         case .background:
-            return Color.primaryButtonForeground
+            return Color.foregroundPrimary
         case .elevated:
             return Color.foregroundSecondary
+        case .primaryButton:
+            return Color.primaryButtonForeground
+
         }
     }
     
     var foregroundSecondary: Color {
         switch self {
         case .background:
+            return Color.background
+        case .primaryButton:
             return Color.primaryButtonBackground
         case .elevated:
             return Color.foregroundPrimary

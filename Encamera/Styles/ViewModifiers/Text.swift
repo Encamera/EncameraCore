@@ -54,10 +54,7 @@ extension Text {
             .padding(10)
                         .background(Color.red)
             .cornerRadius(10)
-            
     }
-    
-    
 }
 
 extension View {
