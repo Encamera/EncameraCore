@@ -10,10 +10,18 @@ import SwiftUI
 
 private struct EncameraInputTextField: ViewModifier {
     func body(content: Content) -> some View {
+
         content
-            .padding()
-            .background(Color.foregroundSecondary)
-            .cornerRadius(10.0)
+            .foregroundColor(.clear)
+            .frame(height: 48)
+            .background(Color.inputFieldBackgroundColor)
+            .cornerRadius(4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                .inset(by: 0.5)
+                .stroke(.white.opacity(0.1), lineWidth: 1)
+            )
+
     }
 }
 
