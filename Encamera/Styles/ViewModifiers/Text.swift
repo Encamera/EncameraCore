@@ -23,7 +23,7 @@ enum EncameraFont {
     case extraSmall
     
     private var baseFontName: String {
-        "Lato-Regular"
+        "Satoshi-Regular"
     }
     
     

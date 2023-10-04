@@ -1,3 +1,4 @@
 ICLOUD_CONTAINER_NAME=Encamera
 PRODUCT_BUNDLE_IDENTIFIER=me.freas.encamera
 APP_DISPLAY_NAME=Encamera
+CODE_SIGN_ENTITLEMENTS=./Encamera/Encamera.entitlements
