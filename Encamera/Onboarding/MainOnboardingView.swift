@@ -211,7 +211,7 @@ struct MainOnboardingView: View {
 private extension MainOnboardingView {
     
     func viewFor<Next: View>(flow: OnboardingFlowScreen, next: @escaping () -> Next) -> AnyView {
-        let index = (viewModel.onboardingFlow.firstIndex(of: flow) ?? 0) + 1
+        let index = (viewModel.onboardingFlow.firstIndex(of: flow) ?? 0)
         
         var model = viewModel(for: flow)
         model.progress = (index, viewModel.onboardingFlow.count)
@@ -241,7 +241,7 @@ private extension MainOnboardingView {
             return .init(
                 title: "",
                 subheading: "",
-                image: Image(systemName: "camera"),
+                image: nil,
                 bottomButtonTitle: L10n.getStartedButtonText,
                 bottomButtonAction: {
                     
@@ -416,7 +416,6 @@ private extension MainOnboardingView {
                          bottomButtonTitle: "Add Permissions", bottomButtonAction: {
                 try await self.cameraPermissions.requestCameraPermission()
                 try await self.cameraPermissions.requestMicrophonePermission()
-                sleep(2)
             }, content: { _ in
                 AnyView(VStack {
 
@@ -440,13 +439,14 @@ private extension MainOnboardingView {
                             }
                         )
                     )
-                })})
+                }.padding(10)
+                )})
 
         case .finished:
             return .init(
                 title: L10n.doneOnboarding,
                 subheading: "",
-                image: Image(systemName: "faceid"),
+                image: nil,
                 bottomButtonTitle: L10n.done,
                 bottomButtonAction: {
                     try await viewModel.saveState()
@@ -457,9 +457,6 @@ private extension MainOnboardingView {
                             Text(L10n.storageExplanationHeader)
                                 .fontType(.medium)
                             Text(L10n.storageExplanation)
-                            Text(L10n.backUpKeysHeader)
-                                .fontType(.medium)
-                            Text(L10n.backUpKeysExplanation)
                         })
                 }
         }

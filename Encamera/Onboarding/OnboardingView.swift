@@ -12,7 +12,7 @@ struct OnboardingViewViewModel {
     var title: String
     var subheading: String?
     var progress: (Int, Int) = (0, 0)
-    var image: Image
+    var image: Image?
     var bottomButtonTitle: String
     var bottomButtonAction: (() async throws -> Void)?
     var content: ((@escaping () -> Void) -> AnyView)?
@@ -62,11 +62,16 @@ struct OnboardingView<Next>: View where Next: View {
                     Text(viewModel.title)
                         .fontType(.mediumSmall, weight: .bold)
                     Spacer()
-                    viewModel.image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .opacity(Constants.lowOpacity)
-                        .frame(width: 48, height: 48)
+                    Group {
+                        if let image = viewModel.image {
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .opacity(Constants.lowOpacity)
+                        } else {
+                            Color.clear
+                        }
+                    }.frame(width: 48, height: 48)
                     Spacer().frame(width: Constants.imageSpacingTrailing)
                 }.frame(height: Constants.titleHeight)
                 if let subheading = viewModel.subheading {

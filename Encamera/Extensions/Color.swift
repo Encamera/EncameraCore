@@ -29,4 +29,11 @@ extension Color {
     static let upgradePillColor = Color("UpgradePillColor")
     static let inputFieldBackgroundColor = Color("InputFieldBackgroundColor")
     static let secondaryElementColor = Color("SecondaryElementColor")
+    static let stepIndicatorActive = Color("StepIndicatorActiveColor")
+    static let stepIndicatorInactive = Color("StepIndicatorInactiveColor")
 }
+/*    static let opacity: Double = 0.20
+ static let red: Double = 0.21
+ static let green: Double = 0.21
+ static let blue: Double = 0.21
+*/
