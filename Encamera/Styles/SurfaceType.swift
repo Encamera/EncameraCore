@@ -12,6 +12,8 @@ enum SurfaceType {
     case background
     case elevated
     case primaryButton
+    case textButton
+    case selectedStorageButton
 }
 
 extension SurfaceType {
@@ -19,23 +21,30 @@ extension SurfaceType {
     var textColor: Color {
         switch self {
         case .background:
-            return Color.foregroundPrimary
+            return .foregroundPrimary
         case .elevated:
-            return Color.foregroundSecondary
+            return .foregroundSecondary
         case .primaryButton:
-            return Color.primaryButtonForeground
-
+            return .primaryButtonForeground
+        case .textButton:
+            return .actionYellowGreen
+        case .selectedStorageButton:
+            return .black
         }
     }
     
     var foregroundSecondary: Color {
         switch self {
         case .background:
-            return Color.background
+            return .background
         case .primaryButton:
-            return Color.primaryButtonBackground
+            return .actionYellowGreen
         case .elevated:
-            return Color.foregroundPrimary
+            return .foregroundPrimary
+        case .textButton:
+            return .clear
+        case .selectedStorageButton:
+            return .white
         }
     }
 }

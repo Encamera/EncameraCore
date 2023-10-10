@@ -21,11 +21,12 @@ extension Color {
     static let activeKey = Color("ActiveKeyColor")
     static let foregroundPrimary = Color("ForegroundPrimaryColor")
     static let foregroundSecondary = Color("ForegroundSecondaryColor")
-    static let primaryButtonBackground = Color("PrimaryButtonBackgroundColor")
+    static let actionYellowGreen = Color("ActionYellowGreen")
     static let primaryButtonForeground = Color("PrimaryButtonForegroundColor")
     static let background = Color("BackgroundColor")
     static let videoRecordingIndicator = Color("VideoRecordingIndicatorColor")
     static let warningColor = Color("WarningColor")
     static let upgradePillColor = Color("UpgradePillColor")
     static let inputFieldBackgroundColor = Color("InputFieldBackgroundColor")
+    static let secondaryElementColor = Color("SecondaryElementColor")
 }

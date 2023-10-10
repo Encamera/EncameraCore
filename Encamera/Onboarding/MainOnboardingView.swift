@@ -41,16 +41,7 @@ class OnboardingViewModel: ObservableObject {
     @Published var storageAvailabilities: [StorageAvailabilityModel] = []
     @Published var existingPasswordCorrect: Bool?
     @MainActor
-    @Published var useBiometrics: Bool = false {
-        didSet {
-            guard useBiometrics == true else {
-                return
-            }
-            Task {
-                await authWithBiometrics()
-            }
-        }
-    }
+    @Published var useBiometrics: Bool = false
     @Published var saveToiCloud = false
     
     var availableBiometric: AuthenticationMethod? {
@@ -93,9 +84,10 @@ class OnboardingViewModel: ObservableObject {
     }
     
     @MainActor
-    func authWithBiometrics() async {
+    func authWithBiometrics() async throws {
         do {
             try await authManager.evaluateWithBiometrics()
+            useBiometrics = true
         } catch let authError as AuthManagerError {
             switch authError {
                 
@@ -106,11 +98,13 @@ class OnboardingViewModel: ObservableObject {
                 generalError = authError
                 
             case .biometricsNotAvailable, .userCancelledBiometrics:
-                
+
                 useBiometrics = false
             }
+            throw authError
         } catch {
             generalError = error
+            throw error
         }
     }
     
@@ -131,7 +125,7 @@ class OnboardingViewModel: ObservableObject {
             try handle(error: OnboardingViewError.missingStorageType)
         }
     }
-    
+
     @MainActor
     func handle(error: Error) throws {
         switch error {
@@ -251,7 +245,7 @@ private extension MainOnboardingView {
                 bottomButtonTitle: L10n.getStartedButtonText,
                 bottomButtonAction: {
                     
-                }) {
+                }) {_ in 
                     
                     AnyView(VStack(alignment: .center, spacing: 0) {
                         
@@ -285,7 +279,7 @@ private extension MainOnboardingView {
                 title: L10n.enterPassword,
                 subheading: L10n.youHaveAnExistingPasswordForThisDevice, image: Image(systemName: "key.fill"), bottomButtonTitle: L10n.next, bottomButtonAction: {
                     viewModel.checkExistingPasswordAndAuth()
-                }) {
+                }) {_ in 
                     AnyView(
                         VStack(alignment: .leading) {
                             PasswordEntry(viewModel: .init(keyManager: viewModel.keyManager, passwordBinding: $viewModel.existingPassword, stateUpdate: { state in
@@ -317,7 +311,7 @@ private extension MainOnboardingView {
                 bottomButtonTitle: L10n.setPassword,
                 bottomButtonAction: {
                     try viewModel.savePassword()
-                }) {
+                }) {_ in 
                     AnyView(
                         VStack(alignment: .leading) {
                             VStack {
@@ -357,14 +351,20 @@ private extension MainOnboardingView {
                 return viewModel(for: .finished)
             }
             return .init(
-                title: L10n.use(method.nameForMethod),
+                title: L10n.enable(method.nameForMethod),
                 subheading: L10n.enableToQuicklyAndSecurelyGainAccessToTheApp(method.nameForMethod),
                 image: Image(systemName: method.imageNameForMethod),
-                bottomButtonTitle: L10n.next, content:  {
-                    AnyView(Group {HStack {
-                        Toggle(L10n.enable(method.nameForMethod), isOn: $viewModel.useBiometrics)
-                            .fontType(.small)
-                    }})
+                bottomButtonTitle: L10n.enable(method.nameForMethod), 
+                bottomButtonAction: {
+                    try await viewModel.authWithBiometrics()
+                }, content:  { goToNext in
+                    AnyView(
+                        Text(L10n.skipForNow)
+                            .fontType(.extraSmall, on: .textButton, weight: .bold)
+                            .onTapGesture {
+                                goToNext()
+                            }
+                    )
                 })
         case .setupPrivateKey:
             return .init(
@@ -375,7 +375,7 @@ private extension MainOnboardingView {
                 bottomButtonTitle: L10n.next,
                 bottomButtonAction: {
                     try viewModel.validateKeyName()
-                }) {
+                }) {_ in 
                     AnyView(
                         VStack {
                             EncameraTextField(L10n.keyName, text: $viewModel.keyName)
@@ -393,10 +393,10 @@ private extension MainOnboardingView {
             
             return .init(title: L10n.selectStorage,
                          subheading: L10n.storageLocationOnboarding,
-                         image: Image(systemName: ""),
+                         image: Image("Onboarding-Storage"),
                          bottomButtonTitle: L10n.next) {
                 try viewModel.validateStorageSelection()
-            } content: {
+            } content: {_ in 
                 AnyView(
                     VStack {
                         StorageSettingView(viewModel: .init(), keyStorageType: $viewModel.keyStorageType)
@@ -404,15 +404,8 @@ private extension MainOnboardingView {
                             Text(L10n.pleaseSelectAStorageLocation)
                                 .alertText()
                         }
-                        Group {
-                            Toggle(L10n.saveKeyToICloud, isOn: $viewModel.saveToiCloud)
-                            Text(L10n.ifYouDonTUseICloudBackupItSHighlyRecommendedThatYouBackupYourKeysToAPasswordManagerOrSomewhereElseSafe)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .lineLimit(nil)
-                        }
-                        .fontType(.small)
-                        
-                    }
+
+                    }.padding(10)
                 )
                 
             }
@@ -426,7 +419,7 @@ private extension MainOnboardingView {
                 bottomButtonAction: {
                     try await viewModel.saveState()
                     throw OnboardingViewError.onboardingEnded
-                }) {
+                }) {_ in 
                     AnyView(
                         VStack(alignment: .leading, spacing: 15.0) {
                             Text(L10n.storageExplanationHeader)

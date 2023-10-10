@@ -129,7 +129,7 @@ struct KeyGeneration: View {
                 bottomButtonTitle: L10n.next,
                 bottomButtonAction: {
                     try viewModel.validateKeyName()
-                }) {
+                }) {_ in 
                     AnyView(
                         VStack {
                             EncameraTextField(L10n.keyName, text: $viewModel.keyName)
@@ -151,7 +151,7 @@ struct KeyGeneration: View {
                          bottomButtonTitle: L10n.saveKey) {
                 try saveKey()
                 throw OnboardingViewError.onboardingEnded
-            } content: {
+            } content: {_ in 
                 AnyView(
                     VStack {
                         let binding = Binding<StorageType?> {

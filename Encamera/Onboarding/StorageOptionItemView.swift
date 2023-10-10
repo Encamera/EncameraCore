@@ -8,62 +8,81 @@
 import SwiftUI
 import EncameraCore
 
+private enum Constants {
+    static let checkmarkSize = 24.0
+    static let checkmarkBorder = 5.0
+    static let cornerRadius = 8.0
+    static let lineWidth = 1.0
+    static let spacing = 4.0
+    static let padding = 20.0
+    static let opacity = 0.3
+    static let offsetMultiplier = 0.5
+}
+
 struct StorageTypeOptionItemView: View {
-    
+
     let storageType: StorageType
     let availability: StorageType.Availability
     @Binding var isSelected: Bool
-    
-    
+
+
+    @ViewBuilder private var background: some View {
+        let rect = RoundedRectangle(cornerRadius: Constants.cornerRadius, style: .continuous)
+        let rectangle = rect
+            .stroke(Color.secondaryElementColor, lineWidth: Constants.lineWidth)
+        if isSelected {
+            rectangle.background(rect.fill(Color.white))
+        } else {
+            rectangle
+        }
+    }
+
     var body: some View {
-        let background = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        
         let iconWithName = HStack {
             ZStack(alignment: .topTrailing) {
+                HStack {
+                    VStack(alignment: .leading, spacing: Constants.spacing) {
+                        Text(storageType.title)
+                            .fontType(.pt16, on: isSelected ? .selectedStorageButton : .background, weight: .bold)
+                        if case .unavailable(let unavailableReason) = availability {
+                            Text(unavailableReason)
+                                .alertText()
+                        } else {
+                            Text(storageType.description)
+                                .fontType(.extraSmall, on: isSelected ? .selectedStorageButton : .background)
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(Constants.padding)
+                .frame(maxWidth: .infinity)
+                .background(background)
+
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .resizable()
-                        .foregroundColor(Color.activeKey)
-                        
-                        .frame(width: 20, height: 20)
-                        .offset(x: -7, y: 7)
+                        .foregroundColor(Color.actionYellowGreen)
+                        .background(Circle().foregroundColor(.black).frame(width: Constants.checkmarkSize + Constants.checkmarkBorder, height: Constants.checkmarkSize + Constants.checkmarkBorder))
+                        .frame(width: Constants.checkmarkSize, height: Constants.checkmarkSize)
+                        .offset(x: Constants.checkmarkSize * Constants.offsetMultiplier, y: -Constants.checkmarkSize * Constants.offsetMultiplier)
                 }
-                VStack {
-                    Image(systemName: storageType.iconName).resizable()
-                        .aspectRatio(contentMode: .fit)
-                    Text(storageType.title)
-                        
-                }.padding().frame(width: 100, height: 100)
-                    .overlay(background.stroke(Color.foregroundSecondary, lineWidth: 3))
-                
             }
         }
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading) {
             HStack {
                 if case .unavailable(_) = availability {
-                    iconWithName.opacity(0.3)
+                    iconWithName.opacity(Constants.opacity)
                 } else {
                     iconWithName
                 }
-                Spacer().frame(width: 10)
-                VStack(spacing: 10) {
-                    if case .unavailable(let unavailableReason) = availability {
-                        Text(unavailableReason)
-                            .alertText()
-                    } else {
-                        Text(storageType.description)
-                    }
-                }
-                Spacer()
-                
-            }.fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .fontType(.small)
         .onTapGesture {
             isSelected = true
         }
     }
 }
+
 
 struct StorageOptionItemView_Previews: PreviewProvider {
     static var selectedValue: StorageType = .local

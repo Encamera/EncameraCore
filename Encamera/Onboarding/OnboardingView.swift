@@ -15,7 +15,7 @@ struct OnboardingViewViewModel {
     var image: Image
     var bottomButtonTitle: String
     var bottomButtonAction: (() async throws -> Void)?
-    var content: (() -> AnyView)?
+    var content: ((@escaping () -> Void) -> AnyView)?
 }
 
 
@@ -56,8 +56,6 @@ struct OnboardingView<Next>: View where Next: View {
                     if viewModel.progress.1 > 0 {
                         StepIndicator(numberOfItems: viewModel.progress.1, currentItem: viewModel.progress.0)
                     }
-                }.onTapGesture {
-                    
                 }
                 Spacer().frame(height: Constants.topElementTitleSpacing)
                 HStack(alignment: .top)  {
@@ -65,7 +63,9 @@ struct OnboardingView<Next>: View where Next: View {
                         .fontType(.mediumSmall, weight: .bold)
                     Spacer()
                     viewModel.image
+                        .resizable()
                         .opacity(Constants.lowOpacity)
+                        .frame(width: 48, height: 48)
                     Spacer().frame(width: Constants.imageSpacingTrailing)
                 }.frame(height: Constants.titleHeight)
                 if let subheading = viewModel.subheading {
@@ -77,7 +77,9 @@ struct OnboardingView<Next>: View where Next: View {
                     Spacer().frame(height: Constants.titleContentSpacing)
                 }
 
-                self.viewModel.content?()
+                self.viewModel.content?({
+                    nextActive = true
+                })
                     .fixedSize(horizontal: false, vertical: true).padding(0)
                     
                 Spacer()
@@ -133,7 +135,7 @@ struct OnboardingView_Previews: PreviewProvider {
                 bottomButtonTitle: "Next",
                 bottomButtonAction: {
                     
-                }) {
+                }) {_ in 
                     AnyView(VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.onboardingIntroHeadingText1)
                             .fontType(.medium, weight: .bold)

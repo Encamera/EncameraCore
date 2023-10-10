@@ -20,6 +20,7 @@ enum EncameraFont {
     case medium
     case mediumSmall
     case small
+    case pt16
     case extraSmall
 
     enum Name: String {
@@ -28,18 +29,20 @@ enum EncameraFont {
     }
 
     var font: Font {
-        
+
         switch self {
         case .large:
-            return Font.custom(Name.regular.rawValue, size: 35)
+            return .custom(Name.regular.rawValue, size: 35)
         case .medium:
-            return Font.custom(Name.regular.rawValue, size: 30)
+            return .custom(Name.regular.rawValue, size: 30)
         case .mediumSmall:
-            return Font.custom(Name.regular.rawValue, size: 24)
+            return .custom(Name.regular.rawValue, size: 24)
+        case .pt16:
+            return .custom(Name.regular.rawValue, size: 16)
         case .small:
-            return Font.custom(Name.regular.rawValue, size: 18)
+            return .custom(Name.regular.rawValue, size: 18)
         case .extraSmall:
-            return Font.custom(Name.regular.rawValue, size: 14)
+            return .custom(Name.regular.rawValue, size: 14)
         }
     }
 }
