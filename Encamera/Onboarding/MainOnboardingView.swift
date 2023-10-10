@@ -188,7 +188,7 @@ struct MainOnboardingView: View {
     @FocusState var password2Focused
     @State var currentSelection = OnboardingFlowScreen.intro
     @StateObject var viewModel: OnboardingViewModel
-    
+    @ObservedObject var cameraPermissions = CameraPermissionsService.shared
     var body: some View {
         NavigationView {
             buildOnboarding()
@@ -409,7 +409,39 @@ private extension MainOnboardingView {
                 )
                 
             }
-            
+        case .permissions:
+            return .init(title: L10n.onboardingPermissionsTitle,
+                         subheading: L10n.onboardingPermissionsSubheading,
+                         image: Image("Onboarding-Permissions"),
+                         bottomButtonTitle: "Add Permissions", bottomButtonAction: {
+                try await self.cameraPermissions.requestCameraPermission()
+                try await self.cameraPermissions.requestMicrophonePermission()
+                sleep(2)
+            }, content: { _ in
+                AnyView(VStack {
+
+                    OptionItemView(
+                        title: L10n.onboardingPermissionsCameraAccess,
+                        description: L10n.onboardingPermissionsCameraAccessSubheading,
+                        isAvailable: true,
+                        isSelected: Binding<Bool>(
+                            get: { self.cameraPermissions.isCameraAccessAuthorized },
+                            set: { newValue in
+                            }
+                        )
+                    )
+                    OptionItemView(
+                        title: L10n.onboardingPermissionsMicrophoneAccess,
+                        description: L10n.onboardingPermissionsMicrophoneAccessSubheading,
+                        isAvailable: true,
+                        isSelected: Binding<Bool>(
+                            get: { self.cameraPermissions.isMicrophoneAccessAuthorized },
+                            set: { newValue in
+                            }
+                        )
+                    )
+                })})
+
         case .finished:
             return .init(
                 title: L10n.doneOnboarding,

@@ -64,6 +64,7 @@ struct OnboardingView<Next>: View where Next: View {
                     Spacer()
                     viewModel.image
                         .resizable()
+                        .aspectRatio(contentMode: .fit)
                         .opacity(Constants.lowOpacity)
                         .frame(width: 48, height: 48)
                     Spacer().frame(width: Constants.imageSpacingTrailing)
