@@ -312,7 +312,7 @@ private extension MainOnboardingView {
         case .setPassword:
             return .init(
                 title: L10n.setPassword,
-                subheading: L10n.SetAPasswordToAccessTheApp.BeSureToStoreItInASafePlaceYouCannotRecoverItLater.🙅,
+                subheading: L10n.setAPasswordWarning,
                 image: Image("Onboarding-Password"),
                 bottomButtonTitle: L10n.setPassword,
                 bottomButtonAction: {

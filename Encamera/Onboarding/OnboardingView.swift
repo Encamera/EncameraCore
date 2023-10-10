@@ -47,7 +47,6 @@ struct OnboardingView<Next>: View where Next: View {
             VStack(alignment: .leading, spacing: 2) {
 
                 HStack {
-                    
                     Image("Onboarding-Arrow-Back")
                     Text("PROFILE SETUP")
                         .fontType(.extraSmall, weight: .bold)
@@ -57,6 +56,8 @@ struct OnboardingView<Next>: View where Next: View {
                     if viewModel.progress.1 > 0 {
                         StepIndicator(numberOfItems: viewModel.progress.1, currentItem: viewModel.progress.0)
                     }
+                }.onTapGesture {
+                    
                 }
                 Spacer().frame(height: Constants.topElementTitleSpacing)
                 HStack(alignment: .top)  {
@@ -102,7 +103,7 @@ struct OnboardingView<Next>: View where Next: View {
             }
             
             .padding(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 10))
-            .navigationBarHidden(viewModel.title == "" ? true : false)
+            .navigationBarHidden(true)
             .background {
                 ZStack {
                     Color.background

@@ -12,7 +12,7 @@ private struct EncameraInputTextField: ViewModifier {
     func body(content: Content) -> some View {
 
         content
-            .foregroundColor(.clear)
+            .foregroundColor(.white)
             .frame(height: 48)
             .background(Color.inputFieldBackgroundColor)
             .cornerRadius(4)
@@ -50,18 +50,20 @@ struct EncameraTextField: View {
     
     var body: some View {
         ZStack(alignment: .leading) {
-            
-            field
-                .focused($isFieldFocused)
-                .modifier(EncameraInputTextField())
-            if text.isEmpty {
-                Text(placeholder)
-                    .fontType(.small)
-                                        .onTapGesture {
-                        isFieldFocused = true
-                    }
-                    .padding()
-            }
+                field
+                    .focused($isFieldFocused)
+                    .padding(.leading)
+                    .modifier(EncameraInputTextField())
+
+
+                if text.isEmpty {
+                    Text(placeholder)
+                        .fontType(.small)
+                        .padding(.leading)
+                        .onTapGesture {
+                            isFieldFocused = true
+                        }
+                }
         }
     }
     
@@ -75,6 +77,24 @@ struct EncameraTextField: View {
         case .secure:
             SecureField("", text: $text)
                 .textContentType(contentType)
+        }
+    }
+}
+
+struct EncameraTextField_Previews: PreviewProvider {
+    @State static private var text = ""
+    @FocusState static private var isFieldFocused: Bool
+
+    static var previews: some View {
+        Group {
+            EncameraTextField("Placeholder", text: $text)
+                .previewLayout(.sizeThatFits)
+                .padding()
+                .previewDisplayName("Normal Field")
+            EncameraTextField("Placeholder", type: .secure, text: $text)
+                .previewLayout(.sizeThatFits)
+                .padding()
+                .previewDisplayName("Secure Field")
         }
     }
 }
