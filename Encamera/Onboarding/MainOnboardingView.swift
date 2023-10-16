@@ -247,30 +247,9 @@ private extension MainOnboardingView {
                     
                 }) {_ in 
                     
-                    AnyView(VStack(alignment: .center, spacing: 0) {
-                        
-                        Rectangle()
-                          .foregroundColor(.clear)
-                          .frame(height: 406)
-                          .background(
-                            Image("Onboarding-Image-1")
-                              .resizable()
-                              .aspectRatio(contentMode: .fill)
-                              .clipped()
-                          )
-                          .cornerRadius(24)
-                        Spacer().frame(height: 32)
-                        Group {
-                            Text(L10n.onboardingIntroHeadingText1)
-                                .fontType(.medium, weight: .bold)
-                            Spacer().frame(height: 16)
-                            Text(L10n.onboardingIntroSubheadingText)
-                                .fontType(.small)
-                                .multilineTextAlignment(.center)
-                        }.lineLimit(nil)
-                           
-
-                    })
+                    AnyView(
+                        ImageCarousel()
+                    )
                     
                 }
             

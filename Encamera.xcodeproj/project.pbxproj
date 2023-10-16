@@ -22,6 +22,8 @@
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		183FE195C4237C4BA34B979E /* KeySelectionGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BA0FED66DCF9A54E46648C /* KeySelectionGridItem.swift */; };
+		193E0B922AD5F62600937E7B /* ImageStepIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193E0B912AD5F62600937E7B /* ImageStepIndicator.swift */; };
+		1948295D2ADD533F0082F7BC /* ImageCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1948295C2ADD533F0082F7BC /* ImageCarousel.swift */; };
 		1952ABF22ACD690400009D70 /* StepIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1952ABF12ACD690400009D70 /* StepIndicator.swift */; };
 		19AB1EFC2AD555F3006E32F7 /* OptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19AB1EFB2AD555F3006E32F7 /* OptionItemView.swift */; };
 		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
@@ -164,6 +166,8 @@
 		1502C040838F3770BEF5B8E0 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
+		193E0B912AD5F62600937E7B /* ImageStepIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStepIndicator.swift; sourceTree = "<group>"; };
+		1948295C2ADD533F0082F7BC /* ImageCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCarousel.swift; sourceTree = "<group>"; };
 		1952ABF12ACD690400009D70 /* StepIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepIndicator.swift; sourceTree = "<group>"; };
 		19AB1EFB2AD555F3006E32F7 /* OptionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionItemView.swift; sourceTree = "<group>"; };
 		1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Black.otf"; sourceTree = "<group>"; };
@@ -456,7 +460,9 @@
 				9180088B6F3C787C103F69C5 /* StorageOptionItemView.swift */,
 				CDF2E435357C74D9D5B3132B /* StorageSettingView.swift */,
 				1952ABF12ACD690400009D70 /* StepIndicator.swift */,
+				193E0B912AD5F62600937E7B /* ImageStepIndicator.swift */,
 				19AB1EFB2AD555F3006E32F7 /* OptionItemView.swift */,
+				1948295C2ADD533F0082F7BC /* ImageCarousel.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -824,6 +830,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				70661EDDF1C6AB200CCB26DD /* AVPlayerViewControllerRepresentable.swift in Sources */,
+				193E0B922AD5F62600937E7B /* ImageStepIndicator.swift in Sources */,
 				A8CF1328AD8BE2D1DC0599E9 /* AddExchangedKeyConfirmation.swift in Sources */,
 				70AC154CF1FE49A51C0C72A1 /* AsyncEncryptedImage.swift in Sources */,
 				40C7605DB284B18C4C8ED36C /* AuthenticationView.swift in Sources */,
@@ -837,6 +844,7 @@
 				05BE9E64DF81E360A090F9E5 /* Color.swift in Sources */,
 				8DA5313062B4B0A3BAA23C4A /* DecryptErrorExplanation.swift in Sources */,
 				1952ABF22ACD690400009D70 /* StepIndicator.swift in Sources */,
+				1948295D2ADD533F0082F7BC /* ImageCarousel.swift in Sources */,
 				F860061EE853A5C21899C1E4 /* EncameraApp.swift in Sources */,
 				D9593E17F428493E19AC0277 /* EncameraState.swift in Sources */,
 				D6A68AA78C8F5FD15DA3360C /* EncameraTextField.swift in Sources */,
