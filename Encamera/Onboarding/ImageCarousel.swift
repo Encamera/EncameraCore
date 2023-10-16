@@ -21,17 +21,18 @@ private class ImageCarouselItem: Identifiable {
     }
 }
 
-@available(iOS 17.0, *)
+//@available(iOS 17.0, *)
 struct ImageCarousel: View {
 
     @State var currentScrolledToImage = 0
+    @State private var autoScrolling = true
 
     private var carouselItems = [
 
         ImageCarouselItem(imageID: "Onboarding-Image-1", heading: L10n.onboardingIntroHeadingText1, subheading: L10n.onboardingIntroSubheadingText),
         ImageCarouselItem(imageID: "Onboarding-Image-2", heading: L10n.keyBasedEncryption, subheading: L10n.encryptionExplanation),
         ImageCarouselItem(imageID: "Onboarding-Image-3", heading: L10n.noTrackingOnboardingExplanation, subheading: L10n.noTrackingExplanation),
-        ]
+    ]
 
     var body: some View {
         GeometryReader { geo in
@@ -40,8 +41,9 @@ struct ImageCarousel: View {
                 let frame = geo.frame(in: .local)
                 VStack {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing:0 ) {
-                            ForEach(carouselItems) { image in
+                        HStack(spacing: 0) {
+                            ForEach(carouselItems.indices, id: \.self) { index in
+                                let image = carouselItems[index]
                                 VStack {
                                     Color.clear
                                         .background {
@@ -62,11 +64,33 @@ struct ImageCarousel: View {
 
                                 }
                                 .frame(width: frame.width)
+                                .tag(index)  // Add this line to tag the view with the index
                             }
                         }
                     }
-                    .scrollTargetBehavior(.paging)
+                    .allowsHitTesting(false)  // Add this line to disable user interaction on the ScrollView
+                    .onTapGesture {
+                        currentScrolledToImage = 0
+                        value.scrollTo(currentScrolledToImage, anchor: .leading)
+                    }
+
+                    .onChange(of: currentScrolledToImage) { newValue in
+                        if newValue < carouselItems.count - 1 {
+                            autoScrolling = true
+                        } else {
+                            autoScrolling = false
+                        }
+                    }
+                    .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
+                        if autoScrolling {
+                            withAnimation {
+                                currentScrolledToImage += 1
+                                value.scrollTo(currentScrolledToImage, anchor: .leading)
+                            }
+                        }
+                    }
                 }
+
                 Spacer().frame(height: 32)
                 ImageStepIndicator(activeIndex: $currentScrolledToImage, numberOfItems: carouselItems.count)
             }
