@@ -33,13 +33,14 @@ struct TopCameraControlsView: View {
     var flashButtonPressed: () -> ()
     let cornerRadius = 30.0
     var body: some View {
-        HStack(spacing: 91) {
+        HStack(spacing: 0) {
             Button {
                 closeButtonTapped()
             } label: {
                 Image("Camera-Close")
                     .frame(width: 28, height: 28)
             }
+            Spacer()
             HStack(spacing: 4) {
                 Text("My Album")
                     .fontType(.pt10, on: .background)
@@ -48,13 +49,14 @@ struct TopCameraControlsView: View {
                     .frame(width: 14, height: 14)
             }
             .padding(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-            .frame(maxHeight: .infinity)
             .background(Color(red: 1, green: 1, blue: 1).opacity(0.10))
             .cornerRadius(800)
+            .frame(width: 100)
+            Spacer()
             flashButton
                 .frame(width: 28, height: 28)
         }
-        .padding(EdgeInsets(top: 52, leading: 16, bottom: 16, trailing: 16))
+        .padding(EdgeInsets(top: 50, leading: 16, bottom: 16, trailing: 16))
         .background(.ultraThinMaterial)
         .frame(height: 102)
 
@@ -92,7 +94,8 @@ struct TopCameraControlsView_Previews: PreviewProvider {
     static var previews: some View {
         ZStack {
             Image("maria-cappelli")
-
+                .resizable()
+//                .frame(width: 500, height: 1000)
             TopCameraControlsView(
                 viewModel: TopCameraControlsViewViewModel(),
                 isRecordingVideo: .constant(false),
@@ -101,7 +104,8 @@ struct TopCameraControlsView_Previews: PreviewProvider {
                 flashMode: .constant(.on),
                 closeButtonTapped: {},
                 flashButtonPressed: {}
-            ).ignoresSafeArea()
+            )
+            
         }
     }
 }
