@@ -49,7 +49,8 @@ struct TutorialCardView: View {
                     Spacer().frame(height: 15)
                     Text(tutorialText)
                         .fontType(.pt14)
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                        .lineLimit(nil)
+                }.frame(alignment: .leading)
                 Spacer()
                 Button {
 

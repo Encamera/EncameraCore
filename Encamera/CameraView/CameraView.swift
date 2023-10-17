@@ -236,17 +236,15 @@ struct CameraView: View {
             bottomButtonPanel
         }
         .edgesIgnoringSafeArea(.top)
-
-        .onChange(of: cameraModel.authManager.isAuthenticated, perform: { newValue in
-            guard newValue == true else {
+        .task {
+            guard cameraModel.authManager.isAuthenticated == true else {
                 return
             }
             Task {
                 await cameraModel.service.checkForPermissions()
                 await cameraModel.service.configure()
             }
-        })
-        
+        }
         .navigationBarHidden(true)
         .navigationTitle("")
         
