@@ -24,15 +24,19 @@ struct BottomCameraButtonView: View {
         VStack(spacing: 0) {
 
             CameraModePicker()
-            HStack {
-                capturedPhotoThumbnail
+            ZStack {
+                HStack {
+                    capturedPhotoThumbnail
+                    Spacer()
+                    flipCameraButton
+                }
+                .padding(.leading, Constants.thumbnailSide)
+                .padding(.trailing, Constants.trailing)
                 captureButton
                     .padding(7)
                     .frame(maxWidth: .infinity)
-                flipCameraButton
             }
-            .padding(.leading, Constants.thumbnailSide)
-            .padding(.trailing, Constants.trailing)
+
 //            Spacer()
         }
         .background(.ultraThinMaterial)

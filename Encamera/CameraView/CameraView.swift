@@ -124,11 +124,7 @@ struct CameraView: View {
         NavigationView {
             
             ZStack {
-                settingsScreen
-                keySelectionList
-                galleryView
                 mainCamera
-                
                 tutorialViews
                 if cameraModel.cameraSetupResult == .notAuthorized {
                     missingPermissionsView
@@ -200,26 +196,6 @@ struct CameraView: View {
         
     }
     
-    private var keySelectionList: some View {
-        NavigationLink(isActive: $cameraModel.showingKeySelection) {
-            KeySelectionGrid(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager, fileManager: cameraModel.fileAccess))
-            
-        } label: {
-            EmptyView()
-        }.isDetailLink(false)
-        
-    }
-    
-    private var settingsScreen: some View {
-        NavigationLink(isActive: $cameraModel.showSettingsScreen) {
-            SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, authManager: cameraModel.authManager, fileAccess: cameraModel.fileAccess))
-        } label: {
-            EmptyView()
-        }.isDetailLink(false)
-    }
-    
-    
-    
     private var mainCamera: some View {
         VStack {
             let currentKeyName = Binding<String> {
@@ -258,6 +234,8 @@ struct CameraView: View {
             }
             bottomButtonPanel
         }
+        .edgesIgnoringSafeArea(.top)
+
         .onChange(of: cameraModel.authManager.isAuthenticated, perform: { newValue in
             guard newValue == true else {
                 return

@@ -35,18 +35,20 @@ class KeySelectionGridItemModel: ObservableObject {
 
     }
 }
+
+
 struct KeySelectionGridItem: View {
     
     @ObservedObject var viewModel: KeySelectionGridItemModel
     @State var imageCount: Int?
     @State var leadingImage: UIImage?
     var keyName: String
-    var isActiveKey: Bool = false
+    var width: CGFloat
 
-    init(key: PrivateKey, isActiveKey: Bool) {
+    init(key: PrivateKey, width: CGFloat) {
         keyName = key.name
         self.viewModel = KeySelectionGridItemModel(key: key)
-        self.isActiveKey = isActiveKey
+        self.width = width
     }
     
     func load() {
@@ -60,61 +62,35 @@ struct KeySelectionGridItem: View {
     }
     
     var body: some View {
-            VStack {
-                if isActiveKey {
-                    Text(L10n.active)
+        VStack(alignment: .leading, spacing: 4) {
+
+            Color.clear.background {
+                if let leadingImage {
+                    Image(uiImage: leadingImage)
+                        .resizable()
+                        .aspectRatio(contentMode:.fill)
+                } else {
+                    Color.inputFieldBackgroundColor
+                }
+            }
+            .frame(width: width, height: width)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .circular))
+            .padding(.bottom, 12)
+
+            Group {
+                Text(keyName)
+                    .fontType(.extraSmall, weight: .bold)
+                if let imageCount = imageCount {
+                    Text("\(imageCount) items")
                         .fontType(.extraSmall)
-                        .padding(4)
-                        .frame(maxWidth: .infinity)
-                        .background {
-                            Color.green
-                        }
                 }
-                
-                HStack {
-                    Text(keyName)
-                        .fontType(.mediumSmall)
-                        .frame(maxWidth: .infinity)
-                    
-                    Spacer()
 
-                }.padding()
-                Spacer()
-                HStack {
-                    if let imageCount = imageCount {
-                        Text("\(imageCount)")
-                    }
-                    Spacer()
-
-                    if let iconName = viewModel.storageType?.iconName {
-                        Image(systemName: iconName)
-                            .padding(2)
-                    }
-                                    }
-                .fontType(.small)
-                .padding(10)
             }
-            .background {
-                Group {
-                    if let leadingImage = leadingImage {
-                        Image(uiImage: leadingImage)
-                            .resizable()
-                            .aspectRatio(contentMode:.fill)
-                    } else {
-                        Color.foregroundPrimary
-                    }
-                }
-                .opacity(0.7)
-                .blur(radius: 5)
-                
-            }
-            .contentShape(Rectangle())
-            .clipped()
+        }
 
         .task {
             load()
         }
-        
     }
 }
 
@@ -175,32 +151,30 @@ struct KeySelectionGrid: View {
     
     
     var body: some View {
-        
-        GeometryReader { geo in
-            let frame = geo.frame(in: .local)
-            let spacing = 2.0
-            let side = frame.width/2 - spacing
-            let columns = [
-                GridItem(.fixed(side), spacing: spacing),
-                GridItem(.fixed(side))
-            ]
-            ScrollView {
-                
-                if !viewModel.isKeyTutorialClosed {
-                    VStack(alignment: .leading) {
-                        TutorialCardView(title: L10n.keyTutorialTitle, tutorialText: L10n.keyTutorialText) {
-                            UserDefaultUtils.set(true, forKey: .keyTutorialClosed)
-                        }
-                        .padding(spacing*2)
-                        
-                    }.opacity(viewModel.isKeyTutorialClosed ? 0.0 : 1.0)
-                }
-                LazyVGrid(columns: columns, spacing: spacing) {
-                    Group {
+        VStack(alignment: .leading) {
+            Text("Albums")
+                .fontType(.large, weight: .bold)
+
+            GeometryReader { geo in
+                let frame = geo.frame(in: .local)
+                let spacing = 17.0
+                let side = frame.width/2 - spacing
+                let columns = [
+                    GridItem(.fixed(side), spacing: spacing),
+                    GridItem(.fixed(side))
+                ]
+                ScrollView {
+
+                    if !viewModel.isKeyTutorialClosed {
+                        VStack(alignment: .leading) {
+                            TutorialCardView(title: L10n.keyTutorialTitle, tutorialText: L10n.keyTutorialText) {
+                                UserDefaultUtils.set(true, forKey: .keyTutorialClosed)
+                            }
+                        }.opacity(viewModel.isKeyTutorialClosed ? 0.0 : 1.0)
+                    }
+                    LazyVGrid(columns: columns, spacing: spacing) {
                         Group {
-                            VStack(spacing: spacing) {
-                                
-                                let createNewKeyActive = Binding<Bool> {
+                            let createNewKeyActive = Binding<Bool> {
                                     viewModel.isShowingAddKeyView
                                 } set: { newValue in
                                     viewModel.isShowingAddKeyView = newValue
@@ -208,52 +182,45 @@ struct KeySelectionGrid: View {
                                 NavigationLink(isActive: createNewKeyActive) {
                                     if viewModel.shouldShowPurchaseScreenForKeys {
                                         ProductStoreView(showDismissButton: false)
-                                        
+
                                     } else {
                                         KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
                                     }
                                 } label: {
-                                    Text(L10n.createNewKey)
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                        .background(Color.foregroundSecondary)
-                                }
-                                let addExistingKeyActive = Binding<Bool> {
-                                    viewModel.isShowingAddExistingKeyView
-                                } set: { newValue in
-                                    viewModel.isShowingAddExistingKeyView = newValue
-                                }
-                                NavigationLink(isActive: addExistingKeyActive) {
-                                    if viewModel.shouldShowPurchaseScreenForKeys {
-                                        ProductStoreView(showDismissButton: false)
-                                    } else {
-                                        KeyEntry(viewModel: .init(keyManager: viewModel.keyManager, dismiss: addExistingKeyActive))
-                                    }
+                                    VStack(alignment: .leading, spacing: 16) {
+                                        Rectangle()
+                                            .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [10], dashPhase: 0.0))
+                                            .foregroundColor(Color.stepIndicatorInactive)
+                                            .cornerRadius(8)
+                                            .background {
+                                                Image("Albums-Add")
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .aspectRatio(1, contentMode: .fit)
+                                        Text(L10n.createNewAlbum)
+                                            .fontType(.extraSmall, weight: .bold)
+                                    }                                }
+
+
+                            ForEach(viewModel.keys, id: \.id) { key in
+                                NavigationLink {
+                                    KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
                                 } label: {
-                                    Text(L10n.addExistingKey)
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                        .background(Color.foregroundSecondary)
+                                    KeySelectionGridItem(key: key, width: side)
                                 }
-
-                            }.fontType(.small, on: .background, weight: .bold)
-
-                        }
-                        
-                        ForEach(viewModel.keys, id: \.id) { key in
-                            NavigationLink {
-                                KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
-                            } label: {
-                                KeySelectionGridItem(key: key, isActiveKey: key == viewModel.activeKey)
                             }
-                        }
-                    }.frame(height: side)
+
+                        }.frame(height: side + 60)
+                    }
                 }
+                .screenBlocked()
             }
-            .screenBlocked()
+            .onAppear {
+                viewModel.loadKeys()
+            }
+            .navigationBarTitle(L10n.myKeys)
         }
-        .onAppear {
-            viewModel.loadKeys()
-        }
-        .navigationBarTitle(L10n.myKeys)
+        .padding(24)
     }
     
 }

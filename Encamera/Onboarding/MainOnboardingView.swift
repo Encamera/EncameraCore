@@ -248,9 +248,8 @@ private extension MainOnboardingView {
                     AnyView(
                         VStack {
                             ImageCarousel()
-
                             Spacer()
-                        }
+                        }.padding(0)
                     )
                 }
             

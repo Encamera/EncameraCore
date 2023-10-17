@@ -87,12 +87,9 @@ struct OnboardingView<Next>: View where Next: View {
                 if let subheading = viewModel.subheading {
                     Text(subheading)
                             .fontType(.extraSmall)
-
                             .frame(maxWidth: Constants.subheadingMaxWidth, alignment: .topLeading)
-
                     Spacer().frame(height: Constants.titleContentSpacing)
                 }
-
                 self.viewModel.content?({
                     nextActive = true
                 })
@@ -114,10 +111,10 @@ struct OnboardingView<Next>: View where Next: View {
                         }
                     }
                     .primaryButton()
-                }
+                }.padding(14)
             }
 
-            .padding(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
+            .padding(EdgeInsets(top: 0, leading: 10, bottom: 20, trailing: 10))
             .navigationBarHidden(true)
             .background {
                 ZStack {

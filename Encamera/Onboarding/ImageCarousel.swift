@@ -35,53 +35,57 @@ struct ImageCarousel: View {
     ]
 
     var body: some View {
-        GeometryReader { geo in
+        VStack {
+            GeometryReader { geo in
 
-            ScrollViewReader { value in
-                let frame = geo.frame(in: .local)
-                VStack {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 0) {
-                            ForEach(carouselItems.indices, id: \.self) { index in
-                                let image = carouselItems[index]
-                                VStack {
-                                    Color.clear
-                                        .background {
-                                            Image(image.imageID)
-                                                .resizable()
-                                                .scaledToFill()
-                                        }.clipShape(RoundedRectangle(cornerSize: .init(width: 30, height: 30)))
-                                        .frame(width: frame.width, height: frame.height * 0.7)
+                ScrollViewReader { value in
+                    let frame = geo.frame(in: .local)
+                    VStack {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 0) {
+                                ForEach(carouselItems.indices, id: \.self) { index in
+                                    let image = carouselItems[index]
+                                    VStack {
+                                        Color.clear
+                                            .background {
+                                                Image(image.imageID)
+                                                    .resizable()
+                                                    .scaledToFill()
+                                            }.clipShape(RoundedRectangle(cornerSize: .init(width: 30, height: 30)))
+                                            .frame(width: frame.width, height: frame.height * 0.7)
+                                            .padding(.bottom, 32)
+                                        Group {
+                                            Text(image.heading)
+                                                .fontType(.medium, weight: .bold)
+                                                .lineLimit(2, reservesSpace: true)
+                                            Text(image.subheading)
+                                                .fontType(.small)
+                                                .lineLimit(2, reservesSpace: true)
+                                        }
+                                        .multilineTextAlignment(.center)
 
-                                    Group {
-                                        Text(image.heading)
-                                            .fontType(.medium, weight: .bold)
-                                            .lineLimit(2, reservesSpace: true)
-                                        Text(image.subheading)
-                                            .fontType(.small)
                                     }
-                                    .multilineTextAlignment(.center)
-
+                                    .frame(width: frame.width)
+                                    .tag(index)
                                 }
-                                .frame(width: frame.width)
-                                .tag(index) 
                             }
                         }
-                    }
-                    
-                    .allowsHitTesting(false)
-                    .onReceive(Timer.publish(every: 3, on: .main, in: .common).autoconnect()) { _ in
-                        if autoScrolling {
-                            withAnimation {
-                                currentScrolledToImage = (currentScrolledToImage + 1) % carouselItems.count
-                                value.scrollTo(currentScrolledToImage, anchor: .leading)
+
+                        .allowsHitTesting(false)
+                        .onReceive(Timer.publish(every: 3, on: .main, in: .common).autoconnect()) { _ in
+                            if autoScrolling {
+                                withAnimation {
+                                    currentScrolledToImage = (currentScrolledToImage + 1) % carouselItems.count
+                                    value.scrollTo(currentScrolledToImage, anchor: .leading)
+                                }
                             }
                         }
                     }
                 }
-                Spacer().frame(height: 32)
-                ImageStepIndicator(activeIndex: $currentScrolledToImage, numberOfItems: carouselItems.count)
+
             }
+            Spacer().frame(height: 32)
+            ImageStepIndicator(activeIndex: $currentScrolledToImage, numberOfItems: carouselItems.count)
         }
     }
 }
