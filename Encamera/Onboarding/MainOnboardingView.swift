@@ -239,18 +239,19 @@ private extension MainOnboardingView {
         switch flow {
         case .intro:
             return .init(
-                title: "",
-                subheading: "",
-                image: nil,
+                showTopBar: false,
                 bottomButtonTitle: L10n.getStartedButtonText,
                 bottomButtonAction: {
                     
                 }) {_ in 
                     
                     AnyView(
-                        ImageCarousel()
+                        VStack {
+                            ImageCarousel()
+
+                            Spacer()
+                        }
                     )
-                    
                 }
             
         case .enterExistingPassword:

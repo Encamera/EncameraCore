@@ -9,13 +9,15 @@ import SwiftUI
 import EncameraCore
 
 struct OnboardingViewViewModel {
-    var title: String
-    var subheading: String?
+    var title: String? = nil
+    var subheading: String? = nil
     var progress: (Int, Int) = (0, 0)
-    var image: Image?
+    var image: Image? = nil
+    var showTopBar: Bool = true
     var bottomButtonTitle: String
     var bottomButtonAction: (() async throws -> Void)?
     var content: ((@escaping () -> Void) -> AnyView)?
+
 }
 
 
@@ -33,6 +35,8 @@ private enum Constants {
 struct OnboardingView<Next>: View where Next: View {
     
     @State var nextActive: Bool = false 
+    @Environment(\.dismiss) var dismiss
+
     var viewModel: OnboardingViewViewModel
     
     let nextScreen: () -> Next?
@@ -46,34 +50,40 @@ struct OnboardingView<Next>: View where Next: View {
     var body: some View {
             VStack(alignment: .leading, spacing: 2) {
 
-                HStack {
-                    Image("Onboarding-Arrow-Back")
-                    Text("PROFILE SETUP")
-                        .fontType(.extraSmall, weight: .bold)
-                        .kerning(Constants.backButtonTextKerning)
-                        .opacity(Constants.lowOpacity)
-                    Spacer()
-                    if viewModel.progress.1 > 0 {
-                        StepIndicator(numberOfItems: viewModel.progress.1, currentItem: viewModel.progress.0)
+                if viewModel.showTopBar {
+                    HStack {
+                        Image("Onboarding-Arrow-Back")
+                        Text("PROFILE SETUP")
+                            .fontType(.extraSmall, weight: .bold)
+                            .kerning(Constants.backButtonTextKerning)
+                            .opacity(Constants.lowOpacity)
+                        Spacer()
+                        if viewModel.progress.1 > 0 {
+                            StepIndicator(numberOfItems: viewModel.progress.1, currentItem: viewModel.progress.0)
+                        }
+                    }.onTapGesture {
+                        dismiss()
                     }
                 }
                 Spacer().frame(height: Constants.topElementTitleSpacing)
-                HStack(alignment: .top)  {
-                    Text(viewModel.title)
-                        .fontType(.mediumSmall, weight: .bold)
-                    Spacer()
-                    Group {
-                        if let image = viewModel.image {
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .opacity(Constants.lowOpacity)
-                        } else {
-                            Color.clear
-                        }
-                    }.frame(width: 48, height: 48)
-                    Spacer().frame(width: Constants.imageSpacingTrailing)
-                }.frame(height: Constants.titleHeight)
+                if let title = viewModel.title {
+                    HStack(alignment: .top)  {
+                        Text(title)
+                            .fontType(.mediumSmall, weight: .bold)
+                        Spacer()
+                        Group {
+                            if let image = viewModel.image {
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .opacity(Constants.lowOpacity)
+                            } else {
+                                Color.clear
+                            }
+                        }.frame(width: 48, height: 48)
+                        Spacer().frame(width: Constants.imageSpacingTrailing)
+                    }.frame(height: Constants.titleHeight)
+                }
                 if let subheading = viewModel.subheading {
                     Text(subheading)
                             .fontType(.extraSmall)
@@ -86,8 +96,6 @@ struct OnboardingView<Next>: View where Next: View {
                 self.viewModel.content?({
                     nextActive = true
                 })
-                    .fixedSize(horizontal: false, vertical: true).padding(0)
-                    
                 Spacer()
                 NavigationLink(isActive: $nextActive) {
                     nextScreen()
@@ -107,10 +115,9 @@ struct OnboardingView<Next>: View where Next: View {
                     }
                     .primaryButton()
                 }
-
             }
-            
-            .padding(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 10))
+
+            .padding(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
             .navigationBarHidden(true)
             .background {
                 ZStack {

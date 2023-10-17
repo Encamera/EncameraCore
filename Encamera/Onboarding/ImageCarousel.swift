@@ -51,7 +51,7 @@ struct ImageCarousel: View {
                                                 .resizable()
                                                 .scaledToFill()
                                         }.clipShape(RoundedRectangle(cornerSize: .init(width: 30, height: 30)))
-                                        .frame(width: frame.width * 0.90, height: frame.height * 0.7)
+                                        .frame(width: frame.width, height: frame.height * 0.7)
 
                                     Group {
                                         Text(image.heading)
@@ -59,38 +59,26 @@ struct ImageCarousel: View {
                                             .lineLimit(2, reservesSpace: true)
                                         Text(image.subheading)
                                             .fontType(.small)
-                                    }                                            
+                                    }
                                     .multilineTextAlignment(.center)
 
                                 }
                                 .frame(width: frame.width)
-                                .tag(index)  // Add this line to tag the view with the index
+                                .tag(index) 
                             }
                         }
                     }
-                    .allowsHitTesting(false)  // Add this line to disable user interaction on the ScrollView
-                    .onTapGesture {
-                        currentScrolledToImage = 0
-                        value.scrollTo(currentScrolledToImage, anchor: .leading)
-                    }
-
-                    .onChange(of: currentScrolledToImage) { newValue in
-                        if newValue < carouselItems.count - 1 {
-                            autoScrolling = true
-                        } else {
-                            autoScrolling = false
-                        }
-                    }
-                    .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
+                    
+                    .allowsHitTesting(false)
+                    .onReceive(Timer.publish(every: 3, on: .main, in: .common).autoconnect()) { _ in
                         if autoScrolling {
                             withAnimation {
-                                currentScrolledToImage += 1
+                                currentScrolledToImage = (currentScrolledToImage + 1) % carouselItems.count
                                 value.scrollTo(currentScrolledToImage, anchor: .leading)
                             }
                         }
                     }
                 }
-
                 Spacer().frame(height: 32)
                 ImageStepIndicator(activeIndex: $currentScrolledToImage, numberOfItems: carouselItems.count)
             }
