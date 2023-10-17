@@ -17,7 +17,8 @@ struct CameraView: View {
     @GestureState var magnificationGesture = false
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
-    
+    @Environment(\.dismiss) var dismiss
+
     
     private var captureButton: some View {
         
@@ -205,7 +206,7 @@ struct CameraView: View {
             }
             TopCameraControlsView(viewModel: .init(), isRecordingVideo: $cameraModel.isRecordingVideo,
                                   recordingDuration: $cameraModel.recordingDuration, currentAlbumName: currentKeyName, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
-
+                dismiss()
             }, flashButtonPressed: {
                 self.cameraModel.switchFlash()
 

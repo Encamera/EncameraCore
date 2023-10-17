@@ -19,7 +19,7 @@ struct EncameraApp: App {
         @Published var hasMediaToImport = false
         @Published var showImportedMediaScreen = false
         @Published var shouldShowTweetScreen: Bool = false
-
+        @Published var showCamera: Bool = false
         var openedUrl: URL?
         var keyManager: KeyManager
         var cameraService: CameraConfigurationService
@@ -55,6 +55,7 @@ struct EncameraApp: App {
                 .receive(on: DispatchQueue.main)
                 .sink { value in
                 self.isAuthenticated = value
+                    self.showCamera = value
             }.store(in: &cancellables)
             
             do {
@@ -182,18 +183,22 @@ struct EncameraApp: App {
     }
     
     @StateObject var viewModel: ViewModel = .init()
-    
     var body: some Scene {
         
         WindowGroup {
-            CameraView(cameraModel: .init(
-                keyManager: viewModel.keyManager,
-                authManager: viewModel.authManager,
-                cameraService: viewModel.cameraService,
-                fileAccess: viewModel.fileAccess,
-                storageSettingsManager: viewModel.storageSettingsManager,
-                purchaseManager: viewModel.purchasedPermissions
-            ), hasMediaToImport: $viewModel.hasMediaToImport)
+            KeySelectionGrid(viewModel: .init(keyManager: viewModel.keyManager, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess))
+                .sheet(isPresented: $viewModel.showCamera, content: {
+
+                    CameraView(cameraModel: .init(
+                        keyManager: viewModel.keyManager,
+                        authManager: viewModel.authManager,
+                        cameraService: viewModel.cameraService,
+                        fileAccess: viewModel.fileAccess,
+                        storageSettingsManager: viewModel.storageSettingsManager,
+                        purchaseManager: viewModel.purchasedPermissions
+                    ), hasMediaToImport: $viewModel.hasMediaToImport)
+
+                })
                 .preferredColorScheme(.dark)
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     openUrlSheet
@@ -228,7 +233,7 @@ struct EncameraApp: App {
                         self.viewModel.hasOpenedURL = true
                     }
                 }
-                
+
                 .statusBar(hidden: true)
                 .environment(
                     \.isScreenBlockingActive,
