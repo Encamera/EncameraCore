@@ -35,10 +35,51 @@ class KeySelectionGridItemModel: ObservableObject {
 
     }
 }
+struct GeneralPurposeView: View {
+
+    @State var image: Image?
+    var title: String
+    var subheading: String?
+    var width: CGFloat
+    var strokeStyle: StrokeStyle? = nil
+    var shouldResizeImage: Bool = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Rectangle()
+                .stroke(style: strokeStyle ?? StrokeStyle(lineWidth: 0))
+                .background {
+                if let image = image {
+                    if shouldResizeImage {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        image
+                    }
+
+                } else {
+                    Color.inputFieldBackgroundColor // replace with an actual color or view
+                }
+            }
+            .frame(width: width, height: width)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .circular))
+            .padding(.bottom, 12)
 
 
+            Text(title)
+                .fontType(.extraSmall, weight: .bold) // replace with actual font
+
+//            if let subheading = subheading {
+                Text(subheading ?? "")
+                .lineLimit(1, reservesSpace: true)
+                    .fontType(.extraSmall) // replace with actual font
+//            }
+        }
+    }
+}
 struct KeySelectionGridItem: View {
-    
+
     @ObservedObject var viewModel: KeySelectionGridItemModel
     @State var imageCount: Int?
     @State var leadingImage: UIImage?
@@ -50,7 +91,7 @@ struct KeySelectionGridItem: View {
         self.viewModel = KeySelectionGridItemModel(key: key)
         self.width = width
     }
-    
+
     func load() {
         Task {
             let thumb = try await viewModel.fileReader.loadLeadingThumbnail()
@@ -60,39 +101,19 @@ struct KeySelectionGridItem: View {
             }
         }
     }
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-
-            Color.clear.background {
-                if let leadingImage {
-                    Image(uiImage: leadingImage)
-                        .resizable()
-                        .aspectRatio(contentMode:.fill)
-                } else {
-                    Color.inputFieldBackgroundColor
-                }
+        
+        GeneralPurposeView(image: leadingImage != nil ? Image(uiImage: leadingImage!) : nil,
+                           title: keyName,
+                           subheading: imageCount != nil ? "\(imageCount!) items" : nil,
+                           width: width)
+            .task {
+                load()
             }
-            .frame(width: width, height: width)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .circular))
-            .padding(.bottom, 12)
-
-            Group {
-                Text(keyName)
-                    .fontType(.extraSmall, weight: .bold)
-                if let imageCount = imageCount {
-                    Text("\(imageCount) items")
-                        .fontType(.extraSmall)
-                }
-
-            }
-        }
-
-        .task {
-            load()
-        }
     }
 }
+
 
 class KeySelectionGridViewModel: ObservableObject {
     @Published var keys: [PrivateKey] = []
@@ -187,19 +208,9 @@ struct KeySelectionGrid: View {
                                         KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
                                     }
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 16) {
-                                        Rectangle()
-                                            .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [10], dashPhase: 0.0))
-                                            .foregroundColor(Color.stepIndicatorInactive)
-                                            .cornerRadius(8)
-                                            .background {
-                                                Image("Albums-Add")
-                                            }
-                                            .frame(maxWidth: .infinity)
-                                            .aspectRatio(1, contentMode: .fit)
-                                        Text(L10n.createNewAlbum)
-                                            .fontType(.extraSmall, weight: .bold)
-                                    }                                }
+                                    GeneralPurposeView(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [10], dashPhase: 0.0), shouldResizeImage: false)
+
+                                }
 
 
                             ForEach(viewModel.keys, id: \.id) { key in
