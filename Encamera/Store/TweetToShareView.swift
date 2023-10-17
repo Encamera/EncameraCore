@@ -17,7 +17,7 @@ struct TweetToShareView: View {
                 VStack {
                     Text(L10n.tweetToRedeemOfferExplanation)
                         .padding()
-                        .fontType(.mediumSmall)
+                        .fontType(.pt24)
                         .lineLimit(nil)
 
                     Button(action: {
@@ -58,7 +58,7 @@ struct TweetToShareView: View {
 
                     Text(L10n.youWillBeSentAPromoCode)
                         .padding()
-                        .fontType(.mediumSmall)
+                        .fontType(.pt24)
                         .lineLimit(nil)
                 }
                 .navigationTitle(L10n.getOneYearFree)

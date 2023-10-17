@@ -68,12 +68,12 @@ struct GeneralPurposeView: View {
 
 
             Text(title)
-                .fontType(.extraSmall, weight: .bold) // replace with actual font
+                .fontType(.pt14, weight: .bold) // replace with actual font
 
 //            if let subheading = subheading {
                 Text(subheading ?? "")
                 .lineLimit(1, reservesSpace: true)
-                    .fontType(.extraSmall) // replace with actual font
+                    .fontType(.pt14) // replace with actual font
 //            }
         }
     }

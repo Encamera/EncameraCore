@@ -23,7 +23,7 @@ struct KeyInformation: View {
                     Text("\(key.keyString)")
                     
                     Text(L10n.created(DateUtils.dateOnlyString(from: key.creationDate)))
-                        .fontType(.small)
+                        .fontType(.pt18)
                     Text(L10n.keyLength(key.keyBytes.count))
                 }.listRowBackground(Color.foregroundSecondary)
     }

@@ -96,12 +96,12 @@ struct KeyEntry: View {
                         Text("\(matchedKey.keyString)")
                         
                         Text(L10n.created(DateUtils.dateOnlyString(from: matchedKey.creationDate)))
-                            .fontType(.small)
+                            .fontType(.pt18)
                         Text(L10n.keyLength(matchedKey.keyBytes.count))
 
                         Section {
                             Toggle(L10n.saveKeyToICloud, isOn: $viewModel.saveKeyToiCloud)
-                                .fontType(.small)
+                                .fontType(.pt18)
 
                         }
                         Button {
@@ -114,7 +114,7 @@ struct KeyEntry: View {
                             Text(L10n.saveKey)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .foregroundColor(.green)
-                                .fontType(.small, weight: .bold)
+                                .fontType(.pt18, weight: .bold)
                                 
                         }
                     }

@@ -169,7 +169,7 @@ struct TopBarView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(alignment: .leading)
-                        .fontType(.small, on: .elevated)
+                        .fontType(.pt18, on: .elevated)
                     Spacer().frame(width: 10)
                 }
                 
@@ -191,7 +191,7 @@ struct TopBarView: View {
     }
     private var durationText: some View {
         Text(recordingDuration.durationText)
-            .fontType(.small)
+            .fontType(.pt18)
             .padding(5)
             .background(Color.videoRecordingIndicator)
             .cornerRadius(10)

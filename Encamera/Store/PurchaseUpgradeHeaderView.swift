@@ -19,14 +19,14 @@ struct PurchaseUpgradeHeaderView: View {
                 Text(L10n.createAnUnlimitedNumberOfKeys)
                 Text(L10n.supportPrivacyFocusedDevelopment)
             }
-            .fontType(.small)
+            .fontType(.pt18)
             HStack(spacing: 10) {
                 Button(L10n.enterPromoCode) {
                     Task {
                         await StoreActor.shared.presentCodeRedemptionSheet()
                     }
                 }
-                .fontType(.small, on: .elevated)
+                .fontType(.pt18, on: .elevated)
                 .textPill(color: .green)
             }
             

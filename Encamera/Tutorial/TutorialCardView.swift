@@ -30,10 +30,10 @@ struct TutorialCardView: View {
                     Spacer()
                     Button {
                         withAnimation(.easeInOut(duration: 0.3)) {
-                                                viewHeight = viewHeight == 1.0 ? .infinity : 1.0
-                                                opacitySetting = 0.0
-                                                closeButtonPressed()
-                                            }
+                            viewHeight = viewHeight == 1.0 ? .infinity : 1.0
+                            opacitySetting = 0.0
+                            closeButtonPressed()
+                        }
                     } label: {
                         Image("Card-Close")
                             .frame(width: 28, height: 28)
@@ -45,10 +45,10 @@ struct TutorialCardView: View {
             VStack(alignment: .leading) {
                 Group {
                     Text(title)
-                        .fontType(.mediumSmall)
+                        .fontType(.pt16, weight: .bold)
                     Spacer().frame(height: 15)
                     Text(tutorialText)
-                        .fontType(.small)
+                        .fontType(.pt14)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Spacer()
                 Button {
@@ -56,7 +56,7 @@ struct TutorialCardView: View {
                 } label: {
 
                     Text(L10n.gotIt)
-                        .fontType(.small, on: .textButton, weight: .bold)
+                        .fontType(.pt18, on: .textButton, weight: .bold)
                 }
             }
             .padding()

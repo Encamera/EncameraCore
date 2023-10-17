@@ -59,7 +59,7 @@ struct ImageCarousel: View {
                                                 .fontType(.medium, weight: .bold)
                                                 .lineLimit(2, reservesSpace: true)
                                             Text(image.subheading)
-                                                .fontType(.small)
+                                                .fontType(.pt18)
                                                 .lineLimit(2, reservesSpace: true)
                                         }
                                         .multilineTextAlignment(.center)

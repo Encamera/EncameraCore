@@ -58,7 +58,7 @@ struct EncameraTextField: View {
 
                 if text.isEmpty {
                     Text(placeholder)
-                        .fontType(.small)
+                        .fontType(.pt18)
                         .padding(.leading)
                         .onTapGesture {
                             isFieldFocused = true

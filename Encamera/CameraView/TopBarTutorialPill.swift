@@ -56,7 +56,7 @@ struct TopBarTutorialPill: View {
     private func stateForNumberOfPhotosLeft(photosLeft: Int) -> some View {
         Text(displayPhotosLeft ? "\(photosLeft) \(L10n.photoSLeft(photosLeft))" : L10n.tapToUpgrade)
                     .textPill(color: .warningColor)
-                    .fontType(.small, on: .elevated)
+                    .fontType(.pt18, on: .elevated)
                     .opacity(opacity)
                     .onReceive(timer) { _ in
                         withAnimation(.easeInOut(duration: 1)) {

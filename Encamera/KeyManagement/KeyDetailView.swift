@@ -171,7 +171,7 @@ struct KeyDetailView: View {
                 }.listRowBackground(Color.foregroundSecondary)
             }  
             .frame(height: 300)
-            .fontType(.small)
+            .fontType(.pt18)
             .scrollContentBackgroundColor(Color.background)
             
         }

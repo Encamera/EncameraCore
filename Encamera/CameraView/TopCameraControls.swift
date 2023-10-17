@@ -75,7 +75,7 @@ struct TopCameraControlsView: View {
     }
     private var durationText: some View {
         Text(recordingDuration.durationText)
-            .fontType(.small)
+            .fontType(.pt18)
             .padding(5)
             .background(Color.videoRecordingIndicator)
             .cornerRadius(10)

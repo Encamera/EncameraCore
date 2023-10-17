@@ -169,7 +169,7 @@ struct KeyGeneration: View {
                             Text(L10n.ifYouDonTUseICloudBackupItSHighlyRecommendedThatYouBackupYourKeysToAPasswordManagerOrSomewhereElseSafe)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .fontType(.small)
+                        .fontType(.pt18)
 
                     }
                     

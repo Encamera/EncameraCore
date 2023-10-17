@@ -125,7 +125,7 @@ struct AuthenticationView: View {
                             .resizable()
                             .frame(width: 50.0, height: 50.0)
                         Text(L10n.unlockWith(biometric.nameForMethod))
-                            .fontType(.small)
+                            .fontType(.pt18)
                     }
                 }.padding()
                 

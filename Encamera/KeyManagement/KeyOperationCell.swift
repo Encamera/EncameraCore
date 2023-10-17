@@ -19,7 +19,7 @@ struct KeyOperationCell: View {
                 .fontType(.medium)
             Spacer()
         }
-        .fontType(.small)
+        .fontType(.pt18)
         .padding()
     }
 }

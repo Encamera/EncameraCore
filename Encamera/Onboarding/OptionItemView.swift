@@ -62,7 +62,7 @@ struct OptionItemView: View {
                                 .alertText()
                         } else {
                             Text(description)
-                                .fontType(.extraSmall, on: isSelected ? .selectedStorageButton : .background)
+                                .fontType(.pt14, on: isSelected ? .selectedStorageButton : .background)
                         }
                     }
                     Spacer()

@@ -180,7 +180,7 @@ struct SettingsView: View {
             }.listRowBackground(Color.foregroundSecondary)
         }
         .scrollContentBackgroundColor(Color.background)
-        .fontType(.small)
+        .fontType(.pt18)
         .sheet(isPresented: $viewModel.showPremium) {
             premium
         }
@@ -214,7 +214,7 @@ struct SettingsView: View {
             
             .foregroundColor(.red)
             .navigationTitle(L10n.erase)
-            .fontType(.small)
+            .fontType(.pt18)
             .scrollContentBackgroundColor(.background)
         }
         
@@ -263,7 +263,7 @@ struct SettingsView: View {
             }
             
             .scrollContentBackgroundColor(.background)
-            .fontType(.small)
+            .fontType(.pt18)
             .toolbar {
                 Button(L10n.save) {
                     viewModel.savePassword()

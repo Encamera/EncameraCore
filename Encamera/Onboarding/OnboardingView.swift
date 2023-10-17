@@ -54,7 +54,7 @@ struct OnboardingView<Next>: View where Next: View {
                     HStack {
                         Image("Onboarding-Arrow-Back")
                         Text("PROFILE SETUP")
-                            .fontType(.extraSmall, weight: .bold)
+                            .fontType(.pt14, weight: .bold)
                             .kerning(Constants.backButtonTextKerning)
                             .opacity(Constants.lowOpacity)
                         Spacer()
@@ -69,7 +69,7 @@ struct OnboardingView<Next>: View where Next: View {
                 if let title = viewModel.title {
                     HStack(alignment: .top)  {
                         Text(title)
-                            .fontType(.mediumSmall, weight: .bold)
+                            .fontType(.pt24, weight: .bold)
                         Spacer()
                         Group {
                             if let image = viewModel.image {
@@ -86,7 +86,7 @@ struct OnboardingView<Next>: View where Next: View {
                 }
                 if let subheading = viewModel.subheading {
                     Text(subheading)
-                            .fontType(.extraSmall)
+                            .fontType(.pt14)
                             .frame(maxWidth: Constants.subheadingMaxWidth, alignment: .topLeading)
                     Spacer().frame(height: Constants.titleContentSpacing)
                 }
@@ -150,7 +150,7 @@ struct OnboardingView_Previews: PreviewProvider {
                         Text(L10n.onboardingIntroHeadingText1)
                             .fontType(.medium, weight: .bold)
                         Text(L10n.onboardingIntroSubheadingText)
-                            .fontType(.small)
+                            .fontType(.pt18)
                         Spacer()
                     })
                     

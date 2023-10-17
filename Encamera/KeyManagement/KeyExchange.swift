@@ -30,7 +30,7 @@ struct KeyExchange: View {
             
             VStack(alignment: .center) {
                 Text(L10n.shareKeyExplanation)
-                    .fontType(.small)
+                    .fontType(.pt18)
                 
                 Spacer()
                     .frame(height: 30)
@@ -42,7 +42,7 @@ struct KeyExchange: View {
                         Text("\(viewModel.key.name)")
                             .fontType(.medium)
                         Text(L10n.scanWithEncameraApp)
-                            .fontType(.small)
+                            .fontType(.pt18)
                     }.frame(maxWidth: .infinity).background(Color.foregroundSecondary)
                         .opacity(viewModel.blurView ? 1.0 : 0.0)
                         

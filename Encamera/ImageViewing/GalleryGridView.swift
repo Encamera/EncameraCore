@@ -126,11 +126,11 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                             if viewModel.blurImages {
                                 Toggle(L10n.hide, isOn: $viewModel.blurImages)
                                     .frame(width: Constants.hideButtonWidth)
-                                    .fontType(.small)
+                                    .fontType(.pt18)
                                 Spacer()
                             } else {
                                 Text(L10n.imageS(viewModel.media.count))
-                                    .fontType(.small)
+                                    .fontType(.pt18)
                             }
                         }.onTapGesture {
                             viewModel.blurImages.toggle()
@@ -210,7 +210,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                         .frame(width: 5)
                 } else {
                     Text("\(viewModel.downloadPendingMediaCount)")
-                        .fontType(.small)
+                        .fontType(.pt18)
                 }
                 Image(systemName: "icloud.and.arrow.down")
             }

@@ -339,7 +339,7 @@ private extension MainOnboardingView {
                 }, content:  { goToNext in
                     AnyView(
                         Text(L10n.skipForNow)
-                            .fontType(.extraSmall, on: .textButton, weight: .bold)
+                            .fontType(.pt14, on: .textButton, weight: .bold)
                             .onTapGesture {
                                 goToNext()
                             }
@@ -453,7 +453,7 @@ private extension MainOnboardingView {
                     .aspectRatio(contentMode: .fit)
                 
                 Text(text)
-                    .fontType(.small)
+                    .fontType(.pt18)
             }.padding()
         })
             .frame(width: 100, height: 100)

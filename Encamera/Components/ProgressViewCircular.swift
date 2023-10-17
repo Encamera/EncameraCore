@@ -17,7 +17,7 @@ struct ProgressViewCircular: View {
             ProgressView(value: Float(progress), total: Float(total))
                 .progressViewStyle(ProgressViewCircularStyle())
             Text("\( progress)")
-                .fontType(.small)
+                .fontType(.pt18)
         }
     }
 }

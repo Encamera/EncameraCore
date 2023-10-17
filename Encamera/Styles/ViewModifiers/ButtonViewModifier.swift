@@ -16,7 +16,7 @@ struct EncameraButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         return configuration.label
-            .fontType(.small, on: hostSurface, weight: .bold)
+            .fontType(.pt18, on: hostSurface, weight: .bold)
             .padding(12.0)
             .frame(maxWidth: .infinity, minHeight: 54)
             .background(hostSurface.foregroundSecondary)
@@ -30,7 +30,7 @@ struct EncameraDestructiveButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         return configuration.label
-            .fontType(.small, on: hostSurface)
+            .fontType(.pt18, on: hostSurface)
             .padding(12.0)
             .foregroundColor(.red)
             .frame(minHeight: 44)

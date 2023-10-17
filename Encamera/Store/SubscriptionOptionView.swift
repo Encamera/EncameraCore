@@ -36,22 +36,22 @@ struct SubscriptionOptionView: View {
                 
                 if isSubscribed {
                     Text(L10n.subscribed)
-                        .fontType(.extraSmall, on: .elevated)
+                        .fontType(.pt14, on: .elevated)
                         .textPill(color: .green)
                 }
                 
                 
                 Text(subscription.displayName)
-                    .fontType(.small, weight: .bold)
+                    .fontType(.pt18, weight: .bold)
                     
                  Text(subscription.description)
-                    .fontType(.small)
+                    .fontType(.pt18)
                     .padding(.bottom, 2)
                  Text(applyKerning(to: "/", in: subscription.priceText))
-                    .fontType(.small)
+                    .fontType(.pt18)
                  if let savingsText = savingsText, !isSubscribed {
                      Text(applyKerning(to: "/()", in: savingsText))
-                         .fontType(.extraSmall, on: .elevated)
+                         .fontType(.pt14, on: .elevated)
                          .textPill(color: .green)
                  }
             }

@@ -57,7 +57,7 @@ struct PurchaseUpgradeOptionsListView: View {
         VStack(spacing: 25) {
             if purchasedProducts.isEmpty {
                 Text(L10n.subscription)
-                    .fontType(.mediumSmall)
+                    .fontType(.pt24)
                 let _ = print(subscriptions.map({$0.displayName}))
                 
                 ForEach(subscriptions) { subscription in
@@ -65,7 +65,7 @@ struct PurchaseUpgradeOptionsListView: View {
                 }
                 
                 Text(L10n.oneTimePurchase)
-                    .fontType(.mediumSmall)
+                    .fontType(.pt24)
                 ForEach(products) { product in
                     productCell(for: product)
                 }
@@ -84,7 +84,7 @@ struct PurchaseUpgradeOptionsListView: View {
     var tweetForFreeView: some View {
         HStack {
             Text("\(L10n.unlockUnlimitedForFree) 👉")
-                .fontType(.mediumSmall)
+                .fontType(.pt24)
             Spacer()
             Image(systemName: "dollarsign.circle.fill")
                 .resizable()

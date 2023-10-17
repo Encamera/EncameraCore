@@ -29,7 +29,7 @@ struct KeySelectionCell: View {
         HStack {
             HStack {
                 Text("\(viewModel.imageCount)")
-                    .fontType(.small)
+                    .fontType(.pt18)
                     .frame(width: 30)
                 VStack(alignment: .leading) {
                     Text(viewModel.key.name)
@@ -37,10 +37,10 @@ struct KeySelectionCell: View {
                     if viewModel.isActive {
                         Text(L10n.active)
                             .foregroundColor(.activeKey)
-                            .fontType(.small)
+                            .fontType(.pt18)
                     }
                     Text(DateUtils.dateOnlyString(from: viewModel.key.creationDate))
-                        .fontType(.small)
+                        .fontType(.pt18)
                 }
                 Spacer()
             }.padding()
@@ -53,7 +53,7 @@ struct KeySelectionCell: View {
             } else {
                 Image(systemName: "key")
             }
-        }.fontType(.small)
+        }.fontType(.pt18)
     }
 }
 
