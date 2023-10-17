@@ -22,6 +22,7 @@ enum EncameraFont {
     case small
     case pt16
     case extraSmall
+    case pt10
 
     enum Name: String {
         case regular = "Satoshi-Regular"
@@ -43,6 +44,8 @@ enum EncameraFont {
             return .custom(Name.regular.rawValue, size: 18)
         case .extraSmall:
             return .custom(Name.regular.rawValue, size: 14)
+        case .pt10:
+            return .custom(Name.regular.rawValue, size: 10)
         }
     }
 }

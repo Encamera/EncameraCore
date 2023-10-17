@@ -47,7 +47,6 @@ private enum Constants {
 struct CameraModePicker: View {
     
     @EnvironmentObject var stateModel: CameraModeStateModel
-    var pressedAction: (CameraMode) -> Void
     var body: some View {
         
         return Canvas {
@@ -59,7 +58,6 @@ struct CameraModePicker: View {
                         _id: item.rawValue,
                         cardHeight: Constants.cardHeight,
                         pressedAction: {
-                            pressedAction(item.cameraMode)
                         }
                     ) {
                         let itemActive = item.rawValue == stateModel.activeIndex
@@ -94,8 +92,6 @@ public class CameraModeStateModel: ObservableObject {
     @Published var isModeActive: Bool = false
     @Published var selectedMode: CameraMode = .photo
     @Published var screenDrag: Float = 0.0
-    
-//    var pressedAction: (CameraMode) -> Void
 
 }
 
@@ -141,12 +137,7 @@ private struct Carousel<Items: View>: View {
         }
         .offset(x: CGFloat(calcOffset), y: 0)
         .gesture(DragGesture()
-//            .updating(GestureState(wrappedValue: true)) { currentState, gestureState, transaction in
-//                guard self.stateModel.isModeActive == false else {
-//                    return
-//                }
-//                self.stateModel.screenDrag = Float(currentState.translation.width)
-//            }
+
             .onEnded { value in
                 guard self.stateModel.isModeActive == false else {
                     return
@@ -230,9 +221,7 @@ struct CameraModePicker_Previews: PreviewProvider {
     }
     static var previews: some View {
         
-        CameraModePicker(pressedAction: {mode in
-            
-        })
+        CameraModePicker()
             .environmentObject(model)
     }
 }

@@ -76,17 +76,7 @@ struct CameraView: View {
     }
     
     private var bottomButtonPanel: some View {
-        VStack {
-            HStack {
-                capturedPhotoThumbnail
-                
-                captureButton
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                flipCameraButton
-            }
-            .padding(.horizontal, 20)
-        }
+        BottomCameraButtonView(cameraModel: cameraModel, cameraModeStateModel: cameraModeStateModel)
     }
     
     private var cameraPreview: some View {
@@ -232,22 +222,18 @@ struct CameraView: View {
     
     private var mainCamera: some View {
         VStack {
-            let currrentKeyName = Binding<String> {
+            let currentKeyName = Binding<String> {
                 return cameraModel.keyManager.currentKey?.name ?? L10n.noKey
             } set: { _, _ in
                 
             }
-            
-            TopBarView(viewModel: .init(purchaseManager: cameraModel.purchaseManager), showingKeySelection: $cameraModel.showingKeySelection, showStoreSheet: $cameraModel.showStoreSheet,
-                       isRecordingVideo: $cameraModel.isRecordingVideo,
-                       recordingDuration: $cameraModel.recordingDuration,
-                       currentKeyName: currrentKeyName,
-                       flashMode: $cameraModel.flashMode,
-                       settingsButtonTapped: {
-                self.cameraModel.showSettingsScreen = true
-            }) {
+            TopCameraControlsView(viewModel: .init(), isRecordingVideo: $cameraModel.isRecordingVideo,
+                                  recordingDuration: $cameraModel.recordingDuration, currentAlbumName: currentKeyName, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
+
+            }, flashButtonPressed: {
                 self.cameraModel.switchFlash()
-            }
+
+            })
             if hasMediaToImport {
                 HStack {
                     Text(L10n.finishImportingMedia)
@@ -269,9 +255,6 @@ struct CameraView: View {
                         }.primaryButton()
                     }
                 }
-            }
-            if FeatureToggle.isEnabled(feature: .enableVideo) {
-                cameraModePicker
             }
             bottomButtonPanel
         }
@@ -298,20 +281,6 @@ struct CameraView: View {
     }
 }
 
-private extension CameraView {
-    
-    var cameraModePicker: some View {
-        CameraModePicker(pressedAction: { mode in
-        })
-        .onReceive(cameraModeStateModel.$selectedMode) { newValue in
-            cameraModel.selectedCameraMode = newValue
-        }
-        .environmentObject(cameraModeStateModel)
-        
-    }
-    
-}
-
 extension AVCaptureDevice.FlashMode {
     
     var systemIconForMode: String {
@@ -332,7 +301,7 @@ extension AVCaptureDevice.FlashMode {
         case .auto, .on:
             return .yellow
         default:
-            return .foregroundPrimary
+            return .white
         }
     }
 }
