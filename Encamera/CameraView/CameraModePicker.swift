@@ -32,14 +32,14 @@ enum CameraModeSelection: Int, CaseIterable {
 }
 
 private enum Constants {
-    static let viewportSize: CGFloat = 200
+    static let viewportSize: CGFloat = 120
     static let visibleWidthOfHiddenCard: CGFloat = 20
     static let spacing: CGFloat = 16
     static var cardWidth: CGFloat {
         viewportSize - (visibleWidthOfHiddenCard*2) - (spacing*2)
     }
     static let snapTolerance: CGFloat = 50
-    static let heightShrink: CGFloat = 0.70
+    static let heightShrink: CGFloat = 0.80
     static let cardHeight: CGFloat = 40
 }
 
@@ -61,11 +61,11 @@ struct CameraModePicker: View {
                         }
                     ) {
                         let itemActive = item.rawValue == stateModel.activeIndex
-                        let foreground = itemActive ? Color.activeCameraMode : Color.foregroundPrimary
+                        let foreground = itemActive ? Color.activeCameraMode : Color.gray.opacity(0.8)
                         Text(item.title)
-                            .fontType(.small)
                             .foregroundColor(foreground)
-                        
+                            .fontType(.pt12, weight: .bold)
+
                     }
                     .transition(AnyTransition.slide)
                     .animation(.spring())

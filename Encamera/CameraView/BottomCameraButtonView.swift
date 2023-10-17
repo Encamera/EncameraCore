@@ -15,24 +15,25 @@ struct BottomCameraButtonView: View {
         static var innerCaptureButtonStroke: Double = 0.8
         static var innerCaptureButtonSize = Constants.minCaptureButtonEdge * 0.85
         static var thumbnailSide = 40.0
+        static var trailing = 24.0
     }
     @ObservedObject var cameraModel: CameraModel
     var cameraModeStateModel: CameraModeStateModel
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
 
             CameraModePicker()
-
             HStack {
                 capturedPhotoThumbnail
-
                 captureButton
+                    .padding(7)
                     .frame(maxWidth: .infinity)
-                    .padding()
                 flipCameraButton
             }
-            .padding(.horizontal, Constants.thumbnailSide)
+            .padding(.leading, Constants.thumbnailSide)
+            .padding(.trailing, Constants.trailing)
+//            Spacer()
         }
         .background(.ultraThinMaterial)
         .environmentObject(cameraModeStateModel)
