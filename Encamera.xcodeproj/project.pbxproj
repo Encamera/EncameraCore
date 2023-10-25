@@ -88,7 +88,7 @@
 		A74281B97A34B8875ACC3477 /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4E3AE2C8A473E74CE2D40B6F /* EncameraCore */; };
 		A8A274F962EBFC8E83AFF73B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7CAE239AD061BB95D7E1C52A /* Localizable.strings */; };
 		A8CF1328AD8BE2D1DC0599E9 /* AddExchangedKeyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */; };
-		AACB64F8B3E0692251214E0D /* KeyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */; };
+		AACB64F8B3E0692251214E0D /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6EE61019CCAAEDC6D221A5D /* AlbumDetailView.swift */; };
 		AC972FB4992D0382B145AFB0 /* TutorialCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98E3603108C8C52D93454589 /* TutorialCardView.swift */; };
 		ACC448F8AA2707A93D2B9167 /* 1.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 8661160CC93C7FDBB741D152 /* 1.JPG */; };
 		AD8F6464844061B17FAFE50E /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DC9B1566E5F63DD273CBCA /* OnboardingView.swift */; };
@@ -275,7 +275,7 @@
 		D4DDF93C2E1725BC42C2CE84 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D51D9B421BB280892A96B442 /* MainOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainOnboardingView.swift; sourceTree = "<group>"; };
 		D6758B0A04FA196EDAF9CA1F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyDetailView.swift; sourceTree = "<group>"; };
+		D6EE61019CCAAEDC6D221A5D /* AlbumDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetailView.swift; sourceTree = "<group>"; };
 		D6F2E71821680D09E037004E /* 4.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 4.JPG; sourceTree = "<group>"; };
 		D85AFFF69DE741F555B05A79 /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = debug.xcconfig; sourceTree = "<group>"; };
 		D9E040DE4298869CF563F016 /* DecryptErrorExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptErrorExplanation.swift; sourceTree = "<group>"; };
@@ -557,7 +557,7 @@
 			isa = PBXGroup;
 			children = (
 				94262B2EA964DE025E48BD4A /* AddExchangedKeyConfirmation.swift */,
-				D6EE61019CCAAEDC6D221A5D /* KeyDetailView.swift */,
+				D6EE61019CCAAEDC6D221A5D /* AlbumDetailView.swift */,
 				A5E2FA1268C0C6B4843E6E57 /* KeyEntry.swift */,
 				59D9962EDE6F5712DA02FF64 /* KeyExchange.swift */,
 				E26C4CC1724CE208C558D81E /* KeyGeneration.swift */,
@@ -887,7 +887,7 @@
 				19E280002AE9367900F77AC0 /* MainHomeView.swift in Sources */,
 				342DE7FCAC5068FCEA226818 /* ImageStepIndicator.swift in Sources */,
 				3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */,
-				AACB64F8B3E0692251214E0D /* KeyDetailView.swift in Sources */,
+				AACB64F8B3E0692251214E0D /* AlbumDetailView.swift in Sources */,
 				19E280042AE9401B00F77AC0 /* GradientBackground.swift in Sources */,
 				E0D2C3611EF60B4DFE85F4D8 /* KeyEntry.swift in Sources */,
 				7B124E21D239AA4744DC0168 /* KeyExchange.swift in Sources */,

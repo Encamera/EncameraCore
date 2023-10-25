@@ -10,7 +10,7 @@ import EncameraCore
 import Combine
 
 
-class KeyDetailViewModel: ObservableObject {
+class AlbumDetailViewModel: ObservableObject {
     
     enum KeyViewerError {
         case couldNotSetKeychain
@@ -105,12 +105,12 @@ class KeyDetailViewModel: ObservableObject {
     }
 }
 
-struct KeyDetailView: View {
+struct AlbumDetailView: View {
     
     @State var isShowingAlertForClearKey: Bool = false
     @State var isShowingAlertForDeleteAllKeyData: Bool = false
     @State var isShowingAlertForCopyKey: Bool = false
-    @StateObject var viewModel: KeyDetailViewModel
+    @StateObject var viewModel: AlbumDetailViewModel
     
     @Environment(\.dismiss) var dismiss
     
@@ -241,7 +241,7 @@ struct KeyDetailView: View {
 //    static var previews: some View {
 //        NavigationView {
 //
-//            KeyDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
+//            AlbumDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
 //        }
 //    }
 //}

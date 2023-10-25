@@ -109,7 +109,7 @@ struct AlbumGrid: View {
 
                             ForEach(viewModel.keys, id: \.id) { key in
                                 NavigationLink {
-                                    KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
+                                    AlbumDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
                                 } label: {
                                     AlbumGridItem(key: key, width: side)
                                 }
