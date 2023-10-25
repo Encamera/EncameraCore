@@ -68,7 +68,7 @@ struct CameraModePicker: View {
 
                     }
                     .transition(AnyTransition.slide)
-                    .animation(.spring())
+                    .animation(.spring, value: stateModel.selectedMode)
                 }
             }
         }

@@ -29,6 +29,7 @@
 		19E280042AE9401B00F77AC0 /* GradientBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E280032AE9401B00F77AC0 /* GradientBackground.swift */; };
 		19E280072AE9436900F77AC0 /* ConditionalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E280062AE9436900F77AC0 /* ConditionalModifier.swift */; };
 		19E280092AE96C0400F77AC0 /* AlbumGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E280082AE96C0400F77AC0 /* AlbumGrid.swift */; };
+		19E2800B2AE9765E00F77AC0 /* AlbumBaseGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E2800A2AE9765E00F77AC0 /* AlbumBaseGridItem.swift */; };
 		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
 		1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */; };
@@ -182,6 +183,7 @@
 		19E280032AE9401B00F77AC0 /* GradientBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientBackground.swift; sourceTree = "<group>"; };
 		19E280062AE9436900F77AC0 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
 		19E280082AE96C0400F77AC0 /* AlbumGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumGrid.swift; sourceTree = "<group>"; };
+		19E2800A2AE9765E00F77AC0 /* AlbumBaseGridItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumBaseGridItem.swift; sourceTree = "<group>"; };
 		1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Black.otf"; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -566,6 +568,7 @@
 				661F4FF6682E53B6870C8665 /* AlbumCell.swift */,
 				F4BA0FED66DCF9A54E46648C /* AlbumGridItem.swift */,
 				19E280082AE96C0400F77AC0 /* AlbumGrid.swift */,
+				19E2800A2AE9765E00F77AC0 /* AlbumBaseGridItem.swift */,
 			);
 			path = AlbumManagement;
 			sourceTree = "<group>";
@@ -887,6 +890,7 @@
 				19E280002AE9367900F77AC0 /* MainHomeView.swift in Sources */,
 				342DE7FCAC5068FCEA226818 /* ImageStepIndicator.swift in Sources */,
 				3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */,
+				19E2800B2AE9765E00F77AC0 /* AlbumBaseGridItem.swift in Sources */,
 				AACB64F8B3E0692251214E0D /* AlbumDetailView.swift in Sources */,
 				19E280042AE9401B00F77AC0 /* GradientBackground.swift in Sources */,
 				E0D2C3611EF60B4DFE85F4D8 /* KeyEntry.swift in Sources */,

@@ -9,9 +9,6 @@ import SwiftUI
 import Combine
 import EncameraCore
 
-actor KeyInfoFetcher {
-    
-}
 class AlbumGridItemModel: ObservableObject {
     
     var fileReader: FileReader = DiskFileAccess()
@@ -21,6 +18,8 @@ class AlbumGridItemModel: ObservableObject {
     }
     
     @Published var countOfMedia: Int = 0
+    @Published var imageCount: Int?
+    @Published var leadingImage: UIImage?
 
     init(key: PrivateKey) {
         Task {
@@ -34,82 +33,44 @@ class AlbumGridItemModel: ObservableObject {
         self.countOfMedia = storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension, MediaType.video.fileExtension]) ?? 0
 
     }
-}
-struct GeneralPurposeView: View {
 
-    @State var image: Image?
-    var title: String
-    var subheading: String?
-    var width: CGFloat
-    var strokeStyle: StrokeStyle? = nil
-    var shouldResizeImage: Bool = true
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Rectangle()
-                .stroke(style: strokeStyle ?? StrokeStyle(lineWidth: 0))
-                .background {
-                if let image = image {
-                    if shouldResizeImage {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } else {
-                        image
-                    }
-
-                } else {
-                    Color.inputFieldBackgroundColor // replace with an actual color or view
+    func load() async throws {
+        
+        do {
+            let thumb = try await fileReader.loadLeadingThumbnail()
+            await MainActor.run {
+                self.imageCount = countOfMedia
+                if let thumb {
+                    self.leadingImage = thumb
                 }
             }
-            .frame(width: width, height: width)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .circular))
-            .padding(.bottom, 12)
-
-
-            Text(title)
-                .fontType(.pt14, weight: .bold) // replace with actual font
-
-//            if let subheading = subheading {
-                Text(subheading ?? "")
-                .lineLimit(1, reservesSpace: true)
-                    .fontType(.pt14) // replace with actual font
-//            }
+        } catch {
+            debugPrint("Error in load function: \(error)")
         }
     }
 }
+
 struct AlbumGridItem: View {
 
-    @ObservedObject var viewModel: AlbumGridItemModel
-    @State var imageCount: Int?
-    @State var leadingImage: UIImage?
+    @StateObject var viewModel: AlbumGridItemModel
     var keyName: String
     var width: CGFloat
 
     init(key: PrivateKey, width: CGFloat) {
         keyName = key.name
-        self.viewModel = AlbumGridItemModel(key: key)
+        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(key: key))
         self.width = width
-    }
-
-    func load() {
-        Task {
-            let thumb = try await viewModel.fileReader.loadLeadingThumbnail()
-            await MainActor.run {
-                self.imageCount = viewModel.countOfMedia
-                self.leadingImage = thumb
-            }
-        }
     }
 
     var body: some View {
         
-        GeneralPurposeView(image: leadingImage != nil ? Image(uiImage: leadingImage!) : nil,
-                           title: keyName,
-                           subheading: imageCount != nil ? "\(imageCount!) items" : nil,
-                           width: width)
+        AlbumBaseGridItem(uiImage: viewModel.leadingImage,
+                          title: keyName,
+                          subheading: viewModel.imageCount != nil ? "\(viewModel.imageCount!) items" : nil,
+                          width: width)
             .task {
-                load()
+
+                try? await viewModel.load()
             }
     }
 }
