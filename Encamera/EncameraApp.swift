@@ -11,7 +11,6 @@ struct EncameraApp: App {
         @Published var promptToSaveMedia: Bool = false
         var fileAccess: FileAccess = DiskFileAccess()
         var appGroupFileAccess = AppGroupFileReader()
-        @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
         @Published var showOnboarding = false
@@ -19,11 +18,8 @@ struct EncameraApp: App {
         @Published var hasMediaToImport = false
         @Published var showImportedMediaScreen = false
         @Published var shouldShowTweetScreen: Bool = false
-        @Published var showCamera: Bool = false
         var openedUrl: URL?
         var keyManager: KeyManager
-        var cameraService: CameraConfigurationService
-        var cameraServiceModel = CameraConfigurationServiceModel()
         var onboardingManager: OnboardingManager
         var storageSettingsManager: DataStorageSetting = DataStorageUserDefaultsSetting()
         var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
@@ -36,7 +32,6 @@ struct EncameraApp: App {
             try? AVAudioSession.sharedInstance().setActive(true)
 
             self.settingsManager = SettingsManager()
-            self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
             let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher, keyDirectoryStorage: storageSettingsManager)
             
@@ -55,7 +50,6 @@ struct EncameraApp: App {
                 .receive(on: DispatchQueue.main)
                 .sink { value in
                 self.isAuthenticated = value
-                    self.showCamera = value
             }.store(in: &cancellables)
             
             do {
@@ -186,7 +180,13 @@ struct EncameraApp: App {
     var body: some Scene {
         
         WindowGroup {
-            AlbumGrid(viewModel: .init(keyManager: viewModel.keyManager, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess))
+            MainHomeView(viewModel: .init(
+                fileAccess: viewModel.fileAccess,
+                keyManager: viewModel.keyManager,
+                storageSettingsManager: viewModel.storageSettingsManager,
+                purchasedPermissions: viewModel.purchasedPermissions,
+                settingsManager: viewModel.settingsManager,
+                authManager: viewModel.authManager))
                 .preferredColorScheme(.dark)
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     openUrlSheet
