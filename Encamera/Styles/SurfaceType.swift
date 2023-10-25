@@ -23,7 +23,7 @@ extension SurfaceType {
         case .background:
             return .foregroundPrimary
         case .darkBackground:
-            return .foregroundSecondary
+            return .foregroundPrimary
         case .primaryButton:
             return .primaryButtonForeground
         case .textButton:

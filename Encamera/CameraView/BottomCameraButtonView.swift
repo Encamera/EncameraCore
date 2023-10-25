@@ -36,8 +36,6 @@ struct BottomCameraButtonView: View {
                     .padding(7)
                     .frame(maxWidth: .infinity)
             }
-
-//            Spacer()
         }
         .background(.ultraThinMaterial)
         .environmentObject(cameraModeStateModel)

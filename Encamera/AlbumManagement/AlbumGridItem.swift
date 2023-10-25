@@ -184,7 +184,7 @@ struct AlbumGrid: View {
                     GridItem(.fixed(side), spacing: spacing),
                     GridItem(.fixed(side))
                 ]
-                ScrollView {
+                ScrollView(showsIndicators: false) {
 
                     if !viewModel.isKeyTutorialClosed {
                         VStack(alignment: .leading) {
@@ -196,21 +196,21 @@ struct AlbumGrid: View {
                     LazyVGrid(columns: columns, spacing: spacing) {
                         Group {
                             let createNewKeyActive = Binding<Bool> {
-                                    viewModel.isShowingAddKeyView
-                                } set: { newValue in
-                                    viewModel.isShowingAddKeyView = newValue
-                                }
-                                NavigationLink(isActive: createNewKeyActive) {
-                                    if viewModel.shouldShowPurchaseScreenForKeys {
-                                        ProductStoreView(showDismissButton: false)
+                                viewModel.isShowingAddKeyView
+                            } set: { newValue in
+                                viewModel.isShowingAddKeyView = newValue
+                            }
+                            NavigationLink(isActive: createNewKeyActive) {
+                                if viewModel.shouldShowPurchaseScreenForKeys {
+                                    ProductStoreView(showDismissButton: false)
 
-                                    } else {
-                                        KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
-                                    }
-                                } label: {
-                                    GeneralPurposeView(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [10], dashPhase: 0.0), shouldResizeImage: false)
-
+                                } else {
+                                    KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
                                 }
+                            } label: {
+                                GeneralPurposeView(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [10], dashPhase: 0.0), shouldResizeImage: false)
+
+                            }
 
 
                             ForEach(viewModel.keys, id: \.id) { key in
@@ -224,6 +224,7 @@ struct AlbumGrid: View {
                         }.frame(height: side + 60)
                     }
                 }
+
                 .screenBlocked()
             }
             .onAppear {

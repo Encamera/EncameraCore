@@ -12,9 +12,10 @@ struct BottomNavigationBar: View {
     enum ButtonItem {
         case albums
         case settings
+        case camera
     }
 
-    @State var selectedItem: ButtonItem = .albums
+    @Binding var selectedItem: ButtonItem
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -31,7 +32,7 @@ struct BottomNavigationBar: View {
             .alignmentGuide(.bottom, computeValue: { dimension in
                 dimension[VerticalAlignment.center]
             })
-            .background(Color.black.opacity(0.5))
+            .background(.ultraThinMaterial)
             .clipShape(CustomClipShape(
                 cornerRadius: Constants.cornerRadius,
                 circleRadius: Constants.radius,
@@ -39,6 +40,7 @@ struct BottomNavigationBar: View {
             ))
 
             Button {
+                selectedItem = .camera
             } label: {
                 ZStack {
                     Circle()
@@ -59,7 +61,7 @@ struct BottomNavigationBar: View {
             HStack(spacing: 8) {
                 image
                 Text(text)
-                    .fontType(.pt14, on: .darkBackground,  weight: .bold)
+                    .fontType(.pt14, on: .darkBackground, weight: .bold)
             }.opacity(selectedItem == item ? 1.0 : 0.5)
 
         }
@@ -101,7 +103,7 @@ struct BottomNavigationBar: View {
             .gradientBackground()
         VStack {
             Spacer()
-            BottomNavigationBar(selectedItem: .albums)
+            BottomNavigationBar(selectedItem: .constant(.albums))
         }
     }.ignoresSafeArea()
 }

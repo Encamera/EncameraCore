@@ -12,12 +12,14 @@ struct CameraView: View {
         static var innerCaptureButtonSize = Constants.minCaptureButtonEdge * 0.8
     }
     
+
     @StateObject var cameraModel: CameraModel
     @State var cameraModeStateModel = CameraModeStateModel()
     @GestureState var magnificationGesture = false
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
     @Environment(\.dismiss) var dismiss
+    var closeButtonTapped: () -> Void
 
     
     private var captureButton: some View {
@@ -206,7 +208,7 @@ struct CameraView: View {
             }
             TopCameraControlsView(viewModel: .init(), isRecordingVideo: $cameraModel.isRecordingVideo,
                                   recordingDuration: $cameraModel.recordingDuration, currentAlbumName: currentKeyName, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
-                dismiss()
+                closeButtonTapped()
             }, flashButtonPressed: {
                 self.cameraModel.switchFlash()
 
@@ -293,7 +295,9 @@ struct CameraView_Previews: PreviewProvider {
             storageSettingsManager: DemoStorageSettingsManager(),
             purchaseManager: DemoPurchasedPermissionManaging()
         )
-        CameraView(cameraModel: model, hasMediaToImport: .constant(true))
+        CameraView(cameraModel: model, hasMediaToImport: .constant(true), closeButtonTapped: {
+            
+        })
             .preferredColorScheme(.dark)
     }
 }
