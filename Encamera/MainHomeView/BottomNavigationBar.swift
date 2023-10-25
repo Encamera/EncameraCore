@@ -9,20 +9,23 @@ import SwiftUI
 
 struct BottomNavigationBar: View {
 
+    enum ButtonItem {
+        case albums
+        case settings
+    }
 
-    
-
+    @State var selectedItem: ButtonItem = .albums
 
     var body: some View {
-                ZStack(alignment: .bottom) {
+        ZStack(alignment: .bottom) {
 
             VStack {
                 HStack {
-                    barItem(image: Image("BottomNavigation-Albums"), text: "Albums", isSelected: false)
+                    barItem(image: Image("BottomNavigation-Albums"), text: "Albums", item: .albums)
                     Spacer()
-                    barItem(image: Image("BottomNavigation-Settings"), text: "Settings", isSelected: true)
+                    barItem(image: Image("BottomNavigation-Settings"), text: "Settings", item: .settings)
                 }
-                .padding()
+                .padding(.init(top: 15.0, leading: 35.0, bottom: 15.0, trailing: 35.0))
                 Spacer().frame(height: getSafeAreaBottom())
             }
             .alignmentGuide(.bottom, computeValue: { dimension in
@@ -49,15 +52,17 @@ struct BottomNavigationBar: View {
     }
 
     @ViewBuilder
-    private func barItem(image: Image, text: String, isSelected: Bool) -> some View {
-        HStack(spacing: 8) {
+    private func barItem(image: Image, text: String, item: ButtonItem) -> some View {
+        Button {
+            selectedItem = item
+        } label: {
+            HStack(spacing: 8) {
+                image
+                Text(text)
+                    .fontType(.pt14, on: .darkBackground,  weight: .bold)
+            }.opacity(selectedItem == item ? 1.0 : 0.5)
 
-            image
-
-            Text(text)
-                .fontType(.pt14, on: .darkBackground,  weight: .bold)
-
-        }.opacity(isSelected ? 0.5 : 1.0)
+        }
     }
 
     private enum Constants {
@@ -75,14 +80,14 @@ struct BottomNavigationBar: View {
             var path = Path()
 
             path.addRoundedRect(in: rect, cornerSize: CGSize(width: cornerRadius, height: cornerRadius))
-
-            let circleRect = CGRect(x: rect.midX - circleRadius - circlePadding,
-                                    y: -(circleRadius/2 + circlePadding),
-                                    width: circleRadius * 2 + circlePadding * 2,
-                                    height: circleRadius * 2 + circlePadding * 2)
-            if #available(iOS 17.0, *) {
-                return path.subtracting(Path(ellipseIn: circleRect))
-            }
+            //probably need to use geo reader to get the proper position of this in the parent view
+//            if #available(iOS 17.0, *) {
+//                let circleRect = CGRect(x: rect.midX - circleRadius - circlePadding,
+//                                        y: -(circleRadius + circlePadding),
+//                                        width: circleRadius * 2 + circlePadding * 2,
+//                                        height: circleRadius * 2 + circlePadding * 2)
+//                return path.subtracting(Path(ellipseIn: circleRect))
+//            }
 
             return path
         }
@@ -90,15 +95,13 @@ struct BottomNavigationBar: View {
 
 }
 
-
-
 #Preview {
     ZStack {
         Color.orange
             .gradientBackground()
         VStack {
             Spacer()
-            BottomNavigationBar()
-        }.ignoresSafeArea()
-    }
+            BottomNavigationBar(selectedItem: .albums)
+        }
+    }.ignoresSafeArea()
 }
