@@ -175,7 +175,22 @@ struct EncameraApp: App {
 //            shouldShowTweetScreen = shouldShow
         }
     }
-    
+    init() {
+        _viewModel = StateObject(wrappedValue: .init())
+        let appear = UINavigationBar.appearance().standardAppearance
+
+        let atters: [NSAttributedString.Key: Any] = [
+            .font: UIFont(name: "Satoshi-Bold", size: 24)!
+        ]
+
+        appear.largeTitleTextAttributes = atters
+        appear.titleTextAttributes = atters
+        UINavigationBar.appearance().standardAppearance = appear
+        UINavigationBar.appearance().compactAppearance = appear
+        UINavigationBar.appearance().scrollEdgeAppearance = appear
+
+    }
+
     @StateObject var viewModel: ViewModel = .init()
     var body: some Scene {
         

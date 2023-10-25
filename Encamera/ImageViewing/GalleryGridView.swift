@@ -161,7 +161,6 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                     .animation(.easeIn, value: viewModel.blurImages)
                 }
                 
-                
                 NavigationLink(isActive: $viewModel.showingCarousel) {
                     if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
                         

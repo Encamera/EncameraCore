@@ -47,7 +47,7 @@ class MainHomeViewViewModel: ObservableObject {
         self.authManager = authManager
         self.settingsManager = SettingsManager()
         self.cameraService = CameraConfigurationService(model: cameraServiceModel)
-        self.authManager = DeviceAuthManager(settingsManager: settingsManager)
+        self.authManager = authManager
         let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher, keyDirectoryStorage: storageSettingsManager)
 
         self.keyManager = manager
@@ -64,30 +64,32 @@ struct MainHomeView: View {
     @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            if selectedNavigationItem == .camera {
-                CameraView(cameraModel: .init(
-                    keyManager: viewModel.keyManager,
-                    authManager: viewModel.authManager,
-                    cameraService: viewModel.cameraService,
-                    fileAccess: viewModel.fileAccess,
-                    storageSettingsManager: viewModel.storageSettingsManager,
-                    purchaseManager: viewModel.purchasedPermissions
-                ), hasMediaToImport: $viewModel.hasMediaToImport) {
-                    selectedNavigationItem = .albums
-                }
-            } else {
-                if selectedNavigationItem == .settings {
-                    SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
+        NavigationStack {
+            ZStack(alignment: .bottom) {
+                if selectedNavigationItem == .camera {
+                    CameraView(cameraModel: .init(
+                        keyManager: viewModel.keyManager,
+                        authManager: viewModel.authManager,
+                        cameraService: viewModel.cameraService,
+                        fileAccess: viewModel.fileAccess,
+                        storageSettingsManager: viewModel.storageSettingsManager,
+                        purchaseManager: viewModel.purchasedPermissions
+                    ), hasMediaToImport: $viewModel.hasMediaToImport) {
+                        selectedNavigationItem = .albums
+                    }
                 } else {
-                    AlbumGrid(viewModel: .init(keyManager: viewModel.keyManager, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess))
+                    if selectedNavigationItem == .settings {
+                        SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
+                    } else {
+                        AlbumGrid(viewModel: .init(keyManager: viewModel.keyManager, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess))
+                    }
+                    BottomNavigationBar(selectedItem: $selectedNavigationItem)
                 }
-                BottomNavigationBar(selectedItem: $selectedNavigationItem)
             }
+            .toolbar(.hidden)
+            .ignoresSafeArea(edges: .bottom)
+            .gradientBackground()
         }
-        .ignoresSafeArea(edges: .bottom)
-        .gradientBackground()
-        
     }
 }
 

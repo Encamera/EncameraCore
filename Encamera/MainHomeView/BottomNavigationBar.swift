@@ -27,17 +27,21 @@ struct BottomNavigationBar: View {
                     barItem(image: Image("BottomNavigation-Settings"), text: "Settings", item: .settings)
                 }
                 .padding(.init(top: 15.0, leading: 35.0, bottom: 15.0, trailing: 35.0))
-                Spacer().frame(height: getSafeAreaBottom())
+                Spacer().frame(height: 0) // Removed the extra space for safe area
             }
             .alignmentGuide(.bottom, computeValue: { dimension in
                 dimension[VerticalAlignment.center]
             })
-            .background(.ultraThinMaterial)
+
             .clipShape(CustomClipShape(
                 cornerRadius: Constants.cornerRadius,
                 circleRadius: Constants.radius,
                 circlePadding: Constants.circlePadding
             ))
+            .padding(.bottom, getSafeAreaBottom()) // Add padding for the safe area
+            .background(
+                .ultraThinMaterial
+            )
 
             Button {
                 selectedItem = .camera
@@ -52,6 +56,7 @@ struct BottomNavigationBar: View {
 
         }
     }
+
 
     @ViewBuilder
     private func barItem(image: Image, text: String, item: ButtonItem) -> some View {
