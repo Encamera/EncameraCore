@@ -135,7 +135,7 @@ struct CameraView: View {
             .screenBlocked()
             .alert(isPresented: $cameraModel.showAlertForMissingKey) {
                 Alert(title: Text(L10n.noKeySelected), message: Text(L10n.youDonTHaveAnActiveKeySelectedSelectOneToContinueSavingMedia), primaryButton: .default(Text(L10n.keySelection)) {
-                    cameraModel.showingKeySelection = true
+                    cameraModel.showingAlbum = true
                 }, secondaryButton: .cancel())
             }
             .sheet(isPresented: $cameraModel.showStoreSheet) {

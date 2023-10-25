@@ -86,7 +86,7 @@ struct TopCameraControlsView: View {
 
 //struct TopCameraControlsView_Previews: PreviewProvider {
 //    static var previews: some View {
-//        TopCameraControlsView(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging()), showingKeySelection: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("DefaultKey"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
+//        TopCameraControlsView(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging()), showingAlbum: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("DefaultKey"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
 //            .preferredColorScheme(.dark)
 //    }
 //}

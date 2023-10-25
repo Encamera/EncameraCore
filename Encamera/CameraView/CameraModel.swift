@@ -40,7 +40,7 @@ final class CameraModel: NSObject, ObservableObject {
     
     // View showing
     @Published var showGalleryView: Bool = false
-    @Published var showingKeySelection = false
+    @Published var showingAlbum = false
     @Published var showAlertForMissingKey = false
     @Published var showStoreSheet = false
     @Published var showSettingsScreen = false

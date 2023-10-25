@@ -1,5 +1,5 @@
 //
-//  KeySelectionGridItem.swift
+//  AlbumGridItem.swift
 //  Encamera
 //
 //  Created by Alexander Freas on 28.11.22.
@@ -12,7 +12,7 @@ import EncameraCore
 actor KeyInfoFetcher {
     
 }
-class KeySelectionGridItemModel: ObservableObject {
+class AlbumGridItemModel: ObservableObject {
     
     var fileReader: FileReader = DiskFileAccess()
     var storageModel: DataStorageModel?
@@ -78,9 +78,9 @@ struct GeneralPurposeView: View {
         }
     }
 }
-struct KeySelectionGridItem: View {
+struct AlbumGridItem: View {
 
-    @ObservedObject var viewModel: KeySelectionGridItemModel
+    @ObservedObject var viewModel: AlbumGridItemModel
     @State var imageCount: Int?
     @State var leadingImage: UIImage?
     var keyName: String
@@ -88,7 +88,7 @@ struct KeySelectionGridItem: View {
 
     init(key: PrivateKey, width: CGFloat) {
         keyName = key.name
-        self.viewModel = KeySelectionGridItemModel(key: key)
+        self.viewModel = AlbumGridItemModel(key: key)
         self.width = width
     }
 
@@ -115,7 +115,7 @@ struct KeySelectionGridItem: View {
 }
 
 
-class KeySelectionGridViewModel: ObservableObject {
+class AlbumGridViewModel: ObservableObject {
     @Published var keys: [PrivateKey] = []
     @Published var activeKey: PrivateKey?
     var keyManager: KeyManager
@@ -145,7 +145,7 @@ class KeySelectionGridViewModel: ObservableObject {
     }
     
     func loadKeys() {
-        UserDefaultUtils.set(true, forKey: .hasOpenedKeySelection)
+        UserDefaultUtils.set(true, forKey: .hasOpenedAlbum)
         self.keys = (try? keyManager.storedKeys().filter({ keyManager.currentKey != $0 })) ?? []
         if let activeKey = keyManager.currentKey {
             self.activeKey = keyManager.currentKey
@@ -165,10 +165,10 @@ class KeySelectionGridViewModel: ObservableObject {
 }
 
 
-struct KeySelectionGrid: View {
+struct AlbumGrid: View {
     
     
-    @StateObject var viewModel: KeySelectionGridViewModel
+    @StateObject var viewModel: AlbumGridViewModel
     
     
     var body: some View {
@@ -217,7 +217,7 @@ struct KeySelectionGrid: View {
                                 NavigationLink {
                                     KeyDetailView(viewModel: .init(keyManager: viewModel.keyManager, key: key))
                                 } label: {
-                                    KeySelectionGridItem(key: key, width: side)
+                                    AlbumGridItem(key: key, width: side)
                                 }
                             }
 
@@ -236,10 +236,10 @@ struct KeySelectionGrid: View {
     
 }
 
-struct KeySelectionGridItem_Previews: PreviewProvider {
+struct AlbumGridItem_Previews: PreviewProvider {
     static var previews: some View {
         
-        KeySelectionGrid(viewModel: .init(keyManager: DemoKeyManager(keys: [            DemoPrivateKey.dummyKey(name: "cats and their people"),
+        AlbumGrid(viewModel: .init(keyManager: DemoKeyManager(keys: [            DemoPrivateKey.dummyKey(name: "cats and their people"),
                                                          DemoPrivateKey.dummyKey(name: "dogs"),
                                                          DemoPrivateKey.dummyKey(name: "rats"),
                                                          DemoPrivateKey.dummyKey(name: "mice"),

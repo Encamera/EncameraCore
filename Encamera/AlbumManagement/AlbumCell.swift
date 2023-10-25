@@ -1,5 +1,5 @@
 //
-//  KeySelectionCell.swift
+//  AlbumCell.swift
 //  Encamera
 //
 //  Created by Alexander Freas on 23.06.22.
@@ -8,7 +8,7 @@
 import SwiftUI
 import EncameraCore
 
-class KeySelectionCellViewModel: ObservableObject {
+class AlbumCellViewModel: ObservableObject {
     
     var isActive: Bool
     var key: PrivateKey
@@ -21,9 +21,9 @@ class KeySelectionCellViewModel: ObservableObject {
     }
 }
 
-struct KeySelectionCell: View {
+struct AlbumCell: View {
     
-    @StateObject var viewModel: KeySelectionCellViewModel
+    @StateObject var viewModel: AlbumCellViewModel
     
     var body: some View {
         HStack {
@@ -57,8 +57,8 @@ struct KeySelectionCell: View {
     }
 }
 
-struct KeySelectionCell_Previews: PreviewProvider {
+struct AlbumCell_Previews: PreviewProvider {
     static var previews: some View {
-        KeySelectionCell(viewModel: .init(key: PrivateKey(name: "secrets", keyBytes: [], creationDate: Date()), isActive: true, imageCount: 32))
+        AlbumCell(viewModel: .init(key: PrivateKey(name: "secrets", keyBytes: [], creationDate: Date()), isActive: true, imageCount: 32))
     }
 }
