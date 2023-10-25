@@ -169,7 +169,7 @@ struct TopBarView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(alignment: .leading)
-                        .fontType(.pt18, on: .elevated)
+                        .fontType(.pt18, on: .darkBackground)
                     Spacer().frame(width: 10)
                 }
                 

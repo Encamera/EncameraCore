@@ -50,7 +50,7 @@ struct ExplanationForUpgradeTutorial: View, TutorialView {
                         }
                         
                     }
-                }.primaryButton(on: .elevated)
+                }.primaryButton(on: .darkBackground)
             }
         }
         .padding()

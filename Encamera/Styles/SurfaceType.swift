@@ -10,7 +10,7 @@ import SwiftUI
 
 enum SurfaceType {
     case background
-    case elevated
+    case darkBackground
     case primaryButton
     case textButton
     case selectedStorageButton
@@ -22,7 +22,7 @@ extension SurfaceType {
         switch self {
         case .background:
             return .foregroundPrimary
-        case .elevated:
+        case .darkBackground:
             return .foregroundSecondary
         case .primaryButton:
             return .primaryButtonForeground
@@ -39,7 +39,7 @@ extension SurfaceType {
             return .background
         case .primaryButton:
             return .actionYellowGreen
-        case .elevated:
+        case .darkBackground:
             return .foregroundPrimary
         case .textButton:
             return .clear

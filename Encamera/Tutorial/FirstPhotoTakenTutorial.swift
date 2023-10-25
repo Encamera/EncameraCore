@@ -26,7 +26,7 @@ struct FirstPhotoTakenTutorial: View, TutorialView {
                         shouldShow = false
                     }
                     
-                }.primaryButton(on: .elevated)
+                }.primaryButton(on: .darkBackground)
             }
         }
         .padding()

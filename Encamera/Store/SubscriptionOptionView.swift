@@ -36,7 +36,7 @@ struct SubscriptionOptionView: View {
                 
                 if isSubscribed {
                     Text(L10n.subscribed)
-                        .fontType(.pt14, on: .elevated)
+                        .fontType(.pt14, on: .darkBackground)
                         .textPill(color: .green)
                 }
                 
@@ -51,7 +51,7 @@ struct SubscriptionOptionView: View {
                     .fontType(.pt18)
                  if let savingsText = savingsText, !isSubscribed {
                      Text(applyKerning(to: "/()", in: savingsText))
-                         .fontType(.pt14, on: .elevated)
+                         .fontType(.pt14, on: .darkBackground)
                          .textPill(color: .green)
                  }
             }

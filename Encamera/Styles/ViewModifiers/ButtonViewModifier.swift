@@ -68,13 +68,13 @@ struct EncameraButton_Previews: PreviewProvider {
                 Color.foregroundSecondary.frame(width: 100, height: 100  )
                 Button("Share") {
                     
-                }.primaryButton(on: .elevated)
+                }.primaryButton(on: .darkBackground)
             }
             ZStack {
                 Color.foregroundSecondary.frame(width: 100, height: 100  )
                 Button("Destroy") {
                     
-                }.destructiveButton(on: .elevated)
+                }.destructiveButton(on: .darkBackground)
             }
         }
         .frame(maxWidth: .infinity)

@@ -214,7 +214,7 @@ struct CameraView: View {
             if hasMediaToImport {
                 HStack {
                     Text(L10n.finishImportingMedia)
-                        .fontType(.pt24, on: .elevated)
+                        .fontType(.pt24, on: .darkBackground)
                 }.frame(maxWidth: .infinity)
                     .background(Color.green)
                     .onTapGesture {

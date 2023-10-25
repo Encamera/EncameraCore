@@ -116,18 +116,7 @@ struct OnboardingView<Next>: View where Next: View {
 
             .padding(EdgeInsets(top: 0, leading: 10, bottom: 20, trailing: 10))
             .navigationBarHidden(true)
-            .background {
-                ZStack {
-                    Color.background
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Image("Onboarding-Background")
-                        }
-                    }
-                }.ignoresSafeArea()
-            }
+            .gradientBackground()
 
     }
 }

@@ -21,7 +21,7 @@ struct BuyButtonStyle: ButtonStyle {
         bgColor = configuration.isPressed ? bgColor.opacity(0.7) : bgColor.opacity(1)
 
         return configuration.label
-            .fontType(.pt18, on: .elevated)
+            .fontType(.pt18, on: .darkBackground)
             .padding(10)
             .background(bgColor)
             .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))

@@ -26,7 +26,7 @@ struct PurchaseUpgradeHeaderView: View {
                         await StoreActor.shared.presentCodeRedemptionSheet()
                     }
                 }
-                .fontType(.pt18, on: .elevated)
+                .fontType(.pt18, on: .darkBackground)
                 .textPill(color: .green)
             }
             

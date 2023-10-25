@@ -128,7 +128,7 @@ struct MediaImportView: View {
                                 
                             }
                         }
-                        .primaryButton(on: .elevated)
+                        .primaryButton(on: .darkBackground)
                     }.padding()
                 } else {
                     
