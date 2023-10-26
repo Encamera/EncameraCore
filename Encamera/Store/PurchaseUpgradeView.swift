@@ -12,6 +12,52 @@ import EncameraCore
 
 typealias ProductStoreView = PurchaseUpgradeView
 
+struct FeatureIcon: View {
+    let image: Image
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .foregroundColor(.clear)
+                .frame(width: 42, height: 42)
+                .background(Color.white)
+                .cornerRadius(4)
+                .opacity(0.10)
+            image
+                .opacity(0.50)
+        }
+        .frame(width: 42, height: 42)
+    }
+}
+
+struct FeatureText: View {
+    let title: String
+    let subtitle: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: subtitle != nil ? 4 : nil) {
+            Group {
+                Text(title)
+                    .fontType(.pt14, weight: .bold)
+                    .foregroundColor(.white)
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(Font.custom("Satoshi Variable", size: 14))
+                        .foregroundColor(.white)
+                        .opacity(0.80)
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            
+        }.frame(height: 50)
+    }
+}
+
+func createFeatureRow(image: Image, title: String, subtitle: String? = nil) -> some View {
+    return HStack(alignment: .center, spacing: 12) {
+        FeatureIcon(image: image)
+        FeatureText(title: title, subtitle: subtitle)
+    }
+}
 
 struct PurchaseUpgradeView: View {
     @ObservedObject var subscriptionController: StoreSubscriptionController = StoreActor.shared.subscriptionController
@@ -24,11 +70,16 @@ struct PurchaseUpgradeView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 8) {
             PurchaseUpgradeHeaderView()
                 .frame(maxWidth: .infinity)
+            createFeatureRow(image: Image("Premium-Infinity"), title: "Unlimited Albums")
+            createFeatureRow(image: Image("Premium-Albums"), title: "Unlimited Photos")
+            createFeatureRow(image: Image("Premium-Folders"), title: "Password Protected Albums")
+            createFeatureRow(image: Image("Premium-CustomIcon"), title: "Custom Icon")
             productCellsScrollView
         }
+        .padding()
         .navigationBarTitle(L10n.upgradeToday)
         .overlay(alignment: .topTrailing) {
             if showDismissButton {
@@ -90,21 +141,8 @@ struct PurchaseUpgradeView: View {
     
     var productCellsScrollView: some View {
         ScrollView(.vertical) {
-            let subscriptions = subscriptionController.subscriptions
-            let products = productController.products
-                PurchaseUpgradeOptionsListView(
-                    subscriptions: subscriptions,
-                    products: products,
-                    purchasedProducts: productController.purchasedProducts,
-                    selectedOption: $selectedSubscription,
-                    currentActiveSubscription: currentActiveSubscription,
-                    freeUnlimitedTapped: {
-                        self.showTweetForFreeView = true
-                    }
-                )
-                .padding(.top)
-            
-        }
+
+        }.padding()
     }
 }
 
