@@ -146,9 +146,20 @@ struct AlbumDetailView: View {
         GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: viewModel.key, blurImages: false)) {
             ZStack(alignment: .leading) {
 
-                Color.inputFieldBackgroundColor.frame(height:200)
-                    .ignoresSafeArea()
+                Color.inputFieldBackgroundColor
+                    .frame(height:200)
+
                 VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image("Album-BackButton")
+                        }
+                        Spacer()
+                        Image("Album-OptionsDots")
+                    }
+                    Spacer().frame(height: 24)
                     Text(L10n.albumsTitle)
                         .fontType(.pt24, weight: .bold)
                     Spacer().frame(height: 8)
@@ -157,10 +168,9 @@ struct AlbumDetailView: View {
                     Spacer().frame(height: 24)
                     Text(L10n.addPhotos)
                         .fontType(.pt14, on: .textButton, weight: .bold)
-                }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: .zero))
+                }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
             }
         }
-
         .screenBlocked()
         .alert(L10n.copiedToClipboard, isPresented: $isShowingAlertForCopyKey, actions: {
             Button(L10n.ok) {
@@ -219,6 +229,9 @@ struct AlbumDetailView: View {
         }, message: {
             Text(viewModel.deleteActionError)
         })
+        .toolbar(.hidden)
+        .ignoresSafeArea()
+
     }
 }
 //
