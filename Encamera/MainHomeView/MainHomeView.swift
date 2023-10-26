@@ -90,6 +90,7 @@ struct MainHomeView: View {
             .ignoresSafeArea(edges: .bottom)
             .gradientBackground()
         }
+        .screenBlocked()
     }
 }
 

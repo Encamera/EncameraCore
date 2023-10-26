@@ -230,7 +230,7 @@ struct AlbumDetailView: View {
             Text(viewModel.deleteActionError)
         })
         .toolbar(.hidden)
-        .ignoresSafeArea()
+        .ignoresSafeArea(edges: .top)
 
     }
 }
