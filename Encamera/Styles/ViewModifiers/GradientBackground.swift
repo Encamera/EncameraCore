@@ -11,16 +11,23 @@ import SwiftUI
 private struct GradientBackground: ViewModifier {
     func body(content: Content) -> some View {
         content.background {
-            ZStack {
+            ZStack(alignment: .trailing) {
                 Color.background
-                VStack {
+                VStack(alignment: .leading) {
+                    Image("Background-TopLeftGradient")
+                        .resizable()
                     Spacer()
-                    HStack {
-                        Spacer()
-                        Image("Onboarding-Background")
-                    }
                 }
-            }.ignoresSafeArea()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+//                .background(Color.orange)
+
+                VStack(alignment: .trailing) {
+                    Image("Background-Contour")
+                    Image("Onboarding-Background")
+                }
+            }
+            .padding(.zero)
+            .ignoresSafeArea()
         }
     }
 }
@@ -29,4 +36,9 @@ extension View {
     func gradientBackground() -> some View {
         self.modifier(GradientBackground())
     }
+}
+
+
+#Preview {
+    Color.clear.gradientBackground()
 }
