@@ -66,7 +66,7 @@ struct AlbumGridItem: View {
         
         AlbumBaseGridItem(uiImage: viewModel.leadingImage,
                           title: keyName,
-                          subheading: viewModel.imageCount != nil ? "\(viewModel.imageCount!) items" : nil,
+                          subheading: viewModel.imageCount != nil ? L10n.imageS(viewModel.imageCount!) : nil,
                           width: width)
             .task {
 

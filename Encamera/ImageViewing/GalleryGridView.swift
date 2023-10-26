@@ -11,7 +11,7 @@ import EncameraCore
 
 @MainActor
 class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
-    
+
     var privateKey: PrivateKey
     var purchasedPermissions: PurchasedPermissionManaging
     @MainActor
@@ -32,7 +32,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     var fileAccess: FileAccess = DiskFileAccess()
     var storageSetting = DataStorageUserDefaultsSetting()
-    
+
     init(privateKey: PrivateKey,
          blurImages: Bool = false,
          showingCarousel: Bool = false,
@@ -46,10 +46,14 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
         self.showingCarousel = showingCarousel
         self.downloadPendingMediaCount = downloadPendingMediaCount
         self.carouselTarget = carouselTarget
+        #if targetEnvironment(simulator)
+        self.fileAccess = DemoFileEnumerator()
+        #else
         self.fileAccess = fileAccess
+        #endif
         self.purchasedPermissions = purchasedPermissions
     }
-    
+
     func startiCloudDownload() {
         let directory = storageSetting.storageModelFor(keyName: privateKey.name)
         if let iCloudStorageDirectory = directory as? iCloudStorageModel {
@@ -68,7 +72,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     func enumerateiCloudUndownloaded() {
         downloadPendingMediaCount = media.filter({$0.needsDownload == true}).count
         if downloadPendingMediaCount == 0 {
@@ -76,94 +80,82 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
             cancellables.forEach({$0.cancel()})
         }
     }
-    
+
     func enumerateMedia() async {
         await fileAccess.configure(with: privateKey, storageSettingsManager: storageSetting)
         let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
         media = enumerated
         enumerateiCloudUndownloaded()
     }
-    
+
     func blurItemAt(index: Int) -> Bool {
         return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(index))) == false
     }
-    
+
 }
 
 private enum Constants {
     static let hideButtonWidth = 100.0
-    static let numberOfImagesWide = 3.0
+    static let numberOfImagesWide = 2.0
     static let blurRadius = AppConstants.blockingBlurRadius
     static let buttonPadding = 7.0
     static let buttonCornerRadius = 10.0
 }
 
 struct GalleryGridView<Content: View, T: MediaDescribing>: View {
-    
+
     @StateObject var viewModel: GalleryGridViewModel<T>
     var content: Content
-    
+
     init(viewModel: GalleryGridViewModel<T>, @ViewBuilder content: () -> Content = { EmptyView() }) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.content = content()
     }
-    
-    
+
+
     var body: some View {
         GeometryReader { geo in
             let frame = geo.frame(in: .global)
-            let side = frame.width / Constants.numberOfImagesWide
+            let outerMargin = 20.0
+            let spacing = 9.0
+            let largeSide = frame.width - spacing - outerMargin
+
+            let side = ((frame.width - outerMargin) / Constants.numberOfImagesWide) - spacing
             let gridItems = [
-                GridItem(.fixed(side), spacing: 1),
-                GridItem(.fixed(side), spacing: 1),
-                GridItem(.fixed(side), spacing: 1)
+                GridItem(.fixed(side), spacing: spacing),
+                GridItem(.fixed(side), spacing: spacing),
             ]
-            ZStack {
+            ZStack(alignment: .center) {
                 ScrollView {
                     content
                     HStack {
                         Group {
-                            if viewModel.blurImages {
-                                Toggle(L10n.hide, isOn: $viewModel.blurImages)
-                                    .frame(width: Constants.hideButtonWidth)
-                                    .fontType(.pt18)
-                                Spacer()
-                            } else {
-                                Text(L10n.imageS(viewModel.media.count))
-                                    .fontType(.pt18)
-                            }
-                        }.onTapGesture {
-                            viewModel.blurImages.toggle()
+                            Text(L10n.imageS(viewModel.media.count))
+                                .fontType(.pt18)
                         }
                         if viewModel.downloadPendingMediaCount > 0 {
                             downloadFromiCloudButton
                         }
                         Spacer()
-                        Button {
-                            LocalDeeplinkingUtils.openKeyContentsInFiles(keyName: viewModel.privateKey.name)
-                        } label: {
-                            Image(systemName: "folder")
-                                .foregroundColor(.foregroundPrimary)
-                        }
                     }
                     .padding()
-                    
-                    LazyVGrid(columns: gridItems, spacing: 1) {
-                        ForEach(Array(viewModel.media.enumerated()), id: \.element) { index, mediaItem in
-                            AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView(), isInSelectionMode: .constant(false), isSelected: .constant(false))
-                                .onTapGesture {
-                                    viewModel.carouselTarget = mediaItem
-                                }
-                                .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
+                    if let first = viewModel.media.first {
+                        imageForItem(mediaItem: first, width: largeSide, height: largeSide, index: 0)
+                        LazyVGrid(columns: gridItems, spacing: spacing) {
+
+                            ForEach(Array(viewModel.media.enumerated())[1..<viewModel.media.count], id: \.element) { index, mediaItem in
+                                imageForItem(mediaItem: mediaItem, width: side, height: side, index: index)
+                            }
                         }
+                        .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
+                        .animation(.easeIn, value: viewModel.blurImages)
+                        .frame(width: largeSide)
                     }
-                    .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
-                    .animation(.easeIn, value: viewModel.blurImages)
                 }
-                
+
                 NavigationLink(isActive: $viewModel.showingCarousel) {
                     if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
-                        
+
                         GalleryHorizontalScrollView(
                             viewModel: .init(
                                 media: viewModel.media,
@@ -175,7 +167,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                 } label: {
                     EmptyView()
                 }
-                
+
             }
             .task {
                 await viewModel.enumerateMedia()
@@ -183,9 +175,9 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
             .onAppear {
                 AskForReviewUtil.askForReviewIfNeeded()
             }
-            .background(Color.background)
-            .navigationBarTitle(viewModel.privateKey.name, displayMode: .large)
-            
+            .scrollIndicators(.hidden)
+
+            .navigationBarTitle("")
         }
         .screenBlocked()
         .onAppear {
@@ -194,13 +186,24 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
             }
         }
     }
-    
-    
+
+    func imageForItem(mediaItem: EncryptedMedia, width: CGFloat, height: CGFloat, index: Int) -> some View {
+        //        Color.random
+        AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView(), isInSelectionMode: .constant(false), isSelected: .constant(false))
+            .frame(width: width, height: height)
+            .onTapGesture {
+                viewModel.carouselTarget = mediaItem
+            }
+            .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
+            .galleryClipped()
+
+    }
+
     var downloadFromiCloudButton: some View {
         Button {
             viewModel.startiCloudDownload()
         } label: {
-            
+
             HStack {
                 if viewModel.downloadInProgress {
                     ProgressView()
@@ -215,24 +218,24 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
             }
         }
         .padding(Constants.buttonPadding)
-            .background(Color.foregroundSecondary)
-            .cornerRadius(Constants.buttonCornerRadius)
+        .background(Color.foregroundSecondary)
+        .cornerRadius(Constants.buttonCornerRadius)
 
     }
 }
 
-//struct GalleryView_Previews: PreviewProvider {
-//    
-//    static var previews: some View {
-//        NavigationView {
-//            GalleryGridView<AnyView, EncryptedMedia>(viewModel: GalleryGridViewModel<EncryptedMedia>(
-//                
-//                privateKey: DemoPrivateKey.dummyKey(),
-//                blurImages: true,
-//                downloadPendingMediaCount: 20,
-//                
-//                fileAccess: DemoFileEnumerator()
-//            ))
-//        }
-//    }
-//}
+struct GalleryView_Previews: PreviewProvider {
+
+    static var previews: some View {
+        NavigationView {
+            GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: DemoPrivateKey.dummyKey(), blurImages: false)) {
+                List {
+                }
+                .frame(height: 300)
+                .fontType(.pt18)
+                .scrollContentBackgroundColor(Color.background)
+
+            }
+        }
+    }
+}

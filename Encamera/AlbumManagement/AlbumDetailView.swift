@@ -19,7 +19,6 @@ class AlbumDetailViewModel: ObservableObject {
     @Published var keyManager: KeyManager
     @Published var keyViewerError: KeyViewerError?
     @Published var deleteKeyConfirmation: String = ""
-    @Published var blurImages = true
     @Published var deleteActionError: String = ""
     @Published var showDeleteActionError = false
     @Published var isActiveKey = false
@@ -144,39 +143,25 @@ struct AlbumDetailView: View {
     }
     
     var body: some View {
-        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: viewModel.key, blurImages: viewModel.blurImages)) {
-            List {
-                Group {
-                    if !viewModel.isActiveKey {
-                        Button(L10n.setAsActiveKey) {
-                            viewModel.setActive()
-                            dismiss()
-                        }
-                    }
-                    keyInformationLink
-                    keyExchangeLink
-                    toggleBackupToiCloud
-                    Button(L10n.backUpKey) {
-                        let key = viewModel.key.base64String
-                        let pasteboard = UIPasteboard.general
-                        pasteboard.string = key
-                        isShowingAlertForCopyKey = true
-                    }
-                    Button {
-                        isShowingAlertForClearKey = true
-                    } label: {
-                        Text(L10n.delete)
-                            .foregroundColor(.red)
-                    }
-                }.listRowBackground(Color.foregroundSecondary)
-            }  
-            .frame(height: 300)
-            .fontType(.pt18)
-            .scrollContentBackgroundColor(Color.background)
-            
+        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: viewModel.key, blurImages: false)) {
+            ZStack(alignment: .leading) {
+
+                Color.inputFieldBackgroundColor.frame(height:200)
+                    .ignoresSafeArea()
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(L10n.albumsTitle)
+                        .fontType(.pt24, weight: .bold)
+                    Spacer().frame(height: 8)
+                    Text(viewModel.key.creationDate.formatted())
+                        .fontType(.pt14)
+                    Spacer().frame(height: 24)
+                    Text(L10n.addPhotos)
+                        .fontType(.pt14, on: .textButton, weight: .bold)
+                }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: .zero))
+            }
         }
+
         .screenBlocked()
-        .foregroundColor(.blue)
         .alert(L10n.copiedToClipboard, isPresented: $isShowingAlertForCopyKey, actions: {
             Button(L10n.ok) {
                 isShowingAlertForCopyKey = false
@@ -237,11 +222,11 @@ struct AlbumDetailView: View {
     }
 }
 //
-//struct KeyPickerView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        NavigationView {
-//
-//            AlbumDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: PrivateKey(name: "whoop", keyBytes: [], creationDate: Date())))
-//        }
-//    }
-//}
+struct AlbumDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationView {
+
+            AlbumDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: DemoPrivateKey.dummyKey()))
+        }
+    }
+}

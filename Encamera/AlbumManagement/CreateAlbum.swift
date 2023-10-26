@@ -99,7 +99,6 @@ class CreateAlbumViewModel: ObservableObject {
 
 struct CreateAlbum: View {
     @StateObject var viewModel: CreateAlbumViewModel
-    @Binding var shouldBeActive: Bool
     @FocusState var isFocused: Bool
     @Environment(\.dismiss) var dismiss
     
@@ -183,7 +182,7 @@ struct CreateAlbum: View {
     
     func saveKey() throws {
         try self.viewModel.saveKey()
-        shouldBeActive = false
+        dismiss()
     }
     
     @ViewBuilder private func viewFor<Next: View>(flow: OnboardingFlowScreen, next: @escaping () -> Next) -> AnyView {
@@ -198,7 +197,7 @@ struct CreateAlbum: View {
 
 struct CreateAlbum_Previews: PreviewProvider {
     static var previews: some View {
-        CreateAlbum(viewModel: .init(keyManager: DemoKeyManager()), shouldBeActive: .constant(true))
+        CreateAlbum(viewModel: .init(keyManager: DemoKeyManager()))
             .preferredColorScheme(.dark)
     }
 }

@@ -50,7 +50,7 @@ struct AlbumBaseGridItem: View {
                 }
             }
             .frame(width: width, height: width)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .circular))
+            .galleryClipped()
             .padding(.bottom, 12)
 
 

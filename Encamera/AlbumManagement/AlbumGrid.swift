@@ -14,7 +14,6 @@ class AlbumGridViewModel: ObservableObject {
     @Published var activeKey: PrivateKey?
     var keyManager: KeyManager
     var fileManager: FileAccess
-    @Published var isShowingAddKeyView: Bool = false
     @Published var isShowingAddExistingKeyView: Bool = false
     @Published var isKeyTutorialClosed: Bool = true
     var purchaseManager: PurchasedPermissionManaging
@@ -79,27 +78,14 @@ struct AlbumGrid: View {
                     GridItem(.fixed(side))
                 ]
                 ScrollView(showsIndicators: false) {
-
-                    if !viewModel.isKeyTutorialClosed {
-                        VStack(alignment: .leading) {
-                            TutorialCardView(title: L10n.keyTutorialTitle, tutorialText: L10n.keyTutorialText) {
-                                UserDefaultUtils.set(true, forKey: .keyTutorialClosed)
-                            }
-                        }.opacity(viewModel.isKeyTutorialClosed ? 0.0 : 1.0)
-                    }
                     LazyVGrid(columns: columns, spacing: spacing) {
                         Group {
-                            let createNewKeyActive = Binding<Bool> {
-                                viewModel.isShowingAddKeyView
-                            } set: { newValue in
-                                viewModel.isShowingAddKeyView = newValue
-                            }
-                            NavigationLink(isActive: createNewKeyActive) {
+
+                            NavigationLink {
                                 if viewModel.shouldShowPurchaseScreenForKeys {
                                     ProductStoreView(showDismissButton: false)
-
                                 } else {
-                                    CreateAlbum(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
+                                    CreateAlbum(viewModel: .init(keyManager: viewModel.keyManager))
                                 }
                             } label: {
                                 AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [10], dashPhase: 0.0), shouldResizeImage: false)
