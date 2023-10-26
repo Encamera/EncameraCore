@@ -99,7 +99,7 @@ struct AlbumGrid: View {
                                     ProductStoreView(showDismissButton: false)
 
                                 } else {
-                                    KeyGeneration(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
+                                    CreateAlbum(viewModel: .init(keyManager: viewModel.keyManager), shouldBeActive: createNewKeyActive)
                                 }
                             } label: {
                                 AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [10], dashPhase: 0.0), shouldResizeImage: false)

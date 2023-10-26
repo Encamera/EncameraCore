@@ -1,5 +1,5 @@
 //
-//  KeyGeneration.swift
+//  CreateAlbum.swift
 //  Encamera
 //
 //  Created by Alexander Freas on 14.11.21.
@@ -8,11 +8,11 @@
 import SwiftUI
 import EncameraCore
 
-enum KeyGenerationError: Error {
+enum CreateAlbumError: Error {
     case missingStorageType
 }
 
-class KeyGenerationViewModel: ObservableObject {
+class CreateAlbumViewModel: ObservableObject {
     @Published var keyName: String = ""
     @Published var keyManagerError: KeyManagerError?
     @MainActor
@@ -21,83 +21,84 @@ class KeyGenerationViewModel: ObservableObject {
     @Published var storageAvailabilities: [StorageAvailabilityModel] = []
     @MainActor
     @Published var keyStorageType: StorageType?
-    @Published var generalError: KeyGenerationError?
+    @Published var generalError: CreateAlbumError?
     @Published var saveToiCloud = false
-    
+
     var keyManager: KeyManager
-    
+
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
         Task {
             await MainActor.run {
                 self.keyStorageType = DataStorageUserDefaultsSetting().preselectedStorageSetting?.storageType
             }
-        }
-        
-    }
-    
-    @MainActor
-    func saveKey() throws {
-        do {
-            if let keyStorageType = keyStorageType {
-                let _ = try keyManager.generateNewKey(name: keyName, storageType: keyStorageType, backupToiCloud: saveToiCloud)
-                try keyManager.setActiveKey(keyName)
-            } else {
-                throw KeyGenerationError.missingStorageType
-            }
-        } catch let keyManagerError as KeyManagerError {
-            self.keyManagerError = keyManagerError
-            throw keyManagerError
-        } catch let generalError as KeyGenerationError {
-            self.generalError = generalError
-            throw generalError
-        } catch {
-            print("Unhandled error", error)
-            throw error
-        }
-        
-    }
-    
-    @MainActor
-    func validateKeyName() throws {
-        do {
-            try keyManager.validateKeyName(name: keyName)
-            
-        } catch {
-            try handle(error: error)
+
         }
     }
-    
-    @MainActor
-    func handle(error: Error) throws {
-        switch error {
-        case let keyError as KeyManagerError:
-            keySaveError = keyError
-        default:
-            throw error
-        }
-        throw error
-        
-    }
-    
-    
-    
-    @MainActor
-    func setStorage(availabilites: [StorageAvailabilityModel]) async {
-        await MainActor.run {
-            self.keyStorageType = availabilites.filter({
-                if case .available = $0.availability {
-                    return true
+
+        @MainActor
+        func saveKey() throws {
+            do {
+                if let keyStorageType = keyStorageType {
+                    let _ = try keyManager.generateNewKey(name: keyName, storageType: keyStorageType, backupToiCloud: saveToiCloud)
+                    try keyManager.setActiveKey(keyName)
+                } else {
+                    throw CreateAlbumError.missingStorageType
                 }
-                return false
-            }).map({$0.storageType}).first ?? .local
-            self.storageAvailabilities = availabilites
+            } catch let keyManagerError as KeyManagerError {
+                self.keyManagerError = keyManagerError
+                throw keyManagerError
+            } catch let generalError as CreateAlbumError {
+                self.generalError = generalError
+                throw generalError
+            } catch {
+                print("Unhandled error", error)
+                throw error
+            }
+
         }
-    }
+
+        @MainActor
+        func validateKeyName() throws {
+            do {
+                try keyManager.validateKeyName(name: keyName)
+
+            } catch {
+                try handle(error: error)
+            }
+        }
+
+        @MainActor
+        func handle(error: Error) throws {
+            switch error {
+            case let keyError as KeyManagerError:
+                keySaveError = keyError
+            default:
+                throw error
+            }
+            throw error
+
+        }
+
+
+
+        @MainActor
+        func setStorage(availabilites: [StorageAvailabilityModel]) async {
+            await MainActor.run {
+                self.keyStorageType = availabilites.filter({
+                    if case .available = $0.availability {
+                        return true
+                    }
+                    return false
+                }).map({$0.storageType}).first ?? .local
+                self.storageAvailabilities = availabilites
+            }
+        }
+
 }
 
-struct KeyGeneration: View {
-    @StateObject var viewModel: KeyGenerationViewModel
+struct CreateAlbum: View {
+    @StateObject var viewModel: CreateAlbumViewModel
     @Binding var shouldBeActive: Bool
     @FocusState var isFocused: Bool
     @Environment(\.dismiss) var dismiss
@@ -115,10 +116,9 @@ struct KeyGeneration: View {
                 })
             }
         views
-        
     }
     
-    func viewModel(for flow: OnboardingFlowScreen) -> OnboardingViewViewModel {
+    func onboardingViewModel(for flow: OnboardingFlowScreen) -> OnboardingViewViewModel {
         switch flow {
             
         case .setupPrivateKey:
@@ -128,8 +128,8 @@ struct KeyGeneration: View {
                 image: Image(systemName: "key.fill"),
                 bottomButtonTitle: L10n.next,
                 bottomButtonAction: {
-                    try viewModel.validateKeyName()
-                }) {_ in 
+                    try self.viewModel.validateKeyName()
+                }) {_ in
                     AnyView(
                         VStack {
                             EncameraTextField(L10n.keyName, text: $viewModel.keyName)
@@ -182,13 +182,13 @@ struct KeyGeneration: View {
     }
     
     func saveKey() throws {
-        try viewModel.saveKey()
+        try self.viewModel.saveKey()
         shouldBeActive = false
     }
     
     @ViewBuilder private func viewFor<Next: View>(flow: OnboardingFlowScreen, next: @escaping () -> Next) -> AnyView {
         AnyView(OnboardingView(
-            viewModel: viewModel(for: flow), nextScreen: {
+            viewModel: onboardingViewModel(for: flow), nextScreen: {
                 next()
             })
         )
@@ -196,9 +196,9 @@ struct KeyGeneration: View {
 }
 
 
-struct KeyGeneration_Previews: PreviewProvider {
+struct CreateAlbum_Previews: PreviewProvider {
     static var previews: some View {
-        KeyGeneration(viewModel: .init(keyManager: DemoKeyManager()), shouldBeActive: .constant(true))
+        CreateAlbum(viewModel: .init(keyManager: DemoKeyManager()), shouldBeActive: .constant(true))
             .preferredColorScheme(.dark)
     }
 }
