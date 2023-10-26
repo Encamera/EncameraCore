@@ -24,6 +24,7 @@
 		183FE195C4237C4BA34B979E /* AlbumGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BA0FED66DCF9A54E46648C /* AlbumGridItem.swift */; };
 		1904B5482ADE72C100777881 /* BottomCameraButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1904B5472ADE72C100777881 /* BottomCameraButtonView.swift */; };
 		19117A3E2AEA5D6900A2D690 /* GalleryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19117A3D2AEA5D6900A2D690 /* GalleryItem.swift */; };
+		19117A402AEA767300A2D690 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19117A3F2AEA767300A2D690 /* WebView.swift */; };
 		197CE1662ADEA48800F8B022 /* SafeAreaUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197CE1652ADEA48800F8B022 /* SafeAreaUtils.swift */; };
 		19E280002AE9367900F77AC0 /* MainHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E27FFE2AE9343A00F77AC0 /* MainHomeView.swift */; };
 		19E280022AE93BCD00F77AC0 /* BottomNavigationBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E280012AE93BCD00F77AC0 /* BottomNavigationBar.swift */; };
@@ -179,6 +180,7 @@
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
 		1904B5472ADE72C100777881 /* BottomCameraButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomCameraButtonView.swift; sourceTree = "<group>"; };
 		19117A3D2AEA5D6900A2D690 /* GalleryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryItem.swift; sourceTree = "<group>"; };
+		19117A3F2AEA767300A2D690 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		197CE1652ADEA48800F8B022 /* SafeAreaUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeAreaUtils.swift; sourceTree = "<group>"; };
 		19E27FFE2AE9343A00F77AC0 /* MainHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainHomeView.swift; sourceTree = "<group>"; };
 		19E280012AE93BCD00F77AC0 /* BottomNavigationBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomNavigationBar.swift; sourceTree = "<group>"; };
@@ -614,6 +616,7 @@
 				2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */,
 				5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */,
 				25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */,
+				19117A3F2AEA767300A2D690 /* WebView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -914,6 +917,7 @@
 				4A0642E9B1818B0BAF0489ED /* PasswordEntry.swift in Sources */,
 				BDA79FBD261093E01B2C31E3 /* PhotoInfoView.swift in Sources */,
 				02757804E5A10DF47478C2C5 /* ProductOptionView.swift in Sources */,
+				19117A402AEA767300A2D690 /* WebView.swift in Sources */,
 				19E280092AE96C0400F77AC0 /* AlbumGrid.swift in Sources */,
 				8639F6A1FAC2BF6727331A98 /* ProgressViewCircular.swift in Sources */,
 				19E280072AE9436900F77AC0 /* ConditionalModifier.swift in Sources */,
