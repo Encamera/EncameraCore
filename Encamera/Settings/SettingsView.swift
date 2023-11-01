@@ -124,8 +124,6 @@ struct SettingsView: View {
                                 await StoreActor.shared.presentCodeRedemptionSheet()
                             }
                         }
-                        .fontType(.pt18, on: .darkBackground)
-
                     }
                     Section {
                         Button(L10n.contact) {
