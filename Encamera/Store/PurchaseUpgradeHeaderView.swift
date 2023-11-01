@@ -20,17 +20,6 @@ struct PurchaseUpgradeHeaderView: View {
                 Text(L10n.premiumUnlockTheseBenefits)
                     .fontType(.pt14)
             }.frame(maxWidth: .infinity, alignment: .leading)
-
-//            HStack(spacing: 10) {
-//                Button(L10n.enterPromoCode) {
-//                    Task {
-//                        await StoreActor.shared.presentCodeRedemptionSheet()
-//                    }
-//                }
-//                .fontType(.pt18, on: .darkBackground)
-//                .textPill(color: .green)
-//            }
-
         }
         .padding(.bottom, 30)
         .frame(maxWidth: .infinity)

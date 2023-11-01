@@ -119,6 +119,13 @@ struct SettingsView: View {
                                 try await AppStore.sync()
                             }
                         }
+                        Button(L10n.enterPromoCode) {
+                            Task {
+                                await StoreActor.shared.presentCodeRedemptionSheet()
+                            }
+                        }
+                        .fontType(.pt18, on: .darkBackground)
+
                     }
                     Section {
                         Button(L10n.contact) {

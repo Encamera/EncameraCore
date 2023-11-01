@@ -56,25 +56,29 @@ struct PurchaseUpgradeOptionsListView: View {
          */
         VStack(spacing: 25) {
             if purchasedProducts.isEmpty {
-                Text(L10n.subscription)
-                    .fontType(.pt24)
-                let _ = print(subscriptions.map({$0.displayName}))
-                
-                ForEach(subscriptions) { subscription in
-                    subscriptionOptionCell(for: subscription)
+                if subscriptions.count > 0 {
+                    Text(L10n.subscription)
+                        .fontType(.pt24)
+                    
+                    ForEach(subscriptions) { subscription in
+                        subscriptionOptionCell(for: subscription)
+                    }
                 }
-                
-                Text(L10n.oneTimePurchase)
-                    .fontType(.pt24)
-                ForEach(products) { product in
-                    productCell(for: product)
+                if products.count > 0 {
+                    Text(L10n.oneTimePurchase)
+                        .fontType(.pt24)
+                    ForEach(products) { product in
+                        productCell(for: product)
+                    }
                 }
-                
+
             } else {
                 ForEach(purchasedProducts) { product in
                     purchasedProductCell(for: product)
                 }
-                
+                SubscriptionPurchaseButton(selectedSubscription: selectedOption) {
+
+                }
             }
             
         }.padding(.horizontal)
@@ -135,9 +139,8 @@ struct PurchaseUpgradeOptionsListView: View {
             return nil
         }
         
-        let percentSaved = amountSaved / yearlyPriceForMonthlySubscription
         let monthlyPrice = yearlySubscription.price / 12
         
-        return SubscriptionSavings(percentSavings: percentSaved, granularPrice: monthlyPrice, granularPricePeriod: .month)
+        return SubscriptionSavings(totalSavings: amountSaved, granularPrice: monthlyPrice, granularPricePeriod: .month)
     }
 }

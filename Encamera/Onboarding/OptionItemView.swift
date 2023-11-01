@@ -20,24 +20,24 @@ private enum Constants {
 }
 
 
-struct OptionItemView: View {
+struct OptionItemView<Content: View>: View {
 
     let title: String
-    let description: String
+    let rightAccessoryView: (() -> Content)?
+    let description: String?
     let isAvailable: Bool
-    let unavailableReason: String?
+    let unavailableReason: String? = nil
     let image: Image?
     @Binding var isSelected: Bool
     
-    init(title: String, description: String, isAvailable: Bool, unavailableReason: String? = nil, image: Image? = nil, isSelected: Binding<Bool>) {
+    init(title: String, description: String?, isAvailable: Bool, unavailableReason: String? = nil, image: Image? = nil, isSelected: Binding<Bool>, rightAccessoryView: (() -> Content)? = { EmptyView() }) {
         self.title = title
+        self.rightAccessoryView = rightAccessoryView
         self.description = description
         self.isAvailable = isAvailable
-        self.unavailableReason = unavailableReason
         self.image = image
         _isSelected = isSelected
     }
-
 
     @ViewBuilder private var background: some View {
         let rect = RoundedRectangle(cornerRadius: Constants.cornerRadius, style: .continuous)
@@ -60,13 +60,17 @@ struct OptionItemView: View {
                         if let unavailableReason {
                             Text(unavailableReason)
                                 .alertText()
-                        } else {
+                        } else if let description {
                             Text(description)
                                 .fontType(.pt14, on: isSelected ? .selectedStorageButton : .background)
                         }
                     }
                     Spacer()
-                    image?.renderingMode(.template).foregroundColor(isSelected  ? .black : Color.secondaryElementColor)
+                    if let image {
+                        image.renderingMode(.template).foregroundColor(isSelected  ? .black : Color.secondaryElementColor)
+                    } else if let rightAccessoryView {
+                        rightAccessoryView()
+                    }
                 }
                 .padding(Constants.padding)
                 .frame(maxWidth: .infinity)
@@ -104,22 +108,18 @@ struct OptionItemView_Previews: PreviewProvider {
 
     static var previews: some View {
 
-        Group {
+        VStack(spacing: 30) {
             OptionItemView(title: "Option 1",
                            description: "This is an available option.",
                            isAvailable: true,
                            image: Image("Onboarding-Permissions-Microphone"),
                            isSelected: $selected)
-                .previewLayout(.sizeThatFits)
-                .padding()
 
             OptionItemView(title: "Option 2",
                            description: "This is an available option.",
                            isAvailable: true,
                            image: Image("Onboarding-Permissions-Camera"),
                            isSelected: .constant(true))
-                .previewLayout(.sizeThatFits)
-                .padding()
 
             OptionItemView(title: "Option 3",
                            description: "This option is not available.",
@@ -127,8 +127,20 @@ struct OptionItemView_Previews: PreviewProvider {
                            unavailableReason: "Out of Stock",
                            image: nil,
                            isSelected: $notSelected)
-                .previewLayout(.sizeThatFits)
-                .padding()
+
+
+            OptionItemView(title: "Option 4",
+                           description: "12 Months - $107",
+                           isAvailable: true,
+                           isSelected: .constant(false)) {
+                VStack {
+                    Text("$8.99 / Mo")
+                        .fontType(.pt14, weight: .bold)
+                    Text("Save $100")
+                        .fontType(.pt10, on: .lightBackground, weight: .bold)
+                        .textPill(color: .white)
+                }
+            }
         }
         .previewLayout(.sizeThatFits)
         .padding()

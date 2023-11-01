@@ -16,14 +16,9 @@ struct SubscriptionOptionView: View {
     let isSubscribed: Bool
 
     @Binding var isOn: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var savingsText: String? {
-        savings.map { L10n.saveAmount($0.formattedPrice(for: subscription), $0.formattedPercent) }
-    }
     
     private static var backgroundColor: Color {
-        .foregroundSecondary
+        .black
     }
     
     private static var backgroundShape: some InsettableShape {
@@ -31,40 +26,37 @@ struct SubscriptionOptionView: View {
     }
     
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading) {
-                
-                if isSubscribed {
-                    Text(L10n.subscribed)
-                        .fontType(.pt14, on: .darkBackground)
-                        .textPill(color: .green)
+        VStack {
+            
+            OptionItemView(
+                title: subscription.displayName,
+                description: savings == nil ? nil : subscription.description,
+                isAvailable: true,
+                isSelected: $isOn
+            ) {
+                VStack {
+
+                    if let savings {
+                        Text(savings.formattedMonthlyPrice(for: subscription))
+                            .fontType(.pt14,
+                                      on: isOn ? .lightBackground : .darkBackground,
+                                      weight: .bold)
+                        Text(savings.formattedTotalSavings(for: subscription))
+                            .fontType(.pt10, on: isOn ? .darkBackground : .lightBackground, weight: .bold)
+                            .textPill(color: isOn ? .black : .white)
+                    } else {
+                        Text(subscription.priceText)
+                            .fontType(.pt14,
+                                      on: isOn ? .lightBackground : .darkBackground,
+                                      weight: .bold)
+
+                    }
                 }
-                
-                
-                Text(subscription.displayName)
-                    .fontType(.pt18, weight: .bold)
-                    
-                 Text(subscription.description)
-                    .fontType(.pt18)
-                    .padding(.bottom, 2)
-                 Text(applyKerning(to: "/", in: subscription.priceText))
-                    .fontType(.pt18)
-                 if let savingsText = savingsText, !isSubscribed {
-                     Text(applyKerning(to: "/()", in: savingsText))
-                         .fontType(.pt14, on: .darkBackground)
-                         .textPill(color: .green)
-                 }
             }
-            Spacer()
-            checkmarkImage
         }
         .onTapGesture {
             isOn.toggle()
         }
-        .productCell(
-            product: subscription.product,
-            isOn: isOn
-        )
     }
     
     private var checkmarkImage: some View {
@@ -94,19 +86,10 @@ struct SubscriptionOptionView: View {
 extension View {
     @ViewBuilder func textPill(color: Color) -> some View {
         self
-            .padding(5)
+            .padding(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8))
             .background(color)
-            .cornerRadius(10)
+            .cornerRadius(40)
     }
 }
 
 
-class MockProduct: SKProduct {
-    
-}
-struct SubscriptionOptionView_Previews: PreviewProvider {
-    static var previews: some View {
-        Text("")
-            .preferredColorScheme(.dark)
-    }
-}
