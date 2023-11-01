@@ -94,7 +94,7 @@ struct PurchaseUpgradeView: View {
             }
             .background(Color.background)
             .onAppear {
-                selectedSubscription = subscriptionController.entitledSubscription
+                selectedSubscription = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
                 currentActiveSubscription = subscriptionController.entitledSubscription
             }
             .alert(

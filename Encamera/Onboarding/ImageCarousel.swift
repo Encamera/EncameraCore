@@ -24,15 +24,20 @@ private class ImageCarouselItem: Identifiable {
 //@available(iOS 17.0, *)
 struct ImageCarousel: View {
 
-    @State var currentScrolledToImage = 0
-    @State private var autoScrolling = true
+    @Binding var currentScrolledToImage: Int
 
-    private var carouselItems = [
+    init(currentScrolledToImage: Binding<Int>) {
+        self.carouselItems = [
 
-        ImageCarouselItem(imageID: "Onboarding-Image-1", heading: L10n.onboardingIntroHeadingText1, subheading: L10n.onboardingIntroSubheadingText),
-        ImageCarouselItem(imageID: "Onboarding-Image-2", heading: L10n.keyBasedEncryption, subheading: L10n.encryptionExplanation),
-        ImageCarouselItem(imageID: "Onboarding-Image-3", heading: L10n.noTrackingOnboardingExplanation, subheading: L10n.noTrackingExplanation),
-    ]
+            ImageCarouselItem(imageID: "Onboarding-Image-1", heading: L10n.onboardingIntroHeadingText1, subheading: L10n.onboardingIntroSubheadingText),
+            ImageCarouselItem(imageID: "Onboarding-Image-2", heading: L10n.keyBasedEncryption, subheading: L10n.encryptionExplanation),
+            ImageCarouselItem(imageID: "Onboarding-Image-3", heading: L10n.noTrackingOnboardingExplanation, subheading: L10n.noTrackingExplanation),
+        ]
+        _currentScrolledToImage = currentScrolledToImage
+    }
+
+
+    private var carouselItems: [ImageCarouselItem]
 
     var body: some View {
         VStack {
@@ -72,14 +77,11 @@ struct ImageCarousel: View {
                         }
 
                         .allowsHitTesting(false)
-                        .onReceive(Timer.publish(every: 3, on: .main, in: .common).autoconnect()) { _ in
-                            if autoScrolling {
-                                withAnimation {
-                                    currentScrolledToImage = (currentScrolledToImage + 1) % carouselItems.count
-                                    value.scrollTo(currentScrolledToImage, anchor: .leading)
-                                }
+                        .onChange(of: currentScrolledToImage, perform: { newImage in
+                            withAnimation {
+                                value.scrollTo(newImage, anchor: .leading)
                             }
-                        }
+                        })
                     }
                 }
 
@@ -94,6 +96,6 @@ struct ImageCarousel: View {
 struct ImageCarousel_Previews: PreviewProvider {
 
     static var previews: some View {
-        ImageCarousel()
+        ImageCarousel(currentScrolledToImage: .constant(0))
     }
 }

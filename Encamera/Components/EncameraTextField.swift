@@ -37,14 +37,21 @@ struct EncameraTextField: View {
     private var fieldType: FieldType = .normal
     private var accessibilityIdentifier: String?
     private var contentType: UITextContentType?
+    private var onSubmit: (() -> ())?
     @Binding var text: String
     @FocusState var isFieldFocused
     
-    init(_ placeholder: String, type: FieldType = .normal, contentType: UITextContentType? = nil, text: Binding<String>, accessibilityIdentifier: String? = nil) {
+    init(_ placeholder: String,
+         type: FieldType = .normal,
+         contentType: UITextContentType? = nil,
+         text: Binding<String>,
+         accessibilityIdentifier: String? = nil,
+         onSubmit: (() -> ())? = nil) {
         self.placeholder = placeholder
         self.contentType = contentType
         self.fieldType = type
         self.accessibilityIdentifier = accessibilityIdentifier
+        self.onSubmit = onSubmit
         _text = text
     }
     
@@ -72,8 +79,12 @@ struct EncameraTextField: View {
         switch fieldType {
         case .normal:
             TextField("", text: $text)
+                .onSubmit {
+                    onSubmit?()
+                }
                 .textContentType(contentType)
                 .accessibilityIdentifier(self.accessibilityIdentifier ?? "")
+
         case .secure:
             SecureField("", text: $text)
                 .textContentType(contentType)

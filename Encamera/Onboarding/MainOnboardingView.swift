@@ -14,6 +14,7 @@ enum OnboardingViewError: Error {
     case passwordInvalid
     case onboardingEnded
     case missingStorageType
+    case advanceImageCarousel
 }
 
 class OnboardingViewModel: ObservableObject {
@@ -43,7 +44,8 @@ class OnboardingViewModel: ObservableObject {
     @MainActor
     @Published var useBiometrics: Bool = false
     @Published var saveToiCloud = false
-    
+    @Published var currentOnboardingImageIndex = 0
+
     var availableBiometric: AuthenticationMethod? {
         return authManager.availableBiometric
     }
@@ -153,14 +155,16 @@ class OnboardingViewModel: ObservableObject {
     }
     
     @MainActor
-    func checkExistingPasswordAndAuth() {
+    func checkExistingPasswordAndAuth() throws {
         do {
             existingPasswordCorrect = try keyManager.checkPassword(existingPassword)
             if existingPasswordCorrect == false {
                 generalError = OnboardingViewError.passwordInvalid
+                throw OnboardingViewError.passwordInvalid
             }
         } catch {
             generalError = OnboardingViewError.passwordInvalid
+            throw OnboardingViewError.passwordInvalid
         }
     }
     
@@ -242,12 +246,15 @@ private extension MainOnboardingView {
                 showTopBar: false,
                 bottomButtonTitle: L10n.getStartedButtonText,
                 bottomButtonAction: {
-                    
-                }) {_ in 
+                    if viewModel.currentOnboardingImageIndex < 2 {
+                        viewModel.currentOnboardingImageIndex += 1
+                        throw OnboardingViewError.advanceImageCarousel
+                    }
+                }) {_ in
                     
                     AnyView(
                         VStack {
-                            ImageCarousel()
+                            ImageCarousel(currentScrolledToImage: $viewModel.currentOnboardingImageIndex)
                             Spacer()
                         }.padding(0)
                     )
@@ -257,8 +264,8 @@ private extension MainOnboardingView {
             return .init(
                 title: L10n.enterPassword,
                 subheading: L10n.youHaveAnExistingPasswordForThisDevice, image: Image(systemName: "key.fill"), bottomButtonTitle: L10n.next, bottomButtonAction: {
-                    viewModel.checkExistingPasswordAndAuth()
-                }) {_ in 
+                    try viewModel.checkExistingPasswordAndAuth()
+                }) {_ in
                     AnyView(
                         VStack(alignment: .leading) {
                             PasswordEntry(viewModel: .init(keyManager: viewModel.keyManager, passwordBinding: $viewModel.existingPassword, stateUpdate: { state in
@@ -266,7 +273,6 @@ private extension MainOnboardingView {
                                     return
                                 }
                                 viewModel.existingPassword = existingPassword
-                                viewModel.checkExistingPasswordAndAuth()
                             }))
                             if let error = viewModel.generalError as? OnboardingViewError, case .passwordInvalid = error {
                                 Group {

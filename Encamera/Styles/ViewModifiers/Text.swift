@@ -23,6 +23,7 @@ enum EncameraFont {
     case pt10
     case pt16
     case pt18
+    case pt20
     case pt24
 
     enum Name: String {
@@ -37,6 +38,8 @@ enum EncameraFont {
             return .custom(Name.regular.rawValue, size: 35)
         case .medium:
             return .custom(Name.regular.rawValue, size: 30)
+        case .pt20:
+            return .custom(Name.regular.rawValue, size: 20)
         case .pt24:
             return .custom(Name.regular.rawValue, size: 24)
         case .pt18:
