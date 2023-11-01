@@ -46,7 +46,7 @@ struct OptionItemView<Content: View>: View {
         if isSelected {
             rectangle.background(rect.fill(Color.white))
         } else {
-            rectangle
+            rectangle.background(rect.fill(Color.black))
         }
     }
 
@@ -86,18 +86,19 @@ struct OptionItemView<Content: View>: View {
                 }
             }
         }
-        VStack(alignment: .leading) {
-            HStack {
-                if isAvailable {
-                    iconWithName
-                } else {
-                    iconWithName.opacity(Constants.opacity)
+        Button(action: {
+            isSelected = true
+        }, label: {
+            VStack(alignment: .leading) {
+                HStack {
+                    if isAvailable {
+                        iconWithName
+                    } else {
+                        iconWithName.opacity(Constants.opacity)
+                    }
                 }
             }
-        }
-        .onTapGesture {
-            isSelected = true
-        }
+        })
     }
 }
 

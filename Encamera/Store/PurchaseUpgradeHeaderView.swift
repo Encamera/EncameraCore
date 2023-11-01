@@ -16,7 +16,6 @@ struct PurchaseUpgradeHeaderView: View {
             Group {
                 Text(L10n.getPremium)
                     .fontType(.pt24, on: .darkBackground, weight: .bold)
-
                 Text(L10n.premiumUnlockTheseBenefits)
                     .fontType(.pt14)
             }.frame(maxWidth: .infinity, alignment: .leading)

@@ -124,20 +124,6 @@ struct PurchaseUpgradeView: View {
         .font(.title)
     }
 
-    var subscriptionPurchaseView: some View {
-        SubscriptionPurchaseView(selectedSubscription: selectedSubscription) {
-            if let subscription = selectedSubscription {
-                Task(priority: .userInitiated) { @MainActor in
-                    let action = await subscriptionController.purchase(option: subscription)
-                    switch action {
-                    case .dismissStore: dismiss()
-                    case .displayError: errorAlertIsPresented = true
-                    case .noAction: break
-                    }
-                }
-            }
-        }
-    }
 
     @ViewBuilder
     var productCellsScrollView: some View {
@@ -153,6 +139,18 @@ struct PurchaseUpgradeView: View {
                 currentActiveSubscription: currentActiveSubscription,
                 freeUnlimitedTapped: {
                     self.showTweetForFreeView = true
+                },
+                onPurchase: {
+                    if let subscription = selectedSubscription {
+                        Task(priority: .userInitiated) { @MainActor in
+                            let action = await subscriptionController.purchase(option: subscription)
+                            switch action {
+                            case .dismissStore: dismiss()
+                            case .displayError: errorAlertIsPresented = true
+                            case .noAction: break
+                            }
+                        }
+                    }
                 }
             )
             .padding(.top)

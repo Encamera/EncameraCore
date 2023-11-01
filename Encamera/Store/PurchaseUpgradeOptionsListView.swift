@@ -39,6 +39,9 @@ struct PurchaseUpgradeOptionsListView: View {
     @Binding var selectedOption: ServiceSubscription?
     let currentActiveSubscription: ServiceSubscription?
     let freeUnlimitedTapped: () -> ()
+    let onPurchase: () -> ()
+    @Environment(\.dismiss) var dismiss
+
     func binding(for subscription: ServiceSubscription) -> Binding<Bool> {
         return Binding {
             selectedOption?.id == subscription.id
@@ -54,12 +57,9 @@ struct PurchaseUpgradeOptionsListView: View {
          subscription. When there are more, this will need
          to be updated.
          */
-        VStack(spacing: 25) {
+        VStack(spacing: 16) {
             if purchasedProducts.isEmpty {
-                if subscriptions.count > 0 {
-                    Text(L10n.subscription)
-                        .fontType(.pt24)
-                    
+                if subscriptions.count > 0 {                    
                     ForEach(subscriptions) { subscription in
                         subscriptionOptionCell(for: subscription)
                     }
@@ -76,28 +76,13 @@ struct PurchaseUpgradeOptionsListView: View {
                 ForEach(purchasedProducts) { product in
                     purchasedProductCell(for: product)
                 }
-                SubscriptionPurchaseButton(selectedSubscription: selectedOption) {
-
-                }
             }
-            
+            Spacer().frame(height: 5)
+            SubscriptionPurchaseView(selectedSubscription: selectedOption) {
+                onPurchase()
+            }
         }.padding(.horizontal)
         
-    }
-    
-    var tweetForFreeView: some View {
-        HStack {
-            Text("\(L10n.unlockUnlimitedForFree) 👉")
-                .fontType(.pt24)
-            Spacer()
-            Image(systemName: "dollarsign.circle.fill")
-                .resizable()
-                .frame(width: 30, height: 30)
-                .foregroundStyle(.white, .pink)
-        }.productCell()
-            .onTapGesture {
-                freeUnlimitedTapped()
-            }
     }
     
     func productCell(for product: OneTimePurchase) -> some View {

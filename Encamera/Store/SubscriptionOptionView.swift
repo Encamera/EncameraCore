@@ -9,6 +9,36 @@ import SwiftUI
 import StoreKit
 import EncameraCore
 
+private struct MostPopularIndicatorViewModifier: ViewModifier {
+    let popularWidth: CGFloat = 113.0
+    let popularHeight: CGFloat = 22.0
+
+    func body(content: Content) -> some View {
+        ZStack(alignment: .top) {
+
+            Rectangle()
+                          .foregroundColor(.clear)
+                          .frame(width: popularWidth * 1.1, height: popularHeight)
+                          .background(Color.purchasePopularBackgroundShapeColor)
+//                          .background(Color(red: 0.52, green: 0.17, blue: 0.06))
+                          .cornerRadius(4)
+                          .offset(.init(width: 0.0, height: popularHeight / -2))
+
+            content
+            HStack(spacing: 10) {
+                Text("MOST POPULAR")
+                    .font(Font.custom("Satoshi Variable", size: 10).weight(.black))
+                    .foregroundColor(.white)
+            }
+            .padding(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            .frame(width: popularWidth, height: popularHeight)
+            .background(Color.purchasePopularForegroundShapeColor)
+            .cornerRadius(4)
+            .offset(.init(width: 0.0, height: popularHeight / -2))
+        }
+    }
+}
+
 
 struct SubscriptionOptionView: View {
     let subscription: ServiceSubscription
@@ -24,13 +54,14 @@ struct SubscriptionOptionView: View {
     private static var backgroundShape: some InsettableShape {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
     }
-    
+
+
+
     var body: some View {
-        VStack {
-            
+
             OptionItemView(
                 title: subscription.displayName,
-                description: savings == nil ? nil : subscription.description,
+                description: savings == nil ? nil : subscription.priceText,
                 isAvailable: true,
                 isSelected: $isOn
             ) {
@@ -52,11 +83,10 @@ struct SubscriptionOptionView: View {
 
                     }
                 }
-            }
-        }
-        .onTapGesture {
-            isOn.toggle()
-        }
+            }.if(savings != nil, transform: { view in
+                view.modifier(MostPopularIndicatorViewModifier())
+            })
+
     }
     
     private var checkmarkImage: some View {

@@ -33,15 +33,12 @@ struct SubscriptionPurchaseView: View {
                         Text(L10n.subscribe)
                     }
                 }
-                .padding(5)
                 .frame(maxWidth: .infinity)
             }
             .primaryButton(on: .darkBackground)
             .disabled(selectedSubscription == nil)
-            .padding(.horizontal)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical)
         .onChange(of: selectedSubscription) { newValue in
             
             guard let selectedSubscription = newValue?.subscriptionInfo else {

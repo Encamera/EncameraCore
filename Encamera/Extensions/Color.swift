@@ -31,6 +31,8 @@ extension Color {
     static let secondaryElementColor = Color("SecondaryElementColor")
     static let stepIndicatorActive = Color("StepIndicatorActiveColor")
     static let stepIndicatorInactive = Color("StepIndicatorInactiveColor")
+    static let purchasePopularForegroundShapeColor = Color("Purchase-PopularForegroundShapeColor")
+    static let purchasePopularBackgroundShapeColor = Color("Purchase-PopularBackgroundShapeColor")
 }
 /*    static let opacity: Double = 0.20
  static let red: Double = 0.21
