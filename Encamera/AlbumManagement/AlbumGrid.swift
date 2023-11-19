@@ -91,13 +91,7 @@ struct AlbumGrid: View {
                             }
 
 
-//                            ForEach(viewModel.albums, id: \.id) { album in
-//                                NavigationLink {
-//                                    AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, keyManager: viewModel.keyManager, album: album))
-//                                } label: {
-//                                    AlbumGridItem(key: album, width: side)
-//                                }
-//                            }
+                            albums(side: side)
 
                         }.frame(height: side + 60)
                     }
@@ -111,6 +105,22 @@ struct AlbumGrid: View {
             .navigationBarTitle(L10n.myKeys)
         }
         .padding(24)
+    }
+
+    @ViewBuilder
+    private func albums(side: CGFloat) -> some View {
+        if let key = viewModel.keyManager.currentKey {
+            ForEach(viewModel.albums, id: \.id) { album in
+                NavigationLink {
+                    AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, keyManager: viewModel.keyManager, key: key, album: album))
+                } label: {
+                    AlbumGridItem(key: key, album: album, width: side)
+                }
+            }
+        } else {
+            AnyView(EmptyView())
+        }
+
     }
 
 }
