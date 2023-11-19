@@ -17,13 +17,13 @@ class MediaImportViewModel: ObservableObject {
     @Published var saveProgress: Double = 0.0
     var galleryViewModel: SelectableGalleryViewModel<CleartextMedia<URL>>
     var privateKey: PrivateKey
-    var albumManager: AlbumManager
+    var albumManager: AlbumManaging
     private var cancellables = Set<AnyCancellable>()
     private var fileAccess: FileAccess
     var appGroupFileAccess: FileAccess
     
     init(privateKey: PrivateKey,
-         albumManager: AlbumManager,
+         albumManager: AlbumManaging,
          fileAccess: FileAccess,
          appGroupFileAccess: FileAccess = AppGroupFileReader()) {
         self.appGroupFileAccess = appGroupFileAccess

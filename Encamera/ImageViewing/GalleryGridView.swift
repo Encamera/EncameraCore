@@ -14,7 +14,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
 
     var privateKey: PrivateKey
     var album: Album
-    var albumManager: AlbumManager
+    var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
     @MainActor
     @Published var media: [EncryptedMedia] = []
@@ -36,7 +36,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
 
     init(privateKey: PrivateKey,
          album: Album,
-         albumManager: AlbumManager,
+         albumManager: AlbumManaging,
          blurImages: Bool = false,
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,

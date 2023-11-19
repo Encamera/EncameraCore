@@ -14,9 +14,9 @@ import Combine
 class TopCameraControlsViewViewModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
-
-    init() {
-
+    var albumManager: AlbumManaging
+    init(albumManager: AlbumManaging) {
+        self.albumManager = albumManager
     }
 }
 
@@ -26,7 +26,7 @@ struct TopCameraControlsView: View {
 
     @Binding var isRecordingVideo: Bool
     @Binding var recordingDuration: CMTime
-    @Binding var currentAlbumName: String
+    @Binding var selectedAlbum: Album?
 
     @Binding var flashMode: AVCaptureDevice.FlashMode
     var closeButtonTapped: () -> ()
@@ -42,22 +42,32 @@ struct TopCameraControlsView: View {
                     .frame(width: 28, height: 28)
             }
             Spacer()
-            HStack(spacing: 4) {
-                Text(currentAlbumName)
-                    .fontType(.pt10, on: .background)
-                    .tracking(0.20)
-                Image("Camera-Album-Arrow")
-                    .frame(width: 14, height: 14)
+            Menu {
+                ForEach(viewModel.albumManager.albums) { album in
+                    Button(album.name) {
+                        selectedAlbum = album
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(selectedAlbum?.name ?? L10n.noKey)
+                        .fontType(.pt10, on: .background)
+                        .tracking(0.20)
+                    Image("Camera-Album-Arrow")
+                        .frame(width: 14, height: 14)
+                }
+                .padding(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                .background(Color(red: 1, green: 1, blue: 1).opacity(0.10))
+                .cornerRadius(800)
+
             }
-            .padding(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-            .background(Color(red: 1, green: 1, blue: 1).opacity(0.10))
-            .cornerRadius(800)
+
 
             Spacer()
             flashButton
                 .frame(width: 28, height: 28)
         }
-
+        
         .padding(EdgeInsets(top: getSafeAreaTop() + 10, leading: 16, bottom: 16, trailing: 16))
         .background(.ultraThinMaterial)
         .frame(height: 102)
@@ -99,10 +109,10 @@ struct TopCameraControlsView_Previews: PreviewProvider {
                 .resizable()
 //                .frame(width: 500, height: 1000)
             TopCameraControlsView(
-                viewModel: TopCameraControlsViewViewModel(),
+                viewModel: TopCameraControlsViewViewModel(albumManager: DemoAlbumManager()),
                 isRecordingVideo: .constant(false),
                 recordingDuration: .constant(CMTime()),
-                currentAlbumName: .constant("MY ALBUM"),
+                selectedAlbum: .constant(Album(name: "Test", storageOption: .local, creationDate: Date())),
                 flashMode: .constant(.on),
                 closeButtonTapped: {},
                 flashButtonPressed: {}

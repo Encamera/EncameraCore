@@ -13,7 +13,7 @@ class AlbumGridItemModel: ObservableObject {
     
     var fileReader: FileReader = DiskFileAccess()
     var album: Album
-    var albumManager: AlbumManager = AlbumManager()
+    var albumManager: AlbumManaging = AlbumManager()
     var storageModel: DataStorageModel?
     var storageType: StorageType? {
         storageModel?.storageType

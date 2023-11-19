@@ -53,7 +53,7 @@ final class CameraModel: NSObject, ObservableObject {
     @Published var cameraSetupResult: SessionSetupResult = .notDetermined
     var authManager: AuthManager
     var privateKey: PrivateKey
-    var albumManager: AlbumManager
+    var albumManager: AlbumManaging
     var alertError: AlertError!
     var fileAccess: FileAccess
     var userDefaultsUtil = UserDefaultUtils()
@@ -66,7 +66,7 @@ final class CameraModel: NSObject, ObservableObject {
     let eventSubject = PassthroughSubject<Void, Never>()
     
     init(privateKey: PrivateKey,
-         albumManager: AlbumManager,
+         albumManager: AlbumManaging,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,

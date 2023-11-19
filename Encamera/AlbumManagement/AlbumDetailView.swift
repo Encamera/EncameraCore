@@ -15,7 +15,7 @@ class AlbumDetailViewModel: ObservableObject {
     enum KeyViewerError {
         case couldNotSetKeychain
     }
-    var albumManager: AlbumManager
+    var albumManager: AlbumManaging
 
     @Published var keyViewerError: KeyViewerError?
     @Published var deleteAlbumConfirmation: String = ""
@@ -28,7 +28,7 @@ class AlbumDetailViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(albumManager: AlbumManager, fileManager: FileAccess? = nil, key: PrivateKey, album: Album) {
+    init(albumManager: AlbumManaging, fileManager: FileAccess? = nil, key: PrivateKey, album: Album) {
         self.albumManager = albumManager
         self.fileManager = fileManager
         self.key = key

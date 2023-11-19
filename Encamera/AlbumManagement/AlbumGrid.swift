@@ -11,7 +11,7 @@ import Combine
 
 class AlbumGridViewModel: ObservableObject {
     @Published var albums: [Album] = []
-    var albumManager: AlbumManager
+    var albumManager: AlbumManaging
     var fileManager: FileAccess
     var key: PrivateKey
     @Published var isShowingAddExistingKeyView: Bool = false
@@ -20,7 +20,7 @@ class AlbumGridViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(key: PrivateKey, purchaseManager: PurchasedPermissionManaging, fileManager: FileAccess, albumManger: AlbumManager) {
+    init(key: PrivateKey, purchaseManager: PurchasedPermissionManaging, fileManager: FileAccess, albumManger: AlbumManaging) {
         self.purchaseManager = purchaseManager
         self.fileManager = fileManager
         self.albumManager = albumManger

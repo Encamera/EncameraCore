@@ -24,9 +24,9 @@ class CreateAlbumViewModel: ObservableObject {
     @Published var generalError: CreateAlbumError?
     @Published var saveToiCloud = false
 
-    var albumManager: AlbumManager
+    var albumManager: AlbumManaging
 
-    init(albumManager: AlbumManager) {
+    init(albumManager: AlbumManaging) {
         self.albumManager = albumManager
         Task {
             await MainActor.run {

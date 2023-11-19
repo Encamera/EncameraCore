@@ -206,13 +206,13 @@ struct CameraView: View {
     
     private var mainCamera: some View {
         VStack {
-            let currentAlbumName = Binding<String> {
-                return cameraModel.albumManager.currentAlbum?.name ?? L10n.noKey
-            } set: { _, _ in
-                
+            let selectedAlbum = Binding<Album?> {
+                return cameraModel.albumManager.currentAlbum
+            } set: { newValue in
+                cameraModel.albumManager.currentAlbum = newValue
             }
-            TopCameraControlsView(viewModel: .init(), isRecordingVideo: $cameraModel.isRecordingVideo,
-                                  recordingDuration: $cameraModel.recordingDuration, currentAlbumName: currentAlbumName, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
+            TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
+                                  recordingDuration: $cameraModel.recordingDuration, selectedAlbum: selectedAlbum, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
                 closeButtonTapped()
             }, flashButtonPressed: {
                 self.cameraModel.switchFlash()
@@ -290,21 +290,21 @@ extension AVCaptureDevice.FlashMode {
     }
 }
 //
-//struct CameraView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        let model = CameraModel(
-//            keyManager: DemoKeyManager(),
-//            authManager: DemoAuthManager(),
-//            cameraService: CameraConfigurationService(model: .init()),
-//            fileAccess: DemoFileEnumerator(),
-//            storageSettingsManager: DemoStorageSettingsManager(),
-//            purchaseManager: DemoPurchasedPermissionManaging()
-//        )
-//        CameraView(cameraModel: model, hasMediaToImport: .constant(true), closeButtonTapped: {
-//            
-//        })
-//            .preferredColorScheme(.dark)
-//    }
-//}
-//
+struct CameraView_Previews: PreviewProvider {
+    static var previews: some View {
+        let model = CameraModel(
+            privateKey: DemoPrivateKey.dummyKey(),
+            albumManager: DemoAlbumManager(),
+            authManager: DemoAuthManager(),
+            cameraService: CameraConfigurationService(model: .init()),
+            fileAccess: DemoFileEnumerator(),
+            purchaseManager: DemoPurchasedPermissionManaging()
+        )
+        CameraView(cameraModel: model, hasMediaToImport: .constant(false), closeButtonTapped: {
+
+        })
+            .preferredColorScheme(.dark)
+    }
+}
+
 

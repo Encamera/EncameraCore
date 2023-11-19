@@ -20,7 +20,7 @@ struct EncameraApp: App {
         @Published var shouldShowTweetScreen: Bool = false
         var openedUrl: URL?
         var keyManager: KeyManager
-        var albumManager: AlbumManager = AlbumManager()
+        var albumManager: AlbumManaging = AlbumManager()
         var onboardingManager: OnboardingManager
         var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
         var settingsManager: SettingsManager
