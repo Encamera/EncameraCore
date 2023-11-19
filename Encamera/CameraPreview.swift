@@ -33,11 +33,6 @@ struct CameraPreview: UIViewRepresentable {
             }.store(in: &cancellables)
             self.session = session
             videoPreviewLayer.session = session
-            NotificationUtils.didEnterBackgroundPublisher
-                .sink { _ in
-                    self.videoPreviewLayer.session = nil
-                    
-                }.store(in: &cancellables)
             NotificationUtils.didBecomeActivePublisher
                 .sink { _ in
                     self.videoPreviewLayer.session = self.session

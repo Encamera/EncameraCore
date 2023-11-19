@@ -21,7 +21,8 @@ struct CameraView: View {
     @Environment(\.dismiss) var dismiss
     var closeButtonTapped: () -> Void
 
-    
+
+
     private var captureButton: some View {
         
         Button(action: {
@@ -96,6 +97,9 @@ struct CameraView: View {
                 .onChanged(cameraModel.handleMagnificationOnChanged)
                 .onEnded(cameraModel.handleMagnificationEnded)
         )
+        .onReceive(cameraModeStateModel.$selectedMode, perform: { value in
+            self.cameraModel.selectedCameraMode = value
+        })
         .onChange(of: rotationFromOrientation, perform: { newValue in
             cameraModel.setOrientation(AVCaptureVideoOrientation(rawValue: UIDevice.current.orientation.rawValue) ?? .portrait)
         }).alert(isPresented: $cameraModel.showAlertError, content: {
@@ -151,7 +155,8 @@ struct CameraView: View {
                 ))
             }
         }
-        
+
+
     }
     
     @ViewBuilder private var missingPermissionsView: some View {

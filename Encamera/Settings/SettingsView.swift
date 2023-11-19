@@ -202,9 +202,9 @@ struct SettingsView: View {
                             .foregroundColor(.red)
 
                     }
-                }.listRowBackground(Color.foregroundSecondary)
+                }
             }
-            
+            .gradientBackground()
             .foregroundColor(.red)
             .navigationTitle(L10n.erase)
 
@@ -252,7 +252,7 @@ struct SettingsView: View {
                     if let message = viewModel.successMessage {
                         Text(message).foregroundColor(.green)
                     }
-                }.listRowBackground(Color.foregroundSecondary)
+                }
             }
             
             .scrollContentBackgroundColor(.background)
