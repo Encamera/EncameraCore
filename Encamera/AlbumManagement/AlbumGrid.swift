@@ -27,11 +27,8 @@ class AlbumGridViewModel: ObservableObject {
         self.key = key
         loadAlbums()
         self.isKeyTutorialClosed = UserDefaultUtils.bool(forKey: .keyTutorialClosed)
-        UserDefaultUtils.publisher(for: .keyTutorialClosed).sink { value in
-            guard let closed = value as? Bool else {
-                return
-            }
-            self.isKeyTutorialClosed = closed
+        albumManger.albumPublisher.sink { _ in
+            self.loadAlbums()
         }.store(in: &cancellables)
     }
 

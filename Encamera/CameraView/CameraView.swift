@@ -206,13 +206,9 @@ struct CameraView: View {
     
     private var mainCamera: some View {
         VStack {
-            let selectedAlbum = Binding<Album?> {
-                return cameraModel.albumManager.currentAlbum
-            } set: { newValue in
-                cameraModel.albumManager.currentAlbum = newValue
-            }
+            
             TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
-                                  recordingDuration: $cameraModel.recordingDuration, selectedAlbum: selectedAlbum, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
+                                  recordingDuration: $cameraModel.recordingDuration, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
                 closeButtonTapped()
             }, flashButtonPressed: {
                 self.cameraModel.switchFlash()

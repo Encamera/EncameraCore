@@ -9,7 +9,7 @@ struct EncameraApp: App {
     class ViewModel: ObservableObject {
         @Published var hasOpenedURL: Bool = false
         @Published var promptToSaveMedia: Bool = false
-        var fileAccess: FileAccess = DiskFileAccess()
+        var newMediaFileAccess: FileAccess = DiskFileAccess()
         var appGroupFileAccess = AppGroupFileReader()
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
@@ -59,11 +59,15 @@ struct EncameraApp: App {
             } catch {
                 fatalError("Onboarding error \(error)")
             }
-            self.keyManager.keyPublisher.sink { newKey in
-                self.setupWith(key: newKey)
+            self.keyManager.keyPublisher.sink { key in
+                self.setupFileAccess(with: key, album: self.albumManager.currentAlbum)
             }.store(in: &cancellables)
-            
-            setupWith(key: keyManager.currentKey)
+
+            self.albumManager.selectedAlbumPublisher.sink { newAlbum in
+                self.setupFileAccess(with: self.keyManager.currentKey, album: newAlbum)
+            }.store(in: &cancellables)
+
+            setupFileAccess(with: keyManager.currentKey, album: albumManager.currentAlbum)
             NotificationUtils.didEnterBackgroundPublisher
                 .receive(on: RunLoop.main)
                 .sink { _ in
@@ -118,7 +122,7 @@ struct EncameraApp: App {
         func moveOpenedFile(media: EncryptedMedia) {
             Task {
                 do {
-                    try await fileAccess.move(media: media)
+                    try await newMediaFileAccess.move(media: media)
                 } catch {
                     print("Could not copy: ", error)
                 }
@@ -129,22 +133,24 @@ struct EncameraApp: App {
 
         }
         
-        private func setupWith(key: PrivateKey?) {
-            guard let album = albumManager.currentAlbum else {
+        private func setupFileAccess(with key: PrivateKey?, album: Album?) {
+            guard let album else {
                 debugPrint("No album")
                 return
             }
             Task {
-                await self.fileAccess.configure(for: album, with: key, albumManager: albumManager)
-                guard key != nil else { return }
+                await self.newMediaFileAccess.configure(
+                    for: album,
+                    with: key,
+                    albumManager: albumManager
+                )
+                guard keyManager.currentKey != nil else { return }
                 await showImportScreenIfNeeded()
                 UserDefaultUtils.increaseInteger(forKey: .launchCount)
                 await MainActor.run {
                     self.setShouldShowTweetScreen()
                 }
             }
-            
-            
         }
         
         func checkForImportedImages() async {
@@ -208,7 +214,7 @@ struct EncameraApp: App {
                     AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                 } else if viewModel.isAuthenticated == true, let key = viewModel.keyManager.currentKey {
                     MainHomeView(viewModel: .init(
-                        fileAccess: viewModel.fileAccess,
+                        fileAccess: viewModel.newMediaFileAccess,
                         keyManager: viewModel.keyManager,
                         key: key,
                         albumManager: self.viewModel.albumManager,
@@ -259,7 +265,7 @@ struct EncameraApp: App {
             MediaImportView(viewModel: .init(
                 privateKey: key,
                 albumManager: viewModel.albumManager,
-                fileAccess: viewModel.fileAccess))
+                fileAccess: viewModel.newMediaFileAccess))
         } else {
             Text("Something went wrong")
         }
@@ -296,7 +302,7 @@ struct EncameraApp: App {
     }
     
     @ViewBuilder private func galleryForMedia(media: EncryptedMedia) -> some View {
-        let fileAccess = viewModel.fileAccess
+        let fileAccess = viewModel.newMediaFileAccess
         switch media.mediaType {
         case .photo:
             NavigationView {

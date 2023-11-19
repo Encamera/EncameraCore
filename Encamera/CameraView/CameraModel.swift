@@ -130,14 +130,6 @@ final class CameraModel: NSObject, ObservableObject {
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)
-        albumManager.albumPublisher
-            .compactMap({$0})
-            .sink { album in
-            Task {
-                await self.fileAccess.configure(for: album, with: privateKey, albumManager: albumManager)
-                await self.loadThumbnail()
-            }
-        }.store(in: &cancellables)
         setupPublishedVars()
     }
     

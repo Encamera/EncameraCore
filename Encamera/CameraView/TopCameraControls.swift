@@ -13,10 +13,16 @@ import Combine
 
 class TopCameraControlsViewViewModel: ObservableObject {
     
+    @Published var selectedAlbum: Album?
+
     private var cancellables = Set<AnyCancellable>()
     var albumManager: AlbumManaging
     init(albumManager: AlbumManaging) {
         self.albumManager = albumManager
+
+        albumManager.selectedAlbumPublisher.sink { album in
+            self.selectedAlbum = album
+        }.store(in: &cancellables)
     }
 }
 
@@ -26,14 +32,20 @@ struct TopCameraControlsView: View {
 
     @Binding var isRecordingVideo: Bool
     @Binding var recordingDuration: CMTime
-    @Binding var selectedAlbum: Album?
 
     @Binding var flashMode: AVCaptureDevice.FlashMode
     var closeButtonTapped: () -> ()
     var flashButtonPressed: () -> ()
     let cornerRadius = 30.0
     var body: some View {
-        
+
+        var selectedAlbumBinding = Binding<Album?>(get: {
+            viewModel.albumManager.currentAlbum
+        }, set: { newValue in
+            if let album = newValue {
+                viewModel.albumManager.currentAlbum = album
+            }
+        })
         HStack(spacing: 0) {
             Button {
                 closeButtonTapped()
@@ -43,14 +55,15 @@ struct TopCameraControlsView: View {
             }
             Spacer()
             Menu {
+
                 ForEach(viewModel.albumManager.albums) { album in
                     Button(album.name) {
-                        selectedAlbum = album
+                        viewModel.albumManager.currentAlbum = album
                     }
                 }
             } label: {
                 HStack(spacing: 4) {
-                    Text(selectedAlbum?.name ?? L10n.noKey)
+                    Text(viewModel.albumManager.currentAlbum?.name ?? L10n.noKey)
                         .fontType(.pt10, on: .background)
                         .tracking(0.20)
                     Image("Camera-Album-Arrow")
@@ -94,14 +107,6 @@ struct TopCameraControlsView: View {
     }
 }
 
-//struct TopCameraControlsView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        TopCameraControlsView(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging()), showingAlbum: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("DefaultKey"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
-//            .preferredColorScheme(.dark)
-//    }
-//}
-
-
 struct TopCameraControlsView_Previews: PreviewProvider {
     static var previews: some View {
         ZStack {
@@ -112,7 +117,6 @@ struct TopCameraControlsView_Previews: PreviewProvider {
                 viewModel: TopCameraControlsViewViewModel(albumManager: DemoAlbumManager()),
                 isRecordingVideo: .constant(false),
                 recordingDuration: .constant(CMTime()),
-                selectedAlbum: .constant(Album(name: "Test", storageOption: .local, creationDate: Date())),
                 flashMode: .constant(.on),
                 closeButtonTapped: {},
                 flashButtonPressed: {}
