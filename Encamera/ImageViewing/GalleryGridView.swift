@@ -13,6 +13,8 @@ import EncameraCore
 class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
 
     var privateKey: PrivateKey
+    var album: Album
+    var albumManager: AlbumManager
     var purchasedPermissions: PurchasedPermissionManaging
     @MainActor
     @Published var media: [EncryptedMedia] = []
@@ -31,9 +33,10 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     }
     private var cancellables = Set<AnyCancellable>()
     var fileAccess: FileAccess = DiskFileAccess()
-    var storageSetting = DataStorageUserDefaultsSetting()
 
     init(privateKey: PrivateKey,
+         album: Album,
+         albumManager: AlbumManager,
          blurImages: Bool = false,
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,
@@ -42,7 +45,9 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
          purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
     ) {
         self.blurImages = blurImages
+        self.albumManager = albumManager
         self.privateKey = privateKey
+        self.album = album
         self.showingCarousel = showingCarousel
         self.downloadPendingMediaCount = downloadPendingMediaCount
         self.carouselTarget = carouselTarget
@@ -55,7 +60,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     }
 
     func startiCloudDownload() {
-        let directory = storageSetting.storageModelFor(keyName: privateKey.name)
+        let directory = albumManager.storageModel(for: album)
         if let iCloudStorageDirectory = directory as? iCloudStorageModel {
             iCloudStorageDirectory.triggerDownloadOfAllFilesFromiCloud()
         } else {
@@ -82,7 +87,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     }
 
     func enumerateMedia() async {
-        await fileAccess.configure(with: privateKey, storageSettingsManager: storageSetting)
+        await fileAccess.configure(for: album, with: privateKey, albumManager: albumManager)
         let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
         media = enumerated
         enumerateiCloudUndownloaded()
@@ -224,18 +229,18 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
     }
 }
 
-struct GalleryView_Previews: PreviewProvider {
-
-    static var previews: some View {
-        NavigationView {
-            GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: DemoPrivateKey.dummyKey(), blurImages: false)) {
-                List {
-                }
-                .frame(height: 300)
-                .fontType(.pt18)
-                .scrollContentBackgroundColor(Color.background)
-
-            }
-        }
-    }
-}
+//struct GalleryView_Previews: PreviewProvider {
+//
+//    static var previews: some View {
+//        NavigationView {
+//            GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: DemoPrivateKey.dummyKey(), blurImages: false)) {
+//                List {
+//                }
+//                .frame(height: 300)
+//                .fontType(.pt18)
+//                .scrollContentBackgroundColor(Color.background)
+//
+//            }
+//        }
+//    }
+//}

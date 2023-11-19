@@ -15,58 +15,33 @@ class AlbumDetailViewModel: ObservableObject {
     enum KeyViewerError {
         case couldNotSetKeychain
     }
-    
-    @Published var keyManager: KeyManager
+    var albumManager: AlbumManager
+    var keyManager: KeyManager
+
     @Published var keyViewerError: KeyViewerError?
-    @Published var deleteKeyConfirmation: String = ""
+    @Published var deleteAlbumConfirmation: String = ""
     @Published var deleteActionError: String = ""
     @Published var showDeleteActionError = false
-    @Published var isActiveKey = false
-    @Published var saveKeyToiCloud = false
-    var storageSetting = DataStorageUserDefaultsSetting()
 
     var fileManager: FileAccess?
     var key: PrivateKey
-    
+    var album: Album
+
     private var cancellables = Set<AnyCancellable>()
 
-    
-    init(keyManager: KeyManager, key: PrivateKey) {
+    // maybe we can just pass the key here since it won't change
+    init(albumManager: AlbumManager, keyManager: KeyManager, fileManager: FileAccess? = nil, key: PrivateKey, album: Album) {
+        self.albumManager = albumManager
         self.keyManager = keyManager
-        self.isActiveKey = keyManager.currentKey == key
+        self.fileManager = fileManager
         self.key = key
-        keyManager
-            .keyPublisher
-            .receive(on: RunLoop.main)
-            .sink { newKey in
-            self.isActiveKey = newKey == key
-            self.key = key
-            self.saveKeyToiCloud = newKey?.savedToiCloud ?? false
-        }.store(in: &cancellables)
-        saveKeyToiCloud = key.savedToiCloud
-        $saveKeyToiCloud.dropFirst().sink { value in
-            do {
-                try self.keyManager.update(key: self.key, backupToiCloud: value)
-                debugPrint("Updated key, backupToiCloud: \(value)")
-            } catch {
-                debugPrint("Could not update key", error)
-            }
-        }.store(in: &cancellables)
-        
+        self.album = album
         Task {
-            self.fileManager = await DiskFileAccess(with: key, storageSettingsManager: DataStorageUserDefaultsSetting())
+            self.fileManager = await DiskFileAccess(for: album, with: key, albumManager: albumManager)
         }
+    }
 
-    }
-    
-    func setActive() {
-        do {
-            try keyManager.setActiveKey(key.name)
-        } catch {
-            keyViewerError = .couldNotSetKeychain
-        }
-    }
-    
+
     func deleteKey() {
         do {
             try keyManager.deleteKey(key)
@@ -82,8 +57,7 @@ class AlbumDetailViewModel: ObservableObject {
     func deleteAllKeyData() {
         Task {
             do {
-                try await fileManager?.deleteMediaForKey()
-                try keyManager.deleteKey(key)
+                try albumManager.delete(album: album)
             } catch {
                 await MainActor.run {
                     deleteActionError = L10n.ErrorDeletingKeyAndAssociatedFiles.pleaseTryAgainOrTryToDeleteFilesManuallyViaTheFilesApp
@@ -97,7 +71,7 @@ class AlbumDetailViewModel: ObservableObject {
     
     func canDeleteKey() -> Bool {
         if #available(iOS 16.0, *) {
-            return deleteKeyConfirmation == key.name
+            return deleteAlbumConfirmation == album.name
         } else {
             return true
         }
@@ -117,33 +91,8 @@ struct AlbumDetailView: View {
         static var outerPadding = 20.0
     }
     
-    var keyInformationLink: some View {
-        NavigationLink {
-            List {
-                KeyInformation(key: viewModel.key, keyManagerError: .constant(nil))
-            }
-        } label: {
-            Text(L10n.keyInfo)
-        }
-    }
-    
-    var keyExchangeLink: some View {
-        NavigationLink {
-            KeyExchange(viewModel: .init(key: viewModel.key))
-        } label: {
-            Text(L10n.shareKey)
-        }
-
-    }
-    
-    var toggleBackupToiCloud: some View {
-        Toggle(isOn: $viewModel.saveKeyToiCloud) {
-            Text(L10n.saveKeyToICloud)
-        }
-    }
-    
     var body: some View {
-        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: viewModel.key, blurImages: false)) {
+        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: viewModel.key, album: viewModel.album, albumManager: viewModel.albumManager, blurImages: false)) {
             ZStack(alignment: .leading) {
 
                 Color.inputFieldBackgroundColor
@@ -163,7 +112,7 @@ struct AlbumDetailView: View {
                     Text(L10n.albumsTitle)
                         .fontType(.pt24, weight: .bold)
                     Spacer().frame(height: 8)
-                    Text(viewModel.key.creationDate.formatted())
+                    Text(viewModel.album.creationDate.formatted())
                         .fontType(.pt14)
                     Spacer().frame(height: 24)
                     Text(L10n.addPhotos)
@@ -181,8 +130,8 @@ struct AlbumDetailView: View {
         })
         .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllKeyData, actions: {
             if #available(iOS 16.0, *) {
-                TextField(L10n.keyName, text: $viewModel.deleteKeyConfirmation)
-                    .noAutoModification()
+//                TextField(L10n.keyName, text: $viewModel.deleteKeyConfirmation)
+//                    .noAutoModification()
             }
             Button(L10n.deleteEverything, role: .destructive) {
                 if viewModel.canDeleteKey() {
@@ -203,8 +152,8 @@ struct AlbumDetailView: View {
         })
         .alert(L10n.deleteKeyQuestion, isPresented: $isShowingAlertForClearKey, actions: {
             if #available(iOS 16.0, *) {
-                TextField(L10n.keyName, text: $viewModel.deleteKeyConfirmation)
-                    .noAutoModification()
+//                TextField(L10n.keyName, text: $viewModel.deleteKeyConfirmation)
+//                    .noAutoModification()
             }
             Button(L10n.delete, role: .destructive) {
                 if viewModel.canDeleteKey() {
@@ -234,12 +183,12 @@ struct AlbumDetailView: View {
 
     }
 }
+////
+//struct AlbumDetailView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        NavigationView {
 //
-struct AlbumDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-
-            AlbumDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: DemoPrivateKey.dummyKey()))
-        }
-    }
-}
+//            AlbumDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: DemoPrivateKey.dummyKey()))
+//        }
+//    }
+//}

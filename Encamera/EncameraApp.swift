@@ -20,8 +20,8 @@ struct EncameraApp: App {
         @Published var shouldShowTweetScreen: Bool = false
         var openedUrl: URL?
         var keyManager: KeyManager
+        var albumManager: AlbumManager = AlbumManager()
         var onboardingManager: OnboardingManager
-        var storageSettingsManager: DataStorageSetting = DataStorageUserDefaultsSetting()
         var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
         var settingsManager: SettingsManager
         private(set) var authManager: AuthManager
@@ -33,7 +33,7 @@ struct EncameraApp: App {
 
             self.settingsManager = SettingsManager()
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
-            let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher, keyDirectoryStorage: storageSettingsManager)
+            let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
             
             self.keyManager = manager
             
@@ -130,8 +130,12 @@ struct EncameraApp: App {
         }
         
         private func setupWith(key: PrivateKey?) {
+            guard let album = albumManager.currentAlbum else {
+                debugPrint("No album")
+                return
+            }
             Task {
-                await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
+                await self.fileAccess.configure(for: album, with: key, albumManager: albumManager)
                 guard key != nil else { return }
                 await showImportScreenIfNeeded()
                 UserDefaultUtils.increaseInteger(forKey: .launchCount)
@@ -198,7 +202,7 @@ struct EncameraApp: App {
             MainHomeView(viewModel: .init(
                 fileAccess: viewModel.fileAccess,
                 keyManager: viewModel.keyManager,
-                storageSettingsManager: viewModel.storageSettingsManager,
+                albumManager: self.viewModel.albumManager,
                 purchasedPermissions: viewModel.purchasedPermissions,
                 settingsManager: viewModel.settingsManager,
                 authManager: viewModel.authManager))
@@ -266,7 +270,7 @@ struct EncameraApp: App {
                         viewModel.hasOpenedURL = !value
                     }
 
-                    KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true, dismiss: dismissBinding ))
+//                    KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true, dismiss: dismissBinding ))
                 }
             case .featureToggle(feature: let feature):
                 Text("Feature \"\(feature.rawValue)\" activated").onAppear {

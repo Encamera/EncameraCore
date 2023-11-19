@@ -22,13 +22,8 @@ struct OnboardingViewViewModel {
 
 
 private enum Constants {
-    static let lowOpacity = 0.4
     static let backButtonTextKerning = 0.28
     static let topElementTitleSpacing = 40.0
-    static let titleHeight = 48.0
-    static let titleContentSpacing = 20.0
-    static let subheadingMaxWidth = 255.0
-    static let imageSpacingTrailing = 4.0
 }
 
 
@@ -53,10 +48,10 @@ struct OnboardingView<Next>: View where Next: View {
                 if viewModel.showTopBar {
                     HStack {
                         Image("Onboarding-Arrow-Back")
-                        Text("PROFILE SETUP")
+                        Text(L10n.profileSetup)
                             .fontType(.pt14, weight: .bold)
                             .kerning(Constants.backButtonTextKerning)
-                            .opacity(Constants.lowOpacity)
+                            .opacity(AppConstants.lowOpacity)
                         Spacer()
                         if viewModel.progress.1 > 0 {
                             StepIndicator(numberOfItems: viewModel.progress.1, currentItem: viewModel.progress.0)
@@ -66,30 +61,7 @@ struct OnboardingView<Next>: View where Next: View {
                     }
                 }
                 Spacer().frame(height: Constants.topElementTitleSpacing)
-                if let title = viewModel.title {
-                    HStack(alignment: .top)  {
-                        Text(title)
-                            .fontType(.pt24, weight: .bold)
-                        Spacer()
-                        Group {
-                            if let image = viewModel.image {
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .opacity(Constants.lowOpacity)
-                            } else {
-                                Color.clear
-                            }
-                        }.frame(width: 48, height: 48)
-                        Spacer().frame(width: Constants.imageSpacingTrailing)
-                    }.frame(height: Constants.titleHeight)
-                }
-                if let subheading = viewModel.subheading {
-                    Text(subheading)
-                            .fontType(.pt14)
-                            .frame(maxWidth: Constants.subheadingMaxWidth, alignment: .topLeading)
-                    Spacer().frame(height: Constants.titleContentSpacing)
-                }
+                HeadingSubheadingImageComponent(title: viewModel.title, subheading: viewModel.subheading, image: viewModel.image)
                 self.viewModel.content?({
                     nextActive = true
                 })
@@ -127,8 +99,8 @@ struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             OnboardingView(viewModel: .init(
-                title: "",
-                subheading: "",
+                title: "Here's the Title",
+                subheading: "And the subheading",
                 progress: (1, 5),
                 image: Image(systemName: "camera"),
                 bottomButtonTitle: "Next",

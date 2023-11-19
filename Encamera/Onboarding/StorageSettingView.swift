@@ -10,7 +10,7 @@ import EncameraCore
 
 class StorageSettingViewModel: ObservableObject {
     
-    @Published var storageAvailabilities: [StorageAvailabilityModel] = DataStorageUserDefaultsSetting().storageAvailabilities()
+    @Published var storageAvailabilities: [StorageAvailabilityModel] = DataStorageAvailabilityUtil.storageAvailabilities()
 }
 
 struct StorageSettingView: View {

@@ -66,7 +66,7 @@ class OnboardingViewModel: ObservableObject {
         onboardingFlow = onboardingManager.generateOnboardingFlow()
         Task {
             await MainActor.run {
-                self.keyStorageType = DataStorageUserDefaultsSetting().preselectedStorageSetting?.storageType
+                self.keyStorageType = AlbumManager().defaultStorageForAlbum
             }
         }
         self.$password1.sink { password in
@@ -176,7 +176,7 @@ class OnboardingViewModel: ObservableObject {
                 try authManager.authorize(with: existingPassword, using: keyManager)
             } else if let storageType = await keyStorageType {
                 try authManager.authorize(with: password1, using: keyManager)
-                let _ = try keyManager.generateNewKey(name: AppConstants.defaultAlbumName, storageType: storageType, backupToiCloud: saveToiCloud)
+                let _ = try keyManager.generateNewKey(name: AppConstants.defaultKeyName, backupToiCloud: saveToiCloud)
             }
             try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
             
@@ -355,7 +355,7 @@ private extension MainOnboardingView {
             return .init(
                 title: L10n.encryptionKey,
                 subheading:
-                    L10n.newKeySubheading,
+                    L10n.newAlbumSubheading,
                 image: Image(systemName: "key.fill"),
                 bottomButtonTitle: L10n.next,
                 bottomButtonAction: {
@@ -363,9 +363,8 @@ private extension MainOnboardingView {
                 }) {_ in 
                     AnyView(
                         VStack {
-                            EncameraTextField(L10n.keyName, text: $viewModel.keyName)
+                            EncameraTextField(L10n.albumName, text: $viewModel.keyName)
                                 .noAutoModification()
-                            
                             if let keySaveError = viewModel.keySaveError {
                                 Text(keySaveError.displayDescription)
                                     .alertText()

@@ -26,29 +26,29 @@ class MainHomeViewViewModel: ObservableObject {
     var cameraService: CameraConfigurationService
     var cameraServiceModel = CameraConfigurationServiceModel()
     var keyManager: KeyManager
-    var storageSettingsManager: DataStorageSetting
+    var albumManager: AlbumManager
     var purchasedPermissions: PurchasedPermissionManaging
     var settingsManager: SettingsManager
     private(set) var authManager: AuthManager
     private var cancellables = Set<AnyCancellable>()
 
-    init(fileAccess: FileAccess, 
+    init(fileAccess: FileAccess,
          keyManager: KeyManager,
-         storageSettingsManager: DataStorageSetting,
+         albumManager: AlbumManager,
          purchasedPermissions: PurchasedPermissionManaging,
          settingsManager: SettingsManager,
          authManager: AuthManager) {
         self.fileAccess = fileAccess
         self.cameraService = CameraConfigurationService(model: cameraServiceModel)
         self.keyManager = keyManager
-        self.storageSettingsManager = storageSettingsManager
+        self.albumManager = albumManager
         self.purchasedPermissions = purchasedPermissions
         self.settingsManager = settingsManager
         self.authManager = authManager
         self.settingsManager = SettingsManager()
         self.cameraService = CameraConfigurationService(model: cameraServiceModel)
         self.authManager = authManager
-        let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher, keyDirectoryStorage: storageSettingsManager)
+        let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
 
         self.keyManager = manager
 
@@ -69,10 +69,10 @@ struct MainHomeView: View {
                 if selectedNavigationItem == .camera {
                     CameraView(cameraModel: .init(
                         keyManager: viewModel.keyManager,
+                        albumManager: viewModel.albumManager,
                         authManager: viewModel.authManager,
                         cameraService: viewModel.cameraService,
                         fileAccess: viewModel.fileAccess,
-                        storageSettingsManager: viewModel.storageSettingsManager,
                         purchaseManager: viewModel.purchasedPermissions
                     ), hasMediaToImport: $viewModel.hasMediaToImport) {
                         selectedNavigationItem = .albums
@@ -81,7 +81,7 @@ struct MainHomeView: View {
                     if selectedNavigationItem == .settings {
                         SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
                     } else {
-                        AlbumGrid(viewModel: .init(keyManager: viewModel.keyManager, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess))
+                        AlbumGrid(viewModel: .init(keyManager: viewModel.keyManager, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
                     }
                     BottomNavigationBar(selectedItem: $selectedNavigationItem)
                 }
@@ -94,7 +94,7 @@ struct MainHomeView: View {
     }
 }
 
-#Preview {
-    MainHomeView(viewModel: .init(fileAccess: DemoFileEnumerator(), keyManager: DemoKeyManager(), storageSettingsManager: DemoStorageSettingsManager(), purchasedPermissions: DemoPurchasedPermissionManaging(), settingsManager: SettingsManager(), authManager: DemoAuthManager()))
-
-}
+//#Preview {
+//    MainHomeView(viewModel: .init(fileAccess: DemoFileEnumerator(), keyManager: DemoKeyManager(), storageSettingsManager: DemoStorageSettingsManager(), purchasedPermissions: DemoPurchasedPermissionManaging(), settingsManager: SettingsManager(), authManager: DemoAuthManager()))
+//
+//}

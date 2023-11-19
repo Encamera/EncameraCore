@@ -53,8 +53,8 @@ final class CameraModel: NSObject, ObservableObject {
     @Published var cameraSetupResult: SessionSetupResult = .notDetermined
     var authManager: AuthManager
     var keyManager: KeyManager
+    var albumManager: AlbumManager
     var alertError: AlertError!
-    var storageSettingsManager: DataStorageSetting
     var fileAccess: FileAccess
     var userDefaultsUtil = UserDefaultUtils()
     var purchaseManager: PurchasedPermissionManaging
@@ -66,19 +66,19 @@ final class CameraModel: NSObject, ObservableObject {
     let eventSubject = PassthroughSubject<Void, Never>()
     
     init(keyManager: KeyManager,
+         albumManager: AlbumManager,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
-         storageSettingsManager: DataStorageSetting,
          purchaseManager: PurchasedPermissionManaging) {
         
         self.service = cameraService
         self.fileAccess = fileAccess
         self.purchaseManager = purchaseManager
         self.keyManager = keyManager
-        
+        self.albumManager = albumManager
+
         self.authManager = authManager
-        self.storageSettingsManager = storageSettingsManager
         super.init()
         self.$selectedCameraMode
             .receive(on: RunLoop.main)
@@ -93,10 +93,11 @@ final class CameraModel: NSObject, ObservableObject {
             await MainActor.run {
                 self.cameraSetupResult = result
             }
-            await self.fileAccess.configure(
-                with: keyManager.currentKey,
-                storageSettingsManager: DataStorageUserDefaultsSetting()
-            )
+            if let album = albumManager.currentAlbum {
+                await self.fileAccess.configure(
+                    for: album, with: keyManager.currentKey, albumManager: albumManager
+                )
+            }
         }
 
         eventSubject
@@ -129,9 +130,11 @@ final class CameraModel: NSObject, ObservableObject {
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)
-        keyManager.keyPublisher.sink { key in
+        albumManager.albumPublisher
+            .compactMap({$0})
+            .sink { album in
             Task {
-                await self.fileAccess.configure(with: key, storageSettingsManager: DataStorageUserDefaultsSetting())
+                await self.fileAccess.configure(for: album, with: keyManager.currentKey, albumManager: albumManager)
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)

@@ -38,8 +38,9 @@
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		16ABB8B2CD48BEA35AF48A2E /* OptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB97C90A88A7FF748C251292 /* OptionItemView.swift */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
+		19E041732B0A73D500A69DD1 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
+		19E041742B0A73D600A69DD1 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
-		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
 		1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DF70D2CC410A637C7BB925 /* EncameraState.swift */; };
 		1CAB026A547B230F6A4CEDC4 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF307DAF9F7334418CF7C35A /* ImageViewing.swift */; };
 		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
@@ -63,7 +64,9 @@
 		3513B1F610CDEA1D6D934087 /* ExplanationForUpgradeTutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C3DD8AA70CBF44BA670B82 /* ExplanationForUpgradeTutorial.swift */; };
 		365F533E1056DD94FC272B41 /* VideoScrubbingSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */; };
 		36E0E84AB09238B05CF4C079 /* Satoshi-MediumItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 851DD3DC1BD4F3BBDAB226B1 /* Satoshi-MediumItalic.otf */; };
+		377C8AF0425F62A1A6A3073D /* DefaultEdgeSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6554AD47D6FFBEE5E076125C /* DefaultEdgeSpacing.swift */; };
 		3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF307DAF9F7334418CF7C35A /* ImageViewing.swift */; };
+		3AE0AEDA69ADA69631A0A8F5 /* PurchaseOptionsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F99DE24E4BB4ACCECA4742B /* PurchaseOptionsOverlay.swift */; };
 		3B399B01046441E93D3B0314 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */; };
 		3D8A9849A3BE9ABC428C738D /* SelectableGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398A5AAE1F22EC9052883DB6 /* SelectableGalleryView.swift */; };
 		3DBB8D4836BDB3B8D45248BF /* Satoshi-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 254B4401CD4663561438FCE0 /* Satoshi-Regular.otf */; };
@@ -74,6 +77,7 @@
 		44244243A4B9813A9398882E /* OptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB97C90A88A7FF748C251292 /* OptionItemView.swift */; };
 		44A289E4236EB40DEA2EAB90 /* TopBarTutorialPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A719D91CD6B57A81031F75F /* TopBarTutorialPill.swift */; };
 		4690EAB3D33AB78CC77291CA /* DecryptErrorExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E040DE4298869CF563F016 /* DecryptErrorExplanation.swift */; };
+		478EDCEDE153938683788430 /* PurchaseOptionsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F99DE24E4BB4ACCECA4742B /* PurchaseOptionsOverlay.swift */; };
 		48BA8B2BF723FDE5935100D8 /* 6.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 1731780E1EBEEBA4C8D49F33 /* 6.JPG */; };
 		48DA97BEB07EBD95A7EB20B7 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE15C5D7EB03BF1BF5D80070 /* Preview Assets.xcassets */; };
 		499935C789F9AA542ABABF4A /* TweetToShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13501C8BD163FDB992526254 /* TweetToShareView.swift */; };
@@ -87,6 +91,7 @@
 		4EAEDFDFBFA66602E0A4EA63 /* TopCameraControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC645487F5B1D6F9CC99BF09 /* TopCameraControls.swift */; };
 		50529B72DE9097178A5F9E7C /* TextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1501FC1F4E2E580DA0638C2 /* TextField.swift */; };
 		52BE74575AF1E58D842FC87B /* SelectableGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398A5AAE1F22EC9052883DB6 /* SelectableGalleryView.swift */; };
+		5B91C9DDD3379070F2A342BD /* HeadingSubheadingImageComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C3A2DC8EF95074331B6CBEE /* HeadingSubheadingImageComponent.swift */; };
 		5BDE17D39CBF70B6A5C2857B /* BuyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */; };
 		5C91E706B46D7747CB493739 /* PurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76DC7343E9ECEFF44132872C /* PurchaseButton.swift */; };
 		5F2F8BA6B70C49A3250E2FA8 /* KeyOperationCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7829FFF879ED20D3A0CA4410 /* KeyOperationCell.swift */; };
@@ -99,6 +104,7 @@
 		64A89946F6E0FE1E9A9DEC59 /* AddExchangedKeyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 076F52AEC64B3B8625A49DA1 /* AddExchangedKeyConfirmation.swift */; };
 		65CF61D3900613F53677F0BE /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */; };
 		66EA12F48AB996734FF2D288 /* AlbumGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69369BAC8E162E7F9DDE86E0 /* AlbumGrid.swift */; };
+		69CD880341E723CEC6DA5581 /* DefaultEdgeSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6554AD47D6FFBEE5E076125C /* DefaultEdgeSpacing.swift */; };
 		6A22D93F305C8BF99A71F59C /* GradientBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BAEF5793CBB3045C9F628BC /* GradientBackground.swift */; };
 		6A4CEF749366A7470369E271 /* AlbumGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 240B51AE39DE91B481E0A15B /* AlbumGridItem.swift */; };
 		6A6B608849EF76C5C37D3465 /* KeyInformation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7FCEC57F5CC73BFC1097C52 /* KeyInformation.swift */; };
@@ -214,7 +220,6 @@
 		E1E2AA7DBC4EA734012FD345 /* ImageCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881709E68E56C0BC0A1EB710 /* ImageCarousel.swift */; };
 		E372CBC2D865825DCE3FACA9 /* CreateAlbum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E120ED7D8DE4B9A5746FFE4 /* CreateAlbum.swift */; };
 		E56B350130F1B6B5DE90159B /* ConditionalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FDD2738B4629857A7B5B0E3 /* ConditionalModifier.swift */; };
-		E57CD55CDC8051FBB6E47C9D /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
 		E6AA48A5B7C88FD9574A5BE1 /* KeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A7771B17D89FB31A84F61B /* KeyExchange.swift */; };
 		E8DDA3016083B77D79D0320E /* VideoScrubbingSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */; };
 		E9C36D15F15ACB3E66847F49 /* StorageSettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF2E435357C74D9D5B3132B /* StorageSettingView.swift */; };
@@ -229,6 +234,7 @@
 		EFDEAFF6596FBF2114A9F06A /* Satoshi-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 254B4401CD4663561438FCE0 /* Satoshi-Regular.otf */; };
 		F05236200E8FF893CBBE593A /* ImageCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881709E68E56C0BC0A1EB710 /* ImageCarousel.swift */; };
 		F0DF6BB6EECF8FA580D3FE74 /* EncameraLocal.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 550323AF4E3EB2265755723A /* EncameraLocal.storekit */; };
+		F273E9D2828E571958321D6D /* HeadingSubheadingImageComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C3A2DC8EF95074331B6CBEE /* HeadingSubheadingImageComponent.swift */; };
 		F30D4AE8166C0034674E0DBB /* PromptToErase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */; };
 		F4E6DE89AF56549BA339C272 /* CreateAlbum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E120ED7D8DE4B9A5746FFE4 /* CreateAlbum.swift */; };
 		F52B09D9AEBF17B9E89E4219 /* PurchaseUpgradeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93BD2E6D2DFBF7562EBC70FB /* PurchaseUpgradeHeaderView.swift */; };
@@ -318,6 +324,7 @@
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1BD41DEC59C93641F49268C6 /* SubscriptionPurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPurchaseButton.swift; sourceTree = "<group>"; };
 		1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Black.otf"; sourceTree = "<group>"; };
+		1C3A2DC8EF95074331B6CBEE /* HeadingSubheadingImageComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadingSubheadingImageComponent.swift; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
 		1F73DDBFEC2444064423AE2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraTextField.swift; sourceTree = "<group>"; };
@@ -364,6 +371,7 @@
 		5E777101DCE31F95103C50B4 /* Lato-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Bold.ttf"; sourceTree = "<group>"; };
 		5F87936ECB7F2B45E23186B8 /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		629711F137AF404054258CDB /* PasswordEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordEntry.swift; sourceTree = "<group>"; };
+		6554AD47D6FFBEE5E076125C /* DefaultEdgeSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultEdgeSpacing.swift; sourceTree = "<group>"; };
 		6930675B73ADF4E2B6F10CC6 /* List.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = List.swift; sourceTree = "<group>"; };
 		69369BAC8E162E7F9DDE86E0 /* AlbumGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumGrid.swift; sourceTree = "<group>"; };
 		6A719D91CD6B57A81031F75F /* TopBarTutorialPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopBarTutorialPill.swift; sourceTree = "<group>"; };
@@ -395,6 +403,7 @@
 		991BC151E6CA0B910FB4655F /* 3.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 3.JPG; sourceTree = "<group>"; };
 		9C5962A9B956E3B444997D50 /* SafeAreaUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeAreaUtils.swift; sourceTree = "<group>"; };
 		9EB904C84E5D90724BD79358 /* LockScreenKeypad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenKeypad.swift; sourceTree = "<group>"; };
+		9F99DE24E4BB4ACCECA4742B /* PurchaseOptionsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseOptionsOverlay.swift; sourceTree = "<group>"; };
 		A7FCEC57F5CC73BFC1097C52 /* KeyInformation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyInformation.swift; sourceTree = "<group>"; };
 		AA1408F1B24F65F9206EFEC2 /* FirstPhotoTakenTutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstPhotoTakenTutorial.swift; sourceTree = "<group>"; };
 		AB97C90A88A7FF748C251292 /* OptionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionItemView.swift; sourceTree = "<group>"; };
@@ -588,6 +597,7 @@
 			children = (
 				F36D3A694CEEF6B1B7927A9A /* ButtonViewModifier.swift */,
 				7FDD2738B4629857A7B5B0E3 /* ConditionalModifier.swift */,
+				6554AD47D6FFBEE5E076125C /* DefaultEdgeSpacing.swift */,
 				45F0891336463BA93C981B5F /* GalleryItem.swift */,
 				5BAEF5793CBB3045C9F628BC /* GradientBackground.swift */,
 				6EA6577FB500EAC600F75901 /* PurchaseOptionViewModifier.swift */,
@@ -771,6 +781,7 @@
 			children = (
 				3D6C0368467116B7BC1E31B9 /* ProductOptionView.swift */,
 				76DC7343E9ECEFF44132872C /* PurchaseButton.swift */,
+				9F99DE24E4BB4ACCECA4742B /* PurchaseOptionsOverlay.swift */,
 				93BD2E6D2DFBF7562EBC70FB /* PurchaseUpgradeHeaderView.swift */,
 				B6160C505578FD25DED491FD /* PurchaseUpgradeOptionsListView.swift */,
 				AF45077C2F581A4AAF9AA146 /* PurchaseUpgradeView.swift */,
@@ -786,6 +797,7 @@
 			isa = PBXGroup;
 			children = (
 				2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */,
+				1C3A2DC8EF95074331B6CBEE /* HeadingSubheadingImageComponent.swift */,
 				5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */,
 				25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */,
 				7FB2C08C3732EFAB967E6227 /* WebView.swift */,
@@ -1110,7 +1122,6 @@
 				64A89946F6E0FE1E9A9DEC59 /* AddExchangedKeyConfirmation.swift in Sources */,
 				4BA9D4FCA7ACD2B03A62AD7A /* AlbumBaseGridItem.swift in Sources */,
 				A4CA2A068A658881C486878A /* AlbumCell.swift in Sources */,
-				E57CD55CDC8051FBB6E47C9D /* AlbumDetailView.swift in Sources */,
 				66EA12F48AB996734FF2D288 /* AlbumGrid.swift in Sources */,
 				AA47FB62FF6FA9E4F45E5AE8 /* AlbumGridItem.swift in Sources */,
 				70AC154CF1FE49A51C0C72A1 /* AsyncEncryptedImage.swift in Sources */,
@@ -1127,6 +1138,7 @@
 				DB833BB5DCEF1429B7F7BE8A /* ConditionalModifier.swift in Sources */,
 				E372CBC2D865825DCE3FACA9 /* CreateAlbum.swift in Sources */,
 				8DA5313062B4B0A3BAA23C4A /* DecryptErrorExplanation.swift in Sources */,
+				69CD880341E723CEC6DA5581 /* DefaultEdgeSpacing.swift in Sources */,
 				F860061EE853A5C21899C1E4 /* EncameraApp.swift in Sources */,
 				D9593E17F428493E19AC0277 /* EncameraState.swift in Sources */,
 				D6A68AA78C8F5FD15DA3360C /* EncameraTextField.swift in Sources */,
@@ -1137,6 +1149,7 @@
 				07443E6C29124861E6A7638C /* GalleryItem.swift in Sources */,
 				EF737AC8AA5172D603864CE6 /* GradientBackground.swift in Sources */,
 				B285EF9833A810953F3BB899 /* HardwareVolumeButtonCaptureUtils.swift in Sources */,
+				F273E9D2828E571958321D6D /* HeadingSubheadingImageComponent.swift in Sources */,
 				E1E2AA7DBC4EA734012FD345 /* ImageCarousel.swift in Sources */,
 				342DE7FCAC5068FCEA226818 /* ImageStepIndicator.swift in Sources */,
 				3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */,
@@ -1148,6 +1161,7 @@
 				0BC85FE4F83BBCD0AAAB28A3 /* LockScreenKeypad.swift in Sources */,
 				13F2BC03E7B23D65C31D19CD /* MainHomeView.swift in Sources */,
 				114EBEBC2E22847C842A538D /* MainOnboardingView.swift in Sources */,
+				19E041732B0A73D500A69DD1 /* AlbumDetailView.swift in Sources */,
 				3ECC622BE09A0394BCA79AB6 /* MediaImportView.swift in Sources */,
 				EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */,
 				AD8F6464844061B17FAFE50E /* OnboardingView.swift in Sources */,
@@ -1159,6 +1173,7 @@
 				F30D4AE8166C0034674E0DBB /* PromptToErase.swift in Sources */,
 				6C17DD325876225EA9C2E3DE /* PurchaseButton.swift in Sources */,
 				1247A3C15B8A96D4067D5C2A /* PurchaseOptionViewModifier.swift in Sources */,
+				478EDCEDE153938683788430 /* PurchaseOptionsOverlay.swift in Sources */,
 				4B34A3BACAAE910FCFF72639 /* PurchasePhotoSubscriptionOverlay.swift in Sources */,
 				F52B09D9AEBF17B9E89E4219 /* PurchaseUpgradeHeaderView.swift in Sources */,
 				003E154D889385DEACD50E3B /* PurchaseUpgradeOptionsListView.swift in Sources */,
@@ -1205,7 +1220,6 @@
 				B1BCC034A47E2A543AAF9274 /* AddExchangedKeyConfirmation.swift in Sources */,
 				295E1C586ED20C1AA268B6DF /* AlbumBaseGridItem.swift in Sources */,
 				D6A648A88CD9B3BF3B0C20F6 /* AlbumCell.swift in Sources */,
-				1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */,
 				A15D743D0C86938BF70EEA3E /* AlbumGrid.swift in Sources */,
 				6A4CEF749366A7470369E271 /* AlbumGridItem.swift in Sources */,
 				CFAB55E416C41FAB2A383E4C /* AsyncEncryptedImage.swift in Sources */,
@@ -1221,8 +1235,10 @@
 				8040C7E145902BB5C26BFD0D /* Color.swift in Sources */,
 				E56B350130F1B6B5DE90159B /* ConditionalModifier.swift in Sources */,
 				F8466D3C273EF07E56C2AAB0 /* ContentView.swift in Sources */,
+				19E041742B0A73D600A69DD1 /* AlbumDetailView.swift in Sources */,
 				F4E6DE89AF56549BA339C272 /* CreateAlbum.swift in Sources */,
 				4690EAB3D33AB78CC77291CA /* DecryptErrorExplanation.swift in Sources */,
+				377C8AF0425F62A1A6A3073D /* DefaultEdgeSpacing.swift in Sources */,
 				1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */,
 				A8FE897989145FD75B54BCC3 /* EncameraTextField.swift in Sources */,
 				3513B1F610CDEA1D6D934087 /* ExplanationForUpgradeTutorial.swift in Sources */,
@@ -1232,6 +1248,7 @@
 				B799D92FE289330BA94E4718 /* GalleryItem.swift in Sources */,
 				6A22D93F305C8BF99A71F59C /* GradientBackground.swift in Sources */,
 				ABBA2314949C02E270BB23A9 /* HardwareVolumeButtonCaptureUtils.swift in Sources */,
+				5B91C9DDD3379070F2A342BD /* HeadingSubheadingImageComponent.swift in Sources */,
 				F05236200E8FF893CBBE593A /* ImageCarousel.swift in Sources */,
 				6F25DA8800B9AFE79C610CBC /* ImageStepIndicator.swift in Sources */,
 				1CAB026A547B230F6A4CEDC4 /* ImageViewing.swift in Sources */,
@@ -1254,6 +1271,7 @@
 				BFB399E63CA3C82BE2537605 /* PromptToErase.swift in Sources */,
 				5C91E706B46D7747CB493739 /* PurchaseButton.swift in Sources */,
 				0FC11E74F68B1370360923E9 /* PurchaseOptionViewModifier.swift in Sources */,
+				3AE0AEDA69ADA69631A0A8F5 /* PurchaseOptionsOverlay.swift in Sources */,
 				0F4CDDD82766BE41DAE48D2F /* PurchasePhotoSubscriptionOverlay.swift in Sources */,
 				734D01AB3BEF13BC9EDA09E1 /* PurchaseUpgradeHeaderView.swift in Sources */,
 				3F5542ACA59DF32F6249B89C /* PurchaseUpgradeOptionsListView.swift in Sources */,

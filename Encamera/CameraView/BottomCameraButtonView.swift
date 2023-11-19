@@ -117,20 +117,20 @@ struct BottomCameraButtonView: View {
         })
     }
 }
-
-#Preview {
-    ZStack {
-        Image("maria-cappelli")
-            .resizable()
-
-        BottomCameraButtonView(cameraModel: CameraModel(
-            keyManager: DemoKeyManager(),
-            authManager: DemoAuthManager(),
-            cameraService: CameraConfigurationService(model: .init()),
-            fileAccess: DemoFileEnumerator(),
-            storageSettingsManager: DemoStorageSettingsManager(),
-            purchaseManager: DemoPurchasedPermissionManaging()
-        ), cameraModeStateModel: .init())
-    }
-
-}
+//
+//#Preview {
+//    ZStack {
+//        Image("maria-cappelli")
+//            .resizable()
+//
+//        BottomCameraButtonView(cameraModel: CameraModel(
+//            keyManager: DemoKeyManager(),
+//            authManager: DemoAuthManager(),
+//            cameraService: CameraConfigurationService(model: .init()),
+//            fileAccess: DemoFileEnumerator(),
+//            storageSettingsManager: DemoStorageSettingsManager(),
+//            purchaseManager: DemoPurchasedPermissionManaging()
+//        ), cameraModeStateModel: .init())
+//    }
+//
+//}

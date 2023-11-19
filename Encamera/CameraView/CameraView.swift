@@ -190,8 +190,8 @@ struct CameraView: View {
     
     private var galleryView: some View {
         NavigationLink(isActive: $cameraModel.showGalleryView) {
-            if let key = cameraModel.keyManager.currentKey {
-                GalleryGridView<EmptyView, EncryptedMedia>(viewModel: .init(privateKey: key))
+            if let key = cameraModel.keyManager.currentKey, let album = cameraModel.albumManager.currentAlbum {
+                GalleryGridView<EmptyView, EncryptedMedia>(viewModel: .init(privateKey: key, album: album, albumManager: cameraModel.albumManager))
             }
         } label: {
             EmptyView()
@@ -284,22 +284,22 @@ extension AVCaptureDevice.FlashMode {
         }
     }
 }
-
-struct CameraView_Previews: PreviewProvider {
-    static var previews: some View {
-        let model = CameraModel(
-            keyManager: DemoKeyManager(),
-            authManager: DemoAuthManager(),
-            cameraService: CameraConfigurationService(model: .init()),
-            fileAccess: DemoFileEnumerator(),
-            storageSettingsManager: DemoStorageSettingsManager(),
-            purchaseManager: DemoPurchasedPermissionManaging()
-        )
-        CameraView(cameraModel: model, hasMediaToImport: .constant(true), closeButtonTapped: {
-            
-        })
-            .preferredColorScheme(.dark)
-    }
-}
-
+//
+//struct CameraView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        let model = CameraModel(
+//            keyManager: DemoKeyManager(),
+//            authManager: DemoAuthManager(),
+//            cameraService: CameraConfigurationService(model: .init()),
+//            fileAccess: DemoFileEnumerator(),
+//            storageSettingsManager: DemoStorageSettingsManager(),
+//            purchaseManager: DemoPurchasedPermissionManaging()
+//        )
+//        CameraView(cameraModel: model, hasMediaToImport: .constant(true), closeButtonTapped: {
+//            
+//        })
+//            .preferredColorScheme(.dark)
+//    }
+//}
+//
 

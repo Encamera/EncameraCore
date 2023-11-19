@@ -12,6 +12,8 @@ import EncameraCore
 class AlbumGridItemModel: ObservableObject {
     
     var fileReader: FileReader = DiskFileAccess()
+    var album: Album
+    var albumManager: AlbumManager = AlbumManager()
     var storageModel: DataStorageModel?
     var storageType: StorageType? {
         storageModel?.storageType
@@ -21,15 +23,17 @@ class AlbumGridItemModel: ObservableObject {
     @Published var imageCount: Int?
     @Published var leadingImage: UIImage?
 
-    init(key: PrivateKey) {
+    init(album: Album, key: PrivateKey) {
+        self.album = album
         Task {
             await fileReader.configure(
+                for: album,
                 with: key,
-                storageSettingsManager: DataStorageUserDefaultsSetting()
+                albumManager: albumManager
             )
             
         }
-        storageModel = DataStorageUserDefaultsSetting().storageModelFor(keyName: key.name)
+        storageModel = albumManager.storageModel(for: album)
         self.countOfMedia = storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension, MediaType.video.fileExtension]) ?? 0
 
     }
@@ -56,9 +60,9 @@ struct AlbumGridItem: View {
     var keyName: String
     var width: CGFloat
 
-    init(key: PrivateKey, width: CGFloat) {
+    init(key: PrivateKey, album: Album, width: CGFloat) {
         keyName = key.name
-        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(key: key))
+        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, key: key))
         self.width = width
     }
 
@@ -78,17 +82,17 @@ struct AlbumGridItem: View {
 
 
 
-struct AlbumGridItem_Previews: PreviewProvider {
-    static var previews: some View {
-        
-        AlbumGrid(viewModel: .init(keyManager: DemoKeyManager(keys: [            DemoPrivateKey.dummyKey(name: "cats and their people"),
-                                                         DemoPrivateKey.dummyKey(name: "dogs"),
-                                                         DemoPrivateKey.dummyKey(name: "rats"),
-                                                         DemoPrivateKey.dummyKey(name: "mice"),
-                                                         DemoPrivateKey.dummyKey(name: "cows"),
-                                                         DemoPrivateKey.dummyKey(name: "very very very very very very long name that could overflow"),
-                                                                           ]), purchaseManager: AppPurchasedPermissionUtils(), fileManager: DemoFileEnumerator()))
-        .preferredColorScheme(.dark)
-    }
-        
-}
+//struct AlbumGridItem_Previews: PreviewProvider {
+//    static var previews: some View {
+//        
+//        AlbumGrid(viewModel: .init(keyManager: DemoKeyManager(keys: [            DemoPrivateKey.dummyKey(name: "cats and their people"),
+//                                                         DemoPrivateKey.dummyKey(name: "dogs"),
+//                                                         DemoPrivateKey.dummyKey(name: "rats"),
+//                                                         DemoPrivateKey.dummyKey(name: "mice"),
+//                                                         DemoPrivateKey.dummyKey(name: "cows"),
+//                                                         DemoPrivateKey.dummyKey(name: "very very very very very very long name that could overflow"),
+//                                                                           ]), purchaseManager: AppPurchasedPermissionUtils(), fileManager: DemoFileEnumerator()))
+//        .preferredColorScheme(.dark)
+//    }
+//        
+//}
