@@ -57,11 +57,11 @@ class AlbumGridItemModel: ObservableObject {
 struct AlbumGridItem: View {
 
     @StateObject var viewModel: AlbumGridItemModel
-    var keyName: String
+    var albumName: String
     var width: CGFloat
 
     init(key: PrivateKey, album: Album, width: CGFloat) {
-        keyName = key.name
+        albumName = album.name
         _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, key: key))
         self.width = width
     }
@@ -69,7 +69,7 @@ struct AlbumGridItem: View {
     var body: some View {
         
         AlbumBaseGridItem(uiImage: viewModel.leadingImage,
-                          title: keyName,
+                          title: albumName,
                           subheading: viewModel.imageCount != nil ? L10n.imageS(viewModel.imageCount!) : nil,
                           width: width)
             .task {

@@ -148,9 +148,7 @@ struct AuthenticationView: View {
             Spacer()
         }
         .onAppear {
-            if let biometric = viewModel.availableBiometric, biometric == .touchID {
-                viewModel.authenticateWithBiometrics()
-            }
+            viewModel.authenticateWithBiometrics()
         }
         .padding()
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)

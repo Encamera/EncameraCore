@@ -50,6 +50,7 @@ targets:
     platform: iOS
     deploymentTarget: "16.0"
     sources: [Encamera]
+    storeKitConfiguration: "../../../EncameraCore/Sources/EncameraCore/InAppPurchase/Encamera.storekit"
     settings:
       DEVELOPMENT_TEAM: KGJCC745S9
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ForegroundPrimaryColor

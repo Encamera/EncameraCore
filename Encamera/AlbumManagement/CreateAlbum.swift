@@ -40,7 +40,7 @@ class CreateAlbumViewModel: ObservableObject {
         func saveAlbum() throws {
             do {
                 if let albumStorageType {
-//                    albumManager.currentAlbum = Album(name: albumName, storageOption: albumStorageType, creationDate: ())
+                    try albumManager.create(album: Album(name: albumName, storageOption: albumStorageType, creationDate: Date()))
                 } else {
                     throw CreateAlbumError.missingStorageType
                 }
@@ -54,7 +54,7 @@ class CreateAlbumViewModel: ObservableObject {
                 print("Unhandled error", error)
                 throw error
             }
-
+            
         }
 
         @MainActor
@@ -122,7 +122,12 @@ struct CreateAlbum: View {
             }
             Spacer()
             Button(L10n.createNewAlbum) {
-                
+                do {
+                    try viewModel.saveAlbum()
+                    dismiss()
+                } catch {
+                    debugPrint("Error saving album", error)
+                }
             }.primaryButton()
 
         }
