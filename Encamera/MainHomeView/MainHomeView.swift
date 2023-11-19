@@ -26,6 +26,7 @@ class MainHomeViewViewModel: ObservableObject {
     var cameraService: CameraConfigurationService
     var cameraServiceModel = CameraConfigurationServiceModel()
     var keyManager: KeyManager
+    var privateKey: PrivateKey
     var albumManager: AlbumManager
     var purchasedPermissions: PurchasedPermissionManaging
     var settingsManager: SettingsManager
@@ -34,11 +35,13 @@ class MainHomeViewViewModel: ObservableObject {
 
     init(fileAccess: FileAccess,
          keyManager: KeyManager,
+         key: PrivateKey,
          albumManager: AlbumManager,
          purchasedPermissions: PurchasedPermissionManaging,
          settingsManager: SettingsManager,
          authManager: AuthManager) {
         self.fileAccess = fileAccess
+        self.privateKey = key
         self.cameraService = CameraConfigurationService(model: cameraServiceModel)
         self.keyManager = keyManager
         self.albumManager = albumManager
@@ -68,7 +71,7 @@ struct MainHomeView: View {
             ZStack(alignment: .bottom) {
                 if selectedNavigationItem == .camera {
                     CameraView(cameraModel: .init(
-                        keyManager: viewModel.keyManager,
+                        privateKey: viewModel.privateKey,
                         albumManager: viewModel.albumManager,
                         authManager: viewModel.authManager,
                         cameraService: viewModel.cameraService,
@@ -81,7 +84,7 @@ struct MainHomeView: View {
                     if selectedNavigationItem == .settings {
                         SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
                     } else {
-                        AlbumGrid(viewModel: .init(keyManager: viewModel.keyManager, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
+                        AlbumGrid(viewModel: .init(key: viewModel.privateKey, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
                     }
                     BottomNavigationBar(selectedItem: $selectedNavigationItem)
                 }

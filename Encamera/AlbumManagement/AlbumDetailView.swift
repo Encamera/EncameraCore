@@ -16,7 +16,6 @@ class AlbumDetailViewModel: ObservableObject {
         case couldNotSetKeychain
     }
     var albumManager: AlbumManager
-    var keyManager: KeyManager
 
     @Published var keyViewerError: KeyViewerError?
     @Published var deleteAlbumConfirmation: String = ""
@@ -29,10 +28,8 @@ class AlbumDetailViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    // maybe we can just pass the key here since it won't change
-    init(albumManager: AlbumManager, keyManager: KeyManager, fileManager: FileAccess? = nil, key: PrivateKey, album: Album) {
+    init(albumManager: AlbumManager, fileManager: FileAccess? = nil, key: PrivateKey, album: Album) {
         self.albumManager = albumManager
-        self.keyManager = keyManager
         self.fileManager = fileManager
         self.key = key
         self.album = album
@@ -42,9 +39,9 @@ class AlbumDetailViewModel: ObservableObject {
     }
 
 
-    func deleteKey() {
+    func deleteAlbum() {
         do {
-            try keyManager.deleteKey(key)
+            try albumManager.delete(album: album)
         } catch {
             
             deleteActionError = L10n.ErrorDeletingKey.pleaseTryAgain
@@ -81,7 +78,7 @@ class AlbumDetailViewModel: ObservableObject {
 struct AlbumDetailView: View {
     
     @State var isShowingAlertForClearKey: Bool = false
-    @State var isShowingAlertForDeleteAllKeyData: Bool = false
+    @State var isShowingAlertForDeleteAllAlbumData: Bool = false
     @State var isShowingAlertForCopyKey: Bool = false
     @StateObject var viewModel: AlbumDetailViewModel
     
@@ -128,7 +125,7 @@ struct AlbumDetailView: View {
         }, message: {
             Text(L10n.KeyCopiedToClipboard.storeThisInAPasswordManagerOrOtherSecurePlace)
         })
-        .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllKeyData, actions: {
+        .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllAlbumData, actions: {
             if #available(iOS 16.0, *) {
 //                TextField(L10n.keyName, text: $viewModel.deleteKeyConfirmation)
 //                    .noAutoModification()
@@ -157,7 +154,7 @@ struct AlbumDetailView: View {
             }
             Button(L10n.delete, role: .destructive) {
                 if viewModel.canDeleteKey() {
-                    viewModel.deleteKey()
+                    viewModel.deleteAlbum()
                     dismiss()
                 }
             }

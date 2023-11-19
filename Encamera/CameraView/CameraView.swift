@@ -145,7 +145,8 @@ struct CameraView: View {
             }
             .sheet(isPresented: $cameraModel.showImportedMediaScreen) {
                 MediaImportView(viewModel: .init(
-                    keyManager: cameraModel.keyManager,
+                    privateKey: cameraModel.privateKey,
+                    albumManager: cameraModel.albumManager,
                     fileAccess: cameraModel.fileAccess
                 ))
             }
@@ -190,8 +191,12 @@ struct CameraView: View {
     
     private var galleryView: some View {
         NavigationLink(isActive: $cameraModel.showGalleryView) {
-            if let key = cameraModel.keyManager.currentKey, let album = cameraModel.albumManager.currentAlbum {
-                GalleryGridView<EmptyView, EncryptedMedia>(viewModel: .init(privateKey: key, album: album, albumManager: cameraModel.albumManager))
+            if let album = cameraModel.albumManager.currentAlbum {
+                GalleryGridView<EmptyView, EncryptedMedia>(viewModel: .init(
+                    privateKey: cameraModel.privateKey,
+                    album: album,
+                    albumManager: cameraModel.albumManager
+                ))
             }
         } label: {
             EmptyView()
@@ -201,13 +206,13 @@ struct CameraView: View {
     
     private var mainCamera: some View {
         VStack {
-            let currentKeyName = Binding<String> {
-                return cameraModel.keyManager.currentKey?.name ?? L10n.noKey
+            let currentAlbumName = Binding<String> {
+                return cameraModel.albumManager.currentAlbum?.name ?? L10n.noKey
             } set: { _, _ in
                 
             }
             TopCameraControlsView(viewModel: .init(), isRecordingVideo: $cameraModel.isRecordingVideo,
-                                  recordingDuration: $cameraModel.recordingDuration, currentAlbumName: currentKeyName, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
+                                  recordingDuration: $cameraModel.recordingDuration, currentAlbumName: currentAlbumName, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
                 closeButtonTapped()
             }, flashButtonPressed: {
                 self.cameraModel.switchFlash()

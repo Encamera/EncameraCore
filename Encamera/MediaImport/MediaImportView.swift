@@ -16,15 +16,20 @@ class MediaImportViewModel: ObservableObject {
     @Published var showDeleteAlert: Bool = false
     @Published var saveProgress: Double = 0.0
     var galleryViewModel: SelectableGalleryViewModel<CleartextMedia<URL>>
-    var keyManager: KeyManager
+    var privateKey: PrivateKey
+    var albumManager: AlbumManager
     private var cancellables = Set<AnyCancellable>()
     private var fileAccess: FileAccess
     var appGroupFileAccess: FileAccess
     
-    init(keyManager: KeyManager, fileAccess: FileAccess, appGroupFileAccess: FileAccess = AppGroupFileReader()) {
+    init(privateKey: PrivateKey,
+         albumManager: AlbumManager,
+         fileAccess: FileAccess,
+         appGroupFileAccess: FileAccess = AppGroupFileReader()) {
         self.appGroupFileAccess = appGroupFileAccess
         self.fileAccess = fileAccess
-        self.keyManager = keyManager
+        self.albumManager = albumManager
+        self.privateKey = privateKey
         self.galleryViewModel = SelectableGalleryViewModel(media: [], fileAccess: appGroupFileAccess)
     }
     
@@ -96,7 +101,7 @@ struct MediaImportView: View {
                 Group {
                     Text(L10n.importMedia)
                         .fontType(.medium)
-                    Text("\(L10n.importSelectedImages) (\(viewModel.keyManager.currentKey?.name ?? ""))")
+                    Text("\(L10n.importSelectedImages) (\(viewModel.albumManager.currentAlbum?.name ?? ""))")
                 }.frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                 
@@ -158,10 +163,10 @@ struct MediaImportView: View {
         
     }
 }
-
-struct MediaImportView_Previews: PreviewProvider {
-    static var previews: some View {
-        MediaImportView(viewModel: MediaImportViewModel(keyManager: DemoKeyManager(), fileAccess: DemoFileEnumerator(), appGroupFileAccess: DemoFileEnumerator()))
-            .preferredColorScheme(.dark)
-    }
-}
+//
+//struct MediaImportView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        MediaImportView(viewModel: MediaImportViewModel(keyManager: DemoKeyManager(), fileAccess: DemoFileEnumerator(), appGroupFileAccess: DemoFileEnumerator()))
+//            .preferredColorScheme(.dark)
+//    }
+//}

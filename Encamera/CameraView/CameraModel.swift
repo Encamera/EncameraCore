@@ -52,7 +52,7 @@ final class CameraModel: NSObject, ObservableObject {
     @Published var showImportedMediaScreen = false
     @Published var cameraSetupResult: SessionSetupResult = .notDetermined
     var authManager: AuthManager
-    var keyManager: KeyManager
+    var privateKey: PrivateKey
     var albumManager: AlbumManager
     var alertError: AlertError!
     var fileAccess: FileAccess
@@ -65,7 +65,7 @@ final class CameraModel: NSObject, ObservableObject {
     var isProcessingEvent = false
     let eventSubject = PassthroughSubject<Void, Never>()
     
-    init(keyManager: KeyManager,
+    init(privateKey: PrivateKey,
          albumManager: AlbumManager,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
@@ -75,7 +75,7 @@ final class CameraModel: NSObject, ObservableObject {
         self.service = cameraService
         self.fileAccess = fileAccess
         self.purchaseManager = purchaseManager
-        self.keyManager = keyManager
+        self.privateKey = privateKey
         self.albumManager = albumManager
 
         self.authManager = authManager
@@ -95,7 +95,7 @@ final class CameraModel: NSObject, ObservableObject {
             }
             if let album = albumManager.currentAlbum {
                 await self.fileAccess.configure(
-                    for: album, with: keyManager.currentKey, albumManager: albumManager
+                    for: album, with: privateKey, albumManager: albumManager
                 )
             }
         }
@@ -134,7 +134,7 @@ final class CameraModel: NSObject, ObservableObject {
             .compactMap({$0})
             .sink { album in
             Task {
-                await self.fileAccess.configure(for: album, with: keyManager.currentKey, albumManager: albumManager)
+                await self.fileAccess.configure(for: album, with: privateKey, albumManager: albumManager)
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)
@@ -192,11 +192,7 @@ final class CameraModel: NSObject, ObservableObject {
     }
     
     func captureButtonPressed() async throws {
-        
-        guard keyManager.currentKey != nil else {
-            showAlertForMissingKey = true
-            return
-        }
+
         
         switch selectedCameraMode {
         case .photo:

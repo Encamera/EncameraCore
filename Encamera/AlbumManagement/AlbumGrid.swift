@@ -11,24 +11,20 @@ import Combine
 
 class AlbumGridViewModel: ObservableObject {
     @Published var albums: [Album] = []
-    @Published var activeKey: PrivateKey?
-    var keyManager: KeyManager
     var albumManager: AlbumManager
     var fileManager: FileAccess
+    var key: PrivateKey
     @Published var isShowingAddExistingKeyView: Bool = false
     @Published var isKeyTutorialClosed: Bool = true
     var purchaseManager: PurchasedPermissionManaging
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(keyManager: KeyManager, purchaseManager: PurchasedPermissionManaging, fileManager: FileAccess, albumManger: AlbumManager) {
+    init(key: PrivateKey, purchaseManager: PurchasedPermissionManaging, fileManager: FileAccess, albumManger: AlbumManager) {
         self.purchaseManager = purchaseManager
         self.fileManager = fileManager
-        self.keyManager = keyManager
         self.albumManager = albumManger
-            keyManager.keyPublisher.receive(on: DispatchQueue.main).sink { key in
-            self.loadAlbums()
-        }.store(in: &cancellables)
+        self.key = key
         loadAlbums()
         self.isKeyTutorialClosed = UserDefaultUtils.bool(forKey: .keyTutorialClosed)
         UserDefaultUtils.publisher(for: .keyTutorialClosed).sink { value in
@@ -109,18 +105,14 @@ struct AlbumGrid: View {
 
     @ViewBuilder
     private func albums(side: CGFloat) -> some View {
-        if let key = viewModel.keyManager.currentKey {
-            ForEach(viewModel.albums, id: \.id) { album in
-                NavigationLink {
-                    AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, keyManager: viewModel.keyManager, key: key, album: album))
-                } label: {
-                    AlbumGridItem(key: key, album: album, width: side)
-                }
-            }
-        } else {
-            AnyView(EmptyView())
-        }
 
+        ForEach(viewModel.albums, id: \.id) { album in
+            NavigationLink {
+                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.key, album: album))
+            } label: {
+                AlbumGridItem(key: viewModel.key, album: album, width: side)
+            }
+        }
     }
 
 }

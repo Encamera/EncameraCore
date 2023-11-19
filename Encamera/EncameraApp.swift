@@ -199,13 +199,27 @@ struct EncameraApp: App {
     var body: some Scene {
         
         WindowGroup {
-            MainHomeView(viewModel: .init(
-                fileAccess: viewModel.fileAccess,
-                keyManager: viewModel.keyManager,
-                albumManager: self.viewModel.albumManager,
-                purchasedPermissions: viewModel.purchasedPermissions,
-                settingsManager: viewModel.settingsManager,
-                authManager: viewModel.authManager))
+            ZStack {
+                if viewModel.showOnboarding {
+                    MainOnboardingView(
+                        viewModel: .init(onboardingManager: viewModel.onboardingManager,
+                                         keyManager: viewModel.keyManager, authManager: viewModel.authManager))
+                } else if viewModel.isAuthenticated == false {
+                    AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                } else if viewModel.isAuthenticated == true, let key = viewModel.keyManager.currentKey {
+                    MainHomeView(viewModel: .init(
+                        fileAccess: viewModel.fileAccess,
+                        keyManager: viewModel.keyManager,
+                        key: key,
+                        albumManager: self.viewModel.albumManager,
+                        purchasedPermissions: viewModel.purchasedPermissions,
+                        settingsManager: viewModel.settingsManager,
+                        authManager: viewModel.authManager))
+
+                } else {
+                    Text("Something went wrong")
+                }
+            }
                 .preferredColorScheme(.dark)
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     openUrlSheet
@@ -219,15 +233,6 @@ struct EncameraApp: App {
                 }
                 .sheet(isPresented: $viewModel.shouldShowTweetScreen) {
                     TweetToShareView()
-                }
-                .overlay {
-                    if viewModel.showOnboarding {
-                        MainOnboardingView(
-                            viewModel: .init(onboardingManager: viewModel.onboardingManager,
-                                             keyManager: viewModel.keyManager, authManager: viewModel.authManager))
-                    } else if viewModel.isAuthenticated == false {
-                        AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-                    }
                 }
                 .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
                 .onOpenURL { url in
@@ -250,9 +255,14 @@ struct EncameraApp: App {
     }
     
     @ViewBuilder private var mediaImportSheet: some View {
-        
-        MediaImportView(viewModel: .init(keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
-        
+        if let key = viewModel.keyManager.currentKey {
+            MediaImportView(viewModel: .init(
+                privateKey: key,
+                albumManager: viewModel.albumManager,
+                fileAccess: viewModel.fileAccess))
+        } else {
+            Text("Something went wrong")
+        }
     }
     
     @ViewBuilder private var openUrlSheet: some View {
