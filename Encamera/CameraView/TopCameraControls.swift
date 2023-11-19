@@ -12,7 +12,7 @@ import EncameraCore
 import Combine
 
 class TopCameraControlsViewViewModel: ObservableObject {
-    
+
     @Published var selectedAlbum: Album?
 
     private var cancellables = Set<AnyCancellable>()
@@ -27,7 +27,7 @@ class TopCameraControlsViewViewModel: ObservableObject {
 }
 
 struct TopCameraControlsView: View {
-    
+
     @StateObject var viewModel: TopCameraControlsViewViewModel
 
     @Binding var isRecordingVideo: Bool
@@ -39,13 +39,6 @@ struct TopCameraControlsView: View {
     let cornerRadius = 30.0
     var body: some View {
 
-        var selectedAlbumBinding = Binding<Album?>(get: {
-            viewModel.albumManager.currentAlbum
-        }, set: { newValue in
-            if let album = newValue {
-                viewModel.albumManager.currentAlbum = album
-            }
-        })
         HStack(spacing: 0) {
             Button {
                 closeButtonTapped()
@@ -80,7 +73,7 @@ struct TopCameraControlsView: View {
             flashButton
                 .frame(width: 28, height: 28)
         }
-        
+
         .padding(EdgeInsets(top: getSafeAreaTop() + 10, leading: 16, bottom: 16, trailing: 16))
         .background(.ultraThinMaterial)
         .frame(height: 102)
@@ -112,7 +105,7 @@ struct TopCameraControlsView_Previews: PreviewProvider {
         ZStack {
             Image("maria-cappelli")
                 .resizable()
-//                .frame(width: 500, height: 1000)
+            //                .frame(width: 500, height: 1000)
             TopCameraControlsView(
                 viewModel: TopCameraControlsViewViewModel(albumManager: DemoAlbumManager()),
                 isRecordingVideo: .constant(false),
@@ -121,7 +114,7 @@ struct TopCameraControlsView_Previews: PreviewProvider {
                 closeButtonTapped: {},
                 flashButtonPressed: {}
             )
-            
+
         }
     }
 }

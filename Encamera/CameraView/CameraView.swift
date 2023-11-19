@@ -209,10 +209,12 @@ struct CameraView: View {
             
             TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
                                   recordingDuration: $cameraModel.recordingDuration, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
+                Task {
+                    await cameraModel.service.stop()
+                }
                 closeButtonTapped()
             }, flashButtonPressed: {
                 self.cameraModel.switchFlash()
-
             })
             if hasMediaToImport {
                 HStack {

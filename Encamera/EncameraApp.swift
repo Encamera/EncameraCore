@@ -18,6 +18,7 @@ struct EncameraApp: App {
         @Published var hasMediaToImport = false
         @Published var showImportedMediaScreen = false
         @Published var shouldShowTweetScreen: Bool = false
+        @Published var keyManagerKey: PrivateKey?
         var openedUrl: URL?
         var keyManager: KeyManager
         var albumManager: AlbumManaging = AlbumManager()
@@ -60,6 +61,7 @@ struct EncameraApp: App {
                 fatalError("Onboarding error \(error)")
             }
             self.keyManager.keyPublisher.sink { key in
+                self.keyManagerKey = key
                 self.setupFileAccess(with: key, album: self.albumManager.currentAlbum)
             }.store(in: &cancellables)
 
@@ -206,13 +208,14 @@ struct EncameraApp: App {
         
         WindowGroup {
             ZStack {
+                
                 if viewModel.showOnboarding {
                     MainOnboardingView(
                         viewModel: .init(onboardingManager: viewModel.onboardingManager,
                                          keyManager: viewModel.keyManager, authManager: viewModel.authManager))
-                } else if viewModel.isAuthenticated == false {
+                } else if viewModel.isAuthenticated == false && viewModel.keyManagerKey == nil {
                     AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-                } else if viewModel.isAuthenticated == true, let key = viewModel.keyManager.currentKey {
+                } else if viewModel.isAuthenticated == true, let key = viewModel.keyManagerKey {
                     MainHomeView(viewModel: .init(
                         fileAccess: viewModel.newMediaFileAccess,
                         keyManager: viewModel.keyManager,

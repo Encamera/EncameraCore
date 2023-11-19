@@ -40,38 +40,15 @@ class AlbumDetailViewModel: ObservableObject {
 
 
     func deleteAlbum() {
-        do {
-            try albumManager.delete(album: album)
-        } catch {
-            
-            deleteActionError = L10n.ErrorDeletingKey.pleaseTryAgain
-            showDeleteActionError = true
-            debugPrint("Error clearing keychain", error)
+        albumManager.delete(album: album)
+    }
 
-        }
-    }
-    
-    func deleteAllKeyData() {
-        Task {
-            do {
-                try albumManager.delete(album: album)
-            } catch {
-                await MainActor.run {
-                    deleteActionError = L10n.ErrorDeletingKeyAndAssociatedFiles.pleaseTryAgainOrTryToDeleteFilesManuallyViaTheFilesApp
-                    showDeleteActionError = true
-                    debugPrint("Error deleting all files")
-                
-                }
-            }
-        }
-    }
-    
     func canDeleteKey() -> Bool {
-        if #available(iOS 16.0, *) {
-            return deleteAlbumConfirmation == album.name
-        } else {
+//        if #available(iOS 16.0, *) {
+//            return deleteAlbumConfirmation == album.name
+//        } else {
             return true
-        }
+//        }
     }
 }
 
@@ -103,17 +80,31 @@ struct AlbumDetailView: View {
                             Image("Album-BackButton")
                         }
                         Spacer()
-                        Image("Album-OptionsDots")
+                        Menu {
+                            Button(L10n.viewInFiles) {
+                                LocalDeeplinkingUtils.openAlbumContentsInFiles(album: viewModel.album)
+                            }
+                            Button(L10n.deleteAlbum, role: .destructive) {
+                                isShowingAlertForDeleteAllAlbumData = true
+                            }
+
+                        } label: {
+                            Image("Album-OptionsDots")
+                        }
                     }
                     Spacer().frame(height: 24)
-                    Text(L10n.albumsTitle)
+                    Text(viewModel.album.name)
                         .fontType(.pt24, weight: .bold)
                     Spacer().frame(height: 8)
                     Text(viewModel.album.creationDate.formatted())
                         .fontType(.pt14)
                     Spacer().frame(height: 24)
-                    Text(L10n.addPhotos)
-                        .fontType(.pt14, on: .textButton, weight: .bold)
+                    Button {
+
+                    } label: {
+                        Text(L10n.addPhotos)
+                            .fontType(.pt14, on: .textButton, weight: .bold)
+                    }
                 }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
             }
         }
@@ -126,47 +117,23 @@ struct AlbumDetailView: View {
             Text(L10n.KeyCopiedToClipboard.storeThisInAPasswordManagerOrOtherSecurePlace)
         })
         .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllAlbumData, actions: {
-            if #available(iOS 16.0, *) {
-//                TextField(L10n.keyName, text: $viewModel.deleteKeyConfirmation)
+//            if #available(iOS 16.0, *) {
+//
+//                TextField(L10n.keyName, text: $viewModel.deleteAlbumConfirmation)
 //                    .noAutoModification()
-            }
+//            }
             Button(L10n.deleteEverything, role: .destructive) {
-                if viewModel.canDeleteKey() {
-                    viewModel.deleteAllKeyData()
-                    dismiss()
-                }
-            }
-            Button(L10n.cancel, role: .cancel) {
-                isShowingAlertForClearKey = false
-            }
-        }, message: {
-            if #available(iOS 16.0, *) {
-                Text(L10n.enterTheNameOfTheKeyToDeleteAllItsDataIncludingSavedMediaForever)
-            } else {
-                Text(L10n.doYouWantToDeleteThisKeyAndAllMediaAssociatedWithItForever)
-            }
-            
-        })
-        .alert(L10n.deleteKeyQuestion, isPresented: $isShowingAlertForClearKey, actions: {
-            if #available(iOS 16.0, *) {
-//                TextField(L10n.keyName, text: $viewModel.deleteKeyConfirmation)
-//                    .noAutoModification()
-            }
-            Button(L10n.delete, role: .destructive) {
-                if viewModel.canDeleteKey() {
+
                     viewModel.deleteAlbum()
                     dismiss()
-                }
+
             }
             Button(L10n.cancel, role: .cancel) {
                 isShowingAlertForClearKey = false
             }
         }, message: {
-            if #available(iOS 16.0, *) {
-                Text(L10n.EnterTheNameOfTheKeyToDeleteItForever.allMediaWillRemainSaved)
-            } else {
-                Text(L10n.doYouWantToDeleteThisKeyForeverAllMediaWillRemainSaved)
-            }
+                Text(L10n.deleteAlbumForever)
+
         })
         .alert(L10n.deletionError, isPresented: $viewModel.showDeleteActionError, actions: {
             Button(L10n.ok) {
@@ -180,12 +147,12 @@ struct AlbumDetailView: View {
 
     }
 }
-////
-//struct AlbumDetailView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        NavigationView {
-//
-//            AlbumDetailView(viewModel: .init(keyManager: DemoKeyManager(), key: DemoPrivateKey.dummyKey()))
-//        }
-//    }
-//}
+
+struct AlbumDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationView {
+
+            AlbumDetailView(viewModel: AlbumDetailViewModel(albumManager: DemoAlbumManager(), key: DemoPrivateKey.dummyKey(), album: Album(name: "Test", storageOption: .local, creationDate: Date())))
+        }
+    }
+}

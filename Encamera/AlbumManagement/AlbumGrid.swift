@@ -88,6 +88,7 @@ struct AlbumGrid: View {
 
                         }.frame(height: side + 60)
                     }
+                    .padding(.bottom, 80)
                 }
 
                 .screenBlocked()

@@ -171,13 +171,13 @@ struct SettingsView: View {
 
             }
             .scrollContentBackgroundColor(.clear)
-        }
 
+        }
         .gradientBackground()
         .fontType(.pt14, weight: .bold)
         .sheet(isPresented: $viewModel.showPremium) {
             premium
-        }
+        }.padding(.bottom, 80)
     }
     
     private var premium: some View {

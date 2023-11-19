@@ -68,6 +68,9 @@ class AuthenticationViewModel: ObservableObject {
     }
     
     func authenticateWithBiometrics() {
+        guard let availableBiometric = availableBiometric else {
+            return
+        }
         Task {
             do {
                 try await authManager.authorizeWithBiometrics()
@@ -148,7 +151,10 @@ struct AuthenticationView: View {
             Spacer()
         }
         .onAppear {
-            viewModel.authenticateWithBiometrics()
+            // delay 1 second
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                viewModel.authenticateWithBiometrics()
+            }
         }
         .padding()
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
