@@ -132,6 +132,22 @@ struct CameraView: View {
             
             ZStack {
                 mainCamera
+                    .if(cameraModel.showTookFirstPhotoSheet) { view in
+                        view.genericModal(
+                            imageName: "Image-Camera",
+                            titleText: L10n.coolPicture,
+                            descriptionText: L10n.whereToFindYourPictures,
+                            primaryButtonText: L10n.viewAlbums,
+                            secondaryButtonText: L10n.takeAnotherPhoto,
+                            onPrimaryButtonPressed: {
+                                dismiss()
+                            },
+                            onSecondaryButtonPressed: {
+                                cameraModel.showTookFirstPhotoSheet = false
+                            },
+                            animated: true
+                        )
+                    }
                 tutorialViews
                 if cameraModel.cameraSetupResult == .notAuthorized {
                     missingPermissionsView

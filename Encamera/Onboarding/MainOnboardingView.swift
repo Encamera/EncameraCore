@@ -274,12 +274,7 @@ private extension MainOnboardingView {
                                 }
                                 viewModel.existingPassword = existingPassword
                             }))
-                            if let error = viewModel.generalError as? OnboardingViewError, case .passwordInvalid = error {
-                                Group {
-                                    Text(error.localizedDescription).alertText()
-                                }
-                            }
-                            
+
                             NavigationLink {
                                 PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: DiskFileAccess()))
                             } label: {

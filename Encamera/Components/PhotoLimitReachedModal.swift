@@ -3,7 +3,7 @@ import EncameraCore
 
 extension View {
     func photoLimitReachedModal(onPrimaryButtonPressed: @escaping () -> Void, onSecondaryButtonPressed: @escaping () -> Void) -> some View {
-        self.frame(width: 343, height: 444)
+        self.frame(maxWidth: .infinity, maxHeight: .infinity)
             .genericModal(
                 imageName: "Warning-Triangle",
                 titleText: L10n.photoLimitReached,

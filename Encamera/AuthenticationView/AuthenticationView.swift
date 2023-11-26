@@ -86,12 +86,12 @@ class AuthenticationViewModel: ObservableObject {
     
     
     func handleAuthManagerError(_ error: AuthManagerError) {
-        let displayError: AuthenticationViewError
+        let displayError: AuthenticationViewError?
         switch error {
         case .passwordIncorrect:
             displayError = .passwordIncorrect
         case .biometricsFailed:
-            displayError = .biometricsFailed
+            displayError = nil
         case .biometricsNotAvailable:
             displayError = .biometricsNotAvailable
         case .userCancelledBiometrics:

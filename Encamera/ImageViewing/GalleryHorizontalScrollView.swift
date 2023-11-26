@@ -276,7 +276,7 @@ struct GalleryHorizontalScrollView: View {
                 scrollTo(media: newValue, with: proxy)
             }
             .onAppear {
-                scrollTo(media: viewModel.selectedMedia, with: proxy)
+                scrollTo(media: viewModel.selectedMedia, with: proxy, animated: false)
             }
         }
     }
@@ -299,20 +299,22 @@ struct GalleryHorizontalScrollView: View {
     private var actionBar: some View {
         HStack(alignment: .center) {
             Group {
-                Button {
-                    showingShareSheet = true
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                Button {
-                    viewModel.openInFiles()
-                } label: {
-                    Image(systemName: "folder")
-                }
-                Button {
-                    viewModel.showInfoSheet = true
-                } label: {
-                    Image(systemName: "info.circle")
+                if viewModel.canAccessPhoto(at: viewModel.selectedIndex) {
+                    Button {
+                        showingShareSheet = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    Button {
+                        viewModel.openInFiles()
+                    } label: {
+                        Image(systemName: "folder")
+                    }
+                    Button {
+                        viewModel.showInfoSheet = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                    }
                 }
                 Button {
                     showingDeleteConfirmation = true
@@ -326,12 +328,19 @@ struct GalleryHorizontalScrollView: View {
         .frame(height: 44)
     }
     
-    private func scrollTo(media: EncryptedMedia, with proxy: ScrollViewProxy) {
-        withAnimation {
+    private func scrollTo(media: EncryptedMedia, with proxy: ScrollViewProxy, animated: Bool = true) {
+        let scrollClosure = {
             resetViewState()
-            proxy.scrollTo(media.id)
+            proxy.scrollTo(media.id, anchor: .center)
         }
-        
+        if animated {
+            withAnimation {
+                scrollClosure()
+            }
+        } else {
+            scrollClosure()
+        }
+
     }
     
     private func resetViewState() {

@@ -16,11 +16,12 @@ struct ModalViewModifier: ViewModifier {
     let secondaryButtonText: String
     let onPrimaryButtonPressed: () -> Void
     let onSecondaryButtonPressed: () -> Void
+    var animated: Bool = false  // Added animated property with default value
 
     func body(content: Content) -> some View {
         ZStack(alignment: .center) {
             content
-            Color.gray.opacity(0.4)
+            Color.gray.opacity(0.4).transition(.opacity) // Added transition
             VStack(spacing: 20) {
                 Image(imageName)
                     .resizable()
@@ -45,18 +46,22 @@ struct ModalViewModifier: ViewModifier {
                     Button(secondaryButtonText, action: onSecondaryButtonPressed)
                         .secondaryButton()
                 }
+                .padding()
             }
-            .padding(EdgeInsets(top: 40, leading: 16, bottom: 24, trailing: 16))
             .background(.white)
             .cornerRadius(8)
+            .padding(EdgeInsets(top: 40, leading: 16, bottom: 24, trailing: 16))
+            // Applying fade-in animation if animated is true
+//            .opacity(animated ? 1 : 0)
+            .animation(animated ? .default : nil, value: animated)
         }
     }
 }
 
 // Usage
 extension View {
-    func genericModal(imageName: String, titleText: String, descriptionText: String, primaryButtonText: String, secondaryButtonText: String, onPrimaryButtonPressed: @escaping () -> Void, onSecondaryButtonPressed: @escaping () -> Void) -> some View {
-        self.modifier(ModalViewModifier(imageName: imageName, titleText: titleText, descriptionText: descriptionText, primaryButtonText: primaryButtonText, secondaryButtonText: secondaryButtonText, onPrimaryButtonPressed: onPrimaryButtonPressed, onSecondaryButtonPressed: onSecondaryButtonPressed))
+    func genericModal(imageName: String, titleText: String, descriptionText: String, primaryButtonText: String, secondaryButtonText: String, onPrimaryButtonPressed: @escaping () -> Void, onSecondaryButtonPressed: @escaping () -> Void, animated: Bool = false) -> some View {
+        self.modifier(ModalViewModifier(imageName: imageName, titleText: titleText, descriptionText: descriptionText, primaryButtonText: primaryButtonText, secondaryButtonText: secondaryButtonText, onPrimaryButtonPressed: onPrimaryButtonPressed, onSecondaryButtonPressed: onSecondaryButtonPressed, animated: animated))
     }
 }
 
@@ -73,8 +78,8 @@ extension View {
                 primaryButtonText: L10n.viewAlbums,
                 secondaryButtonText: L10n.takeAnotherPhoto,
                 onPrimaryButtonPressed: { print("Upgrade to Premium") },
-                onSecondaryButtonPressed: { print("Back to album") }
+                onSecondaryButtonPressed: { print("Back to album") },
+                animated: true  // Set to true to enable animation
             )
     }
 }
-
