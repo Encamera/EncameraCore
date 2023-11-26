@@ -38,6 +38,7 @@
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		16ABB8B2CD48BEA35AF48A2E /* OptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB97C90A88A7FF748C251292 /* OptionItemView.swift */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
+		197655FE2B1363AB00BA9D1E /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 197655FD2B1363AB00BA9D1E /* EncameraCore */; };
 		198BA8D62B135CB80028EEC2 /* NotificationBell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198BA8D52B135CB80028EEC2 /* NotificationBell.swift */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
@@ -467,6 +468,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */,
+				197655FE2B1363AB00BA9D1E /* EncameraCore in Frameworks */,
 				040E39E6A352E9AF8BA82CC9 /* EncameraCore in Frameworks */,
 				112CE54F53B1EE09771F0D6F /* StoreKit.framework in Frameworks */,
 			);
@@ -907,6 +909,7 @@
 			packageProductDependencies = (
 				9BDB467AF8E2ABBB52B964F4 /* Sodium */,
 				389FE1CC4F9A52A1AC3AD6E2 /* EncameraCore */,
+				197655FD2B1363AB00BA9D1E /* EncameraCore */,
 			);
 			productName = Encamera;
 			productReference = AD8594B39C00DCD662DD5B08 /* Encamera.app */;
@@ -1010,6 +1013,7 @@
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
 				C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */,
+				197655FC2B1363AA00BA9D1E /* XCRemoteSwiftPackageReference "EncameraCore" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -1746,6 +1750,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		197655FC2B1363AA00BA9D1E /* XCRemoteSwiftPackageReference "EncameraCore" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "git@github.com:akfreas/EncameraCore.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jedisct1/swift-sodium.git";
@@ -1761,6 +1773,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;
 			productName = Sodium;
+		};
+		197655FD2B1363AB00BA9D1E /* EncameraCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 197655FC2B1363AA00BA9D1E /* XCRemoteSwiftPackageReference "EncameraCore" */;
+			productName = EncameraCore;
 		};
 		389FE1CC4F9A52A1AC3AD6E2 /* EncameraCore */ = {
 			isa = XCSwiftPackageProductDependency;
