@@ -159,7 +159,7 @@ struct GalleryHorizontalScrollView: View {
     @State var currentOffset: CGSize = .zero
     @State var showingShareSheet = false
     @State var showingDeleteConfirmation = false
-//    @State var isPlayingVideo = false
+    @Environment(\.dismiss) var dismiss
     var dragGestureRef = DragGesture(minimumDistance: 0)
     
     
@@ -259,11 +259,13 @@ struct GalleryHorizontalScrollView: View {
                                 .frame(
                                     width: frame.width,
                                     height: frame.height)
-                            if !viewModel.canAccessPhoto(at: index) {
-                                PurchasePhotoSubscriptionOverlay {
-                                    viewModel.showPurchaseScreen()
-                                }.frame(width: frame.width)
-                            }
+                                .if(!viewModel.canAccessPhoto(at: index)) { view in
+                                    view.photoLimitReachedModal {
+                                        viewModel.showPurchaseScreen()
+                                    } onSecondaryButtonPressed: {
+                                        dismiss()
+                                    }
+                                }
                         }.clipped()
                         
                     }

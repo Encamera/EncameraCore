@@ -13,11 +13,6 @@ private struct GradientBackground: ViewModifier {
         content.background {
             ZStack(alignment: .trailing) {
                 Color.background
-                VStack(alignment: .leading) {
-                    Image("Background-TopLeftGradient")
-                        .resizable()
-                    Spacer()
-                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 //                .background(Color.orange)
 

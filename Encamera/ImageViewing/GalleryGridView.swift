@@ -94,9 +94,8 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     }
 
     func blurItemAt(index: Int) -> Bool {
-        return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(index))) == false
+        return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(media.count - index))) == false
     }
-
 }
 
 private enum Constants {

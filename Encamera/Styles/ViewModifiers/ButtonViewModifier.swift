@@ -49,6 +49,9 @@ extension View {
         buttonStyle(EncameraDestructiveButtonStyle(hostSurface: surface))
     }
     
+    func secondaryButton() -> some View {
+        buttonStyle(EncameraButtonStyle(hostSurface: .secondaryButton))
+    }
 }
 
 struct EncameraButton_Previews: PreviewProvider {
@@ -71,11 +74,18 @@ struct EncameraButton_Previews: PreviewProvider {
                 }.primaryButton(on: .darkBackground)
             }
             ZStack {
-                Color.foregroundSecondary.frame(width: 100, height: 100  )
+                Color.white.frame(width: 100, height: 100  )
                 Button("Destroy") {
                     
                 }.destructiveButton(on: .darkBackground)
             }
+            ZStack {
+                Color.white.frame(width: 100, height: 100  )
+                Button("Destroy") {
+
+                }.secondaryButton()
+            }
+
         }
         .frame(maxWidth: .infinity)
         .preferredColorScheme(.dark)

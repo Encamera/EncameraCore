@@ -89,7 +89,6 @@ struct AlbumDetailView: View {
                             Button(L10n.deleteAlbum, role: .destructive) {
                                 isShowingAlertForDeleteAllAlbumData = true
                             }
-
                         } label: {
                             Image("Album-OptionsDots")
                         }.frame(width: 44, height: 44)
