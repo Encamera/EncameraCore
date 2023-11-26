@@ -33,8 +33,8 @@ struct AlbumBaseGridItem: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Rectangle()
-                .stroke(style: strokeStyle ?? StrokeStyle(lineWidth: 0))
+            RoundedRectangle(cornerRadius: 10, style: .circular)
+                .stroke(Color.white.opacity(0.3), style: strokeStyle ?? StrokeStyle(lineWidth: 0))
                 .background {
                 if let image = image {
                     if shouldResizeImage {
@@ -50,7 +50,6 @@ struct AlbumBaseGridItem: View {
                 }
             }
             .frame(width: width, height: width)
-            .galleryClipped()
             .padding(.bottom, 12)
 
 

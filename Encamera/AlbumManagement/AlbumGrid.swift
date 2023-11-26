@@ -58,13 +58,16 @@ struct AlbumGrid: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text(L10n.albumsTitle)
-                .fontType(.large, weight: .bold)
-
+            HStack {
+                Text(L10n.albumsTitle)
+                    .fontType(.large, weight: .bold)
+                Spacer()
+                NotificationBell()
+            }
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
-                let spacing = 17.0
-                let side = frame.width/2 - spacing
+                let spacing = CGFloat(17.0)
+                let side = CGFloat(CGFloat(frame.width/2) - spacing)
                 let columns = [
                     GridItem(.fixed(side), spacing: spacing),
                     GridItem(.fixed(side))
@@ -80,7 +83,7 @@ struct AlbumGrid: View {
                                     CreateAlbum(viewModel: .init(albumManager: viewModel.albumManager))
                                 }
                             } label: {
-                                AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [10], dashPhase: 0.0), shouldResizeImage: false)
+                                AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
                             }
 
 
@@ -104,22 +107,20 @@ struct AlbumGrid: View {
     @ViewBuilder
     private func albums(side: CGFloat) -> some View {
 
-        ForEach(viewModel.albums, id: \.id) { album in
-            NavigationLink {
-                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.key, album: album))
-            } label: {
-                AlbumGridItem(key: viewModel.key, album: album, width: side)
-            }
-        }
+//        ForEach(viewModel.albums, id: \.id) { album in
+//            NavigationLink {
+//                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.key, album: album))
+//            } label: {
+//                AlbumGridItem(key: viewModel.key, album: album, width: side)
+//            }
+//        }
     }
 
 }
-//#Preview {
-//    AlbumGrid(viewModel: .init(keyManager: DemoKeyManager(keys: [            DemoPrivateKey.dummyKey(name: "cats and their people"),
-//                                                                             DemoPrivateKey.dummyKey(name: "dogs"),
-//                                                                             DemoPrivateKey.dummyKey(name: "rats"),
-//                                                                             DemoPrivateKey.dummyKey(name: "mice"),
-//                                                                             DemoPrivateKey.dummyKey(name: "cows"),
-//                                                                             DemoPrivateKey.dummyKey(name: "very very very very very very long name that could overflow"),
-//                                                                ]), purchaseManager: AppPurchasedPermissionUtils(), fileManager: DemoFileEnumerator()))
-//}
+#Preview {
+    AlbumGrid(viewModel: .init(key: DemoPrivateKey.dummyKey(),
+                               purchaseManager: DemoPurchasedPermissionManaging(),
+                               fileManager: DemoFileEnumerator(),
+                               albumManger: DemoAlbumManager()))
+    .gradientBackground()
+}

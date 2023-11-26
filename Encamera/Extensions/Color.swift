@@ -33,6 +33,7 @@ extension Color {
     static let stepIndicatorInactive = Color("StepIndicatorInactiveColor")
     static let purchasePopularForegroundShapeColor = Color("Purchase-PopularForegroundShapeColor")
     static let purchasePopularBackgroundShapeColor = Color("Purchase-PopularBackgroundShapeColor")
+    static let notificationBadgeColor = Color("NotificationBadgeColor")
 }
 /*    static let opacity: Double = 0.20
  static let red: Double = 0.21

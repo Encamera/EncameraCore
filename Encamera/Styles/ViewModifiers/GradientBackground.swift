@@ -22,8 +22,10 @@ private struct GradientBackground: ViewModifier {
 //                .background(Color.orange)
 
                 VStack(alignment: .trailing) {
-                    Image("Background-Contour")
-                    Image("Onboarding-Background")
+                    Image("Background-Top")
+                        .frame(maxWidth: .infinity)
+                    Spacer()
+                    Image("Background-Bottom")
                 }
             }
             .padding(.zero)
