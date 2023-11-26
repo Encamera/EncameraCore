@@ -9,6 +9,36 @@ import SwiftUI
 import StoreKit
 import EncameraCore
 
+private struct MostPopularIndicatorViewModifier: ViewModifier {
+    let popularWidth: CGFloat = 113.0
+    let popularHeight: CGFloat = 22.0
+
+    func body(content: Content) -> some View {
+        ZStack(alignment: .top) {
+
+            Rectangle()
+                          .foregroundColor(.clear)
+                          .frame(width: popularWidth * 1.1, height: popularHeight)
+                          .background(Color.purchasePopularBackgroundShapeColor)
+//                          .background(Color(red: 0.52, green: 0.17, blue: 0.06))
+                          .cornerRadius(4)
+                          .offset(.init(width: 0.0, height: popularHeight / -2))
+
+            content
+            HStack(spacing: 10) {
+                Text("MOST POPULAR")
+                    .font(Font.custom("Satoshi Variable", size: 10).weight(.black))
+                    .foregroundColor(.white)
+            }
+            .padding(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            .frame(width: popularWidth, height: popularHeight)
+            .background(Color.purchasePopularForegroundShapeColor)
+            .cornerRadius(4)
+            .offset(.init(width: 0.0, height: popularHeight / -2))
+        }
+    }
+}
+
 
 struct SubscriptionOptionView: View {
     let subscription: ServiceSubscription
@@ -16,55 +46,47 @@ struct SubscriptionOptionView: View {
     let isSubscribed: Bool
 
     @Binding var isOn: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var savingsText: String? {
-        savings.map { L10n.saveAmount($0.formattedPrice(for: subscription), $0.formattedPercent) }
-    }
     
     private static var backgroundColor: Color {
-        .foregroundSecondary
+        .black
     }
     
     private static var backgroundShape: some InsettableShape {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
     }
-    
+
+
+
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading) {
-                
-                if isSubscribed {
-                    Text(L10n.subscribed)
-                        .fontType(.extraSmall, on: .elevated)
-                        .textPill(color: .green)
+
+            OptionItemView(
+                title: subscription.displayName,
+                description: savings == nil ? nil : subscription.priceText,
+                isAvailable: true,
+                isSelected: $isOn
+            ) {
+                VStack {
+
+                    if let savings {
+                        Text(savings.formattedMonthlyPrice(for: subscription))
+                            .fontType(.pt14,
+                                      on: isOn ? .lightBackground : .darkBackground,
+                                      weight: .bold)
+                        Text(savings.formattedTotalSavings(for: subscription))
+                            .fontType(.pt10, on: isOn ? .darkBackground : .lightBackground, weight: .bold)
+                            .textPill(color: isOn ? .black : .white)
+                    } else {
+                        Text(subscription.priceText)
+                            .fontType(.pt14,
+                                      on: isOn ? .lightBackground : .darkBackground,
+                                      weight: .bold)
+
+                    }
                 }
-                
-                
-                Text(subscription.displayName)
-                    .fontType(.small, weight: .bold)
-                    
-                 Text(subscription.description)
-                    .fontType(.small)
-                    .padding(.bottom, 2)
-                 Text(applyKerning(to: "/", in: subscription.priceText))
-                    .fontType(.small)
-                 if let savingsText = savingsText, !isSubscribed {
-                     Text(applyKerning(to: "/()", in: savingsText))
-                         .fontType(.extraSmall, on: .elevated)
-                         .textPill(color: .green)
-                 }
-            }
-            Spacer()
-            checkmarkImage
-        }
-        .onTapGesture {
-            isOn.toggle()
-        }
-        .productCell(
-            product: subscription.product,
-            isOn: isOn
-        )
+            }.if(savings != nil, transform: { view in
+                view.modifier(MostPopularIndicatorViewModifier())
+            })
+
     }
     
     private var checkmarkImage: some View {
@@ -94,19 +116,10 @@ struct SubscriptionOptionView: View {
 extension View {
     @ViewBuilder func textPill(color: Color) -> some View {
         self
-            .padding(5)
+            .padding(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8))
             .background(color)
-            .cornerRadius(10)
+            .cornerRadius(40)
     }
 }
 
 
-class MockProduct: SKProduct {
-    
-}
-struct SubscriptionOptionView_Previews: PreviewProvider {
-    static var previews: some View {
-        Text("")
-            .preferredColorScheme(.dark)
-    }
-}

@@ -21,7 +21,7 @@ struct DecryptErrorExplanation: View {
                 Text(L10n.checkThatTheSameKeyThatWasUsedToEncryptThisMediaIsSetAsTheActiveKey)
                 Text(L10n.tapThe) + Text(Image(systemName: "key.fill")) + Text(L10n.iconInTheCameraViewToChangeTheActiveKey)
                 Text(error.displayDescription)
-            }.fontType(.small)
+            }.fontType(.pt18)
             
         }.padding()
     }

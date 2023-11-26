@@ -9,6 +9,7 @@ import SwiftUI
 import StoreKit
 import Combine
 import EncameraCore
+import WebKit
 
 class SettingsViewViewModel: ObservableObject {
     
@@ -102,91 +103,81 @@ struct SettingsView: View {
     
     
     var body: some View {
-        Form {
-            Group {
-                Section {
-                    Text(L10n.feedbackRequest)
-                    Button(L10n.contact) {
-                        let email = "mailto:alex+contact@freas.me"
-                        let subject = "Encamera - Contact"
-                        let urlString = "\(email)?subject=\(subject)"
-                        
-                        guard let url = URL(string: urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "") else {
-                            return
+        VStack(alignment: .leading, spacing: 0) {
+
+            Text("Settings")
+                .fontType(.large, on: .darkBackground, weight: .bold)
+                .padding(.init(top: 0, leading: 24, bottom: 0, trailing: 24))
+            List {
+                Group {
+                    Section {
+                        Button(L10n.getPremium) {
+                            viewModel.showPremium = true
                         }
-                        
-                        Task {
-                            await UIApplication.shared.open(url)
+                        Button(L10n.restorePurchases) {
+                            Task(priority: .userInitiated) {
+                                try await AppStore.sync()
+                            }
+                        }
+                        Button(L10n.enterPromoCode) {
+                            Task {
+                                await StoreActor.shared.presentCodeRedemptionSheet()
+                            }
                         }
                     }
-                    Button(L10n.leaveAReview) {
-                        AskForReviewUtil.requestReview()
+                    Section {
+                        Button(L10n.contact) {
+                            let email = "mailto:alex+contact@freas.me"
+                            let subject = "Encamera - Contact"
+                            let urlString = "\(email)?subject=\(subject)"
+
+                            guard let url = URL(string: urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "") else {
+                                return
+                            }
+
+                            Task {
+                                await UIApplication.shared.open(url)
+                            }
+                        }
+                        Button(L10n.leaveAReview) {
+                            AskForReviewUtil.requestReview()
+                        }
                     }
+                    Section {
+                        changePassword
+                        if viewModel.authManager.canAuthenticateWithBiometrics {
+                            biometricsToggle
+                        }
+                    }
+                    .navigationTitle(L10n.settings)
+
+                    Section {
+                        NavigationLink(L10n.openSource) {
+                            WebView(url: URL(string: "https://encrypted.camera/open-source/")!)
+                        }
+                        NavigationLink(L10n.privacyPolicy) {
+                            WebView(url: URL(string: "https://encrypted.camera/privacy/")!)
+                        }
+                        NavigationLink(L10n.roadmap) {
+                            WebView(url: URL(string: "https://encamera.featurebase.app/")!)
+                        }
+                        NavigationLink(L10n.termsOfUse) {
+                            WebView(url: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                        }
+                        reset
+                    }
+
                 }
-                Section {
-                    Button(L10n.premiumSparkles) {
-                        viewModel.showPremium = true
-                    }
-                    Button(L10n.restorePurchases) {
-                        Task(priority: .userInitiated) {
-                            try await AppStore.sync()
-                        }
-                    }
-                }
-                
-                Section {
-                    changePassword
-                    if viewModel.authManager.canAuthenticateWithBiometrics {
-                        biometricsToggle
-                    }
-                    reset
-                }
-                .navigationTitle(L10n.settings)
-            
-                Section {
-                    Button(L10n.openSource) {
-                        guard let url = URL(string: "https://encrypted.camera/open-source/") else {
-                            return
-                        }
-                        Task {
-                            await UIApplication.shared.open(url)
-                        }
-                    }
-                    Button(L10n.privacyPolicy) {
-                        guard let url = URL(string: "https://encrypted.camera/privacy/") else {
-                            return
-                        }
-                        Task {
-                            await UIApplication.shared.open(url)
-                        }
-                    }
-                    Button(L10n.roadmap) {
-                        guard let url = URL(string: "https://encamera.featurebase.app/") else {
-                            return
-                        }
-                        Task {
-                            await UIApplication.shared.open(url)
-                        }
-                    }
-                    Button(L10n.termsOfUse) {
-                        guard let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") else {
-                            return
-                        }
-                        Task {
-                            await UIApplication.shared.open(url)
-                        }
-                    }
-                }
-            }.listRowBackground(Color.foregroundSecondary)
+
+            }
+            .scrollContentBackgroundColor(.clear)
+
         }
-        .scrollContentBackgroundColor(Color.background)
-        .fontType(.small)
+        .gradientBackground()
+        .fontType(.pt14, weight: .bold)
         .sheet(isPresented: $viewModel.showPremium) {
             premium
-        }
-        
-        
-        
+        }.padding(.bottom, 80)
     }
     
     private var premium: some View {
@@ -208,13 +199,15 @@ struct SettingsView: View {
                         
                     } label: {
                         Text(L10n.eraseAllData)
+                            .foregroundColor(.red)
+
                     }
-                }.listRowBackground(Color.foregroundSecondary)
+                }
             }
-            
+            .gradientBackground()
             .foregroundColor(.red)
             .navigationTitle(L10n.erase)
-            .fontType(.small)
+
             .scrollContentBackgroundColor(.background)
         }
         
@@ -234,7 +227,7 @@ struct SettingsView: View {
                     Text(L10n.use(method.nameForMethod))
                 }.onAppear {
                     viewModel.setupBiometricToggleObserver()
-                }
+                }.tint(Color.actionYellowGreen)
             } else {
                 EmptyView()
             }
@@ -259,11 +252,11 @@ struct SettingsView: View {
                     if let message = viewModel.successMessage {
                         Text(message).foregroundColor(.green)
                     }
-                }.listRowBackground(Color.foregroundSecondary)
+                }
             }
             
             .scrollContentBackgroundColor(.background)
-            .fontType(.small)
+            .fontType(.pt18)
             .toolbar {
                 Button(L10n.save) {
                     viewModel.savePassword()
@@ -280,9 +273,8 @@ struct SettingsView: View {
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
-            SettingsView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), fileAccess: DemoFileEnumerator()))
-        }.preferredColorScheme(.dark)
+
+        SettingsView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), fileAccess: DemoFileEnumerator()))
         
     }
 }

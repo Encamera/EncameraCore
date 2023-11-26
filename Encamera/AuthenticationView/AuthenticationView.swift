@@ -37,6 +37,7 @@ class AuthenticationViewModel: ObservableObject {
     private var authManager: AuthManager
     var keyManager: KeyManager
     @Published fileprivate var displayedError: AuthenticationViewError?
+    @Published var enteredPassword: String = ""
     var cancellables = Set<AnyCancellable>()
     var availableBiometric: AuthenticationMethod? {
         if authManager.useBiometricsForAuth {
@@ -67,6 +68,9 @@ class AuthenticationViewModel: ObservableObject {
     }
     
     func authenticateWithBiometrics() {
+        guard let availableBiometric = availableBiometric else {
+            return
+        }
         Task {
             do {
                 try await authManager.authorizeWithBiometrics()
@@ -102,30 +106,44 @@ struct AuthenticationView: View {
     @StateObject var viewModel: AuthenticationViewModel
     
     var body: some View {
-        VStack {
-            Image("Logo").frame(height: 100)
+        VStack(spacing: 8) {
+            Image("LogoSquare").frame(height: 100)
+            Text(L10n.welcomeBack)
+                .fontType(.pt20, weight: .bold)
+            if let biometric = viewModel.availableBiometric {
+                Text("\(L10n.enterPassword) \(L10n.or.lowercased()) \(biometric.nameForMethod)")
+            } else {
+                Text("\(L10n.enterPassword)")
+            }
+            Spacer().frame(height: 32)
             PasswordEntry(viewModel: .init(
                 keyManager: viewModel.keyManager, stateUpdate: { update in
                     if case .valid(let password) = update {
                         viewModel.authenticatePassword(password: password)
                     }
                 }))
+
             if let error = viewModel.displayedError {
                 Text("\(error.displayDescription)")
                     .alertText()
             }
             Spacer()
-                .frame(height: 50.0)
+                .frame(height: 28.0)
             if let biometric = viewModel.availableBiometric {
+                Text(L10n.or.uppercased())
+                    .fontType(.pt14, weight: .bold)
+                    .opacity(0.5)
+                Spacer().frame(height: 20)
                 Button {
                     viewModel.authenticateWithBiometrics()
                 } label: {
-                    VStack {
+                    VStack(spacing: 16) {
                         Image(systemName: biometric.imageNameForMethod)
                             .resizable()
                             .frame(width: 50.0, height: 50.0)
+                            .opacity(0.5)
                         Text(L10n.unlockWith(biometric.nameForMethod))
-                            .fontType(.small)
+                            .fontType(.pt14, weight: .bold)
                     }
                 }.padding()
                 
@@ -133,14 +151,15 @@ struct AuthenticationView: View {
             Spacer()
         }
         .onAppear {
-            if let biometric = viewModel.availableBiometric, biometric == .touchID {
+            // delay 1 second
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 viewModel.authenticateWithBiometrics()
             }
         }
         .padding()
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-        .background(Color.background)
-        
+        .gradientBackground()
+        .ignoresSafeArea(edges: .bottom)
     }
 
 }

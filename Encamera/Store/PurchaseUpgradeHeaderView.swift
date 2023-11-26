@@ -12,27 +12,17 @@ import EncameraCore
 struct PurchaseUpgradeHeaderView: View {
     
     var body: some View {
-        VStack(spacing: 5) {
-            Image("EncameraPremiumHeader")
+        VStack(alignment: .leading, spacing: 5) {
             Group {
-                Text(L10n.viewUnlimitedPhotosForEachKey)
-                Text(L10n.createAnUnlimitedNumberOfKeys)
-                Text(L10n.supportPrivacyFocusedDevelopment)
-            }
-            .fontType(.small)
-            HStack(spacing: 10) {
-                Button(L10n.enterPromoCode) {
-                    Task {
-                        await StoreActor.shared.presentCodeRedemptionSheet()
-                    }
-                }
-                .fontType(.small, on: .elevated)
-                .textPill(color: .green)
-            }
-            
+                Text(L10n.getPremium)
+                    .fontType(.pt24, on: .darkBackground, weight: .bold)
+                Text(L10n.premiumUnlockTheseBenefits)
+                    .fontType(.pt14)
+            }.frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.top, 0)
         .padding(.bottom, 30)
+        .frame(maxWidth: .infinity)
+
     }
 }
 

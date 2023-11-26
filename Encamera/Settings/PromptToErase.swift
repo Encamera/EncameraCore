@@ -94,7 +94,7 @@ struct PromptToErase: View {
                         viewModel.holding = value
                     })
                 }
-                .fontType(.small)
+                .fontType(.pt18)
                 Spacer()
             }.padding()
                 .navigationTitle(L10n.eraseAppData)

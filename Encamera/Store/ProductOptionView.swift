@@ -18,10 +18,10 @@ struct ProductOptionView: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text(product.displayName)
-                .fontType(.small, weight: .bold)
+                .fontType(.pt18, weight: .bold)
             HStack(alignment: .firstTextBaseline) {
                 Text(product.description)
-                   .fontType(.small)
+                   .fontType(.pt18)
                 Spacer()
                 PurchaseButton(priceText: product.priceText, isPurchased: isPurchased) {
                     Task(priority: .userInitiated) {

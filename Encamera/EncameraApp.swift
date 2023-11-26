@@ -9,9 +9,8 @@ struct EncameraApp: App {
     class ViewModel: ObservableObject {
         @Published var hasOpenedURL: Bool = false
         @Published var promptToSaveMedia: Bool = false
-        var fileAccess: FileAccess = DiskFileAccess()
+        var newMediaFileAccess: FileAccess = DiskFileAccess()
         var appGroupFileAccess = AppGroupFileReader()
-        @Published var cameraMode: CameraMode = .photo
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
         @Published var showOnboarding = false
@@ -19,13 +18,11 @@ struct EncameraApp: App {
         @Published var hasMediaToImport = false
         @Published var showImportedMediaScreen = false
         @Published var shouldShowTweetScreen: Bool = false
-
+        @Published var keyManagerKey: PrivateKey?
         var openedUrl: URL?
         var keyManager: KeyManager
-        var cameraService: CameraConfigurationService
-        var cameraServiceModel = CameraConfigurationServiceModel()
+        var albumManager: AlbumManaging = AlbumManager()
         var onboardingManager: OnboardingManager
-        var storageSettingsManager: DataStorageSetting = DataStorageUserDefaultsSetting()
         var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
         var settingsManager: SettingsManager
         private(set) var authManager: AuthManager
@@ -36,9 +33,8 @@ struct EncameraApp: App {
             try? AVAudioSession.sharedInstance().setActive(true)
 
             self.settingsManager = SettingsManager()
-            self.cameraService = CameraConfigurationService(model: cameraServiceModel)
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
-            let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher, keyDirectoryStorage: storageSettingsManager)
+            let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
             
             self.keyManager = manager
             
@@ -64,11 +60,16 @@ struct EncameraApp: App {
             } catch {
                 fatalError("Onboarding error \(error)")
             }
-            self.keyManager.keyPublisher.sink { newKey in
-                self.setupWith(key: newKey)
+            self.keyManager.keyPublisher.sink { key in
+                self.keyManagerKey = key
+                self.setupFileAccess(with: key, album: self.albumManager.currentAlbum)
             }.store(in: &cancellables)
-            
-            setupWith(key: keyManager.currentKey)
+
+            self.albumManager.selectedAlbumPublisher.sink { newAlbum in
+                self.setupFileAccess(with: self.keyManager.currentKey, album: newAlbum)
+            }.store(in: &cancellables)
+
+            setupFileAccess(with: keyManager.currentKey, album: albumManager.currentAlbum)
             NotificationUtils.didEnterBackgroundPublisher
                 .receive(on: RunLoop.main)
                 .sink { _ in
@@ -123,7 +124,7 @@ struct EncameraApp: App {
         func moveOpenedFile(media: EncryptedMedia) {
             Task {
                 do {
-                    try await fileAccess.move(media: media)
+                    try await newMediaFileAccess.move(media: media)
                 } catch {
                     print("Could not copy: ", error)
                 }
@@ -134,18 +135,24 @@ struct EncameraApp: App {
 
         }
         
-        private func setupWith(key: PrivateKey?) {
+        private func setupFileAccess(with key: PrivateKey?, album: Album?) {
+            guard let album else {
+                debugPrint("No album")
+                return
+            }
             Task {
-                await self.fileAccess.configure(with: key, storageSettingsManager: storageSettingsManager)
-                guard key != nil else { return }
+                await self.newMediaFileAccess.configure(
+                    for: album,
+                    with: key,
+                    albumManager: albumManager
+                )
+                guard keyManager.currentKey != nil else { return }
                 await showImportScreenIfNeeded()
                 UserDefaultUtils.increaseInteger(forKey: .launchCount)
                 await MainActor.run {
                     self.setShouldShowTweetScreen()
                 }
             }
-            
-            
         }
         
         func checkForImportedImages() async {
@@ -180,20 +187,48 @@ struct EncameraApp: App {
 //            shouldShowTweetScreen = shouldShow
         }
     }
-    
+    init() {
+        _viewModel = StateObject(wrappedValue: .init())
+        let appear = UINavigationBar.appearance().standardAppearance
+
+        let atters: [NSAttributedString.Key: Any] = [
+            .font: UIFont(name: "Satoshi-Bold", size: 24)!
+        ]
+
+        appear.largeTitleTextAttributes = atters
+        appear.titleTextAttributes = atters
+        UINavigationBar.appearance().standardAppearance = appear
+        UINavigationBar.appearance().compactAppearance = appear
+        UINavigationBar.appearance().scrollEdgeAppearance = appear
+
+    }
+
     @StateObject var viewModel: ViewModel = .init()
-    
     var body: some Scene {
         
         WindowGroup {
-            CameraView(cameraModel: .init(
-                keyManager: viewModel.keyManager,
-                authManager: viewModel.authManager,
-                cameraService: viewModel.cameraService,
-                fileAccess: viewModel.fileAccess,
-                storageSettingsManager: viewModel.storageSettingsManager,
-                purchaseManager: viewModel.purchasedPermissions
-            ), hasMediaToImport: $viewModel.hasMediaToImport)
+            ZStack {
+                
+                if viewModel.showOnboarding {
+                    MainOnboardingView(
+                        viewModel: .init(onboardingManager: viewModel.onboardingManager,
+                                         keyManager: viewModel.keyManager, authManager: viewModel.authManager))
+                } else if viewModel.isAuthenticated == false && viewModel.keyManagerKey == nil {
+                    AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                } else if viewModel.isAuthenticated == true, let key = viewModel.keyManagerKey {
+                    MainHomeView(viewModel: .init(
+                        fileAccess: viewModel.newMediaFileAccess,
+                        keyManager: viewModel.keyManager,
+                        key: key,
+                        albumManager: self.viewModel.albumManager,
+                        purchasedPermissions: viewModel.purchasedPermissions,
+                        settingsManager: viewModel.settingsManager,
+                        authManager: viewModel.authManager))
+
+                } else {
+                    Text("Something went wrong")
+                }
+            }
                 .preferredColorScheme(.dark)
                 .sheet(isPresented: $viewModel.hasOpenedURL) {
                     openUrlSheet
@@ -208,15 +243,6 @@ struct EncameraApp: App {
                 .sheet(isPresented: $viewModel.shouldShowTweetScreen) {
                     TweetToShareView()
                 }
-                .overlay {
-                    if viewModel.showOnboarding {
-                        MainOnboardingView(
-                            viewModel: .init(onboardingManager: viewModel.onboardingManager,
-                                             keyManager: viewModel.keyManager, authManager: viewModel.authManager))
-                    } else if viewModel.isAuthenticated == false {
-                        AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-                    }
-                }
                 .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
                 .onOpenURL { url in
                     Task {
@@ -228,7 +254,7 @@ struct EncameraApp: App {
                         self.viewModel.hasOpenedURL = true
                     }
                 }
-                
+
                 .statusBar(hidden: true)
                 .environment(
                     \.isScreenBlockingActive,
@@ -238,9 +264,14 @@ struct EncameraApp: App {
     }
     
     @ViewBuilder private var mediaImportSheet: some View {
-        
-        MediaImportView(viewModel: .init(keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
-        
+        if let key = viewModel.keyManager.currentKey {
+            MediaImportView(viewModel: .init(
+                privateKey: key,
+                albumManager: viewModel.albumManager,
+                fileAccess: viewModel.newMediaFileAccess))
+        } else {
+            Text("Something went wrong")
+        }
     }
     
     @ViewBuilder private var openUrlSheet: some View {
@@ -258,7 +289,7 @@ struct EncameraApp: App {
                         viewModel.hasOpenedURL = !value
                     }
 
-                    KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true, dismiss: dismissBinding ))
+//                    KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true, dismiss: dismissBinding ))
                 }
             case .featureToggle(feature: let feature):
                 Text("Feature \"\(feature.rawValue)\" activated").onAppear {
@@ -274,7 +305,7 @@ struct EncameraApp: App {
     }
     
     @ViewBuilder private func galleryForMedia(media: EncryptedMedia) -> some View {
-        let fileAccess = viewModel.fileAccess
+        let fileAccess = viewModel.newMediaFileAccess
         switch media.mediaType {
         case .photo:
             NavigationView {

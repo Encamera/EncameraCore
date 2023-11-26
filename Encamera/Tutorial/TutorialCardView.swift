@@ -19,30 +19,46 @@ struct TutorialCardView: View {
     
     var body: some View {
         ZStack(alignment: .leading) {
-            
-            RoundedRectangle(cornerRadius: 20)
-                .foregroundColor(.foregroundSecondary)
-            
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.inputFieldBackgroundColor)
+
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(style: StrokeStyle(lineWidth: 1))
+                .foregroundColor(.stepIndicatorInactive)
+            VStack(alignment: .trailing) {
+                HStack {
+                    Spacer()
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            viewHeight = viewHeight == 1.0 ? .infinity : 1.0
+                            opacitySetting = 0.0
+                            closeButtonPressed()
+                        }
+                    } label: {
+                        Image("Card-Close")
+                            .frame(width: 28, height: 28)
+                    }
+
+                }
+                Spacer()
+            }.padding()
             VStack(alignment: .leading) {
                 Group {
                     Text(title)
-                        .fontType(.mediumSmall)
+                        .fontType(.pt16, weight: .bold)
                     Spacer().frame(height: 15)
                     Text(tutorialText)
-                        .fontType(.small)
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                        .fontType(.pt14)
+                        .lineLimit(nil)
+                }.frame(alignment: .leading)
                 Spacer()
                 Button {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        viewHeight = viewHeight == 1.0 ? .infinity : 1.0
-                        opacitySetting = 0.0
-                        closeButtonPressed()
-                    }
+
                 } label: {
+
                     Text(L10n.gotIt)
-                        .fontType(.extraSmall, on: .elevated)
+                        .fontType(.pt18, on: .textButton, weight: .bold)
                 }
-                .primaryButton(on: .elevated)
             }
             .padding()
             
@@ -55,10 +71,10 @@ struct TutorialCardView: View {
 struct TutorialCardView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
-            TutorialCardView(title: "Your Encryption Keys 🔑", tutorialText: "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.") {
+            TutorialCardView(title: "Your Encryption Keys", tutorialText: "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.") {
                 
             }
-            TutorialCardView(title: "Your Encryption Keys 🔑", tutorialText: "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.") {
+            TutorialCardView(title: "Your Encryption Keys", tutorialText: "Each key functions as an album, and each album uses a different key to encrypt media.\n\nBackup these keys! If you lose the key or your device, and don't select iCloud backup, your media cannot be recovered.") {
                 
             }
             Spacer()

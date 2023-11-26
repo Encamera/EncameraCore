@@ -32,14 +32,14 @@ enum CameraModeSelection: Int, CaseIterable {
 }
 
 private enum Constants {
-    static let viewportSize: CGFloat = 200
+    static let viewportSize: CGFloat = 120
     static let visibleWidthOfHiddenCard: CGFloat = 20
     static let spacing: CGFloat = 16
     static var cardWidth: CGFloat {
         viewportSize - (visibleWidthOfHiddenCard*2) - (spacing*2)
     }
     static let snapTolerance: CGFloat = 50
-    static let heightShrink: CGFloat = 0.70
+    static let heightShrink: CGFloat = 0.80
     static let cardHeight: CGFloat = 40
 }
 
@@ -47,7 +47,6 @@ private enum Constants {
 struct CameraModePicker: View {
     
     @EnvironmentObject var stateModel: CameraModeStateModel
-    var pressedAction: (CameraMode) -> Void
     var body: some View {
         
         return Canvas {
@@ -59,18 +58,17 @@ struct CameraModePicker: View {
                         _id: item.rawValue,
                         cardHeight: Constants.cardHeight,
                         pressedAction: {
-                            pressedAction(item.cameraMode)
                         }
                     ) {
                         let itemActive = item.rawValue == stateModel.activeIndex
-                        let foreground = itemActive ? Color.activeCameraMode : Color.foregroundPrimary
+                        let foreground = itemActive ? Color.activeCameraMode : Color.gray.opacity(0.8)
                         Text(item.title)
-                            .fontType(.small)
                             .foregroundColor(foreground)
-                        
+                            .fontType(.pt12, weight: .bold)
+
                     }
                     .transition(AnyTransition.slide)
-                    .animation(.spring())
+                    .animation(.spring, value: stateModel.selectedMode)
                 }
             }
         }
@@ -94,8 +92,6 @@ public class CameraModeStateModel: ObservableObject {
     @Published var isModeActive: Bool = false
     @Published var selectedMode: CameraMode = .photo
     @Published var screenDrag: Float = 0.0
-    
-//    var pressedAction: (CameraMode) -> Void
 
 }
 
@@ -141,12 +137,7 @@ private struct Carousel<Items: View>: View {
         }
         .offset(x: CGFloat(calcOffset), y: 0)
         .gesture(DragGesture()
-//            .updating(GestureState(wrappedValue: true)) { currentState, gestureState, transaction in
-//                guard self.stateModel.isModeActive == false else {
-//                    return
-//                }
-//                self.stateModel.screenDrag = Float(currentState.translation.width)
-//            }
+
             .onEnded { value in
                 guard self.stateModel.isModeActive == false else {
                     return
@@ -230,9 +221,7 @@ struct CameraModePicker_Previews: PreviewProvider {
     }
     static var previews: some View {
         
-        CameraModePicker(pressedAction: {mode in
-            
-        })
+        CameraModePicker()
             .environmentObject(model)
     }
 }

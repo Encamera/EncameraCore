@@ -12,6 +12,55 @@ import EncameraCore
 
 typealias ProductStoreView = PurchaseUpgradeView
 
+struct FeatureIcon: View {
+    let image: Image
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .foregroundColor(.clear)
+                .frame(width: 42, height: 42)
+                .background(Color.white)
+                .cornerRadius(4)
+                .opacity(0.10)
+            image
+                .opacity(0.50)
+        }
+        .frame(width: 42, height: 42)
+    }
+}
+
+struct FeatureText: View {
+    let title: String
+    let subtitle: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: subtitle != nil ? 4 : nil) {
+            Group {
+                Text(title)
+                    .fontType(.pt14, weight: .bold)
+                    .foregroundColor(.white)
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(Font.custom("Satoshi Variable", size: 14))
+                        .foregroundColor(.white)
+                        .opacity(0.80)
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            
+        }.frame(height: 50)
+    }
+}
+
+func createFeatureRow(image: Image, title: String, subtitle: String? = nil) -> some View {
+    return HStack(alignment: .center, spacing: 12) {
+        FeatureIcon(image: image)
+        FeatureText(title: title, subtitle: subtitle)
+    }
+}
+
+
+
 
 struct PurchaseUpgradeView: View {
     @ObservedObject var subscriptionController: StoreSubscriptionController = StoreActor.shared.subscriptionController
@@ -22,40 +71,42 @@ struct PurchaseUpgradeView: View {
     @State private var showTweetForFreeView = false
     var showDismissButton = true
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
-        VStack(spacing: 0) {
-            PurchaseUpgradeHeaderView()
-                .frame(maxWidth: .infinity)
+        ZStack(alignment: .top) {
+
+            VStack(spacing: 8) {
+                PurchaseUpgradeHeaderView()
+                    .frame(maxWidth: .infinity)
+                createFeatureRow(image: Image("Premium-Infinity"), title: "Unlimited Albums")
+                createFeatureRow(image: Image("Premium-Albums"), title: "Unlimited Photos")
+                createFeatureRow(image: Image("Premium-Folders"), title: "Password Protected Albums")
+                createFeatureRow(image: Image("Premium-CustomIcon"), title: "Custom Icon")
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitle(L10n.upgradeToday)
+            .overlay(alignment: .topTrailing) {
+                if showDismissButton {
+                    dismissButton
+                        .padding()
+                }
+            }
+            .background(Color.background)
+            .onAppear {
+                selectedSubscription = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
+                currentActiveSubscription = subscriptionController.entitledSubscription
+            }
+            .alert(
+                subscriptionController.purchaseError?.errorDescription ?? "",
+                isPresented: $errorAlertIsPresented,
+                actions: {}
+            )
             productCellsScrollView
-        }
-        .navigationBarTitle(L10n.upgradeToday)
-        .overlay(alignment: .topTrailing) {
-            if showDismissButton {
-                dismissButton
-                    .padding()
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if selectedSubscription != nil {
-                subscriptionPurchaseView
-            }
-        }
-        .background(Color.background)
-        .onAppear {
-            selectedSubscription = subscriptionController.entitledSubscription
-            currentActiveSubscription = subscriptionController.entitledSubscription
-        }
-        .alert(
-            subscriptionController.purchaseError?.errorDescription ?? "",
-            isPresented: $errorAlertIsPresented,
-            actions: {}
-        )
-        .sheet(isPresented: $showTweetForFreeView) {
-            TweetToShareView()
+
         }
     }
-    
+
     var dismissButton: some View {
         Button {
             dismiss()
@@ -72,85 +123,39 @@ struct PurchaseUpgradeView: View {
         .opacity(0.8)
         .font(.title)
     }
-    
-    var subscriptionPurchaseView: some View {
-        SubscriptionPurchaseView(selectedSubscription: selectedSubscription) {
-            if let subscription = selectedSubscription {
-                Task(priority: .userInitiated) { @MainActor in
-                    let action = await subscriptionController.purchase(option: subscription)
-                    switch action {
-                    case .dismissStore: dismiss()
-                    case .displayError: errorAlertIsPresented = true
-                    case .noAction: break
-                    }
-                }
-            }
-        }
-    }
-    
+
+
+    @ViewBuilder
     var productCellsScrollView: some View {
-        ScrollView(.vertical) {
+        VStack {
+            Spacer()
             let subscriptions = subscriptionController.subscriptions
             let products = productController.products
-                PurchaseUpgradeOptionsListView(
-                    subscriptions: subscriptions,
-                    products: products,
-                    purchasedProducts: productController.purchasedProducts,
-                    selectedOption: $selectedSubscription,
-                    currentActiveSubscription: currentActiveSubscription,
-                    freeUnlimitedTapped: {
-                        self.showTweetForFreeView = true
-                    }
-                )
-                .padding(.top)
-            
-        }
-    }
-}
-
-
-struct SubscriptionPurchaseButton: View {
-    @State private var canRedeemIntroOffer = false
-    @State private var redeemSheetIsPresented = false
-    
-    @Environment(\.dismiss) private var dismiss
-    
-    let selectedSubscription: ServiceSubscription?
-    let onPurchase: () -> Void
-    
-    var body: some View {
-        VStack {
-            Button {
-                onPurchase()
-            } label: {
-                Group {
-                    if canRedeemIntroOffer {
-                        Text(L10n.startTrialOffer)
-                    } else {
-                        Text(L10n.subscribe)
+            PurchaseUpgradeOptionsListView(
+                subscriptions: subscriptions,
+                products: products,
+                purchasedProducts: productController.purchasedProducts,
+                selectedOption: $selectedSubscription,
+                currentActiveSubscription: currentActiveSubscription,
+                freeUnlimitedTapped: {
+                    self.showTweetForFreeView = true
+                },
+                onPurchase: {
+                    if let subscription = selectedSubscription {
+                        Task(priority: .userInitiated) { @MainActor in
+                            let action = await subscriptionController.purchase(option: subscription)
+                            switch action {
+                            case .dismissStore: dismiss()
+                            case .displayError: errorAlertIsPresented = true
+                            case .noAction: break
+                            }
+                        }
                     }
                 }
-                .padding(5)
-                .frame(maxWidth: .infinity)
-            }
-            
-            .primaryButton(on: .elevated)
-            .disabled(selectedSubscription == nil)
-            .padding(.horizontal)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical)
-        .onChange(of: selectedSubscription) { newValue in
-            
-            guard let selectedSubscription = newValue?.subscriptionInfo else {
-                return
-            }
-            Task(priority: .utility) { @MainActor in
-                canRedeemIntroOffer = await selectedSubscription.isEligibleForIntroOffer && selectedSubscription.introductoryOffer != nil
-            }
+            )
+            .padding(.top)
         }
     }
-
 }
 
 struct PurchaseUpgradeView_Previews: PreviewProvider {

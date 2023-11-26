@@ -10,7 +10,11 @@ import SwiftUI
 
 enum SurfaceType {
     case background
-    case elevated
+    case lightBackground
+    case darkBackground
+    case primaryButton
+    case textButton
+    case selectedStorageButton
 }
 
 extension SurfaceType {
@@ -18,18 +22,35 @@ extension SurfaceType {
     var textColor: Color {
         switch self {
         case .background:
-            return Color.foregroundPrimary
-        case .elevated:
-            return Color.foregroundSecondary
+            return .foregroundPrimary
+
+        case .lightBackground:
+            return .black
+        case .darkBackground:
+            return .foregroundPrimary
+        case .primaryButton:
+            return .primaryButtonForeground
+        case .textButton:
+            return .actionYellowGreen
+        case .selectedStorageButton:
+            return .black
         }
     }
     
     var foregroundSecondary: Color {
         switch self {
         case .background:
-            return Color.foregroundSecondary
-        case .elevated:
-            return Color.foregroundPrimary
+            return .background
+        case .lightBackground:
+            return .white
+        case .primaryButton:
+            return .actionYellowGreen
+        case .darkBackground:
+            return .foregroundPrimary
+        case .textButton:
+            return .clear
+        case .selectedStorageButton:
+            return .white
         }
     }
 }

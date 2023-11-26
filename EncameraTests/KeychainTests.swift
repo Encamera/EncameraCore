@@ -13,7 +13,7 @@ import Combine
 
 class KeychainTests: XCTestCase {
     
-    var keyManager: MultipleKeyKeychainManager = MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(), keyDirectoryStorage: DemoStorageSettingsManager())
+    var keyManager: MultipleKeyKeychainManager = MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
     
     override func setUp() async throws {
         try? keyManager.clearKeychainData()

@@ -40,7 +40,7 @@ final class CameraModel: NSObject, ObservableObject {
     
     // View showing
     @Published var showGalleryView: Bool = false
-    @Published var showingKeySelection = false
+    @Published var showingAlbum = false
     @Published var showAlertForMissingKey = false
     @Published var showStoreSheet = false
     @Published var showSettingsScreen = false
@@ -52,9 +52,9 @@ final class CameraModel: NSObject, ObservableObject {
     @Published var showImportedMediaScreen = false
     @Published var cameraSetupResult: SessionSetupResult = .notDetermined
     var authManager: AuthManager
-    var keyManager: KeyManager
+    var privateKey: PrivateKey
+    var albumManager: AlbumManaging
     var alertError: AlertError!
-    var storageSettingsManager: DataStorageSetting
     var fileAccess: FileAccess
     var userDefaultsUtil = UserDefaultUtils()
     var purchaseManager: PurchasedPermissionManaging
@@ -65,20 +65,20 @@ final class CameraModel: NSObject, ObservableObject {
     var isProcessingEvent = false
     let eventSubject = PassthroughSubject<Void, Never>()
     
-    init(keyManager: KeyManager,
+    init(privateKey: PrivateKey,
+         albumManager: AlbumManaging,
          authManager: AuthManager,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
-         storageSettingsManager: DataStorageSetting,
          purchaseManager: PurchasedPermissionManaging) {
         
         self.service = cameraService
         self.fileAccess = fileAccess
         self.purchaseManager = purchaseManager
-        self.keyManager = keyManager
-        
+        self.privateKey = privateKey
+        self.albumManager = albumManager
+
         self.authManager = authManager
-        self.storageSettingsManager = storageSettingsManager
         super.init()
         self.$selectedCameraMode
             .receive(on: RunLoop.main)
@@ -93,10 +93,11 @@ final class CameraModel: NSObject, ObservableObject {
             await MainActor.run {
                 self.cameraSetupResult = result
             }
-            await self.fileAccess.configure(
-                with: keyManager.currentKey,
-                storageSettingsManager: DataStorageUserDefaultsSetting()
-            )
+            if let album = albumManager.currentAlbum {
+                await self.fileAccess.configure(
+                    for: album, with: privateKey, albumManager: albumManager
+                )
+            }
         }
 
         eventSubject
@@ -126,12 +127,6 @@ final class CameraModel: NSObject, ObservableObject {
             }.store(in: &cancellables)
         FileOperationBus.shared.operations.sink { operation in
             Task {
-                await self.loadThumbnail()
-            }
-        }.store(in: &cancellables)
-        keyManager.keyPublisher.sink { key in
-            Task {
-                await self.fileAccess.configure(with: key, storageSettingsManager: DataStorageUserDefaultsSetting())
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)
@@ -189,11 +184,7 @@ final class CameraModel: NSObject, ObservableObject {
     }
     
     func captureButtonPressed() async throws {
-        
-        guard keyManager.currentKey != nil else {
-            showAlertForMissingKey = true
-            return
-        }
+
         
         switch selectedCameraMode {
         case .photo:

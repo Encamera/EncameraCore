@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Encamera</string>
+	<string>$(APP_DISPLAY_NAME)</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -77,17 +77,23 @@
 			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
 			<true/>
 			<key>NSUbiquitousContainerName</key>
-			<string>Encamera</string>
+			<string>$(ICLOUD_CONTAINER_NAME)</string>
 			<key>NSUbiquitousContainerSupportedFolderLevels</key>
 			<string>Any</string>
 		</dict>
 	</dict>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Lato-Regular.ttf</string>
-		<string>Lato-Bold.ttf</string>
-		<string>Lato-Thin.ttf</string>
-		<string>Lato-Italic.ttf</string>
+		<string>Satoshi-Bold.otf</string>
+		<string>Satoshi-Italic.otf</string>
+		<string>Satoshi-Black.otf</string>
+		<string>Satoshi-Regular.otf</string>
+		<string>Satoshi-BoldItalic.otf</string>
+		<string>Satoshi-Light.otf</string>
+		<string>Satoshi-LightItalic.otf</string>
+		<string>Satoshi-BlackItalic.otf</string>
+		<string>Satoshi-MediumItalic.otf</string>
+		<string>Satoshi-Medium.otf</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

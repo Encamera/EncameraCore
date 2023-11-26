@@ -12,13 +12,17 @@ struct CameraView: View {
         static var innerCaptureButtonSize = Constants.minCaptureButtonEdge * 0.8
     }
     
+
     @StateObject var cameraModel: CameraModel
     @State var cameraModeStateModel = CameraModeStateModel()
     @GestureState var magnificationGesture = false
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
-    
-    
+    @Environment(\.dismiss) var dismiss
+    var closeButtonTapped: () -> Void
+
+
+
     private var captureButton: some View {
         
         Button(action: {
@@ -76,17 +80,7 @@ struct CameraView: View {
     }
     
     private var bottomButtonPanel: some View {
-        VStack {
-            HStack {
-                capturedPhotoThumbnail
-                
-                captureButton
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                flipCameraButton
-            }
-            .padding(.horizontal, 20)
-        }
+        BottomCameraButtonView(cameraModel: cameraModel, cameraModeStateModel: cameraModeStateModel)
     }
     
     private var cameraPreview: some View {
@@ -103,6 +97,9 @@ struct CameraView: View {
                 .onChanged(cameraModel.handleMagnificationOnChanged)
                 .onEnded(cameraModel.handleMagnificationEnded)
         )
+        .onReceive(cameraModeStateModel.$selectedMode, perform: { value in
+            self.cameraModel.selectedCameraMode = value
+        })
         .onChange(of: rotationFromOrientation, perform: { newValue in
             cameraModel.setOrientation(AVCaptureVideoOrientation(rawValue: UIDevice.current.orientation.rawValue) ?? .portrait)
         }).alert(isPresented: $cameraModel.showAlertError, content: {
@@ -134,11 +131,7 @@ struct CameraView: View {
         NavigationView {
             
             ZStack {
-                settingsScreen
-                keySelectionList
-                galleryView
                 mainCamera
-                
                 tutorialViews
                 if cameraModel.cameraSetupResult == .notAuthorized {
                     missingPermissionsView
@@ -148,7 +141,7 @@ struct CameraView: View {
             .screenBlocked()
             .alert(isPresented: $cameraModel.showAlertForMissingKey) {
                 Alert(title: Text(L10n.noKeySelected), message: Text(L10n.youDonTHaveAnActiveKeySelectedSelectOneToContinueSavingMedia), primaryButton: .default(Text(L10n.keySelection)) {
-                    cameraModel.showingKeySelection = true
+                    cameraModel.showingAlbum = true
                 }, secondaryButton: .cancel())
             }
             .sheet(isPresented: $cameraModel.showStoreSheet) {
@@ -156,12 +149,14 @@ struct CameraView: View {
             }
             .sheet(isPresented: $cameraModel.showImportedMediaScreen) {
                 MediaImportView(viewModel: .init(
-                    keyManager: cameraModel.keyManager,
+                    privateKey: cameraModel.privateKey,
+                    albumManager: cameraModel.albumManager,
                     fileAccess: cameraModel.fileAccess
                 ))
             }
         }
-        
+
+
     }
     
     @ViewBuilder private var missingPermissionsView: some View {
@@ -201,57 +196,35 @@ struct CameraView: View {
     
     private var galleryView: some View {
         NavigationLink(isActive: $cameraModel.showGalleryView) {
-            if let key = cameraModel.keyManager.currentKey {
-                GalleryGridView<EmptyView, EncryptedMedia>(viewModel: .init(privateKey: key))
+            if let album = cameraModel.albumManager.currentAlbum {
+                GalleryGridView<EmptyView, EncryptedMedia>(viewModel: .init(
+                    privateKey: cameraModel.privateKey,
+                    album: album,
+                    albumManager: cameraModel.albumManager
+                ))
             }
         } label: {
             EmptyView()
         }.isDetailLink(false)
         
     }
-    
-    private var keySelectionList: some View {
-        NavigationLink(isActive: $cameraModel.showingKeySelection) {
-            KeySelectionGrid(viewModel: .init(keyManager: cameraModel.keyManager, purchaseManager: cameraModel.purchaseManager, fileManager: cameraModel.fileAccess))
-            
-        } label: {
-            EmptyView()
-        }.isDetailLink(false)
-        
-    }
-    
-    private var settingsScreen: some View {
-        NavigationLink(isActive: $cameraModel.showSettingsScreen) {
-            SettingsView(viewModel: .init(keyManager: cameraModel.keyManager, authManager: cameraModel.authManager, fileAccess: cameraModel.fileAccess))
-        } label: {
-            EmptyView()
-        }.isDetailLink(false)
-    }
-    
-    
     
     private var mainCamera: some View {
         VStack {
-            let currrentKeyName = Binding<String> {
-                return cameraModel.keyManager.currentKey?.name ?? L10n.noKey
-            } set: { _, _ in
-                
-            }
             
-            TopBarView(viewModel: .init(purchaseManager: cameraModel.purchaseManager), showingKeySelection: $cameraModel.showingKeySelection, showStoreSheet: $cameraModel.showStoreSheet,
-                       isRecordingVideo: $cameraModel.isRecordingVideo,
-                       recordingDuration: $cameraModel.recordingDuration,
-                       currentKeyName: currrentKeyName,
-                       flashMode: $cameraModel.flashMode,
-                       settingsButtonTapped: {
-                self.cameraModel.showSettingsScreen = true
-            }) {
+            TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
+                                  recordingDuration: $cameraModel.recordingDuration, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
+                Task {
+                    await cameraModel.service.stop()
+                }
+                closeButtonTapped()
+            }, flashButtonPressed: {
                 self.cameraModel.switchFlash()
-            }
+            })
             if hasMediaToImport {
                 HStack {
                     Text(L10n.finishImportingMedia)
-                        .fontType(.mediumSmall, on: .elevated)
+                        .fontType(.pt24, on: .darkBackground)
                 }.frame(maxWidth: .infinity)
                     .background(Color.green)
                     .onTapGesture {
@@ -270,21 +243,18 @@ struct CameraView: View {
                     }
                 }
             }
-            if FeatureToggle.isEnabled(feature: .enableVideo) {
-                cameraModePicker
-            }
             bottomButtonPanel
         }
-        .onChange(of: cameraModel.authManager.isAuthenticated, perform: { newValue in
-            guard newValue == true else {
+        .edgesIgnoringSafeArea(.top)
+        .task {
+            guard cameraModel.authManager.isAuthenticated == true else {
                 return
             }
             Task {
                 await cameraModel.service.checkForPermissions()
                 await cameraModel.service.configure()
             }
-        })
-        
+        }
         .navigationBarHidden(true)
         .navigationTitle("")
         
@@ -296,20 +266,6 @@ struct CameraView: View {
         }
         UIApplication.shared.open(url)
     }
-}
-
-private extension CameraView {
-    
-    var cameraModePicker: some View {
-        CameraModePicker(pressedAction: { mode in
-        })
-        .onReceive(cameraModeStateModel.$selectedMode) { newValue in
-            cameraModel.selectedCameraMode = newValue
-        }
-        .environmentObject(cameraModeStateModel)
-        
-    }
-    
 }
 
 extension AVCaptureDevice.FlashMode {
@@ -332,22 +288,24 @@ extension AVCaptureDevice.FlashMode {
         case .auto, .on:
             return .yellow
         default:
-            return .foregroundPrimary
+            return .white
         }
     }
 }
-
+//
 struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
         let model = CameraModel(
-            keyManager: DemoKeyManager(),
+            privateKey: DemoPrivateKey.dummyKey(),
+            albumManager: DemoAlbumManager(),
             authManager: DemoAuthManager(),
             cameraService: CameraConfigurationService(model: .init()),
             fileAccess: DemoFileEnumerator(),
-            storageSettingsManager: DemoStorageSettingsManager(),
             purchaseManager: DemoPurchasedPermissionManaging()
         )
-        CameraView(cameraModel: model, hasMediaToImport: .constant(true))
+        CameraView(cameraModel: model, hasMediaToImport: .constant(false), closeButtonTapped: {
+
+        })
             .preferredColorScheme(.dark)
     }
 }

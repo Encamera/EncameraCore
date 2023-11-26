@@ -43,7 +43,7 @@ class TopBarViewViewModel: ObservableObject {
 
             Publishers.Merge4(
                 UserDefaultUtils.publisher(for: .capturedPhotos) as AnyPublisher<Any?, Never>,
-                UserDefaultUtils.publisher(for: .hasOpenedKeySelection) as AnyPublisher<Any?, Never>,
+                UserDefaultUtils.publisher(for: .hasOpenedAlbum) as AnyPublisher<Any?, Never>,
                 purchasedProductsPublisher,
                 purchasedSubscriptionPublisher)
 
@@ -55,7 +55,7 @@ class TopBarViewViewModel: ObservableObject {
     
     func determinePillState() {
         let capturedPhotos = UserDefaultUtils.integer(forKey: .capturedPhotos)
-        let hasOpenedKeys = UserDefaultUtils.bool(forKey: .hasOpenedKeySelection)
+        let hasOpenedKeys = UserDefaultUtils.bool(forKey: .hasOpenedAlbum)
         let hasPhotoAccess = purchaseManager.isAllowedAccess(feature: .accessPhoto(count: Double(capturedPhotos)))
         let hasEntitlement = purchaseManager.hasEntitlement()
         var retVal: TopBarTutorialPillState
@@ -89,7 +89,7 @@ class TopBarViewViewModel: ObservableObject {
 struct TopBarView: View {
     
     @StateObject var viewModel: TopBarViewViewModel
-    @Binding var showingKeySelection: Bool
+    @Binding var showingAlbum: Bool
     @Binding var showStoreSheet: Bool
 
     @Binding var isRecordingVideo: Bool
@@ -156,7 +156,7 @@ struct TopBarView: View {
             .background(Color.foregroundSecondary)
             
             Button {
-                showingKeySelection.toggle()
+                showingAlbum.toggle()
             } label: {
                 HStack(spacing: 0.0) {
                     
@@ -169,7 +169,7 @@ struct TopBarView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(alignment: .leading)
-                        .fontType(.small, on: .elevated)
+                        .fontType(.pt18, on: .darkBackground)
                     Spacer().frame(width: 10)
                 }
                 
@@ -191,7 +191,7 @@ struct TopBarView: View {
     }
     private var durationText: some View {
         Text(recordingDuration.durationText)
-            .fontType(.small)
+            .fontType(.pt18)
             .padding(5)
             .background(Color.videoRecordingIndicator)
             .cornerRadius(10)
@@ -202,7 +202,7 @@ struct TopBarView: View {
 
 //struct TopBarView_Previews: PreviewProvider {
 //    static var previews: some View {
-//        TopBarView(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging()), showingKeySelection: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("DefaultKey"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
+//        TopBarView(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging()), showingAlbum: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("DefaultKey"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
 //            .preferredColorScheme(.dark)
 //    }
 //}

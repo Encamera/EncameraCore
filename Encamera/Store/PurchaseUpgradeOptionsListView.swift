@@ -39,6 +39,9 @@ struct PurchaseUpgradeOptionsListView: View {
     @Binding var selectedOption: ServiceSubscription?
     let currentActiveSubscription: ServiceSubscription?
     let freeUnlimitedTapped: () -> ()
+    let onPurchase: () -> ()
+    @Environment(\.dismiss) var dismiss
+
     func binding(for subscription: ServiceSubscription) -> Binding<Bool> {
         return Binding {
             selectedOption?.id == subscription.id
@@ -54,46 +57,32 @@ struct PurchaseUpgradeOptionsListView: View {
          subscription. When there are more, this will need
          to be updated.
          */
-        VStack(spacing: 25) {
+        VStack(spacing: 16) {
             if purchasedProducts.isEmpty {
-                Text(L10n.subscription)
-                    .fontType(.mediumSmall)
-                let _ = print(subscriptions.map({$0.displayName}))
-                
-                ForEach(subscriptions) { subscription in
-                    subscriptionOptionCell(for: subscription)
+                if subscriptions.count > 0 {                    
+                    ForEach(subscriptions) { subscription in
+                        subscriptionOptionCell(for: subscription)
+                    }
                 }
-                
-                Text(L10n.oneTimePurchase)
-                    .fontType(.mediumSmall)
-                ForEach(products) { product in
-                    productCell(for: product)
+                if products.count > 0 {
+                    Text(L10n.oneTimePurchase)
+                        .fontType(.pt24)
+                    ForEach(products) { product in
+                        productCell(for: product)
+                    }
                 }
-                
+
             } else {
                 ForEach(purchasedProducts) { product in
                     purchasedProductCell(for: product)
                 }
-                
             }
-            
+            Spacer().frame(height: 5)
+            SubscriptionPurchaseView(selectedSubscription: selectedOption) {
+                onPurchase()
+            }
         }.padding(.horizontal)
         
-    }
-    
-    var tweetForFreeView: some View {
-        HStack {
-            Text("\(L10n.unlockUnlimitedForFree) 👉")
-                .fontType(.mediumSmall)
-            Spacer()
-            Image(systemName: "dollarsign.circle.fill")
-                .resizable()
-                .frame(width: 30, height: 30)
-                .foregroundStyle(.white, .pink)
-        }.productCell()
-            .onTapGesture {
-                freeUnlimitedTapped()
-            }
     }
     
     func productCell(for product: OneTimePurchase) -> some View {
@@ -135,9 +124,8 @@ struct PurchaseUpgradeOptionsListView: View {
             return nil
         }
         
-        let percentSaved = amountSaved / yearlyPriceForMonthlySubscription
         let monthlyPrice = yearlySubscription.price / 12
         
-        return SubscriptionSavings(percentSavings: percentSaved, granularPrice: monthlyPrice, granularPricePeriod: .month)
+        return SubscriptionSavings(totalSavings: amountSaved, granularPrice: monthlyPrice, granularPricePeriod: .month)
     }
 }

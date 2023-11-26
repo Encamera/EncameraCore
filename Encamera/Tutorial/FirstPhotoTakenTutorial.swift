@@ -19,14 +19,14 @@ struct FirstPhotoTakenTutorial: View, TutorialView {
             Group {
                 Text(L10n.youTookYourFirstPhoto📸🥳)
                 Text(L10n.seeThePhotosThatBelongToAKeyByTappingThe) + Text(Image(systemName: "key.fill")) + Text(L10n.iconOnTheTopLeftOfTheScreen)
-            }.fontType(.mediumSmall)
+            }.fontType(.pt24)
             HStack {
                 Button(L10n.gotIt) {
                     withAnimation {
                         shouldShow = false
                     }
                     
-                }.primaryButton(on: .elevated)
+                }.primaryButton(on: .darkBackground)
             }
         }
         .padding()

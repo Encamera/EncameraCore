@@ -41,7 +41,7 @@ struct PurchaseOptionViewModifier: ViewModifier {
                     }
                 }
                 .foregroundColor(.foregroundSecondary)
-                .fontType(.small, weight: .bold).frame(height: 25)
+                .fontType(.pt18, weight: .bold).frame(height: 25)
             }
             content.padding()
         }.task {
@@ -61,7 +61,7 @@ struct PurchaseOptionViewModifier: ViewModifier {
                         lineWidth: isOn ? 1 : 0
                     )
             }
-            .fontType(.small)
+            .fontType(.pt18)
     }
 }
 

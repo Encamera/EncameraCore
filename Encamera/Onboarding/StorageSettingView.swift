@@ -10,7 +10,7 @@ import EncameraCore
 
 class StorageSettingViewModel: ObservableObject {
     
-    @Published var storageAvailabilities: [StorageAvailabilityModel] = DataStorageUserDefaultsSetting().storageAvailabilities()
+    @Published var storageAvailabilities: [StorageAvailabilityModel] = DataStorageAvailabilityUtil.storageAvailabilities()
 }
 
 struct StorageSettingView: View {
@@ -20,7 +20,9 @@ struct StorageSettingView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            ForEach(viewModel.storageAvailabilities) { data in
+            ForEach(viewModel.storageAvailabilities.filter({ model in
+                return .available == model.availability
+            })) { data in
                 let binding = Binding<Bool> {
                     let value = keyStorageType.wrappedValue
                     return data.storageType == value

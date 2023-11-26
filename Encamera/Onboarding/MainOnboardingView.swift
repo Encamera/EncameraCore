@@ -14,6 +14,7 @@ enum OnboardingViewError: Error {
     case passwordInvalid
     case onboardingEnded
     case missingStorageType
+    case advanceImageCarousel
 }
 
 class OnboardingViewModel: ObservableObject {
@@ -41,18 +42,10 @@ class OnboardingViewModel: ObservableObject {
     @Published var storageAvailabilities: [StorageAvailabilityModel] = []
     @Published var existingPasswordCorrect: Bool?
     @MainActor
-    @Published var useBiometrics: Bool = false {
-        didSet {
-            guard useBiometrics == true else {
-                return
-            }
-            Task {
-                await authWithBiometrics()
-            }
-        }
-    }
+    @Published var useBiometrics: Bool = false
     @Published var saveToiCloud = false
-    
+    @Published var currentOnboardingImageIndex = 0
+
     var availableBiometric: AuthenticationMethod? {
         return authManager.availableBiometric
     }
@@ -73,7 +66,7 @@ class OnboardingViewModel: ObservableObject {
         onboardingFlow = onboardingManager.generateOnboardingFlow()
         Task {
             await MainActor.run {
-                self.keyStorageType = DataStorageUserDefaultsSetting().preselectedStorageSetting?.storageType
+                self.keyStorageType = AlbumManager().defaultStorageForAlbum
             }
         }
         self.$password1.sink { password in
@@ -93,9 +86,10 @@ class OnboardingViewModel: ObservableObject {
     }
     
     @MainActor
-    func authWithBiometrics() async {
+    func authWithBiometrics() async throws {
         do {
             try await authManager.evaluateWithBiometrics()
+            useBiometrics = true
         } catch let authError as AuthManagerError {
             switch authError {
                 
@@ -106,11 +100,13 @@ class OnboardingViewModel: ObservableObject {
                 generalError = authError
                 
             case .biometricsNotAvailable, .userCancelledBiometrics:
-                
+
                 useBiometrics = false
             }
+            throw authError
         } catch {
             generalError = error
+            throw error
         }
     }
     
@@ -131,7 +127,7 @@ class OnboardingViewModel: ObservableObject {
             try handle(error: OnboardingViewError.missingStorageType)
         }
     }
-    
+
     @MainActor
     func handle(error: Error) throws {
         switch error {
@@ -159,14 +155,16 @@ class OnboardingViewModel: ObservableObject {
     }
     
     @MainActor
-    func checkExistingPasswordAndAuth() {
+    func checkExistingPasswordAndAuth() throws {
         do {
             existingPasswordCorrect = try keyManager.checkPassword(existingPassword)
             if existingPasswordCorrect == false {
                 generalError = OnboardingViewError.passwordInvalid
+                throw OnboardingViewError.passwordInvalid
             }
         } catch {
             generalError = OnboardingViewError.passwordInvalid
+            throw OnboardingViewError.passwordInvalid
         }
     }
     
@@ -178,7 +176,7 @@ class OnboardingViewModel: ObservableObject {
                 try authManager.authorize(with: existingPassword, using: keyManager)
             } else if let storageType = await keyStorageType {
                 try authManager.authorize(with: password1, using: keyManager)
-                let _ = try keyManager.generateNewKey(name: AppConstants.defaultKeyName, storageType: storageType, backupToiCloud: saveToiCloud)
+                let _ = try keyManager.generateNewKey(name: AppConstants.defaultKeyName, backupToiCloud: saveToiCloud)
             }
             try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
             
@@ -194,7 +192,7 @@ struct MainOnboardingView: View {
     @FocusState var password2Focused
     @State var currentSelection = OnboardingFlowScreen.intro
     @StateObject var viewModel: OnboardingViewModel
-    
+    @ObservedObject var cameraPermissions = CameraPermissionsService.shared
     var body: some View {
         NavigationView {
             buildOnboarding()
@@ -217,7 +215,7 @@ struct MainOnboardingView: View {
 private extension MainOnboardingView {
     
     func viewFor<Next: View>(flow: OnboardingFlowScreen, next: @escaping () -> Next) -> AnyView {
-        let index = (viewModel.onboardingFlow.firstIndex(of: flow) ?? 0) + 1
+        let index = (viewModel.onboardingFlow.firstIndex(of: flow) ?? 0)
         
         var model = viewModel(for: flow)
         model.progress = (index, viewModel.onboardingFlow.count)
@@ -245,42 +243,29 @@ private extension MainOnboardingView {
         switch flow {
         case .intro:
             return .init(
-                title: "",
-                subheading: "",
-                image: Image(systemName: "camera"),
-                bottomButtonTitle: L10n.next,
+                showTopBar: false,
+                bottomButtonTitle: L10n.getStartedButtonText,
                 bottomButtonAction: {
+                    if viewModel.currentOnboardingImageIndex < 2 {
+                        viewModel.currentOnboardingImageIndex += 1
+                        throw OnboardingViewError.advanceImageCarousel
+                    }
+                }) {_ in
                     
-                }) {
-                    
-                    AnyView(VStack(alignment: .leading, spacing: 10) {
-                        Image("EncameraBanner")
-                            .frame(maxWidth: .infinity, alignment: .center)
-                        Group {
-                            Text(L10n.encryptionExplanation)
-                                .fontType(.medium, weight: .bold)
-                            Text(L10n.encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy)
-                                .fontType(.small)
-                            Text(L10n.keyBasedEncryption)
-                                .fontType(.medium, weight: .bold)
-                            Text(L10n.introStorageExplanation)
-                            Text(L10n.forYourEyesOnly👀)
-                                .fontType(.medium, weight: .bold)
-                            Text(LocalizedStringKey(L10n.noTrackingExplanation))
-                                .fontType(.small)
-                        }.lineLimit(nil)
-                           
-
-                    })
-                    
+                    AnyView(
+                        VStack {
+                            ImageCarousel(currentScrolledToImage: $viewModel.currentOnboardingImageIndex)
+                            Spacer()
+                        }.padding(0)
+                    )
                 }
             
         case .enterExistingPassword:
             return .init(
                 title: L10n.enterPassword,
                 subheading: L10n.youHaveAnExistingPasswordForThisDevice, image: Image(systemName: "key.fill"), bottomButtonTitle: L10n.next, bottomButtonAction: {
-                    viewModel.checkExistingPasswordAndAuth()
-                }) {
+                    try viewModel.checkExistingPasswordAndAuth()
+                }) {_ in
                     AnyView(
                         VStack(alignment: .leading) {
                             PasswordEntry(viewModel: .init(keyManager: viewModel.keyManager, passwordBinding: $viewModel.existingPassword, stateUpdate: { state in
@@ -288,7 +273,6 @@ private extension MainOnboardingView {
                                     return
                                 }
                                 viewModel.existingPassword = existingPassword
-                                viewModel.checkExistingPasswordAndAuth()
                             }))
                             if let error = viewModel.generalError as? OnboardingViewError, case .passwordInvalid = error {
                                 Group {
@@ -307,12 +291,12 @@ private extension MainOnboardingView {
         case .setPassword:
             return .init(
                 title: L10n.setPassword,
-                subheading: L10n.SetAPasswordToAccessTheApp.BeSureToStoreItInASafePlaceYouCannotRecoverItLater.🙅,
-                image: Image(systemName: "lock.iphone"),
+                subheading: L10n.setAPasswordWarning,
+                image: Image("Onboarding-Password"),
                 bottomButtonTitle: L10n.setPassword,
                 bottomButtonAction: {
                     try viewModel.savePassword()
-                }) {
+                }) {_ in 
                     AnyView(
                         VStack(alignment: .leading) {
                             VStack {
@@ -352,30 +336,35 @@ private extension MainOnboardingView {
                 return viewModel(for: .finished)
             }
             return .init(
-                title: L10n.use(method.nameForMethod),
+                title: L10n.enable(method.nameForMethod),
                 subheading: L10n.enableToQuicklyAndSecurelyGainAccessToTheApp(method.nameForMethod),
                 image: Image(systemName: method.imageNameForMethod),
-                bottomButtonTitle: L10n.next, content:  {
-                    AnyView(Group {HStack {
-                        Toggle(L10n.enable(method.nameForMethod), isOn: $viewModel.useBiometrics)
-                            .fontType(.small)
-                    }})
+                bottomButtonTitle: L10n.enable(method.nameForMethod), 
+                bottomButtonAction: {
+                    try await viewModel.authWithBiometrics()
+                }, content:  { goToNext in
+                    AnyView(
+                        Text(L10n.skipForNow)
+                            .fontType(.pt14, on: .textButton, weight: .bold)
+                            .onTapGesture {
+                                goToNext()
+                            }
+                    )
                 })
         case .setupPrivateKey:
             return .init(
                 title: L10n.encryptionKey,
                 subheading:
-                    L10n.newKeySubheading,
+                    L10n.newAlbumSubheading,
                 image: Image(systemName: "key.fill"),
                 bottomButtonTitle: L10n.next,
                 bottomButtonAction: {
                     try viewModel.validateKeyName()
-                }) {
+                }) {_ in 
                     AnyView(
                         VStack {
-                            EncameraTextField(L10n.keyName, text: $viewModel.keyName)
+                            EncameraTextField(L10n.albumName, text: $viewModel.keyName)
                                 .noAutoModification()
-                            
                             if let keySaveError = viewModel.keySaveError {
                                 Text(keySaveError.displayDescription)
                                     .alertText()
@@ -388,10 +377,10 @@ private extension MainOnboardingView {
             
             return .init(title: L10n.selectStorage,
                          subheading: L10n.storageLocationOnboarding,
-                         image: Image(systemName: ""),
+                         image: Image("Onboarding-Storage"),
                          bottomButtonTitle: L10n.next) {
                 try viewModel.validateStorageSelection()
-            } content: {
+            } content: {_ in 
                 AnyView(
                     VStack {
                         StorageSettingView(viewModel: .init(), keyStorageType: $viewModel.keyStorageType)
@@ -399,37 +388,59 @@ private extension MainOnboardingView {
                             Text(L10n.pleaseSelectAStorageLocation)
                                 .alertText()
                         }
-                        Group {
-                            Toggle(L10n.saveKeyToICloud, isOn: $viewModel.saveToiCloud)
-                            Text(L10n.ifYouDonTUseICloudBackupItSHighlyRecommendedThatYouBackupYourKeysToAPasswordManagerOrSomewhereElseSafe)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .lineLimit(nil)
-                        }
-                        .fontType(.small)
-                        
-                    }
+
+                    }.padding(10)
                 )
                 
             }
-            
+        case .permissions:
+            return .init(title: L10n.onboardingPermissionsTitle,
+                         subheading: L10n.onboardingPermissionsSubheading,
+                         image: Image("Onboarding-Permissions"),
+                         bottomButtonTitle: "Add Permissions", bottomButtonAction: {
+                try await self.cameraPermissions.requestCameraPermission()
+                try await self.cameraPermissions.requestMicrophonePermission()
+            }, content: { _ in
+                AnyView(VStack {
+
+                    OptionItemView(
+                        title: L10n.onboardingPermissionsCameraAccess,
+                        description: L10n.onboardingPermissionsCameraAccessSubheading,
+                        isAvailable: true,
+                        isSelected: Binding<Bool>(
+                            get: { self.cameraPermissions.isCameraAccessAuthorized },
+                            set: { newValue in
+                            }
+                        )
+                    )
+                    OptionItemView(
+                        title: L10n.onboardingPermissionsMicrophoneAccess,
+                        description: L10n.onboardingPermissionsMicrophoneAccessSubheading,
+                        isAvailable: true,
+                        isSelected: Binding<Bool>(
+                            get: { self.cameraPermissions.isMicrophoneAccessAuthorized },
+                            set: { newValue in
+                            }
+                        )
+                    )
+                }.padding(10)
+                )})
+
         case .finished:
             return .init(
                 title: L10n.doneOnboarding,
                 subheading: "",
-                image: Image(systemName: "faceid"),
+                image: nil,
                 bottomButtonTitle: L10n.done,
                 bottomButtonAction: {
                     try await viewModel.saveState()
                     throw OnboardingViewError.onboardingEnded
-                }) {
+                }) {_ in 
                     AnyView(
                         VStack(alignment: .leading, spacing: 15.0) {
                             Text(L10n.storageExplanationHeader)
                                 .fontType(.medium)
                             Text(L10n.storageExplanation)
-                            Text(L10n.backUpKeysHeader)
-                                .fontType(.medium)
-                            Text(L10n.backUpKeysExplanation)
                         })
                 }
         }
@@ -447,7 +458,7 @@ private extension MainOnboardingView {
                     .aspectRatio(contentMode: .fit)
                 
                 Text(text)
-                    .fontType(.small)
+                    .fontType(.pt18)
             }.padding()
         })
             .frame(width: 100, height: 100)

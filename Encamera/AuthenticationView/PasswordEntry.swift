@@ -81,13 +81,6 @@ struct PasswordEntry: View {
                                   accessibilityIdentifier: "password"
                 )
                     .onSubmit(viewModel.validatePassword)
-                    .cornerRadius(25)
-                Button(action: viewModel.validatePassword) {
-                    Image(systemName: "lock.circle")
-                        .resizable()
-                        .frame(width: 50.0, height: 50.0)
-                }
-                
             }
             if case .invalid = viewModel.passwordState {
                 Text(L10n.invalidPassword)

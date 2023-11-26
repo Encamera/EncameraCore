@@ -35,7 +35,7 @@ struct ExplanationForUpgradeTutorial: View, TutorialView {
                 Text(L10n.viewUnlimitedPhotos😍)
                 Text(L10n.createUnlimitedKeys🔑)
             }
-            .fontType(.mediumSmall)
+            .fontType(.pt24)
             HStack {
                 Group {
                     Button(L10n.freeTrial) {
@@ -50,7 +50,7 @@ struct ExplanationForUpgradeTutorial: View, TutorialView {
                         }
                         
                     }
-                }.primaryButton(on: .elevated)
+                }.primaryButton(on: .darkBackground)
             }
         }
         .padding()
