@@ -70,15 +70,17 @@ struct AlbumDetailView: View {
             ZStack(alignment: .leading) {
 
                 Color.inputFieldBackgroundColor
-                    .frame(height:200)
+                    .frame(height:230)
 
                 VStack(alignment: .leading, spacing: 0) {
+                    Spacer().frame(height: getSafeAreaTop() / 2)
                     HStack(alignment: .top) {
                         Button {
                             dismiss()
                         } label: {
                             Image("Album-BackButton")
                         }
+                        .frame(width: 44, height: 44)
                         Spacer()
                         Menu {
                             Button(L10n.viewInFiles) {
@@ -90,22 +92,25 @@ struct AlbumDetailView: View {
 
                         } label: {
                             Image("Album-OptionsDots")
-                        }
+                        }.frame(width: 44, height: 44)
                     }
-                    Spacer().frame(height: 24)
-                    Text(viewModel.album.name)
-                        .fontType(.pt24, weight: .bold)
-                    Spacer().frame(height: 8)
-                    Text(viewModel.album.creationDate.formatted())
-                        .fontType(.pt14)
-                    Spacer().frame(height: 24)
-                    Button {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Spacer().frame(height: 24)
+                        Text(viewModel.album.name)
+                            .fontType(.pt24, weight: .bold)
+                        Spacer().frame(height: 8)
+                        Text(viewModel.album.creationDate.formatted())
+                            .fontType(.pt14)
+                        Spacer().frame(height: 24)
+                        Button {
 
-                    } label: {
-                        Text(L10n.addPhotos)
-                            .fontType(.pt14, on: .textButton, weight: .bold)
-                    }
-                }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
+                        } label: {
+                            Text(L10n.addPhotos)
+                                .fontType(.pt14, on: .textButton, weight: .bold)
+                        }
+                    }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
+                }
+
             }
         }
         .screenBlocked()

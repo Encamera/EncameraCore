@@ -33,7 +33,7 @@ struct AlbumBaseGridItem: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            RoundedRectangle(cornerRadius: 10, style: .circular)
+            clipShape
                 .stroke(Color.white.opacity(0.3), style: strokeStyle ?? StrokeStyle(lineWidth: 0))
                 .background {
                 if let image = image {
@@ -49,6 +49,7 @@ struct AlbumBaseGridItem: View {
                     Color.inputFieldBackgroundColor
                 }
             }
+            .clipShape(clipShape)
             .frame(width: width, height: width)
             .padding(.bottom, 12)
 
@@ -62,5 +63,9 @@ struct AlbumBaseGridItem: View {
                     .fontType(.pt14) // replace with actual font
 //            }
         }
+    }
+
+    private var clipShape: some Shape {
+        RoundedRectangle(cornerRadius: 10, style: .circular)
     }
 }

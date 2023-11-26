@@ -134,16 +134,11 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                 ScrollView {
                     content
                     HStack {
-                        Group {
-                            Text(L10n.imageS(viewModel.media.count))
-                                .fontType(.pt18)
-                        }
                         if viewModel.downloadPendingMediaCount > 0 {
                             downloadFromiCloudButton
                         }
-                        Spacer()
                     }
-                    .padding()
+                    .padding(.bottom)
                     if let first = viewModel.media.first {
                         imageForItem(mediaItem: first, width: largeSide, height: largeSide, index: 0)
                         LazyVGrid(columns: gridItems, spacing: spacing) {
@@ -181,7 +176,6 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                 AskForReviewUtil.askForReviewIfNeeded()
             }
             .scrollIndicators(.hidden)
-
             .navigationBarTitle("")
         }
         .screenBlocked()

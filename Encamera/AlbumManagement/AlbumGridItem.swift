@@ -11,9 +11,9 @@ import EncameraCore
 
 class AlbumGridItemModel: ObservableObject {
     
-    var fileReader: FileReader = DiskFileAccess()
+    var fileReader: FileReader
     var album: Album
-    var albumManager: AlbumManaging = AlbumManager()
+    var albumManager: AlbumManaging
     var storageModel: DataStorageModel?
     var storageType: StorageType? {
         storageModel?.storageType
@@ -23,7 +23,7 @@ class AlbumGridItemModel: ObservableObject {
     @Published var imageCount: Int?
     @Published var leadingImage: UIImage?
 
-    init(album: Album, key: PrivateKey) {
+    init(album: Album, key: PrivateKey, fileReader: FileReader = DiskFileAccess(), albumManager: AlbumManaging = AlbumManager()) {
         self.album = album
         Task {
             await fileReader.configure(
@@ -33,6 +33,8 @@ class AlbumGridItemModel: ObservableObject {
             )
             
         }
+        self.fileReader = fileReader
+        self.albumManager = albumManager
         storageModel = albumManager.storageModel(for: album)
         self.countOfMedia = storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension, MediaType.video.fileExtension]) ?? 0
 
@@ -60,9 +62,9 @@ struct AlbumGridItem: View {
     var albumName: String
     var width: CGFloat
 
-    init(key: PrivateKey, album: Album, width: CGFloat) {
+    init(key: PrivateKey, album: Album, fileReader: FileReader, albumManager: AlbumManaging, width: CGFloat) {
         albumName = album.name
-        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, key: key))
+        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, key: key, fileReader: fileReader, albumManager: albumManager))
         self.width = width
     }
 

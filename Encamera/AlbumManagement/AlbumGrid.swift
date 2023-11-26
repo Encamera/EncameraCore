@@ -107,13 +107,15 @@ struct AlbumGrid: View {
     @ViewBuilder
     private func albums(side: CGFloat) -> some View {
 
-//        ForEach(viewModel.albums, id: \.id) { album in
-//            NavigationLink {
-//                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.key, album: album))
-//            } label: {
-//                AlbumGridItem(key: viewModel.key, album: album, width: side)
-//            }
-//        }
+        ForEach(viewModel.albums, id: \.id) { album in
+            NavigationLink {
+                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.key, album: album))
+            } label: {
+                AlbumGridItem(key: viewModel.key,
+                              album: album,
+                              fileReader: viewModel.fileManager, albumManager: viewModel.albumManager, width: side)
+            }
+        }
     }
 
 }
