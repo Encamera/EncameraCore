@@ -246,12 +246,18 @@ struct EncameraApp: App {
                 .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
                 .onOpenURL { url in
                     Task {
-                        self.viewModel.hasOpenedURL = false
+                        await MainActor.run {
+                            self.viewModel.hasOpenedURL = false
+                        }
+
                         guard case .authenticated(_) = await self.viewModel.authManager.waitForAuthResponse() else {
                             return
                         }
-                        self.viewModel.openedUrl = url
-                        self.viewModel.hasOpenedURL = true
+                        await MainActor.run {
+                            self.viewModel.openedUrl = url
+                            self.viewModel.hasOpenedURL = true
+                        }
+
                     }
                 }
 

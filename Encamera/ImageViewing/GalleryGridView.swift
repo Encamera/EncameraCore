@@ -185,7 +185,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
         }
     }
 
-    func imageForItem(mediaItem: EncryptedMedia, width: CGFloat, height: CGFloat, index: Int) -> some View {
+    private func imageForItem(mediaItem: EncryptedMedia, width: CGFloat, height: CGFloat, index: Int) -> some View {
         //        Color.random
         AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView(), isInSelectionMode: .constant(false), isSelected: .constant(false))
             .frame(width: width, height: height)
@@ -197,7 +197,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
 
     }
 
-    var downloadFromiCloudButton: some View {
+    private var downloadFromiCloudButton: some View {
         Button {
             viewModel.startiCloudDownload()
         } label: {
