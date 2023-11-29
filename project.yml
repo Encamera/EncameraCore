@@ -10,8 +10,34 @@ packages:
 
 targets:
 
-
-
+  WidgetExtension:
+    type: app-extension
+    configFiles:
+      Debug: ./xcconfigs/WidgetExtension-debug.xcconfig
+      Release: ./xcconfigs/WidgetExtension-release.xcconfig
+    platform: iOS
+    sources: [WidgetExtension]
+    settings:
+      DEVELOPMENT_TEAM: KGJCC745S9
+      CLANG_CXX_LANGUAGE_STANDARD: "gnu++20"
+      CODE_SIGN_IDENTITY: "iPhone Developer"
+      CODE_SIGN_STYLE: Automatic
+      CURRENT_PROJECT_VERSION: 1
+      DEVELOPMENT_TEAM: KGJCC745S9
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_FILE: WidgetExtension/Info.plist
+      INFOPLIST_KEY_CFBundleDisplayName: WidgetExtension
+      INFOPLIST_KEY_NSHumanReadableCopyright: ""
+      IPHONEOS_DEPLOYMENT_TARGET: 16.0
+      MARKETING_VERSION: 1.0
+      RODUCT_NAME: "$(TARGET_NAME)"
+      SKIP_INSTALL: YES
+      SWIFT_EMIT_LOC_STRINGS: YES
+      SWIFT_VERSION: 5.0
+      TARGETED_DEVICE_FAMILY: "1,2"
+    scheme:
+      executable: WidgetExtension
+ 
   ShareExtension:
     type: app-extension
     configFiles:
@@ -61,6 +87,7 @@ targets:
     dependencies:
       - package: Sodium
       - target: ShareExtension
+      - target: WidgetExtension
       - package: EncameraCore
       - framework: StoreKit.framework
         embed: false
