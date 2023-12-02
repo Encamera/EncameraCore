@@ -20,7 +20,6 @@ class MainHomeViewViewModel: ObservableObject {
     @Published var hasMediaToImport = false
     @Published var showImportedMediaScreen = false
     @Published var shouldShowTweetScreen: Bool = false
-    @Published var showCamera: Bool = false
 
     var fileAccess: FileAccess
     var cameraService: CameraConfigurationService
@@ -63,13 +62,22 @@ class MainHomeViewViewModel: ObservableObject {
 struct MainHomeView: View {
 
     @StateObject var viewModel: MainHomeViewViewModel
+    @Binding var showCamera: Bool
+    @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums {
+        didSet {
+            showCamera = false
+        }
+    }
 
-    @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums
+    init(viewModel: MainHomeViewViewModel, showCamera: Binding<Bool>) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+        _showCamera = showCamera
+    }
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                if selectedNavigationItem == .camera {
+                if selectedNavigationItem == .camera || showCamera {
                     CameraView(cameraModel: .init(
                         privateKey: viewModel.privateKey,
                         albumManager: viewModel.albumManager,

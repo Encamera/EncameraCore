@@ -204,6 +204,7 @@ struct EncameraApp: App {
     }
 
     @StateObject var viewModel: ViewModel = .init()
+    @State var showCamera = false
     var body: some Scene {
         
         WindowGroup {
@@ -223,16 +224,13 @@ struct EncameraApp: App {
                         albumManager: self.viewModel.albumManager,
                         purchasedPermissions: viewModel.purchasedPermissions,
                         settingsManager: viewModel.settingsManager,
-                        authManager: viewModel.authManager))
+                        authManager: viewModel.authManager), showCamera: $showCamera)
 
                 } else {
-                    Text("Something went wrong")
+                    EmptyView()
                 }
             }
                 .preferredColorScheme(.dark)
-                .sheet(isPresented: $viewModel.hasOpenedURL) {
-                    openUrlSheet
-                }
                 .sheet(isPresented: $viewModel.showImportedMediaScreen) {
                     mediaImportSheet.onDisappear {
                         Task {
@@ -256,6 +254,12 @@ struct EncameraApp: App {
                         await MainActor.run {
                             self.viewModel.openedUrl = url
                             self.viewModel.hasOpenedURL = true
+                            if let url = viewModel.openedUrl,
+                               let urlType = URLType(url: url),
+                               viewModel.authManager.isAuthenticated,
+                               urlType == .camera {
+                                self.showCamera = true
+                            }
                         }
 
                     }
@@ -279,37 +283,7 @@ struct EncameraApp: App {
             Text("Something went wrong")
         }
     }
-    
-    @ViewBuilder private var openUrlSheet: some View {
-        if let url = viewModel.openedUrl,
-           let urlType = URLType(url: url),
-           viewModel.authManager.isAuthenticated {
-            switch urlType {
-            case .media(let encryptedMedia):
-                galleryForMedia(media: encryptedMedia)
-            case .key(let key):
-                NavigationView {
-                    let dismissBinding = Binding {
-                        !viewModel.hasOpenedURL
-                    } set: { value in
-                        viewModel.hasOpenedURL = !value
-                    }
 
-//                    KeyEntry(viewModel: .init(enteredKey: key, keyManager: viewModel.keyManager, showCancelButton: true, dismiss: dismissBinding ))
-                }
-            case .featureToggle(feature: let feature):
-                Text("Feature \"\(feature.rawValue)\" activated").onAppear {
-                    FeatureToggle.enable(feature: feature)
-                }
-            }
-            
-        } else {
-            Text(L10n.noPrivateKeyOrMediaFound)
-                .fontType(.medium)
-        }
-
-    }
-    
     @ViewBuilder private func galleryForMedia(media: EncryptedMedia) -> some View {
         let fileAccess = viewModel.newMediaFileAccess
         switch media.mediaType {

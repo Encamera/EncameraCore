@@ -1,6 +1,7 @@
 name: Encamera
 options:
   bundleIdPrefix: me.freas
+  deploymentTarget: 17.0
 packages:
   Sodium:
     url: https://github.com/jedisct1/swift-sodium.git
@@ -17,8 +18,10 @@ targets:
       Release: ./xcconfigs/WidgetExtension-release.xcconfig
     platform: iOS
     sources: [WidgetExtension]
+    dependencies:
+      - package: Sodium
+      - package: EncameraCore
     settings:
-      DEVELOPMENT_TEAM: KGJCC745S9
       CLANG_CXX_LANGUAGE_STANDARD: "gnu++20"
       CODE_SIGN_IDENTITY: "iPhone Developer"
       CODE_SIGN_STYLE: Automatic
@@ -28,9 +31,8 @@ targets:
       INFOPLIST_FILE: WidgetExtension/Info.plist
       INFOPLIST_KEY_CFBundleDisplayName: WidgetExtension
       INFOPLIST_KEY_NSHumanReadableCopyright: ""
-      IPHONEOS_DEPLOYMENT_TARGET: 16.0
       MARKETING_VERSION: 1.0
-      RODUCT_NAME: "$(TARGET_NAME)"
+      PRODUCT_NAME: "$(TARGET_NAME)"
       SKIP_INSTALL: YES
       SWIFT_EMIT_LOC_STRINGS: YES
       SWIFT_VERSION: 5.0
@@ -59,9 +61,8 @@ targets:
       INFOPLIST_FILE: ShareExtension/Info.plist
       INFOPLIST_KEY_CFBundleDisplayName: ShareExtension
       INFOPLIST_KEY_NSHumanReadableCopyright: ""
-      IPHONEOS_DEPLOYMENT_TARGET: 16.0
       MARKETING_VERSION: 1.0
-      RODUCT_NAME: "$(TARGET_NAME)"
+      PRODUCT_NAME: "$(TARGET_NAME)"
       SKIP_INSTALL: YES
       SWIFT_EMIT_LOC_STRINGS: YES
       SWIFT_VERSION: 5.0
@@ -74,7 +75,6 @@ targets:
       Debug: ./xcconfigs/debug.xcconfig
       Release: ./xcconfigs/release.xcconfig
     platform: iOS
-    deploymentTarget: "16.0"
     sources: [Encamera]
     storeKitConfiguration: "../../../EncameraCore/Sources/EncameraCore/InAppPurchase/Encamera.storekit"
     settings:
@@ -101,7 +101,6 @@ targets:
       Debug: ./xcconfigs/debug.xcconfig
       Release: ./xcconfigs/release.xcconfig
     platform: iOS
-    deploymentTarget: "16.0"
     sources: 
       - path: Encamera
         excludes: [EncameraApp.swift]
@@ -127,7 +126,6 @@ targets:
 
   EncameraTests:
     platform: iOS
-    deploymentTarget: "16.0"
     sources: [EncameraTests]
     type: bundle.unit-test
     dependencies:
