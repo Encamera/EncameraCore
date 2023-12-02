@@ -14,14 +14,14 @@ private struct GradientBackground: ViewModifier {
             ZStack(alignment: .trailing) {
                 Color.background
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-//                .background(Color.orange)
-
-                VStack(alignment: .trailing) {
+                VStack(alignment: .trailing, spacing: 0) {
                     Image("Background-Top")
-                        .frame(maxWidth: .infinity)
+                        .resizable()
                     Spacer()
                     Image("Background-Bottom")
+                        .resizable()
                 }
+                .frame(maxWidth: .infinity)
             }
             .padding(.zero)
             .ignoresSafeArea()

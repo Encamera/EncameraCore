@@ -244,7 +244,7 @@ private extension MainOnboardingView {
         case .intro:
             return .init(
                 showTopBar: false,
-                bottomButtonTitle: L10n.getStartedButtonText,
+                bottomButtonTitle: viewModel.currentOnboardingImageIndex < 2 ? L10n.next : L10n.getStartedButtonText,
                 bottomButtonAction: {
                     if viewModel.currentOnboardingImageIndex < 2 {
                         viewModel.currentOnboardingImageIndex += 1
