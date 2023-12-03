@@ -1,6 +1,15 @@
 {
   "pins" : [
     {
+      "identity" : "matomo-sdk-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/matomo-org/matomo-sdk-ios",
+      "state" : {
+        "branch" : "develop",
+        "revision" : "32c2353d5b57f9e144f199a544c7fe1df9561236"
+      }
+    },
+    {
       "identity" : "swift-sodium",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/jedisct1/swift-sodium.git",

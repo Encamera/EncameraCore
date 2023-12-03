@@ -168,6 +168,7 @@ struct SettingsView: View {
                     }
 
                 }
+                .padding(.init(top: 10, leading: 0, bottom: 10, trailing: 0))
 
             }
             .scrollContentBackgroundColor(.clear)
@@ -177,7 +178,7 @@ struct SettingsView: View {
         .fontType(.pt14, weight: .bold)
         .sheet(isPresented: $viewModel.showPremium) {
             premium
-        }.padding(.bottom, 80)
+        }.padding(.bottom, 100)
     }
     
     private var premium: some View {

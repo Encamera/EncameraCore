@@ -199,10 +199,3 @@ struct TopBarView: View {
 
     }
 }
-
-//struct TopBarView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        TopBarView(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging()), showingAlbum: .constant(false), isRecordingVideo: .constant(false), recordingDuration: .constant(CMTime(seconds: 0, preferredTimescale: 1)), currentKeyName: .constant("DefaultKey"), flashMode: .constant(.off), settingsButtonTapped: {}, flashButtonPressed: {})
-//            .preferredColorScheme(.dark)
-//    }
-//}

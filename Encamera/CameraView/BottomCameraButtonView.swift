@@ -97,6 +97,7 @@ struct BottomCameraButtonView: View {
     private var captureButton: some View {
 
         Button(action: {
+            EventTracking.trackPictureTaken()
             Task {
                 try await cameraModel.captureButtonPressed()
             }
