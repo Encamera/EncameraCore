@@ -6,10 +6,11 @@
 //
 
 import SwiftUI
+import EncameraCore
 
 private struct CameraZoomControlButton: View {
 
-    var zoomScale: CGFloat
+    var zoomScale: ZoomLevel
 
     @Binding var isSelected: Bool
 
@@ -17,7 +18,7 @@ private struct CameraZoomControlButton: View {
         ZStack {
             Circle()
                 .foregroundColor(.black.opacity(0.44))
-            Text("\(zoomScale.formatted())x")
+            Text("\(zoomScale.rawValue.formatted())x")
                 .foregroundColor(isSelected ? .yellow : .white)
                 .fontType(isSelected ? .rajdhaniBold : .rajdhaniBoldSmall)
 
@@ -29,8 +30,8 @@ private struct CameraZoomControlButton: View {
 
 struct CameraZoomControlButtons: View {
 
-    var supportedZoomScales: [CGFloat]
-    @Binding var selectedZoomScale: CGFloat
+    var supportedZoomScales: [ZoomLevel]
+    @Binding var selectedZoomScale: ZoomLevel
     var body: some View {
         ZStack() {
             HStack(spacing: 0) {
@@ -55,7 +56,7 @@ struct CameraZoomControlButtons: View {
 }
 
 #Preview {
-    var zoom: CGFloat = 1.0
-    let selectedZoomScale = Binding<CGFloat>(get: { zoom }, set: { zoom = $0 })
-    return CameraZoomControlButtons(supportedZoomScales: [0.5, 1], selectedZoomScale: selectedZoomScale).frame(width: 175, height: 50)
+    var zoom: ZoomLevel = .x1
+    let selectedZoomScale = Binding<ZoomLevel>(get: { zoom }, set: { zoom = $0 })
+    return CameraZoomControlButtons(supportedZoomScales: [.x05, .x1], selectedZoomScale: selectedZoomScale).frame(width: 175, height: 50)
 }

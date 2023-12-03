@@ -14,7 +14,7 @@ import SwiftUI
 import EncameraCore
 
 extension CameraModel: CameraConfigurationServicableDelegate {
-    func didUpdate(zoomLevels: [CGFloat]) {
+    func didUpdate(zoomLevels: [ZoomLevel]) {
         availableZoomLevels = zoomLevels
     }
 }
@@ -28,7 +28,7 @@ final class CameraModel: NSObject, ObservableObject {
     }
     
     @Published var showAlertError = false
-    @Published var availableZoomLevels: [CGFloat] = []
+    @Published var availableZoomLevels: [ZoomLevel] = []
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
     @Published var isRecordingVideo = false {
         didSet {
@@ -41,7 +41,7 @@ final class CameraModel: NSObject, ObservableObject {
     @MainActor
     @Published var thumbnailImage: UIImage?
     
-    @Published var currentZoomFactor: CGFloat = 1.0 {
+    @Published var currentZoomFactor: ZoomLevel = .x1 {
         didSet {
             zoom(with: currentZoomFactor)
         }
@@ -289,7 +289,7 @@ final class CameraModel: NSObject, ObservableObject {
         }
     }
     
-    func zoom(with factor: CGFloat) {
+    func zoom(with factor: ZoomLevel) {
         Task {
             await service.set(zoom: factor)
         }
