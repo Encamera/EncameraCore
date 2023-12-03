@@ -17,9 +17,12 @@ private struct GradientBackground: ViewModifier {
                 VStack(alignment: .trailing, spacing: 0) {
                     Image("Background-Top")
                         .resizable()
+                        .offset(.init(width: 0, height: 0))
+
                     Spacer()
                     Image("Background-Bottom")
-                        .resizable()
+                        .offset(.init(width: 0, height: 40))
+
                 }
                 .frame(maxWidth: .infinity)
             }

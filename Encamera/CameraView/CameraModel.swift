@@ -13,15 +13,22 @@ import MediaPlayer
 import SwiftUI
 import EncameraCore
 
+extension CameraModel: CameraConfigurationServicableDelegate {
+    func didUpdate(zoomLevels: [CGFloat]) {
+        availableZoomLevels = zoomLevels
+    }
+}
+
 final class CameraModel: NSObject, ObservableObject {
-    var service: CameraConfigurationService
+
+    private var service: CameraConfigurationService
     
     var session: AVCaptureSession {
         service.session
     }
     
     @Published var showAlertError = false
-
+    @Published var availableZoomLevels: [CGFloat] = []
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
     @Published var isRecordingVideo = false {
         didSet {
@@ -34,10 +41,12 @@ final class CameraModel: NSObject, ObservableObject {
     @MainActor
     @Published var thumbnailImage: UIImage?
     
-    @Published var currentZoomFactor: CGFloat = 1.0
-    @Published var finalZoomFactor: CGFloat = 1.0
-    
-    
+    @Published var currentZoomFactor: CGFloat = 1.0 {
+        didSet {
+            zoom(with: currentZoomFactor)
+        }
+    }
+
     // View showing
     @Published var showGalleryView: Bool = false
     @Published var showingAlbum = false
@@ -98,6 +107,7 @@ final class CameraModel: NSObject, ObservableObject {
                     for: album, with: privateKey, albumManager: albumManager
                 )
             }
+           await cameraService.setDelegate(self)
         }
 
         eventSubject
@@ -133,6 +143,11 @@ final class CameraModel: NSObject, ObservableObject {
         setupPublishedVars()
     }
     
+    func initialConfiguration() async {
+        await service.checkForPermissions()
+        await service.configure()
+    }
+
     func setupPublishedVars() {
         UserDefaultUtils.publisher(for: .capturedPhotos)
             .compactMap({$0 as? Int})
@@ -182,7 +197,11 @@ final class CameraModel: NSObject, ObservableObject {
             debugPrint("Error loading media preview")
         }
     }
-    
+
+    func stopCamera() async {
+        await service.stop()
+    }
+
     func captureButtonPressed() async throws {
 
         
@@ -250,7 +269,9 @@ final class CameraModel: NSObject, ObservableObject {
         }
         await loadThumbnail()
     }
-    
+
+
+
     func setupTorchForVideo() {
         switch flashMode {
         case .off:
@@ -264,7 +285,7 @@ final class CameraModel: NSObject, ObservableObject {
     
     func flipCamera() {
         Task {
-            await service.changeCamera()
+            await service.flipCameraDevice()
         }
     }
     
@@ -278,16 +299,7 @@ final class CameraModel: NSObject, ObservableObject {
         flashMode = flashMode.nextMode
     }
     
-    func handleMagnificationOnChanged(scale: CGFloat) {
-        currentZoomFactor = scale
-        zoom(with: finalZoomFactor * currentZoomFactor)
-    }
-    
-    func handleMagnificationEnded(scale: CGFloat) {
-        finalZoomFactor *= currentZoomFactor
-        currentZoomFactor = .zero
-    }
-    
+
     func setOrientation(_ orientation: AVCaptureVideoOrientation) {
 //        service.model.orientation = orientation
     }

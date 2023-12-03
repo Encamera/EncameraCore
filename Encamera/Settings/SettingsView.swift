@@ -105,7 +105,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
-            Text("Settings")
+            Text(L10n.settings)
                 .fontType(.large, on: .darkBackground, weight: .bold)
                 .padding(.init(top: 0, leading: 24, bottom: 0, trailing: 24))
             List {

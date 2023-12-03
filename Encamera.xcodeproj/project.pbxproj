@@ -41,6 +41,8 @@
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		1947CEA92B1B97EF00A1CF0D /* MatomoTracker in Frameworks */ = {isa = PBXBuildFile; productRef = 1947CEA82B1B97EF00A1CF0D /* MatomoTracker */; };
 		1947CEAB2B1B981900A1CF0D /* EventTracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1947CEAA2B1B981900A1CF0D /* EventTracking.swift */; };
+		1947CEAD2B1C725B00A1CF0D /* CameraZoomControlButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1947CEAC2B1C725B00A1CF0D /* CameraZoomControlButtons.swift */; };
+		1947CEAF2B1C795500A1CF0D /* Rajdhani-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1947CEAE2B1C77EB00A1CF0D /* Rajdhani-Bold.ttf */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
 		1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DF70D2CC410A637C7BB925 /* EncameraState.swift */; };
@@ -145,7 +147,6 @@
 		8B234276FD4FC096AB138A6A /* PhotoInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */; };
 		8DA5313062B4B0A3BAA23C4A /* DecryptErrorExplanation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E040DE4298869CF563F016 /* DecryptErrorExplanation.swift */; };
 		8E6404A95DE18CD546B0D0CA /* 2.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 22736C3DC1ED7B0010E2C563 /* 2.JPG */; };
-		8E892EE75388ACE80189DC70 /* EncameraLocal.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 550323AF4E3EB2265755723A /* EncameraLocal.storekit */; };
 		8E95127603E03838DAF27507 /* ExplanationForUpgradeTutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C3DD8AA70CBF44BA670B82 /* ExplanationForUpgradeTutorial.swift */; };
 		8F201785CD1B1B9C034D3386 /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C6738E921CCEB0FD88E6D /* KeychainTests.swift */; };
 		8FDA1D902D28A3B2DD5AA4BF /* 2.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 22736C3DC1ED7B0010E2C563 /* 2.JPG */; };
@@ -247,7 +248,6 @@
 		EFBAB4839ACD8250A1CA6AF4 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */; };
 		EFDEAFF6596FBF2114A9F06A /* Satoshi-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 254B4401CD4663561438FCE0 /* Satoshi-Regular.otf */; };
 		F05236200E8FF893CBBE593A /* ImageCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881709E68E56C0BC0A1EB710 /* ImageCarousel.swift */; };
-		F0DF6BB6EECF8FA580D3FE74 /* EncameraLocal.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 550323AF4E3EB2265755723A /* EncameraLocal.storekit */; };
 		F273E9D2828E571958321D6D /* HeadingSubheadingImageComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C3A2DC8EF95074331B6CBEE /* HeadingSubheadingImageComponent.swift */; };
 		F30D4AE8166C0034674E0DBB /* PromptToErase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */; };
 		F4E6DE89AF56549BA339C272 /* CreateAlbum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E120ED7D8DE4B9A5746FFE4 /* CreateAlbum.swift */; };
@@ -344,6 +344,8 @@
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
 		1947CEAA2B1B981900A1CF0D /* EventTracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTracking.swift; sourceTree = "<group>"; };
+		1947CEAC2B1C725B00A1CF0D /* CameraZoomControlButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraZoomControlButtons.swift; sourceTree = "<group>"; };
+		1947CEAE2B1C77EB00A1CF0D /* Rajdhani-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rajdhani-Bold.ttf"; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1BD41DEC59C93641F49268C6 /* SubscriptionPurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPurchaseButton.swift; sourceTree = "<group>"; };
 		1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Black.otf"; sourceTree = "<group>"; };
@@ -383,7 +385,6 @@
 		517FE72852CDCADB57265BCF /* TopBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopBarView.swift; sourceTree = "<group>"; };
 		521B131F36DC968FE7429140 /* ShareExtension-debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "ShareExtension-debug.xcconfig"; sourceTree = "<group>"; };
 		5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressViewCircular.swift; sourceTree = "<group>"; };
-		550323AF4E3EB2265755723A /* EncameraLocal.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = EncameraLocal.storekit; sourceTree = "<group>"; };
 		57C54146880DB6F836B1AB7F /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
 		57FAABD62B4B02A3986C5FD5 /* KeyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyEntry.swift; sourceTree = "<group>"; };
 		5876A43225B15FCEC1E6CF1C /* Satoshi-Light.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Light.otf"; sourceTree = "<group>"; };
@@ -538,6 +539,7 @@
 		035700E6E6347F09D86B9D5B /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
+				1947CEAE2B1C77EB00A1CF0D /* Rajdhani-Bold.ttf */,
 				1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */,
 				8CC3EF584D715B91450BDEA3 /* Satoshi-BlackItalic.otf */,
 				C6D4F6A7A4F99FA1D28BB937 /* Satoshi-Bold.otf */,
@@ -581,7 +583,6 @@
 			isa = PBXGroup;
 			children = (
 				0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */,
-				550323AF4E3EB2265755723A /* EncameraLocal.storekit */,
 				7363071BCA6ED2C04B2EA698 /* PurchasePhotoSubscriptionOverlay.swift */,
 				49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */,
 			);
@@ -861,6 +862,7 @@
 				5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */,
 				25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */,
 				7FB2C08C3732EFAB967E6227 /* WebView.swift */,
+				1947CEAC2B1C725B00A1CF0D /* CameraZoomControlButtons.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1132,7 +1134,6 @@
 				CFFA0DBE97DCF57A75E3C8E3 /* Assets.xcassets in Resources */,
 				CBCEFE097E391E593ED22AFF /* Assets.xcassets in Resources */,
 				95DBDDA4677CD7D1CE5FBD30 /* Encamera.storekit in Resources */,
-				8E892EE75388ACE80189DC70 /* EncameraLocal.storekit in Resources */,
 				9674772104EFB90A4A1C7012 /* EncryptedImageIcon.png in Resources */,
 				0DC68F2D1963AD0638C3C56E /* EncryptedVideoIcon.png in Resources */,
 				9C3BF33233EACEDA2B5987B6 /* InfoPlist.strings in Resources */,
@@ -1171,6 +1172,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1947CEAF2B1C795500A1CF0D /* Rajdhani-Bold.ttf in Resources */,
 				ACC448F8AA2707A93D2B9167 /* 1.JPG in Resources */,
 				8FDA1D902D28A3B2DD5AA4BF /* 2.JPG in Resources */,
 				F6C21178EA355F6D057FACF1 /* 3.JPG in Resources */,
@@ -1179,7 +1181,6 @@
 				D194EDB732253ABF3A1259D8 /* 6.JPG in Resources */,
 				7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */,
 				A456B80AC53939E5895E9DFD /* Encamera.storekit in Resources */,
-				F0DF6BB6EECF8FA580D3FE74 /* EncameraLocal.storekit in Resources */,
 				2FCFC8C5F90FE5E93B0F290E /* EncryptedImageIcon.png in Resources */,
 				17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */,
 				CA61DBCFAAFB8F7AE29C4D0B /* InfoPlist.strings in Resources */,
@@ -1273,6 +1274,7 @@
 				13F2BC03E7B23D65C31D19CD /* MainHomeView.swift in Sources */,
 				114EBEBC2E22847C842A538D /* MainOnboardingView.swift in Sources */,
 				3ECC622BE09A0394BCA79AB6 /* MediaImportView.swift in Sources */,
+				1947CEAD2B1C725B00A1CF0D /* CameraZoomControlButtons.swift in Sources */,
 				EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */,
 				5FDDE54340E91E222BE751D7 /* NotificationBell.swift in Sources */,
 				AD8F6464844061B17FAFE50E /* OnboardingView.swift in Sources */,

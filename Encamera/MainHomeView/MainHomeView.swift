@@ -41,7 +41,6 @@ class MainHomeViewViewModel: ObservableObject {
          authManager: AuthManager) {
         self.fileAccess = fileAccess
         self.privateKey = key
-        self.cameraService = CameraConfigurationService(model: cameraServiceModel)
         self.keyManager = keyManager
         self.albumManager = albumManager
         self.purchasedPermissions = purchasedPermissions

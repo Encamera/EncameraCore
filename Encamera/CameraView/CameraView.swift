@@ -15,7 +15,6 @@ struct CameraView: View {
 
     @StateObject var cameraModel: CameraModel
     @State var cameraModeStateModel = CameraModeStateModel()
-    @GestureState var magnificationGesture = false
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
     @Environment(\.dismiss) var dismiss
@@ -92,11 +91,6 @@ struct CameraView: View {
 #else
         CameraPreview(session: cameraModel.session,
                       modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
-        .gesture(
-            MagnificationGesture()
-                .onChanged(cameraModel.handleMagnificationOnChanged)
-                .onEnded(cameraModel.handleMagnificationEnded)
-        )
         .onReceive(cameraModeStateModel.$selectedMode, perform: { value in
             self.cameraModel.selectedCameraMode = value
         })
@@ -231,7 +225,7 @@ struct CameraView: View {
             TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
                                   recordingDuration: $cameraModel.recordingDuration, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
                 Task {
-                    await cameraModel.service.stop()
+                    await cameraModel.stopCamera()
                 }
                 closeButtonTapped()
             }, flashButtonPressed: {
@@ -259,6 +253,9 @@ struct CameraView: View {
                     }
                 }
             }
+            CameraZoomControlButtons(supportedZoomScales: cameraModel.availableZoomLevels, selectedZoomScale: $cameraModel.currentZoomFactor)
+                .frame(width: 300, height: 60)
+
             bottomButtonPanel
         }
         .edgesIgnoringSafeArea(.top)
@@ -267,8 +264,7 @@ struct CameraView: View {
                 return
             }
             Task {
-                await cameraModel.service.checkForPermissions()
-                await cameraModel.service.configure()
+                await cameraModel.initialConfiguration()
             }
         }
         .navigationBarHidden(true)

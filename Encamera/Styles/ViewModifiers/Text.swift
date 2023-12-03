@@ -25,10 +25,13 @@ enum EncameraFont {
     case pt18
     case pt20
     case pt24
+    case rajdhaniBold
+    case rajdhaniBoldSmall
 
     enum Name: String {
         case regular = "Satoshi-Regular"
         case bold = "Satoshi-Bold"
+        case rajdhaniBold = "Rajdhani-Bold"
     }
 
     var font: Font {
@@ -54,6 +57,11 @@ enum EncameraFont {
 
         case .pt10:
             return .custom(Name.regular.rawValue, size: 10)
+        case .rajdhaniBold:
+            return .custom(Name.rajdhaniBold.rawValue, size: 16)
+        case .rajdhaniBoldSmall:
+            return .custom(Name.rajdhaniBold.rawValue, size: 12)
+
         }
     }
 }
@@ -88,6 +96,7 @@ struct Text_Previews: PreviewProvider {
 
             Text("This is a small one").fontType(.pt18)
             Text("This is a small one").fontType(.pt14)
+            Text("Rajdhani-Bold").fontType(.rajdhaniBold)
 
             Text("Alert!").alertText()
         }
