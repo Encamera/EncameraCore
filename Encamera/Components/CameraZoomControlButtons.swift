@@ -22,7 +22,7 @@ private struct CameraZoomControlButton: View {
                 .foregroundColor(isSelected ? .yellow : .white)
                 .fontType(isSelected ? .rajdhaniBold : .rajdhaniBoldSmall)
 
-        }.padding(isSelected ? 4 : 10)
+        }.padding(isSelected ? 4 : 8)
             .animation(.easeInOut.speed(4), value: isSelected)
     }
 

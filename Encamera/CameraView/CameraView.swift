@@ -251,10 +251,15 @@ struct CameraView: View {
                             openSettings()
                         }.primaryButton()
                     }
+                } else if cameraModel.cameraPosition == .back {
+                    VStack {
+                        Spacer()
+                        CameraZoomControlButtons(supportedZoomScales: cameraModel.availableZoomLevels, selectedZoomScale: $cameraModel.currentZoomFactor)
+                            .frame(width: 300, height: 44)
+                    }
                 }
             }
-            CameraZoomControlButtons(supportedZoomScales: cameraModel.availableZoomLevels, selectedZoomScale: $cameraModel.currentZoomFactor)
-                .frame(width: 300, height: 60)
+
 
             bottomButtonPanel
         }

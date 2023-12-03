@@ -17,6 +17,10 @@ extension CameraModel: CameraConfigurationServicableDelegate {
     func didUpdate(zoomLevels: [ZoomLevel]) {
         availableZoomLevels = zoomLevels
     }
+
+    func didUpdate(cameraPosition: AVCaptureDevice.Position) {
+        self.cameraPosition = cameraPosition
+    }
 }
 
 final class CameraModel: NSObject, ObservableObject {
@@ -27,6 +31,7 @@ final class CameraModel: NSObject, ObservableObject {
         service.session
     }
     
+    @Published var cameraPosition: AVCaptureDevice.Position = .back
     @Published var showAlertError = false
     @Published var availableZoomLevels: [ZoomLevel] = []
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
