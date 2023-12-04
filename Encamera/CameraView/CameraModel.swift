@@ -25,7 +25,7 @@ extension CameraModel: CameraConfigurationServicableDelegate {
 
 final class CameraModel: NSObject, ObservableObject {
 
-    private var service: CameraConfigurationService
+    var service: CameraConfigurationService
     
     var session: AVCaptureSession {
         service.session
@@ -163,15 +163,15 @@ final class CameraModel: NSObject, ObservableObject {
             .receive(on: DispatchQueue.main)
             .delay(for: .seconds(2), scheduler: RunLoop.main)
             .sink { [weak self] value in
-                guard let `self` = self else {
+                guard let self else {
                     return
                 }
                 withAnimation {
                     switch value {
                     case AppConstants.numberOfPhotosBeforeInitialTutorial:
                         self.showTookFirstPhotoSheet = true
-                    case AppConstants.maxPhotoCountBeforePurchase:
-                        self.showExplanationForUpgrade = !self.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: AppConstants.maxPhotoCountBeforePurchase))
+                    case let count where count > AppConstants.maxPhotoCountBeforePurchase:
+                        self.showExplanationForUpgrade = !self.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: count))
                     default:
                         self.showTookFirstPhotoSheet = false
                         self.showExplanationForUpgrade = false

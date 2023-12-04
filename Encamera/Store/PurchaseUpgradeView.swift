@@ -47,8 +47,9 @@ struct FeatureText: View {
                         .opacity(0.80)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
-            
+
         }.frame(height: 50)
+            .transition(.move(edge: .bottom))
     }
 }
 
@@ -63,14 +64,19 @@ func createFeatureRow(image: Image, title: String, subtitle: String? = nil) -> s
 
 
 struct PurchaseUpgradeView: View {
+
+    var purchaseAction: ((PurchaseFinishedAction) -> Void)?
+
     @ObservedObject var subscriptionController: StoreSubscriptionController = StoreActor.shared.subscriptionController
     @ObservedObject var productController: StoreProductController = StoreActor.shared.productController
     @State private var selectedSubscription: ServiceSubscription?
     @State private var currentActiveSubscription: ServiceSubscription?
     @State private var errorAlertIsPresented = false
     @State private var showTweetForFreeView = false
-    var showDismissButton = true
+
     @Environment(\.dismiss) private var dismiss
+
+    var showDismissButton = true
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -145,10 +151,11 @@ struct PurchaseUpgradeView: View {
                         Task(priority: .userInitiated) { @MainActor in
                             let action = await subscriptionController.purchase(option: subscription)
                             switch action {
-                            case .dismissStore: dismiss()
+                            case .purchaseComplete: dismiss()
                             case .displayError: errorAlertIsPresented = true
                             case .noAction: break
                             }
+                            purchaseAction?(action)
                         }
                     }
                 }
@@ -159,11 +166,11 @@ struct PurchaseUpgradeView: View {
 }
 
 struct PurchaseUpgradeView_Previews: PreviewProvider {
-    
+
     static var previews: some View {
         ProductStoreView()
             .preferredColorScheme(.dark)
             .previewDevice(PreviewDevice(rawValue: "iPhone 8"))
     }
-    
+
 }

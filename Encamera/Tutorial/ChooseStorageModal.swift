@@ -15,7 +15,7 @@ private enum Constants {
 
 struct ChooseStorageModal: View {
 
-    var hasPurchasedPremium: Bool
+    var hasEntitlement: Bool
     @State var selectedStorage: StorageType?
 
     var buttonPressed: ((StorageType) -> Void)?
@@ -48,7 +48,8 @@ struct ChooseStorageModal: View {
                                     get: {
                                         selectedStorage == storage.storageType
                                     },
-                                    set: { newValue in                                    selectedStorage = storage.storageType
+                                    set: { newValue in                                    
+                                        selectedStorage = storage.storageType
                                     }
                                 )
                                 Button(action: {
@@ -76,6 +77,8 @@ struct ChooseStorageModal: View {
                 .cornerRadius(AppConstants.defaultCornerRadius)
                 .frame(height: 550)
             }.padding()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.all)
@@ -86,7 +89,7 @@ struct ChooseStorageModal: View {
     }
 
     private var showUpgradeText: Bool {
-        selectedStorage != nil && selectedStorage == .icloud && !hasPurchasedPremium
+        selectedStorage != nil && selectedStorage == .icloud && !hasEntitlement
     }
 }
 
@@ -95,7 +98,7 @@ struct ChooseStorageModal_Previews: PreviewProvider {
         ZStack {
             Color.background
 
-            ChooseStorageModal(hasPurchasedPremium: false) { selected in
+            ChooseStorageModal(hasEntitlement: false) { selected in
 
             }
 

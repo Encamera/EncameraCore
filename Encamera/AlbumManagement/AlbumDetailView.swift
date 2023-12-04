@@ -11,7 +11,7 @@ import Combine
 
 
 class AlbumDetailViewModel: ObservableObject {
-    
+
     enum KeyViewerError {
         case couldNotSetKeychain
     }
@@ -53,20 +53,20 @@ class AlbumDetailViewModel: ObservableObject {
 }
 
 struct AlbumDetailView: View {
-    
+
     @State var isShowingAlertForClearKey: Bool = false
     @State var isShowingAlertForDeleteAllAlbumData: Bool = false
     @State var isShowingMoveAlbumModal = false
     @State var isShowingAlertForCopyKey: Bool = false
     @State var isShowingPurchaseSheet = false
     @StateObject var viewModel: AlbumDetailViewModel
-    
+
     @Environment(\.dismiss) var dismiss
-    
+
     private struct Constants {
         static var outerPadding = 20.0
     }
-    
+
     var body: some View {
         ZStack {
             GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: viewModel.key, album: viewModel.album, albumManager: viewModel.albumManager, blurImages: false)) {
@@ -155,7 +155,7 @@ struct AlbumDetailView: View {
             .ignoresSafeArea(edges: .top)
             if isShowingMoveAlbumModal {
                 let hasEntitlement = viewModel.purchasedPermissions.hasEntitlement()
-                ChooseStorageModal(hasPurchasedPremium: hasEntitlement, selectedStorage: viewModel.album.storageOption) { storage in
+                ChooseStorageModal(hasEntitlement: hasEntitlement, selectedStorage: viewModel.album.storageOption) { storage in
                     if hasEntitlement || storage == .local {
                         isShowingMoveAlbumModal = false
                         try? viewModel.albumManager.moveAlbum(album: viewModel.album, toStorage: storage)
@@ -163,6 +163,14 @@ struct AlbumDetailView: View {
                         isShowingPurchaseSheet = true
                     }
 
+                }
+            }
+            if isShowingPurchaseSheet {
+                ProductStoreView { action in
+                    if action == .purchaseComplete {
+                        isShowingPurchaseSheet = false
+                        isShowingMoveAlbumModal = false
+                    }
                 }
             }
         }

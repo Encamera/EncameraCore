@@ -18,18 +18,18 @@ enum OnboardingViewError: Error {
 }
 
 class OnboardingViewModel: ObservableObject {
-    
+
     enum OnboardingKeyError: Error {
         case unhandledError
     }
-    
+
     @Published var password1: String = ""
     @Published var showPassword = false
     @Published var password2: String = ""
     @Published var keyName: String = ""
     @Published var existingPassword: String = ""
     var onboardingFlow: [OnboardingFlowScreen]
-    @Published var passwordState: PasswordValidation? 
+    @Published var passwordState: PasswordValidation?
     @MainActor
     @Published var stateError: OnboardingManagerError?
     @MainActor
@@ -50,16 +50,16 @@ class OnboardingViewModel: ObservableObject {
         return authManager.availableBiometric
     }
     private var cancellables = Set<AnyCancellable>()
-    
-    
+
+
     private var onboardingManager: OnboardingManaging
     private var albumManager: AlbumManaging
     private var passwordValidator = PasswordValidator()
     var keyManager: KeyManager
     private var authManager: AuthManager
-    
+
     private var lastPasswordLength = 0
-    
+
     init(onboardingManager: OnboardingManaging, keyManager: KeyManager, authManager: AuthManager, albumManager: AlbumManaging) {
         self.albumManager = albumManager
         self.onboardingManager = onboardingManager
@@ -78,15 +78,15 @@ class OnboardingViewModel: ObservableObject {
             }
             self.lastPasswordLength = newLength
         }.store(in: &cancellables)
-        
+
     }
-    
+
     func validatePassword() -> PasswordValidation {
         let state = passwordValidator.validatePasswordPair(password1, password2: password2)
         self.passwordState = state
         return state
     }
-    
+
     @MainActor
     func authWithBiometrics() async throws {
         do {
@@ -94,13 +94,13 @@ class OnboardingViewModel: ObservableObject {
             useBiometrics = true
         } catch let authError as AuthManagerError {
             switch authError {
-                
+
             case .passwordIncorrect:
                 break
             case .biometricsFailed:
-                
+
                 generalError = authError
-                
+
             case .biometricsNotAvailable, .userCancelledBiometrics:
 
                 useBiometrics = false
@@ -111,20 +111,20 @@ class OnboardingViewModel: ObservableObject {
             throw error
         }
     }
-    
+
     @MainActor
     func validateKeyName() throws {
         do {
             try keyManager.validateKeyName(name: keyName)
-            
+
         } catch {
             try handle(error: error)
         }
     }
-    
+
     @MainActor
     func validateStorageSelection() throws {
-        
+
         if keyStorageType == nil {
             try handle(error: OnboardingViewError.missingStorageType)
         }
@@ -142,7 +142,7 @@ class OnboardingViewModel: ObservableObject {
         }
         throw error
     }
-    
+
     @MainActor func savePassword() throws {
         do {
             let validation = validatePassword()
@@ -155,7 +155,7 @@ class OnboardingViewModel: ObservableObject {
             try handle(error: error)
         }
     }
-    
+
     @MainActor
     func checkExistingPasswordAndAuth() throws {
         do {
@@ -169,9 +169,9 @@ class OnboardingViewModel: ObservableObject {
             throw OnboardingViewError.passwordInvalid
         }
     }
-    
+
     func saveState() async throws {
-        
+
         do {
             let savedState = OnboardingState.completed
             if existingPassword.isEmpty == false {
@@ -179,12 +179,14 @@ class OnboardingViewModel: ObservableObject {
             } else {
                 try authManager.authorize(with: password1, using: keyManager)
                 let _ = try keyManager.generateNewKey(name: AppConstants.defaultAlbumName, backupToiCloud: saveToiCloud)
-                let album = Album(name: AppConstants.defaultAlbumName, storageOption: .local, creationDate: Date())
-                try? albumManager.create(album: album)
-                UserDefaultUtils.set(true, forKey: .showCameraOnLaunch)
             }
+            let album = Album(name: AppConstants.defaultAlbumName, storageOption: .local, creationDate: Date())
+            try? albumManager.create(album: album)
+            albumManager.currentAlbum = album
+            UserDefaultUtils.set(true, forKey: .showCameraOnLaunch)
+
             try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
-            
+
         } catch {
             try await handle(error: error)
         }
@@ -192,8 +194,8 @@ class OnboardingViewModel: ObservableObject {
 }
 
 struct MainOnboardingView: View {
-    
-    
+
+
     @FocusState var password2Focused
     @State var currentSelection = OnboardingFlowScreen.intro
     @StateObject var viewModel: OnboardingViewModel
@@ -205,7 +207,7 @@ struct MainOnboardingView: View {
         }
         .ignoresSafeArea(.keyboard)
     }
-    
+
     private func canGoTo(tab: OnboardingFlowScreen) -> Bool {
         if let currentIndex = viewModel.onboardingFlow.firstIndex(of: currentSelection),
            let targetIndex = viewModel.onboardingFlow.firstIndex(of: tab),
@@ -214,14 +216,14 @@ struct MainOnboardingView: View {
         }
         return false
     }
-    
+
 }
 
 private extension MainOnboardingView {
-    
+
     func viewFor<Next: View>(flow: OnboardingFlowScreen, next: @escaping () -> Next) -> AnyView {
         let index = (viewModel.onboardingFlow.firstIndex(of: flow) ?? 0)
-        
+
         var model = viewModel(for: flow)
         model.progress = (index, viewModel.onboardingFlow.count)
         return AnyView(OnboardingView(
@@ -230,11 +232,11 @@ private extension MainOnboardingView {
             })
         )
     }
-    
+
     func buildOnboarding() -> some View {
-        
+
         let lastView: AnyView? = nil
-        
+
         let views = viewModel.onboardingFlow.reversed().reduce(lastView) { partialResult, screen in
             return viewFor(flow: screen, next: {
                 partialResult
@@ -242,9 +244,9 @@ private extension MainOnboardingView {
         }
         return views
     }
-    
+
     func viewModel(for flow: OnboardingFlowScreen) -> OnboardingViewViewModel {
-        
+
         switch flow {
         case .intro:
             return .init(
@@ -256,7 +258,7 @@ private extension MainOnboardingView {
                         throw OnboardingViewError.advanceImageCarousel
                     }
                 }) {_ in
-                    
+
                     AnyView(
                         VStack {
                             ImageCarousel(currentScrolledToImage: $viewModel.currentOnboardingImageIndex)
@@ -264,7 +266,7 @@ private extension MainOnboardingView {
                         }.padding(0)
                     )
                 }
-            
+
         case .enterExistingPassword:
             return .init(
                 title: L10n.enterPassword,
@@ -296,7 +298,7 @@ private extension MainOnboardingView {
                 bottomButtonTitle: L10n.setPassword,
                 bottomButtonAction: {
                     try viewModel.savePassword()
-                }) {_ in 
+                }) {_ in
                     AnyView(
                         VStack(alignment: .leading) {
                             VStack {
@@ -321,7 +323,7 @@ private extension MainOnboardingView {
                                     }.padding()
                                     Spacer()
                                 }
-                                
+
                             }
                             if let passwordState = viewModel.passwordState, passwordState != .valid {
                                 Group {
@@ -329,7 +331,7 @@ private extension MainOnboardingView {
                                 }
                             }
                         })
-                    
+
                 }
         case .biometrics:
             guard let method = viewModel.availableBiometric else {
@@ -339,7 +341,7 @@ private extension MainOnboardingView {
                 title: L10n.enable(method.nameForMethod),
                 subheading: L10n.enableToQuicklyAndSecurelyGainAccessToTheApp(method.nameForMethod),
                 image: Image(systemName: method.imageNameForMethod),
-                bottomButtonTitle: L10n.enable(method.nameForMethod), 
+                bottomButtonTitle: L10n.enable(method.nameForMethod),
                 bottomButtonAction: {
                     try await viewModel.authWithBiometrics()
                 }, content:  { goToNext in
@@ -360,7 +362,7 @@ private extension MainOnboardingView {
                 bottomButtonTitle: L10n.next,
                 bottomButtonAction: {
                     try viewModel.validateKeyName()
-                }) {_ in 
+                }) {_ in
                     AnyView(
                         VStack {
                             EncameraTextField(L10n.albumName, text: $viewModel.keyName)
@@ -373,14 +375,14 @@ private extension MainOnboardingView {
                     )
                 }
         case .dataStorageSetting:
-            
-            
+
+
             return .init(title: L10n.selectStorage,
                          subheading: L10n.storageLocationOnboarding,
                          image: Image("Onboarding-Storage"),
                          bottomButtonTitle: L10n.next) {
                 try viewModel.validateStorageSelection()
-            } content: {_ in 
+            } content: {_ in
                 AnyView(
                     VStack {
                         StorageSettingView(viewModel: .init(), keyStorageType: $viewModel.keyStorageType)
@@ -391,7 +393,7 @@ private extension MainOnboardingView {
 
                     }.padding(10)
                 )
-                
+
             }
         case .permissions:
             return .init(title: L10n.onboardingPermissionsTitle,
@@ -399,7 +401,7 @@ private extension MainOnboardingView {
                          image: Image("Onboarding-Permissions"),
                          bottomButtonTitle: "Add Permissions", bottomButtonAction: {
                 try await self.cameraPermissions.requestCameraPermission()
-                try await self.cameraPermissions.requestMicrophonePermission()
+                try? await self.cameraPermissions.requestMicrophonePermission()
             }, content: { _ in
                 AnyView(VStack {
 
@@ -435,7 +437,7 @@ private extension MainOnboardingView {
                 bottomButtonAction: {
                     try await viewModel.saveState()
                     throw OnboardingViewError.onboardingEnded
-                }) {_ in 
+                }) {_ in
                     AnyView(
                         VStack(alignment: .leading, spacing: 15.0) {
                             Text(L10n.storageExplanationHeader)
@@ -447,36 +449,36 @@ private extension MainOnboardingView {
                 }
         }
     }
-    
+
     @ViewBuilder func storageButton(imageName: String, text: String, isSelected: Binding<Bool>, action: @escaping () -> Void) -> some View {
         let background = RoundedRectangle(cornerRadius: 16, style: .continuous)
         let output = Button(action: {
             isSelected.wrappedValue = true
             action()
         }, label: {
-            
+
             VStack {
                 Image(systemName: imageName).resizable()
                     .aspectRatio(contentMode: .fit)
-                
+
                 Text(text)
                     .fontType(.pt18)
             }.padding()
         })
             .frame(width: 100, height: 100)
-        
+
         if isSelected.wrappedValue == true {
             output
                 .foregroundColor(Color.background)
                 .background(background.fill(Color.foregroundPrimary))
-            
+
         } else {
             output
                 .overlay(background.stroke(Color.foregroundSecondary, lineWidth: 3))
-            
+
         }
     }
-    
+
 }
 
 struct MainOnboardingView_Previews: PreviewProvider {

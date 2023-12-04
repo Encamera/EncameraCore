@@ -134,7 +134,7 @@ struct CameraView: View {
             .background(Color.background)
             .screenBlocked()
             .alert(isPresented: $cameraModel.showAlertForMissingKey) {
-                Alert(title: Text(L10n.noKeySelected), message: Text(L10n.youDonTHaveAnActiveKeySelectedSelectOneToContinueSavingMedia), primaryButton: .default(Text(L10n.keySelection)) {
+                Alert(title: Text(L10n.noAlbum), message: Text(L10n.noAlbumSelected), primaryButton: .default(Text(L10n.keySelection)) {
                     cameraModel.showingAlbum = true
                 }, secondaryButton: .cancel())
             }
@@ -176,7 +176,7 @@ struct CameraView: View {
         Group {
             if cameraModel.showTookFirstPhotoSheet {
                 let hasEntitlement = cameraModel.purchaseManager.hasEntitlement()
-                ChooseStorageModal(hasPurchasedPremium: hasEntitlement) { selectedStorage in
+                ChooseStorageModal(hasEntitlement: hasEntitlement) { selectedStorage in
                     if hasEntitlement || selectedStorage == .local {
                         cameraModel.showTookFirstPhotoSheet = false
                         guard let currentAlbum = cameraModel.albumManager.currentAlbum else {
@@ -190,15 +190,23 @@ struct CameraView: View {
                     
                 }
             } else if cameraModel.showExplanationForUpgrade {
-                ExplanationForUpgradeTutorial(
-                    shouldShow: $cameraModel.showExplanationForUpgrade,
-                    showUpgrade: $cameraModel.showStoreSheet)
+                Color.clear.photoLimitReachedModal(isPresented: cameraModel.showExplanationForUpgrade) {
+                    cameraModel.showPurchaseSheet = true
+                } onSecondaryButtonPressed: {
+                    cameraModel.showExplanationForUpgrade = false
+                }
             }
         }
         .sheet(isPresented: $cameraModel.showPurchaseSheet, content: {
-            ProductStoreView()
+            ProductStoreView { finishedAction in
+                if finishedAction == .purchaseComplete {
+                    cameraModel.showExplanationForUpgrade = false
+                }
+                Task {
+                    await cameraModel.service.start()
+                }
+            }
         })
-        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
     
     private var galleryView: some View {

@@ -21,7 +21,7 @@ struct ModalViewModifier: ViewModifier {
     func body(content: Content) -> some View {
         ZStack(alignment: .center) {
             content
-            Color.gray.opacity(0.4).transition(.opacity) // Added transition
+            Color.clear.background(.ultraThinMaterial)
             VStack(spacing: 20) {
                 Image(imageName)
                     .resizable()
@@ -51,10 +51,9 @@ struct ModalViewModifier: ViewModifier {
             .background(.white)
             .cornerRadius(8)
             .padding(EdgeInsets(top: 40, leading: 16, bottom: 24, trailing: 16))
-            // Applying fade-in animation if animated is true
-//            .opacity(animated ? 1 : 0)
             .animation(animated ? .default : nil, value: animated)
-        }
+            .transition(.opacity)
+        }.edgesIgnoringSafeArea(.all)
     }
 }
 

@@ -113,7 +113,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     }
     
     func canAccessPhoto(at index: Int) -> Bool {
-        return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(index)))
+        return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(media.count - index)))
     }
     
     func showPurchaseScreen() {
@@ -259,15 +259,13 @@ struct GalleryHorizontalScrollView: View {
                                 .frame(
                                     width: frame.width,
                                     height: frame.height)
-                                .if(!viewModel.canAccessPhoto(at: index)) { view in
-                                    view.photoLimitReachedModal {
-                                        viewModel.showPurchaseScreen()
-                                    } onSecondaryButtonPressed: {
-                                        dismiss()
-                                    }
+                                .photoLimitReachedModal(isPresented: !viewModel.canAccessPhoto(at: index)) {
+                                    viewModel.showPurchaseScreen()
+                                } onSecondaryButtonPressed: {
+                                    dismiss()
                                 }
                         }.clipped()
-                        
+
                     }
                 }.frame(maxHeight: .infinity)
             }
@@ -278,7 +276,7 @@ struct GalleryHorizontalScrollView: View {
             .onAppear {
                 scrollTo(media: viewModel.selectedMedia, with: proxy, animated: false)
             }
-        }
+        }.scrollIndicators(.hidden)
     }
     @ViewBuilder private func viewingFor(item: EncryptedMedia) -> some View {
         switch item.mediaType {

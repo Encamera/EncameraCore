@@ -5,7 +5,7 @@
   ],
   "products" : [
     {
-      "displayPrice" : "12.99",
+      "displayPrice" : "19.99",
       "familyShareable" : false,
       "internalID" : "6444623609",
       "localizations" : [
@@ -39,7 +39,7 @@
     "_applicationInternalID" : "1639202616",
     "_developerTeamID" : "KGJCC745S9",
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 690935012.18681002,
+    "_lastSynchronizedDate" : 723414265.07027197,
     "_locale" : "en_US",
     "_storefront" : "USA",
     "_storeKitErrors" : [
@@ -103,7 +103,17 @@
 
           ],
           "codeOffers" : [
-
+            {
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "5209F5CD",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "free",
+              "referenceName" : "Reddit Privacy Guides",
+              "subscriptionPeriod" : "P2M"
+            }
           ],
           "displayPrice" : "0.99",
           "familyShareable" : false,
@@ -133,14 +143,60 @@
 
           ],
           "codeOffers" : [
-
+            {
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "A95ACEE4",
+              "isStackable" : false,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "free",
+              "referenceName" : "Reddit",
+              "subscriptionPeriod" : "P6M"
+            },
+            {
+              "displayPrice" : "6.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "9A80E2F4",
+              "isStackable" : false,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "meme_splaining",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "4.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "571FA54D",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Reddit Privacy Guides",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "4.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "0DB60911",
+              "isStackable" : false,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Instagram meme_splaining offer code",
+              "subscriptionPeriod" : "P1Y"
+            }
           ],
           "displayPrice" : "9.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "6444257244",
           "introductoryOffer" : {
-            "internalID" : "025CF59A",
+            "internalID" : "17FE76BD",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
             "subscriptionPeriod" : "P1W"

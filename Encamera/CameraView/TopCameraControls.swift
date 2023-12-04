@@ -58,7 +58,7 @@ struct TopCameraControlsView: View {
                     }
                 } label: {
                     HStack(spacing: 4) {
-                        Text(viewModel.albumManager.currentAlbum?.name ?? L10n.noKey)
+                        Text(viewModel.albumManager.currentAlbum?.name ?? L10n.noAlbum)
                             .fontType(.pt10, on: .background)
                             .tracking(0.20)
                         Image("Camera-Album-Arrow")
