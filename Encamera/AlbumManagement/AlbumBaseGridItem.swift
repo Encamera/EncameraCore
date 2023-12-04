@@ -46,7 +46,10 @@ struct AlbumBaseGridItem: View {
                     }
 
                 } else {
-                    Color.inputFieldBackgroundColor
+                    ZStack {
+                        Color.inputFieldBackgroundColor
+                        Image("NoImage-Icon")
+                    }
                 }
             }
             .clipShape(clipShape)

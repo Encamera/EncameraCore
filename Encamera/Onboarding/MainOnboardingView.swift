@@ -53,20 +53,22 @@ class OnboardingViewModel: ObservableObject {
     
     
     private var onboardingManager: OnboardingManaging
+    private var albumManager: AlbumManaging
     private var passwordValidator = PasswordValidator()
     var keyManager: KeyManager
     private var authManager: AuthManager
     
     private var lastPasswordLength = 0
     
-    init(onboardingManager: OnboardingManaging, keyManager: KeyManager, authManager: AuthManager) {
+    init(onboardingManager: OnboardingManaging, keyManager: KeyManager, authManager: AuthManager, albumManager: AlbumManaging) {
+        self.albumManager = albumManager
         self.onboardingManager = onboardingManager
         self.keyManager = keyManager
         self.authManager = authManager
         onboardingFlow = onboardingManager.generateOnboardingFlow()
         Task {
             await MainActor.run {
-                self.keyStorageType = AlbumManager().defaultStorageForAlbum
+                self.keyStorageType = albumManager.defaultStorageForAlbum
             }
         }
         self.$password1.sink { password in
@@ -174,9 +176,12 @@ class OnboardingViewModel: ObservableObject {
             let savedState = OnboardingState.completed
             if existingPassword.isEmpty == false {
                 try authManager.authorize(with: existingPassword, using: keyManager)
-            } else if let storageType = await keyStorageType {
+            } else {
                 try authManager.authorize(with: password1, using: keyManager)
                 let _ = try keyManager.generateNewKey(name: AppConstants.defaultAlbumName, backupToiCloud: saveToiCloud)
+                let album = Album(name: AppConstants.defaultAlbumName, storageOption: .local, creationDate: Date())
+                try? albumManager.create(album: album)
+                UserDefaultUtils.set(true, forKey: .showCameraOnLaunch)
             }
             try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
             
@@ -436,6 +441,8 @@ private extension MainOnboardingView {
                             Text(L10n.storageExplanationHeader)
                                 .fontType(.medium)
                             Text(L10n.storageExplanation)
+                                .fontType(.pt14)
+
                         })
                 }
         }
@@ -474,7 +481,7 @@ private extension MainOnboardingView {
 
 struct MainOnboardingView_Previews: PreviewProvider {
     static var previews: some View {
-        MainOnboardingView(viewModel: .init(onboardingManager: DemoOnboardingManager(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), settingsManager: SettingsManager()), keyManager: DemoKeyManager(), authManager: DemoAuthManager()))
+        MainOnboardingView(viewModel: .init(onboardingManager: DemoOnboardingManager(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), settingsManager: SettingsManager()), keyManager: DemoKeyManager(), authManager: DemoAuthManager(), albumManager: DemoAlbumManager()))
             .preferredColorScheme(.dark)
             .previewDevice("iPhone 8")
             .background(Color.background)

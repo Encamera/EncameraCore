@@ -85,8 +85,10 @@ struct MainHomeView: View {
                         fileAccess: viewModel.fileAccess,
                         purchaseManager: viewModel.purchasedPermissions
                     ), hasMediaToImport: $viewModel.hasMediaToImport) {
+//                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
                         selectedNavigationItem = .albums
                     }
+//                    .transition(.move(edge: .bottom))
                 } else {
                     if selectedNavigationItem == .settings {
                         SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))

@@ -47,25 +47,40 @@ struct TopCameraControlsView: View {
                     .frame(width: 28, height: 28)
             }
             Spacer()
-            Menu {
+            if UserDefaultUtils.integer(forKey: .capturedPhotos) > 0 {
 
-                ForEach(viewModel.albumManager.albums) { album in
-                    Button(album.name) {
-                        viewModel.albumManager.currentAlbum = album
+                Menu {
+
+                    ForEach(Array(viewModel.albumManager.albums)) { album in
+                        Button(album.name) {
+                            viewModel.albumManager.currentAlbum = album
+                        }
                     }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(viewModel.albumManager.currentAlbum?.name ?? L10n.noKey)
-                        .fontType(.pt10, on: .background)
-                        .tracking(0.20)
-                    Image("Camera-Album-Arrow")
-                        .frame(width: 14, height: 14)
-                }
-                .padding(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                .background(Color(red: 1, green: 1, blue: 1).opacity(0.10))
-                .cornerRadius(800)
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(viewModel.albumManager.currentAlbum?.name ?? L10n.noKey)
+                            .fontType(.pt10, on: .background)
+                            .tracking(0.20)
+                        Image("Camera-Album-Arrow")
+                            .frame(width: 14, height: 14)
+                    }
+                    .padding(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                    .background(Color(red: 1, green: 1, blue: 1).opacity(0.10))
+                    .cornerRadius(800)
 
+                }
+                
+            } else {
+                HStack(spacing: 10) {
+                    Text(L10n.takeYourFirstPicture)
+                        .fontType(.pt12, on: .lightBackground, weight: .bold)
+                    .tracking(0.24)
+                    .foregroundColor(.black)
+                }
+                .padding(EdgeInsets(top: 10, leading: 24, bottom: 10, trailing: 24))
+                .frame(height: 36)
+                .background(.white)
+                .cornerRadius(40)
             }
 
 

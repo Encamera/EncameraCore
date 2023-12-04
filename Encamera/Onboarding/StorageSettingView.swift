@@ -46,5 +46,6 @@ struct StorageSettingView: View {
 struct StorageSettingView_Previews: PreviewProvider {
     static var previews: some View {
         StorageSettingView(viewModel: .init(), keyStorageType: .constant(.icloud))
+            .frame(width: 250, height: 250)
     }
 }

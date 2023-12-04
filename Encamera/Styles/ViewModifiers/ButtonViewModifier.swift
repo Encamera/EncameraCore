@@ -13,7 +13,6 @@ struct EncameraButtonStyle: ButtonStyle {
     
     var hostSurface: SurfaceType
 
-    
     func makeBody(configuration: Configuration) -> some View {
         return configuration.label
             .fontType(.pt18, on: hostSurface, weight: .bold)
@@ -41,15 +40,15 @@ struct EncameraDestructiveButtonStyle: ButtonStyle {
 
 extension View {
     //TODO: Remove references to surface, we don't need it
-    func primaryButton(on surface: SurfaceType = .background) -> some View {
-        buttonStyle(EncameraButtonStyle(hostSurface: .primaryButton))
+    func primaryButton(on surface: SurfaceType = .background, enabled: Bool = true) -> some View {
+        buttonStyle(EncameraButtonStyle(hostSurface: enabled ? .primaryButton : .disabledButton))
     }
     
     func destructiveButton(on surface: SurfaceType = .background) -> some View {
         buttonStyle(EncameraDestructiveButtonStyle(hostSurface: surface))
     }
     
-    func secondaryButton() -> some View {
+    func secondaryButton(enabled: Bool = true) -> some View {
         buttonStyle(EncameraButtonStyle(hostSurface: .secondaryButton))
     }
 }

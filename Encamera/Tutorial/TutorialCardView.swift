@@ -56,8 +56,8 @@ struct TutorialCardView: View {
 
                 } label: {
 
-                    Text(L10n.gotIt)
-                        .fontType(.pt18, on: .textButton, weight: .bold)
+//                    Text(L10n.gotIt)
+//                        .fontType(.pt18, on: .textButton, weight: .bold)
                 }
             }
             .padding()

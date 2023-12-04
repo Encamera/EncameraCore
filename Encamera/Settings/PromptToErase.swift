@@ -106,7 +106,7 @@ struct PromptToErase: View {
     var confirmationPlaceholder: some View {
         var confirmationPlaceholder: AnyView = AnyView(Color.clear)
         if viewModel.holding == true {
-            confirmationPlaceholder = AnyView(Text(L10n.erasingIn(viewModel.countdown))
+            confirmationPlaceholder = AnyView(Text(L10n.erasingIn(max(0, viewModel.countdown)))
                 .fontType(.large)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .foregroundColor(.background)

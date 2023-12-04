@@ -178,7 +178,7 @@ struct SettingsView: View {
         .fontType(.pt14, weight: .bold)
         .sheet(isPresented: $viewModel.showPremium) {
             premium
-        }.padding(.bottom, 100)
+        }.padding(.bottom, 90)
     }
     
     private var premium: some View {

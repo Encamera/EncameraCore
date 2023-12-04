@@ -16,6 +16,7 @@ enum SurfaceType {
     case secondaryButton
     case textButton
     case selectedStorageButton
+    case disabledButton
 }
 
 extension SurfaceType {
@@ -37,6 +38,8 @@ extension SurfaceType {
             return .black
         case .secondaryButton:
             return .black
+        case .disabledButton:
+            return .disabledButtonTextColor
         }
     }
     
@@ -56,6 +59,8 @@ extension SurfaceType {
             return .white
         case .secondaryButton:
             return .clear
+        case .disabledButton:
+            return .disabledButtonBackgroundColor
         }
     }
 }

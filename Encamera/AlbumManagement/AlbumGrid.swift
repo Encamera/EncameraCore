@@ -10,7 +10,7 @@ import EncameraCore
 import Combine
 
 class AlbumGridViewModel: ObservableObject {
-    @Published var albums: [Album] = []
+    @Published var albums: Set<Album> = .init()
     var albumManager: AlbumManaging
     var fileManager: FileAccess
     var key: PrivateKey
@@ -107,13 +107,15 @@ struct AlbumGrid: View {
     @ViewBuilder
     private func albums(side: CGFloat) -> some View {
 
-        ForEach(viewModel.albums, id: \.id) { album in
+        ForEach(Array(viewModel.albums), id: \.id) { album in
             NavigationLink {
                 AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.key, album: album))
             } label: {
                 AlbumGridItem(key: viewModel.key,
                               album: album,
-                              fileReader: viewModel.fileManager, albumManager: viewModel.albumManager, width: side)
+                              fileReader: viewModel.fileManager, 
+                              albumManager: viewModel.albumManager,
+                              width: side)
             }
         }
     }

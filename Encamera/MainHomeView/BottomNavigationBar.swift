@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import EncameraCore
 
 struct BottomNavigationBar: View {
 
@@ -45,6 +46,7 @@ struct BottomNavigationBar: View {
 
             Button {
                 selectedItem = .camera
+//                UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
             } label: {
                 ZStack {
                     Circle()

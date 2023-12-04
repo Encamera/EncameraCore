@@ -65,6 +65,9 @@ final class CameraModel: NSObject, ObservableObject {
     
     @Published var showImportedMediaScreen = false
     @Published var cameraSetupResult: SessionSetupResult = .notDetermined
+
+    @Published var showPurchaseSheet: Bool = false
+
     var authManager: AuthManager
     var privateKey: PrivateKey
     var albumManager: AlbumManaging

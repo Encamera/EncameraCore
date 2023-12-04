@@ -12,16 +12,16 @@ struct CameraView: View {
         static var innerCaptureButtonSize = Constants.minCaptureButtonEdge * 0.8
     }
     
-
+    
     @StateObject var cameraModel: CameraModel
     @State var cameraModeStateModel = CameraModeStateModel()
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
     @Environment(\.dismiss) var dismiss
     var closeButtonTapped: () -> Void
-
-
-
+    
+    
+    
     private var captureButton: some View {
         
         Button(action: {
@@ -126,22 +126,6 @@ struct CameraView: View {
             
             ZStack {
                 mainCamera
-                    .if(cameraModel.showTookFirstPhotoSheet) { view in
-                        view.genericModal(
-                            imageName: "Image-Camera",
-                            titleText: L10n.coolPicture,
-                            descriptionText: L10n.whereToFindYourPictures,
-                            primaryButtonText: L10n.viewAlbums,
-                            secondaryButtonText: L10n.takeAnotherPhoto,
-                            onPrimaryButtonPressed: {
-                                dismiss()
-                            },
-                            onSecondaryButtonPressed: {
-                                cameraModel.showTookFirstPhotoSheet = false
-                            },
-                            animated: true
-                        )
-                    }
                 tutorialViews
                 if cameraModel.cameraSetupResult == .notAuthorized {
                     missingPermissionsView
@@ -165,8 +149,8 @@ struct CameraView: View {
                 ))
             }
         }
-
-
+        
+        
     }
     
     @ViewBuilder private var missingPermissionsView: some View {
@@ -191,16 +175,29 @@ struct CameraView: View {
     @ViewBuilder private var tutorialViews: some View {
         Group {
             if cameraModel.showTookFirstPhotoSheet {
-                FirstPhotoTakenTutorial(
-                    shouldShow: $cameraModel.showTookFirstPhotoSheet
-                )
+                let hasEntitlement = cameraModel.purchaseManager.hasEntitlement()
+                ChooseStorageModal(hasPurchasedPremium: hasEntitlement) { selectedStorage in
+                    if hasEntitlement || selectedStorage == .local {
+                        cameraModel.showTookFirstPhotoSheet = false
+                        guard let currentAlbum = cameraModel.albumManager.currentAlbum else {
+                            debugPrint("Current album is not set")
+                            return
+                        }
+                        try? cameraModel.albumManager.moveAlbum(album: currentAlbum, toStorage: selectedStorage)
+                    } else if !hasEntitlement && selectedStorage == .icloud {
+                        cameraModel.showPurchaseSheet = true
+                    }
+                    
+                }
             } else if cameraModel.showExplanationForUpgrade {
                 ExplanationForUpgradeTutorial(
                     shouldShow: $cameraModel.showExplanationForUpgrade,
                     showUpgrade: $cameraModel.showStoreSheet)
             }
         }
-        .padding()
+        .sheet(isPresented: $cameraModel.showPurchaseSheet, content: {
+            ProductStoreView()
+        })
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
     
@@ -221,7 +218,6 @@ struct CameraView: View {
     
     private var mainCamera: some View {
         VStack {
-            
             TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
                                   recordingDuration: $cameraModel.recordingDuration, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
                 Task {
@@ -258,9 +254,10 @@ struct CameraView: View {
                             .frame(width: 300, height: 44)
                     }
                 }
+                
             }
-
-
+            
+            
             bottomButtonPanel
         }
         .edgesIgnoringSafeArea(.top)
@@ -321,9 +318,9 @@ struct CameraView_Previews: PreviewProvider {
             purchaseManager: DemoPurchasedPermissionManaging()
         )
         CameraView(cameraModel: model, hasMediaToImport: .constant(false), closeButtonTapped: {
-
+            
         })
-            .preferredColorScheme(.dark)
+        .preferredColorScheme(.dark)
     }
 }
 

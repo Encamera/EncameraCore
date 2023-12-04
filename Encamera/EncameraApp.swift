@@ -213,7 +213,9 @@ struct EncameraApp: App {
                 if viewModel.showOnboarding {
                     MainOnboardingView(
                         viewModel: .init(onboardingManager: viewModel.onboardingManager,
-                                         keyManager: viewModel.keyManager, authManager: viewModel.authManager))
+                                         keyManager: viewModel.keyManager,
+                                         authManager: viewModel.authManager,
+                                         albumManager: viewModel.albumManager))
                 } else if viewModel.isAuthenticated == false && viewModel.keyManagerKey == nil {
                     AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                 } else if viewModel.isAuthenticated == true, let key = viewModel.keyManagerKey {

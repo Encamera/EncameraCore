@@ -9,16 +9,9 @@ import Foundation
 import SwiftUI
 
 private enum Constants {
-    static let checkmarkSize = 24.0
-    static let checkmarkBorder = 5.0
-    static let cornerRadius = 8.0
-    static let lineWidth = 1.0
     static let spacing = 4.0
     static let padding = 20.0
-    static let opacity = 0.3
-    static let offsetMultiplier = 0.5
 }
-
 
 struct OptionItemView<Content: View>: View {
 
@@ -29,7 +22,7 @@ struct OptionItemView<Content: View>: View {
     let unavailableReason: String? = nil
     let image: Image?
     @Binding var isSelected: Bool
-    
+
     init(title: String, description: String?, isAvailable: Bool, unavailableReason: String? = nil, image: Image? = nil, isSelected: Binding<Bool>, rightAccessoryView: (() -> Content)? = { EmptyView() }) {
         self.title = title
         self.rightAccessoryView = rightAccessoryView
@@ -39,63 +32,40 @@ struct OptionItemView<Content: View>: View {
         _isSelected = isSelected
     }
 
-    @ViewBuilder private var background: some View {
-        let rect = RoundedRectangle(cornerRadius: Constants.cornerRadius, style: .continuous)
-        let rectangle = rect
-            .stroke(Color.secondaryElementColor, lineWidth: Constants.lineWidth)
-        if isSelected {
-            rectangle.background(rect.fill(Color.white))
-        } else {
-            rectangle.background(rect.fill(Color.black))
-        }
-    }
 
     var body: some View {
         let iconWithName = HStack {
-            ZStack(alignment: .topTrailing) {
-                HStack {
-                    VStack(alignment: .leading, spacing: Constants.spacing) {
-                        Text(title)
-                            .fontType(.pt16, on: isSelected ? .selectedStorageButton : .background, weight: .bold)
-                        if let unavailableReason {
-                            Text(unavailableReason)
-                                .alertText()
-                        } else if let description {
-                            Text(description)
-                                .fontType(.pt14, on: isSelected ? .selectedStorageButton : .background)
-                        }
-                    }
-                    Spacer()
-                    if let image {
-                        image.renderingMode(.template).foregroundColor(isSelected  ? .black : Color.secondaryElementColor)
-                    } else if let rightAccessoryView {
-                        rightAccessoryView()
+            HStack {
+                VStack(alignment: .leading, spacing: Constants.spacing) {
+                    Text(title)
+                        .fontType(.pt16, on: isSelected ? .selectedStorageButton : .background, weight: .bold)
+                    if let unavailableReason {
+                        Text(unavailableReason)
+                            .alertText()
+                    } else if let description {
+                        Text(description)
+                            .fontType(.pt14, on: isSelected ? .selectedStorageButton : .background)
                     }
                 }
-                .padding(Constants.padding)
-                .frame(maxWidth: .infinity)
-                .background(background)
-
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .resizable()
-                        .foregroundColor(Color.actionYellowGreen)
-                        .background(Circle().foregroundColor(.black).frame(width: Constants.checkmarkSize + Constants.checkmarkBorder, height: Constants.checkmarkSize + Constants.checkmarkBorder))
-                        .frame(width: Constants.checkmarkSize, height: Constants.checkmarkSize)
-                        .offset(x: Constants.checkmarkSize * Constants.offsetMultiplier, y: -Constants.checkmarkSize * Constants.offsetMultiplier)
+                Spacer()
+                if let image {
+                    image.renderingMode(.template).foregroundColor(isSelected  ? .black : Color.secondaryElementColor)
+                } else if let rightAccessoryView {
+                    rightAccessoryView()
                 }
             }
+            .padding(Constants.padding)
+            .frame(maxWidth: .infinity)
+
         }
+        .optionItem(isSelected: isSelected, isAvailable: isAvailable)
+
         Button(action: {
             isSelected = true
         }, label: {
             VStack(alignment: .leading) {
                 HStack {
-                    if isAvailable {
-                        iconWithName
-                    } else {
-                        iconWithName.opacity(Constants.opacity)
-                    }
+                    iconWithName
                 }
             }
         })
