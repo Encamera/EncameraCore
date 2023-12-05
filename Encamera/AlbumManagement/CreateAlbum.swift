@@ -40,7 +40,7 @@ class CreateAlbumViewModel: ObservableObject {
         func saveAlbum() throws {
             do {
                 if let albumStorageType {
-                    try albumManager.create(album: Album(name: albumName, storageOption: albumStorageType, creationDate: Date()))
+                    try albumManager.create(name: albumName, storageOption: albumStorageType)
                 } else {
                     throw CreateAlbumError.missingStorageType
                 }

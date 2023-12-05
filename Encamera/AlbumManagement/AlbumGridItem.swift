@@ -23,7 +23,7 @@ class AlbumGridItemModel: ObservableObject {
     @Published var imageCount: Int?
     @Published var leadingImage: UIImage?
 
-    init(album: Album, key: PrivateKey, fileReader: FileReader = DiskFileAccess(), albumManager: AlbumManaging = AlbumManager()) {
+    init(album: Album, key: PrivateKey, fileReader: FileReader = DiskFileAccess(), albumManager: AlbumManaging) {
         self.album = album
         Task {
             await fileReader.configure(

@@ -10,7 +10,7 @@ struct EncameraApp: App {
         @Published var hasOpenedURL: Bool = false
         @Published var promptToSaveMedia: Bool = false
         var newMediaFileAccess: FileAccess = DiskFileAccess()
-        var appGroupFileAccess = AppGroupFileReader()
+        var appGroupFileAccess: AppGroupFileReader?
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
         @Published var showOnboarding = false
@@ -21,7 +21,7 @@ struct EncameraApp: App {
         @Published var keyManagerKey: PrivateKey?
         var openedUrl: URL?
         var keyManager: KeyManager
-        var albumManager: AlbumManaging = AlbumManager()
+        var albumManager: AlbumManaging?
         var onboardingManager: OnboardingManager
         var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
         var settingsManager: SettingsManager
@@ -34,10 +34,9 @@ struct EncameraApp: App {
 
             self.settingsManager = SettingsManager()
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
-            let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
-            
-            self.keyManager = manager
-            
+            let keyManager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
+
+            self.keyManager = keyManager
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager, settingsManager: settingsManager)
             self.onboardingManager
                 .observables
@@ -62,14 +61,22 @@ struct EncameraApp: App {
             }
             self.keyManager.keyPublisher.sink { key in
                 self.keyManagerKey = key
-                self.setupFileAccess(with: key, album: self.albumManager.currentAlbum)
+                guard let key else {
+                    return
+                }
+                let albumManager: AlbumManaging = AlbumManager(keyManager: keyManager)
+                self.appGroupFileAccess = AppGroupFileReader(albumManager: albumManager)
+                self.albumManager = albumManager
+                self.albumManager?.selectedAlbumPublisher.sink { newAlbum in
+                    self.setupFileAccess(with: self.keyManager.currentKey, album: newAlbum)
+                }.store(in: &self.cancellables)
+                self.setupFileAccess(with: key, album: albumManager.currentAlbum)
+
             }.store(in: &cancellables)
 
-            self.albumManager.selectedAlbumPublisher.sink { newAlbum in
-                self.setupFileAccess(with: self.keyManager.currentKey, album: newAlbum)
-            }.store(in: &cancellables)
 
-            setupFileAccess(with: keyManager.currentKey, album: albumManager.currentAlbum)
+
+            setupFileAccess(with: keyManager.currentKey, album: albumManager?.currentAlbum)
             NotificationUtils.didEnterBackgroundPublisher
                 .receive(on: RunLoop.main)
                 .sink { _ in
@@ -136,7 +143,7 @@ struct EncameraApp: App {
         }
         
         private func setupFileAccess(with key: PrivateKey?, album: Album?) {
-            guard let album else {
+            guard let album, let albumManager else {
                 debugPrint("No album")
                 return
             }
@@ -157,7 +164,9 @@ struct EncameraApp: App {
         
         func checkForImportedImages() async {
             
-            let images: [CleartextMedia<URL>] = await appGroupFileAccess.enumerateMedia()
+            guard let images: [CleartextMedia<URL>] = await appGroupFileAccess?.enumerateMedia() else {
+                return
+            }
             let hasMedia = images.count > 0
             await MainActor.run {
                 hasMediaToImport = hasMedia
@@ -212,18 +221,17 @@ struct EncameraApp: App {
                 
                 if viewModel.showOnboarding {
                     MainOnboardingView(
-                        viewModel: .init(onboardingManager: viewModel.onboardingManager,
+                        viewModel: OnboardingViewModel<AlbumManager>(onboardingManager: viewModel.onboardingManager,
                                          keyManager: viewModel.keyManager,
-                                         authManager: viewModel.authManager,
-                                         albumManager: viewModel.albumManager))
+                                         authManager: viewModel.authManager))
                 } else if viewModel.isAuthenticated == false && viewModel.keyManagerKey == nil {
                     AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-                } else if viewModel.isAuthenticated == true, let key = viewModel.keyManagerKey {
+                } else if viewModel.isAuthenticated == true, let key = viewModel.keyManagerKey, let albumManager = viewModel.albumManager {
                     MainHomeView(viewModel: .init(
                         fileAccess: viewModel.newMediaFileAccess,
                         keyManager: viewModel.keyManager,
                         key: key,
-                        albumManager: self.viewModel.albumManager,
+                        albumManager: albumManager,
                         purchasedPermissions: viewModel.purchasedPermissions,
                         settingsManager: viewModel.settingsManager,
                         authManager: viewModel.authManager), showCamera: $showCamera)
@@ -276,10 +284,10 @@ struct EncameraApp: App {
     }
     
     @ViewBuilder private var mediaImportSheet: some View {
-        if let key = viewModel.keyManager.currentKey {
+        if let key = viewModel.keyManager.currentKey, let albumManager = viewModel.albumManager {
             MediaImportView(viewModel: .init(
                 privateKey: key,
-                albumManager: viewModel.albumManager,
+                albumManager: albumManager,
                 fileAccess: viewModel.newMediaFileAccess))
         } else {
             Text("Something went wrong")

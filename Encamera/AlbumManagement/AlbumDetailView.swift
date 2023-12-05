@@ -87,7 +87,7 @@ struct AlbumDetailView: View {
                             Spacer()
                             Menu {
                                 Button(L10n.viewInFiles) {
-                                    LocalDeeplinkingUtils.openAlbumContentsInFiles(album: viewModel.album)
+                                    LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: viewModel.album)
                                 }
                                 Button(L10n.moveAlbumStorage) {
                                     isShowingMoveAlbumModal = true
@@ -182,7 +182,7 @@ struct AlbumDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
 
-            AlbumDetailView(viewModel: AlbumDetailViewModel(albumManager: DemoAlbumManager(), key: DemoPrivateKey.dummyKey(), album: Album(name: "Test", storageOption: .local, creationDate: Date())))
+            AlbumDetailView(viewModel: AlbumDetailViewModel(albumManager: DemoAlbumManager(), key: DemoPrivateKey.dummyKey(), album: Album(name: "Test", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())))
         }
     }
 }

@@ -17,7 +17,7 @@ enum OnboardingViewError: Error {
     case advanceImageCarousel
 }
 
-class OnboardingViewModel: ObservableObject {
+class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject {
 
     enum OnboardingKeyError: Error {
         case unhandledError
@@ -53,22 +53,21 @@ class OnboardingViewModel: ObservableObject {
 
 
     private var onboardingManager: OnboardingManaging
-    private var albumManager: AlbumManaging
+    private var albumManager: GenericAlbumManaging?
     private var passwordValidator = PasswordValidator()
     var keyManager: KeyManager
     private var authManager: AuthManager
 
     private var lastPasswordLength = 0
 
-    init(onboardingManager: OnboardingManaging, keyManager: KeyManager, authManager: AuthManager, albumManager: AlbumManaging) {
-        self.albumManager = albumManager
+    init(onboardingManager: OnboardingManaging, keyManager: KeyManager, authManager: AuthManager) {
         self.onboardingManager = onboardingManager
         self.keyManager = keyManager
         self.authManager = authManager
         onboardingFlow = onboardingManager.generateOnboardingFlow()
         Task {
             await MainActor.run {
-                self.keyStorageType = albumManager.defaultStorageForAlbum
+                self.keyStorageType = albumManager?.defaultStorageForAlbum
             }
         }
         self.$password1.sink { password in
@@ -180,9 +179,10 @@ class OnboardingViewModel: ObservableObject {
                 try authManager.authorize(with: password1, using: keyManager)
                 let _ = try keyManager.generateNewKey(name: AppConstants.defaultAlbumName, backupToiCloud: saveToiCloud)
             }
-            let album = Album(name: AppConstants.defaultAlbumName, storageOption: .local, creationDate: Date())
-            try? albumManager.create(album: album)
+            var albumManager = GenericAlbumManaging(keyManager: keyManager)
+            let album = try? albumManager.create(name: AppConstants.defaultAlbumName, storageOption: .local)
             albumManager.currentAlbum = album
+            self.albumManager = albumManager
             UserDefaultUtils.set(true, forKey: .showCameraOnLaunch)
 
             try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
@@ -193,12 +193,12 @@ class OnboardingViewModel: ObservableObject {
     }
 }
 
-struct MainOnboardingView: View {
+struct MainOnboardingView<GenericAlbumManaging: AlbumManaging>: View {
 
 
     @FocusState var password2Focused
     @State var currentSelection = OnboardingFlowScreen.intro
-    @StateObject var viewModel: OnboardingViewModel
+    @StateObject var viewModel: OnboardingViewModel<GenericAlbumManaging>
     @ObservedObject var cameraPermissions = CameraPermissionsService.shared
     var body: some View {
         NavigationView {
@@ -488,7 +488,7 @@ private extension MainOnboardingView {
 
 struct MainOnboardingView_Previews: PreviewProvider {
     static var previews: some View {
-        MainOnboardingView(viewModel: .init(onboardingManager: DemoOnboardingManager(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), settingsManager: SettingsManager()), keyManager: DemoKeyManager(), authManager: DemoAuthManager(), albumManager: DemoAlbumManager()))
+        MainOnboardingView(viewModel: OnboardingViewModel<DemoAlbumManager>(onboardingManager: DemoOnboardingManager(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), settingsManager: SettingsManager()), keyManager: DemoKeyManager(), authManager: DemoAuthManager()))
             .preferredColorScheme(.dark)
             .previewDevice("iPhone 8")
             .background(Color.background)
