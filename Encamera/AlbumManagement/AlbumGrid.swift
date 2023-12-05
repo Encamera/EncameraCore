@@ -34,7 +34,7 @@ class AlbumGridViewModel: ObservableObject {
 
     func loadAlbums() {
         UserDefaultUtils.set(true, forKey: .hasOpenedAlbum)
-        self.albums = Array(self.albumManager.availableAlbums)
+        self.albums = Array(self.albumManager.albums)
     }
 
     @MainActor
