@@ -268,6 +268,13 @@ private extension MainOnboardingView {
                 }
 
         case .enterExistingPassword:
+            let model = PasswordEntryViewModel(keyManager: viewModel.keyManager, passwordBinding: $viewModel.existingPassword, stateUpdate: { state in
+                guard case .valid(let existingPassword) = state else {
+                    return
+                }
+                viewModel.existingPassword = existingPassword
+            })
+
             return .init(
                 title: L10n.enterPassword,
                 subheading: L10n.youHaveAnExistingPasswordForThisDevice, image: Image(systemName: "key.fill"), bottomButtonTitle: L10n.next, bottomButtonAction: {
@@ -275,12 +282,10 @@ private extension MainOnboardingView {
                 }) {_ in
                     AnyView(
                         VStack(alignment: .leading) {
-                            PasswordEntry(viewModel: .init(keyManager: viewModel.keyManager, passwordBinding: $viewModel.existingPassword, stateUpdate: { state in
-                                guard case .valid(let existingPassword) = state else {
-                                    return
-                                }
-                                viewModel.existingPassword = existingPassword
-                            }))
+                            PasswordEntry(viewModel: model)
+                            if let error = viewModel.generalError as? OnboardingViewError, error == OnboardingViewError.passwordInvalid {
+                                Text(L10n.invalidPassword).alertText()
+                            }
 
                             NavigationLink {
                                 PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: DiskFileAccess()))

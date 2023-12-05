@@ -34,7 +34,7 @@ class PasswordEntryViewModel: ObservableObject {
         self.keyManager = keyManager
         self.passwordState = .empty
         
-        $password.sink { pass in
+        $password.receive(on: RunLoop.main).sink { pass in
             passwordBinding?.wrappedValue = pass
         }.store(in: &cancellables)
         
