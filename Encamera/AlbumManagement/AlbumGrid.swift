@@ -10,7 +10,7 @@ import EncameraCore
 import Combine
 
 class AlbumGridViewModel: ObservableObject {
-    @Published var albums: Set<Album> = .init()
+    @Published var albums: [Album] = .init()
     var albumManager: AlbumManaging
     var fileManager: FileAccess
     var key: PrivateKey
@@ -34,7 +34,7 @@ class AlbumGridViewModel: ObservableObject {
 
     func loadAlbums() {
         UserDefaultUtils.set(true, forKey: .hasOpenedAlbum)
-        self.albums = self.albumManager.availableAlbums
+        self.albums = Array(self.albumManager.availableAlbums)
     }
 
     @MainActor
@@ -113,7 +113,6 @@ struct AlbumGrid: View {
             } label: {
                 AlbumGridItem(key: viewModel.key,
                               album: album,
-                              fileReader: viewModel.fileManager, 
                               albumManager: viewModel.albumManager,
                               width: side)
             }

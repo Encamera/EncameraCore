@@ -10,7 +10,7 @@ import Combine
 import EncameraCore
 
 class AlbumGridItemModel: ObservableObject {
-    
+
     var fileReader: FileReader
     var album: Album
     var albumManager: AlbumManaging
@@ -18,7 +18,7 @@ class AlbumGridItemModel: ObservableObject {
     var storageType: StorageType? {
         storageModel?.storageType
     }
-    
+
     @Published var countOfMedia: Int = 0
     @Published var imageCount: Int?
     @Published var leadingImage: UIImage?
@@ -31,7 +31,7 @@ class AlbumGridItemModel: ObservableObject {
                 with: key,
                 albumManager: albumManager
             )
-            
+
         }
         self.fileReader = fileReader
         self.albumManager = albumManager
@@ -41,9 +41,10 @@ class AlbumGridItemModel: ObservableObject {
     }
 
     func load() async throws {
-        
+
         do {
             let thumb = try await fileReader.loadLeadingThumbnail()
+            debugPrint("Loaded thumb: \(String(describing: thumb))")
             await MainActor.run {
                 self.imageCount = countOfMedia
                 if let thumb {
@@ -62,14 +63,15 @@ struct AlbumGridItem: View {
     var albumName: String
     var width: CGFloat
 
-    init(key: PrivateKey, album: Album, fileReader: FileReader, albumManager: AlbumManaging, width: CGFloat) {
+    init(key: PrivateKey, album: Album, albumManager: AlbumManaging, width: CGFloat) {
         albumName = album.name
-        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, key: key, fileReader: fileReader, albumManager: albumManager))
+        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, key: key, albumManager: albumManager))
+        debugPrint("AlbumGridItem init: \(albumName)")
         self.width = width
     }
 
     var body: some View {
-        
+
         AlbumBaseGridItem(uiImage: viewModel.leadingImage,
                           title: albumName,
                           subheading: viewModel.imageCount != nil ? L10n.imageS(viewModel.imageCount!) : nil,
@@ -86,7 +88,7 @@ struct AlbumGridItem: View {
 
 //struct AlbumGridItem_Previews: PreviewProvider {
 //    static var previews: some View {
-//        
+//
 //        AlbumGrid(viewModel: .init(keyManager: DemoKeyManager(keys: [            DemoPrivateKey.dummyKey(name: "cats and their people"),
 //                                                         DemoPrivateKey.dummyKey(name: "dogs"),
 //                                                         DemoPrivateKey.dummyKey(name: "rats"),
@@ -96,5 +98,5 @@ struct AlbumGridItem: View {
 //                                                                           ]), purchaseManager: AppPurchasedPermissionUtils(), fileManager: DemoFileEnumerator()))
 //        .preferredColorScheme(.dark)
 //    }
-//        
+//
 //}
