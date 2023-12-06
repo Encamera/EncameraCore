@@ -9,6 +9,8 @@ import SwiftUI
 import EncameraCore
 
 struct OnboardingViewViewModel {
+
+    var screen: OnboardingFlowScreen
     var title: String? = nil
     var subheading: String? = nil
     var progress: (Int, Int) = (0, 0)
@@ -89,7 +91,9 @@ struct OnboardingView<Next>: View where Next: View {
             .padding(EdgeInsets(top: 0, leading: 10, bottom: 20, trailing: 10))
             .navigationBarHidden(true)
             .gradientBackground()
-
+            .onAppear {
+                EventTracking.trackOnboardingViewReached(view: viewModel.screen)
+            }
     }
 }
 //
@@ -99,6 +103,7 @@ struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             OnboardingView(viewModel: .init(
+                screen: .biometrics,
                 title: "Here's the Title",
                 subheading: "And the subheading",
                 progress: (1, 5),

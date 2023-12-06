@@ -40,6 +40,7 @@ class CreateAlbumViewModel: ObservableObject {
         func saveAlbum() throws {
             do {
                 if let albumStorageType {
+                    EventTracking.trackAlbumCreated()
                     try albumManager.create(name: albumName, storageOption: albumStorageType)
                 } else {
                     throw CreateAlbumError.missingStorageType
@@ -54,7 +55,7 @@ class CreateAlbumViewModel: ObservableObject {
                 print("Unhandled error", error)
                 throw error
             }
-            
+
         }
 
         @MainActor

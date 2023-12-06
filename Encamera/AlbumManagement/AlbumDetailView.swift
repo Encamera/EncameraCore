@@ -151,6 +151,9 @@ struct AlbumDetailView: View {
             }, message: {
                 Text(viewModel.deleteActionError)
             })
+            .onAppear {
+                EventTracking.trackAlbumOpened()
+            }
             .toolbar(.hidden)
             .ignoresSafeArea(edges: .top)
             if isShowingMoveAlbumModal {
@@ -159,8 +162,10 @@ struct AlbumDetailView: View {
                     if hasEntitlement || storage == .local {
                         isShowingMoveAlbumModal = false
                         try? viewModel.albumManager.moveAlbum(album: viewModel.album, toStorage: storage)
+                        EventTracking.trackConfirmStorageTypeSelected(type: storage)
                     } else if !hasEntitlement && storage == .icloud {
                         isShowingPurchaseSheet = true
+                        EventTracking.trackShowPurchaseScreen(from: "AlbumDetailView")
                     }
 
                 }
@@ -170,6 +175,10 @@ struct AlbumDetailView: View {
                     if action == .purchaseComplete {
                         isShowingPurchaseSheet = false
                         isShowingMoveAlbumModal = false
+                        EventTracking.trackPurchaseCompleted(from: "AlbumDetailView")
+                    } else {
+                        isShowingPurchaseSheet = false
+                        EventTracking.trackPurchaseIncomplete(from: "AlbumDetailView")
                     }
                 }
             }

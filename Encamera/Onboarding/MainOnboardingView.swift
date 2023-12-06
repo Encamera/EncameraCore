@@ -250,6 +250,7 @@ private extension MainOnboardingView {
         switch flow {
         case .intro:
             return .init(
+                screen: flow,
                 showTopBar: false,
                 bottomButtonTitle: viewModel.currentOnboardingImageIndex < 2 ? L10n.next : L10n.getStartedButtonText,
                 bottomButtonAction: {
@@ -276,6 +277,7 @@ private extension MainOnboardingView {
             })
 
             return .init(
+                screen: flow,
                 title: L10n.enterPassword,
                 subheading: L10n.youHaveAnExistingPasswordForThisDevice, image: Image(systemName: "key.fill"), bottomButtonTitle: L10n.next, bottomButtonAction: {
                     try viewModel.checkExistingPasswordAndAuth()
@@ -297,6 +299,7 @@ private extension MainOnboardingView {
                 }
         case .setPassword:
             return .init(
+                screen: flow,
                 title: L10n.setPassword,
                 subheading: L10n.setAPasswordWarning,
                 image: Image("Onboarding-Password"),
@@ -343,6 +346,7 @@ private extension MainOnboardingView {
                 return viewModel(for: .finished)
             }
             return .init(
+                screen: flow,
                 title: L10n.enable(method.nameForMethod),
                 subheading: L10n.enableToQuicklyAndSecurelyGainAccessToTheApp(method.nameForMethod),
                 image: Image(systemName: method.imageNameForMethod),
@@ -360,6 +364,7 @@ private extension MainOnboardingView {
                 })
         case .setupPrivateKey:
             return .init(
+                screen: flow,
                 title: L10n.encryptionKey,
                 subheading:
                     L10n.newAlbumSubheading,
@@ -382,7 +387,9 @@ private extension MainOnboardingView {
         case .dataStorageSetting:
 
 
-            return .init(title: L10n.selectStorage,
+            return .init(
+                screen: flow,
+                title: L10n.selectStorage,
                          subheading: L10n.storageLocationOnboarding,
                          image: Image("Onboarding-Storage"),
                          bottomButtonTitle: L10n.next) {
@@ -401,7 +408,9 @@ private extension MainOnboardingView {
 
             }
         case .permissions:
-            return .init(title: L10n.onboardingPermissionsTitle,
+            return .init(
+                screen: flow,
+                title: L10n.onboardingPermissionsTitle,
                          subheading: L10n.onboardingPermissionsSubheading,
                          image: Image("Onboarding-Permissions"),
                          bottomButtonTitle: "Add Permissions", bottomButtonAction: {
@@ -435,12 +444,14 @@ private extension MainOnboardingView {
 
         case .finished:
             return .init(
+                screen: flow,
                 title: L10n.doneOnboarding,
                 subheading: "",
                 image: nil,
                 bottomButtonTitle: L10n.done,
                 bottomButtonAction: {
                     try await viewModel.saveState()
+                    EventTracking.trackOnboardingFinished()
                     throw OnboardingViewError.onboardingEnded
                 }) {_ in
                     AnyView(

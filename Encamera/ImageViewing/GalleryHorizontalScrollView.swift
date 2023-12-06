@@ -261,7 +261,9 @@ struct GalleryHorizontalScrollView: View {
                                     height: frame.height)
                                 .photoLimitReachedModal(isPresented: !viewModel.canAccessPhoto(at: index)) {
                                     viewModel.showPurchaseScreen()
+                                    EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: "ImageScrollView")
                                 } onSecondaryButtonPressed: {
+                                    EventTracking.trackPhotoLimitReachedScreenDismissed(from: "ImageScrollView")
                                     dismiss()
                                 }
                         }.clipped()

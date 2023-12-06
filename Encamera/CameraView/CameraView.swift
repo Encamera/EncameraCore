@@ -183,16 +183,20 @@ struct CameraView: View {
                             debugPrint("Current album is not set")
                             return
                         }
+                        EventTracking.trackConfirmStorageTypeSelected(type: selectedStorage)
                         try? cameraModel.albumManager.moveAlbum(album: currentAlbum, toStorage: selectedStorage)
                     } else if !hasEntitlement && selectedStorage == .icloud {
+                        EventTracking.trackShowPurchaseScreen(from: "Camera")
                         cameraModel.showPurchaseSheet = true
                     }
                     
                 }
             } else if cameraModel.showExplanationForUpgrade {
                 Color.clear.photoLimitReachedModal(isPresented: cameraModel.showExplanationForUpgrade) {
+                    EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: "Camera")
                     cameraModel.showPurchaseSheet = true
                 } onSecondaryButtonPressed: {
+                    EventTracking.trackPhotoLimitReachedScreenDismissed(from: "Camera")
                     cameraModel.showExplanationForUpgrade = false
                 }
             }
@@ -201,6 +205,9 @@ struct CameraView: View {
             ProductStoreView { finishedAction in
                 if finishedAction == .purchaseComplete {
                     cameraModel.showExplanationForUpgrade = false
+                    EventTracking.trackPurchaseCompleted(from: "Camera")
+                } else {
+                    EventTracking.trackPurchaseIncomplete(from: "Camera")
                 }
                 Task {
                     await cameraModel.service.start()
