@@ -25,9 +25,9 @@ enum PurchaseGoal: Int {
 
     init?(id: String) {
         switch id {
-        case "subscription.yearly.unlimitedKeysAndPhotos":
+        case "subscription.yearly.unlimitedkeysandphotos":
             self = .yearlyUnlimitedKeysAndPhotos
-        case "subscription.monthly.unlimitedKeysAndPhotos":
+        case "subscription.monthly.unlimitedkeysAndphotos":
             self = .montlyUnlimitedKeysAndPhotos
         default:
             return nil
