@@ -65,7 +65,6 @@ func createFeatureRow(image: Image, title: String, subtitle: String? = nil) -> s
 
 struct PurchaseUpgradeView: View {
 
-    var purchaseAction: ((PurchaseFinishedAction) -> Void)?
 
     @ObservedObject var subscriptionController: StoreSubscriptionController = StoreActor.shared.subscriptionController
     @ObservedObject var productController: StoreProductController = StoreActor.shared.productController
@@ -77,6 +76,8 @@ struct PurchaseUpgradeView: View {
     @Environment(\.dismiss) private var dismiss
 
     var showDismissButton = true
+    var fromView: String
+    var purchaseAction: ((PurchaseFinishedAction) -> Void)?
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -109,13 +110,15 @@ struct PurchaseUpgradeView: View {
                 actions: {}
             )
             productCellsScrollView
-
+        }.onAppear {
+            EventTracking.trackShowPurchaseScreen(from: fromView)
         }
     }
 
     var dismissButton: some View {
         Button {
             dismiss()
+            EventTracking.trackPurchaseScreenDismissed(from: fromView)
         } label: {
             Image(systemName: "xmark.circle.fill")
                 .symbolRenderingMode(.palette)
@@ -148,12 +151,22 @@ struct PurchaseUpgradeView: View {
                 },
                 onPurchase: {
                     if let subscription = selectedSubscription {
+
                         Task(priority: .userInitiated) { @MainActor in
                             let action = await subscriptionController.purchase(option: subscription)
                             switch action {
-                            case .purchaseComplete: dismiss()
+                            case .purchaseComplete(let price, let currencyCode):
+                                EventTracking.trackPurchaseCompleted(
+                                    from: fromView,
+                                    currency: currencyCode,
+                                    amount: price,
+                                    product: subscription.product.id)
+                                dismiss()
                             case .displayError: errorAlertIsPresented = true
-                            case .noAction: break
+                                EventTracking.trackPurchaseIncomplete(from: fromView)
+                            case .noAction: 
+                                EventTracking.trackPurchaseIncomplete(from: fromView)
+                                break
                             }
                             purchaseAction?(action)
                         }
@@ -168,7 +181,7 @@ struct PurchaseUpgradeView: View {
 struct PurchaseUpgradeView_Previews: PreviewProvider {
 
     static var previews: some View {
-        ProductStoreView()
+        ProductStoreView(fromView: "Preview")
             .preferredColorScheme(.dark)
             .previewDevice(PreviewDevice(rawValue: "iPhone 8"))
     }

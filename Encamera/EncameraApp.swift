@@ -196,6 +196,9 @@ struct EncameraApp: App {
 //            shouldShowTweetScreen = shouldShow
         }
     }
+
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     init() {
         _viewModel = StateObject(wrappedValue: .init())
         let appear = UINavigationBar.appearance().standardAppearance
@@ -334,5 +337,12 @@ struct EncameraApp: App {
         default:
             EmptyView()
         }
+    }
+}
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        EventTracking.trackAppLaunched()
+        return true
     }
 }

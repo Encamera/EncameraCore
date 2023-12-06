@@ -120,7 +120,7 @@ struct CameraView: View {
     }
     
     @State var showTookFirstPhotoSheet = true
-    
+    var trackingViewName = "Camera"
     var body: some View {
         NavigationView {
             
@@ -139,7 +139,8 @@ struct CameraView: View {
                 }, secondaryButton: .cancel())
             }
             .sheet(isPresented: $cameraModel.showStoreSheet) {
-                ProductStoreView()
+                ProductStoreView(fromView: "Camera")
+
             }
             .sheet(isPresented: $cameraModel.showImportedMediaScreen) {
                 MediaImportView(viewModel: .init(
@@ -186,28 +187,24 @@ struct CameraView: View {
                         EventTracking.trackConfirmStorageTypeSelected(type: selectedStorage)
                         try? cameraModel.albumManager.moveAlbum(album: currentAlbum, toStorage: selectedStorage)
                     } else if !hasEntitlement && selectedStorage == .icloud {
-                        EventTracking.trackShowPurchaseScreen(from: "Camera")
                         cameraModel.showPurchaseSheet = true
                     }
                     
                 }
             } else if cameraModel.showExplanationForUpgrade {
                 Color.clear.photoLimitReachedModal(isPresented: cameraModel.showExplanationForUpgrade) {
-                    EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: "Camera")
+                    EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: trackingViewName)
                     cameraModel.showPurchaseSheet = true
                 } onSecondaryButtonPressed: {
-                    EventTracking.trackPhotoLimitReachedScreenDismissed(from: "Camera")
+                    EventTracking.trackPhotoLimitReachedScreenDismissed(from: trackingViewName)
                     cameraModel.showExplanationForUpgrade = false
                 }
             }
         }
         .sheet(isPresented: $cameraModel.showPurchaseSheet, content: {
-            ProductStoreView { finishedAction in
-                if finishedAction == .purchaseComplete {
+            ProductStoreView(fromView: "CameraView") { finishedAction in
+                if case .purchaseComplete = finishedAction {       
                     cameraModel.showExplanationForUpgrade = false
-                    EventTracking.trackPurchaseCompleted(from: "Camera")
-                } else {
-                    EventTracking.trackPurchaseIncomplete(from: "Camera")
                 }
                 Task {
                     await cameraModel.service.start()

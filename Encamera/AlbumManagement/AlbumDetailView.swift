@@ -165,20 +165,17 @@ struct AlbumDetailView: View {
                         EventTracking.trackConfirmStorageTypeSelected(type: storage)
                     } else if !hasEntitlement && storage == .icloud {
                         isShowingPurchaseSheet = true
-                        EventTracking.trackShowPurchaseScreen(from: "AlbumDetailView")
                     }
 
                 }
             }
             if isShowingPurchaseSheet {
-                ProductStoreView { action in
-                    if action == .purchaseComplete {
+                ProductStoreView(fromView: "AlbumDetailView") { action in
+                    if case .purchaseComplete = action {
                         isShowingPurchaseSheet = false
                         isShowingMoveAlbumModal = false
-                        EventTracking.trackPurchaseCompleted(from: "AlbumDetailView")
                     } else {
                         isShowingPurchaseSheet = false
-                        EventTracking.trackPurchaseIncomplete(from: "AlbumDetailView")
                     }
                 }
             }

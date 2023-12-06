@@ -237,7 +237,7 @@ struct GalleryHorizontalScrollView: View {
             }
         }
         .sheet(isPresented: $viewModel.showPurchaseSheet) {
-            ProductStoreView()
+            ProductStoreView(fromView: "ImageScrollView")
         }
     }
     

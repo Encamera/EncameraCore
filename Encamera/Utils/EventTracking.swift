@@ -19,6 +19,23 @@ protocol EventTrackable {
     static func trackCreateAlbumButtonPressed()
 }
 
+enum PurchaseGoal: Int {
+    case yearlyUnlimitedKeysAndPhotos
+    case montlyUnlimitedKeysAndPhotos
+
+    init?(id: String) {
+        switch id {
+        case "subscription.yearly.unlimitedKeysAndPhotos":
+            self = .yearlyUnlimitedKeysAndPhotos
+        case "subscription.monthly.unlimitedKeysAndPhotos":
+            self = .montlyUnlimitedKeysAndPhotos
+        default:
+            return nil
+        }
+    }
+}
+
+
 class EventTracking {
     private let tracker: MatomoTracker = MatomoTracker(siteId: "1", baseURL: URL(string: "https://encameraapp.matomo.cloud/matomo.php")!)
     static let shared = EventTracking()
@@ -29,6 +46,10 @@ class EventTracking {
 
     private static func track(event: String, action: String, name: String? = nil, value: Float? = nil) {
         Self.shared.tracker.track(eventWithCategory: event, action: action, name: name, value: value)
+    }
+
+    static func trackAppLaunched() {
+        track(event: "App", action: "Launched")
     }
 
     static func trackCameraButtonPressed() {
@@ -75,10 +96,21 @@ class EventTracking {
         track(event: "Purchase", action: "Show", name: screen)
     }
 
-    static func trackPurchaseCompleted(from screen: String) {
-        track(event: "Purchase", action: "Completed", name: screen)
+    static func trackPurchaseCompleted(from screen: String, currency: String, amount: Decimal, product: String) {
+        track(event: "PurchaseCompleted_\(product)", action: product, name: screen)
+
+        guard let goalId = PurchaseGoal(id: product) else {
+            return
+        }
+        let amountAsFloat = NSDecimalNumber(decimal: amount).floatValue
+
+        Self.shared.tracker.trackGoal(id: goalId.rawValue, revenue: amountAsFloat)
     }
 
+    static func trackPurchaseScreenDismissed(from screen: String) {
+        track(event: "Purchase", action: "Dismissed", name: screen)
+    }
+    
     static func trackPurchaseIncomplete(from screen: String) {
         track(event: "Purchase", action: "Incomplete", name: screen)
     }

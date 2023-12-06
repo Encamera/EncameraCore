@@ -182,7 +182,7 @@ struct SettingsView: View {
     }
     
     private var premium: some View {
-        ProductStoreView()
+        ProductStoreView(fromView: "Settings")
     }
     
     private var reset: some View {

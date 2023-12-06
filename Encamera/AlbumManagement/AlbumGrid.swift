@@ -78,7 +78,7 @@ struct AlbumGrid: View {
 
                             NavigationLink {
                                 if viewModel.shouldShowPurchaseScreenForKeys {
-                                    ProductStoreView(showDismissButton: false)
+                                    ProductStoreView(showDismissButton: false, fromView: "AlbumGrid")
                                 } else {
                                     CreateAlbum(viewModel: .init(albumManager: viewModel.albumManager))
                                         
