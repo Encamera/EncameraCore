@@ -42,6 +42,7 @@
 		1947CEAB2B1B981900A1CF0D /* EventTracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1947CEAA2B1B981900A1CF0D /* EventTracking.swift */; };
 		1947CEAD2B1C725B00A1CF0D /* CameraZoomControlButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1947CEAC2B1C725B00A1CF0D /* CameraZoomControlButtons.swift */; };
 		1947CEAF2B1C795500A1CF0D /* Rajdhani-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1947CEAE2B1C77EB00A1CF0D /* Rajdhani-Bold.ttf */; };
+		194AA3E62B21AB5800B3F8AA /* dictionary.txt in Resources */ = {isa = PBXBuildFile; fileRef = 194AA3E52B21AB5700B3F8AA /* dictionary.txt */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		19FD4F822B1D0BE60004B6C1 /* OptionItemViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FD4F812B1D0BE60004B6C1 /* OptionItemViewModifier.swift */; };
 		19FD4F842B1D0C7E0004B6C1 /* StorageOptionSquare.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FD4F832B1D0C7E0004B6C1 /* StorageOptionSquare.swift */; };
@@ -342,6 +343,7 @@
 		1947CEAA2B1B981900A1CF0D /* EventTracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTracking.swift; sourceTree = "<group>"; };
 		1947CEAC2B1C725B00A1CF0D /* CameraZoomControlButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraZoomControlButtons.swift; sourceTree = "<group>"; };
 		1947CEAE2B1C77EB00A1CF0D /* Rajdhani-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rajdhani-Bold.ttf"; sourceTree = "<group>"; };
+		194AA3E52B21AB5700B3F8AA /* dictionary.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dictionary.txt; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		19FD4F812B1D0BE60004B6C1 /* OptionItemViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionItemViewModifier.swift; sourceTree = "<group>"; };
 		19FD4F832B1D0C7E0004B6C1 /* StorageOptionSquare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageOptionSquare.swift; sourceTree = "<group>"; };
@@ -892,6 +894,7 @@
 		F8E25D1CB96BBE7C0604CA54 /* Encamera */ = {
 			isa = PBXGroup;
 			children = (
+				194AA3E52B21AB5700B3F8AA /* dictionary.txt */,
 				49A2EF989B2F8643105205DF /* Assets.xcassets */,
 				0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */,
 				BD80B31ED188E0F75FCF32A4 /* Encamera.entitlements */,
@@ -1173,6 +1176,7 @@
 				09FDF76EE9CC5B0C7D927EBF /* 4.JPG in Resources */,
 				BAA1B34E53D05C7011774A8E /* 5.JPG in Resources */,
 				D194EDB732253ABF3A1259D8 /* 6.JPG in Resources */,
+				194AA3E62B21AB5800B3F8AA /* dictionary.txt in Resources */,
 				7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */,
 				A456B80AC53939E5895E9DFD /* Encamera.storekit in Resources */,
 				2FCFC8C5F90FE5E93B0F290E /* EncryptedImageIcon.png in Resources */,

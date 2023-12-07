@@ -177,7 +177,7 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
                 try authManager.authorize(with: existingPassword, using: keyManager)
             } else {
                 try authManager.authorize(with: password1, using: keyManager)
-                let _ = try keyManager.generateNewKey(name: AppConstants.defaultAlbumName, backupToiCloud: saveToiCloud)
+                let _ = try keyManager.generateKeyUsingRandomWords(name: AppConstants.defaultAlbumName)
             }
             var albumManager = GenericAlbumManaging(keyManager: keyManager)
             let album = try? albumManager.create(name: AppConstants.defaultAlbumName, storageOption: .local)
