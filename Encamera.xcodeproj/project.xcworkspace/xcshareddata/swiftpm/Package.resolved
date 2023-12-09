@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/matomo-org/matomo-sdk-ios",
       "state" : {
-        "branch" : "develop",
-        "revision" : "32c2353d5b57f9e144f199a544c7fe1df9561236"
+        "revision" : "15a645e11eaa8053f93749d73ced03da1e56fd01",
+        "version" : "7.5.2"
       }
     },
     {
@@ -16,6 +16,15 @@
       "state" : {
         "branch" : "master",
         "revision" : "6262c021e108b5fb16d2caa1e319e913cea2406d"
+      }
+    },
+    {
+      "identity" : "swiftui-introspect",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/siteline/SwiftUI-Introspect",
+      "state" : {
+        "revision" : "9e1cc02a65b22e09a8251261cccbccce02731fc5",
+        "version" : "1.1.1"
       }
     }
   ],

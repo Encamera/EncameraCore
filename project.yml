@@ -6,6 +6,12 @@ packages:
   Sodium:
     url: https://github.com/jedisct1/swift-sodium.git
     branch: master
+  SwiftUIIntrospect:
+    url: https://github.com/siteline/SwiftUI-Introspect
+    majorVersion: 1.1.0
+  MatomoTracker:
+    url: https://github.com/matomo-org/matomo-sdk-ios
+    majorVersion: 7.5.0
   EncameraCore:
     path: ../EncameraCore
 
@@ -89,6 +95,8 @@ targets:
       - target: ShareExtension
       - target: WidgetExtension
       - package: EncameraCore
+      - package: MatomoTracker
+      - package: SwiftUIIntrospect
       - framework: StoreKit.framework
         embed: false
     scheme:

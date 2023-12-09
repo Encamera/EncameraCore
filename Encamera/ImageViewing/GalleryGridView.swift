@@ -13,7 +13,7 @@ import EncameraCore
 class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
 
     var privateKey: PrivateKey
-    var album: Album
+    var album: Album?
     var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
     @MainActor
@@ -36,7 +36,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     var fileAccess: FileAccess = DiskFileAccess()
 
     init(privateKey: PrivateKey,
-         album: Album,
+         album: Album?,
          albumManager: AlbumManaging,
          blurImages: Bool = false,
          showingCarousel: Bool = false,
@@ -67,6 +67,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     }
 
     func startiCloudDownload() {
+        guard let album else { return }
         let directory = albumManager.storageModel(for: album)
         if let iCloudStorageDirectory = directory as? iCloudStorageModel {
             iCloudStorageDirectory.triggerDownloadOfAllFilesFromiCloud()
@@ -94,6 +95,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     }
 
     func enumerateMedia() async {
+        guard let album = album else { return }
         await fileAccess.configure(for: album, with: privateKey, albumManager: albumManager)
         let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
         media = enumerated

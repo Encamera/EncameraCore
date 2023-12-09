@@ -8,7 +8,22 @@
 import SwiftUI
 import EncameraCore
 import Combine
+import SwiftUIIntrospect
 
+import SwiftUI
+
+struct FirstResponderTextFieldModifier: ViewModifier {
+    @Binding var isFirstResponder: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .introspect(.textField) { (textField: UITextField) in
+                if self.isFirstResponder {
+                    textField.becomeFirstResponder()
+                }
+            }
+    }
+}
 
 class AlbumDetailViewModel: ObservableObject {
 
@@ -21,25 +36,56 @@ class AlbumDetailViewModel: ObservableObject {
     @Published var deleteAlbumConfirmation: String = ""
     @Published var deleteActionError: String = ""
     @Published var showDeleteActionError = false
+    @Published var isEditingAlbumName = false
+    @Published var albumName: String = ""
+    @Published var albumManagerError: String?
     var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
     var fileManager: FileAccess?
     var key: PrivateKey
-    var album: Album
+    var album: Album?
+    var shouldCreateAlbum: Bool = false
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(albumManager: AlbumManaging, fileManager: FileAccess? = nil, key: PrivateKey, album: Album) {
+    init(albumManager: AlbumManaging, fileManager: FileAccess? = nil, key: PrivateKey, album: Album?, shouldCreateAlbum: Bool = false) {
         self.albumManager = albumManager
         self.fileManager = fileManager
         self.key = key
+        self.shouldCreateAlbum = shouldCreateAlbum
+        self.isEditingAlbumName = shouldCreateAlbum
+        guard let album else { return }
         self.album = album
+        self.albumName = album.name
         Task {
             self.fileManager = await DiskFileAccess(for: album, with: key, albumManager: albumManager)
         }
     }
 
+    func renameAlbum() {
+        guard albumName.count > 0 else {
+            albumManagerError = L10n.pleaseEnterAnAlbumName
+            return
+        }
+        do {
+
+            if shouldCreateAlbum {
+                album = try albumManager.create(name: albumName, storageOption: .local)
+            } else if let album {
+                try albumManager.renameAlbum(album: album, to: albumName)
+
+            }
+        } catch {
+            if let albumError = error as? AlbumError, albumError == AlbumError.albumExists {
+                albumManagerError = L10n.albumExistsError
+            } else {
+                albumManagerError = L10n.couldNotRenameAlbumError
+            }
+        }
+        isEditingAlbumName = false
+    }
 
     func deleteAlbum() {
+        guard let album else { return }
         albumManager.delete(album: album)
     }
 
@@ -77,7 +123,7 @@ struct AlbumDetailView: View {
 
                     VStack(alignment: .leading, spacing: 0) {
                         Spacer().frame(height: getSafeAreaTop() / 2)
-                        HStack(alignment: .top) {
+                        HStack(alignment: .center) {
                             Button {
                                 dismiss()
                             } label: {
@@ -85,27 +131,50 @@ struct AlbumDetailView: View {
                             }
                             .frame(width: 44, height: 44)
                             Spacer()
-                            Menu {
-                                Button(L10n.viewInFiles) {
-                                    LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: viewModel.album)
+                            if viewModel.isEditingAlbumName {
+                                Button {
+                                    viewModel.renameAlbum()
+                                } label: {
+                                    Text(L10n.done)
+                                        .fontType(.pt14, on: .textButton, weight: .bold)
                                 }
-                                Button(L10n.moveAlbumStorage) {
-                                    isShowingMoveAlbumModal = true
-                                }
-                                Button(L10n.deleteAlbum, role: .destructive) {
-                                    isShowingAlertForDeleteAllAlbumData = true
-                                }
-                            } label: {
-                                Image("Album-OptionsDots")
-                            }.frame(width: 44, height: 44)
-                        }
+                            } else {
+                                Menu {
+                                    Button(L10n.viewInFiles) {
+                                        guard let album = viewModel.album else { return }
+                                        LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: album)
+                                    }
+                                    Button(L10n.moveAlbumStorage) {
+                                        isShowingMoveAlbumModal = true
+                                    }
+                                    Button(L10n.rename) {
+                                        viewModel.isEditingAlbumName = true
+                                    }
+                                    Button(L10n.deleteAlbum, role: .destructive) {
+                                        isShowingAlertForDeleteAllAlbumData = true
+                                    }
+                                } label: {
+                                    Image("Album-OptionsDots")
+                                }.frame(width: 44, height: 44)
+                            }
+                        }.padding(.trailing, 17)
                         VStack(alignment: .leading, spacing: 0) {
                             Spacer().frame(height: 24)
-                            Text(viewModel.album.name)
-                                .fontType(.pt24, weight: .bold)
+                            if viewModel.isEditingAlbumName {
+                                TextField("Album", text: $viewModel.albumName)
+                                    .fontType(.pt24, weight: .bold)
+                                    .noAutoModification()
+                                    .modifier(FirstResponderTextFieldModifier(isFirstResponder: $viewModel.isEditingAlbumName))
+
+                            } else {
+                                Text(viewModel.albumName)
+                                    .fontType(.pt24, weight: .bold)
+                            }
                             Spacer().frame(height: 8)
-                            Text(viewModel.album.creationDate.formatted())
+                            Text(viewModel.album?.creationDate.formatted() ?? "")
                                 .fontType(.pt14)
+                                .opacity(viewModel.isEditingAlbumName ? 0 : 1)
+
                             Spacer().frame(height: 24)
 //                            Button {
 //
@@ -151,12 +220,12 @@ struct AlbumDetailView: View {
             }
             .toolbar(.hidden)
             .ignoresSafeArea(edges: .top)
-            if isShowingMoveAlbumModal {
+            if isShowingMoveAlbumModal, let album = viewModel.album {
                 let hasEntitlement = viewModel.purchasedPermissions.hasEntitlement()
-                ChooseStorageModal(hasEntitlement: hasEntitlement, selectedStorage: viewModel.album.storageOption) { storage in
+                ChooseStorageModal(hasEntitlement: hasEntitlement, selectedStorage: album.storageOption) { storage in
                     if hasEntitlement || storage == .local {
                         isShowingMoveAlbumModal = false
-                        try? viewModel.albumManager.moveAlbum(album: viewModel.album, toStorage: storage)
+                        try? viewModel.albumManager.moveAlbum(album: album, toStorage: storage)
                         EventTracking.trackConfirmStorageTypeSelected(type: storage)
                     } else if !hasEntitlement && storage == .icloud {
                         isShowingPurchaseSheet = true

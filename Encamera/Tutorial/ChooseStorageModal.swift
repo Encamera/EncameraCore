@@ -24,21 +24,22 @@ struct ChooseStorageModal: View {
 
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
+            VStack {
+                Spacer()
+                ZStack(alignment: .bottom) {
 
-            ZStack {
-                VStack(alignment: .center, spacing: Constants.verticalPadding) {
-                    Image("Storage-LockWithKey")
+                    VStack(alignment: .center, spacing: Constants.verticalPadding) {
+                        Image("Storage-LockWithKey")
 
-                    Text(L10n.chooseYourStorage)
-                        .fontType(.pt24, weight: .bold)
+                        Text(L10n.chooseYourStorage)
+                            .fontType(.pt24, weight: .bold)
 
-                    Text(L10n.chooseYourStorageDescription)
-                        .fontType(.pt16)
-                        .multilineTextAlignment(.center)
+                        Text(L10n.chooseYourStorageDescription)
+                            .fontType(.pt16)
+                            .multilineTextAlignment(.center)
 
-                    GeometryReader { geo in
-                        HStack(spacing: Constants.storageItemSpacing) {
+                        VStack(spacing: 7) {
                             let availabilites = DataStorageAvailabilityUtil
                                 .storageAvailabilities()
                                 .sorted(by: {$0.storageType == .local && $1.storageType == .icloud})
@@ -48,7 +49,7 @@ struct ChooseStorageModal: View {
                                     get: {
                                         selectedStorage == storage.storageType
                                     },
-                                    set: { newValue in                                    
+                                    set: { newValue in
                                         selectedStorage = storage.storageType
                                     }
                                 )
@@ -56,29 +57,28 @@ struct ChooseStorageModal: View {
                                     selectedStorage = storage.storageType
                                 }) {
                                     StorageOptionSquare(storageType: storage.storageType, isSelected: selectionBinding, isAvailable: true)
-                                        .frame(width: (geo.size.width - Constants.storageItemSpacing) / CGFloat(availabilites.count), height: 200)
+
                                 }
                             }
                         }
-                    }
-                    HStack {
-                        Button(showUpgradeText ? L10n.upgradeToPremium : L10n.confirmStorage) {
-                            guard let selectedStorage else {
-                                return
+                        HStack {
+                            Button(showUpgradeText ? L10n.upgradeToPremium : L10n.confirmStorage) {
+                                guard let selectedStorage else {
+                                    return
+                                }
+                                buttonPressed?(selectedStorage)
                             }
-                            buttonPressed?(selectedStorage)
+                            .disabled(selectedStorage == nil)
+                            .primaryButton(on: .darkBackground, enabled: selectedStorage != nil)
                         }
-                        .disabled(selectedStorage == nil)
-                        .primaryButton(on: .darkBackground, enabled: selectedStorage != nil)
                     }
-                }
-                .padding(.init(top: 40, leading: 16, bottom: 40, trailing: 16))
-                .background(Color.tutorialViewBackground)
-                .cornerRadius(AppConstants.defaultCornerRadius)
-                .frame(height: 550)
-            }.padding()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-
+                    .padding(.init(top: 40, leading: 16, bottom: 40, trailing: 16))
+                    .background(Color.tutorialViewBackground)
+                    .cornerRadius(AppConstants.defaultCornerRadius)
+                    .frame(height: 550)
+                }.padding()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.all)

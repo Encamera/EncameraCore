@@ -32,24 +32,26 @@ struct StorageOptionSquare: View {
 
     var body: some View {
         
-        VStack(alignment: .center) {
+        HStack(alignment: .center) {
             storageType.iconImage
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 40, height: 40)
             Spacer()
-                .frame(height: 24)
-            Group {
-                Text(storageType.title)
-                    .fontType(.pt16, on: isSelected ? .selectedStorageButton : .background, weight: .bold)
+                .frame(width: 24)
+            VStack(alignment: .leading) {
+                Group {
+                    Text(storageType.title)
+                        .fontType(.pt16, on: isSelected ? .selectedStorageButton : .background, weight: .bold)
+                    Text(storageType.description)
+                        .fontType(.pt14, on: isSelected ? .selectedStorageButton : .background)
 
-                Text(storageType.description)
-                    .fontType(.pt14, on: isSelected ? .selectedStorageButton : .background)
-                    .lineLimit(2, reservesSpace: true)
-
-            }.multilineTextAlignment(.center)
+                }
+            }
+            Spacer()
         }.padding(16)
             .frame(maxWidth: .infinity)
+            .frame(height: 78)
         .optionItem(isSelected: isSelected, isAvailable: isAvailable)
 
     }
@@ -57,12 +59,12 @@ struct StorageOptionSquare: View {
 
 #Preview {
     GeometryReader { geo in
-        HStack(spacing: 20) {
+        VStack(spacing: 20) {
             let availabilites = DataStorageAvailabilityUtil.storageAvailabilities()
             let moreAvailabilities = availabilites
             ForEach(moreAvailabilities) { storage in
                 StorageOptionSquare(storageType: storage.storageType, isSelected: .constant(true), isAvailable: true)
-                    .frame(width: (geo.size.width - 20) / CGFloat(moreAvailabilities.count), height: 200)
+                    .frame(width: geo.size.width - 20, height: 200)
             }
         }
     }

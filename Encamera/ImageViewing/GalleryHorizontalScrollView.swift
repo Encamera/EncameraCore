@@ -203,9 +203,6 @@ struct GalleryHorizontalScrollView: View {
                     }
                 }
                 .confirmationDialog(L10n.shareThisImage, isPresented: $showingShareSheet) {
-                    Button(L10n.shareEncrypted) {
-                        viewModel.shareEncrypted()
-                    }
                     Button(L10n.shareDecrypted) {
                         viewModel.shareDecrypted()
                     }

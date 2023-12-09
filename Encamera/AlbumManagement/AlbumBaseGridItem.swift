@@ -36,35 +36,32 @@ struct AlbumBaseGridItem: View {
             clipShape
                 .stroke(Color.white.opacity(0.3), style: strokeStyle ?? StrokeStyle(lineWidth: 0))
                 .background {
-                if let image = image {
-                    if shouldResizeImage {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } else {
-                        image
-                    }
+                    if let image = image {
+                        if shouldResizeImage {
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } else {
+                            image
+                        }
 
-                } else {
-                    ZStack {
-                        Color.inputFieldBackgroundColor
-                        Image("NoImage-Icon")
+                    } else {
+                        ZStack {
+                            Color.inputFieldBackgroundColor
+                            Image("NoImage-Icon")
+                        }
                     }
                 }
-            }
-            .clipShape(clipShape)
-            .frame(width: width, height: width)
-            .padding(.bottom, 12)
-
+                .clipShape(clipShape)
+                .frame(width: width, height: width)
+                .padding(.bottom, 12)
 
             Text(title)
                 .fontType(.pt14, weight: .bold) // replace with actual font
 
-//            if let subheading = subheading {
-                Text(subheading ?? "")
+            Text(subheading ?? "")
                 .lineLimit(1, reservesSpace: true)
-                    .fontType(.pt14) // replace with actual font
-//            }
+                .fontType(.pt14) // replace with actual font
         }
     }
 

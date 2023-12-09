@@ -146,9 +146,9 @@ struct CreateAlbum: View {
 }
 
 
-//struct CreateAlbum_Previews: PreviewProvider {
-//    static var previews: some View {
-//        CreateAlbum(viewModel: .init(keyManager: DemoKeyManager()))
-//            .preferredColorScheme(.dark)
-//    }
-//}
+struct CreateAlbum_Previews: PreviewProvider {
+    static var previews: some View {
+        CreateAlbum(viewModel: .init(albumManager: DemoAlbumManager()))
+            .preferredColorScheme(.dark)
+    }
+}
