@@ -414,9 +414,12 @@ private extension MainOnboardingView {
                          subheading: L10n.onboardingPermissionsSubheading,
                          image: Image("Onboarding-Permissions"),
                          bottomButtonTitle: "Add Permissions", bottomButtonAction: {
-                try await self.cameraPermissions.requestCameraPermission()
-                try? await self.cameraPermissions.requestMicrophonePermission()
-            }, content: { _ in
+                             try await self.cameraPermissions.requestCameraPermission()
+                             try? await self.cameraPermissions.requestMicrophonePermission()
+                             try await viewModel.saveState()
+                             EventTracking.trackOnboardingFinished()
+                             throw OnboardingViewError.onboardingEnded
+                         }, content: { _ in
                 AnyView(VStack {
 
                     OptionItemView(

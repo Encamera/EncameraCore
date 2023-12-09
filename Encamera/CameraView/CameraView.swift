@@ -213,21 +213,6 @@ struct CameraView: View {
         })
     }
     
-    private var galleryView: some View {
-        NavigationLink(isActive: $cameraModel.showGalleryView) {
-            if let album = cameraModel.albumManager.currentAlbum {
-                GalleryGridView<EmptyView, EncryptedMedia>(viewModel: .init(
-                    privateKey: cameraModel.privateKey,
-                    album: album,
-                    albumManager: cameraModel.albumManager
-                ))
-            }
-        } label: {
-            EmptyView()
-        }.isDetailLink(false)
-        
-    }
-    
     private var mainCamera: some View {
         VStack {
             TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,

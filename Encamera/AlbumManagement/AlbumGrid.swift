@@ -11,11 +11,13 @@ import Combine
 
 class AlbumGridViewModel: ObservableObject {
     @Published var albums: [Album] = .init()
+    @Published var isShowingAddExistingKeyView: Bool = false
+    @Published var isKeyTutorialClosed: Bool = true
+    @Published var isShowingNotificationBanner: Bool = false
     var albumManager: AlbumManaging
     var fileManager: FileAccess
     var key: PrivateKey
-    @Published var isShowingAddExistingKeyView: Bool = false
-    @Published var isKeyTutorialClosed: Bool = true
+
     var purchaseManager: PurchasedPermissionManaging
 
     private var cancellables = Set<AnyCancellable>()
@@ -50,6 +52,7 @@ class AlbumGridViewModel: ObservableObject {
 }
 
 
+
 struct AlbumGrid: View {
 
 
@@ -62,8 +65,14 @@ struct AlbumGrid: View {
                 Text(L10n.albumsTitle)
                     .fontType(.large, weight: .bold)
                 Spacer()
-                NotificationBell()
+                NotificationBell() {
+                    withAnimation {
+//                        viewModel.isShowingNotificationBanner.toggle()
+                    }
+                }
             }
+            .padding(24)
+            NotificationBanner(isPresented: $viewModel.isShowingNotificationBanner)
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
                 let spacing = CGFloat(17.0)
@@ -81,7 +90,7 @@ struct AlbumGrid: View {
                                     ProductStoreView(showDismissButton: false, fromView: "AlbumGrid")
                                 } else {
                                     CreateAlbum(viewModel: .init(albumManager: viewModel.albumManager))
-                                        
+
                                 }
                             } label: {
                                 AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
@@ -100,9 +109,10 @@ struct AlbumGrid: View {
             .onAppear {
                 viewModel.loadAlbums()
             }
+            .padding(24)
             .navigationBarTitle(L10n.myKeys)
         }
-        .padding(24)
+
     }
 
     @ViewBuilder
