@@ -107,12 +107,12 @@ struct AlbumDetailView: View {
                             Text(viewModel.album.creationDate.formatted())
                                 .fontType(.pt14)
                             Spacer().frame(height: 24)
-                            Button {
-
-                            } label: {
-                                Text(L10n.addPhotos)
-                                    .fontType(.pt14, on: .textButton, weight: .bold)
-                            }
+//                            Button {
+//
+//                            } label: {
+//                                Text(L10n.addPhotos)
+//                                    .fontType(.pt14, on: .textButton, weight: .bold)
+//                            }
                         }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
                     }
                 }
@@ -126,11 +126,6 @@ struct AlbumDetailView: View {
                 Text(L10n.KeyCopiedToClipboard.storeThisInAPasswordManagerOrOtherSecurePlace)
             })
             .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllAlbumData, actions: {
-                //            if #available(iOS 16.0, *) {
-                //
-                //                TextField(L10n.keyName, text: $viewModel.deleteAlbumConfirmation)
-                //                    .noAutoModification()
-                //            }
                 Button(L10n.deleteEverything, role: .destructive) {
 
                     viewModel.deleteAlbum()

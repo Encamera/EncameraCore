@@ -18,6 +18,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     var purchasedPermissions: PurchasedPermissionManaging
     @MainActor
     @Published var media: [EncryptedMedia] = []
+    @Published var firstImage: EncryptedMedia?
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
     @Published var downloadInProgress = false
@@ -51,12 +52,18 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
         self.showingCarousel = showingCarousel
         self.downloadPendingMediaCount = downloadPendingMediaCount
         self.carouselTarget = carouselTarget
+
         #if targetEnvironment(simulator)
         self.fileAccess = DemoFileEnumerator()
         #else
         self.fileAccess = fileAccess
         #endif
         self.purchasedPermissions = purchasedPermissions
+        FileOperationBus.shared.operations.sink { operation in
+            Task {
+               await self.enumerateMedia()
+            }
+        }.store(in: &cancellables)
     }
 
     func startiCloudDownload() {
@@ -90,7 +97,9 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
         await fileAccess.configure(for: album, with: privateKey, albumManager: albumManager)
         let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
         media = enumerated
+        firstImage = enumerated.first
         enumerateiCloudUndownloaded()
+        startiCloudDownload()
     }
 
     func blurItemAt(index: Int) -> Bool {
@@ -138,11 +147,11 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                         }
                     }
                     .padding(.bottom)
-                    if let first = viewModel.media.first {
+                    if let first = viewModel.firstImage {
+                        let remainingImages = viewModel.media[1..<viewModel.media.count]
                         imageForItem(mediaItem: first, width: largeSide, height: largeSide, index: 0)
                         LazyVGrid(columns: gridItems, spacing: spacing) {
-
-                            ForEach(Array(viewModel.media.enumerated())[1..<viewModel.media.count], id: \.element) { index, mediaItem in
+                            ForEach(Array(remainingImages.enumerated()), id: \.element) { index, mediaItem in
                                 imageForItem(mediaItem: mediaItem, width: side, height: side, index: index)
                             }
                         }
@@ -178,16 +187,14 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
             .navigationBarTitle("")
         }
         .screenBlocked()
-        .onAppear {
-            Task {
-                await viewModel.enumerateMedia()
-            }
-        }
+
     }
 
     private func imageForItem(mediaItem: EncryptedMedia, width: CGFloat, height: CGFloat, index: Int) -> some View {
-        //        Color.random
-        AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess), placeholder: ProgressView(), isInSelectionMode: .constant(false), isSelected: .constant(false))
+
+        AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
+                            placeholder: ProgressView(), isInSelectionMode: .constant(false), isSelected: .constant(false))
+        .id(mediaItem.gridID)
             .frame(width: width, height: height)
             .onTapGesture {
                 viewModel.carouselTarget = mediaItem
