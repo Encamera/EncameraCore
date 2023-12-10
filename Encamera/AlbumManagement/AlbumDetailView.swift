@@ -25,6 +25,7 @@ struct FirstResponderTextFieldModifier: ViewModifier {
     }
 }
 
+@MainActor
 class AlbumDetailViewModel: ObservableObject {
 
     enum KeyViewerError {
@@ -39,10 +40,18 @@ class AlbumDetailViewModel: ObservableObject {
     @Published var isEditingAlbumName = false
     @Published var albumName: String = ""
     @Published var albumManagerError: String?
+    var gridViewModel: GalleryGridViewModel<EncryptedMedia>?
+
     var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
     var fileManager: FileAccess?
     var key: PrivateKey
-    var album: Album?
+    var album: Album? {
+        didSet {
+            guard let album = album else { return }
+            self.albumName = album.name
+            self.gridViewModel?.album = album
+        }
+    }
     var shouldCreateAlbum: Bool = false
 
     private var cancellables = Set<AnyCancellable>()
@@ -53,13 +62,17 @@ class AlbumDetailViewModel: ObservableObject {
         self.key = key
         self.shouldCreateAlbum = shouldCreateAlbum
         self.isEditingAlbumName = shouldCreateAlbum
+        self.gridViewModel = GalleryGridViewModel<EncryptedMedia>(privateKey: key, album: album, albumManager: albumManager, blurImages: false)
+
         guard let album else { return }
         self.album = album
         self.albumName = album.name
+
         Task {
             self.fileManager = await DiskFileAccess(for: album, with: key, albumManager: albumManager)
         }
     }
+
 
     func renameAlbum() {
         guard albumName.count > 0 else {
@@ -107,152 +120,162 @@ struct AlbumDetailView: View {
     @State var isShowingPurchaseSheet = false
     @StateObject var viewModel: AlbumDetailViewModel
 
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
 
     private struct Constants {
         static var outerPadding = 20.0
     }
 
     var body: some View {
+        let _ = Self._printChanges()
+
         ZStack {
-            GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: viewModel.key, album: viewModel.album, albumManager: viewModel.albumManager, blurImages: false)) {
-                ZStack(alignment: .leading) {
+            if let gridViewModel = viewModel.gridViewModel {
+                GalleryGridView(viewModel: gridViewModel) {
+                    ZStack(alignment: .leading) {
 
-                    Color.inputFieldBackgroundColor
-                        .frame(height:230)
+                        Color.inputFieldBackgroundColor
+                            .frame(height:230)
 
-                    VStack(alignment: .leading, spacing: 0) {
-                        Spacer().frame(height: getSafeAreaTop() / 2)
-                        HStack(alignment: .center) {
-                            Button {
-                                dismiss()
-                            } label: {
-                                Image("Album-BackButton")
-                            }
-                            .frame(width: 44, height: 44)
-                            Spacer()
-                            if viewModel.isEditingAlbumName {
-                                Button {
-                                    viewModel.renameAlbum()
-                                } label: {
-                                    Text(L10n.done)
-                                        .fontType(.pt14, on: .textButton, weight: .bold)
-                                }
-                            } else {
-                                Menu {
-                                    Button(L10n.viewInFiles) {
-                                        guard let album = viewModel.album else { return }
-                                        LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: album)
-                                    }
-                                    Button(L10n.moveAlbumStorage) {
-                                        isShowingMoveAlbumModal = true
-                                    }
-                                    Button(L10n.rename) {
-                                        viewModel.isEditingAlbumName = true
-                                    }
-                                    Button(L10n.deleteAlbum, role: .destructive) {
-                                        isShowingAlertForDeleteAllAlbumData = true
-                                    }
-                                } label: {
-                                    Image("Album-OptionsDots")
-                                }.frame(width: 44, height: 44)
-                            }
-                        }.padding(.trailing, 17)
                         VStack(alignment: .leading, spacing: 0) {
-                            Spacer().frame(height: 24)
-                            if viewModel.isEditingAlbumName {
-                                TextField("Album", text: $viewModel.albumName)
-                                    .fontType(.pt24, weight: .bold)
-                                    .noAutoModification()
-                                    .modifier(FirstResponderTextFieldModifier(isFirstResponder: $viewModel.isEditingAlbumName))
+                            Spacer().frame(height: getSafeAreaTop() / 2)
+                            HStack(alignment: .center) {
+                                Button {
+                                    dismiss()
+                                } label: {
+                                    Image("Album-BackButton")
+                                }
+                                .frame(width: 44, height: 44)
+                                Spacer()
+                                if viewModel.isEditingAlbumName {
+                                    Button {
+                                        viewModel.renameAlbum()
+                                    } label: {
+                                        Text(L10n.done)
+                                            .fontType(.pt14, on: .textButton, weight: .bold)
+                                    }
+                                } else {
+                                    Menu {
+                                        Button(L10n.viewInFiles) {
+                                            guard let album = viewModel.album else { return }
+                                            LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: album)
+                                        }
+                                        Button(L10n.moveAlbumStorage) {
+                                            isShowingMoveAlbumModal = true
+                                        }
+                                        Button(L10n.rename) {
+                                            viewModel.isEditingAlbumName = true
+                                        }
+                                        Button(L10n.deleteAlbum, role: .destructive) {
+                                            isShowingAlertForDeleteAllAlbumData = true
+                                        }
+                                    } label: {
+                                        Image("Album-OptionsDots")
+                                    }
+                                    .frame(width: 44, height: 44)
+                                }
+                            }.padding(.trailing, 17)
+                            VStack(alignment: .leading, spacing: 0) {
+                                Spacer().frame(height: 24)
+                                if viewModel.isEditingAlbumName {
+                                    TextField(L10n.albumName, text: $viewModel.albumName)
+                                        .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
+                                            textField.becomeFirstResponder()
+                                        }
+                                        .fontType(.pt24, weight: .bold)
+                                        .noAutoModification()
 
-                            } else {
-                                Text(viewModel.albumName)
-                                    .fontType(.pt24, weight: .bold)
-                            }
-                            Spacer().frame(height: 8)
-                            Text(viewModel.album?.creationDate.formatted() ?? "")
-                                .fontType(.pt14)
-                                .opacity(viewModel.isEditingAlbumName ? 0 : 1)
+                                } else {
+                                    Text(viewModel.albumName)
+                                        .fontType(.pt24, weight: .bold)
+                                }
+                                Spacer().frame(height: 8)
+                                Text(viewModel.album?.creationDate.formatted() ?? "")
+                                    .fontType(.pt14)
+                                    .opacity(viewModel.isEditingAlbumName ? 0 : 1)
 
-                            Spacer().frame(height: 24)
-//                            Button {
+                                Spacer().frame(height: 24)
+                                //                            Button {
+                                //
+                                //                            } label: {
+                                //                                Text(L10n.addPhotos)
+                                //                                    .fontType(.pt14, on: .textButton, weight: .bold)
+                                //                            }
+                            }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
+                        }
+                    }
+                }
+                .screenBlocked()
+                .alert(L10n.copiedToClipboard, isPresented: $isShowingAlertForCopyKey, actions: {
+                    Button(L10n.ok) {
+                        isShowingAlertForCopyKey = false
+                    }
+                }, message: {
+                    Text(L10n.KeyCopiedToClipboard.storeThisInAPasswordManagerOrOtherSecurePlace)
+                })
+                .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllAlbumData, actions: {
+                    Button(L10n.deleteEverything, role: .destructive) {
+
+                        viewModel.deleteAlbum()
+                        dismiss()
+
+                    }
+                    Button(L10n.cancel, role: .cancel) {
+                        isShowingAlertForClearKey = false
+                    }
+                }, message: {
+                    Text(L10n.deleteAlbumForever)
+
+                })
+                .alert(L10n.deletionError, isPresented: $viewModel.showDeleteActionError, actions: {
+                    Button(L10n.ok) {
+                        viewModel.showDeleteActionError = false
+                    }
+                }, message: {
+                    Text(viewModel.deleteActionError)
+                })
+                .onAppear {
+                    EventTracking.trackAlbumOpened()
+                }
+                .toolbar(.hidden)
+                .ignoresSafeArea(edges: .top)
+            } else {
+                EmptyView()
+            }
+                if isShowingMoveAlbumModal, let album = viewModel.album {
+                    let hasEntitlement = viewModel.purchasedPermissions.hasEntitlement()
+                    ChooseStorageModal(hasEntitlement: hasEntitlement, selectedStorage: album.storageOption) { storage in
+                        if hasEntitlement || storage == .local {
+                            isShowingMoveAlbumModal = false
+                            try? viewModel.albumManager.moveAlbum(album: album, toStorage: storage)
+                            EventTracking.trackConfirmStorageTypeSelected(type: storage)
+                        } else if !hasEntitlement && storage == .icloud {
+                            isShowingPurchaseSheet = true
+                        }
+
+                    }
+                }
+                if isShowingPurchaseSheet {
+                    ProductStoreView(fromView: "AlbumDetailView") { action in
+                        if case .purchaseComplete = action {
+                            isShowingPurchaseSheet = false
+                            isShowingMoveAlbumModal = false
+                        } else {
+                            isShowingPurchaseSheet = false
+                        }
+                    }
+                }
+            }
+
+
+    }
+}
+
+//struct AlbumDetailView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        NavigationView {
 //
-//                            } label: {
-//                                Text(L10n.addPhotos)
-//                                    .fontType(.pt14, on: .textButton, weight: .bold)
-//                            }
-                        }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
-                    }
-                }
-            }
-            .screenBlocked()
-            .alert(L10n.copiedToClipboard, isPresented: $isShowingAlertForCopyKey, actions: {
-                Button(L10n.ok) {
-                    isShowingAlertForCopyKey = false
-                }
-            }, message: {
-                Text(L10n.KeyCopiedToClipboard.storeThisInAPasswordManagerOrOtherSecurePlace)
-            })
-            .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllAlbumData, actions: {
-                Button(L10n.deleteEverything, role: .destructive) {
-
-                    viewModel.deleteAlbum()
-                    dismiss()
-
-                }
-                Button(L10n.cancel, role: .cancel) {
-                    isShowingAlertForClearKey = false
-                }
-            }, message: {
-                Text(L10n.deleteAlbumForever)
-
-            })
-            .alert(L10n.deletionError, isPresented: $viewModel.showDeleteActionError, actions: {
-                Button(L10n.ok) {
-                    viewModel.showDeleteActionError = false
-                }
-            }, message: {
-                Text(viewModel.deleteActionError)
-            })
-            .onAppear {
-                EventTracking.trackAlbumOpened()
-            }
-            .toolbar(.hidden)
-            .ignoresSafeArea(edges: .top)
-            if isShowingMoveAlbumModal, let album = viewModel.album {
-                let hasEntitlement = viewModel.purchasedPermissions.hasEntitlement()
-                ChooseStorageModal(hasEntitlement: hasEntitlement, selectedStorage: album.storageOption) { storage in
-                    if hasEntitlement || storage == .local {
-                        isShowingMoveAlbumModal = false
-                        try? viewModel.albumManager.moveAlbum(album: album, toStorage: storage)
-                        EventTracking.trackConfirmStorageTypeSelected(type: storage)
-                    } else if !hasEntitlement && storage == .icloud {
-                        isShowingPurchaseSheet = true
-                    }
-
-                }
-            }
-            if isShowingPurchaseSheet {
-                ProductStoreView(fromView: "AlbumDetailView") { action in
-                    if case .purchaseComplete = action {
-                        isShowingPurchaseSheet = false
-                        isShowingMoveAlbumModal = false
-                    } else {
-                        isShowingPurchaseSheet = false
-                    }
-                }
-            }
-        }
-
-    }
-}
-
-struct AlbumDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-
-            AlbumDetailView(viewModel: AlbumDetailViewModel(albumManager: DemoAlbumManager(), key: DemoPrivateKey.dummyKey(), album: Album(name: "Test", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())))
-        }
-    }
-}
+//            AlbumDetailView(viewModel: AlbumDetailViewModel(albumManager: DemoAlbumManager(), key: DemoPrivateKey.dummyKey(), album: Album(name: "Test", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())))
+//        }
+//    }
+//}

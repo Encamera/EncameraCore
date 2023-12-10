@@ -80,7 +80,6 @@ struct MainHomeView: View {
                     CameraView(cameraModel: .init(
                         privateKey: viewModel.privateKey,
                         albumManager: viewModel.albumManager,
-                        authManager: viewModel.authManager,
                         cameraService: viewModel.cameraService,
                         fileAccess: viewModel.fileAccess,
                         purchaseManager: viewModel.purchasedPermissions

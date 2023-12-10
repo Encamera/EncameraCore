@@ -95,6 +95,11 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
         }
     }
 
+    func cleanUp() {
+        cancellables.forEach({$0.cancel()})
+        downloadInProgress = false
+    }
+
     func enumerateMedia() async {
         guard let album = album else { return }
         await fileAccess.configure(for: album, with: privateKey, albumManager: albumManager)
@@ -120,11 +125,11 @@ private enum Constants {
 
 struct GalleryGridView<Content: View, T: MediaDescribing>: View {
 
-    @StateObject var viewModel: GalleryGridViewModel<T>
+    @ObservedObject var viewModel: GalleryGridViewModel<T>
     var content: Content
 
     init(viewModel: GalleryGridViewModel<T>, @ViewBuilder content: () -> Content = { EmptyView() }) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+        self.viewModel = viewModel
         self.content = content()
     }
 
@@ -163,7 +168,6 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                         .frame(width: largeSide)
                         
                     } else if viewModel.album != nil {
-                        EmptyView()
                         VStack(alignment: .leading, spacing: 6) {
                             Text(L10n.addPhotosToThisAlbum)
                                 .fontType(.pt14, weight: .bold)
@@ -177,6 +181,8 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                         }
                         .padding()
                     }
+                }.onChange(of: viewModel.showCamera) { oldValue, newValue in
+                    viewModel.albumManager.currentAlbum = viewModel.album
                 }
 
                 NavigationLink(isActive: $viewModel.showingCarousel) {
@@ -201,19 +207,23 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
             .onAppear {
                 AskForReviewUtil.askForReviewIfNeeded()
             }
+            .onDisappear {
+                viewModel.cleanUp()
+            }
             .scrollIndicators(.hidden)
             .navigationBarTitle("")
             .sheet(isPresented: $viewModel.showCamera, content: {
+
                 if let album = viewModel.album {
                     CameraView(cameraModel: .init(
                         privateKey: album.key,
-                        album: album,
+                        albumManager: viewModel.albumManager,
                         cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
                         fileAccess: viewModel.fileAccess,
                         purchaseManager: viewModel.purchasedPermissions
                     ), hasMediaToImport: .constant(false)) {
-
                         viewModel.showCamera = false
+                        viewModel.albumManager.currentAlbum = viewModel.album
                     }
                 }
             })

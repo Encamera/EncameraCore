@@ -259,9 +259,6 @@ struct CameraView: View {
         }
         .edgesIgnoringSafeArea(.top)
         .task {
-            guard cameraModel.authManager.isAuthenticated == true else {
-                return
-            }
             Task {
                 await cameraModel.initialConfiguration()
             }
@@ -309,7 +306,6 @@ struct CameraView_Previews: PreviewProvider {
         let model = CameraModel(
             privateKey: DemoPrivateKey.dummyKey(),
             albumManager: DemoAlbumManager(),
-            authManager: DemoAuthManager(),
             cameraService: CameraConfigurationService(model: .init()),
             fileAccess: DemoFileEnumerator(),
             purchaseManager: DemoPurchasedPermissionManaging()

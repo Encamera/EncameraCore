@@ -274,6 +274,7 @@ private extension MainOnboardingView {
                     return
                 }
                 viewModel.existingPassword = existingPassword
+                try? viewModel.checkExistingPasswordAndAuth()
             })
 
             return .init(

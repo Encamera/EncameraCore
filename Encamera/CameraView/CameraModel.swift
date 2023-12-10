@@ -68,7 +68,6 @@ final class CameraModel: NSObject, ObservableObject {
 
     @Published var showPurchaseSheet: Bool = false
 
-    var authManager: AuthManager
     var privateKey: PrivateKey
     var albumManager: AlbumManaging
     var alertError: AlertError!
@@ -84,7 +83,6 @@ final class CameraModel: NSObject, ObservableObject {
     
     init(privateKey: PrivateKey,
          albumManager: AlbumManaging,
-         authManager: AuthManager,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
          purchaseManager: PurchasedPermissionManaging) {
@@ -95,7 +93,6 @@ final class CameraModel: NSObject, ObservableObject {
         self.privateKey = privateKey
         self.albumManager = albumManager
 
-        self.authManager = authManager
         super.init()
         self.$selectedCameraMode
             .receive(on: RunLoop.main)
@@ -124,9 +121,6 @@ final class CameraModel: NSObject, ObservableObject {
                     self.isProcessingEvent = true
 
                     Task {
-                        guard authManager.isAuthenticated else {
-                            return
-                        }
                         try await self.captureButtonPressed()
                     }
 

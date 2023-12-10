@@ -48,6 +48,7 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
     @Binding var isSelected: Bool
     
     var body: some View {
+
         if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.source,
            let image = UIImage(data: decrypted) {
             ZStack {
