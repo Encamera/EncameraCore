@@ -18,6 +18,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     var purchasedPermissions: PurchasedPermissionManaging
     @MainActor
     @Published var media: [EncryptedMedia] = []
+    @Published var showCamera: Bool = false
     @Published var firstImage: EncryptedMedia?
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
@@ -160,6 +161,21 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                         .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
                         .animation(.easeIn, value: viewModel.blurImages)
                         .frame(width: largeSide)
+                        
+                    } else if viewModel.album != nil {
+                        EmptyView()
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(L10n.addPhotosToThisAlbum)
+                                .fontType(.pt14, weight: .bold)
+                                .foregroundColor(.white)
+                                .opacity(0.40)
+                          VStack(alignment: .leading, spacing: 16) {
+
+                              OptionItemView(title: L10n.takeAPhoto, description: L10n.useCameraToTakePhotos, isAvailable: true, unavailableReason: nil, image: Image("Onboarding-Permissions-Camera"), isSelected: $viewModel.showCamera)
+
+                          }
+                        }
+                        .padding()
                     }
                 }
 
@@ -187,6 +203,20 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
             }
             .scrollIndicators(.hidden)
             .navigationBarTitle("")
+            .sheet(isPresented: $viewModel.showCamera, content: {
+                if let album = viewModel.album {
+                    CameraView(cameraModel: .init(
+                        privateKey: album.key,
+                        album: album,
+                        cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
+                        fileAccess: viewModel.fileAccess,
+                        purchaseManager: viewModel.purchasedPermissions
+                    ), hasMediaToImport: .constant(false)) {
+
+                        viewModel.showCamera = false
+                    }
+                }
+            })
         }
         .screenBlocked()
 
@@ -231,18 +261,17 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
     }
 }
 
-//struct GalleryView_Previews: PreviewProvider {
-//
-//    static var previews: some View {
-//        NavigationView {
-//            GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: DemoPrivateKey.dummyKey(), blurImages: false)) {
-//                List {
-//                }
-//                .frame(height: 300)
-//                .fontType(.pt18)
-//                .scrollContentBackgroundColor(Color.background)
-//
-//            }
-//        }
-//    }
-//}
+#Preview {
+
+    NavigationView {
+        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: DemoPrivateKey.dummyKey(), album: Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), blurImages: false)) {
+            List {
+            }
+            .frame(height: 300)
+            .fontType(.pt18)
+            .scrollContentBackgroundColor(Color.random
+            )
+
+        }
+    }
+}

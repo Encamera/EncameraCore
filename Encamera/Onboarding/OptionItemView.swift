@@ -45,6 +45,7 @@ struct OptionItemView<Content: View>: View {
                     } else if let description {
                         Text(description)
                             .fontType(.pt14, on: isSelected ? .selectedStorageButton : .background)
+                            .multilineTextAlignment(.leading)
                     }
                 }
                 Spacer()
@@ -81,7 +82,7 @@ struct OptionItemView_Previews: PreviewProvider {
 
         VStack(spacing: 30) {
             OptionItemView(title: "Option 1",
-                           description: "This is an available option.",
+                           description: "This is an available option with a lot of text that should be leading aligned.",
                            isAvailable: true,
                            image: Image("Onboarding-Permissions-Microphone"),
                            isSelected: $selected)
