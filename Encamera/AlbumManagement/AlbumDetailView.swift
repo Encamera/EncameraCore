@@ -84,8 +84,7 @@ class AlbumDetailViewModel: ObservableObject {
             if shouldCreateAlbum {
                 album = try albumManager.create(name: albumName, storageOption: .local)
             } else if let album {
-                try albumManager.renameAlbum(album: album, to: albumName)
-
+                self.album = try albumManager.renameAlbum(album: album, to: albumName)
             }
         } catch {
             if let albumError = error as? AlbumError, albumError == AlbumError.albumExists {
@@ -172,6 +171,7 @@ struct AlbumDetailView: View {
                                     } label: {
                                         Image("Album-OptionsDots")
                                     }
+                                    .id(UUID())
                                     .frame(width: 44, height: 44)
                                 }
                             }.padding(.trailing, 17)
