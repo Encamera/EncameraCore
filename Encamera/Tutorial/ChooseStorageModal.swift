@@ -18,64 +18,65 @@ struct ChooseStorageModal: View {
     var hasEntitlement: Bool
     @State var selectedStorage: StorageType?
 
-    var buttonPressed: ((StorageType) -> Void)?
-
-
-
+    var storageSelected: ((StorageType) -> Void)?
+    var dismissButtonPressed: () -> ()
 
     var body: some View {
         ZStack(alignment: .bottom) {
             VStack {
                 Spacer()
                 ZStack(alignment: .bottom) {
+                    ZStack(alignment: .init(horizontal: .trailing, vertical: .top)) {
 
-                    VStack(alignment: .center, spacing: Constants.verticalPadding) {
-                        Image("Storage-LockWithKey")
+                        VStack(alignment: .center, spacing: Constants.verticalPadding) {
 
-                        Text(L10n.chooseYourStorage)
-                            .fontType(.pt24, weight: .bold)
+                            Image("Storage-LockWithKey")
 
-                        Text(L10n.chooseYourStorageDescription)
-                            .fontType(.pt16)
-                            .multilineTextAlignment(.center)
+                            Text(L10n.chooseYourStorage)
+                                .fontType(.pt24, weight: .bold)
 
-                        VStack(spacing: 7) {
-                            let availabilites = DataStorageAvailabilityUtil
-                                .storageAvailabilities()
-                                .sorted(by: {$0.storageType == .local && $1.storageType == .icloud})
-                            ForEach(availabilites) { storage in
+                            Text(L10n.chooseYourStorageDescription)
+                                .fontType(.pt16)
+                                .multilineTextAlignment(.center)
 
-                                let selectionBinding = Binding<Bool>(
-                                    get: {
-                                        selectedStorage == storage.storageType
-                                    },
-                                    set: { newValue in
+                            VStack(spacing: 7) {
+                                let availabilites = DataStorageAvailabilityUtil
+                                    .storageAvailabilities()
+                                    .sorted(by: {$0.storageType == .local && $1.storageType == .icloud})
+                                ForEach(availabilites) { storage in
+
+                                    let selectionBinding = Binding<Bool>(
+                                        get: {
+                                            selectedStorage == storage.storageType
+                                        },
+                                        set: { newValue in
+                                            selectedStorage = storage.storageType
+                                        }
+                                    )
+                                    Button(action: {
                                         selectedStorage = storage.storageType
-                                    }
-                                )
-                                Button(action: {
-                                    selectedStorage = storage.storageType
-                                }) {
-                                    StorageOptionSquare(storageType: storage.storageType, isSelected: selectionBinding, isAvailable: true)
+                                    }) {
+                                        StorageOptionSquare(storageType: storage.storageType, isSelected: selectionBinding, isAvailable: true)
 
+                                    }
                                 }
                             }
-                        }
-                        HStack {
-                            Button(showUpgradeText ? L10n.upgradeToPremium : L10n.confirmStorage) {
-                                guard let selectedStorage else {
-                                    return
+                            HStack {
+                                Button(showUpgradeText ? L10n.upgradeToPremium : L10n.confirmStorage) {
+                                    guard let selectedStorage else {
+                                        return
+                                    }
+                                    storageSelected?(selectedStorage)
                                 }
-                                buttonPressed?(selectedStorage)
+                                .disabled(selectedStorage == nil)
+                                .primaryButton(on: .darkBackground, enabled: selectedStorage != nil)
                             }
-                            .disabled(selectedStorage == nil)
-                            .primaryButton(on: .darkBackground, enabled: selectedStorage != nil)
                         }
-                    }
-                    .padding(.init(top: 40, leading: 16, bottom: 40, trailing: 16))
-                    .background(Color.tutorialViewBackground)
-                    .cornerRadius(AppConstants.defaultCornerRadius)
-                    .frame(height: 550)
+                        .padding(.init(top: 40, leading: 16, bottom: 40, trailing: 16))
+                        .background(Color.tutorialViewBackground)
+                        .cornerRadius(AppConstants.defaultCornerRadius)
+                        DismissButton(action: dismissButtonPressed).padding()
+                    }.frame(height: 550)
                 }.padding()
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -98,9 +99,11 @@ struct ChooseStorageModal_Previews: PreviewProvider {
         ZStack {
             Color.background
 
-            ChooseStorageModal(hasEntitlement: false) { selected in
+            ChooseStorageModal(hasEntitlement: false, storageSelected: { selected in
 
-            }
+            }, dismissButtonPressed: {
+
+            })
 
         }.preferredColorScheme(.dark)
 

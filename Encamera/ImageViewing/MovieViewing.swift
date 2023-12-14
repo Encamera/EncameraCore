@@ -141,7 +141,7 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                                 videoPosition = position
                             }
                         }
-                        .frame(maxWidth: .infinity, maxHeight: 50.0)
+                        .frame(maxWidth: .infinity, maxHeight: 60.0)
                 }
 
             } else if let error = viewModel.error {

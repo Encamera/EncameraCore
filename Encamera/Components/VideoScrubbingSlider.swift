@@ -29,14 +29,14 @@ struct VideoScrubbingSlider: View {
     var body: some View {
             HStack(spacing: 5.0) {
                 playPauseButton
-                RoundedRectangle(cornerRadius: 10)
-                    .foregroundColor(.gray.opacity(0.5))
-                    .background {
-                        GeometryReader { geo in
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .foregroundColor(.gray.opacity(0.5))
+                    GeometryReader { geo in
 
-                            scrubber(geometry: geo)
-                        }
+                        scrubber(geometry: geo)
                     }
+                }
                 expandButton
             }
     }
@@ -64,7 +64,6 @@ struct VideoScrubbingSlider: View {
 
     private func scrubber(geometry: GeometryProxy) -> some View {
         let thumbSize = geometry.size.height
-        let radius = geometry.size.height * 0.5
         let minValue = 0.0
         let maxValue = geometry.size.width - thumbSize
 
@@ -91,8 +90,10 @@ struct VideoScrubbingSlider: View {
 
 
 struct VideoScrubbingSlider_Previews: PreviewProvider {
+    @State static var sliderValue: Double = 0
+
     static var previews: some View {
-        VideoScrubbingSlider(value: .constant(0), isPlayingVideo: .constant(false), isExpanded: .constant(false), range: 0...10)
+        VideoScrubbingSlider(value: $sliderValue, isPlayingVideo: .constant(false), isExpanded: .constant(false), range: 0...10)
             .frame(width: 300, height: 20)
             .preferredColorScheme(.dark)
     }

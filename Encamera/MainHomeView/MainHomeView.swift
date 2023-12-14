@@ -102,7 +102,6 @@ struct MainHomeView: View {
                         SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
                     } else {
                         AlbumGrid(viewModel: .init(key: viewModel.privateKey, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
-//                            .environment(\.popLastView, viewModel.popLastView)
                     }
                     BottomNavigationBar(selectedItem: $selectedNavigationItem)
                 }
@@ -116,14 +115,18 @@ struct MainHomeView: View {
                 case "ProductStore":
                     ProductStoreView(showDismissButton: false, fromView: "AlbumGrid")
                 case "CreateAlbum":
-                    AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.keyManager.currentKey!, album: nil, shouldCreateAlbum: true))
+                    if let key = viewModel.keyManager.currentKey {
+                        AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.keyManager.currentKey!, album: nil, shouldCreateAlbum: true))
+                    } else {
+                        let _ = print("no key")
+                        EmptyView()
+                    }
                 default:
                     EmptyView()
                 }
             }
             .navigationDestination(for: Album.self) { album in
                 AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: album.key, album: album))
-
             }
         }
 

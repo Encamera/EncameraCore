@@ -10,8 +10,6 @@ import SwiftUI
 import StoreKit
 import EncameraCore
 
-typealias ProductStoreView = PurchaseUpgradeView
-
 struct FeatureIcon: View {
     let image: Image
 
@@ -61,9 +59,9 @@ func createFeatureRow(image: Image, title: String, subtitle: String? = nil) -> s
 }
 
 
+typealias PurchaseResultAction = ((PurchaseFinishedAction) -> Void)
 
-
-struct PurchaseUpgradeView: View {
+struct ProductStoreView: View {
 
 
     @ObservedObject var subscriptionController: StoreSubscriptionController = StoreActor.shared.subscriptionController
@@ -77,7 +75,7 @@ struct PurchaseUpgradeView: View {
 
     var showDismissButton = true
     var fromView: String
-    var purchaseAction: ((PurchaseFinishedAction) -> Void)?
+    var purchaseAction: PurchaseResultAction?
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -116,21 +114,10 @@ struct PurchaseUpgradeView: View {
     }
 
     var dismissButton: some View {
-        Button {
+        DismissButton {
             dismiss()
             EventTracking.trackPurchaseScreenDismissed(from: fromView)
-        } label: {
-            Image(systemName: "xmark.circle.fill")
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(
-                    .secondary,
-                    .clear,
-                    Color(uiColor: .systemGray5)
-                )
         }
-        .buttonStyle(.borderless)
-        .opacity(0.8)
-        .font(.title)
     }
 
 

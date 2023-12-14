@@ -73,7 +73,6 @@ struct AlbumGridItem: View {
     init(key: PrivateKey, album: Album, albumManager: AlbumManaging, width: CGFloat) {
         albumName = album.name
         _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, key: key, albumManager: albumManager))
-        debugPrint("AlbumGridItem init: \(albumName)")
         self.width = width
     }
 

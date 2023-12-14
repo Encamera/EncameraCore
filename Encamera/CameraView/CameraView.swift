@@ -4,26 +4,26 @@ import AVFoundation
 import EncameraCore
 
 struct CameraView: View {
-    
+
     private enum Constants {
         static var minCaptureButtonEdge: Double = 80
         static var innerCaptureButtonLineWidth: Double = 2
         static var innerCaptureButtonStroke: Double = 0.8
         static var innerCaptureButtonSize = Constants.minCaptureButtonEdge * 0.8
     }
-    
-    
+
+
     @StateObject var cameraModel: CameraModel
     @State var cameraModeStateModel = CameraModeStateModel()
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
     @Environment(\.dismiss) private var dismiss
     var closeButtonTapped: () -> Void
-    
-    
-    
+
+
+
     private var captureButton: some View {
-        
+
         Button(action: {
             Task {
                 try await cameraModel.captureButtonPressed()
@@ -44,7 +44,7 @@ struct CameraView: View {
             }
         })
     }
-    
+
     private var capturedPhotoThumbnail: some View {
         Group {
             if let thumbnail = cameraModel.thumbnailImage {
@@ -61,9 +61,9 @@ struct CameraView: View {
         }
         .rotateForOrientation()
         .frame(width: 60, height: 60)
-        
+
     }
-    
+
     private var flipCameraButton: some View {
         Button(action: {
             cameraModel.flipCamera()
@@ -77,11 +77,11 @@ struct CameraView: View {
         })
         .rotateForOrientation()
     }
-    
+
     private var bottomButtonPanel: some View {
         BottomCameraButtonView(cameraModel: cameraModel, cameraModeStateModel: cameraModeStateModel)
     }
-    
+
     private var cameraPreview: some View {
 #if targetEnvironment(simulator)
         //        Color.clear.background {
@@ -118,43 +118,43 @@ struct CameraView: View {
         .animation(.easeInOut, value: cameraModel.willCapturePhoto)
 #endif
     }
-    
+
     @State var showTookFirstPhotoSheet = true
     var trackingViewName = "Camera"
     var body: some View {
 
-            ZStack {
-                mainCamera
-                tutorialViews
-                if cameraModel.cameraSetupResult == .notAuthorized {
-                    missingPermissionsView
-                }
+        ZStack {
+            mainCamera
+            tutorialViews
+            if cameraModel.cameraSetupResult == .notAuthorized {
+                missingPermissionsView
             }
-            .background(Color.background)
-            .screenBlocked()
-            .alert(isPresented: $cameraModel.showAlertForMissingKey) {
-                Alert(title: Text(L10n.noAlbum), message: Text(L10n.noAlbumSelected), primaryButton: .default(Text(L10n.keySelection)) {
-                    cameraModel.showingAlbum = true
-                }, secondaryButton: .cancel())
-            }
-            .sheet(isPresented: $cameraModel.showStoreSheet) {
-                ProductStoreView(fromView: "Camera")
+        }
+        .background(Color.background)
+        .screenBlocked()
+        .alert(isPresented: $cameraModel.showAlertForMissingKey) {
+            Alert(title: Text(L10n.noAlbum), message: Text(L10n.noAlbumSelected), primaryButton: .default(Text(L10n.keySelection)) {
+                cameraModel.showingAlbum = true
+            }, secondaryButton: .cancel())
+        }
+        .sheet(isPresented: $cameraModel.showStoreSheet) {
+            ProductStoreView(fromView: "Camera")
 
-            }
-            .sheet(isPresented: $cameraModel.showImportedMediaScreen) {
-                MediaImportView(viewModel: .init(
-                    privateKey: cameraModel.privateKey,
-                    albumManager: cameraModel.albumManager,
-                    fileAccess: cameraModel.fileAccess
-                ))
-            }
+        }
+        .sheet(isPresented: $cameraModel.showImportedMediaScreen) {
+            MediaImportView(viewModel: .init(
+                privateKey: cameraModel.privateKey,
+                albumManager: cameraModel.albumManager,
+                fileAccess: cameraModel.fileAccess
+            ))
+        }
 
-        
+
     }
-    
+
     @ViewBuilder private var missingPermissionsView: some View {
         Color.clear.background {
-            
+
             VStack {
                 Group {
                     Text(L10n.missingCameraAccess)
@@ -163,45 +163,42 @@ struct CameraView: View {
                     } label: {
                         Text(L10n.openSettingsToAllowCameraAccessPermission)
                     }.textPill(color: .foregroundSecondary)
-                    
+
                 }
             }
             .fontType(.medium)
             .padding()
         }
     }
-    
+
     @ViewBuilder private var tutorialViews: some View {
         Group {
-            if cameraModel.showTookFirstPhotoSheet {
-                let hasEntitlement = cameraModel.purchaseManager.hasEntitlement()
-                ChooseStorageModal(hasEntitlement: hasEntitlement) { selectedStorage in
-                    if hasEntitlement || selectedStorage == .local {
-                        cameraModel.showTookFirstPhotoSheet = false
-                        guard let currentAlbum = cameraModel.albumManager.currentAlbum else {
-                            debugPrint("Current album is not set")
-                            return
-                        }
-                        EventTracking.trackConfirmStorageTypeSelected(type: selectedStorage)
-                        try? cameraModel.albumManager.moveAlbum(album: currentAlbum, toStorage: selectedStorage)
-                    } else if !hasEntitlement && selectedStorage == .icloud {
-                        cameraModel.showPurchaseSheet = true
-                    }
-                    
-                }
-            } else if cameraModel.showExplanationForUpgrade {
-                Color.clear.photoLimitReachedModal(isPresented: cameraModel.showExplanationForUpgrade) {
-                    EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: trackingViewName)
-                    cameraModel.showPurchaseSheet = true
-                } onSecondaryButtonPressed: {
-                    EventTracking.trackPhotoLimitReachedScreenDismissed(from: trackingViewName)
-                    cameraModel.showExplanationForUpgrade = false
-                }
-            }
         }
+        .photoLimitReachedModal(isPresented: cameraModel.showExplanationForUpgrade) {
+            EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: trackingViewName)
+            cameraModel.showPurchaseSheet = true
+        } onSecondaryButtonPressed: {
+            EventTracking.trackPhotoLimitReachedScreenDismissed(from: trackingViewName)
+            cameraModel.showExplanationForUpgrade = false
+        }
+        .chooseStorageModal(isPresented: $cameraModel.showTookFirstPhotoSheet, album: cameraModel.albumManager.currentAlbum, purchasedPermissions: cameraModel.purchaseManager, didSelectStorage: { selectedStorage, hasEntitlement in
+            if hasEntitlement || selectedStorage == .local {
+                cameraModel.showTookFirstPhotoSheet = false
+                guard let currentAlbum = cameraModel.albumManager.currentAlbum else {
+                    debugPrint("Current album is not set")
+                    return
+                }
+                EventTracking.trackConfirmStorageTypeSelected(type: selectedStorage)
+                cameraModel.albumManager.currentAlbum = try? cameraModel.albumManager.moveAlbum(album: currentAlbum, toStorage: selectedStorage)
+            } else if !hasEntitlement && selectedStorage == .icloud {
+                cameraModel.showPurchaseSheet = true
+            }
+        }, dismissAction: {
+            cameraModel.showTookFirstPhotoSheet = false
+        })
         .sheet(isPresented: $cameraModel.showPurchaseSheet, content: {
             ProductStoreView(fromView: "CameraView") { finishedAction in
-                if case .purchaseComplete = finishedAction {       
+                if case .purchaseComplete = finishedAction {
                     cameraModel.showExplanationForUpgrade = false
                 }
                 Task {
@@ -210,7 +207,7 @@ struct CameraView: View {
             }
         })
     }
-    
+
     private var mainCamera: some View {
         VStack {
             TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
@@ -249,10 +246,10 @@ struct CameraView: View {
                             .frame(width: 300, height: 44)
                     }
                 }
-                
+
             }
-            
-            
+
+
             bottomButtonPanel
         }
         .edgesIgnoringSafeArea(.top)
@@ -263,9 +260,9 @@ struct CameraView: View {
         }
         .navigationBarHidden(true)
         .navigationTitle("")
-        
+
     }
-    
+
     private func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else {
             return
@@ -275,7 +272,7 @@ struct CameraView: View {
 }
 
 extension AVCaptureDevice.FlashMode {
-    
+
     var systemIconForMode: String {
         switch self {
         case .auto:
@@ -288,7 +285,7 @@ extension AVCaptureDevice.FlashMode {
             return "bolt"
         }
     }
-    
+
     var colorForMode: Color {
         switch self {
         case .auto, .on:
@@ -309,7 +306,7 @@ struct CameraView_Previews: PreviewProvider {
             purchaseManager: DemoPurchasedPermissionManaging()
         )
         CameraView(cameraModel: model, hasMediaToImport: .constant(false), closeButtonTapped: {
-            
+
         })
         .preferredColorScheme(.dark)
     }
