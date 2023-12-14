@@ -126,6 +126,11 @@ struct SettingsView: View {
                         }
                     }
                     Section {
+                        Button(L10n.joinTelegramGroup) {
+                            Task {
+                                await UIApplication.shared.open(URL(string: "https://t.me/encamera_app")!)
+                            }
+                        }
                         Button(L10n.contact) {
                             let email = "mailto:alex+contact@freas.me"
                             let subject = "Encamera - Contact"

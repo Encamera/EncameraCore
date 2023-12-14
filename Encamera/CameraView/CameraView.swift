@@ -248,9 +248,8 @@ struct CameraView: View {
                 }
 
             }
-
-
             bottomButtonPanel
+                .padding(.bottom, getSafeAreaBottom())
         }
         .edgesIgnoringSafeArea(.top)
         .task {

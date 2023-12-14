@@ -152,6 +152,7 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                     self.progress = out
                 }.task {
                     await viewModel.decryptAndSet()
+                    EventTracking.trackMovieViewed()
                 }.padding()
                 
             }

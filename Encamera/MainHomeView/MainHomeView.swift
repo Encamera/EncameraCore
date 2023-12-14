@@ -112,7 +112,9 @@ struct MainHomeView: View {
                     ProductStoreView(showDismissButton: false, fromView: "AlbumGrid")
                 case "CreateAlbum":
                     if let key = viewModel.keyManager.currentKey {
-                        AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: key, album: nil, shouldCreateAlbum: true))
+                        AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: key, album: nil, shouldCreateAlbum: true)).onAppear {
+                            EventTracking.trackCreateAlbumButtonPressed()
+                        }
                     } else {
                         let _ = print("no key")
                         EmptyView()
@@ -122,7 +124,9 @@ struct MainHomeView: View {
                 }
             }
             .navigationDestination(for: Album.self) { album in
-                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: album.key, album: album))
+                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: album.key, album: album)).onAppear {
+                    EventTracking.trackAlbumOpened()
+                }
             }
         }
 

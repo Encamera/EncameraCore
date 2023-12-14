@@ -234,9 +234,6 @@ struct AlbumDetailView: View {
             }, message: {
                 Text(viewModel.deleteActionError)
             })
-            .onAppear {
-                EventTracking.trackAlbumOpened()
-            }
             .toolbar(.hidden)
             .ignoresSafeArea(edges: .top)
             .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,

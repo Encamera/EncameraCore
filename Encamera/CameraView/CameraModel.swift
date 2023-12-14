@@ -242,6 +242,7 @@ final class CameraModel: NSObject, ObservableObject {
             } catch {
                 
             }
+            
             await MainActor.run(body: {
                 willCapturePhoto = false
             })
@@ -269,6 +270,7 @@ final class CameraModel: NSObject, ObservableObject {
             try await fileAccess.save(media: video) { _ in }
             UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
         }
+        EventTracking.trackMediaTaken(type: selectedCameraMode)
         await loadThumbnail()
     }
 

@@ -10,6 +10,15 @@
       }
     },
     {
+      "identity" : "piwik-pro-sdk-framework-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/PiwikPRO/piwik-pro-sdk-framework-ios",
+      "state" : {
+        "revision" : "61ced15d952b0b7e2fd182461d71b07510dc591c",
+        "version" : "1.2.1"
+      }
+    },
+    {
       "identity" : "swift-sodium",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/jedisct1/swift-sodium.git",

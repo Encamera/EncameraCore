@@ -132,6 +132,7 @@ struct ImageViewing<M: MediaDescribing>: View {
         }
         .onAppear {
             viewModel.decryptAndSet()
+            EventTracking.trackImageViewed()
         }
         .navigationBarTitleDisplayMode(.inline)
     }

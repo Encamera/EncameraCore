@@ -12,6 +12,9 @@ packages:
   MatomoTracker:
     url: https://github.com/matomo-org/matomo-sdk-ios
     majorVersion: 7.5.0
+  PiwikPROSDK:
+    url: https://github.com/PiwikPRO/piwik-pro-sdk-framework-ios
+    majorVersion: 1.2.1
   EncameraCore:
     path: ../EncameraCore
 
@@ -90,12 +93,14 @@ targets:
       SUPPORTS_MACCATALYST: NO
       SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
       TARGETED_DEVICE_FAMILY: "1"
+      OTHER_LDFLAGS: "-ObjC"
     dependencies:
       - package: Sodium
       - target: ShareExtension
       - target: WidgetExtension
       - package: EncameraCore
       - package: MatomoTracker
+      - package: PiwikPROSDK
       - package: SwiftUIIntrospect
       - framework: StoreKit.framework
         embed: false

@@ -7,6 +7,7 @@
 
 import Foundation
 import MatomoTracker
+import PiwikPROSDK
 import EncameraCore
 
 
@@ -27,7 +28,7 @@ enum PurchaseGoal: Int {
         switch id {
         case "subscription.yearly.unlimitedkeysandphotos":
             self = .yearlyUnlimitedKeysAndPhotos
-        case "subscription.monthly.unlimitedkeysAndphotos":
+        case "subscription.monthly.unlimitedkeysandphotos":
             self = .montlyUnlimitedKeysAndPhotos
         default:
             return nil
@@ -37,95 +38,104 @@ enum PurchaseGoal: Int {
 
 
 class EventTracking {
-    private let tracker: MatomoTracker = MatomoTracker(siteId: "1", baseURL: URL(string: "https://encameraapp.matomo.cloud/matomo.php")!)
+    private let matomoTracker: MatomoTracker = MatomoTracker(siteId: "1", baseURL: URL(string: "https://encameraapp.matomo.cloud/matomo.php")!)
+    private let piwikTracker: PiwikTracker = PiwikTracker.sharedInstance(siteID: "5ed9378f-f689-439c-ba90-694075efc81a", baseURL: URL(string: "https://encamera.piwik.pro/piwik.php")!)!
     static let shared = EventTracking()
 
     private init() {
 
     }
 
-    private static func track(event: String, action: String, name: String? = nil, value: Float? = nil) {
-        Self.shared.tracker.track(eventWithCategory: event, action: action, name: name, value: value)
+    private static func track(category: String, action: String, name: String? = nil, value: Float? = nil) {
+        Self.shared.matomoTracker.track(eventWithCategory: category, action: action, name: name, value: value)
+        Self.shared.piwikTracker.sendEvent(category: category, action: action, name: name, value: value as NSNumber?, path: nil)
     }
 
     static func trackAppLaunched() {
-        track(event: "App", action: "Launched")
+        track(category: "app", action: "launched")
+    }
+
+    static func trackOpenedFromWidget() {
+        track(category: "app", action: "opened_from_widget")
     }
 
     static func trackCameraButtonPressed() {
-        track(event: "Camera", action: "Button Pressed")
+        track(category: "camera", action: "button_pressed")
     }
 
-    static func trackPictureTaken() {
-        track(event: "Camera", action: "Picture Taken")
+    static func trackMediaTaken(type: CameraMode) {
+        track(category: "camera", action: "media_captured", name: type.title)
     }
 
     static func trackAlbumOpened() {
-        track(event: "Album", action: "Opened")
+        track(category: "album", action: "opened")
     }
 
     static func trackImageViewed() {
-        track(event: "Image", action: "Viewed")
+        track(category: "media", action: "viewed", name: "image")
+    }
+
+    static func trackMovieViewed() {
+        track(category: "media", action: "viewed", name: "movie")
     }
 
     static func trackImageShared() {
-        track(event: "Image", action: "Shared")
+        track(category: "image", action: "shared")
     }
 
     static func trackOnboardingViewReached(view: OnboardingFlowScreen) {
-        track(event: "Onboarding", action: "View Reached", name: view.rawValue)
+        track(category: "onboarding", action: "view_reached", name: view.rawValue)
     }
 
     static func trackOnboardingFinished() {
-        track(event: "Onboarding", action: "Finished")
+        track(category: "onboarding", action: "finished")
     }
 
     static func trackPhotoLimitReachedScreenUpgradeTapped(from screen: String) {
-        track(event: "Photo Limit Reached", action: "Upgrade Tapped", name: screen)
+        track(category: "photo_limit_reached", action: "upgrade_tapped", name: screen)
     }
 
     static func trackPhotoLimitReachedScreenDismissed(from screen: String) {
-        track(event: "Photo Limit Reached", action: "Dismissed", name: screen)
+        track(category: "photo_limit_reached", action: "dismissed", name: screen)
     }
 
     static func trackConfirmStorageTypeSelected(type: StorageType) {
-        track(event: "Storage Type", action: "Selected", name: type.rawValue)
+        track(category: "storage_type", action: "selected", name: type.rawValue)
     }
 
     static func trackShowPurchaseScreen(from screen: String) {
-        track(event: "Purchase", action: "Show", name: screen)
+        track(category: "purchase", action: "show", name: screen)
     }
 
     static func trackPurchaseCompleted(from screen: String, currency: String, amount: Decimal, product: String) {
-        track(event: "PurchaseCompleted_\(product)", action: product, name: screen)
+        track(category: "purchase_completed_\(product.lowercased())", action: product.lowercased(), name: screen)
 
         guard let goalId = PurchaseGoal(id: product) else {
             return
         }
         let amountAsFloat = NSDecimalNumber(decimal: amount).floatValue
-
-        Self.shared.tracker.trackGoal(id: goalId.rawValue, revenue: amountAsFloat)
+        Self.shared.piwikTracker.sendGoal(ID: "\(goalId.rawValue)", revenue: amount as NSNumber)
+        Self.shared.matomoTracker.trackGoal(id: goalId.rawValue, revenue: amountAsFloat)
     }
 
     static func trackPurchaseScreenDismissed(from screen: String) {
-        track(event: "Purchase", action: "Dismissed", name: screen)
+        track(category: "purchase", action: "dismissed", name: screen)
     }
-    
+
     static func trackPurchaseIncomplete(from screen: String) {
-        track(event: "Purchase", action: "Incomplete", name: screen)
+        track(category: "purchase", action: "incomplete", name: screen)
     }
 
     static func trackAlbumCreated() {
-        track(event: "Album", action: "Created")
+        track(category: "album", action: "created")
     }
 
-
     static func trackAppOpened() {
-        track(event: "App", action: "Opened")
+        track(category: "app", action: "opened")
     }
 
     static func trackCreateAlbumButtonPressed() {
-        track(event: "Album", action: "Create Button Pressed")
+        track(category: "album", action: "create_button_pressed")
     }
 
 
