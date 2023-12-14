@@ -212,7 +212,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
             }
             .scrollIndicators(.hidden)
             .navigationBarTitle("")
-            .sheet(isPresented: $viewModel.showCamera, content: {
+            .fullScreenCover(isPresented: $viewModel.showCamera, content: {
 
                 if let album = viewModel.album {
                     CameraView(cameraModel: .init(
@@ -224,6 +224,9 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                     ), hasMediaToImport: .constant(false)) {
                         viewModel.showCamera = false
                         viewModel.albumManager.currentAlbum = viewModel.album
+                        Task {
+                            await viewModel.enumerateMedia()
+                        }
                     }
                 }
             })

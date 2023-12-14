@@ -50,10 +50,6 @@ class MainHomeViewViewModel: ObservableObject {
         self.settingsManager = SettingsManager()
         self.cameraService = CameraConfigurationService(model: cameraServiceModel)
         self.authManager = authManager
-        let manager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
-
-        self.keyManager = manager
-
     }
 
     func popLastView() {
@@ -116,7 +112,7 @@ struct MainHomeView: View {
                     ProductStoreView(showDismissButton: false, fromView: "AlbumGrid")
                 case "CreateAlbum":
                     if let key = viewModel.keyManager.currentKey {
-                        AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.keyManager.currentKey!, album: nil, shouldCreateAlbum: true))
+                        AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: key, album: nil, shouldCreateAlbum: true))
                     } else {
                         let _ = print("no key")
                         EmptyView()
