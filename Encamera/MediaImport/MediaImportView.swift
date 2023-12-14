@@ -89,7 +89,7 @@ struct MediaImportView: View {
     
     
     @StateObject var viewModel: MediaImportViewModel
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
 
     init(viewModel: MediaImportViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)

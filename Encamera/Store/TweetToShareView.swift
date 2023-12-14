@@ -9,7 +9,7 @@ import SwiftUI
 import EncameraCore
 
 struct TweetToShareView: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationView {

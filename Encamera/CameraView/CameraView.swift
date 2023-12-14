@@ -17,7 +17,7 @@ struct CameraView: View {
     @State var cameraModeStateModel = CameraModeStateModel()
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     var closeButtonTapped: () -> Void
     
     
@@ -122,8 +122,7 @@ struct CameraView: View {
     @State var showTookFirstPhotoSheet = true
     var trackingViewName = "Camera"
     var body: some View {
-        NavigationView {
-            
+
             ZStack {
                 mainCamera
                 tutorialViews
@@ -149,8 +148,7 @@ struct CameraView: View {
                     fileAccess: cameraModel.fileAccess
                 ))
             }
-        }
-        
+
         
     }
     

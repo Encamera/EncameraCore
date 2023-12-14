@@ -228,7 +228,6 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                 }
             })
         }
-        .screenBlocked()
 
     }
 

@@ -5,15 +5,16 @@
 //  Created by Alexander Freas on 25.10.23.
 //
 
-import SwiftUI
-import EncameraCore
 import Combine
+import EncameraCore
+import SwiftUI
 
 class AlbumGridViewModel: ObservableObject {
     @Published var albums: [Album] = .init()
     @Published var isShowingAddExistingKeyView: Bool = false
     @Published var isKeyTutorialClosed: Bool = true
     @Published var isShowingNotificationBanner: Bool = false
+
     var albumManager: AlbumManaging
     var fileManager: FileAccess
     var key: PrivateKey
@@ -36,28 +37,23 @@ class AlbumGridViewModel: ObservableObject {
 
     func loadAlbums() {
         UserDefaultUtils.set(true, forKey: .hasOpenedAlbum)
-        self.albums = Array(self.albumManager.albums)
+        albums = Array(albumManager.albums)
     }
 
     @MainActor
     var shouldShowPurchaseScreenForKeys: Bool {
-
-        if self.albums.count == 0 {
+        if albums.count == 0 {
             return false
         }
 
         return purchaseManager.isAllowedAccess(feature: .createKey(count: .infinity)) == false
     }
 
+    
 }
 
-
-
 struct AlbumGrid: View {
-
-
     @StateObject var viewModel: AlbumGridViewModel
-
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -65,9 +61,9 @@ struct AlbumGrid: View {
                 Text(L10n.albumsTitle)
                     .fontType(.large, weight: .bold)
                 Spacer()
-                NotificationBell() {
+                NotificationBell {
                     withAnimation {
-//                        viewModel.isShowingNotificationBanner.toggle()
+                        //                        viewModel.isShowingNotificationBanner.toggle()
                     }
                 }
             }
@@ -76,7 +72,7 @@ struct AlbumGrid: View {
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
                 let spacing = CGFloat(17.0)
-                let side = CGFloat(CGFloat(frame.width/2) - spacing)
+                let side = CGFloat(CGFloat(frame.width / 2) - spacing)
                 let columns = [
                     GridItem(.fixed(side), spacing: spacing),
                     GridItem(.fixed(side))
@@ -84,18 +80,9 @@ struct AlbumGrid: View {
                 ScrollView(showsIndicators: false) {
                     LazyVGrid(columns: columns, spacing: spacing) {
                         Group {
-
-                            NavigationLink {
-                                if viewModel.shouldShowPurchaseScreenForKeys {
-                                    ProductStoreView(showDismissButton: false, fromView: "AlbumGrid")
-                                } else {
-                                    AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.key, album: nil, shouldCreateAlbum: true))
-                                }
-                            } label: {
+                            NavigationLink(value: viewModel.shouldShowPurchaseScreenForKeys ? "ProductStore" : "CreateAlbum") {
                                 AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
                             }
-
-
                             albums(side: side)
 
                         }.frame(height: side + 60)
@@ -103,24 +90,21 @@ struct AlbumGrid: View {
                     .padding(.bottom, 80)
                 }
 
+
                 .screenBlocked()
             }
             .onAppear {
                 viewModel.loadAlbums()
             }
             .padding(24)
-            .navigationBarTitle(L10n.myKeys)
+            .toolbar(.hidden)
         }
-
     }
 
     @ViewBuilder
     private func albums(side: CGFloat) -> some View {
-
         ForEach(Array(viewModel.albums), id: \.id) { album in
-            NavigationLink {
-                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: album.key, album: album))
-            } label: {
+            NavigationLink(value: album) {
                 AlbumGridItem(key: album.key,
                               album: album,
                               albumManager: viewModel.albumManager,
@@ -128,8 +112,8 @@ struct AlbumGrid: View {
             }
         }
     }
-
 }
+
 #Preview {
     AlbumGrid(viewModel: .init(key: DemoPrivateKey.dummyKey(),
                                purchaseManager: DemoPurchasedPermissionManaging(),

@@ -301,7 +301,7 @@ struct EncameraApp: App {
         let fileAccess = viewModel.newMediaFileAccess
         switch media.mediaType {
         case .photo:
-            NavigationView {
+            NavigationStack {
                 GalleryHorizontalScrollView(
                     viewModel: GalleryHorizontalScrollViewModel.init(
                         media: [media],

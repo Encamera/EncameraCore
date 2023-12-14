@@ -159,7 +159,7 @@ struct GalleryHorizontalScrollView: View {
     @State var currentOffset: CGSize = .zero
     @State var showingShareSheet = false
     @State var showingDeleteConfirmation = false
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     var dragGestureRef = DragGesture(minimumDistance: 0)
     
     

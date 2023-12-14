@@ -12,18 +12,6 @@ import SwiftUIIntrospect
 
 import SwiftUI
 
-struct FirstResponderTextFieldModifier: ViewModifier {
-    @Binding var isFirstResponder: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .introspect(.textField) { (textField: UITextField) in
-                if self.isFirstResponder {
-                    textField.becomeFirstResponder()
-                }
-            }
-    }
-}
 
 @MainActor
 class AlbumDetailViewModel: ObservableObject {
@@ -67,7 +55,7 @@ class AlbumDetailViewModel: ObservableObject {
         guard let album else { return }
         self.album = album
         self.albumName = album.name
-
+	
         Task {
             self.fileManager = await DiskFileAccess(for: album, with: key, albumManager: albumManager)
         }
@@ -86,6 +74,12 @@ class AlbumDetailViewModel: ObservableObject {
             } else if let album {
                 self.album = try albumManager.renameAlbum(album: album, to: albumName)
             }
+
+            Task {
+                guard let album else { return }
+                await fileManager?.configure(for: album, with: album.key, albumManager: albumManager)
+                await gridViewModel?.enumerateMedia()
+            }
         } catch {
             if let albumError = error as? AlbumError, albumError == AlbumError.albumExists {
                 albumManagerError = L10n.albumExistsError
@@ -93,6 +87,7 @@ class AlbumDetailViewModel: ObservableObject {
                 albumManagerError = L10n.couldNotRenameAlbumError
             }
         }
+
         isEditingAlbumName = false
     }
 
@@ -117,10 +112,13 @@ struct AlbumDetailView: View {
     @State var isShowingMoveAlbumModal = false
     @State var isShowingAlertForCopyKey: Bool = false
     @State var isShowingPurchaseSheet = false
+
     @StateObject var viewModel: AlbumDetailViewModel
-
-    @Environment(\.dismiss) private var dismiss
-
+    @Environment(\.presentationMode) private var presentationMode
+    
+    func popLastView() {
+        presentationMode.wrappedValue.dismiss()
+    }
     private struct Constants {
         static var outerPadding = 20.0
     }
@@ -140,7 +138,7 @@ struct AlbumDetailView: View {
                             Spacer().frame(height: getSafeAreaTop() / 2)
                             HStack(alignment: .center) {
                                 Button {
-                                    dismiss()
+                                    popLastView()
                                 } label: {
                                     Image("Album-BackButton")
                                 }
@@ -171,7 +169,6 @@ struct AlbumDetailView: View {
                                     } label: {
                                         Image("Album-OptionsDots")
                                     }
-                                    .id(UUID())
                                     .frame(width: 44, height: 44)
                                 }
                             }.padding(.trailing, 17)
@@ -217,7 +214,7 @@ struct AlbumDetailView: View {
                     Button(L10n.deleteEverything, role: .destructive) {
 
                         viewModel.deleteAlbum()
-                        dismiss()
+                        popLastView()
 
                     }
                     Button(L10n.cancel, role: .cancel) {

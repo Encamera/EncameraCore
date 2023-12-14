@@ -32,7 +32,7 @@ private enum Constants {
 struct OnboardingView<Next>: View where Next: View {
     
     @State var nextActive: Bool = false 
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
 
     var viewModel: OnboardingViewViewModel
     

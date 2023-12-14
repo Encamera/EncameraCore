@@ -20,6 +20,7 @@ class MainHomeViewViewModel: ObservableObject {
     @Published var hasMediaToImport = false
     @Published var showImportedMediaScreen = false
     @Published var shouldShowTweetScreen: Bool = false
+    @Published var selectedPath: NavigationPath = .init()
 
     var fileAccess: FileAccess
     var cameraService: CameraConfigurationService
@@ -55,6 +56,11 @@ class MainHomeViewViewModel: ObservableObject {
 
     }
 
+    func popLastView() {
+        if !selectedPath.isEmpty {
+            selectedPath.removeLast()
+        }
+    }
 }
 
 
@@ -62,11 +68,14 @@ struct MainHomeView: View {
 
     @StateObject var viewModel: MainHomeViewViewModel
     @Binding var showCamera: Bool
+    
     @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums {
         didSet {
             showCamera = false
         }
     }
+
+
 
     init(viewModel: MainHomeViewViewModel, showCamera: Binding<Bool>) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -74,7 +83,7 @@ struct MainHomeView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $viewModel.selectedPath) {
             ZStack(alignment: .bottom) {
                 if selectedNavigationItem == .camera || showCamera {
                     CameraView(cameraModel: .init(
@@ -84,15 +93,16 @@ struct MainHomeView: View {
                         fileAccess: viewModel.fileAccess,
                         purchaseManager: viewModel.purchasedPermissions
                     ), hasMediaToImport: $viewModel.hasMediaToImport) {
-//                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
+                        //                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
                         selectedNavigationItem = .albums
                     }
-//                    .transition(.move(edge: .bottom))
+                    //                    .transition(.move(edge: .bottom))
                 } else {
                     if selectedNavigationItem == .settings {
                         SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
                     } else {
                         AlbumGrid(viewModel: .init(key: viewModel.privateKey, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
+//                            .environment(\.popLastView, viewModel.popLastView)
                     }
                     BottomNavigationBar(selectedItem: $selectedNavigationItem)
                 }
@@ -100,8 +110,23 @@ struct MainHomeView: View {
             .toolbar(.hidden)
             .ignoresSafeArea(edges: .bottom)
             .gradientBackground()
+            .screenBlocked()
+            .navigationDestination(for: String.self) { destination in
+                switch destination {
+                case "ProductStore":
+                    ProductStoreView(showDismissButton: false, fromView: "AlbumGrid")
+                case "CreateAlbum":
+                    AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: viewModel.keyManager.currentKey!, album: nil, shouldCreateAlbum: true))
+                default:
+                    EmptyView()
+                }
+            }
+            .navigationDestination(for: Album.self) { album in
+                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: album.key, album: album))
+
+            }
         }
-        .screenBlocked()
+
     }
 }
 

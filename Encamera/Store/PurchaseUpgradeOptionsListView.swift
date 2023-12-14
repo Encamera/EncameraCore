@@ -40,7 +40,7 @@ struct PurchaseUpgradeOptionsListView: View {
     let currentActiveSubscription: ServiceSubscription?
     let freeUnlimitedTapped: () -> ()
     let onPurchase: () -> ()
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
 
     func binding(for subscription: ServiceSubscription) -> Binding<Bool> {
         return Binding {

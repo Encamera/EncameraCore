@@ -93,7 +93,7 @@ class SettingsViewViewModel: ObservableObject {
 struct SettingsView: View {
     
     
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
 
     @StateObject var viewModel: SettingsViewViewModel
     
