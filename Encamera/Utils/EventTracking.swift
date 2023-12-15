@@ -55,8 +55,8 @@ class EventTracking {
         track(category: "app", action: "launched")
     }
 
-    static func trackOpenedFromWidget() {
-        track(category: "app", action: "opened_from_widget")
+    static func trackOpenedCameraFromWidget() {
+        track(category: "app", action: "opened_camera_from_widget")
     }
 
     static func trackCameraButtonPressed() {

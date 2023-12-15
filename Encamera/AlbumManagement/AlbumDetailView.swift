@@ -192,9 +192,13 @@ struct AlbumDetailView: View {
                                     .fontType(.pt24, weight: .bold)
                             }
                             Spacer().frame(height: 8)
-                            Text(viewModel.album?.creationDate.formatted() ?? "")
-                                .fontType(.pt14)
-                                .opacity(viewModel.isEditingAlbumName ? 0 : 1)
+                            Group {
+                                Text(viewModel.album?.creationDate.formatted() ?? "")
+                                Text(viewModel.album?.storageOption == .icloud ? L10n.savedToICloud : L10n.savedToDevice)
+
+                            }
+                            .fontType(.pt14)
+                            .opacity(viewModel.isEditingAlbumName ? 0 : 1)
 
                             Spacer().frame(height: 24)
                             //                            Button {

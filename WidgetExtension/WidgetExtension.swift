@@ -48,7 +48,7 @@ struct WidgetExtensionEntryView : View {
             Image("WidgetIcon")
                 .resizable()
                 .widgetAccentable()
-        }.widgetURL(URLType.camera.url!)
+        }.widgetURL(URLType.cameraFromWidget.url!)
     }
 }
 

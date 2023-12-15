@@ -168,18 +168,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                         .frame(width: largeSide)
                         
                     } else if viewModel.album != nil {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(L10n.addPhotosToThisAlbum)
-                                .fontType(.pt14, weight: .bold)
-                                .foregroundColor(.white)
-                                .opacity(0.40)
-                          VStack(alignment: .leading, spacing: 16) {
-
-                              OptionItemView(title: L10n.takeAPhoto, description: L10n.useCameraToTakePhotos, isAvailable: true, unavailableReason: nil, image: Image("Onboarding-Permissions-Camera"), isSelected: $viewModel.showCamera)
-
-                          }
-                        }
-                        .padding()
+                        emptyState
                     }
                 }.onChange(of: viewModel.showCamera) { oldValue, newValue in
                     viewModel.albumManager.currentAlbum = viewModel.album
@@ -232,6 +221,21 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
             })
         }
 
+    }
+    
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(L10n.addPhotosToThisAlbum)
+                .fontType(.pt14, weight: .bold)
+                .foregroundColor(.white)
+                .opacity(0.40)
+          VStack(alignment: .leading, spacing: 16) {
+
+              OptionItemView(title: L10n.takeAPhoto, description: L10n.useCameraToTakePhotos, isAvailable: true, unavailableReason: nil, image: Image("Onboarding-Permissions-Camera"), isSelected: $viewModel.showCamera)
+
+          }
+        }
+        .padding()
     }
 
     private func imageForItem(mediaItem: EncryptedMedia, width: CGFloat, height: CGFloat, index: Int) -> some View {

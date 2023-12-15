@@ -270,7 +270,8 @@ struct EncameraApp: App {
                             if let url = viewModel.openedUrl,
                                let urlType = URLType(url: url),
                                viewModel.authManager.isAuthenticated,
-                               urlType == .camera {
+                               urlType == .cameraFromWidget {
+                                EventTracking.trackOpenedCameraFromWidget()
                                 self.showCamera = true
                             }
                         }

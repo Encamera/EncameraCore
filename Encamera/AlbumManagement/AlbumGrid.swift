@@ -33,6 +33,14 @@ class AlbumGridViewModel: ObservableObject {
         albumManger.albumPublisher.sink { _ in
             self.loadAlbums()
         }.store(in: &cancellables)
+
+        FileOperationBus.shared
+            .operations
+            .receive(on: RunLoop.main)
+            .sink { _ in
+                self.albumManager.loadAlbumsFromFilesystem()
+                self.loadAlbums()
+            }.store(in: &cancellables)
     }
 
     func loadAlbums() {
