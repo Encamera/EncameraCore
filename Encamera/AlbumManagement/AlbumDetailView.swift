@@ -193,9 +193,7 @@ struct AlbumDetailView: View {
                             }
                             Spacer().frame(height: 8)
                             Group {
-                                Text(viewModel.album?.creationDate.formatted() ?? "")
-                                Text(viewModel.album?.storageOption == .icloud ? L10n.savedToICloud : L10n.savedToDevice)
-
+                                Text("\(viewModel.album?.creationDate.formatted() ?? "") • \(viewModel.album?.storageOption == .icloud ? L10n.savedToICloud : L10n.savedToDevice)")
                             }
                             .fontType(.pt14)
                             .opacity(viewModel.isEditingAlbumName ? 0 : 1)

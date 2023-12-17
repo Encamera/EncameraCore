@@ -174,8 +174,8 @@ struct SettingsView: View {
 
                 }
                 .padding(.init(top: 10, leading: 0, bottom: 10, trailing: 0))
-
             }
+            .scrollIndicators(.hidden)
             .scrollContentBackgroundColor(.clear)
 
         }

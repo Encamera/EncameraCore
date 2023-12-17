@@ -50,6 +50,12 @@ class AuthenticationViewModel: ObservableObject {
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
+
+        NotificationUtils.willEnterForegroundPublisher
+            .sink { [weak self] _ in
+                self?.authenticateWithBiometrics()
+            }
+            .store(in: &cancellables)
     }
     
     func authenticatePassword(password: String) {
@@ -151,7 +157,7 @@ struct AuthenticationView: View {
             Spacer()
         }
         .onAppear {
-            // delay 1 second
+            // delay 0.5 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 viewModel.authenticateWithBiometrics()
             }
