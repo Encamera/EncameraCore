@@ -55,7 +55,7 @@ final class CameraModel: NSObject, ObservableObject {
     // View showing
     @Published var showGalleryView: Bool = false
     @Published var showingAlbum = false
-    @Published var showAlertForMissingKey = false
+    @Published var showAlertForMissingAlbum = false
     @Published var showStoreSheet = false
     @Published var showSettingsScreen = false
     
@@ -135,7 +135,6 @@ final class CameraModel: NSObject, ObservableObject {
         NotificationUtils.hardwareButtonPressedPublisher
             .sink { _ in
                 self.eventSubject.send()
-
             }.store(in: &cancellables)
         FileOperationBus.shared.operations.sink { operation in
             Task {
@@ -234,7 +233,7 @@ final class CameraModel: NSObject, ObservableObject {
                         
                     
                     case .missingPrivateKey:
-                        showAlertForMissingKey = true
+                        showAlertForMissingAlbum = true
                     default:
                         break
                     }

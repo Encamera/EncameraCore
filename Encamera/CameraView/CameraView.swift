@@ -132,10 +132,11 @@ struct CameraView: View {
         }
         .background(Color.background)
         .screenBlocked()
-        .alert(isPresented: $cameraModel.showAlertForMissingKey) {
-            Alert(title: Text(L10n.noAlbum), message: Text(L10n.noAlbumSelected), primaryButton: .default(Text(L10n.keySelection)) {
+        .alert(isPresented: $cameraModel.showAlertForMissingAlbum) {
+            Alert(title: Text(L10n.noAlbum), message: Text(L10n.noAlbumSelected), dismissButton: .default(Text(L10n.ok)) {
                 cameraModel.showingAlbum = true
-            }, secondaryButton: .cancel())
+            })
+
         }
         .sheet(isPresented: $cameraModel.showStoreSheet) {
             ProductStoreView(fromView: "Camera")
