@@ -82,6 +82,8 @@ struct CameraView: View {
         BottomCameraButtonView(cameraModel: cameraModel, cameraModeStateModel: cameraModeStateModel)
     }
 
+    private let viewTitle: String = "Camera"
+
     private var cameraPreview: some View {
 #if targetEnvironment(simulator)
         //        Color.clear.background {
@@ -138,10 +140,7 @@ struct CameraView: View {
             })
 
         }
-        .sheet(isPresented: $cameraModel.showStoreSheet) {
-            ProductStoreView(fromView: "Camera")
-
-        }
+        .productStore(isPresented: $cameraModel.showStoreSheet, fromViewName: viewTitle)
         .sheet(isPresented: $cameraModel.showImportedMediaScreen) {
             MediaImportView(viewModel: .init(
                 privateKey: cameraModel.privateKey,
@@ -197,16 +196,14 @@ struct CameraView: View {
         }, dismissAction: {
             cameraModel.showTookFirstPhotoSheet = false
         })
-        .sheet(isPresented: $cameraModel.showPurchaseSheet, content: {
-            ProductStoreView(fromView: "CameraView") { finishedAction in
-                if case .purchaseComplete = finishedAction {
-                    cameraModel.showExplanationForUpgrade = false
-                }
-                Task {
-                    await cameraModel.service.start()
-                }
+        .productStore(isPresented: $cameraModel.showPurchaseSheet, fromViewName: viewTitle) { finishedAction in
+            if case .purchaseComplete = finishedAction {
+                cameraModel.showExplanationForUpgrade = false
             }
-        })
+            Task {
+                await cameraModel.service.start()
+            }
+        }
     }
 
     private var mainCamera: some View {
@@ -250,9 +247,9 @@ struct CameraView: View {
 
             }
             bottomButtonPanel
-                .padding(.bottom, getSafeAreaBottom())
+            .padding(.bottom, getSafeAreaBottom())
         }
-        .edgesIgnoringSafeArea(.top)
+        .ignoresSafeArea(edges: [.top, .bottom])
         .task {
             Task {
                 await cameraModel.initialConfiguration()

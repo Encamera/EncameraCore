@@ -71,6 +71,7 @@ struct AlbumGrid: View {
                     .fontType(.large, weight: .bold)
                 Spacer()
                 NotificationBell {
+                    EventTracking.trackNotificationBellPressed()
                     withAnimation {
                         //                        viewModel.isShowingNotificationBanner.toggle()
                     }

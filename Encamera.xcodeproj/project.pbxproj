@@ -119,7 +119,6 @@
 		630D45B83C7AF078F62D4C5F /* Satoshi-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 727626CC92C9393321DCE958 /* Satoshi-Medium.otf */; };
 		63166DA0C32EA6573493DDCF /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0D4E617FB35B8C6F46542FB9 /* Media.xcassets */; };
 		6345E84E27CE1429CDB492EA /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3A5DFF757B2443487FD43C7F /* Lato-Regular.ttf */; };
-		634B0425B9F4BF25AF3C2AF2 /* ShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C078E03BCFAAA274C5A52366 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		64A89946F6E0FE1E9A9DEC59 /* AddExchangedKeyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 076F52AEC64B3B8625A49DA1 /* AddExchangedKeyConfirmation.swift */; };
 		65189DFD39A505DBC6CC6233 /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 49584FA474C0C8429D7B9214 /* Sodium */; };
 		65CF61D3900613F53677F0BE /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0E6BF886C6561879BCC0CA99 /* Preview Assets.xcassets */; };
@@ -280,13 +279,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		1CC902B53D26B6273104326B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = A47DB3FD4772EE1BAC336831 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C94ABACC9710142683E2AD12;
-			remoteInfo = ShareExtension;
-		};
 		4FBD0FFA0D0ABA143F7A822E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A47DB3FD4772EE1BAC336831 /* Project object */;
@@ -328,7 +320,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				634B0425B9F4BF25AF3C2AF2 /* ShareExtension.appex in Embed App Extensions */,
 				AE314A496F831ECBDCE522CD /* WidgetExtension.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
@@ -985,7 +976,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				A510232A9177F3B2780C2FBE /* PBXTargetDependency */,
 				80DF6F674CF38FC284A24188 /* PBXTargetDependency */,
 			);
 			name = Encamera;
@@ -1470,11 +1460,6 @@
 			isa = PBXTargetDependency;
 			target = 4A947C5139ACF4F002A48F27 /* WidgetExtension */;
 			targetProxy = 96BCF6414F64ADC73ADA3D8D /* PBXContainerItemProxy */;
-		};
-		A510232A9177F3B2780C2FBE /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C94ABACC9710142683E2AD12 /* ShareExtension */;
-			targetProxy = 1CC902B53D26B6273104326B /* PBXContainerItemProxy */;
 		};
 		E857B4708FFF396537CCE649 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

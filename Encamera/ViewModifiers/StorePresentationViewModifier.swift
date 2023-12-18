@@ -16,10 +16,9 @@ struct StorePresentationViewModifier: ViewModifier {
     func body(content: Content) -> some View {
         ZStack {
             content
-            if isPresented {
-                ProductStoreView(fromView: fromViewName, purchaseAction: purchaseAction)
-                    .transition(.move(edge: .bottom))
-            }
+                .fullScreenCover(isPresented: $isPresented) {
+                    ProductStoreView(fromView: fromViewName, purchaseAction: purchaseAction)
+                }
         }
     }
 }

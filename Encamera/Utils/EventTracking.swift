@@ -152,5 +152,17 @@ class EventTracking {
         track(category: "album", action: "create_button_pressed")
     }
 
+    static func trackNotificationBellPressed() {
+        track(category: "notification", action: "bell_pressed")
+    }
+
+    static func trackSettingsTelegramPressed() {
+        track(category: "settings", action: "telegram_pressed")
+    }
+
+    static func trackSettingsContactPressed() {
+        track(category: "settings", action: "contact_pressed")
+    }
+
 
 }

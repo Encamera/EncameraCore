@@ -93,7 +93,12 @@ class SettingsViewViewModel: ObservableObject {
 struct SettingsView: View {
     
     
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
+
+    func dismiss() {
+        presentationMode.wrappedValue.dismiss()
+    }
+
 
     @StateObject var viewModel: SettingsViewViewModel
     
@@ -128,6 +133,7 @@ struct SettingsView: View {
                     Section {
                         Button(L10n.joinTelegramGroup) {
                             Task {
+                                EventTracking.trackSettingsTelegramPressed()
                                 await UIApplication.shared.open(URL(string: "https://t.me/encamera_app")!)
                             }
                         }
@@ -149,6 +155,8 @@ struct SettingsView: View {
                         }
                     }
                     Section {
+                        let _ = Self._printChanges()
+
                         changePassword
                         if viewModel.authManager.canAuthenticateWithBiometrics {
                             biometricsToggle
@@ -181,13 +189,8 @@ struct SettingsView: View {
         }
         .gradientBackground()
         .fontType(.pt14, weight: .bold)
-        .sheet(isPresented: $viewModel.showPremium) {
-            premium
-        }.padding(.bottom, 90)
-    }
-    
-    private var premium: some View {
-        ProductStoreView(fromView: "Settings")
+        .productStore(isPresented: $viewModel.showPremium, fromViewName: "Settings")
+        .padding(.bottom, 90)
     }
     
     private var reset: some View {
@@ -260,7 +263,6 @@ struct SettingsView: View {
                     }
                 }
             }
-            
             .scrollContentBackgroundColor(.background)
             .fontType(.pt18)
             .toolbar {

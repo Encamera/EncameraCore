@@ -96,7 +96,6 @@ targets:
       OTHER_LDFLAGS: "-ObjC"
     dependencies:
       - package: Sodium
-      - target: ShareExtension
       - target: WidgetExtension
       - package: EncameraCore
       - package: MatomoTracker

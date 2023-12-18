@@ -162,7 +162,7 @@ struct GalleryHorizontalScrollView: View {
     @Environment(\.dismiss) private var dismiss
     var dragGestureRef = DragGesture(minimumDistance: 0)
     
-    
+    private let viewTitle: String = "GalleryView"
     func offsetBinding(for item: EncryptedMedia) -> Binding<CGSize> {
         return Binding<CGSize> {
             if viewModel.selectedMedia == item {
@@ -233,9 +233,7 @@ struct GalleryHorizontalScrollView: View {
                 }
             }
         }
-        .sheet(isPresented: $viewModel.showPurchaseSheet) {
-            ProductStoreView(fromView: "ImageScrollView")
-        }
+        .productStore(isPresented: $viewModel.showPurchaseSheet, fromViewName: viewTitle)
     }
     
     
