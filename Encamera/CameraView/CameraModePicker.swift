@@ -24,9 +24,9 @@ enum CameraModeSelection: Int, CaseIterable {
     var title: String {
         switch self {
         case .photo:
-            return "PHOTO"
+            return L10n.photo
         case .video:
-            return "VIDEO"
+            return L10n.video
         }
     }
 }

@@ -33,6 +33,7 @@ class AlbumGridViewModel: ObservableObject {
         albumManger.albumPublisher.sink { _ in
             self.loadAlbums()
         }.store(in: &cancellables)
+        albumManager.loadAlbumsFromFilesystem()
 
         FileOperationBus.shared
             .operations
@@ -45,7 +46,6 @@ class AlbumGridViewModel: ObservableObject {
 
     func loadAlbums() {
         UserDefaultUtils.set(true, forKey: .hasOpenedAlbum)
-        albumManager.loadAlbumsFromFilesystem()
         albums = Array(albumManager.albums)
     }
 

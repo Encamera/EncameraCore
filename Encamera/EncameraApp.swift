@@ -344,6 +344,9 @@ struct EncameraApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         EventTracking.trackAppLaunched()
+        // set app launch version to current app version
+        let buildNumber = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        UserDefaultUtils.set(buildNumber, forKey: .lastAppLaunchVersion)
         return true
     }
 }

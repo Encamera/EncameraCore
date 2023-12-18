@@ -40,7 +40,10 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
     @Published var keyStorageType: StorageType?
     @MainActor
     @Published var storageAvailabilities: [StorageAvailabilityModel] = []
+    @MainActor
     @Published var existingPasswordCorrect: Bool?
+    @MainActor
+    @Published var isShowingAlertForPermissions: Bool = false
     @MainActor
     @Published var useBiometrics: Bool = false
     @Published var saveToiCloud = false
@@ -177,8 +180,12 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
                 try authManager.authorize(with: existingPassword, using: keyManager)
             } else {
                 try authManager.authorize(with: password1, using: keyManager)
+            }
+            let keys = try? keyManager.storedKeys()
+            if keys == nil || keys?.isEmpty ?? false {
                 let _ = try keyManager.generateKeyUsingRandomWords(name: AppConstants.defaultKeyName)
             }
+
             var albumManager = GenericAlbumManaging(keyManager: keyManager)
             let album = try? albumManager.create(name: AppConstants.defaultAlbumName, storageOption: .local)
             albumManager.currentAlbum = album
@@ -206,6 +213,20 @@ struct MainOnboardingView<GenericAlbumManaging: AlbumManaging>: View {
                 .background(Color.background)
         }
         .ignoresSafeArea(.keyboard)
+        .alert(
+            L10n.permissionsNeededTitle,
+            isPresented: $viewModel.isShowingAlertForPermissions,
+            presenting: L10n.permissionsNeededText
+        ) { _ in
+            Button(L10n.openSettings) {
+                UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
+            }
+            Button(L10n.cancel) {
+                viewModel.isShowingAlertForPermissions = false
+            }
+        } message: { details in
+            Text(details)
+        }
     }
 
     private func canGoTo(tab: OnboardingFlowScreen) -> Bool {
@@ -412,13 +433,29 @@ private extension MainOnboardingView {
             return .init(
                 screen: flow,
                 title: L10n.onboardingPermissionsTitle,
-                         subheading: L10n.onboardingPermissionsSubheading,
-                         image: Image("Onboarding-Permissions"),
-                         bottomButtonTitle: "Add Permissions", bottomButtonAction: {
-                             try await self.cameraPermissions.requestCameraPermission()
-                             try? await self.cameraPermissions.requestMicrophonePermission()
-                             try await viewModel.saveState()
-                             EventTracking.trackOnboardingFinished()
+                subheading: L10n.onboardingPermissionsSubheading,
+                image: Image("Onboarding-Permissions"),
+                bottomButtonTitle: L10n.addPermissions, bottomButtonAction: {
+                    do {
+                        try await self.cameraPermissions.requestCameraPermission()
+                        EventTracking.trackCameraPermissionsGranted()
+                    } catch let error as PermissionError {
+                        if error == .denied {
+                            EventTracking.trackCameraPermissionsDenied()
+                            viewModel.isShowingAlertForPermissions = true
+                            return
+                        }
+                    }
+                    do {
+                        try await self.cameraPermissions.requestMicrophonePermission()
+                        EventTracking.trackMicrophonePermissionsGranted()
+                    } catch let error as PermissionError {
+                        if error == .denied {
+                            EventTracking.trackMicrophonePermissionsDenied()
+                        }
+                    }
+                    try await viewModel.saveState()
+                    EventTracking.trackOnboardingFinished()
                              throw OnboardingViewError.onboardingEnded
                          }, content: { _ in
                 AnyView(VStack {

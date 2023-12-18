@@ -26,9 +26,7 @@ struct ChooseStorageModalViewModifier: ViewModifier {
                     didSelectStorage(storage, hasEntitlement)
                 }, dismissButtonPressed: dismissAction)
             }
-
         }
-
     }
 }
 

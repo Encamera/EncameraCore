@@ -89,10 +89,9 @@ struct MainHomeView: View {
                         fileAccess: viewModel.fileAccess,
                         purchaseManager: viewModel.purchasedPermissions
                     ), hasMediaToImport: $viewModel.hasMediaToImport) {
-                        //                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
+                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
                         selectedNavigationItem = .albums
                     }
-                    //                    .transition(.move(edge: .bottom))
                 } else {
                     if selectedNavigationItem == .settings {
                         SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
@@ -100,6 +99,11 @@ struct MainHomeView: View {
                         AlbumGrid(viewModel: .init(key: viewModel.privateKey, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
                     }
                     BottomNavigationBar(selectedItem: $selectedNavigationItem)
+                }
+            }
+            .onAppear {
+                if UserDefaultUtils.bool(forKey: .showCameraOnLaunch) {
+                    selectedNavigationItem = .camera
                 }
             }
             .toolbar(.hidden)

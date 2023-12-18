@@ -38,16 +38,15 @@ enum PurchaseGoal: Int {
 
 
 class EventTracking {
-    private let matomoTracker: MatomoTracker = MatomoTracker(siteId: "1", baseURL: URL(string: "https://encameraapp.matomo.cloud/matomo.php")!)
     private let piwikTracker: PiwikTracker = PiwikTracker.sharedInstance(siteID: "5ed9378f-f689-439c-ba90-694075efc81a", baseURL: URL(string: "https://encamera.piwik.pro/piwik.php")!)!
     static let shared = EventTracking()
 
     private init() {
-
+        // set device locale as custom dimension
+        piwikTracker.setCustomDimension(identifier: 1, value: Locale.current.identifier)
     }
 
     private static func track(category: String, action: String, name: String? = nil, value: Float? = nil) {
-        Self.shared.matomoTracker.track(eventWithCategory: category, action: action, name: name, value: value)
         Self.shared.piwikTracker.sendEvent(category: category, action: action, name: name, value: value as NSNumber?, path: nil)
     }
 
@@ -115,7 +114,6 @@ class EventTracking {
         }
         let amountAsFloat = NSDecimalNumber(decimal: amount).floatValue
         Self.shared.piwikTracker.sendGoal(ID: "\(goalId.rawValue)", revenue: amount as NSNumber)
-        Self.shared.matomoTracker.trackGoal(id: goalId.rawValue, revenue: amountAsFloat)
     }
 
     static func trackPurchaseScreenDismissed(from screen: String) {
@@ -124,6 +122,22 @@ class EventTracking {
 
     static func trackPurchaseIncomplete(from screen: String) {
         track(category: "purchase", action: "incomplete", name: screen)
+    }
+
+    static func trackCameraPermissionsDenied() {
+        track(category: "permissions", action: "permissions_denied", name: "camera")
+    }
+
+    static func trackCameraPermissionsGranted() {
+        track(category: "permissions", action: "permissions_granted", name: "camera")
+    }
+
+    static func trackMicrophonePermissionsDenied() {
+        track(category: "permissions", action: "permissions_denied", name: "microphone")
+    }
+
+    static func trackMicrophonePermissionsGranted() {
+        track(category: "permissions", action: "permissions_granted", name: "microphone")
     }
 
     static func trackAlbumCreated() {

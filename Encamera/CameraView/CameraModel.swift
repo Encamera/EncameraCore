@@ -115,6 +115,20 @@ final class CameraModel: NSObject, ObservableObject {
            await cameraService.setDelegate(self)
         }
 
+        albumManager.selectedAlbumPublisher
+            .receive(on: RunLoop.main)
+            .sink { album in
+                Task {
+                    guard let album else {
+                        return
+                    }
+                    await self.fileAccess.configure(
+                        for: album, with: privateKey, albumManager: albumManager
+                    )
+                }
+            }
+            .store(in: &cancellables)
+
         eventSubject
             .handleEvents(receiveOutput: { _ in
                 if !self.isProcessingEvent {
@@ -142,6 +156,7 @@ final class CameraModel: NSObject, ObservableObject {
             }
         }.store(in: &cancellables)
         setupPublishedVars()
+        albumManager.loadAlbumsFromFilesystem()
     }
     
     func initialConfiguration() async {
@@ -230,8 +245,7 @@ final class CameraModel: NSObject, ObservableObject {
             } catch let filesError as FileAccessError {
                 await MainActor.run {
                     switch filesError {
-                        
-                    
+
                     case .missingPrivateKey:
                         showAlertForMissingAlbum = true
                     default:
