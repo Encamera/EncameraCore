@@ -10,7 +10,7 @@ import EncameraCore
 
 struct BottomCameraButtonView: View {
     private enum Constants {
-        static var minCaptureButtonEdge: Double = 56
+        static var minCaptureButtonEdge: Double = 66
         static var innerCaptureButtonLineWidth: Double = 2
         static var innerCaptureButtonStroke: Double = 0.8
         static var innerCaptureButtonSize = Constants.minCaptureButtonEdge * 0.85

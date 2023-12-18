@@ -140,7 +140,14 @@ struct CameraView: View {
             })
 
         }
-        .productStore(isPresented: $cameraModel.showStoreSheet, fromViewName: viewTitle)
+        .productStore(isPresented: $cameraModel.showPurchaseSheet, fromViewName: viewTitle) { finishedAction in
+            if case .purchaseComplete = finishedAction {
+                cameraModel.showExplanationForUpgrade = false
+            }
+            Task {
+                await cameraModel.service.start()
+            }
+        }
         .sheet(isPresented: $cameraModel.showImportedMediaScreen) {
             MediaImportView(viewModel: .init(
                 privateKey: cameraModel.privateKey,
@@ -196,14 +203,6 @@ struct CameraView: View {
         }, dismissAction: {
             cameraModel.showTookFirstPhotoSheet = false
         })
-        .productStore(isPresented: $cameraModel.showPurchaseSheet, fromViewName: viewTitle) { finishedAction in
-            if case .purchaseComplete = finishedAction {
-                cameraModel.showExplanationForUpgrade = false
-            }
-            Task {
-                await cameraModel.service.start()
-            }
-        }
     }
 
     private var mainCamera: some View {
