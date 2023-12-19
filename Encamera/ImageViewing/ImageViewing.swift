@@ -81,7 +81,14 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
         Task {
             do {
                 let result = try await fileAccess!.loadMediaInMemory(media: sourceMedia) { progress in
-                    self.loadingProgress = progress
+                    switch progress {
+                    case .decrypting(progress: let progress), .downloading(progress: let progress):
+                        self.loadingProgress = progress
+                    case .loaded:
+                        self.loadingProgress = 1.0
+                    case .notLoaded:
+                        self.loadingProgress = 0.0
+                    }
                 }
                 await MainActor.run {
                     self.decryptedFileRef = result

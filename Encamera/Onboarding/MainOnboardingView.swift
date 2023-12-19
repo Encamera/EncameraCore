@@ -171,10 +171,11 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
     func saveState() async throws {
         do {
             let savedState = OnboardingState.completed
-            try await savePassword()
+
             if existingPassword.isEmpty == false {
                 try authManager.authorize(with: existingPassword, using: keyManager)
             } else {
+                try await savePassword()
                 try authManager.authorize(with: password1, using: keyManager)
             }
             let keys = try? keyManager.storedKeys()

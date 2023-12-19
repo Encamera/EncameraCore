@@ -15,7 +15,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     
     @Published var decryptedFileRef: CleartextMedia<URL>?
     @MainActor
-    @Published var decryptProgress: Double = 0.0
+    @Published var decryptProgress: FileLoadingStatus = .notLoaded
     @Published var player: AVPlayer?
     @Published fileprivate var didFinishPlaying: Bool = false
     @Published fileprivate var videoDuration: Double = 0.0
@@ -60,6 +60,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
             throw MediaViewingError.fileAccessNotAvailable
         }
         let cleartextMedia = try await fileAccess.loadMediaToURL(media: sourceMedia) { progress in
+            debugPrint("Decrypting movie: \(progress)")
             self.decryptProgress = progress
         }
         
@@ -148,13 +149,7 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
                 Text(L10n.couldNotDecryptMovie(error.localizedDescription))
                     .foregroundColor(.red)
             } else {
-                ProgressView(L10n.decrypting, value: progress).onReceive(viewModel.$decryptProgress) { out in
-                    self.progress = out
-                }.task {
-                    await viewModel.decryptAndSet()
-                    EventTracking.trackMovieViewed()
-                }.padding()
-                
+                progressView
             }
         }
         .clipped()
@@ -176,6 +171,37 @@ struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
             viewModel.player?.pause()
         }
 
+    }
+
+    private var progressView: some View {
+        ProgressView(statusString, value: progress)
+            .onReceive(viewModel.$decryptProgress) { out in
+            switch out {
+            case .downloading(progress: let progress),
+                    .decrypting(progress: let progress):
+                self.progress = progress
+            case .loaded:
+                self.progress = 1.0
+            default:
+                break
+            }
+        }.task {
+            await viewModel.decryptAndSet()
+            EventTracking.trackMovieViewed()
+        }.padding()
+    }
+
+    private var statusString: String {
+        switch viewModel.decryptProgress {
+        case .notLoaded:
+            return L10n.decrypting
+        case .downloading(progress: _):
+            return L10n.downloadingFromICloud
+        case .loaded:
+            return ""
+        case .decrypting(progress: _):
+            return L10n.decrypting
+        }
     }
 }
 //

@@ -107,7 +107,6 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
         media = enumerated
         firstImage = enumerated.first
         enumerateiCloudUndownloaded()
-        startiCloudDownload()
     }
 
     func blurItemAt(index: Int) -> Bool {
