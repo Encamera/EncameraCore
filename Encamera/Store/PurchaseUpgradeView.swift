@@ -22,7 +22,9 @@ struct FeatureIcon: View {
                 .cornerRadius(4)
                 .opacity(0.10)
             image
-                .opacity(0.50)
+                .renderingMode(.template)
+//                .opacity(0.50)
+                .foregroundColor(.actionYellowGreen)
         }
         .frame(width: 42, height: 42)
     }
@@ -71,45 +73,58 @@ struct ProductStoreView: View {
     @State private var errorAlertIsPresented = false
     @State private var showTweetForFreeView = false
 
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
+
+
 
     var showDismissButton = true
     var fromView: String
     var purchaseAction: PurchaseResultAction?
 
     var body: some View {
-        ZStack(alignment: .top) {
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                Image("Premium-TopHalo")
+                    .resizable()
 
-            VStack(spacing: 8) {
-                PurchaseUpgradeHeaderView()
-                    .frame(maxWidth: .infinity)
-                createFeatureRow(image: Image("Premium-Infinity"), title: "Unlimited Albums")
-                createFeatureRow(image: Image("Premium-Albums"), title: "Unlimited Photos")
-                createFeatureRow(image: Image("Premium-Folders"), title: "Password Protected Albums")
-                createFeatureRow(image: Image("Premium-CustomIcon"), title: "Custom Icon")
-                Spacer()
-            }
-            .padding()
-            .navigationBarTitle(L10n.upgradeToday)
-            .overlay(alignment: .topTrailing) {
-                if showDismissButton {
-                    dismissButton
-                        .padding()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: geo.size.width)
+                    .ignoresSafeArea(.all)
+                ScrollView {
+                    VStack(spacing: 0) {
+                        PurchaseUpgradeHeaderView()
+                            .frame(maxWidth: .infinity)
+                        VStack(spacing: 0) {
+
+                            createFeatureRow(image: Image("Premium-Albums"), title: "Unlimited storage for photos & videos")
+                            createFeatureRow(image: Image("Premium-Infinity"), title: "Unlimited albums for your memories")
+                            createFeatureRow(image: Image("Premium-Folders"), title: "iCloud storage & backup")
+                        }.padding(.leading, 40)
+                        Spacer()
+                    }
                 }
+
+                .navigationBarTitle(L10n.upgradeToday)
+                .overlay(alignment: .topLeading) {
+                    if showDismissButton {
+                        dismissButton
+                            .padding()
+                    }
+                }
+                .onAppear {
+                    selectedSubscription = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
+                    currentActiveSubscription = subscriptionController.entitledSubscription
+                }
+                .alert(
+                    subscriptionController.purchaseError?.errorDescription ?? "",
+                    isPresented: $errorAlertIsPresented,
+                    actions: {}
+                )
+                productCellsScrollView
+            }.onAppear {
+                EventTracking.trackShowPurchaseScreen(from: fromView)
             }
-            .background(Color.background)
-            .onAppear {
-                selectedSubscription = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
-                currentActiveSubscription = subscriptionController.entitledSubscription
-            }
-            .alert(
-                subscriptionController.purchaseError?.errorDescription ?? "",
-                isPresented: $errorAlertIsPresented,
-                actions: {}
-            )
-            productCellsScrollView
-        }.onAppear {
-            EventTracking.trackShowPurchaseScreen(from: fromView)
+//            .ignoresSafeArea(edges: .bottom)
         }
     }
 
@@ -123,6 +138,7 @@ struct ProductStoreView: View {
 
     @ViewBuilder
     var productCellsScrollView: some View {
+
         VStack {
             Spacer()
             let subscriptions = subscriptionController.subscriptions
@@ -151,17 +167,26 @@ struct ProductStoreView: View {
                                 dismiss()
                             case .displayError: errorAlertIsPresented = true
                                 EventTracking.trackPurchaseIncomplete(from: fromView)
-                            case .noAction: 
+                            case .noAction:
                                 EventTracking.trackPurchaseIncomplete(from: fromView)
                                 break
                             }
                             purchaseAction?(action)
+
+
                         }
                     }
                 }
             )
+
             .padding(.top)
         }
+
+    }
+
+
+    private func dismiss() {
+        presentationMode.wrappedValue.dismiss()
     }
 }
 

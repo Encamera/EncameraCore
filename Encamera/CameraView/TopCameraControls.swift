@@ -11,6 +11,66 @@ import AVFoundation
 import EncameraCore
 import Combine
 
+struct BubbleArrowShape: Shape {
+    let arrowWidth: CGFloat
+    let arrowHeight: CGFloat
+    let cornerRadius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        let arrowStart = CGPoint(x: rect.midX - arrowWidth / 2, y: rect.minY)
+        let arrowEnd = CGPoint(x: rect.midX + arrowWidth / 2, y: rect.minY)
+        let arrowTip = CGPoint(x: rect.midX, y: rect.minY - arrowHeight)
+
+        path.move(to: CGPoint(x: rect.minX + cornerRadius, y: rect.minY))
+
+        // Arrow
+        path.addLine(to: arrowStart)
+        path.addLine(to: arrowTip)
+        path.addLine(to: arrowEnd)
+
+        // Top Right Corner
+        path.addLine(to: CGPoint(x: rect.maxX - cornerRadius, y: rect.minY))
+        path.addArc(center: CGPoint(x: rect.maxX - cornerRadius, y: rect.minY + cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: Angle(degrees: -90),
+                    endAngle: Angle(degrees: 0),
+                    clockwise: false)
+
+        // Bottom Right Corner
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - cornerRadius))
+        path.addArc(center: CGPoint(x: rect.maxX - cornerRadius, y: rect.maxY - cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: Angle(degrees: 0),
+                    endAngle: Angle(degrees: 90),
+                    clockwise: false)
+
+        // Bottom Left Corner
+        path.addLine(to: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY))
+        path.addArc(center: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY - cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: Angle(degrees: 90),
+                    endAngle: Angle(degrees: 180),
+                    clockwise: false)
+
+        // Top Left Corner
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + cornerRadius))
+        path.addArc(center: CGPoint(x: rect.minX + cornerRadius, y: rect.minY + cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: Angle(degrees: 180),
+                    endAngle: Angle(degrees: 270),
+                    clockwise: false)
+
+        path.closeSubpath()
+
+        return path
+    }
+}
+
+
+
+
 class TopCameraControlsViewViewModel: ObservableObject {
 
     @Published var selectedAlbum: Album?
@@ -32,13 +92,25 @@ struct TopCameraControlsView: View {
 
     @Binding var isRecordingVideo: Bool
     @Binding var recordingDuration: CMTime
-
+    @Binding var showSavedToAlbumTooltip: Bool
     @Binding var flashMode: AVCaptureDevice.FlashMode
     var closeButtonTapped: () -> ()
     var flashButtonPressed: () -> ()
     let cornerRadius = 30.0
     var body: some View {
+        ZStack {
+            mainControls
+//            tooltip
+////                .opacity(showSavedToAlbumTooltip ? 1 : 0)
+//                .offset(y: 102/2 + 25)
+            durationText
+                .opacity(isRecordingVideo ? 1 : 0)
+                .offset(y: 102/2 + 25)
 
+        }
+    }
+
+    private var mainControls: some View {
         HStack(spacing: 0) {
             Button {
                 closeButtonTapped()
@@ -69,13 +141,13 @@ struct TopCameraControlsView: View {
                     .cornerRadius(800)
 
                 }
-                
+
             } else {
                 HStack(spacing: 10) {
                     Text(L10n.takeYourFirstPicture)
                         .fontType(.pt12, on: .lightBackground, weight: .bold)
-                    .tracking(0.24)
-                    .foregroundColor(.black)
+                        .tracking(0.24)
+                        .foregroundColor(.black)
                 }
                 .padding(EdgeInsets(top: 10, leading: 24, bottom: 10, trailing: 24))
                 .frame(height: 36)
@@ -88,13 +160,24 @@ struct TopCameraControlsView: View {
             flashButton
                 .frame(width: 28, height: 28)
         }
-
         .padding(EdgeInsets(top: getSafeAreaTop() + 10, leading: 16, bottom: 16, trailing: 16))
         .background(.ultraThinMaterial)
         .frame(height: 102)
-
     }
-
+    private var tooltip: some View {
+        HStack(spacing: 10) {
+            Text(L10n.imageSavedToAlbum)
+                .fontType(.pt12, on: .lightBackground, weight: .bold)
+                .tracking(0.24)
+                .foregroundColor(.black)
+        }
+        .padding(EdgeInsets(top: 10, leading: 24, bottom: 10, trailing: 24))
+        .frame(height: 36)
+        .background(
+            BubbleArrowShape(arrowWidth: 10, arrowHeight: 5, cornerRadius: 18)
+                .fill(Color.white)
+        )
+    }
     private var flashButton: some View {
         Button(action: {
             flashButtonPressed()
@@ -123,8 +206,9 @@ struct TopCameraControlsView_Previews: PreviewProvider {
             //                .frame(width: 500, height: 1000)
             TopCameraControlsView(
                 viewModel: TopCameraControlsViewViewModel(albumManager: DemoAlbumManager()),
-                isRecordingVideo: .constant(false),
-                recordingDuration: .constant(CMTime()),
+                isRecordingVideo: .constant(true),
+                recordingDuration: .constant(.zero),
+                showSavedToAlbumTooltip: .constant(true),
                 flashMode: .constant(.on),
                 closeButtonTapped: {},
                 flashButtonPressed: {}

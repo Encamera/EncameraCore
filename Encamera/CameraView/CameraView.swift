@@ -17,10 +17,7 @@ struct CameraView: View {
     @State var cameraModeStateModel = CameraModeStateModel()
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
-    @Environment(\.dismiss) private var dismiss
     var closeButtonTapped: () -> Void
-
-
 
     private var captureButton: some View {
 
@@ -121,7 +118,6 @@ struct CameraView: View {
 #endif
     }
 
-    @State var showTookFirstPhotoSheet = true
     var trackingViewName = "Camera"
     var body: some View {
 
@@ -181,16 +177,16 @@ struct CameraView: View {
     @ViewBuilder private var tutorialViews: some View {
         Group {
         }
-        .photoLimitReachedModal(isPresented: cameraModel.showExplanationForUpgrade) {
+        .photoLimitReachedModal(isPresented: $cameraModel.showExplanationForUpgrade) {
             EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: trackingViewName)
             cameraModel.showPurchaseSheet = true
         } onSecondaryButtonPressed: {
             EventTracking.trackPhotoLimitReachedScreenDismissed(from: trackingViewName)
             cameraModel.showExplanationForUpgrade = false
         }
-        .chooseStorageModal(isPresented: $cameraModel.showTookFirstPhotoSheet, album: cameraModel.albumManager.currentAlbum, purchasedPermissions: cameraModel.purchaseManager, didSelectStorage: { selectedStorage, hasEntitlement in
+        .chooseStorageModal(isPresented: $cameraModel.showChooseStorageSheet, album: cameraModel.albumManager.currentAlbum, purchasedPermissions: cameraModel.purchaseManager, didSelectStorage: { selectedStorage, hasEntitlement in
             if hasEntitlement || selectedStorage == .local {
-                cameraModel.showTookFirstPhotoSheet = false
+                afterChooseStorageAction()
                 guard let currentAlbum = cameraModel.albumManager.currentAlbum else {
                     debugPrint("Current album is not set")
                     return
@@ -200,41 +196,63 @@ struct CameraView: View {
             } else if !hasEntitlement && selectedStorage == .icloud {
                 cameraModel.showPurchaseSheet = true
             }
-        }, dismissAction: {
-            cameraModel.showTookFirstPhotoSheet = false
-        })
+        }, dismissAction: afterChooseStorageAction)
     }
 
+    private func afterChooseStorageAction() {
+        cameraModel.showChooseStorageSheet = false
+        cameraModel.showSavedToAlbumTooltip = true
+    }
+    private var tooltip: some View {
+        HStack(spacing: 10) {
+            Text(L10n.imageSavedToAlbum)
+                .fontType(.pt12, on: .lightBackground, weight: .bold)
+                .tracking(0.24)
+                .foregroundColor(.black)
+        }
+        .padding(EdgeInsets(top: 10, leading: 24, bottom: 10, trailing: 24))
+        .frame(height: 36)
+        .background(
+            BubbleArrowShape(arrowWidth: 10, arrowHeight: 5, cornerRadius: 18)
+                .fill(Color.white)
+        ).opacity(cameraModel.showSavedToAlbumTooltip ? 1 : 0)
+    }
     private var mainCamera: some View {
-        VStack {
-            TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
-                                  recordingDuration: $cameraModel.recordingDuration, flashMode:  $cameraModel.flashMode, closeButtonTapped: {
-                Task {
-                    await cameraModel.stopCamera()
+        ZStack {
+
+
+            cameraPreview
+                .frame(maxHeight: .infinity)
+
+            VStack {
+                TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
+                                      recordingDuration: $cameraModel.recordingDuration,
+                                      showSavedToAlbumTooltip: $cameraModel.showSavedToAlbumTooltip,
+                                      flashMode:  $cameraModel.flashMode,
+                                      closeButtonTapped: closeCamera,
+                                      flashButtonPressed: {
+                    self.cameraModel.switchFlash()
+                })
+                tooltip
+                if hasMediaToImport {
+                    HStack {
+                        Text(L10n.finishImportingMedia)
+                            .fontType(.pt24, on: .darkBackground)
+                    }.frame(maxWidth: .infinity)
+                        .background(Color.green)
+                        .onTapGesture {
+                            cameraModel.showImportedMediaScreen = true
+                        }
                 }
-                closeButtonTapped()
-            }, flashButtonPressed: {
-                self.cameraModel.switchFlash()
-            })
-            if hasMediaToImport {
-                HStack {
-                    Text(L10n.finishImportingMedia)
-                        .fontType(.pt24, on: .darkBackground)
-                }.frame(maxWidth: .infinity)
-                    .background(Color.green)
-                    .onTapGesture {
-                        cameraModel.showImportedMediaScreen = true
-                    }
-            }
-            ZStack {
-                cameraPreview
-                    .edgesIgnoringSafeArea(.all)
+                Spacer()
                 if cameraModel.selectedCameraMode == .video &&  AVCaptureDevice.authorizationStatus(for: .audio) != .authorized {
                     VStack {
                         Spacer()
                         Button("\(Image(systemName: "mic.slash.fill")) \(L10n.openSettings)") {
                             openSettings()
-                        }.primaryButton()
+                        }
+                        .primaryButton()
+                        .padding()
                     }
                 } else if cameraModel.cameraPosition == .back {
                     VStack {
@@ -243,10 +261,9 @@ struct CameraView: View {
                             .frame(width: 300, height: 44)
                     }
                 }
-
+                bottomButtonPanel
+                    .padding(.bottom, getSafeAreaBottom())
             }
-            bottomButtonPanel
-            .padding(.bottom, getSafeAreaBottom())
         }
         .ignoresSafeArea(edges: [.top, .bottom])
         .task {
@@ -256,7 +273,6 @@ struct CameraView: View {
         }
         .navigationBarHidden(true)
         .navigationTitle("")
-
     }
 
     private func openSettings() {
@@ -264,6 +280,13 @@ struct CameraView: View {
             return
         }
         UIApplication.shared.open(url)
+    }
+
+    private func closeCamera() {
+        Task {
+            await cameraModel.stopCamera()
+        }
+        closeButtonTapped()
     }
 }
 

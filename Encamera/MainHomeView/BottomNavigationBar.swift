@@ -45,8 +45,9 @@ struct BottomNavigationBar: View {
             )
 
             Button {
-                selectedItem = .camera
-//                UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
+                withAnimation {
+                    selectedItem = .camera
+                }
             } label: {
                 ZStack {
                     Circle()

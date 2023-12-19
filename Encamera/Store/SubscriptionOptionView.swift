@@ -26,7 +26,7 @@ private struct MostPopularIndicatorViewModifier: ViewModifier {
 
             content
             HStack(spacing: 10) {
-                Text("MOST POPULAR")
+                Text(L10n.mostPopular)
                     .font(Font.custom("Satoshi Variable", size: 10).weight(.black))
                     .foregroundColor(.white)
             }

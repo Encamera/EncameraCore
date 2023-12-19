@@ -60,9 +60,10 @@ final class CameraModel: NSObject, ObservableObject {
     @Published var showSettingsScreen = false
     
     // Tutorial/info sheets
-    @Published var showTookFirstPhotoSheet = false
+    @Published var showChooseStorageSheet = false
     @Published var showExplanationForUpgrade = false
-    
+    @Published var showSavedToAlbumTooltip = false
+
     @Published var showImportedMediaScreen = false
     @Published var cameraSetupResult: SessionSetupResult = .notDetermined
 
@@ -177,11 +178,11 @@ final class CameraModel: NSObject, ObservableObject {
                 withAnimation {
                     switch value {
                     case AppConstants.numberOfPhotosBeforeInitialTutorial:
-                        self.showTookFirstPhotoSheet = true
+                        self.showChooseStorageSheet = true
                     case let count where count > AppConstants.maxPhotoCountBeforePurchase:
                         self.showExplanationForUpgrade = !self.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: count))
                     default:
-                        self.showTookFirstPhotoSheet = false
+                        self.showChooseStorageSheet = false
                         self.showExplanationForUpgrade = false
                     }
                 }

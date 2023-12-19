@@ -43,6 +43,7 @@ struct BottomCameraButtonView: View {
             await cameraModel.loadThumbnail()
         }
 
+
     }
 
     func makeBgRectangle(side: CGFloat, order: Int) -> some View {

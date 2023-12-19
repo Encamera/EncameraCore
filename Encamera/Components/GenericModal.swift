@@ -22,24 +22,25 @@ struct ModalViewModifier: ViewModifier {
         ZStack(alignment: .center) {
             content
             Color.clear.background(.ultraThinMaterial)
-            VStack(spacing: 20) {
+            VStack(alignment: .center, spacing: 0) {
+                Spacer().frame(height: 40)
                 Image(imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 80, height: 80)
+                Spacer().frame(height: 40)
                 Text(titleText)
                     .fontType(.pt24, on: .lightBackground, weight: .bold)
+                Spacer().frame(height: 16)
 
-                VStack(spacing: 40) {
-                    VStack(spacing: 0) {
-                        Text(descriptionText)
-                            .fontType(.pt16, on: .lightBackground, weight: .regular)
-                            .frame(alignment: .center)
-                            .foregroundColor(Color(red: 0, green: 0, blue: 0))
-                            .opacity(0.80)
-                            .frame(height: 104)
-                    }
-                }
+                Text(descriptionText)
+                    .fontType(.pt16, on: .lightBackground, weight: .regular)
+                    .frame(alignment: .center)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(Color(red: 0, green: 0, blue: 0))
+                    .opacity(0.80)
+                Spacer().frame(height: 48)
+
                 VStack(spacing: 24) {
                     Button(primaryButtonText, action: onPrimaryButtonPressed)
                         .primaryButton()
@@ -59,8 +60,13 @@ struct ModalViewModifier: ViewModifier {
 
 // Usage
 extension View {
-    func genericModal(imageName: String, titleText: String, descriptionText: String, primaryButtonText: String, secondaryButtonText: String, onPrimaryButtonPressed: @escaping () -> Void, onSecondaryButtonPressed: @escaping () -> Void, animated: Bool = false) -> some View {
-        self.modifier(ModalViewModifier(imageName: imageName, titleText: titleText, descriptionText: descriptionText, primaryButtonText: primaryButtonText, secondaryButtonText: secondaryButtonText, onPrimaryButtonPressed: onPrimaryButtonPressed, onSecondaryButtonPressed: onSecondaryButtonPressed, animated: animated))
+    @ViewBuilder
+    func genericModal(isPresented: Binding<Bool>, imageName: String, titleText: String, descriptionText: String, primaryButtonText: String, secondaryButtonText: String, onPrimaryButtonPressed: @escaping () -> Void, onSecondaryButtonPressed: @escaping () -> Void, animated: Bool = false) -> some View {
+        if isPresented.wrappedValue {
+            self.modifier(ModalViewModifier(imageName: imageName, titleText: titleText, descriptionText: descriptionText, primaryButtonText: primaryButtonText, secondaryButtonText: secondaryButtonText, onPrimaryButtonPressed: onPrimaryButtonPressed, onSecondaryButtonPressed: onSecondaryButtonPressed, animated: animated))
+        } else {
+            self
+        }
     }
 }
 
@@ -71,6 +77,7 @@ extension View {
         Color.orange
             .frame(width: 343, height: 444)
             .genericModal(
+                isPresented: .constant(true),
                 imageName: "Image-Camera",
                 titleText: L10n.coolPicture,
                 descriptionText: L10n.whereToFindYourPictures,

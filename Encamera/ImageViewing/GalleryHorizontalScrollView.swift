@@ -247,6 +247,11 @@ struct GalleryHorizontalScrollView: View {
                 LazyHGrid(rows: gridItems) {
                     ForEach(Array(viewModel.media.enumerated()), id: \.element.id) { index, item in
                         ZStack {
+                            let modalBinding = Binding<Bool> {
+                                !viewModel.canAccessPhoto(at: index)
+                            } set: { _ in
+
+                            }
                             viewingFor(item: item)
                                 .blur(radius:
                                         viewModel.canAccessPhoto(at: index)
@@ -254,7 +259,7 @@ struct GalleryHorizontalScrollView: View {
                                 .frame(
                                     width: frame.width,
                                     height: frame.height)
-                                .photoLimitReachedModal(isPresented: !viewModel.canAccessPhoto(at: index)) {
+                                .photoLimitReachedModal(isPresented: modalBinding) {
                                     viewModel.showPurchaseScreen()
                                     EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: "ImageScrollView")
                                 } onSecondaryButtonPressed: {

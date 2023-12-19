@@ -77,7 +77,7 @@ struct PurchaseUpgradeOptionsListView: View {
                     purchasedProductCell(for: product)
                 }
             }
-            Spacer().frame(height: 5)
+//            Spacer().frame(height: 5)
             SubscriptionPurchaseView(selectedSubscription: selectedOption) {
                 onPurchase()
             }

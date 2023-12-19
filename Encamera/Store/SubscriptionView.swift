@@ -22,7 +22,7 @@ struct SubscriptionPurchaseView: View {
     let onPurchase: () -> Void
     
     var body: some View {
-        VStack {
+        VStack(spacing: 8) {
             Button {
                 onPurchase()
             } label: {
@@ -37,6 +37,10 @@ struct SubscriptionPurchaseView: View {
             }
             .primaryButton(on: .darkBackground)
             .disabled(selectedSubscription == nil)
+            Spacer().frame(height: 8)
+            Text(L10n.noCommitmentCancelAnytime)
+                .fontType(.pt14, weight: .bold)
+                .opacity(0.8)
         }
         .frame(maxWidth: .infinity)
         .onChange(of: selectedSubscription) { newValue in

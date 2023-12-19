@@ -90,8 +90,11 @@ struct MainHomeView: View {
                         purchaseManager: viewModel.purchasedPermissions
                     ), hasMediaToImport: $viewModel.hasMediaToImport) {
                         UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
-                        selectedNavigationItem = .albums
+                        withAnimation {
+                            selectedNavigationItem = .albums
+                        }
                     }
+                    .transition(.opacity)
                 } else {
                     if selectedNavigationItem == .settings {
                         SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
@@ -103,7 +106,10 @@ struct MainHomeView: View {
             }
             .onAppear {
                 if UserDefaultUtils.bool(forKey: .showCameraOnLaunch) {
-                    selectedNavigationItem = .camera
+                    withAnimation {
+                        selectedNavigationItem = .camera
+                    }
+
                 }
             }
             .toolbar(.hidden)
@@ -113,7 +119,7 @@ struct MainHomeView: View {
             .navigationDestination(for: String.self) { destination in
                 switch destination {
                 case "ProductStore":
-                    ProductStoreView(showDismissButton: false, fromView: "AlbumGrid")
+                    ProductStoreView(showDismissButton: true, fromView: "AlbumGrid")
                 case "CreateAlbum":
                     if let key = viewModel.keyManager.currentKey {
                         AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: key, album: nil, shouldCreateAlbum: true)).onAppear {

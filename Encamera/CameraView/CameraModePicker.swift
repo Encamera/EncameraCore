@@ -92,7 +92,6 @@ public class CameraModeStateModel: ObservableObject {
     @Published var isModeActive: Bool = false
     @Published var selectedMode: CameraMode = .photo
     @Published var screenDrag: Float = 0.0
-
 }
 
 private struct Carousel<Items: View>: View {

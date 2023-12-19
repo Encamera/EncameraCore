@@ -29,9 +29,9 @@ class PromptToEraseViewModel: ObservableObject {
                             return
                         }
                         self.countdown -= 1
-                    }.store(in: &cancellables)
+                    }.store(in: &timerCancellables)
             } else {
-                cancellables.forEach({$0.cancel()})
+                timerCancellables.forEach({$0.cancel()})
                 countdown = Constants.defaultCountdown
             }
         }
@@ -41,6 +41,7 @@ class PromptToEraseViewModel: ObservableObject {
     var eraserUtil: EraserUtils
     var keyManager: KeyManager
     var scope: ErasureScope
+    private var timerCancellables = Set<AnyCancellable>()
     private var cancellables = Set<AnyCancellable>()
     
     

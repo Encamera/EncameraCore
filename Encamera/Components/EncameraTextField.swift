@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import SwiftUIIntrospect
 
 private struct EncameraInputTextField: ViewModifier {
     func body(content: Content) -> some View {
@@ -38,6 +39,7 @@ struct EncameraTextField: View {
     private var accessibilityIdentifier: String?
     private var contentType: UITextContentType?
     private var onSubmit: (() -> ())?
+    @State private var becomeFirstResponder: Bool
     @Binding var text: String
     @FocusState var isFieldFocused
     
@@ -45,8 +47,11 @@ struct EncameraTextField: View {
          type: FieldType = .normal,
          contentType: UITextContentType? = nil,
          text: Binding<String>,
+         becomeFirstResponder: Bool = false,
          accessibilityIdentifier: String? = nil,
-         onSubmit: (() -> ())? = nil) {
+         onSubmit: (() -> ())? = nil
+    ) {
+        self.becomeFirstResponder = becomeFirstResponder
         self.placeholder = placeholder
         self.contentType = contentType
         self.fieldType = type
@@ -79,6 +84,9 @@ struct EncameraTextField: View {
         switch fieldType {
         case .normal:
             TextField("", text: $text)
+                .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
+                    handleIntrospectTextField(textField)
+                }
                 .onSubmit {
                     onSubmit?()
                 }
@@ -87,7 +95,21 @@ struct EncameraTextField: View {
 
         case .secure:
             SecureField("", text: $text)
+                .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
+                    handleIntrospectTextField(textField)
+                }
                 .textContentType(contentType)
+        }
+    }
+
+    private func handleIntrospectTextField(_ textField: UITextField) {
+        if becomeFirstResponder {
+            DispatchQueue.global(qos:.background).asyncAfter(deadline: DispatchTime.now() + 0.5) {
+                Task { @MainActor in
+                    textField.becomeFirstResponder()
+                    becomeFirstResponder = false
+                }
+            }
         }
     }
 }
