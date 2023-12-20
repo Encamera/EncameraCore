@@ -30,7 +30,7 @@ struct OptionItemViewModifier: ViewModifier {
         if isSelected {
             rectangle.background(rect.fill(Color.white))
         } else {
-            rectangle.background(rect.fill(Color.clear))
+            rectangle.background(rect.fill(Color.black))
         }
     }
 

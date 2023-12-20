@@ -13,6 +13,9 @@ import EncameraCore
 
 
 struct SubscriptionPurchaseView: View {
+
+    
+    var subscriptionController: StoreSubscriptionController = StoreActor.shared.subscriptionController
     @State private var canRedeemIntroOffer = false
     @State private var redeemSheetIsPresented = false
     
@@ -29,14 +32,17 @@ struct SubscriptionPurchaseView: View {
                 Group {
                     if canRedeemIntroOffer {
                         Text(L10n.startTrialOffer)
+                    } else if subscriptionController.entitledSubscription == selectedSubscription {
+                        Text("Subscribed")
                     } else {
                         Text(L10n.subscribe)
                     }
                 }
                 .frame(maxWidth: .infinity)
             }
-            .primaryButton(on: .darkBackground)
-            .disabled(selectedSubscription == nil)
+            .primaryButton(enabled: !subscribedToSelectedSubscription)
+            .disabled(selectedSubscription == nil || subscribedToSelectedSubscription)
+
             Spacer().frame(height: 8)
             Text(L10n.noCommitmentCancelAnytime)
                 .fontType(.pt14, weight: .bold)
@@ -54,4 +60,8 @@ struct SubscriptionPurchaseView: View {
         }
     }
 
+    @MainActor
+    private var subscribedToSelectedSubscription: Bool {
+        return subscriptionController.entitledSubscription == selectedSubscription
+    }
 }

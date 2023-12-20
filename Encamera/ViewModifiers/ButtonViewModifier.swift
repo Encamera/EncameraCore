@@ -40,7 +40,7 @@ struct EncameraDestructiveButtonStyle: ButtonStyle {
 
 extension View {
     //TODO: Remove references to surface, we don't need it
-    func primaryButton(on surface: SurfaceType = .background, enabled: Bool = true) -> some View {
+    func primaryButton(enabled: Bool = true) -> some View {
         buttonStyle(EncameraButtonStyle(hostSurface: enabled ? .primaryButton : .disabledButton))
     }
     
@@ -63,14 +63,14 @@ struct EncameraButton_Previews: PreviewProvider {
                 Color.background.frame(width: 100, height: 100  )
                 Button("Unlock") {
                     
-                }.primaryButton(on: .background)
+                }.primaryButton()
 
             }
             ZStack {
                 Color.foregroundSecondary.frame(width: 100, height: 100  )
                 Button("Share") {
                     
-                }.primaryButton(on: .darkBackground)
+                }.primaryButton()
             }
             ZStack {
                 Color.white.frame(width: 100, height: 100  )

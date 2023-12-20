@@ -7,6 +7,7 @@ import AVFoundation
 @main
 struct EncameraApp: App {
     class ViewModel: ObservableObject {
+        @MainActor
         @Published var hasOpenedURL: Bool = false
         @Published var promptToSaveMedia: Bool = false
         var newMediaFileAccess: FileAccess = DiskFileAccess()
@@ -67,8 +68,14 @@ struct EncameraApp: App {
                 let albumManager: AlbumManaging = AlbumManager(keyManager: keyManager)
                 self.appGroupFileAccess = AppGroupFileReader(albumManager: albumManager)
                 self.albumManager = albumManager
-                self.albumManager?.selectedAlbumPublisher.sink { newAlbum in
-                    self.setupFileAccess(with: self.keyManager.currentKey, album: newAlbum)
+                self.albumManager?.albumOperationPublisher
+                    .receive(on: RunLoop.main)
+                    .sink { operation in
+                    guard case .selectedAlbumChanged(let album) = operation else {
+                        return
+                    }
+
+                    self.setupFileAccess(with: self.keyManager.currentKey, album: album)
                 }.store(in: &self.cancellables)
                 self.setupFileAccess(with: key, album: albumManager.currentAlbum)
 

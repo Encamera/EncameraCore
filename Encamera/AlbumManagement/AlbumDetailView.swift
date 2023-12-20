@@ -51,7 +51,18 @@ class AlbumDetailViewModel: ObservableObject {
         self.shouldCreateAlbum = shouldCreateAlbum
         self.isEditingAlbumName = shouldCreateAlbum
         self.gridViewModel = GalleryGridViewModel<EncryptedMedia>(privateKey: key, album: album, albumManager: albumManager, blurImages: false)
-
+        albumManager.albumOperationPublisher
+            .receive(on: RunLoop.main)
+            .sink { operation in
+            switch operation {
+            case .albumMoved(let album), .albumRenamed(let album):
+                Task { @MainActor in
+                    self.album = album
+                    await self.gridViewModel?.enumerateMedia()
+                }
+            default: break
+            }
+        }.store(in: &cancellables)
         guard let album else { return }
         self.album = album
         self.albumName = album.name
@@ -71,12 +82,6 @@ class AlbumDetailViewModel: ObservableObject {
                 album = try albumManager.create(name: albumName, storageOption: .local)
             } else if let album {
                 self.album = try albumManager.renameAlbum(album: album, to: albumName)
-            }
-
-            Task {
-                guard let album else { return }
-                await fileManager?.configure(for: album, with: album.key, albumManager: albumManager)
-                await gridViewModel?.enumerateMedia()
             }
         } catch {
             if let albumError = error as? AlbumError, albumError == AlbumError.albumExists {
@@ -106,9 +111,6 @@ class AlbumDetailViewModel: ObservableObject {
         guard let album else { return }
         self.album = try? albumManager.moveAlbum(album: album, toStorage: storage)
         EventTracking.trackConfirmStorageTypeSelected(type: storage)
-        Task {
-            await gridViewModel?.enumerateMedia()
-        }
     }
 }
 
@@ -237,7 +239,7 @@ struct AlbumDetailView: View {
                 Text(viewModel.deleteActionError)
             })
             .toolbar(.hidden)
-            .ignoresSafeArea(edges: .top)
+            .ignoresSafeArea(edges: [.top, .bottom])
             .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
                                 album: viewModel.album,
                                 purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in

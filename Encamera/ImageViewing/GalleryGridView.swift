@@ -134,92 +134,96 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
 
 
     var body: some View {
-        GeometryReader { geo in
-            let frame = geo.frame(in: .global)
-            let outerMargin = 20.0
-            let spacing = 9.0
-            let largeSide = frame.width - spacing - outerMargin
+        VStack {
+            content
+            GeometryReader { geo in
+                let frame = geo.frame(in: .local)
+                let outerMargin = 9.0
+                let spacing = 9.0
+                let largeSide = frame.width - spacing * Constants.numberOfImagesWide
 
-            let side = ((frame.width - outerMargin) / Constants.numberOfImagesWide) - spacing
-            let gridItems = [
-                GridItem(.fixed(side), spacing: spacing),
-                GridItem(.fixed(side), spacing: spacing),
-            ]
-            ZStack(alignment: .center) {
-                ScrollView {
-                    content
-                    HStack {
-                        if viewModel.downloadPendingMediaCount > 0 {
-                            downloadFromiCloudButton
-                        }
-                    }
-                    .padding(.bottom)
-                    if let first = viewModel.firstImage {
-                        let remainingImages = viewModel.media[1..<viewModel.media.count]
-                        imageForItem(mediaItem: first, width: largeSide, height: largeSide, index: 0)
-                        LazyVGrid(columns: gridItems, spacing: spacing) {
-                            ForEach(Array(remainingImages.enumerated()), id: \.element) { index, mediaItem in
-                                imageForItem(mediaItem: mediaItem, width: side, height: side, index: index)
+                let side = ((frame.width - outerMargin) / Constants.numberOfImagesWide) - spacing
+                let gridItems = [
+                    GridItem(.fixed(side), spacing: spacing),
+                    GridItem(.fixed(side), spacing: spacing),
+                ]
+                ZStack(alignment: .center) {
+                    ScrollView {
+                        HStack {
+                            if viewModel.downloadPendingMediaCount > 0 {
+                                downloadFromiCloudButton
                             }
                         }
-                        .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
-                        .animation(.easeIn, value: viewModel.blurImages)
-                        .frame(width: largeSide)
-                        
-                    } else if viewModel.album != nil {
-                        emptyState
-                    }
-                }.onChange(of: viewModel.showCamera) { oldValue, newValue in
-                    viewModel.albumManager.currentAlbum = viewModel.album
-                }
+                        .padding(.bottom)
+                        if let first = viewModel.firstImage {
+                            let remainingImages = viewModel.media[1..<viewModel.media.count]
+                            imageForItem(mediaItem: first, width: largeSide, height: largeSide, index: 0)
+                            LazyVGrid(columns: gridItems, spacing: spacing) {
+                                ForEach(Array(remainingImages.enumerated()), id: \.element) { index, mediaItem in
+                                    imageForItem(mediaItem: mediaItem, width: side, height: side, index: index)
+                                }
+                                Spacer().frame(height: getSafeAreaBottom())
+                            }
+                            .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
+                            .animation(.easeIn, value: viewModel.blurImages)
+                            .frame(width: largeSide)
 
-                NavigationLink(isActive: $viewModel.showingCarousel) {
-                    if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
-
-                        GalleryHorizontalScrollView(
-                            viewModel: .init(
-                                media: viewModel.media,
-                                selectedMedia: carouselTarget,
-                                fileAccess: viewModel.fileAccess,
-                                purchasedPermissions: viewModel.purchasedPermissions
-                            ))
-                    }
-                } label: {
-                    EmptyView()
-                }
-
-            }
-            .task {
-                await viewModel.enumerateMedia()
-            }
-            .onAppear {
-                AskForReviewUtil.askForReviewIfNeeded()
-            }
-            .onDisappear {
-                viewModel.cleanUp()
-            }
-            .scrollIndicators(.hidden)
-            .navigationBarTitle("")
-            .fullScreenCover(isPresented: $viewModel.showCamera, content: {
-
-                if let album = viewModel.album {
-                    CameraView(cameraModel: .init(
-                        privateKey: album.key,
-                        albumManager: viewModel.albumManager,
-                        cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
-                        fileAccess: viewModel.fileAccess,
-                        purchaseManager: viewModel.purchasedPermissions
-                    ), hasMediaToImport: .constant(false)) {
-                        viewModel.showCamera = false
-                        viewModel.albumManager.currentAlbum = viewModel.album
-                        Task {
-                            await viewModel.enumerateMedia()
+                        } else if viewModel.album != nil {
+                            emptyState
                         }
                     }
-                }
-            })
-        }
+                    .padding(spacing)
+                    .onChange(of: viewModel.showCamera) { oldValue, newValue in
+                        viewModel.albumManager.currentAlbum = viewModel.album
+                    }
 
+                    NavigationLink(isActive: $viewModel.showingCarousel) {
+                        if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
+
+                            GalleryHorizontalScrollView(
+                                viewModel: .init(
+                                    media: viewModel.media,
+                                    selectedMedia: carouselTarget,
+                                    fileAccess: viewModel.fileAccess,
+                                    purchasedPermissions: viewModel.purchasedPermissions
+                                ))
+                        }
+                    } label: {
+                        EmptyView()
+                    }
+
+                }
+                .task {
+                    await viewModel.enumerateMedia()
+                }
+                .onAppear {
+                    AskForReviewUtil.askForReviewIfNeeded()
+                }
+                .onDisappear {
+                    viewModel.cleanUp()
+                }
+                .scrollIndicators(.hidden)
+                .navigationBarTitle("")
+                .fullScreenCover(isPresented: $viewModel.showCamera, content: {
+
+                    if let album = viewModel.album {
+                        CameraView(cameraModel: .init(
+                            privateKey: album.key,
+                            albumManager: viewModel.albumManager,
+                            cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
+                            fileAccess: viewModel.fileAccess,
+                            purchaseManager: viewModel.purchasedPermissions
+                        ), hasMediaToImport: .constant(false)) {
+                            viewModel.showCamera = false
+                            viewModel.albumManager.currentAlbum = viewModel.album
+                            Task {
+                                await viewModel.enumerateMedia()
+                            }
+                        }
+                    }
+                })
+            }
+        }
     }
     
     private var emptyState: some View {

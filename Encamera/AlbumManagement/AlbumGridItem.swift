@@ -14,10 +14,6 @@ class AlbumGridItemModel: ObservableObject {
     var fileReader: FileReader
     var album: Album
     var albumManager: AlbumManaging
-    var storageModel: DataStorageModel?
-    var storageType: StorageType? {
-        storageModel?.storageType
-    }
     private var cancellables = Set<AnyCancellable>()
 
     @Published var countOfMedia: Int = 0
@@ -36,13 +32,12 @@ class AlbumGridItemModel: ObservableObject {
         }
         self.fileReader = fileReader
         self.albumManager = albumManager
-        storageModel = albumManager.storageModel(for: album)
-        self.countOfMedia = storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension, MediaType.video.fileExtension]) ?? 0
+        self.countOfMedia = albumManager.albumMediaCount(album: album)
         FileOperationBus.shared
             .operations
             .receive(on: RunLoop.main)
             .sink { operation in
-            self.countOfMedia = self.storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.fileExtension, MediaType.video.fileExtension]) ?? 0
+            self.countOfMedia = albumManager.albumMediaCount(album: album)
         }.store(in: &cancellables)
 
     }

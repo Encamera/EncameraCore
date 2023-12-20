@@ -80,7 +80,12 @@ class TopCameraControlsViewViewModel: ObservableObject {
     init(albumManager: AlbumManaging) {
         self.albumManager = albumManager
 
-        albumManager.selectedAlbumPublisher.sink { album in
+        albumManager.albumOperationPublisher
+            .receive(on: RunLoop.main)
+            .sink { operation in
+            guard case .selectedAlbumChanged(album: let album) = operation else {
+                return
+            }
             self.selectedAlbum = album
         }.store(in: &cancellables)
     }

@@ -116,9 +116,12 @@ final class CameraModel: NSObject, ObservableObject {
            await cameraService.setDelegate(self)
         }
 
-        albumManager.selectedAlbumPublisher
+        albumManager.albumOperationPublisher
             .receive(on: RunLoop.main)
-            .sink { album in
+            .sink { operation in
+                guard case .selectedAlbumChanged(album: let album) = operation else {
+                    return
+                }
                 Task {
                     guard let album else {
                         return
@@ -167,23 +170,23 @@ final class CameraModel: NSObject, ObservableObject {
 
     func setupPublishedVars() {
         UserDefaultUtils.publisher(for: .capturedPhotos)
-            .compactMap({$0 as? Int})
-            .compactMap({ Double($0)})
             .receive(on: DispatchQueue.main)
-            .delay(for: .seconds(2), scheduler: RunLoop.main)
-            .sink { [weak self] value in
-                guard let self else {
-                    return
-                }
+            .delay(for: .seconds(0.2), scheduler: RunLoop.main)
+            .sink { published in
+                let value = Double(published as? Int ?? 0)
                 withAnimation {
                     switch value {
-                    case AppConstants.numberOfPhotosBeforeInitialTutorial:
-                        self.showChooseStorageSheet = true
-                    case let count where count > AppConstants.maxPhotoCountBeforePurchase:
-                        self.showExplanationForUpgrade = !self.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: count))
+                    case let count where count > AppConstants.maxPhotoCountBeforePurchase &&
+                        !self.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: count)):
+                        self.showExplanationForUpgrade = true
                     default:
-                        self.showChooseStorageSheet = false
-                        self.showExplanationForUpgrade = false
+                        if let album = self.albumManager.currentAlbum,
+                           self.albumManager.albumMediaCount(album: album) == 1 {
+                            self.showChooseStorageSheet = true
+                        } else {
+                            self.showChooseStorageSheet = false
+                            self.showExplanationForUpgrade = false
+                        }
                     }
                 }
             }.store(in: &cancellables)

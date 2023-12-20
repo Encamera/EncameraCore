@@ -315,11 +315,11 @@ struct GalleryHorizontalScrollView: View {
                     } label: {
                         Image(systemName: "info.circle")
                     }
-                }
-                Button {
-                    showingDeleteConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
+                    Button {
+                        showingDeleteConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
                 }
             }
             .frame(maxWidth: .infinity)

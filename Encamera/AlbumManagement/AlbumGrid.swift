@@ -14,6 +14,7 @@ class AlbumGridViewModel: ObservableObject {
     @Published var isShowingAddExistingKeyView: Bool = false
     @Published var isKeyTutorialClosed: Bool = true
     @Published var isShowingNotificationBanner: Bool = false
+    @Published var isShowingStoreView: Bool = false
 
     var albumManager: AlbumManaging
     var fileManager: FileAccess
@@ -28,23 +29,32 @@ class AlbumGridViewModel: ObservableObject {
         self.fileManager = fileManager
         self.albumManager = albumManger
         self.key = key
-        loadAlbums()
+        setAlbums()
         self.isKeyTutorialClosed = UserDefaultUtils.bool(forKey: .keyTutorialClosed)
-        albumManger.albumPublisher.sink { _ in
-            self.loadAlbums()
-        }.store(in: &cancellables)
-        albumManager.loadAlbumsFromFilesystem()
-
-        FileOperationBus.shared
-            .operations
+        albumManger.albumOperationPublisher
             .receive(on: RunLoop.main)
             .sink { _ in
+            self.setAlbums()
+        }.store(in: &cancellables)
+        albumManager.loadAlbumsFromFilesystem()
+        FileOperationBus.shared.operations
+            .receive(on: RunLoop.main)
+            .sink { operation in
+            self.albumManager.loadAlbumsFromFilesystem()
+            self.setAlbums()
+        }.store(in: &cancellables)
+        albumManger.albumOperationPublisher
+            .receive(on: RunLoop.main)
+            .sink { operation in
+                guard case .albumMoved(album: _) = operation else {
+                    return
+                }
                 self.albumManager.loadAlbumsFromFilesystem()
-                self.loadAlbums()
+                self.setAlbums()
             }.store(in: &cancellables)
     }
 
-    func loadAlbums() {
+    func setAlbums() {
         UserDefaultUtils.set(true, forKey: .hasOpenedAlbum)
         albums = Array(albumManager.albums)
     }
@@ -90,9 +100,7 @@ struct AlbumGrid: View {
                 ScrollView(showsIndicators: false) {
                     LazyVGrid(columns: columns, spacing: spacing) {
                         Group {
-                            NavigationLink(value: viewModel.shouldShowPurchaseScreenForKeys ? "ProductStore" : "CreateAlbum") {
-                                AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
-                            }
+                            createAlbumButton(side: side)
                             albums(side: side)
 
                         }.frame(height: side + 60)
@@ -104,10 +112,28 @@ struct AlbumGrid: View {
                 .screenBlocked()
             }
             .onAppear {
-                viewModel.loadAlbums()
+                viewModel.setAlbums()
             }
             .padding(24)
             .toolbar(.hidden)
+        }
+        .productStore(isPresented: $viewModel.isShowingStoreView, fromViewName: "AlbumGrid")
+    }
+
+    @ViewBuilder
+    private func createAlbumButton(side: CGFloat) -> some View {
+        let button = AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
+        if !viewModel.shouldShowPurchaseScreenForKeys {
+            NavigationLink(value: "CreateAlbum") {
+                button
+            }
+        } else {
+            Button {
+                viewModel.isShowingStoreView = true
+            } label: {
+                button
+            }
+
         }
     }
 

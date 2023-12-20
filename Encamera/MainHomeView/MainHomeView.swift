@@ -118,8 +118,6 @@ struct MainHomeView: View {
             .screenBlocked()
             .navigationDestination(for: String.self) { destination in
                 switch destination {
-                case "ProductStore":
-                    ProductStoreView(showDismissButton: true, fromView: "AlbumGrid")
                 case "CreateAlbum":
                     if let key = viewModel.keyManager.currentKey {
                         AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: key, album: nil, shouldCreateAlbum: true)).onAppear {

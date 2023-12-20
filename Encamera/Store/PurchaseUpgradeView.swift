@@ -96,9 +96,9 @@ struct ProductStoreView: View {
                             .frame(maxWidth: .infinity)
                         VStack(spacing: 0) {
 
-                            createFeatureRow(image: Image("Premium-Albums"), title: "Unlimited storage for photos & videos")
-                            createFeatureRow(image: Image("Premium-Infinity"), title: "Unlimited albums for your memories")
-                            createFeatureRow(image: Image("Premium-Folders"), title: "iCloud storage & backup")
+                            createFeatureRow(image: Image("Premium-Albums"), title: L10n.unlimitedStorageFeatureRowTitle)
+                            createFeatureRow(image: Image("Premium-Infinity"), title: L10n.unlimitedAlbumsFeatureRowTitle)
+                            createFeatureRow(image: Image("Premium-Folders"), title: L10n.iCloudStorageFeatureRowTitle)
                         }.padding(.leading, 40)
                         Spacer()
                     }

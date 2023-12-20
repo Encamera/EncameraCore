@@ -19,7 +19,7 @@ struct ModalViewModifier: ViewModifier {
     var animated: Bool = false  // Added animated property with default value
 
     func body(content: Content) -> some View {
-        ZStack(alignment: .center) {
+        ZStack(alignment: .bottom) {
             content
             Color.clear.background(.ultraThinMaterial)
             VStack(alignment: .center, spacing: 0) {

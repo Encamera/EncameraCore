@@ -69,7 +69,7 @@ struct ChooseStorageModal: View {
                                     storageSelected?(selectedStorage)
                                 }
                                 .disabled(selectedStorage == nil)
-                                .primaryButton(on: .darkBackground, enabled: selectedStorage != nil)
+                                .primaryButton(enabled: selectedStorage != nil)
                             }
                         }
                         .padding(.init(top: 40, leading: 16, bottom: 40, trailing: 16))

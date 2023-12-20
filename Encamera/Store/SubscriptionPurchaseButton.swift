@@ -34,7 +34,7 @@ struct SubscriptionPurchaseButton: View {
                 .frame(maxWidth: .infinity)
             }
 
-            .primaryButton(on: .darkBackground)
+            .primaryButton()
             .disabled(selectedSubscription == nil)
             .padding(.horizontal)
         }
