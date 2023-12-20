@@ -52,6 +52,7 @@ class AlbumGridViewModel: ObservableObject {
                 self.albumManager.loadAlbumsFromFilesystem()
                 self.setAlbums()
             }.store(in: &cancellables)
+        self.isShowingNotificationBanner = showNotificationBannerDefault
     }
 
     func setAlbums() {
@@ -68,11 +69,19 @@ class AlbumGridViewModel: ObservableObject {
         return purchaseManager.isAllowedAccess(feature: .createKey(count: .infinity)) == false
     }
 
-    
+    var showNotificationBellIndicator: Bool {
+        UserDefaultUtils.integer(forKey: .launchCount) < 5
+    }
+
+    var showNotificationBannerDefault: Bool {
+        UserDefaultUtils.integer(forKey: .launchCount) < 3
+    }
+
 }
 
 struct AlbumGrid: View {
     @StateObject var viewModel: AlbumGridViewModel
+
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -80,15 +89,15 @@ struct AlbumGrid: View {
                 Text(L10n.albumsTitle)
                     .fontType(.large, weight: .bold)
                 Spacer()
-                NotificationBell {
+                NotificationBell(showIndicator: viewModel.showNotificationBellIndicator) {
                     EventTracking.trackNotificationBellPressed()
                     withAnimation {
-                        //                        viewModel.isShowingNotificationBanner.toggle()
+                        viewModel.isShowingNotificationBanner.toggle()
                     }
                 }
             }
             .padding(24)
-            NotificationBanner(isPresented: $viewModel.isShowingNotificationBanner)
+            NotificationCarousel(isPresented: $viewModel.isShowingNotificationBanner)
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
                 let spacing = CGFloat(17.0)
@@ -148,6 +157,7 @@ struct AlbumGrid: View {
             }
         }
     }
+
 }
 
 #Preview {

@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct TextViewModifier: ViewModifier {
-    
+
     func body(content: Content) -> some View {
         content
     }
@@ -33,30 +33,32 @@ enum EncameraFont {
         case bold = "Satoshi-Bold"
         case rajdhaniBold = "Rajdhani-Bold"
     }
-
+    var offset: CGFloat {
+        return 1.0
+    }
     var font: Font {
 
         switch self {
         case .large:
-            return .custom(Name.regular.rawValue, size: 35)
+            return satoshi(size: 35)
         case .medium:
-            return .custom(Name.regular.rawValue, size: 30)
+            return satoshi(size: 30)
         case .pt20:
-            return .custom(Name.regular.rawValue, size: 20)
+            return satoshi(size: 20)
         case .pt24:
-            return .custom(Name.regular.rawValue, size: 24)
+            return satoshi(size: 24)
         case .pt18:
-            return .custom(Name.regular.rawValue, size: 18)
+            return satoshi(size: 18)
         case .pt16:
-            return .custom(Name.regular.rawValue, size: 16)
+            return satoshi(size: 16)
 
         case .pt14:
-            return .custom(Name.regular.rawValue, size: 14)
+            return satoshi(size: 14)
         case .pt12:
-            return .custom(Name.regular.rawValue, size: 12)
+            return satoshi(size: 12)
 
         case .pt10:
-            return .custom(Name.regular.rawValue, size: 10)
+            return satoshi(size: 10)
         case .rajdhaniBold:
             return .custom(Name.rajdhaniBold.rawValue, size: 16)
         case .rajdhaniBoldSmall:
@@ -64,11 +66,15 @@ enum EncameraFont {
 
         }
     }
+
+    private func satoshi(size: CGFloat) -> Font {
+        return .custom(Name.regular.rawValue, size: size + offset)
+    }
 }
 
 extension Text {
-    
-    
+
+
     func alertText() -> some View {
         return self
             .fontType(.pt18)
@@ -88,7 +94,7 @@ extension View {
 }
 
 struct Text_Previews: PreviewProvider {
-    
+
     static var previews: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("This is a large one").fontType(.large)
@@ -100,6 +106,6 @@ struct Text_Previews: PreviewProvider {
 
             Text("Alert!").alertText()
         }
-        
+
     }
 }

@@ -162,7 +162,6 @@ struct EncameraApp: App {
                 )
                 guard keyManager.currentKey != nil else { return }
                 await showImportScreenIfNeeded()
-                UserDefaultUtils.increaseInteger(forKey: .launchCount)
                 await MainActor.run {
                     self.setShouldShowTweetScreen()
                 }
@@ -354,6 +353,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // set app launch version to current app version
         let buildNumber = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
         UserDefaultUtils.set(buildNumber, forKey: .lastAppLaunchVersion)
+        UserDefaultUtils.increaseInteger(forKey: .launchCount)
         return true
     }
 }

@@ -13,13 +13,6 @@ import EncameraCore
 
 //let matomoTracker = MatomoTracker(siteId: "23", baseURL: URL(string: "https://demo2.matomo.org/piwik.php")!)
 
-protocol EventTrackable {
-    static func trackCameraButtonPressed()
-    static func trackPictureTaken()
-    static func trackAppOpened()
-    static func trackCreateAlbumButtonPressed()
-}
-
 enum PurchaseGoal: Int {
     case yearlyUnlimitedKeysAndPhotos
     case montlyUnlimitedKeysAndPhotos
@@ -47,7 +40,11 @@ class EventTracking {
     }
 
     private static func track(category: String, action: String, name: String? = nil, value: Float? = nil) {
+    #if DEBUG
+        debugPrint("[Tracking] Category: \(category), action: \(action), name: \(name ?? "none"), value: \(String(describing: value))")
+    #else
         Self.shared.piwikTracker.sendEvent(category: category, action: action, name: name, value: value as NSNumber?, path: nil)
+    #endif
     }
 
     static func trackAppLaunched() {
@@ -58,6 +55,14 @@ class EventTracking {
         track(category: "app", action: "opened_camera_from_widget")
     }
 
+    static func trackOpenedCameraFromBottomBar() {
+        track(category: "camera", action: "opened", name: "bottom_bar")
+    }
+
+    static func trackOpenedCameraFromAlbumEmptyState() {
+        track(category: "camera", action: "opened", name: "album_empty_state")
+    }
+
     static func trackCameraButtonPressed() {
         track(category: "camera", action: "button_pressed")
     }
@@ -66,8 +71,16 @@ class EventTracking {
         track(category: "camera", action: "media_captured", name: type.title)
     }
 
+    static func trackCameraClosed() {
+        track(category: "camera", action: "closed")
+    }
+
     static func trackAlbumOpened() {
         track(category: "album", action: "opened")
+    }
+
+    static func trackAlbumSelectedFromTopBar() {
+        track(category: "album", action: "selected", name: "top_bar")
     }
 
     static func trackImageViewed() {
@@ -164,5 +177,11 @@ class EventTracking {
         track(category: "settings", action: "contact_pressed")
     }
 
+    static func trackNotificationViewed(title: String) {
+        track(category: "notification_banner", action: "viewed", name: title)
+    }
 
-}
+    static func trackNotificationButtonTapped(url: URL) {
+        track(category: "notification_banner", action: "button_tapped", name: url.absoluteString)
+    }
+ }

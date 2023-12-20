@@ -37,6 +37,7 @@
 		16ABB8B2CD48BEA35AF48A2E /* OptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB97C90A88A7FF748C251292 /* OptionItemView.swift */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		1943C19C8F45262DECE0F516 /* PiwikPROSDK in Frameworks */ = {isa = PBXBuildFile; productRef = EA40970C40A1B9E355F1A2F8 /* PiwikPROSDK */; };
+		199809BB2B32EA3C00A9B7DD /* NotificationCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 199809BA2B32EA3C00A9B7DD /* NotificationCarousel.swift */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
 		1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DF70D2CC410A637C7BB925 /* EncameraState.swift */; };
@@ -345,6 +346,7 @@
 		1502C040838F3770BEF5B8E0 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
+		199809BA2B32EA3C00A9B7DD /* NotificationCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCarousel.swift; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1BD41DEC59C93641F49268C6 /* SubscriptionPurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPurchaseButton.swift; sourceTree = "<group>"; };
 		1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Black.otf"; sourceTree = "<group>"; };
@@ -876,6 +878,7 @@
 				B659B984967304593F27C554 /* StorageOptionSquare.swift */,
 				25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */,
 				7FB2C08C3732EFAB967E6227 /* WebView.swift */,
+				199809BA2B32EA3C00A9B7DD /* NotificationCarousel.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1261,6 +1264,7 @@
 				303DE58239B9DE2DC3C2BBC7 /* ButtonViewModifier.swift in Sources */,
 				5BDE17D39CBF70B6A5C2857B /* BuyButtonStyle.swift in Sources */,
 				E02CDF136FEA73C34ED68EE1 /* CameraModePicker.swift in Sources */,
+				199809BB2B32EA3C00A9B7DD /* NotificationCarousel.swift in Sources */,
 				D95B5A20ECD8C5784FDD63D0 /* CameraModel.swift in Sources */,
 				950FBFFE68B35AEDBBF975D3 /* CameraPreview.swift in Sources */,
 				140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */,

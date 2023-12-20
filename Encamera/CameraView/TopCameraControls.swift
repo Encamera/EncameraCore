@@ -131,6 +131,7 @@ struct TopCameraControlsView: View {
                     ForEach(Array(viewModel.albumManager.albums)) { album in
                         Button(album.name) {
                             viewModel.albumManager.currentAlbum = album
+                            EventTracking.trackAlbumSelectedFromTopBar()
                         }
                     }
                 } label: {

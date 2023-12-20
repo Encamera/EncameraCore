@@ -48,6 +48,7 @@ struct BottomNavigationBar: View {
                 withAnimation {
                     selectedItem = .camera
                 }
+                EventTracking.trackOpenedCameraFromBottomBar()
             } label: {
                 ZStack {
                     Circle()

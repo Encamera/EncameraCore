@@ -114,7 +114,7 @@ struct CameraView: View {
                 }
             }
         )
-        .animation(.easeInOut, value: cameraModel.willCapturePhoto)
+        .animation(.bouncy, value: cameraModel.willCapturePhoto)
 #endif
     }
 
@@ -286,6 +286,7 @@ struct CameraView: View {
         Task {
             await cameraModel.stopCamera()
         }
+        EventTracking.trackCameraClosed()
         closeButtonTapped()
     }
 }

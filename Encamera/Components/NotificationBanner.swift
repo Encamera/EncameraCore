@@ -7,56 +7,68 @@
 
 import SwiftUI
 
-struct NotificationBanner: View {
-
-    @Binding var isPresented: Bool
+class NotificationBannerViewModel: ObservableObject, Identifiable {
     var image: Image? = Image("NotificationBanner-Lock")
     var titleText: String = "Add Widget"
     var bodyText: String = "Non explicabo officia aut odit ex  eum ipsum libero."
-    var buttonText: String = "Add Widget"
+    var buttonText: String?
+    var buttonUrl: URL?
+    var id: Int = 0
+
+    init(image: Image? = nil, titleText: String, bodyText: String, buttonText: String? = nil, buttonUrl: URL? = nil, id: Int) {
+        self.image = image
+        self.titleText = titleText
+        self.bodyText = bodyText
+        self.buttonText = buttonText
+        self.buttonUrl = buttonUrl
+        self.id = id
+    }
+}
+
+struct NotificationBanner: View {
+    @ObservedObject var viewModel: NotificationBannerViewModel
     var body: some View {
-        if isPresented {
             GeometryReader { geo in
 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(titleText)
+                        Text(viewModel.titleText)
                             .fontType(.pt16, weight: .bold)
                             .foregroundColor(.white)
-                        Text(bodyText)
+                        Text(viewModel.bodyText)
                             .fontType(.pt14)
+                            .lineLimit(3, reservesSpace: true)
                             .opacity(0.80)
                         Spacer()
-                        Text(buttonText)
-                            .fontType(.pt14, on: .textButton, weight: .bold)
-                    }
-                    .padding(24)
-                    .if(image != nil, transform: { view in
-                        view.frame(width: (geo.size.width / 3)*2)
+                        Button(action: {
+                            guard let url = viewModel.buttonUrl else { return }
+                            Task {
+                                await UIApplication.shared.open(url)
+                            }
+                            EventTracking.trackNotificationButtonTapped(url: url)
+                        }, label: {
+                            Text(viewModel.buttonText ?? "")
+                                .fontType(.pt14, on: .textButton, weight: .bold)
+                        })
 
-                    })
-                    if let image {
+                    }
+                    .padding([.top], 24)
+                    if let image = viewModel.image {
+                        Spacer()
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: geo.size.width / 3 - 24)
-                            .padding(.trailing, 24)
-                            .padding(.top, 24)
-                            .padding(.bottom, 24)
+                            .frame(width: 100, height: 100)
                     }
                 }
-            }
-            .frame(height: 165)
-            .frame(maxWidth: .infinity)
-            .background(Color(red: 0.09, green: 0.09, blue: 0.09))
-            .transition(.opacity)
+                .padding([.leading, .trailing], 24)
 
-        } else {
-            EmptyView()
-        }
+            }
+            .background(Color(red: 0.09, green: 0.09, blue: 0.09))
+
     }
 }
 
-#Preview {
-    NotificationBanner(isPresented: .constant(true))
-}
+//#Preview {
+//    NotificationBanner(viewModel: .init())
+//}

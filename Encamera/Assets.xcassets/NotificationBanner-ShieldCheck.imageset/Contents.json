@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "NotificationBanner-ShieldCheck.pdf",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

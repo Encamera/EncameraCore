@@ -174,6 +174,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
                     }
                     .padding(spacing)
                     .onChange(of: viewModel.showCamera) { oldValue, newValue in
+                        EventTracking.trackOpenedCameraFromAlbumEmptyState()
                         viewModel.albumManager.currentAlbum = viewModel.album
                     }
 

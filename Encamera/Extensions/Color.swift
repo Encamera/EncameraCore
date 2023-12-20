@@ -37,6 +37,7 @@ extension Color {
     static let purchasePopularForegroundShapeColor = Color("Purchase-PopularForegroundShapeColor")
     static let purchasePopularBackgroundShapeColor = Color("Purchase-PopularBackgroundShapeColor")
     static let notificationBadgeColor = Color("NotificationBadgeColor")
+    static let notificationDividerColor = Color("Notification-DividerColor")
 }
 /*    static let opacity: Double = 0.20
  static let red: Double = 0.21
