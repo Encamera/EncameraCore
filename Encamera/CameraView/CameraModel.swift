@@ -216,7 +216,7 @@ final class CameraModel: NSObject, ObservableObject {
     }
 
     func stopCamera() async {
-        await service.stop()
+        await service.stop(observeRestart: false)
     }
 
     func captureButtonPressed() async throws {

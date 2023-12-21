@@ -258,8 +258,12 @@ struct CameraView: View {
         }
         .ignoresSafeArea(edges: [.top, .bottom])
         .task {
+            await cameraModel.initialConfiguration()
+        }
+        .onDisappear {
+            debugPrint("CameraView disappeared")
             Task {
-                await cameraModel.initialConfiguration()
+                await cameraModel.stopCamera()
             }
         }
         .navigationBarHidden(true)
