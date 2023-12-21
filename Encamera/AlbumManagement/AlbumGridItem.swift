@@ -20,12 +20,11 @@ class AlbumGridItemModel: ObservableObject {
     @Published var imageCount: Int?
     @Published var leadingImage: UIImage?
 
-    init(album: Album, key: PrivateKey, fileReader: FileReader = DiskFileAccess(), albumManager: AlbumManaging) {
+    init(album: Album, fileReader: FileReader = DiskFileAccess(), albumManager: AlbumManaging) {
         self.album = album
         Task {
             await fileReader.configure(
                 for: album,
-                with: key,
                 albumManager: albumManager
             )
 
@@ -65,9 +64,9 @@ struct AlbumGridItem: View {
     var albumName: String
     var width: CGFloat
 
-    init(key: PrivateKey, album: Album, albumManager: AlbumManaging, width: CGFloat) {
+    init(album: Album, albumManager: AlbumManaging, width: CGFloat) {
         albumName = album.name
-        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, key: key, albumManager: albumManager))
+        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, albumManager: albumManager))
         self.width = width
     }
 

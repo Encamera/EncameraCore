@@ -144,15 +144,6 @@ struct CameraView: View {
                 await cameraModel.service.start()
             }
         }
-        .sheet(isPresented: $cameraModel.showImportedMediaScreen) {
-            MediaImportView(viewModel: .init(
-                privateKey: cameraModel.privateKey,
-                albumManager: cameraModel.albumManager,
-                fileAccess: cameraModel.fileAccess
-            ))
-        }
-
-
     }
 
     @ViewBuilder private var missingPermissionsView: some View {
@@ -319,7 +310,6 @@ extension AVCaptureDevice.FlashMode {
 struct CameraView_Previews: PreviewProvider {
     static var previews: some View {
         let model = CameraModel(
-            privateKey: DemoPrivateKey.dummyKey(),
             albumManager: DemoAlbumManager(),
             cameraService: CameraConfigurationService(model: .init()),
             fileAccess: DemoFileEnumerator(),

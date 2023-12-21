@@ -62,7 +62,7 @@ struct EncameraApp: App {
             }
             self.keyManager.keyPublisher.sink { key in
                 self.keyManagerKey = key
-                guard let key else {
+                guard key != nil else {
                     return
                 }
                 let albumManager: AlbumManaging = AlbumManager(keyManager: keyManager)
@@ -75,15 +75,15 @@ struct EncameraApp: App {
                         return
                     }
 
-                    self.setupFileAccess(with: self.keyManager.currentKey, album: album)
+                    self.setupFileAccess(album: album)
                 }.store(in: &self.cancellables)
-                self.setupFileAccess(with: key, album: albumManager.currentAlbum)
+                self.setupFileAccess(album: albumManager.currentAlbum)
 
             }.store(in: &cancellables)
 
 
 
-            setupFileAccess(with: keyManager.currentKey, album: albumManager?.currentAlbum)
+            setupFileAccess(album: albumManager?.currentAlbum)
             NotificationUtils.didEnterBackgroundPublisher
                 .receive(on: RunLoop.main)
                 .sink { _ in
@@ -149,7 +149,7 @@ struct EncameraApp: App {
 
         }
         
-        private func setupFileAccess(with key: PrivateKey?, album: Album?) {
+        private func setupFileAccess(album: Album?) {
             guard let album, let albumManager else {
                 debugPrint("No album")
                 return
@@ -157,7 +157,6 @@ struct EncameraApp: App {
             Task {
                 await self.newMediaFileAccess.configure(
                     for: album,
-                    with: key,
                     albumManager: albumManager
                 )
                 guard keyManager.currentKey != nil else { return }
@@ -235,11 +234,12 @@ struct EncameraApp: App {
                                          authManager: viewModel.authManager))
                 } else if viewModel.isAuthenticated == false && viewModel.keyManagerKey == nil {
                     AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-                } else if viewModel.isAuthenticated == true, let key = viewModel.keyManagerKey, let albumManager = viewModel.albumManager {
+                } else if viewModel.isAuthenticated == true,
+                            viewModel.keyManagerKey != nil,
+                            let albumManager = viewModel.albumManager {
                     MainHomeView(viewModel: .init(
                         fileAccess: viewModel.newMediaFileAccess,
                         keyManager: viewModel.keyManager,
-                        key: key,
                         albumManager: albumManager,
                         purchasedPermissions: viewModel.purchasedPermissions,
                         settingsManager: viewModel.settingsManager,

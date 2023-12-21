@@ -39,7 +39,7 @@
     "_applicationInternalID" : "1639202616",
     "_developerTeamID" : "KGJCC745S9",
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 723414265.07027197,
+    "_lastSynchronizedDate" : 724781577.359653,
     "_locale" : "en_US",
     "_storefront" : "USA",
     "_storeKitErrors" : [
@@ -107,7 +107,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "5209F5CD",
+              "internalID" : "CE8AD20C",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
@@ -115,7 +115,7 @@
               "subscriptionPeriod" : "P2M"
             }
           ],
-          "displayPrice" : "0.99",
+          "displayPrice" : "4.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "6444257273",
@@ -147,7 +147,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "A95ACEE4",
+              "internalID" : "52C9684A",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
@@ -155,15 +155,15 @@
               "subscriptionPeriod" : "P6M"
             },
             {
-              "displayPrice" : "6.99",
+              "displayPrice" : "4.99",
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "9A80E2F4",
+              "internalID" : "BD13D7D2",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
-              "referenceName" : "meme_splaining",
+              "referenceName" : "Instagram meme_splaining offer code",
               "subscriptionPeriod" : "P1Y"
             },
             {
@@ -171,7 +171,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "571FA54D",
+              "internalID" : "AE5C6E64",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -179,24 +179,24 @@
               "subscriptionPeriod" : "P1Y"
             },
             {
-              "displayPrice" : "4.99",
+              "displayPrice" : "6.99",
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "0DB60911",
+              "internalID" : "62EC1D24",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
-              "referenceName" : "Instagram meme_splaining offer code",
+              "referenceName" : "meme_splaining",
               "subscriptionPeriod" : "P1Y"
             }
           ],
-          "displayPrice" : "9.99",
+          "displayPrice" : "24.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "6444257244",
           "introductoryOffer" : {
-            "internalID" : "17FE76BD",
+            "internalID" : "F2FDF0D1",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
             "subscriptionPeriod" : "P1W"

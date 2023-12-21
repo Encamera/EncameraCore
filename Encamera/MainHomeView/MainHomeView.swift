@@ -26,7 +26,6 @@ class MainHomeViewViewModel: ObservableObject {
     var cameraService: CameraConfigurationService
     var cameraServiceModel = CameraConfigurationServiceModel()
     var keyManager: KeyManager
-    var privateKey: PrivateKey
     var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
     var settingsManager: SettingsManager
@@ -35,13 +34,11 @@ class MainHomeViewViewModel: ObservableObject {
 
     init(fileAccess: FileAccess,
          keyManager: KeyManager,
-         key: PrivateKey,
          albumManager: AlbumManaging,
          purchasedPermissions: PurchasedPermissionManaging,
          settingsManager: SettingsManager,
          authManager: AuthManager) {
         self.fileAccess = fileAccess
-        self.privateKey = key
         self.keyManager = keyManager
         self.albumManager = albumManager
         self.purchasedPermissions = purchasedPermissions
@@ -83,7 +80,6 @@ struct MainHomeView: View {
             ZStack(alignment: .bottom) {
                 if selectedNavigationItem == .camera || showCamera {
                     CameraView(cameraModel: .init(
-                        privateKey: viewModel.privateKey,
                         albumManager: viewModel.albumManager,
                         cameraService: viewModel.cameraService,
                         fileAccess: viewModel.fileAccess,
@@ -99,7 +95,7 @@ struct MainHomeView: View {
                     if selectedNavigationItem == .settings {
                         SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
                     } else {
-                        AlbumGrid(viewModel: .init(key: viewModel.privateKey, purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
+                        AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
                     }
                     BottomNavigationBar(selectedItem: $selectedNavigationItem)
                 }
@@ -119,20 +115,15 @@ struct MainHomeView: View {
             .navigationDestination(for: String.self) { destination in
                 switch destination {
                 case "CreateAlbum":
-                    if let key = viewModel.keyManager.currentKey {
-                        AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: key, album: nil, shouldCreateAlbum: true)).onAppear {
-                            EventTracking.trackCreateAlbumButtonPressed()
-                        }
-                    } else {
-                        let _ = print("no key")
-                        EmptyView()
+                    AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, album: nil, shouldCreateAlbum: true)).onAppear {
+                        EventTracking.trackCreateAlbumButtonPressed()
                     }
                 default:
                     EmptyView()
                 }
             }
             .navigationDestination(for: Album.self) { album in
-                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, key: album.key, album: album)).onAppear {
+                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
                     EventTracking.trackAlbumOpened()
                 }
             }

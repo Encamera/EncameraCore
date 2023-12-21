@@ -12,7 +12,6 @@ import EncameraCore
 @MainActor
 class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
 
-    var privateKey: PrivateKey
     var album: Album?
     var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
@@ -36,8 +35,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     var fileAccess: FileAccess = DiskFileAccess()
 
-    init(privateKey: PrivateKey,
-         album: Album?,
+    init(album: Album?,
          albumManager: AlbumManaging,
          blurImages: Bool = false,
          showingCarousel: Bool = false,
@@ -48,7 +46,6 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
     ) {
         self.blurImages = blurImages
         self.albumManager = albumManager
-        self.privateKey = privateKey
         self.album = album
         self.showingCarousel = showingCarousel
         self.downloadPendingMediaCount = downloadPendingMediaCount
@@ -102,7 +99,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
 
     func enumerateMedia() async {
         guard let album = album else { return }
-        await fileAccess.configure(for: album, with: privateKey, albumManager: albumManager)
+        await fileAccess.configure(for: album, albumManager: albumManager)
         let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
         media = enumerated
         firstImage = enumerated.first
@@ -209,7 +206,6 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
 
                     if let album = viewModel.album {
                         CameraView(cameraModel: .init(
-                            privateKey: album.key,
                             albumManager: viewModel.albumManager,
                             cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
                             fileAccess: viewModel.fileAccess,
@@ -284,7 +280,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
 #Preview {
 
     NavigationView {
-        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(privateKey: DemoPrivateKey.dummyKey(), album: Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), blurImages: false)) {
+        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(album: Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), blurImages: false)) {
             List {
             }
             .frame(height: 300)

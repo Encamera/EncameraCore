@@ -31,7 +31,6 @@ class AlbumDetailViewModel: ObservableObject {
 
     var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
     var fileManager: FileAccess?
-    var key: PrivateKey
     var album: Album? {
         didSet {
             guard let album = album else { return }
@@ -44,13 +43,12 @@ class AlbumDetailViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(albumManager: AlbumManaging, fileManager: FileAccess? = nil, key: PrivateKey, album: Album?, shouldCreateAlbum: Bool = false) {
+    init(albumManager: AlbumManaging, fileManager: FileAccess? = nil, album: Album?, shouldCreateAlbum: Bool = false) {
         self.albumManager = albumManager
         self.fileManager = fileManager
-        self.key = key
         self.shouldCreateAlbum = shouldCreateAlbum
         self.isEditingAlbumName = shouldCreateAlbum
-        self.gridViewModel = GalleryGridViewModel<EncryptedMedia>(privateKey: key, album: album, albumManager: albumManager, blurImages: false)
+        self.gridViewModel = GalleryGridViewModel<EncryptedMedia>(album: album, albumManager: albumManager, blurImages: false)
         albumManager.albumOperationPublisher
             .receive(on: RunLoop.main)
             .sink { operation in
@@ -68,7 +66,7 @@ class AlbumDetailViewModel: ObservableObject {
         self.albumName = album.name
 
         Task {
-            self.fileManager = await DiskFileAccess(for: album, with: key, albumManager: albumManager)
+            self.fileManager = await DiskFileAccess(for: album, albumManager: albumManager)
         }
     }
 

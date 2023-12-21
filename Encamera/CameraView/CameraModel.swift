@@ -69,7 +69,6 @@ final class CameraModel: NSObject, ObservableObject {
 
     @Published var showPurchaseSheet: Bool = false
 
-    var privateKey: PrivateKey
     var albumManager: AlbumManaging
     var alertError: AlertError!
     var fileAccess: FileAccess
@@ -82,8 +81,7 @@ final class CameraModel: NSObject, ObservableObject {
     var isProcessingEvent = false
     let eventSubject = PassthroughSubject<Void, Never>()
     
-    init(privateKey: PrivateKey,
-         albumManager: AlbumManaging,
+    init(albumManager: AlbumManaging,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
          purchaseManager: PurchasedPermissionManaging) {
@@ -91,7 +89,6 @@ final class CameraModel: NSObject, ObservableObject {
         self.service = cameraService
         self.fileAccess = fileAccess
         self.purchaseManager = purchaseManager
-        self.privateKey = privateKey
         self.albumManager = albumManager
 
         super.init()
@@ -110,7 +107,7 @@ final class CameraModel: NSObject, ObservableObject {
             }
             if let album = albumManager.currentAlbum {
                 await self.fileAccess.configure(
-                    for: album, with: privateKey, albumManager: albumManager
+                    for: album, albumManager: albumManager
                 )
             }
            await cameraService.setDelegate(self)
@@ -127,7 +124,7 @@ final class CameraModel: NSObject, ObservableObject {
                         return
                     }
                     await self.fileAccess.configure(
-                        for: album, with: privateKey, albumManager: albumManager
+                        for: album, albumManager: albumManager
                     )
                 }
             }

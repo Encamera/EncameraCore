@@ -18,17 +18,15 @@ class AlbumGridViewModel: ObservableObject {
 
     var albumManager: AlbumManaging
     var fileManager: FileAccess
-    var key: PrivateKey
 
     var purchaseManager: PurchasedPermissionManaging
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(key: PrivateKey, purchaseManager: PurchasedPermissionManaging, fileManager: FileAccess, albumManger: AlbumManaging) {
+    init(purchaseManager: PurchasedPermissionManaging, fileManager: FileAccess, albumManger: AlbumManaging) {
         self.purchaseManager = purchaseManager
         self.fileManager = fileManager
         self.albumManager = albumManger
-        self.key = key
         setAlbums()
         self.isKeyTutorialClosed = UserDefaultUtils.bool(forKey: .keyTutorialClosed)
         albumManger.albumOperationPublisher
@@ -150,8 +148,7 @@ struct AlbumGrid: View {
     private func albums(side: CGFloat) -> some View {
         ForEach(Array(viewModel.albums), id: \.id) { album in
             NavigationLink(value: album) {
-                AlbumGridItem(key: album.key,
-                              album: album,
+                AlbumGridItem(album: album,
                               albumManager: viewModel.albumManager,
                               width: side)
             }
@@ -161,8 +158,7 @@ struct AlbumGrid: View {
 }
 
 #Preview {
-    AlbumGrid(viewModel: .init(key: DemoPrivateKey.dummyKey(),
-                               purchaseManager: DemoPurchasedPermissionManaging(),
+    AlbumGrid(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging(),
                                fileManager: DemoFileEnumerator(),
                                albumManger: DemoAlbumManager()))
     .gradientBackground()
