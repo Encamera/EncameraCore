@@ -24,7 +24,6 @@ class MainHomeViewViewModel: ObservableObject {
 
     var fileAccess: FileAccess
     var cameraService: CameraConfigurationService
-    var cameraServiceModel = CameraConfigurationServiceModel()
     var keyManager: KeyManager
     var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
@@ -37,7 +36,9 @@ class MainHomeViewViewModel: ObservableObject {
          albumManager: AlbumManaging,
          purchasedPermissions: PurchasedPermissionManaging,
          settingsManager: SettingsManager,
-         authManager: AuthManager) {
+         authManager: AuthManager,
+         cameraService: CameraConfigurationService
+    ) {
         self.fileAccess = fileAccess
         self.keyManager = keyManager
         self.albumManager = albumManager
@@ -45,7 +46,7 @@ class MainHomeViewViewModel: ObservableObject {
         self.settingsManager = settingsManager
         self.authManager = authManager
         self.settingsManager = SettingsManager()
-        self.cameraService = CameraConfigurationService(model: cameraServiceModel)
+        self.cameraService = cameraService
         self.authManager = authManager
     }
 

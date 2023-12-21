@@ -26,9 +26,10 @@ struct EncameraApp: App {
         var onboardingManager: OnboardingManager
         var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
         var settingsManager: SettingsManager
+        var cameraService: CameraConfigurationService
         private(set) var authManager: AuthManager
         private var cancellables = Set<AnyCancellable>()
-        
+
         init() {
             try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try? AVAudioSession.sharedInstance().setActive(true)
@@ -39,6 +40,7 @@ struct EncameraApp: App {
 
             self.keyManager = keyManager
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager, settingsManager: settingsManager)
+            self.cameraService = CameraConfigurationService(model: CameraConfigurationServiceModel())
             self.onboardingManager
                 .observables
                 .$shouldShowOnboarding
@@ -81,7 +83,7 @@ struct EncameraApp: App {
 
             }.store(in: &cancellables)
 
-
+            
 
             setupFileAccess(album: albumManager?.currentAlbum)
             NotificationUtils.didEnterBackgroundPublisher
@@ -243,7 +245,9 @@ struct EncameraApp: App {
                         albumManager: albumManager,
                         purchasedPermissions: viewModel.purchasedPermissions,
                         settingsManager: viewModel.settingsManager,
-                        authManager: viewModel.authManager), showCamera: $showCamera)
+                        authManager: viewModel.authManager,
+                        cameraService: viewModel.cameraService
+                    ), showCamera: $showCamera)
 
                 } else {
                     EmptyView()
@@ -278,7 +282,10 @@ struct EncameraApp: App {
                                viewModel.authManager.isAuthenticated,
                                urlType == .cameraFromWidget {
                                 EventTracking.trackOpenedCameraFromWidget()
-                                self.showCamera = true
+                                withAnimation {
+                                    self.showCamera = true
+                                }
+
                             }
                         }
 
