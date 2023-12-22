@@ -371,11 +371,13 @@ private extension MainOnboardingView {
                 bottomButtonTitle: L10n.enable(method.nameForMethod),
                 bottomButtonAction: {
                     try await viewModel.authWithBiometrics()
+                    EventTracking.trackOnboardingBiometricsEnabled()
                 }, content: { goToNext in
                     AnyView(
                         Text(L10n.skipForNow)
                             .fontType(.pt14, on: .textButton, weight: .bold)
                             .onTapGesture {
+                                EventTracking.trackOnboardingBiometricsSkipped()
                                 goToNext()
                             }
                     )

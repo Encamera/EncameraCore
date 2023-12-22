@@ -137,6 +137,22 @@ class EventTracking {
         track(category: "purchase", action: "incomplete", name: screen)
     }
 
+    static func trackBiometricsEnabled() {
+        track(category: "biometrics", action: "enabled", name: "settings")
+    }
+
+    static func trackBiometricsDisabled() {
+        track(category: "biometrics", action: "disabled", name: "settings")
+    }
+
+    static func trackOnboardingBiometricsEnabled() {
+        track(category: "biometrics", action: "enabled", name: "onboarding")
+    }
+
+    static func trackOnboardingBiometricsSkipped() {
+        track(category: "biometrics", action: "skipped", name: "onboarding")
+    }
+
     static func trackCameraPermissionsDenied() {
         track(category: "permissions", action: "permissions_denied", name: "camera")
     }
