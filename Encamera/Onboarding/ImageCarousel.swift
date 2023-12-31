@@ -107,6 +107,11 @@ struct ImageCarousel: View {
 
             Spacer().frame(height: 32)
             ImageStepIndicator(activeIndex: $currentScrolledToImage, numberOfItems: carouselItems.count)
+                .onTapGesture {
+                    withAnimation {
+                        currentScrolledToImage += 1
+                    }
+                }
         }
     }
 }

@@ -169,6 +169,14 @@ class EventTracking {
         track(category: "permissions", action: "permissions_granted", name: "microphone")
     }
 
+    static func trackCameraPermissionsTapped() {
+        track(category: "permissions", action: "permissions_tapped", name: "camera")
+    }
+
+    static func trackMicrophonePermissionsTapped() {
+        track(category: "permissions", action: "permissions_tapped", name: "microphone")
+    }
+
     static func trackAlbumCreated() {
         track(category: "album", action: "created")
     }

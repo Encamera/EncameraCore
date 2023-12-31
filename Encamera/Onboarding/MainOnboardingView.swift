@@ -438,7 +438,7 @@ private extension MainOnboardingView {
                 title: L10n.onboardingPermissionsTitle,
                 subheading: L10n.onboardingPermissionsSubheading,
                 image: Image("Onboarding-Permissions"),
-                bottomButtonTitle: L10n.addPermissions, bottomButtonAction: {
+                bottomButtonTitle: cameraPermissions.isCameraAccessAuthorized && cameraPermissions.isMicrophoneAccessAuthorized ? L10n.done : L10n.addPermissions, bottomButtonAction: {
                     do {
                         try await self.cameraPermissions.requestCameraPermission()
                         EventTracking.trackCameraPermissionsGranted()
@@ -469,7 +469,13 @@ private extension MainOnboardingView {
                             isSelected: Binding<Bool>(
                                 get: { self.cameraPermissions.isCameraAccessAuthorized },
                                 set: { _ in
-                                }))
+                                })) {
+                                    EventTracking.trackCameraPermissionsTapped()
+                                    Task {
+                                        try? await self.cameraPermissions.requestCameraPermission()
+                                    }
+                                }
+
                         OptionItemView(
                             title: L10n.onboardingPermissionsMicrophoneAccess,
                             description: L10n.onboardingPermissionsMicrophoneAccessSubheading,
@@ -477,7 +483,12 @@ private extension MainOnboardingView {
                             isSelected: Binding<Bool>(
                                 get: { self.cameraPermissions.isMicrophoneAccessAuthorized },
                                 set: { _ in
-                                }))
+                                })) {
+                                    EventTracking.trackMicrophonePermissionsTapped()
+                                    Task {
+                                        try? await self.cameraPermissions.requestMicrophonePermission()
+                                    }
+                                }
                     }.padding(10)
                     )
                 })

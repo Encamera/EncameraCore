@@ -21,14 +21,25 @@ struct OptionItemView<Content: View>: View {
     let isAvailable: Bool
     let unavailableReason: String? = nil
     let image: Image?
+    let tappedAction: (() -> Void)?
     @Binding var isSelected: Bool
 
-    init(title: String, description: String?, isAvailable: Bool, unavailableReason: String? = nil, image: Image? = nil, isSelected: Binding<Bool>, rightAccessoryView: (() -> Content)? = { EmptyView() }) {
+
+    init(title: String, 
+         description: String?,
+         isAvailable: Bool,
+         unavailableReason: String? = nil,
+         image: Image? = nil,
+         isSelected: Binding<Bool>,
+         rightAccessoryView: (() -> Content)? = { EmptyView() },
+         tappedAction: (() -> Void)? = nil
+    ) {
         self.title = title
         self.rightAccessoryView = rightAccessoryView
         self.description = description
         self.isAvailable = isAvailable
         self.image = image
+        self.tappedAction = tappedAction
         _isSelected = isSelected
     }
 
@@ -62,6 +73,7 @@ struct OptionItemView<Content: View>: View {
         .optionItem(isSelected: isSelected, isAvailable: isAvailable)
 
         Button(action: {
+            tappedAction?()
             isSelected = true
         }, label: {
             VStack(alignment: .leading) {
