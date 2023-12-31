@@ -9,7 +9,7 @@ import Combine
 import EncameraCore
 import SwiftUI
 
-class AlbumGridViewModel: ObservableObject {
+class AlbumGridViewModel<D: FileAccess>: ObservableObject {
     @Published var albums: [Album] = .init()
     @Published var isShowingAddExistingKeyView: Bool = false
     @Published var isKeyTutorialClosed: Bool = true
@@ -17,13 +17,13 @@ class AlbumGridViewModel: ObservableObject {
     @Published var isShowingStoreView: Bool = false
 
     var albumManager: AlbumManaging
-    var fileManager: FileAccess
+    var fileManager: D
 
     var purchaseManager: PurchasedPermissionManaging
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(purchaseManager: PurchasedPermissionManaging, fileManager: FileAccess, albumManger: AlbumManaging) {
+    init(purchaseManager: PurchasedPermissionManaging, fileManager: D, albumManger: AlbumManaging) {
         self.purchaseManager = purchaseManager
         self.fileManager = fileManager
         self.albumManager = albumManger
@@ -77,8 +77,8 @@ class AlbumGridViewModel: ObservableObject {
 
 }
 
-struct AlbumGrid: View {
-    @StateObject var viewModel: AlbumGridViewModel
+struct AlbumGrid<D: FileAccess>: View {
+    @StateObject var viewModel: AlbumGridViewModel<D>
 
 
     var body: some View {
@@ -150,16 +150,16 @@ struct AlbumGrid: View {
             NavigationLink(value: album) {
                 AlbumGridItem(album: album,
                               albumManager: viewModel.albumManager,
-                              width: side)
+                              width: side, fileReader: D.init())
             }
         }
     }
 
 }
 
-#Preview {
-    AlbumGrid(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging(),
-                               fileManager: DemoFileEnumerator(),
-                               albumManger: DemoAlbumManager()))
-    .gradientBackground()
-}
+//#Preview {
+//    AlbumGrid(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging(),
+//                               fileManager: DemoFileEnumerator(),
+//                               albumManger: DemoAlbumManager()))
+//    .gradientBackground()
+//}

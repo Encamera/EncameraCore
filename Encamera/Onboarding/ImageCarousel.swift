@@ -42,50 +42,69 @@ struct ImageCarousel: View {
     var body: some View {
         VStack {
             GeometryReader { geo in
-
                 ScrollViewReader { value in
                     let frame = geo.frame(in: .local)
-                    VStack {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 0) {
-                                ForEach(carouselItems.indices, id: \.self) { index in
-                                    let image = carouselItems[index]
-                                    VStack {
-                                        Color.clear
-                                            .background {
-                                                Image(image.imageID)
-                                                    .resizable()
-                                                    .scaledToFill()
-                                            }.clipShape(RoundedRectangle(cornerSize: .init(width: 30, height: 30)))
-                                            .frame(width: frame.width, height: frame.height * 0.7)
-                                            .padding(.bottom, 32)
-                                        Group {
-                                            Text(image.heading)
-                                                .fontType(.medium, weight: .bold)
-                                                .lineLimit(2, reservesSpace: true)
-                                            Text(image.subheading)
-                                                .fontType(.pt18)
-                                                .lineLimit(2, reservesSpace: true)
+                    ZStack {
+                        VStack {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 0) {
+                                    ForEach(carouselItems.indices, id: \.self) { index in
+                                        let image = carouselItems[index]
+                                        VStack {
+                                            Color.clear
+                                                .background {
+                                                    Image(image.imageID)
+                                                        .resizable()
+                                                        .scaledToFill()
+                                                }.clipShape(RoundedRectangle(cornerSize: .init(width: 30, height: 30)))
+                                                .frame(width: frame.width, height: frame.height * 0.7)
+                                                .padding(.bottom, 32)
+                                            Group {
+                                                Text(image.heading)
+                                                    .fontType(.medium, weight: .bold)
+                                                    .lineLimit(2, reservesSpace: true)
+                                                Text(image.subheading)
+                                                    .fontType(.pt18)
+                                                    .lineLimit(2, reservesSpace: true)
+                                            }
+                                            .multilineTextAlignment(.center)
+
                                         }
-                                        .multilineTextAlignment(.center)
+                                        .frame(width: frame.width)
+                                        .tag(index)
 
                                     }
-                                    .frame(width: frame.width)
-                                    .tag(index)
                                 }
                             }
+                            .allowsHitTesting(false)
+                            .onChange(of: currentScrolledToImage, perform: { newImage in
+                                withAnimation {
+                                    value.scrollTo(newImage, anchor: .leading)
+                                }
+                            })
                         }
-
-                        .allowsHitTesting(false)
-                        .onChange(of: currentScrolledToImage, perform: { newImage in
-                            withAnimation {
-                                value.scrollTo(newImage, anchor: .leading)
-                            }
-                        })
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture()
+                                    .onEnded({ gesture in
+                                        if gesture.translation.width > 0 {
+                                            // Swiped right
+                                            if currentScrolledToImage > 0 {
+                                                currentScrolledToImage -= 1
+                                            }
+                                        } else if gesture.translation.width < 0 {
+                                            // Swiped left
+                                            if currentScrolledToImage < carouselItems.count - 1 {
+                                                currentScrolledToImage += 1
+                                            }
+                                        }
+                                    })
+                            )
                     }
                 }
-
             }
+
             Spacer().frame(height: 32)
             ImageStepIndicator(activeIndex: $currentScrolledToImage, numberOfItems: carouselItems.count)
         }

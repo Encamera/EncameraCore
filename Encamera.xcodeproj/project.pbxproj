@@ -38,6 +38,11 @@
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		1943C19C8F45262DECE0F516 /* PiwikPROSDK in Frameworks */ = {isa = PBXBuildFile; productRef = EA40970C40A1B9E355F1A2F8 /* PiwikPROSDK */; };
 		199809BB2B32EA3C00A9B7DD /* NotificationCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 199809BA2B32EA3C00A9B7DD /* NotificationCarousel.swift */; };
+		19AB2DA02B3F0EB800C53505 /* 8.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19AB2D9B2B3F0EB700C53505 /* 8.JPG */; };
+		19AB2DA12B3F0EB800C53505 /* 7.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19AB2D9C2B3F0EB700C53505 /* 7.JPG */; };
+		19AB2DA22B3F0EB800C53505 /* 9.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19AB2D9D2B3F0EB700C53505 /* 9.JPG */; };
+		19AB2DA32B3F0EB800C53505 /* 11.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19AB2D9E2B3F0EB700C53505 /* 11.JPG */; };
+		19AB2DA42B3F0EB800C53505 /* 10.JPG in Resources */ = {isa = PBXBuildFile; fileRef = 19AB2D9F2B3F0EB800C53505 /* 10.JPG */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
 		1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DF70D2CC410A637C7BB925 /* EncameraState.swift */; };
@@ -337,6 +342,11 @@
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		1731780E1EBEEBA4C8D49F33 /* 6.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 6.JPG; sourceTree = "<group>"; };
 		199809BA2B32EA3C00A9B7DD /* NotificationCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCarousel.swift; sourceTree = "<group>"; };
+		19AB2D9B2B3F0EB700C53505 /* 8.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 8.JPG; sourceTree = "<group>"; };
+		19AB2D9C2B3F0EB700C53505 /* 7.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 7.JPG; sourceTree = "<group>"; };
+		19AB2D9D2B3F0EB700C53505 /* 9.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 9.JPG; sourceTree = "<group>"; };
+		19AB2D9E2B3F0EB700C53505 /* 11.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 11.JPG; sourceTree = "<group>"; };
+		19AB2D9F2B3F0EB800C53505 /* 10.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 10.JPG; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1BD41DEC59C93641F49268C6 /* SubscriptionPurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPurchaseButton.swift; sourceTree = "<group>"; };
 		1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Black.otf"; sourceTree = "<group>"; };
@@ -695,6 +705,11 @@
 		5B883A2DE9C594C331EA43DC /* Preview Content */ = {
 			isa = PBXGroup;
 			children = (
+				19AB2D9C2B3F0EB700C53505 /* 7.JPG */,
+				19AB2D9B2B3F0EB700C53505 /* 8.JPG */,
+				19AB2D9D2B3F0EB700C53505 /* 9.JPG */,
+				19AB2D9F2B3F0EB800C53505 /* 10.JPG */,
+				19AB2D9E2B3F0EB700C53505 /* 11.JPG */,
 				8661160CC93C7FDBB741D152 /* 1.JPG */,
 				22736C3DC1ED7B0010E2C563 /* 2.JPG */,
 				991BC151E6CA0B910FB4655F /* 3.JPG */,
@@ -1189,7 +1204,9 @@
 				2FCFC8C5F90FE5E93B0F290E /* EncryptedImageIcon.png in Resources */,
 				17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */,
 				CA61DBCFAAFB8F7AE29C4D0B /* InfoPlist.strings in Resources */,
+				19AB2DA12B3F0EB800C53505 /* 7.JPG in Resources */,
 				BD0376BEC181135B76461C9E /* LaunchScreen.storyboard in Resources */,
+				19AB2DA22B3F0EB800C53505 /* 9.JPG in Resources */,
 				A8A274F962EBFC8E83AFF73B /* Localizable.strings in Resources */,
 				A046BFD3E3A3DC9C95468107 /* Localizable.stringsdict in Resources */,
 				1EAEFB9B0E284E4EB803B509 /* Preview Assets.xcassets in Resources */,
@@ -1199,8 +1216,11 @@
 				9901127C2E18890CF44CCF6F /* Satoshi-Bold.otf in Resources */,
 				30D6159730DF66A347500951 /* Satoshi-BoldItalic.otf in Resources */,
 				264130246CDA58E3025649C2 /* Satoshi-Italic.otf in Resources */,
+				19AB2DA32B3F0EB800C53505 /* 11.JPG in Resources */,
 				0397FAEBB112978CB7CAE9DA /* Satoshi-Light.otf in Resources */,
 				C5A9017D90629C088B3CA53C /* Satoshi-LightItalic.otf in Resources */,
+				19AB2DA42B3F0EB800C53505 /* 10.JPG in Resources */,
+				19AB2DA02B3F0EB800C53505 /* 8.JPG in Resources */,
 				630D45B83C7AF078F62D4C5F /* Satoshi-Medium.otf in Resources */,
 				36E0E84AB09238B05CF4C079 /* Satoshi-MediumItalic.otf in Resources */,
 				EFDEAFF6596FBF2114A9F06A /* Satoshi-Regular.otf in Resources */,

@@ -10,7 +10,7 @@ import Combine
 import EncameraCore
 
 @MainActor
-class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
+class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject {
 
     var album: Album?
     var albumManager: AlbumManaging
@@ -33,7 +33,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
         }
     }
     private var cancellables = Set<AnyCancellable>()
-    var fileAccess: FileAccess = DiskFileAccess()
+    var fileAccess: FileAccess
 
     init(album: Album?,
          albumManager: AlbumManaging,
@@ -41,7 +41,7 @@ class GalleryGridViewModel<T: MediaDescribing>: ObservableObject {
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,
          carouselTarget: EncryptedMedia? = nil,
-         fileAccess: FileAccess = DiskFileAccess(),
+         fileAccess: FileAccess,
          purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
     ) {
         self.blurImages = blurImages
@@ -119,12 +119,12 @@ private enum Constants {
     static let buttonCornerRadius = 10.0
 }
 
-struct GalleryGridView<Content: View, T: MediaDescribing>: View {
+struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
 
-    @ObservedObject var viewModel: GalleryGridViewModel<T>
+    @ObservedObject var viewModel: GalleryGridViewModel<T, D>
     var content: Content
 
-    init(viewModel: GalleryGridViewModel<T>, @ViewBuilder content: () -> Content = { EmptyView() }) {
+    init(viewModel: GalleryGridViewModel<T, D>, @ViewBuilder content: () -> Content = { EmptyView() }) {
         self.viewModel = viewModel
         self.content = content()
     }
@@ -277,17 +277,17 @@ struct GalleryGridView<Content: View, T: MediaDescribing>: View {
     }
 }
 
-#Preview {
-
-    NavigationView {
-        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(album: Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), blurImages: false)) {
-            List {
-            }
-            .frame(height: 300)
-            .fontType(.pt18)
-            .scrollContentBackgroundColor(Color.random
-            )
-
-        }
-    }
-}
+//#Preview {
+//
+//    NavigationView {
+//        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(album: Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), blurImages: false)) {
+//            List {
+//            }
+//            .frame(height: 300)
+//            .fontType(.pt18)
+//            .scrollContentBackgroundColor(Color.random
+//            )
+//
+//        }
+//    }
+//}

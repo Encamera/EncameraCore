@@ -4,13 +4,16 @@ import MediaPlayer
 import EncameraCore
 import AVFoundation
 
+typealias AlbumManagerType = AlbumManager
+typealias FileAccessType = DiskFileAccess
+
 @main
 struct EncameraApp: App {
-    class ViewModel: ObservableObject {
+    class ViewModel<D: FileAccess>: ObservableObject {
         @MainActor
         @Published var hasOpenedURL: Bool = false
         @Published var promptToSaveMedia: Bool = false
-        var newMediaFileAccess: FileAccess = DiskFileAccess()
+        var newMediaFileAccess: D
         var appGroupFileAccess: AppGroupFileReader?
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
@@ -33,7 +36,7 @@ struct EncameraApp: App {
         init() {
             try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try? AVAudioSession.sharedInstance().setActive(true)
-
+            self.newMediaFileAccess = D.init()
             self.settingsManager = SettingsManager()
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
             let keyManager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
@@ -222,7 +225,7 @@ struct EncameraApp: App {
 
     }
 
-    @StateObject var viewModel: ViewModel = .init()
+    @StateObject var viewModel: ViewModel<FileAccessType> = .init()
     @State var showCamera = false
     var body: some Scene {
         
@@ -239,7 +242,7 @@ struct EncameraApp: App {
                 } else if viewModel.isAuthenticated == true,
                             viewModel.keyManagerKey != nil,
                             let albumManager = viewModel.albumManager {
-                    MainHomeView(viewModel: .init(
+                    MainHomeView<FileAccessType>(viewModel: .init(
                         fileAccess: viewModel.newMediaFileAccess,
                         keyManager: viewModel.keyManager,
                         albumManager: albumManager,

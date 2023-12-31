@@ -81,9 +81,13 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
         }.store(in: &cancellables)
     }
 
-    func validatePassword() -> PasswordValidation {
+    @discardableResult func validatePassword() throws -> PasswordValidation {
         let state = passwordValidator.validatePasswordPair(password1, password2: password2)
         passwordState = state
+
+        if state != .valid {
+            throw OnboardingViewError.passwordInvalid
+        }
         return state
     }
 
@@ -143,7 +147,7 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
 
     @MainActor func savePassword() throws {
         do {
-            let validation = validatePassword()
+            let validation = try validatePassword()
             if validation == .valid {
                 try keyManager.setPassword(password1)
             } else {
@@ -318,7 +322,9 @@ private extension MainOnboardingView {
                 subheading: L10n.setAPasswordWarning,
                 image: Image("Onboarding-Password"),
                 bottomButtonTitle: L10n.setPassword,
-                bottomButtonAction: {})
+                bottomButtonAction: {
+                    try viewModel.validatePassword()
+                })
             { _ in
                 AnyView(
                     VStack(alignment: .leading) {

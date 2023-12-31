@@ -13,7 +13,7 @@ import SwiftUIIntrospect
 import SwiftUI
 
 @MainActor
-class AlbumDetailViewModel: ObservableObject {
+class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
     enum KeyViewerError {
         case couldNotSetKeychain
     }
@@ -27,10 +27,10 @@ class AlbumDetailViewModel: ObservableObject {
     @Published var isEditingAlbumName = false
     @Published var albumName: String = ""
     @Published var albumManagerError: String?
-    var gridViewModel: GalleryGridViewModel<EncryptedMedia>?
+    var gridViewModel: GalleryGridViewModel<EncryptedMedia, D>?
 
     var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
-    var fileManager: FileAccess?
+    var fileManager: D?
     var album: Album? {
         didSet {
             guard let album = album else { return }
@@ -43,12 +43,12 @@ class AlbumDetailViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(albumManager: AlbumManaging, fileManager: FileAccess? = nil, album: Album?, shouldCreateAlbum: Bool = false) {
+    init(albumManager: AlbumManaging, fileManager: D? = nil, album: Album?, shouldCreateAlbum: Bool = false) {
         self.albumManager = albumManager
         self.fileManager = fileManager
         self.shouldCreateAlbum = shouldCreateAlbum
         self.isEditingAlbumName = shouldCreateAlbum
-        self.gridViewModel = GalleryGridViewModel<EncryptedMedia>(album: album, albumManager: albumManager, blurImages: false)
+        self.gridViewModel = GalleryGridViewModel<EncryptedMedia, D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager ?? D.init())
         albumManager.albumOperationPublisher
             .receive(on: RunLoop.main)
             .sink { operation in
@@ -66,7 +66,7 @@ class AlbumDetailViewModel: ObservableObject {
         self.albumName = album.name
 
         Task {
-            self.fileManager = await DiskFileAccess(for: album, albumManager: albumManager)
+            self.fileManager = await D(for: album, albumManager: albumManager)
         }
     }
 
@@ -112,23 +112,25 @@ class AlbumDetailViewModel: ObservableObject {
     }
 }
 
-struct AlbumDetailView: View {
+private enum Constants {
+    static var outerPadding = 20.0
+}
+
+struct AlbumDetailView<D: FileAccess>: View {
     @State var isShowingAlertForClearKey: Bool = false
     @State var isShowingAlertForDeleteAllAlbumData: Bool = false
     @State var isShowingMoveAlbumModal = false
     @State var isShowingAlertForCopyKey: Bool = false
     @State var isShowingPurchaseSheet = false
 
-    @StateObject var viewModel: AlbumDetailViewModel
+    @StateObject var viewModel: AlbumDetailViewModel<D>
     @Environment(\.presentationMode) private var presentationMode
 
     func popLastView() {
         presentationMode.wrappedValue.dismiss()
     }
 
-    private enum Constants {
-        static var outerPadding = 20.0
-    }
+
 
     var body: some View {
         let _ = Self._printChanges()

@@ -10,7 +10,7 @@ import EncameraCore
 import AVFoundation
 import Combine
 
-class MainHomeViewViewModel: ObservableObject {
+class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
 
     @Published var cameraMode: CameraMode = .photo
     @Published var rotationFromOrientation: CGFloat = 0.0
@@ -22,7 +22,7 @@ class MainHomeViewViewModel: ObservableObject {
     @Published var shouldShowTweetScreen: Bool = false
     @Published var selectedPath: NavigationPath = .init()
 
-    var fileAccess: FileAccess
+    var fileAccess: D
     var cameraService: CameraConfigurationService
     var keyManager: KeyManager
     var albumManager: AlbumManaging
@@ -31,7 +31,7 @@ class MainHomeViewViewModel: ObservableObject {
     private(set) var authManager: AuthManager
     private var cancellables = Set<AnyCancellable>()
 
-    init(fileAccess: FileAccess,
+    init(fileAccess: D,
          keyManager: KeyManager,
          albumManager: AlbumManaging,
          purchasedPermissions: PurchasedPermissionManaging,
@@ -58,9 +58,9 @@ class MainHomeViewViewModel: ObservableObject {
 }
 
 
-struct MainHomeView: View {
+struct MainHomeView<D: FileAccess>: View {
 
-    @StateObject var viewModel: MainHomeViewViewModel
+    @StateObject var viewModel: MainHomeViewViewModel<D>
     @Binding var showCamera: Bool
     
     @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums {
@@ -71,7 +71,7 @@ struct MainHomeView: View {
 
 
 
-    init(viewModel: MainHomeViewViewModel, showCamera: Binding<Bool>) {
+    init(viewModel: MainHomeViewViewModel<D>, showCamera: Binding<Bool>) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _showCamera = showCamera
     }
@@ -116,7 +116,7 @@ struct MainHomeView: View {
             .navigationDestination(for: String.self) { destination in
                 switch destination {
                 case "CreateAlbum":
-                    AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, album: nil, shouldCreateAlbum: true)).onAppear {
+                    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: nil, shouldCreateAlbum: true)).onAppear {
                         EventTracking.trackCreateAlbumButtonPressed()
                     }
                 default:
@@ -124,7 +124,7 @@ struct MainHomeView: View {
                 }
             }
             .navigationDestination(for: Album.self) { album in
-                AlbumDetailView(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
+                AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
                     EventTracking.trackAlbumOpened()
                 }
             }
