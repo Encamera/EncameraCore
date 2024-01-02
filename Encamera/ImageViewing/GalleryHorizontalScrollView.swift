@@ -109,7 +109,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
         if let windowScene = scene as? UIWindowScene {
             windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
         }
-        
+        EventTracking.trackMediaShared()
     }
     
     func canAccessPhoto(at index: Int) -> Bool {
@@ -125,71 +125,24 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
 struct GalleryHorizontalScrollView: View {
     
     
-    typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnificationGesture>>
+    typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnifyGesture>>
     typealias TapGestureType = _EndedGesture<TapGesture>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
-    
-    struct GestureModifier: ViewModifier {
-        let isPlayingVideo: Bool
-        let dragGesture: DragGestureType
-        let magnificationGesture: MagnificationGestureType
-        let tapGesture: TapGestureType
-        
-        func body(content: Content) -> some View {
-            if isPlayingVideo {
-                content
-            } else {
-                content
-                    .gesture(dragGesture)
-                    .gesture(magnificationGesture)
-                    .gesture(tapGesture)
-            }
-        }
-    }
-    @State var isGesturesDisabled = false
+
+    @State var areGesturesEnabled = true
 
     
     @StateObject var viewModel: GalleryHorizontalScrollViewModel
     @State var nextScrollViewXOffset: CGFloat = .zero
     @Namespace var scrollSpace
     @GestureState private var state = false
-    @State var finalScale: CGFloat = 1.0
-    @State var currentScale: CGFloat = 1.0
-    @State var finalOffset: CGSize = .zero
-    @State var currentOffset: CGSize = .zero
     @State var showingShareSheet = false
     @State var showingDeleteConfirmation = false
     @Environment(\.dismiss) private var dismiss
     var dragGestureRef = DragGesture(minimumDistance: 0)
     
     private let viewTitle: String = "GalleryView"
-    func offsetBinding(for item: EncryptedMedia) -> Binding<CGSize> {
-        return Binding<CGSize> {
-            if viewModel.selectedMedia == item {
-                return CGSize(
-                    width: finalOffset.width + currentOffset.width,
-                    height: finalOffset.height + currentOffset.height)
-            } else {
-                return .zero
-            }
-        } set: { _ in
-            
-        }
-        
-    }
-    
-    func scaleBinding(for item: EncryptedMedia) -> Binding<CGFloat> {
-        return Binding<CGFloat> {
-            if viewModel.selectedMedia == item {
-                return finalScale * currentScale
-            } else {
-                return 1.0
-            }
-        } set: { _, _ in
-            
-        }
-    }
-    
+
     var body: some View {
         VStack {
             GeometryReader { geo in
@@ -208,10 +161,8 @@ struct GalleryHorizontalScrollView: View {
                     }
                 }
                 .screenBlocked()
-                .gesture(dragGesture(with: frame))
-                .gesture(isGesturesDisabled ? nil : magnificationGesture)
                 .onChange(of: viewModel.isPlayingVideo) { isPlaying in
-                    isGesturesDisabled = isPlaying
+                    areGesturesEnabled = !isPlaying
                 }
             }
             if viewModel.showActionBar {
@@ -281,13 +232,15 @@ struct GalleryHorizontalScrollView: View {
         }.scrollIndicators(.hidden)
     }
     @ViewBuilder private func viewingFor(item: EncryptedMedia) -> some View {
+
         switch item.mediaType {
         case .photo:
-            let model = ImageViewingViewModel(media: item, fileAccess: viewModel.fileAccess)
-            ImageViewing(
-                currentScale: scaleBinding(for: item),
-                finalOffset: offsetBinding(for: item),
-                viewModel: model, externalGesture: dragGestureRef)
+            let model = ImageViewingViewModel(areGesturesEnabled: areGesturesEnabled, swipeLeft: {
+
+            }, swipeRight: {
+
+            }, sourceMedia: item, fileAccess: viewModel.fileAccess)
+            ImageViewing(viewModel: model, externalGesture: dragGestureRef)
         case .video:
             MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess), isPlayingVideo: $viewModel.isPlayingVideo)
         default:
@@ -315,11 +268,6 @@ struct GalleryHorizontalScrollView: View {
                     } label: {
                         Image(systemName: "info.circle")
                     }
-                    Button {
-                        showingDeleteConfirmation = true
-                    } label: {
-                        Image(systemName: "trash")
-                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -330,7 +278,6 @@ struct GalleryHorizontalScrollView: View {
     
     private func scrollTo(media: EncryptedMedia, with proxy: ScrollViewProxy, animated: Bool = true) {
         let scrollClosure = {
-            resetViewState()
             proxy.scrollTo(media.id, anchor: .center)
         }
         if animated {
@@ -342,82 +289,7 @@ struct GalleryHorizontalScrollView: View {
         }
 
     }
-    
-    private func resetViewState() {
-        finalScale = 1.0
-        currentScale = 1.0
-        finalOffset = .zero
-        currentOffset = .zero
 
-    }
-    private func didResetViewStateIfNeeded() -> Bool {
-        debugPrint("didResetViewStateIfNeeded: finalScale \(finalScale), finalOffset \(finalOffset), currentOffset \(currentOffset), currentScale \(currentScale)")
-
-        if finalScale <= 1.0 && finalOffset != .zero {
-            resetViewState()
-            return true
-        }
-        return false
-    }
-    
-    private func dragGesture(with frame: CGRect) -> DragGestureType {
-        
-        dragGestureRef.onChanged({ value in
-            guard isGesturesDisabled == false else {
-                return
-            }
-            if finalScale > 1.0 {
-                var newOffset = value.translation
-                if newOffset.height > frame.height * finalScale {
-                    newOffset.height = frame.height * finalScale
-                }
-
-                currentOffset = newOffset
-            }
-            
-        }).onEnded({ value in
-            if didResetViewStateIfNeeded() {
-                return
-            }
-            if finalScale <= 1.0 {
-                if value.location.x > value.startLocation.x {
-                    viewModel.rewindIndex()
-                } else {
-                    viewModel.advanceIndex()
-                }
-            } else {
-                let nextOffset: CGSize = .init(
-                    width: finalOffset.width + currentOffset.width,
-                    height: finalOffset.height + currentOffset.height)
-
-                finalOffset = nextOffset
-                currentOffset = .zero
-
-            }
-            
-        })
-    }
-    
-    private var tapGesture: TapGestureType {
-        TapGesture(count: 2).onEnded {
-            finalScale = finalScale > 1.0 ? 1.0 : 3.0
-            finalOffset = .zero
-        }
-    }
-    
-    private var magnificationGesture: MagnificationGestureType {
-        MagnificationGesture().onChanged({ value in
-            currentScale = 	value
-        })
-        .onEnded({ amount in
-            if didResetViewStateIfNeeded() {
-                return
-            }
-            let final = finalScale * currentScale
-            finalScale = final < 1.0 ? 1.0 : final
-            currentScale = 1.0
-        })
-    }
 }
 
 struct GalleryHorizontalScrollView_Previews: PreviewProvider {

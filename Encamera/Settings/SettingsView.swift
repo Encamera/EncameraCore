@@ -143,6 +143,7 @@ struct SettingsView: View {
                             }
                         }
                         Button(L10n.contact) {
+                            EventTracking.trackSettingsContactPressed()
                             let email = "mailto:alex+contact@freas.me"
                             let subject = "Encamera - Contact"
                             let urlString = "\(email)?subject=\(subject)"
@@ -156,7 +157,8 @@ struct SettingsView: View {
                             }
                         }
                         Button(L10n.leaveAReview) {
-                            AskForReviewUtil.requestReview()
+                            EventTracking.trackSettingsLeaveReviewPressed()
+                            AskForReviewUtil.openAppStoreReview()
                         }
                     }
                     Section {

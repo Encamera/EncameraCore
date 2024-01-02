@@ -91,8 +91,8 @@ class EventTracking {
         track(category: "media", action: "viewed", name: "movie")
     }
 
-    static func trackImageShared() {
-        track(category: "image", action: "shared")
+    static func trackMediaShared() {
+        track(category: "media", action: "shared")
     }
 
     static func trackOnboardingViewReached(view: OnboardingFlowScreen) {
@@ -125,7 +125,6 @@ class EventTracking {
         guard let goalId = PurchaseGoal(id: product) else {
             return
         }
-        let amountAsFloat = NSDecimalNumber(decimal: amount).floatValue
         Self.shared.piwikTracker.sendGoal(ID: "\(goalId.rawValue)", revenue: amount as NSNumber)
     }
 
@@ -199,6 +198,10 @@ class EventTracking {
 
     static func trackSettingsContactPressed() {
         track(category: "settings", action: "contact_pressed")
+    }
+
+    static func trackSettingsLeaveReviewPressed() {
+        track(category: "settings", action: "leave_review_pressed")
     }
 
     static func trackNotificationViewed(title: String) {

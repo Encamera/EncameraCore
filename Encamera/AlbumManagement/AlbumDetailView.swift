@@ -160,10 +160,6 @@ struct AlbumDetailView<D: FileAccess>: View {
                                 }
                             } else {
                                 Menu {
-                                    Button(L10n.viewInFiles) {
-                                        guard let album = viewModel.album else { return }
-                                        LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: album)
-                                    }
                                     Button(L10n.moveAlbumStorage) {
                                         isShowingMoveAlbumModal = true
                                     }
