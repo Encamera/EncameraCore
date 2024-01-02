@@ -13,7 +13,7 @@ enum MediaViewingError: ErrorDescribable {
     case noKeyAvailable
     case fileAccessNotAvailable
     case decryptError(wrapped: Error)
-    
+
     var displayDescription: String {
         switch self {
         case .noKeyAvailable:
@@ -29,18 +29,18 @@ enum MediaViewingError: ErrorDescribable {
 }
 
 protocol MediaViewingViewModel: AnyObject {
-    
+
     associatedtype SourceType = MediaDescribing
     associatedtype TargetT: MediaSourcing
-    
+
     var sourceMedia: SourceType { get set }
     var fileAccess: FileAccess? { get set }
     var error: MediaViewingError? { get set }
-    
+
     @MainActor
     var decryptedFileRef: CleartextMedia<TargetT>? { get set }
     init(media: SourceType, fileAccess: FileAccess)
-    
+
     func decrypt() async throws -> CleartextMedia<TargetT>
 }
 
@@ -53,15 +53,15 @@ extension MediaViewingViewModel {
         do {
             let decrypted = try await decrypt()
             await MainActor.run {
-                self.decryptedFileRef = decrypted
+                decryptedFileRef = decrypted
             }
-            
+
         } catch {
-            
+
             self.error = .decryptError(wrapped: error)
         }
     }
-    
+
 }
 
 class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
@@ -75,7 +75,6 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
     @Published var finalScale: CGFloat = 1.0
     @Published var finalOffset: CGSize = .zero
     @Published var currentOffset: CGSize = .zero
-    @Published var areGesturesEnabled: Bool
     @Published var currentFrame: CGRect = .zero
     var swipeLeft: (() -> Void)
     var swipeRight: (() -> Void)
@@ -83,9 +82,8 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
     var sourceMedia: SourceType
     var fileAccess: FileAccess
     var error: MediaViewingError?
-    
-    init(areGesturesEnabled: Bool, swipeLeft: @escaping ( () -> Void), swipeRight: @escaping ( () -> Void), sourceMedia: SourceType, fileAccess: FileAccess) {
-        self.areGesturesEnabled = areGesturesEnabled
+
+    init(swipeLeft: @escaping ( () -> Void), swipeRight: @escaping ( () -> Void), sourceMedia: SourceType, fileAccess: FileAccess) {
         self.swipeLeft = swipeLeft
         self.swipeRight = swipeRight
         self.sourceMedia = sourceMedia
@@ -93,22 +91,22 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
     }
 
     func decryptAndSet() {
-        Task {
+        Task { [self] in
             do {
-                let result = try await fileAccess.loadMediaInMemory(media: sourceMedia) { progress in
+                let result = try await fileAccess.loadMediaInMemory(media: sourceMedia) { [self] progress in
                     switch progress {
                     case .decrypting(progress: let progress), .downloading(progress: let progress):
-                        self.loadingProgress = progress
+                        loadingProgress = progress
                     case .loaded:
-                        self.loadingProgress = 1.0
+                        loadingProgress = 1.0
                     case .notLoaded:
-                        self.loadingProgress = 0.0
+                        loadingProgress = 0.0
                     }
                 }
                 await MainActor.run {
-                    self.decryptedFileRef = result
+                    decryptedFileRef = result
                 }
-                
+
             } catch {
                 self.error = .decryptError(wrapped: error)
             }
@@ -134,7 +132,7 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
     private func didResetViewStateIfNeeded(targetScale: CGFloat, targetOffset: CGSize) -> Bool {
         debugPrint("didResetViewStateIfNeeded: targetScale: \(targetScale), targetOffset: \(targetOffset)")
 
-        if targetScale <= 1.0 && targetOffset != .zero {
+        if targetScale <= 1.0 {
             resetViewState()
             return true
         }
@@ -143,59 +141,61 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
 
     var dragGesture: DragGestureType {
 
-        DragGesture(minimumDistance: 0).onChanged({ [self] value in
-            guard self.areGesturesEnabled == true else {
-                return
-            }
-            if self.finalScale > 1.0 {
-                var newOffset = value.translation
-                if newOffset.height > currentFrame.height * self.finalScale {
-                    newOffset.height = currentFrame.height * finalScale
-                }
-                currentOffset = newOffset
+        DragGesture(minimumDistance: 1).onChanged({ [self] value in
+
+            if finalScale > 1.0 {
+                currentOffset = value.translation
             }
 
         }).onEnded({ [self] value in
-                        if self.finalScale <= 1.0 {
-                self.resetViewState()
+            if finalScale <= 1.0 {
+                resetViewState()
                 if value.location.x > value.startLocation.x {
-                    self.swipeLeft()
+                    swipeLeft()
                 } else {
-                    self.swipeRight()
+                    swipeRight()
                 }
             } else {
                 let nextOffset: CGSize = .init(
-                    width: self.finalOffset.width + self.currentOffset.width,
+                    width: finalOffset.width + currentOffset.width,
                     height: finalOffset.height + currentOffset.height)
-                if self.didResetViewStateIfNeeded(targetScale: finalScale, targetOffset: nextOffset) {
+                if didResetViewStateIfNeeded(targetScale: finalScale, targetOffset: nextOffset) {
                     return
                 }
+                debugPrint("nextOffset: \(abs(nextOffset.width)), currentFrame: \(currentFrame.width / 2)")
+                if abs(nextOffset.width) < currentFrame.width / 2 && abs(nextOffset.height) < currentFrame.height {
+                    finalOffset = nextOffset
 
-                self.finalOffset = nextOffset
+                }
                 currentOffset = .zero
             }
 
         })
     }
-    var magnificationGesture: MagnificationGestureType {
-        MagnifyGesture().onChanged({ value in
-            self.currentScale = value.magnification
-        })
-        .onEnded({ amount in
-            let final = self.finalScale * self.currentScale
 
-            if self.didResetViewStateIfNeeded(targetScale: final, targetOffset: self.currentOffset) {
+    var magnificationGesture: MagnificationGestureType {
+        MagnifyGesture().onChanged({ [self] value in
+            currentScale = value.magnification
+        })
+        .onEnded({ [self] amount in
+            let final = finalScale * currentScale
+
+            if didResetViewStateIfNeeded(targetScale: final, targetOffset: currentOffset) {
                 return
             }
-            self.finalScale = final < 1.0 ? 1.0 : final
-            self.currentScale = 1.0
+            finalScale = final < 1.0 ? 1.0 : final
+            currentScale = 1.0
         })
     }
 
+
     var tapGesture: TapGestureType {
-        TapGesture(count: 2).onEnded {
-            self.finalScale = self.finalScale > 1.0 ? 1.0 : 3.0
-            self.finalOffset = .zero
+        TapGesture(count: 2).onEnded { [self] in
+            withAnimation { [self] in
+
+                self.finalScale = self.finalScale > 1.0 ? 1.0 : 3.0
+                self.finalOffset = .zero
+            }
         }
     }
 }
@@ -203,26 +203,40 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
 struct ImageViewing<M: MediaDescribing>: View {
 
     @State var showBottomActions = false
-    @StateObject var viewModel: ImageViewingViewModel<M>
+    @ObservedObject var viewModel: ImageViewingViewModel<M>
     var externalGesture: DragGesture
 
+    private func calculateScaleAnchor() -> UnitPoint {
+        let frame = viewModel.currentFrame
+        let offset = viewModel.offset
+
+        // Calculate the center point of the currently visible area
+        let visibleCenterX = frame.midX - offset.width
+        let visibleCenterY = frame.midY - offset.height
+
+        // Normalize these values to a range of 0 to 1
+        let normalizedX = visibleCenterX / frame.width
+        let normalizedY = visibleCenterY / frame.height
+
+        // Ensure the values are within the 0 to 1 range
+        return UnitPoint(
+            x: max(0, min(1, normalizedX)),
+            y: max(0, min(1, normalizedY))
+        )
+    }
+
     var body: some View {
-        
+
         ZStack {
             if let imageData = viewModel.decryptedFileRef?.source,
                let image = UIImage(data: imageData) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
-                    .scaleEffect(viewModel.finalScale * viewModel.currentScale)
-                    .offset(
-                        x: viewModel.finalOffset.width + viewModel.currentOffset.width,
-                        y: viewModel.finalOffset.height + viewModel.currentOffset.height
-                    )
-                    .animation(.easeInOut, value: viewModel.currentScale)
-                    .animation(.easeInOut, value: viewModel.finalOffset)
+                    .scaleEffect(viewModel.finalScale * viewModel.currentScale, anchor:
+                                    calculateScaleAnchor())
+                    .offset(viewModel.offset)
                     .zIndex(1)
-
                     .gesture(viewModel.dragGesture)
                     .simultaneousGesture(viewModel.magnificationGesture)
                     .simultaneousGesture(viewModel.tapGesture)
@@ -244,14 +258,14 @@ struct ImageViewing<M: MediaDescribing>: View {
 
 
     var geometryReader: some View {
-            GeometryReader { geometry in
-                Color.clear
-                    .preference(key: FramePreferenceKey.self, value: geometry.frame(in: .global))
-            }
-            .onPreferenceChange(FramePreferenceKey.self) { value in
-                self.viewModel.currentFrame = value
-            }
+        GeometryReader { geometry in
+            Color.clear
+                .preference(key: FramePreferenceKey.self, value: geometry.frame(in: .global))
         }
+        .onPreferenceChange(FramePreferenceKey.self) { value in
+            viewModel.currentFrame = value
+        }
+    }
 
 
 }
@@ -263,15 +277,3 @@ struct FramePreferenceKey: PreferenceKey {
         value = nextValue()
     }
 }
-
-//struct ImageViewing_Previews: PreviewProvider {
-//    
-//    
-//    static var previews: some View {
-//        NavigationView {
-//            let url = Bundle.main.url(forResource: "1", withExtension: "JPG")!
-//            ImageViewing(currentScale: .constant(1.0), finalOffset: .constant(.zero), viewModel: .init(media: EncryptedMedia(source: url)!, fileAccess: DemoFileEnumerator()), externalGesture: DragGesture())
-//                .frame(maxWidth: .infinity, maxHeight: .infinity)
-//        }
-//    }
-//}

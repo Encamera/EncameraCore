@@ -66,8 +66,21 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
             }
         }
     }
+    var imageModels: [EncryptedMedia.ID: ImageViewingViewModel<EncryptedMedia>] = [:]
+    func modelForMedia(item: EncryptedMedia) -> ImageViewingViewModel<EncryptedMedia> {
+        if let model = imageModels[item.id] {
+            return model
+        } else {
+            let model = ImageViewingViewModel(swipeLeft: {
+            }, swipeRight: {
 
-    
+            }, sourceMedia: item, fileAccess: fileAccess)
+            imageModels[item.id] = model
+            return model
+        }
+
+    }
+
     func shareEncrypted() {
         shareSheet(data: selectedMedia.source)
     }
@@ -129,7 +142,7 @@ struct GalleryHorizontalScrollView: View {
     typealias TapGestureType = _EndedGesture<TapGesture>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
 
-    @State var areGesturesEnabled = true
+    @State var isScrollEnabled = true
 
     
     @StateObject var viewModel: GalleryHorizontalScrollViewModel
@@ -162,7 +175,7 @@ struct GalleryHorizontalScrollView: View {
                 }
                 .screenBlocked()
                 .onChange(of: viewModel.isPlayingVideo) { isPlaying in
-                    areGesturesEnabled = !isPlaying
+                    isScrollEnabled = !isPlaying
                 }
             }
             if viewModel.showActionBar {
@@ -217,11 +230,17 @@ struct GalleryHorizontalScrollView: View {
                                     EventTracking.trackPhotoLimitReachedScreenDismissed(from: "ImageScrollView")
                                     dismiss()
                                 }
-                        }.clipped()
 
-                    }
-                }.frame(maxHeight: .infinity)
+                        }
+                        .clipped()
+                    }                                
+
+                }
+                .scrollTargetLayout()
+                .frame(maxHeight: .infinity)
             }
+            .scrollDisabled(!isScrollEnabled)
+            .scrollTargetBehavior(.viewAligned)
             .onChange(of: viewModel.selectedMedia) { newValue in
                 viewModel.isPlayingVideo = false
                 scrollTo(media: newValue, with: proxy)
@@ -229,18 +248,20 @@ struct GalleryHorizontalScrollView: View {
             .onAppear {
                 scrollTo(media: viewModel.selectedMedia, with: proxy, animated: false)
             }
-        }.scrollIndicators(.hidden)
+        }
+        .scrollIndicators(.hidden)
     }
+
+
     @ViewBuilder private func viewingFor(item: EncryptedMedia) -> some View {
 
         switch item.mediaType {
         case .photo:
-            let model = ImageViewingViewModel(areGesturesEnabled: areGesturesEnabled, swipeLeft: {
-
-            }, swipeRight: {
-
-            }, sourceMedia: item, fileAccess: viewModel.fileAccess)
+            let model = viewModel.modelForMedia(item: item)
             ImageViewing(viewModel: model, externalGesture: dragGestureRef)
+                .onDisappear {
+                    model.resetViewState()
+                }
         case .video:
             MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess), isPlayingVideo: $viewModel.isPlayingVideo)
         default:
@@ -259,14 +280,14 @@ struct GalleryHorizontalScrollView: View {
                         Image(systemName: "square.and.arrow.up")
                     }
                     Button {
-                        viewModel.openInFiles()
-                    } label: {
-                        Image(systemName: "folder")
-                    }
-                    Button {
                         viewModel.showInfoSheet = true
                     } label: {
                         Image(systemName: "info.circle")
+                    }
+                    Button {
+                        showingDeleteConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
                     }
                 }
             }
