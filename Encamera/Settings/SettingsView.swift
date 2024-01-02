@@ -43,10 +43,13 @@ class SettingsViewViewModel: ObservableObject {
     }
     
     func setupBiometricToggleObserver() {
-        self.$useBiometrics.sink { value in
+        self.$useBiometrics.dropFirst().sink { value in
             self.authManager.useBiometricsForAuth = value
             if value {
                 EventTracking.trackBiometricsEnabled()
+                Task {
+                    try await self.authManager.authorizeWithBiometrics()
+                }
             } else {
                 EventTracking.trackBiometricsDisabled()
             }

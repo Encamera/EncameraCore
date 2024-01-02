@@ -78,6 +78,7 @@ final class CameraModel: NSObject, ObservableObject {
 
     
     private var cancellables = Set<AnyCancellable>()
+    private var recordingCancellable = Set<AnyCancellable>()
     var isProcessingEvent = false
     let eventSubject = PassthroughSubject<Void, Never>()
     
@@ -274,7 +275,7 @@ final class CameraModel: NSObject, ObservableObject {
             currentVideoProcessor = videoProcessor
             currentVideoProcessor?.durationPublisher.sink(receiveValue: { value in
                 self.recordingDuration = value
-            }).store(in: &cancellables)
+            }).store(in: &recordingCancellable)
             let video = try await videoProcessor.takeVideo()
             await MainActor.run(body: {
                 isRecordingVideo = false
@@ -282,6 +283,8 @@ final class CameraModel: NSObject, ObservableObject {
             })
             currentVideoProcessor = nil
             try await fileAccess.save(media: video) { _ in }
+            recordingCancellable.forEach({ $0.cancel()})
+            recordingCancellable.removeAll()
             UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
         }
         EventTracking.trackMediaTaken(type: selectedCameraMode)
