@@ -63,27 +63,25 @@ struct SubscriptionOptionView: View {
                 title: subscription.displayName,
                 description: savings == nil ? nil : subscription.priceText,
                 isAvailable: true,
-                isSelected: $isOn
-            ) {
-                VStack {
-
-                    if let savings {
-                        Text(savings.formattedMonthlyPrice(for: subscription))
-                            .fontType(.pt14,
-                                      on: isOn ? .lightBackground : .darkBackground,
-                                      weight: .bold)
-                        Text(savings.formattedTotalSavings(for: subscription))
-                            .fontType(.pt10, on: isOn ? .darkBackground : .lightBackground, weight: .bold)
-                            .textPill(color: isOn ? .black : .white)
-                    } else {
-                        Text(subscription.priceText)
-                            .fontType(.pt14,
-                                      on: isOn ? .lightBackground : .darkBackground,
-                                      weight: .bold)
-
+                isSelected: $isOn, rightAccessoryView:  {
+                    VStack {
+                        if let savings {
+                            Text(savings.formattedMonthlyPrice(for: subscription))
+                                .fontType(.pt14,
+                                          on: isOn ? .lightBackground : .darkBackground,
+                                          weight: .bold)
+                            Text(savings.formattedTotalSavings(for: subscription))
+                                .fontType(.pt10, on: isOn ? .darkBackground : .lightBackground, weight: .bold)
+                                .textPill(color: isOn ? .black : .white)
+                        } else {
+                            Text(subscription.priceText)
+                                .fontType(.pt14,
+                                          on: isOn ? .lightBackground : .darkBackground,
+                                          weight: .bold)
+                            
+                        }
                     }
-                }
-            }.if(savings != nil, transform: { view in
+                }).if(savings != nil, transform: { view in
                 view.modifier(MostPopularIndicatorViewModifier())
             })
 

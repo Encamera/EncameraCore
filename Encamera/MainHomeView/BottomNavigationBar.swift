@@ -23,9 +23,9 @@ struct BottomNavigationBar: View {
 
             VStack {
                 HStack {
-                    barItem(image: Image("BottomNavigation-Albums"), text: "Albums", item: .albums)
+                    barItem(image: Image("BottomNavigation-Albums"), text: L10n.albumsTitle, item: .albums)
                     Spacer()
-                    barItem(image: Image("BottomNavigation-Settings"), text: "Settings", item: .settings)
+                    barItem(image: Image("BottomNavigation-Settings"), text: L10n.settings, item: .settings)
                 }
                 .padding(.init(top: 15.0, leading: 35.0, bottom: 15.0, trailing: 35.0))
                 Spacer().frame(height: 0) // Removed the extra space for safe area

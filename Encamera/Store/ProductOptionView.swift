@@ -45,8 +45,3 @@ struct ProductOptionView: View {
     
 }
 
-struct ProductOptionView_Previews: PreviewProvider {
-    static var previews: some View {
-        Text("Hey")
-    }
-}

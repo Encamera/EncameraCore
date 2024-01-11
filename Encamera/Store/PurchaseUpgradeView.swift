@@ -53,12 +53,7 @@ struct FeatureText: View {
     }
 }
 
-func createFeatureRow(image: Image, title: String, subtitle: String? = nil) -> some View {
-    return HStack(alignment: .center, spacing: 12) {
-        FeatureIcon(image: image)
-        FeatureText(title: title, subtitle: subtitle)
-    }
-}
+
 
 
 typealias PurchaseResultAction = ((PurchaseFinishedAction) -> Void)
@@ -124,7 +119,6 @@ struct ProductStoreView: View {
             }.onAppear {
                 EventTracking.trackShowPurchaseScreen(from: fromView)
             }
-//            .ignoresSafeArea(edges: .bottom)
         }
     }
 
@@ -135,6 +129,12 @@ struct ProductStoreView: View {
         }
     }
 
+    private func createFeatureRow(image: Image, title: String, subtitle: String? = nil) -> some View {
+        return HStack(alignment: .center, spacing: 12) {
+            FeatureIcon(image: image)
+            FeatureText(title: title, subtitle: subtitle)
+        }
+    }
 
     @ViewBuilder
     var productCellsScrollView: some View {
