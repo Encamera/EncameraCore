@@ -21,7 +21,6 @@
 		05BE9E64DF81E360A090F9E5 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7347AE6141886EEF6FABC1 /* Color.swift */; };
 		081557A474000747981691D7 /* NotificationBell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E338FD05A605490CF20134F /* NotificationBell.swift */; };
 		082225897B3ADCC54FBF2DD7 /* KeyOperationCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7829FFF879ED20D3A0CA4410 /* KeyOperationCell.swift */; };
-		09E7DB79F6C52F62763498D5 /* SubscriptionPurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BD41DEC59C93641F49268C6 /* SubscriptionPurchaseButton.swift */; };
 		09FDF76EE9CC5B0C7D927EBF /* 4.JPG in Resources */ = {isa = PBXBuildFile; fileRef = D6F2E71821680D09E037004E /* 4.JPG */; };
 		0A7A4563AEAF1E418AD247CA /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F87130057593981EF7E23745 /* StoreKit.framework */; };
 		0BC85FE4F83BBCD0AAAB28A3 /* LockScreenKeypad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB904C84E5D90724BD79358 /* LockScreenKeypad.swift */; };
@@ -75,7 +74,6 @@
 		303DE58239B9DE2DC3C2BBC7 /* ButtonViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E78CFA4F3A670FDED42E2D3 /* ButtonViewModifier.swift */; };
 		30D6159730DF66A347500951 /* Satoshi-BoldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 4FD935CBF1B92DA44E5A6196 /* Satoshi-BoldItalic.otf */; };
 		314C1682F74B89FEB81D801D /* DismissButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDAE32CBB0CA3BFF5A99A2A /* DismissButton.swift */; };
-		317CFB7D36537A99AFE84B1E /* SubscriptionPurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BD41DEC59C93641F49268C6 /* SubscriptionPurchaseButton.swift */; };
 		33ECD054AF9C6C4CF9386C6E /* SafeAreaUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5962A9B956E3B444997D50 /* SafeAreaUtils.swift */; };
 		3415307FE0C9FE46F9BA5B25 /* DefaultEdgeSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90AFF3D0CA3F3E90F75BE891 /* DefaultEdgeSpacing.swift */; };
 		342DE7FCAC5068FCEA226818 /* ImageStepIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E66AD1C897B9591AE534EAB /* ImageStepIndicator.swift */; };
@@ -348,7 +346,6 @@
 		19AB2D9E2B3F0EB700C53505 /* 11.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 11.JPG; sourceTree = "<group>"; };
 		19AB2D9F2B3F0EB800C53505 /* 10.JPG */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 10.JPG; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		1BD41DEC59C93641F49268C6 /* SubscriptionPurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPurchaseButton.swift; sourceTree = "<group>"; };
 		1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Black.otf"; sourceTree = "<group>"; };
 		1C3A2DC8EF95074331B6CBEE /* HeadingSubheadingImageComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadingSubheadingImageComponent.swift; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
@@ -855,7 +852,6 @@
 				B6160C505578FD25DED491FD /* PurchaseUpgradeOptionsListView.swift */,
 				AF45077C2F581A4AAF9AA146 /* PurchaseUpgradeView.swift */,
 				5AF0490EEC4512041C781765 /* SubscriptionOptionView.swift */,
-				1BD41DEC59C93641F49268C6 /* SubscriptionPurchaseButton.swift */,
 				E25B2718DA5A7D489DF898C8 /* SubscriptionView.swift */,
 				13501C8BD163FDB992526254 /* TweetToShareView.swift */,
 			);
@@ -1332,7 +1328,6 @@
 				E9C36D15F15ACB3E66847F49 /* StorageSettingView.swift in Sources */,
 				A5DF5722A4CD5CAF67E3F27A /* StorePresentationViewModifier.swift in Sources */,
 				6EB8ECF5ECF2C40FAEFB792B /* SubscriptionOptionView.swift in Sources */,
-				317CFB7D36537A99AFE84B1E /* SubscriptionPurchaseButton.swift in Sources */,
 				2F4FED2E99F8D79E178058BA /* SubscriptionView.swift in Sources */,
 				B0A033D892BE1DB82330FBD9 /* SurfaceType.swift in Sources */,
 				26FE0971738E9033F853B303 /* Text.swift in Sources */,
@@ -1435,7 +1430,6 @@
 				B0E4B17C40739D75D85379BB /* StoreKitTestingApp.swift in Sources */,
 				9C77DA84D269DCAE2719103C /* StorePresentationViewModifier.swift in Sources */,
 				2710D7728F0EDF380736EF7A /* SubscriptionOptionView.swift in Sources */,
-				09E7DB79F6C52F62763498D5 /* SubscriptionPurchaseButton.swift in Sources */,
 				013F6EB10E19FDBAC929387E /* SubscriptionView.swift in Sources */,
 				2258B6B3FCAAA4FF9EBC99A8 /* SurfaceType.swift in Sources */,
 				544469FC8962611F6F8F615E /* Text.swift in Sources */,

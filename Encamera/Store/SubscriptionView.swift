@@ -12,11 +12,11 @@ import EncameraCore
 
 
 
-struct SubscriptionPurchaseView: View {
+struct SubscriptionPurchaseButton: View {
 
     
     var subscriptionController: StoreSubscriptionController = StoreActor.shared.subscriptionController
-    @State private var canRedeemIntroOffer = false
+    @State private var canRedeemIntroOffer = true
     @State private var redeemSheetIsPresented = false
     
     @Environment(\.dismiss) private var dismiss
@@ -30,10 +30,15 @@ struct SubscriptionPurchaseView: View {
                 onPurchase()
             } label: {
                 Group {
-                    if canRedeemIntroOffer {
-                        Text(L10n.startTrialOffer)
+                    if canRedeemIntroOffer, let selectedSubscription
+                    {
+                        VStack {
+                            Text(L10n.startTrialOffer)
+                            Text(L10n.freeTrialTerms(selectedSubscription.priceText))
+                                .fontType(.pt12, on: .primaryButton)
+                        }
                     } else if subscriptionController.entitledSubscription == selectedSubscription {
-                        Text("Subscribed")
+                        Text(L10n.subscribed)
                     } else {
                         Text(L10n.subscribe)
                     }
@@ -64,4 +69,8 @@ struct SubscriptionPurchaseView: View {
     private var subscribedToSelectedSubscription: Bool {
         return subscriptionController.entitledSubscription == selectedSubscription
     }
+}
+
+#Preview {
+    SubscriptionPurchaseButton(selectedSubscription: nil, onPurchase: {})
 }

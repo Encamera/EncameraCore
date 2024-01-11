@@ -78,7 +78,7 @@ struct PurchaseUpgradeOptionsListView: View {
                 }
             }
 //            Spacer().frame(height: 5)
-            SubscriptionPurchaseView(selectedSubscription: selectedOption) {
+            SubscriptionPurchaseButton(selectedSubscription: selectedOption) {
                 onPurchase()
             }
         }.padding(.horizontal)
