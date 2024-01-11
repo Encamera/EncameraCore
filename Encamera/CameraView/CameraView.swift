@@ -63,10 +63,10 @@ struct CameraView: View {
 
     private var cameraPreview: some View {
 #if targetEnvironment(simulator)
-        //        Color.clear.background {
-        //            Image("kristina-flour").resizable().clipped().aspectRatio(contentMode: .fill)
-        //        }
-        missingPermissionsView
+                Color.clear.background {
+                    Image("11").resizable().clipped().aspectRatio(contentMode: .fill)
+                }
+//        missingPermissionsView
 #else
         CameraPreview(session: cameraModel.session,
                       modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
