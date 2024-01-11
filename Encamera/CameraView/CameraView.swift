@@ -17,7 +17,6 @@ struct CameraView: View {
     @State var cameraModeStateModel = CameraModeStateModel()
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
-    var closeButtonTapped: () -> Void
 
     private var captureButton: some View {
 
@@ -40,25 +39,6 @@ struct CameraView: View {
                     )
             }
         })
-    }
-
-    private var capturedPhotoThumbnail: some View {
-        Group {
-            if let thumbnail = cameraModel.thumbnailImage {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .onTapGesture {
-                        cameraModel.showGalleryView = true
-                    }
-            } else {
-                Color.clear
-            }
-        }
-        .rotateForOrientation()
-        .frame(width: 60, height: 60)
-
     }
 
     private var flipCameraButton: some View {
@@ -282,7 +262,7 @@ struct CameraView: View {
             await cameraModel.stopCamera()
         }
         EventTracking.trackCameraClosed()
-        closeButtonTapped()
+        cameraModel.closeButtonTapped(nil)
     }
 }
 
@@ -317,11 +297,10 @@ struct CameraView_Previews: PreviewProvider {
             albumManager: DemoAlbumManager(),
             cameraService: CameraConfigurationService(model: .init()),
             fileAccess: DemoFileEnumerator(),
-            purchaseManager: DemoPurchasedPermissionManaging()
+            purchaseManager: DemoPurchasedPermissionManaging(),
+            closeButtonTapped: {_ in}
         )
-        CameraView(cameraModel: model, hasMediaToImport: .constant(false), closeButtonTapped: {
-
-        })
+        CameraView(cameraModel: model, hasMediaToImport: .constant(false))
         .preferredColorScheme(.dark)
     }
 }

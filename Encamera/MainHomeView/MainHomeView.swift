@@ -55,6 +55,11 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
             selectedPath.removeLast()
         }
     }
+
+    func navigateToAlbumDetailView(with album: Album) {
+        // Append the album to the navigation path
+        selectedPath.append(album)
+    }
 }
 
 
@@ -84,13 +89,17 @@ struct MainHomeView<D: FileAccess>: View {
                         albumManager: viewModel.albumManager,
                         cameraService: viewModel.cameraService,
                         fileAccess: viewModel.fileAccess,
-                        purchaseManager: viewModel.purchasedPermissions
-                    ), hasMediaToImport: $viewModel.hasMediaToImport) {
-                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
-                        withAnimation {
-                            selectedNavigationItem = .albums
+                        purchaseManager: viewModel.purchasedPermissions,
+                        closeButtonTapped: { targetAlbum in
+                            UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
+                            if let targetAlbum {
+                                viewModel.navigateToAlbumDetailView(with: targetAlbum)
+                            }
+                            withAnimation {
+                                selectedNavigationItem = .albums
+                            }
                         }
-                    }
+                    ), hasMediaToImport: $viewModel.hasMediaToImport)
                     .transition(.opacity)
                 } else {
                     if selectedNavigationItem == .settings {

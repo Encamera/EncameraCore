@@ -204,25 +204,26 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
                 .navigationBarTitle("")
                 .fullScreenCover(isPresented: $viewModel.showCamera, content: {
 
-                    if let album = viewModel.album {
+                    if viewModel.album != nil {
                         CameraView(cameraModel: .init(
                             albumManager: viewModel.albumManager,
                             cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
                             fileAccess: viewModel.fileAccess,
-                            purchaseManager: viewModel.purchasedPermissions
-                        ), hasMediaToImport: .constant(false)) {
-                            viewModel.showCamera = false
-                            viewModel.albumManager.currentAlbum = viewModel.album
-                            Task {
-                                await viewModel.enumerateMedia()
+                            purchaseManager: viewModel.purchasedPermissions,
+                            closeButtonTapped: { _ in
+                                viewModel.showCamera = false
+                                viewModel.albumManager.currentAlbum = viewModel.album
+                                Task {
+                                    await viewModel.enumerateMedia()
+                                }
                             }
-                        }
+                        ), hasMediaToImport: .constant(false))
                     }
                 })
             }
         }
     }
-    
+
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(L10n.addPhotosToThisAlbum)

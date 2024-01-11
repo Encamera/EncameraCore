@@ -255,8 +255,6 @@ struct ImageViewing<M: MediaDescribing>: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-
-
     var geometryReader: some View {
         GeometryReader { geometry in
             Color.clear
@@ -266,8 +264,6 @@ struct ImageViewing<M: MediaDescribing>: View {
             viewModel.currentFrame = value
         }
     }
-
-
 }
 
 struct FramePreferenceKey: PreferenceKey {

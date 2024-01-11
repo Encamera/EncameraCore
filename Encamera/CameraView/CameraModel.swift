@@ -75,6 +75,7 @@ final class CameraModel: NSObject, ObservableObject {
     var userDefaultsUtil = UserDefaultUtils()
     var purchaseManager: PurchasedPermissionManaging
     private var currentVideoProcessor: AsyncVideoCaptureProcessor?
+    var closeButtonTapped: (_ targetAlbum: Album?) -> Void
 
     
     private var cancellables = Set<AnyCancellable>()
@@ -85,9 +86,11 @@ final class CameraModel: NSObject, ObservableObject {
     init(albumManager: AlbumManaging,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
-         purchaseManager: PurchasedPermissionManaging) {
-        
+         purchaseManager: PurchasedPermissionManaging,
+         closeButtonTapped: @escaping (Album?) -> Void) {
+
         self.service = cameraService
+        self.closeButtonTapped = closeButtonTapped
         self.fileAccess = fileAccess
         self.purchaseManager = purchaseManager
         self.albumManager = albumManager

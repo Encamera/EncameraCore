@@ -14,7 +14,7 @@ struct BottomCameraButtonView: View {
         static var innerCaptureButtonLineWidth: Double = 2
         static var innerCaptureButtonStroke: Double = 0.8
         static var innerCaptureButtonSize = Constants.minCaptureButtonEdge * 0.85
-        static var thumbnailSide = 40.0
+        static var thumbnailSide = 50.0
         static var trailing = 24.0
     }
     @ObservedObject var cameraModel: CameraModel
@@ -57,13 +57,15 @@ struct BottomCameraButtonView: View {
                     x: CGFloat(order) * -2, y: .zero) // Adjusted the shadow
             .offset(x: -pow(CGFloat(order), 1.7), y: .zero) // Adjusted the offset
     }
-    @ViewBuilder private var capturedPhotoThumbnail: some View {
-        Group {
+    private var capturedPhotoThumbnail: some View {
+        Button {
+            cameraModel.closeButtonTapped(cameraModel.albumManager.currentAlbum)
+        } label: {
             if let thumbnail = cameraModel.thumbnailImage {
                 ZStack(alignment: .leading) {
                     makeBgRectangle(side: Constants.thumbnailSide*0.7, order: 3)
                     makeBgRectangle(side: Constants.thumbnailSide*0.8, order: 2)
-                    Color.clear
+                    Color.white.opacity(0.01)
                         .background {
                             Image(uiImage: thumbnail)
                                 .resizable()
@@ -80,8 +82,9 @@ struct BottomCameraButtonView: View {
                 Color.clear
             }
         }
-        .rotateForOrientation()
         .frame(width: Constants.thumbnailSide, height: Constants.thumbnailSide)
+
+        .rotateForOrientation()
 
     }
     private var flipCameraButton: some View {
