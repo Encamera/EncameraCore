@@ -22,6 +22,7 @@ struct EncameraButtonStyle: ButtonStyle {
             .cornerRadius(10)
     }
 }
+
 struct EncameraDestructiveButtonStyle: ButtonStyle {
     
     var hostSurface: SurfaceType
@@ -50,6 +51,11 @@ extension View {
     
     func secondaryButton(enabled: Bool = true) -> some View {
         buttonStyle(EncameraButtonStyle(hostSurface: .secondaryButton))
+    }
+
+    func textButton() -> some View {
+        self.padding(12.0)
+        .fontType(.pt14, on: .textButton, weight: .bold)
     }
 }
 

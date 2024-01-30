@@ -25,6 +25,7 @@ enum EncameraFont {
     case pt18
     case pt20
     case pt24
+    case pt32
     case rajdhaniBold
     case rajdhaniBoldSmall
 
@@ -34,7 +35,7 @@ enum EncameraFont {
         case rajdhaniBold = "Rajdhani-Bold"
     }
     var offset: CGFloat {
-        return 1.0
+        return 2.0
     }
     var font: Font {
 
@@ -43,15 +44,16 @@ enum EncameraFont {
             return satoshi(size: 35)
         case .medium:
             return satoshi(size: 30)
-        case .pt20:
-            return satoshi(size: 20)
+        case .pt32:
+            return satoshi(size: 32)
         case .pt24:
             return satoshi(size: 24)
+        case .pt20:
+            return satoshi(size: 20)
         case .pt18:
             return satoshi(size: 18)
         case .pt16:
             return satoshi(size: 16)
-
         case .pt14:
             return satoshi(size: 14)
         case .pt12:

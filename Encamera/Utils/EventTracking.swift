@@ -37,12 +37,16 @@ class EventTracking {
     private init() {
         // set device locale as custom dimension
         piwikTracker.setCustomDimension(identifier: 1, value: Locale.current.identifier)
+        piwikTracker.isAnonymizationEnabled = false
     }
 
     private static func track(category: String, action: String, name: String? = nil, value: Float? = nil) {
     #if DEBUG
         debugPrint("[Tracking] Category: \(category), action: \(action), name: \(name ?? "none"), value: \(String(describing: value))")
     #else
+        if FeatureToggle.isEnabled(feature: .stopTracking) {
+            return
+        }
         Self.shared.piwikTracker.sendEvent(category: category, action: action, name: name, value: value as NSNumber?, path: nil)
     #endif
     }

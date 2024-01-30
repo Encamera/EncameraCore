@@ -18,6 +18,8 @@ struct OnboardingViewViewModel {
     var showTopBar: Bool = true
     var bottomButtonTitle: String
     var bottomButtonAction: (() async throws -> Void)?
+    var secondaryButtonTitle: String? = nil
+    var secondaryButtonAction: (() async throws -> Void)?
     var content: ((@escaping () -> Void) -> AnyView)?
 
 }
@@ -30,22 +32,22 @@ private enum Constants {
 
 
 struct OnboardingView<Next>: View where Next: View {
-    
-    @State var nextActive: Bool = false 
+
+    @State var nextActive: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     var viewModel: OnboardingViewViewModel
-    
-    let nextScreen: () -> Next?
-    
+
+    let goToNext: () -> Next?
+
     init(viewModel: OnboardingViewViewModel, @ViewBuilder nextScreen: @escaping () -> Next? = { nil }) {
-        self.nextScreen = nextScreen
+        self.goToNext = nextScreen
         self.viewModel = viewModel
     }
-    
+
 
     var body: some View {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(spacing: 2) {
 
                 if viewModel.showTopBar {
                     HStack {
@@ -69,11 +71,11 @@ struct OnboardingView<Next>: View where Next: View {
                 })
                 Spacer()
                 NavigationLink(isActive: $nextActive) {
-                    nextScreen()
+                    goToNext()
                 } label: {
                 }.isDetailLink(false)
                 Spacer()
-                HStack {
+                VStack {
                     Button(viewModel.bottomButtonTitle) {
                         Task {
                             do {
@@ -85,6 +87,20 @@ struct OnboardingView<Next>: View where Next: View {
                         }
                     }
                     .primaryButton()
+                    if let secondaryButtonTitle = viewModel.secondaryButtonTitle {
+                        Button(secondaryButtonTitle) {
+                            Task {
+                                do {
+                                    try await viewModel.secondaryButtonAction?()
+                                    nextActive = true
+                                } catch {
+                                    print("Error on secondary button action", error)
+                                }
+                            }
+                        }
+                        .textButton()
+
+                    }
                 }.padding(14)
             }
 
@@ -99,7 +115,7 @@ struct OnboardingView<Next>: View where Next: View {
 //
 //
 struct OnboardingView_Previews: PreviewProvider {
-    
+
     static var previews: some View {
         NavigationView {
             OnboardingView(viewModel: .init(
@@ -110,8 +126,12 @@ struct OnboardingView_Previews: PreviewProvider {
                 image: Image(systemName: "camera"),
                 bottomButtonTitle: "Next",
                 bottomButtonAction: {
-                    
-                }) {_ in 
+
+                },
+                secondaryButtonTitle: "No thanks",
+                secondaryButtonAction: {
+
+                }, content:  {_ in
                     AnyView(VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.onboardingIntroHeadingText1)
                             .fontType(.medium, weight: .bold)
@@ -119,12 +139,12 @@ struct OnboardingView_Previews: PreviewProvider {
                             .fontType(.pt18)
                         Spacer()
                     })
-                    
-                }, nextScreen: { EmptyView() })
-            
+
+                }), nextScreen: { EmptyView() })
+
         }
         .preferredColorScheme(.dark)
     }
-    
+
 }
 
