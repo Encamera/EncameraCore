@@ -99,8 +99,8 @@ class EventTracking {
         track(category: "media", action: "shared")
     }
 
-    static func trackOnboardingViewReached(view: OnboardingFlowScreen) {
-        track(category: "onboarding", action: "view_reached", name: view.rawValue)
+    static func trackOnboardingViewReached(view: OnboardingFlowScreen, new: Bool = false) {
+        track(category: "\(new ? "new_": "")onboarding", action: "view_reached", name: view.rawValue)
     }
 
     static func trackOnboardingFinished() {
