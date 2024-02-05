@@ -66,7 +66,7 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
         self.onboardingManager = onboardingManager
         self.keyManager = keyManager
         self.authManager = authManager
-        onboardingFlow = onboardingManager.buildOnboardingFlow()
+        onboardingFlow = onboardingManager.generateOnboardingFlow()
         Task {
             await MainActor.run {
                 self.keyStorageType = albumManager?.defaultStorageForAlbum
@@ -176,6 +176,12 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
         do {
             let savedState = OnboardingState.completed
 
+            if existingPassword.isEmpty == false {
+                try authManager.authorize(with: existingPassword, using: keyManager)
+            } else {
+                try await savePassword()
+                try authManager.authorize(with: password1, using: keyManager)
+            }
             let keys = try? keyManager.storedKeys()
             if keys == nil || keys?.isEmpty ?? false {
                 let _ = try keyManager.generateKeyUsingRandomWords(name: AppConstants.defaultKeyName)
@@ -258,7 +264,6 @@ private extension MainOnboardingView {
     }
 
     func viewModel(for flow: OnboardingFlowScreen) -> OnboardingViewViewModel {
-        // I think this could use a refactor with NavigationDestination instead of building it statically
         switch flow {
         case .intro:
             return .init(
@@ -383,43 +388,6 @@ private extension MainOnboardingView {
                             }
                     )
                 })
-        case .biometricsWithPin:
-            return .init(
-                screen: flow,
-                showTopBar: false,
-                bottomButtonTitle: L10n.enableFaceID,
-                bottomButtonAction: {
-                    try await viewModel.authWithBiometrics()
-                    EventTracking.trackOnboardingBiometricsEnabled()
-                }, secondaryButtonTitle: L10n.usePINInstead,
-                secondaryButtonAction: {
-
-                },
-                content: { _ in
-
-                    AnyView(
-                        VStack(alignment: .center) {
-                            ZStack {
-                                Image("Onboarding-Shield")
-                                Rectangle()
-                                    .foregroundColor(.clear)
-                                    .frame(width: 96, height: 96)
-                                    .background(Color.actionYellowGreen.opacity(0.1))
-                                    .cornerRadius(24)
-                            }
-                            Spacer().frame(height: 32)
-                            Text(L10n.selectLoginMethod)
-                                .fontType(.pt24, weight: .bold)
-                            Spacer().frame(height: 12)
-                            Text(L10n.loginMethodDescription)
-                                .fontType(.pt14)
-                                .multilineTextAlignment(.center)
-//                            ImageCarousel(currentScrolledToImage: $viewModel.currentOnboardingImageIndex)
-//                            Spacer()
-                        }.frame(width: 290)
-                    )
-                })
-
         case .setupPrivateKey:
             return .init(
                 screen: flow,
@@ -528,39 +496,28 @@ private extension MainOnboardingView {
         case .finished:
             return .init(
                 screen: flow,
-                showTopBar: false,
-                bottomButtonTitle: L10n.createFirstAlbum,
+                title: L10n.doneOnboarding,
+                subheading: "",
+                image: nil,
+                bottomButtonTitle: L10n.done,
                 bottomButtonAction: {
-                    try await viewModel.authWithBiometrics()
-                    EventTracking.trackOnboardingBiometricsEnabled()
-                },
-                content: { _ in
-
+                    try await viewModel.saveState()
+                    EventTracking.trackOnboardingFinished()
+                    throw OnboardingViewError.onboardingEnded
+                }) { _ in
                     AnyView(
-                        VStack(alignment: .center) {
-                            ZStack {
-                                Image("Onboarding-FinishedCheck")
-                                Rectangle()
-                                    .foregroundColor(.clear)
-                                    .frame(width: 96, height: 96)
-                                    .background(Color.actionYellowGreen.opacity(0.1))
-                                    .cornerRadius(24)
-                            }
-                            Spacer().frame(height: 32)
-                            Text(L10n.finishedReadyToUseEncamera)
-                                .fontType(.pt24, weight: .bold)
-                                .multilineTextAlignment(.center)
-                            Spacer().frame(height: 12)
-                            Text(L10n.finishedSubtitle)
+                        VStack(alignment: .leading, spacing: 15.0) {
+                            Text(L10n.storageExplanationHeader)
+                                .fontType(.medium)
+                            Text(L10n.storageExplanation)
                                 .fontType(.pt14)
-                                .multilineTextAlignment(.center)
-//                            ImageCarousel(currentScrolledToImage: $viewModel.currentOnboardingImageIndex)
-//                            Spacer()
-                        }.frame(width: 290)
-                    )
-                })
 
+                        })
+                }
+        default:
+            return viewModel(for: .intro)
         }
+
     }
 
     @ViewBuilder func storageButton(imageName: String, text: String, isSelected: Binding<Bool>, action: @escaping () -> Void) -> some View {
