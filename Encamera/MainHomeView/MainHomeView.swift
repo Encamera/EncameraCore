@@ -15,7 +15,6 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
     @Published var cameraMode: CameraMode = .photo
     @Published var rotationFromOrientation: CGFloat = 0.0
     @Published var showScreenBlocker: Bool = true
-    @Published var showOnboarding = false
     @Published var isAuthenticated = false
     @Published var hasMediaToImport = false
     @Published var showImportedMediaScreen = false

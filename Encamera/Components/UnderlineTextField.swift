@@ -44,6 +44,7 @@ struct UnderlineTextField: View {
             .underlined(color: .white, thickness: 2) // Apply the underline
             .background(Color.clear) // Make sure the background is transparent
             .fontType(.pt18, weight: .bold)
+            
     }
 }
 

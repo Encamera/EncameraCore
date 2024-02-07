@@ -7,20 +7,28 @@
 
 import SwiftUI
 import EncameraCore
+import Combine
 
 class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject {
     @Published var currentOnboardingImageIndex = 0
+    @MainActor
     @Published var useBiometrics: Bool = false
     @MainActor
     @Published var generalError: Error?
-    @Published var password1: String = ""
-    @Published var password2: String = ""
+    @Published var pinCode1: String = ""
+    @Published var pinCode2: String = ""
+    @Published var pinCodeError: String?
+    @Published var showAddAlbumModal: Bool = false
+    @Published var passwordState: PasswordValidation?
 
+    private var keyManager: KeyManager
+    private var finishedAction: () -> ()
     private var onboardingManager: OnboardingManaging
     private var albumManager: GenericAlbumManaging?
     private var passwordValidator = PasswordValidator()
-    var keyManager: KeyManager
+    private var cancellables = Set<AnyCancellable>()
     private var authManager: AuthManager
+
 
     @MainActor
     func authWithBiometrics() async throws {
@@ -46,14 +54,111 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
         }
     }
 
-    init(onboardingManager: OnboardingManaging, keyManager: KeyManager, authManager: AuthManager) {
+    init(onboardingManager: OnboardingManaging,
+         keyManager: KeyManager,
+         authManager: AuthManager,
+         finishedAction: @escaping () -> ()
+    ) {
         self.onboardingManager = onboardingManager
         self.keyManager = keyManager
         self.authManager = authManager
+        self.finishedAction = finishedAction
     }
 
     func saveAlbum(name: String) {
         _ = try? albumManager?.create(name: name, storageOption: .local)
+    }
+
+    @discardableResult func validatePassword() throws -> PasswordValidation {
+        let state = passwordValidator.validatePasswordPair(pinCode1, password2: pinCode2)
+        passwordState = state
+
+        if state != .valid {
+            throw OnboardingViewError.passwordInvalid
+        }
+        return state
+    }
+
+    func doesPinCodeMatchNew(pinCode: String) -> Bool {
+        if pinCode.count != pinCode1.count {
+            return false
+        }
+        return pinCode == pinCode1
+    }
+
+    @MainActor func savePassword() throws {
+        do {
+            let validation = try validatePassword()
+            if validation == .valid {
+                try keyManager.setPassword(pinCode1)
+            } else {
+                throw OnboardingViewError.passwordInvalid
+            }
+        } catch {
+            try handle(error: error)
+        }
+    }
+
+    @MainActor
+    func handle(error: Error) throws {
+
+        generalError = error
+
+        throw error
+    }
+
+
+    func finishOnboarding() {
+        Task {
+            do {
+                let savedState: OnboardingState
+
+                if !pinCode1.isEmpty {
+                    try await savePassword()
+                    try authManager.authorize(with: pinCode1, using: keyManager)
+                    savedState = .completed
+                } else {
+                    savedState = .hasOnboardingAndNoPasswordButHasBiometrics
+                    try await authManager.authorizeWithBiometrics()
+                }
+                UserDefaultUtils.set(true, forKey: .usesPinPassword)
+
+                let keys = try? keyManager.storedKeys()
+                if keys == nil || keys?.isEmpty ?? false {
+                    let _ = try keyManager.generateKeyUsingRandomWords(name: AppConstants.defaultKeyName)
+                }
+
+                var albumManager = GenericAlbumManaging(keyManager: keyManager)
+                let album = try? albumManager.create(name: AppConstants.defaultAlbumName, storageOption: .local)
+                albumManager.currentAlbum = album
+                self.albumManager = albumManager
+                UserDefaultUtils.set(true, forKey: .showCameraOnLaunch)
+
+                try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
+            } catch {
+                try? await handle(error: error)
+            }
+            authManager.isAuthenticatedPublisher.sink { [weak self] isAuthenticated in
+                EventTracking.trackOnboardingFinished(new: true)
+                self?.finishedAction()
+
+            }.store(in: &cancellables)
+            if await useBiometrics {
+                Task {
+                    do {
+                        try await authManager.authorizeWithBiometrics()
+                    } catch {
+                        debugPrint("Could not authorize with biometrics")
+                    }
+                }
+            } else {
+                do {
+                    try authManager.authorize(with: pinCode1, using: keyManager)
+                } catch {
+                    debugPrint("Could not authorize")
+                }
+            }
+        }
     }
 }
 
@@ -61,11 +166,6 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
 
     @StateObject var viewModel: NewOnboardingViewModel<GenericAlbumManaging>
     @State var path: NavigationPath = .init()
-
-    @State var pinCode1: String = ""
-    @State var pinCode2: String = ""
-    @State var pinCodeError: String?
-    @State var showAddAlbumModal: Bool = false
 
     @Environment(\.presentationMode) private var presentationMode
 
@@ -168,12 +268,12 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .fontType(.pt14)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
-                                    PinCodeView(pinCode: $pinCode1, pinLength: AppConstants.pinCodeLength)
+                                    PinCodeView(pinCode: $viewModel.pinCode1, pinLength: AppConstants.pinCodeLength)
                                 }.frame(width: 290)
 
                             )
                         })
-            ).onChange(of: pinCode1) { oldValue, newValue in
+            ).onChange(of: viewModel.pinCode1) { oldValue, newValue in
                 print("Pincode", oldValue, newValue)
                 if newValue.count == AppConstants.pinCodeLength {
                     path.append(OnboardingFlowScreen.confirmPinCode)
@@ -207,21 +307,20 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .fontType(.pt14)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
-                                    if let pinCodeError {
+                                    if let pinCodeError = viewModel.pinCodeError {
                                         Text(pinCodeError).alertText()
                                     }
-                                    PinCodeView(pinCode: $pinCode2, pinLength: AppConstants.pinCodeLength)
+                                    PinCodeView(pinCode: $viewModel.pinCode2, pinLength: AppConstants.pinCodeLength)
                                 }.frame(width: 290)
 
                             )
                         })
             )
-            .onChange(of: pinCode2) { oldValue, newValue in
-                if newValue == pinCode1 {
+            .onChange(of: viewModel.pinCode2) { oldValue, newValue in
+                if viewModel.doesPinCodeMatchNew(pinCode: newValue) {
                     path.append(OnboardingFlowScreen.finished)
-                } else if pinCode2.count == AppConstants.pinCodeLength && pinCode1 != pinCode2 {
-                    pinCodeError = L10n.pinCodeDoesNotMatch
-                    pinCode2 = ""
+                } else {
+                    
                 }
             }
 
@@ -233,7 +332,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                         showTopBar: false,
                         bottomButtonTitle: L10n.createFirstAlbum,
                         bottomButtonAction: {
-                            showAddAlbumModal = true
+                            viewModel.showAddAlbumModal = true
                         },
                         secondaryButtonAction: {
                             path.append(OnboardingFlowScreen.finished)
@@ -258,7 +357,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .fontType(.pt14)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
-                                    if let pinCodeError {
+                                    if let pinCodeError = viewModel.pinCodeError {
                                         Text(pinCodeError).alertText()
                                     }
                                 }.frame(width: 290)
@@ -266,10 +365,10 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                             )
                         })
             )
-            .sheet(isPresented: $showAddAlbumModal, content: {
+            .sheet(isPresented: $viewModel.showAddAlbumModal, content: {
                 AddAlbumModal { albumName in
                     viewModel.saveAlbum(name: albumName)
-                    presentationMode.wrappedValue.dismiss()
+                    viewModel.finishOnboarding()
                 }
             })
         default:
@@ -283,5 +382,5 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
 
 
 #Preview {
-    NewOnboardingHostingView<DemoAlbumManager>(viewModel: .init(onboardingManager: DemoOnboardingManager(), keyManager: DemoKeyManager(), authManager: DemoAuthManager()))
+    NewOnboardingHostingView<DemoAlbumManager>(viewModel: .init(onboardingManager: DemoOnboardingManager(), keyManager: DemoKeyManager(), authManager: DemoAuthManager(), finishedAction: {}))
 }

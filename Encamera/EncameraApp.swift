@@ -233,10 +233,9 @@ struct EncameraApp: App {
             ZStack {
                 
                 if viewModel.showOnboarding {
-                    MainOnboardingView(
-                        viewModel: OnboardingViewModel<AlbumManager>(onboardingManager: viewModel.onboardingManager,
-                                         keyManager: viewModel.keyManager,
-                                         authManager: viewModel.authManager))
+                    NewOnboardingHostingView<AlbumManagerType>(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager, authManager: viewModel.authManager, finishedAction: {
+                        viewModel.showOnboarding = false
+                    }))
                 } else if viewModel.isAuthenticated == false && viewModel.keyManagerKey == nil {
                     AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                 } else if viewModel.isAuthenticated == true,

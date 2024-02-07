@@ -122,12 +122,16 @@ struct AuthenticationView: View {
                 Text("\(L10n.enterPassword)")
             }
             Spacer().frame(height: 32)
-            PasswordEntry(viewModel: .init(
-                keyManager: viewModel.keyManager, stateUpdate: { update in
-                    if case .valid(let password) = update {
-                        viewModel.authenticatePassword(password: password)
-                    }
-                }))
+            if UserDefaultUtils.bool(forKey: .usesPinPassword) {
+                PinCodeView(pinCode: $viewModel.enteredPassword, pinLength: AppConstants.pinCodeLength)
+            } else {
+                PasswordEntry(viewModel: .init(
+                    keyManager: viewModel.keyManager, stateUpdate: { update in
+                        if case .valid(let password) = update {
+                            viewModel.authenticatePassword(password: password)
+                        }
+                    }))
+            }
 
             if let error = viewModel.displayedError {
                 Text("\(error.displayDescription)")

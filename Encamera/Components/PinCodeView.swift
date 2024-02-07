@@ -13,8 +13,6 @@ struct PinCodeView: View {
 
     var body: some View {
         VStack {
-            // Invisible TextField
-
 
             HStack(alignment: .top, spacing: 8) {
                 ForEach(0..<pinLength, id: \.self) { index in

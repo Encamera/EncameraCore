@@ -103,8 +103,8 @@ class EventTracking {
         track(category: "\(new ? "new_": "")onboarding", action: "view_reached", name: view.rawValue)
     }
 
-    static func trackOnboardingFinished() {
-        track(category: "onboarding", action: "finished")
+    static func trackOnboardingFinished(new: Bool = false) {
+        track(category: "\(new ? "new_" : "")onboarding", action: "finished")
     }
 
     static func trackPhotoLimitReachedScreenUpgradeTapped(from screen: String) {

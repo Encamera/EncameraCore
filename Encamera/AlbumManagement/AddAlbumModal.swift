@@ -46,6 +46,7 @@ struct AddAlbumModal: View {
                     .fontType(.pt14, weight: .bold)
                     .opacity(AppConstants.lowOpacity)
                 UnderlineTextField(text: $albumName)
+                    .noAutoModification()
                     .pad(.pt8, edge: .bottom)
                     .offset(.init(width: -Spacing.pt16.value, height: 0))
 
