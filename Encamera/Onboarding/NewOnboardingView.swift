@@ -16,7 +16,7 @@ struct NewOnboardingViewViewModel {
     var progress: (Int, Int) = (0, 0)
     var image: Image? = nil
     var showTopBar: Bool = true
-    var bottomButtonTitle: String
+    var bottomButtonTitle: String?
     var bottomButtonAction: (() async throws -> Void)?
     var secondaryButtonTitle: String? = nil
     var secondaryButtonAction: (() async throws -> Void)?
@@ -68,17 +68,19 @@ struct NewOnboardingView: View {
                 })
                 Spacer()
                 VStack {
-                    Button(viewModel.bottomButtonTitle) {
-                        Task {
-                            do {
-                                try await viewModel.bottomButtonAction?()
-                                nextActive = true
-                            } catch {
-                                print("Error on bottom button action", error)
+                    if let bottomButtonTitle = viewModel.bottomButtonTitle {
+                        Button(bottomButtonTitle) {
+                            Task {
+                                do {
+                                    try await viewModel.bottomButtonAction?()
+                                    nextActive = true
+                                } catch {
+                                    print("Error on bottom button action", error)
+                                }
                             }
                         }
+                        .primaryButton()
                     }
-                    .primaryButton()
                     if let secondaryButtonTitle = viewModel.secondaryButtonTitle {
                         Button(secondaryButtonTitle) {
                             Task {

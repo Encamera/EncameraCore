@@ -148,8 +148,8 @@ class EventTracking {
         track(category: "biometrics", action: "disabled", name: "settings")
     }
 
-    static func trackOnboardingBiometricsEnabled() {
-        track(category: "biometrics", action: "enabled", name: "onboarding")
+    static func trackOnboardingBiometricsEnabled(newOnboarding: Bool = false) {
+        track(category: "biometrics", action: "enabled", name: "\(newOnboarding ? "new_" : "")onboarding")
     }
 
     static func trackOnboardingBiometricsSkipped() {

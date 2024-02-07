@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/PiwikPRO/piwik-pro-sdk-framework-ios",
       "state" : {
-        "revision" : "61ced15d952b0b7e2fd182461d71b07510dc591c",
-        "version" : "1.2.1"
+        "revision" : "e028527a68dac0a14871c45015b701224dad24f0",
+        "version" : "1.2.2"
       }
     },
     {
@@ -24,7 +24,7 @@
       "location" : "https://github.com/jedisct1/swift-sodium.git",
       "state" : {
         "branch" : "master",
-        "revision" : "6262c021e108b5fb16d2caa1e319e913cea2406d"
+        "revision" : "63240810df971557fe9badc557257bdfbfeb90a3"
       }
     },
     {
@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/siteline/SwiftUI-Introspect",
       "state" : {
-        "revision" : "9e1cc02a65b22e09a8251261cccbccce02731fc5",
-        "version" : "1.1.1"
+        "revision" : "18e965f867e37a558ad13c12d330dbe047099180",
+        "version" : "1.1.2"
       }
     }
   ],

@@ -26,6 +26,9 @@ struct AddAlbumModal: View {
 
                 Spacer()
                 Button {
+                    guard albumName.count > 1 else {
+                        return
+                    }
                     saveAction?(albumName)
                     presentationMode.wrappedValue.dismiss()
                 } label: {
