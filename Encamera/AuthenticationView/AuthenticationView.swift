@@ -51,6 +51,16 @@ class AuthenticationViewModel: ObservableObject {
         self.authManager = authManager
         self.keyManager = keyManager
 
+
+        if UserDefaultUtils.bool(forKey: .usesPinPassword) {
+            $enteredPassword.sink { [weak self] password in
+                guard PasswordValidator.validate(password: password) == .valid else {
+                    return
+                }
+                self?.authenticatePassword(password: password)
+            }.store(in: &cancellables)
+        }
+
         NotificationUtils.willEnterForegroundPublisher
             .sink { [weak self] _ in
                 self?.authenticateWithBiometrics()
@@ -65,6 +75,7 @@ class AuthenticationViewModel: ObservableObject {
             
             } catch let keyManagerError as KeyManagerError {
                 displayedError = .keychainError(keyManagerError)
+                enteredPassword = ""
             } catch let authManagerError as AuthManagerError {
                 handleAuthManagerError(authManagerError)
             } catch {

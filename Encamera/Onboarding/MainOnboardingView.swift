@@ -56,7 +56,6 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
 
     private var onboardingManager: OnboardingManaging
     private var albumManager: GenericAlbumManaging?
-    private var passwordValidator = PasswordValidator()
     var keyManager: KeyManager
     private var authManager: AuthManager
 
@@ -82,7 +81,7 @@ class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject
     }
 
     @discardableResult func validatePassword() throws -> PasswordValidation {
-        let state = passwordValidator.validatePasswordPair(password1, password2: password2)
+        let state = PasswordValidator.validatePasswordPair(password1, password2: password2)
         passwordState = state
 
         if state != .valid {

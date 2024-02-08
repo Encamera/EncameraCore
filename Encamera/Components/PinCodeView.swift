@@ -9,11 +9,8 @@ struct PinCodeView: View {
     @State private var enteredDigitCount: Int = 0
     @FocusState private var isInputFieldFocused: Bool
 
-
-
     var body: some View {
         VStack {
-
             HStack(alignment: .top, spacing: 8) {
                 ForEach(0..<pinLength, id: \.self) { index in
                     ZStack {
@@ -39,7 +36,7 @@ struct PinCodeView: View {
             .onChange(of: pinCode) { oldValue, newValue in
                 enteredDigitCount = newValue.count
                 if enteredDigitCount > pinLength - 1 { // Limit pinCode to 6 digits
-                    pinCode = String(newValue.prefix(pinLength))
+                    pinCode = ""
                 }
             }
         }

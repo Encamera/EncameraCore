@@ -70,7 +70,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     }
 
     @discardableResult func validatePassword() throws -> PasswordValidation {
-        let state = passwordValidator.validatePasswordPair(pinCode1, password2: pinCode2)
+        let state = PasswordValidator.validatePasswordPair(pinCode1, password2: pinCode2)
         passwordState = state
 
         if state != .valid {
@@ -108,17 +108,14 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     }
 
 
-    func finishOnboarding() {
+    func finishOnboarding(albumName: String) {
         Task {
             do {
-                let savedState: OnboardingState
 
                 if !pinCode1.isEmpty {
                     try await savePassword()
                     try authManager.authorize(with: pinCode1, using: keyManager)
-                    savedState = .completed
                 } else {
-                    savedState = .hasOnboardingAndNoPasswordButHasBiometrics
                     try await authManager.authorizeWithBiometrics()
                 }
                 UserDefaultUtils.set(true, forKey: .usesPinPassword)
@@ -129,12 +126,12 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
                 }
 
                 var albumManager = GenericAlbumManaging(keyManager: keyManager)
-                let album = try? albumManager.create(name: AppConstants.defaultAlbumName, storageOption: .local)
+                let album = try? albumManager.create(name: albumName, storageOption: .local)
                 albumManager.currentAlbum = album
                 self.albumManager = albumManager
-                UserDefaultUtils.set(true, forKey: .showCameraOnLaunch)
 
-                try await onboardingManager.saveOnboardingState(savedState, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
+                try await onboardingManager.saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
+                UserDefaultUtils.set(true, forKey: .showCameraOnLaunch)
             } catch {
                 try? await handle(error: error)
             }
@@ -158,6 +155,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
                     debugPrint("Could not authorize")
                 }
             }
+
         }
     }
 }
@@ -367,8 +365,8 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             )
             .sheet(isPresented: $viewModel.showAddAlbumModal, content: {
                 AddAlbumModal { albumName in
-                    viewModel.saveAlbum(name: albumName)
-                    viewModel.finishOnboarding()
+                    viewModel.finishOnboarding(albumName: albumName)
+                    presentationMode.wrappedValue.dismiss()
                 }
             })
         default:

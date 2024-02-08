@@ -68,7 +68,7 @@ class SettingsViewViewModel: ObservableObject {
             self.keyManagerError = nil
             self.passwordState = nil
             let _ = try keyManager.checkPassword(currentPassword)
-            let passwordState =  passwordValidator.validatePasswordPair(newPassword1, password2: newPassword2)
+            let passwordState =  PasswordValidator.validatePasswordPair(newPassword1, password2: newPassword2)
             guard case .valid = passwordState else {
                 self.passwordState = passwordState
                 return

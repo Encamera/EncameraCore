@@ -111,10 +111,13 @@ struct MainHomeView<D: FileAccess>: View {
             }
             .onAppear {
                 if UserDefaultUtils.bool(forKey: .showCameraOnLaunch) {
-                    withAnimation {
-                        selectedNavigationItem = .camera
+                    guard let album = viewModel.albumManager.currentAlbum else {
+                        selectedNavigationItem = .albums
+                        return
                     }
-
+                    withAnimation {
+                        viewModel.selectedPath.append(album)
+                    }
                 }
             }
             .toolbar(.hidden)
