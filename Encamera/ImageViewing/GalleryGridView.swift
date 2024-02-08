@@ -225,18 +225,18 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
     }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 16) {
               Button(action: {
+                  viewModel.showCamera = true
               }, label: {
                   AlbumActionComponent(mainTitle: "Create a new memory", subTitle: "Open your camera and take a pic", actionTitle: "Take a picture", imageName: "Album-Camera")
               })
               Button(action: {
-                  viewModel.showCamera = true
+                  
               }, label: {
                   AlbumActionComponent(mainTitle: "Secure your pics", subTitle: "Import pictures from your camera roll", actionTitle: "Import Pictures", imageName: "Premium-Albums")
               })
         }
-        .padding()
     }
 
     private func imageForItem(mediaItem: EncryptedMedia, width: CGFloat, height: CGFloat, index: Int) -> some View {
@@ -276,4 +276,8 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
         .cornerRadius(Constants.buttonCornerRadius)
 
     }
+}
+
+#Preview {
+    GalleryGridView<EmptyView, EncryptedMedia, DemoFileEnumerator>(viewModel: .init(album: Album(name: "Chee", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), fileAccess: DemoFileEnumerator()))
 }

@@ -80,6 +80,8 @@ targets:
       executable: ShareExtension
   Encamera:
     type: application
+    postBuildScripts:
+      - script: 'if [ "${CONFIGURATION}" != "Debug" ]; then rm -rf "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/PreviewContent"; fi'
     configFiles:
       Debug: ./xcconfigs/debug.xcconfig
       Release: ./xcconfigs/release.xcconfig

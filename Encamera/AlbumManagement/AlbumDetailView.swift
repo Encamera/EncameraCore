@@ -134,132 +134,131 @@ struct AlbumDetailView<D: FileAccess>: View {
 
     var body: some View {
         let _ = Self._printChanges()
-        Color.orange
-//        if let gridViewModel = viewModel.gridViewModel {
-//            GalleryGridView(viewModel: gridViewModel) {
-//                ZStack(alignment: .leading) {
-//                    Color.inputFieldBackgroundColor
-//                        .frame(height: 230)
-//
-//                    VStack(alignment: .leading, spacing: 0) {
-//                        Spacer().frame(height: getSafeAreaTop() / 2)
-//                        HStack(alignment: .center) {
-//                            Button {
-//                                popLastView()
-//                            } label: {
-//                                Image("Album-BackButton")
-//                            }
-//                            .frame(width: 44, height: 44)
-//                            Spacer()
-//                            if viewModel.isEditingAlbumName {
-//                                Button {
-//                                    viewModel.renameAlbum()
-//                                } label: {
-//                                    Text(L10n.done)
-//                                        .fontType(.pt14, on: .textButton, weight: .bold)
-//                                }
-//                            } else {
-//                                Menu {
-//                                    Button(L10n.moveAlbumStorage) {
-//                                        isShowingMoveAlbumModal = true
-//                                    }
-//                                    Button(L10n.rename) {
-//                                        viewModel.isEditingAlbumName = true
-//                                    }
-//                                    Button(L10n.deleteAlbum, role: .destructive) {
-//                                        isShowingAlertForDeleteAllAlbumData = true
-//                                    }
-//                                } label: {
-//                                    Image("Album-OptionsDots")
-//                                }
-//                                .frame(width: 44, height: 44)
-//                            }
-//                        }.padding(.trailing, 17)
-//                        VStack(alignment: .leading, spacing: 0) {
-//                            Spacer().frame(height: 24)
-//                            if viewModel.isEditingAlbumName {
-//                                TextField(L10n.albumName, text: $viewModel.albumName)
-//                                    .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
-//                                        textField.becomeFirstResponder()
-//                                    }
-//                                    .fontType(.pt24, weight: .bold)
-//                                    .noAutoModification()
-//
-//                            } else {
-//                                Text(viewModel.albumName)
-//                                    .fontType(.pt24, weight: .bold)
-//                            }
-//                            Spacer().frame(height: 8)
-//                            Group {
-//                                Text("\(viewModel.album?.creationDate.formatted() ?? "") • \(viewModel.album?.storageOption == .icloud ? L10n.savedToICloud : L10n.savedToDevice)")
-//                            }
-//                            .fontType(.pt14)
-//                            .opacity(viewModel.isEditingAlbumName ? 0 : 1)
-//
-//                            Spacer().frame(height: 24)
-//                            //                            Button {
-//                            //
-//                            //                            } label: {
-//                            //                                Text(L10n.addPhotos)
-//                            //                                    .fontType(.pt14, on: .textButton, weight: .bold)
-//                            //                            }
-//                        }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
-//                    }
-//                }
-//            }
-//            .screenBlocked()
-//            .alert(L10n.copiedToClipboard, isPresented: $isShowingAlertForCopyKey, actions: {
-//                Button(L10n.ok) {
-//                    isShowingAlertForCopyKey = false
-//                }
-//            }, message: {
-//                Text(L10n.KeyCopiedToClipboard.storeThisInAPasswordManagerOrOtherSecurePlace)
-//            })
-//            .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllAlbumData, actions: {
-//                Button(L10n.deleteEverything, role: .destructive) {
-//                    viewModel.deleteAlbum()
-//                    popLastView()
-//                }
-//                Button(L10n.cancel, role: .cancel) {
-//                    isShowingAlertForClearKey = false
-//                }
-//            }, message: {
-//                Text(L10n.deleteAlbumForever)
-//
-//            })
-//            .alert(L10n.deletionError, isPresented: $viewModel.showDeleteActionError, actions: {
-//                Button(L10n.ok) {
-//                    viewModel.showDeleteActionError = false
-//                }
-//            }, message: {
-//                Text(viewModel.deleteActionError)
-//            })
-//            .toolbar(.hidden)
-//            .ignoresSafeArea(edges: [.top, .bottom])
-//            .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
-//                                album: viewModel.album,
-//                                purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
-//                if hasEntitlement || storage == .local {
-//                    viewModel.moveAlbum(to: storage)
-//                    isShowingMoveAlbumModal = false
-//                } else if !hasEntitlement && storage == .icloud {
-//                    isShowingPurchaseSheet = true
-//                }
-//            }, dismissAction: {
-//                isShowingMoveAlbumModal = false
-//            })
-//            .productStore(isPresented: $isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
-//                if case .purchaseComplete = action {
-//                    isShowingPurchaseSheet = false
-//                    isShowingMoveAlbumModal = false
-//                } else {
-//                    isShowingPurchaseSheet = false
-//                }
-//            }
-//
-//        } else {
-//            EmptyView()
-//        }
+        if let gridViewModel = viewModel.gridViewModel {
+            GalleryGridView(viewModel: gridViewModel) {
+                ZStack(alignment: .leading) {
+                    Color.inputFieldBackgroundColor
+                        .frame(height: 230)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        Spacer().frame(height: getSafeAreaTop() / 2)
+                        HStack(alignment: .center) {
+                            Button {
+                                popLastView()
+                            } label: {
+                                Image("Album-BackButton")
+                            }
+                            .frame(width: 44, height: 44)
+                            Spacer()
+                            if viewModel.isEditingAlbumName {
+                                Button {
+                                    viewModel.renameAlbum()
+                                } label: {
+                                    Text(L10n.done)
+                                        .fontType(.pt14, on: .textButton, weight: .bold)
+                                }
+                            } else {
+                                Menu {
+                                    Button(L10n.moveAlbumStorage) {
+                                        isShowingMoveAlbumModal = true
+                                    }
+                                    Button(L10n.rename) {
+                                        viewModel.isEditingAlbumName = true
+                                    }
+                                    Button(L10n.deleteAlbum, role: .destructive) {
+                                        isShowingAlertForDeleteAllAlbumData = true
+                                    }
+                                } label: {
+                                    Image("Album-OptionsDots")
+                                }
+                                .frame(width: 44, height: 44)
+                            }
+                        }.padding(.trailing, 17)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Spacer().frame(height: 24)
+                            if viewModel.isEditingAlbumName {
+                                TextField(L10n.albumName, text: $viewModel.albumName)
+                                    .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
+                                        textField.becomeFirstResponder()
+                                    }
+                                    .fontType(.pt24, weight: .bold)
+                                    .noAutoModification()
+
+                            } else {
+                                Text(viewModel.albumName)
+                                    .fontType(.pt24, weight: .bold)
+                            }
+                            Spacer().frame(height: 8)
+                            Group {
+                                Text("\(viewModel.album?.creationDate.formatted() ?? "") • \(viewModel.album?.storageOption == .icloud ? L10n.savedToICloud : L10n.savedToDevice)")
+                            }
+                            .fontType(.pt14)
+                            .opacity(viewModel.isEditingAlbumName ? 0 : 1)
+
+                            Spacer().frame(height: 24)
+                            //                            Button {
+                            //
+                            //                            } label: {
+                            //                                Text(L10n.addPhotos)
+                            //                                    .fontType(.pt14, on: .textButton, weight: .bold)
+                            //                            }
+                        }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
+                    }
+                }
+            }
+            .screenBlocked()
+            .alert(L10n.copiedToClipboard, isPresented: $isShowingAlertForCopyKey, actions: {
+                Button(L10n.ok) {
+                    isShowingAlertForCopyKey = false
+                }
+            }, message: {
+                Text(L10n.KeyCopiedToClipboard.storeThisInAPasswordManagerOrOtherSecurePlace)
+            })
+            .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllAlbumData, actions: {
+                Button(L10n.deleteEverything, role: .destructive) {
+                    viewModel.deleteAlbum()
+                    popLastView()
+                }
+                Button(L10n.cancel, role: .cancel) {
+                    isShowingAlertForClearKey = false
+                }
+            }, message: {
+                Text(L10n.deleteAlbumForever)
+
+            })
+            .alert(L10n.deletionError, isPresented: $viewModel.showDeleteActionError, actions: {
+                Button(L10n.ok) {
+                    viewModel.showDeleteActionError = false
+                }
+            }, message: {
+                Text(viewModel.deleteActionError)
+            })
+            .toolbar(.hidden)
+            .ignoresSafeArea(edges: [.top, .bottom])
+            .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
+                                album: viewModel.album,
+                                purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
+                if hasEntitlement || storage == .local {
+                    viewModel.moveAlbum(to: storage)
+                    isShowingMoveAlbumModal = false
+                } else if !hasEntitlement && storage == .icloud {
+                    isShowingPurchaseSheet = true
+                }
+            }, dismissAction: {
+                isShowingMoveAlbumModal = false
+            })
+            .productStore(isPresented: $isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
+                if case .purchaseComplete = action {
+                    isShowingPurchaseSheet = false
+                    isShowingMoveAlbumModal = false
+                } else {
+                    isShowingPurchaseSheet = false
+                }
+            }
+
+        } else {
+            EmptyView()
+        }
     }
 }
 

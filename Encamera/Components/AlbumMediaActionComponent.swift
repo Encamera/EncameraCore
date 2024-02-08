@@ -37,16 +37,26 @@ struct AlbumActionComponent: View {
 
     var body: some View {
         ZStack {
-            BackgroundRectangle(width: Constants.mainRectangleWidth, height: Constants.mainRectangleHeight, cornerRadius: Constants.mainRectangleCornerRadius, opacity: Constants.mainRectangleOpacity)
-
+            BackgroundRectangle(
+                cornerRadius: Constants.mainRectangleCornerRadius,
+                opacity: 1.0,
+                color: Color.inputFieldBackgroundColor
+            )
+            .frame(height: Constants.mainRectangleHeight)
             VStack(spacing: 24) {
+                Spacer().frame(height: 12)
                 ZStack {
-                    BackgroundRectangle(width: Constants.subRectangleWidth, height: Constants.subRectangleHeight, cornerRadius: Constants.subRectangleCornerRadius, opacity: Constants.subRectangleOpacity)
-
-                        Image(imageName)
+                    BackgroundRectangle(
+                        cornerRadius: Constants.subRectangleCornerRadius,
+                        opacity: Constants.subRectangleOpacity,
+                        color: .white
+                    )
+                    .frame(width: Constants.subRectangleWidth, height: Constants.subRectangleHeight)
+                    Image(imageName)
                 }
 
-                VStack(spacing: 32) {
+
+                VStack(spacing: 24) {
                     VStack(spacing: 4) {
                         Text(mainTitle)
                             .fontType(.pt16, weight: .bold)
@@ -57,41 +67,31 @@ struct AlbumActionComponent: View {
                     Button(actionTitle) {
 
                     }.textButton()
-                }
+                }.frame(maxWidth: .infinity)
             }
+
         }
-        .frame(width: Constants.mainRectangleWidth, height: Constants.mainRectangleHeight)
     }
 }
 
 struct BackgroundRectangle: View {
-    var width: CGFloat
-    var height: CGFloat
     var cornerRadius: CGFloat
     var opacity: Double
+    var color: Color = .clear
 
     var body: some View {
 
         Rectangle()
             .foregroundColor(.clear)
-            .frame(width: width, height: height)
-            .background(Color(red: 0.85, green: 0.85, blue: 0.85).opacity(opacity))
+            .background(color.opacity(opacity))
             .cornerRadius(cornerRadius)
 
     }
 }
 
-extension Text {
-    func customFont(_ weight: Font.Weight? = nil, size: CGFloat) -> some View {
-        self.font(Font.custom("Satoshi Variable", size: size).weight(weight ?? .regular))
-            .foregroundColor(.white)
-            .lineSpacing(24)
-    }
-}
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        VStack {
+        VStack(spacing: 12) {
             Button(action: {
 
             }, label: {
