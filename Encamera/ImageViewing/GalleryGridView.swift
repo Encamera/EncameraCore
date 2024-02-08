@@ -226,15 +226,15 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(L10n.addPhotosToThisAlbum)
-                .fontType(.pt14, weight: .bold)
-                .foregroundColor(.white)
-                .opacity(0.40)
-          VStack(alignment: .leading, spacing: 16) {
-
-              OptionItemView(title: L10n.takeAPhoto, description: L10n.useCameraToTakePhotos, isAvailable: true, unavailableReason: nil, image: Image("Onboarding-Permissions-Camera"), isSelected: $viewModel.showCamera)
-
-          }
+              Button(action: {
+              }, label: {
+                  AlbumActionComponent(mainTitle: "Create a new memory", subTitle: "Open your camera and take a pic", actionTitle: "Take a picture", imageName: "Album-Camera")
+              })
+              Button(action: {
+                  viewModel.showCamera = true
+              }, label: {
+                  AlbumActionComponent(mainTitle: "Secure your pics", subTitle: "Import pictures from your camera roll", actionTitle: "Import Pictures", imageName: "Premium-Albums")
+              })
         }
         .padding()
     }
@@ -277,18 +277,3 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
 
     }
 }
-
-//#Preview {
-//
-//    NavigationView {
-//        GalleryGridView(viewModel: GalleryGridViewModel<EncryptedMedia>(album: Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), blurImages: false)) {
-//            List {
-//            }
-//            .frame(height: 300)
-//            .fontType(.pt18)
-//            .scrollContentBackgroundColor(Color.random
-//            )
-//
-//        }
-//    }
-//}

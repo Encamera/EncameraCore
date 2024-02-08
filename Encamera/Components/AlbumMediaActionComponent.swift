@@ -29,10 +29,11 @@ private enum Constants {
     static let actionTitleColor: Color = Color(red: 0.78, green: 0.96, blue: 0.20)
 }
 
-struct CustomComponent: View {
+struct AlbumActionComponent: View {
     let mainTitle: String
     let subTitle: String
     let actionTitle: String
+    let imageName: String
 
     var body: some View {
         ZStack {
@@ -42,25 +43,22 @@ struct CustomComponent: View {
                 ZStack {
                     BackgroundRectangle(width: Constants.subRectangleWidth, height: Constants.subRectangleHeight, cornerRadius: Constants.subRectangleCornerRadius, opacity: Constants.subRectangleOpacity)
 
-                    HStack(spacing: 0) {
-                        DecorativeEllipse(width: Constants.decorativeEllipseWidth, height: Constants.decorativeEllipseHeight)
-                    }
+                        Image(imageName)
                 }
 
                 VStack(spacing: 32) {
                     VStack(spacing: 4) {
                         Text(mainTitle)
-                            .customFont(.bold, size: Constants.titleFontSize)
+                            .fontType(.pt16, weight: .bold)
                         Text(subTitle)
-                            .customFont(size: Constants.subTitleFontSize)
+                            .fontType(.pt14)
                             .opacity(0.60)
                     }
-                    Text(actionTitle)
-                        .customFont(.bold, size: Constants.actionTitleFontSize)
-                        .foregroundColor(Constants.actionTitleColor)
+                    Button(actionTitle) {
+
+                    }.textButton()
                 }
             }
-            .frame(width: Constants.contentWidth, height: Constants.contentHeight)
         }
         .frame(width: Constants.mainRectangleWidth, height: Constants.mainRectangleHeight)
     }
@@ -73,34 +71,13 @@ struct BackgroundRectangle: View {
     var opacity: Double
 
     var body: some View {
+
         Rectangle()
             .foregroundColor(.clear)
             .frame(width: width, height: height)
             .background(Color(red: 0.85, green: 0.85, blue: 0.85).opacity(opacity))
             .cornerRadius(cornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .inset(by: 0.50)
-                    .stroke(.white, lineWidth: 0.50)
-            )
-    }
-}
 
-struct DecorativeEllipse: View {
-    var width: CGFloat
-    var height: CGFloat
-
-    var body: some View {
-        ZStack {
-            Rectangle()
-                .foregroundColor(.clear)
-                .frame(width: width, height: height)
-            Ellipse()
-                .foregroundColor(.clear)
-                .frame(width: Constants.decorativeEllipseSize, height: Constants.decorativeEllipseSize)
-                .overlay(Ellipse().stroke(.white, lineWidth: Constants.decorativeEllipseStrokeWidth))
-        }
-        .frame(width: width, height: height)
     }
 }
 
@@ -112,14 +89,16 @@ extension Text {
     }
 }
 
-struct ContentView: View {
-    var body: some View {
-        CustomComponent(mainTitle: "Create a new memory", subTitle: "Open your camera and take a pic", actionTitle: "Take a picture")
-    }
-}
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        VStack {
+            Button(action: {
+
+            }, label: {
+                AlbumActionComponent(mainTitle: "Create a new memory", subTitle: "Open your camera and take a pic", actionTitle: "Take a picture", imageName: "Album-Camera")
+            })
+
+            AlbumActionComponent(mainTitle: "Secure your pics", subTitle: "Import pictures from your camera roll", actionTitle: "Import Pictures", imageName: "Premium-Albums")
+        }
     }
 }
