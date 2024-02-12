@@ -117,6 +117,7 @@ struct MainHomeView<D: FileAccess>: View {
                     }
                     withAnimation {
                         viewModel.selectedPath.append(album)
+                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
                     }
                 }
             }

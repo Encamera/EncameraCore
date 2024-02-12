@@ -36,15 +36,9 @@ struct AlbumActionComponent: View {
     let imageName: String
 
     var body: some View {
-        ZStack {
-            BackgroundRectangle(
-                cornerRadius: Constants.mainRectangleCornerRadius,
-                opacity: 1.0,
-                color: Color.inputFieldBackgroundColor
-            )
-            .frame(height: Constants.mainRectangleHeight)
+
             VStack(spacing: 24) {
-                Spacer().frame(height: 12)
+                Spacer().frame(height: 24)
                 ZStack {
                     BackgroundRectangle(
                         cornerRadius: Constants.subRectangleCornerRadius,
@@ -64,13 +58,19 @@ struct AlbumActionComponent: View {
                             .fontType(.pt14)
                             .opacity(0.60)
                     }
-                    Button(actionTitle) {
-
-                    }.textButton()
+                    Text(actionTitle).textButton()
+                        .pad(.pt16, edge: [.bottom])
                 }.frame(maxWidth: .infinity)
+            }.background {
+                BackgroundRectangle(
+                    cornerRadius: Constants.mainRectangleCornerRadius,
+                    opacity: 1.0,
+                    color: Color.inputFieldBackgroundColor
+                )
+
             }
 
-        }
+
     }
 }
 

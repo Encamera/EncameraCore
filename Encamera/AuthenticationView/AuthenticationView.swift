@@ -127,21 +127,24 @@ struct AuthenticationView: View {
             Image("LogoSquare").frame(height: 100)
             Text(L10n.welcomeBack)
                 .fontType(.pt20, weight: .bold)
-            if let biometric = viewModel.availableBiometric {
-                Text("\(L10n.enterPassword) \(L10n.or.lowercased()) \(biometric.nameForMethod)")
-            } else {
-                Text("\(L10n.enterPassword)")
-            }
-            Spacer().frame(height: 32)
-            if UserDefaultUtils.bool(forKey: .usesPinPassword) {
-                PinCodeView(pinCode: $viewModel.enteredPassword, pinLength: AppConstants.pinCodeLength)
-            } else {
-                PasswordEntry(viewModel: .init(
-                    keyManager: viewModel.keyManager, stateUpdate: { update in
-                        if case .valid(let password) = update {
-                            viewModel.authenticatePassword(password: password)
-                        }
-                    }))
+            if viewModel.keyManager.passwordExists() {
+                if let biometric = viewModel.availableBiometric {
+                    Text("\(L10n.enterPassword) \(L10n.or.lowercased()) \(biometric.nameForMethod)")
+                } else {
+                    Text("\(L10n.enterPassword)")
+                }
+                Spacer().frame(height: 32)
+
+                if UserDefaultUtils.bool(forKey: .usesPinPassword) {
+                    PinCodeView(pinCode: $viewModel.enteredPassword, pinLength: AppConstants.pinCodeLength)
+                } else {
+                    PasswordEntry(viewModel: .init(
+                        keyManager: viewModel.keyManager, stateUpdate: { update in
+                            if case .valid(let password) = update {
+                                viewModel.authenticatePassword(password: password)
+                            }
+                        }))
+                }
             }
 
             if let error = viewModel.displayedError {

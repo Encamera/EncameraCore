@@ -7,6 +7,7 @@
 
 import SwiftUI
 import EncameraCore
+import SwiftUIIntrospect
 
 struct AddAlbumModal: View {
     var saveAction: ((String) -> Void)?
@@ -49,6 +50,9 @@ struct AddAlbumModal: View {
                     .noAutoModification()
                     .pad(.pt8, edge: .bottom)
                     .offset(.init(width: -Spacing.pt16.value, height: 0))
+                    .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
+                        textField.becomeFirstResponder()
+                    }
 
             }
             .pad(.pt24)

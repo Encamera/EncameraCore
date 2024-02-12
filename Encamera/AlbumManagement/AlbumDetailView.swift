@@ -159,15 +159,22 @@ struct AlbumDetailView<D: FileAccess>: View {
                                 }
                             } else {
                                 Menu {
+                                    Button(L10n.viewInFiles) {
+                                        LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: viewModel.album!)
+                                    }
                                     Button(L10n.moveAlbumStorage) {
                                         isShowingMoveAlbumModal = true
                                     }
                                     Button(L10n.rename) {
                                         viewModel.isEditingAlbumName = true
                                     }
+                                    Button(L10n.importMedia) {
+                                        gridViewModel.showPhotoPicker = true
+                                    }
                                     Button(L10n.deleteAlbum, role: .destructive) {
                                         isShowingAlertForDeleteAllAlbumData = true
                                     }
+
                                 } label: {
                                     Image("Album-OptionsDots")
                                 }

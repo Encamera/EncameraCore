@@ -35,6 +35,15 @@
         "revision" : "18e965f867e37a558ad13c12d330dbe047099180",
         "version" : "1.1.2"
       }
+    },
+    {
+      "identity" : "tagcloud",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/yarspirin/TagCloud",
+      "state" : {
+        "revision" : "81c1019541c2748cfecff4eabc05ca0bdcaa3713",
+        "version" : "1.0.4"
+      }
     }
   ],
   "version" : 2

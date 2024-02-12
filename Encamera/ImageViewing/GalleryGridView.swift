@@ -8,6 +8,8 @@
 import SwiftUI
 import Combine
 import EncameraCore
+import UniformTypeIdentifiers
+import PhotosUI
 
 @MainActor
 class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject {
@@ -18,11 +20,13 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
     @MainActor
     @Published var media: [EncryptedMedia] = []
     @Published var showCamera: Bool = false
+    @Published var showPhotoPicker: Bool = false
     @Published var firstImage: EncryptedMedia?
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
     @Published var downloadInProgress = false
     @Published var blurImages = false
+    @Published var importProgress: Double = 0.0
     @Published var carouselTarget: EncryptedMedia? {
         didSet {
             if carouselTarget == nil {
@@ -109,6 +113,50 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
     func blurItemAt(index: Int) -> Bool {
         return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(media.count - index))) == false
     }
+
+    func handleSelectedMedia(items: [PHPickerResult]) {
+        Task {
+            await withThrowingTaskGroup(of: Void.self) { group in
+                for result in items {
+                    group.addTask {
+                        try await self.loadAndSaveMediaAsync(result: result)
+                    }
+                }
+            }
+            await enumerateMedia()
+        }
+    }
+
+    private func loadAndSaveMediaAsync(result: PHPickerResult) async throws {
+        let url = try await withCheckedThrowingContinuation { continuation in
+            let prog = result.itemProvider.loadFileRepresentation(forTypeIdentifier: "public.item") { url, error in
+                guard let url = url else {
+                    // Handle error or early exit if URL is not available
+                    print("Error loading file representation: \(String(describing: error))")
+                    fatalError()
+                    return
+                }
+                let destinationURL = URL.tempMediaDirectory
+                    .appendingPathComponent(url.lastPathComponent)
+                do {
+                    try FileManager.default.copyItem(at: url, to: destinationURL)
+                    debugPrint("File copied to: \(destinationURL)")
+                    continuation.resume(returning: destinationURL)
+                } catch {
+                    print("Error copying file: \(error)")
+                    continuation.resume(throwing: error)
+                }
+            }
+            
+        }
+
+        let media = CleartextMedia(source: url)
+        try await fileAccess.save(media: media) { progress in
+            self.importProgress = progress
+        }
+        self.importProgress = 0.0
+    }
+
 }
 
 private enum Constants {
@@ -133,6 +181,9 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
     var body: some View {
         VStack {
             content
+            if viewModel.importProgress > 0 {
+                ProgressView(value: viewModel.importProgress, total: 1.0)
+            }
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
                 let outerMargin = 9.0
@@ -222,17 +273,26 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
                 })
             }
         }
+        .sheet(isPresented: $viewModel.showPhotoPicker, content: {
+            PhotoPicker(selectedItems: { results in
+                viewModel.handleSelectedMedia(items: results)
+            }, filter: .any(of: [.images, .videos]))
+        })
     }
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.selectAnOption.uppercased())
+                .fontType(.pt14, weight: .bold)
+                .foregroundColor(.white)
+                .opacity(0.40)
               Button(action: {
                   viewModel.showCamera = true
               }, label: {
                   AlbumActionComponent(mainTitle: "Create a new memory", subTitle: "Open your camera and take a pic", actionTitle: "Take a picture", imageName: "Album-Camera")
               })
               Button(action: {
-                  
+                  viewModel.showPhotoPicker = true
               }, label: {
                   AlbumActionComponent(mainTitle: "Secure your pics", subTitle: "Import pictures from your camera roll", actionTitle: "Import Pictures", imageName: "Premium-Albums")
               })
