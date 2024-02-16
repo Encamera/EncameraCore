@@ -111,7 +111,6 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     func finishOnboarding(albumName: String) {
         Task {
             do {
-
                 if !pinCode1.isEmpty {
                     try await savePassword()
                     try authManager.authorize(with: pinCode1, using: keyManager)
@@ -133,6 +132,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
                 try await onboardingManager.saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
                 UserDefaultUtils.set(true, forKey: .showCameraOnLaunch)
             } catch {
+                debugPrint("Could not finish onboarding: \(error)")
                 try? await handle(error: error)
             }
             authManager.isAuthenticatedPublisher.sink { [weak self] isAuthenticated in
@@ -206,7 +206,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             NewOnboardingView(viewModel:
                     .init(
                         screen: destination,
-                        showTopBar: false,
+                        showTopBar: true,
                         bottomButtonTitle: L10n.enableFaceID,
                         bottomButtonAction: {
                             try await viewModel.authWithBiometrics()
@@ -244,7 +244,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             NewOnboardingView(viewModel:
                     .init(
                         screen: destination,
-                        showTopBar: false,
+                        showTopBar: true,
                         content: { _ in
                             AnyView(
                                 VStack(alignment: .center) {
@@ -282,7 +282,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             NewOnboardingView(viewModel:
                     .init(
                         screen: destination,
-                        showTopBar: false,
+                        showTopBar: true,
                         secondaryButtonAction: {
                             path.append(OnboardingFlowScreen.finished)
                         },
@@ -327,7 +327,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             NewOnboardingView(viewModel:
                     .init(
                         screen: destination,
-                        showTopBar: false,
+                        showTopBar: true,
                         bottomButtonTitle: L10n.createFirstAlbum,
                         bottomButtonAction: {
                             viewModel.showAddAlbumModal = true
