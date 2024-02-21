@@ -26,7 +26,19 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
     @Published var downloadPendingMediaCount: Int = 0
     @Published var downloadInProgress = false
     @Published var blurImages = false
+    @Published var cancelImport = false
+    @MainActor
+    @Published var isImporting = false
+    @MainActor
     @Published var importProgress: Double = 0.0
+    @MainActor
+    @Published var totalImportCount: Int = 0
+    @MainActor
+    @Published var startedImportCount: Int = 0 {
+        didSet {
+            print("startedImportCount: \(startedImportCount)")
+        }
+    }
     @Published var carouselTarget: EncryptedMedia? {
         didSet {
             if carouselTarget == nil {
@@ -55,15 +67,15 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
         self.downloadPendingMediaCount = downloadPendingMediaCount
         self.carouselTarget = carouselTarget
 
-        #if targetEnvironment(simulator)
+#if targetEnvironment(simulator)
         self.fileAccess = DemoFileEnumerator()
-        #else
+#else
         self.fileAccess = fileAccess
-        #endif
+#endif
         self.purchasedPermissions = purchasedPermissions
         FileOperationBus.shared.operations.sink { operation in
             Task {
-               await self.enumerateMedia()
+                await self.enumerateMedia()
             }
         }.store(in: &cancellables)
     }
@@ -116,46 +128,70 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
 
     func handleSelectedMedia(items: [PHPickerResult]) {
         Task {
-            await withThrowingTaskGroup(of: Void.self) { group in
-                for result in items {
-                    group.addTask {
-                        try await self.loadAndSaveMediaAsync(result: result)
-                    }
+            totalImportCount = items.count
+            isImporting = true
+            for result in items {
+                if cancelImport {
+                    isImporting = false
+                    cancelImport = false
+                    return
                 }
+                try await self.loadAndSaveMediaAsync(result: result)
             }
+
+            isImporting = false
             await enumerateMedia()
         }
     }
 
     private func loadAndSaveMediaAsync(result: PHPickerResult) async throws {
-        let url = try await withCheckedThrowingContinuation { continuation in
-            let prog = result.itemProvider.loadFileRepresentation(forTypeIdentifier: "public.item") { url, error in
+
+        // Identify whether the item is a video or an image
+        let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+        let preferredType = isVideo ? UTType.movie.identifier : UTType.jpeg.identifier
+
+        let url: URL? = try await withCheckedThrowingContinuation { continuation in
+            // Ensure we're on the main thread when modifying UI-bound properties
+            Task { @MainActor in
+                self.startedImportCount += 1
+            }
+
+            result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
                 guard let url = url else {
-                    // Handle error or early exit if URL is not available
                     print("Error loading file representation: \(String(describing: error))")
-                    fatalError()
+                    continuation.resume(returning: nil)
                     return
                 }
-                let destinationURL = URL.tempMediaDirectory
-                    .appendingPathComponent(url.lastPathComponent)
+                // Generate a unique file name to prevent overwriting existing files
+                let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
+                let destinationURL = URL.tempMediaDirectory // Ensure this points to a valid location in your app's sandbox
+                    .appendingPathComponent(fileName)
                 do {
                     try FileManager.default.copyItem(at: url, to: destinationURL)
-                    debugPrint("File copied to: \(destinationURL)")
+                    print("File copied to: \(destinationURL)")
                     continuation.resume(returning: destinationURL)
                 } catch {
                     print("Error copying file: \(error)")
                     continuation.resume(throwing: error)
                 }
             }
-            
         }
 
-        let media = CleartextMedia(source: url)
-        try await fileAccess.save(media: media) { progress in
-            self.importProgress = progress
+        guard let url = url else {
+            return
         }
-        self.importProgress = 0.0
+        let media = CleartextMedia(source: url) // Ensure CleartextMedia can handle URLs for both images and videos
+
+        try await fileAccess.save(media: media) { progress in // Ensure fileAccess and its save method are correctly implemented
+            Task { @MainActor in
+                self.importProgress = progress
+            }
+        }
+        await MainActor.run {
+            self.importProgress = 0.0 // Reset or update progress as necessary
+        }
     }
+
 
 }
 
@@ -177,12 +213,43 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
         self.content = content()
     }
 
+    private var cancelButton: some View {
+        Button {
+            viewModel.cancelImport = true
+        } label: {
+            Image(systemName: "x.circle.fill")
+        }
+        .pad(.pt8, edge: .trailing)
+    }
 
     var body: some View {
         VStack {
+
             content
-            if viewModel.importProgress > 0 {
-                ProgressView(value: viewModel.importProgress, total: 1.0)
+            if viewModel.cancelImport == false {
+                HStack {
+                    if viewModel.importProgress > 0 {
+                        ProgressView(value: viewModel.importProgress, total: 1.0) {
+                            Text("\(L10n.encrypting) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
+                                .fontType(.pt14)
+                        }                    .pad(.pt8, edge: [.trailing, .leading])
+                        cancelButton
+
+                    } else if viewModel.isImporting {
+                        HStack {
+                            ProgressView(value: 0.5, total: 1.0) {
+                            }.progressViewStyle(.circular)
+                                .pad(.pt8, edge: [.trailing, .leading])
+                            Text("\(L10n.downloadingFromICloud) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
+                                .fontType(.pt14)
+                            Spacer()
+
+                        }
+                        cancelButton
+                    }
+
+
+                }
             }
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
@@ -286,16 +353,16 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
                 .fontType(.pt14, weight: .bold)
                 .foregroundColor(.white)
                 .opacity(0.40)
-              Button(action: {
-                  viewModel.showCamera = true
-              }, label: {
-                  AlbumActionComponent(mainTitle: "Create a new memory", subTitle: "Open your camera and take a pic", actionTitle: "Take a picture", imageName: "Album-Camera")
-              })
-              Button(action: {
-                  viewModel.showPhotoPicker = true
-              }, label: {
-                  AlbumActionComponent(mainTitle: "Secure your pics", subTitle: "Import pictures from your camera roll", actionTitle: "Import Pictures", imageName: "Premium-Albums")
-              })
+            Button(action: {
+                viewModel.showCamera = true
+            }, label: {
+                AlbumActionComponent(mainTitle: "Create a new memory", subTitle: "Open your camera and take a pic", actionTitle: "Take a picture", imageName: "Album-Camera")
+            })
+            Button(action: {
+                viewModel.showPhotoPicker = true
+            }, label: {
+                AlbumActionComponent(mainTitle: "Secure your pics", subTitle: "Import pictures from your camera roll", actionTitle: "Import Pictures", imageName: "Premium-Albums")
+            })
         }
     }
 
@@ -304,12 +371,12 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
         AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
                             placeholder: ProgressView(), isInSelectionMode: .constant(false), isSelected: .constant(false))
         .id(mediaItem.gridID)
-            .frame(width: width, height: height)
-            .onTapGesture {
-                viewModel.carouselTarget = mediaItem
-            }
-            .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
-            .galleryClipped()
+        .frame(width: width, height: height)
+        .onTapGesture {
+            viewModel.carouselTarget = mediaItem
+        }
+        .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
+        .galleryClipped()
 
     }
 
