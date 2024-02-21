@@ -164,7 +164,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
                 }
                 // Generate a unique file name to prevent overwriting existing files
                 let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
-                let destinationURL = URL.tempMediaDirectory // Ensure this points to a valid location in your app's sandbox
+                let destinationURL = URL.tempMediaDirectory
                     .appendingPathComponent(fileName)
                 do {
                     try FileManager.default.copyItem(at: url, to: destinationURL)

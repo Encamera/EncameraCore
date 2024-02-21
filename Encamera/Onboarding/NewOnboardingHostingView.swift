@@ -28,6 +28,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     private var passwordValidator = PasswordValidator()
     private var cancellables = Set<AnyCancellable>()
     private var authManager: AuthManager
+    var enteredPinCode: String = ""
 
 
     @MainActor
@@ -70,7 +71,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     }
 
     @discardableResult func validatePassword() throws -> PasswordValidation {
-        let state = PasswordValidator.validatePasswordPair(pinCode1, password2: pinCode2)
+        let state = PasswordValidator.validatePasswordPair(enteredPinCode, password2: enteredPinCode)
         passwordState = state
 
         if state != .valid {
@@ -80,17 +81,18 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     }
 
     func doesPinCodeMatchNew(pinCode: String) -> Bool {
-        if pinCode.count != pinCode1.count {
+        debugPrint("Pincode", pinCode, "==", enteredPinCode)
+        if pinCode.count != enteredPinCode.count {
             return false
         }
-        return pinCode == pinCode1
+        return pinCode == enteredPinCode
     }
 
     @MainActor func savePassword() throws {
         do {
             let validation = try validatePassword()
             if validation == .valid {
-                try keyManager.setPassword(pinCode1)
+                try keyManager.setPassword(enteredPinCode)
             } else {
                 throw OnboardingViewError.passwordInvalid
             }
@@ -111,9 +113,9 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     func finishOnboarding(albumName: String) {
         Task {
             do {
-                if !pinCode1.isEmpty {
+                if !enteredPinCode.isEmpty {
                     try await savePassword()
-                    try authManager.authorize(with: pinCode1, using: keyManager)
+                    try authManager.authorize(with: enteredPinCode, using: keyManager)
                 } else {
                     try await authManager.authorizeWithBiometrics()
                 }
@@ -150,7 +152,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
                 }
             } else {
                 do {
-                    try authManager.authorize(with: pinCode1, using: keyManager)
+                    try authManager.authorize(with: enteredPinCode, using: keyManager)
                 } catch {
                     debugPrint("Could not authorize")
                 }
@@ -206,7 +208,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             NewOnboardingView(viewModel:
                     .init(
                         screen: destination,
-                        showTopBar: true,
+                        showTopBar: false,
                         bottomButtonTitle: L10n.enableFaceID,
                         bottomButtonAction: {
                             try await viewModel.authWithBiometrics()
@@ -272,8 +274,8 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                             )
                         })
             ).onChange(of: viewModel.pinCode1) { oldValue, newValue in
-                print("Pincode", oldValue, newValue)
                 if newValue.count == AppConstants.pinCodeLength {
+                    viewModel.enteredPinCode = newValue
                     path.append(OnboardingFlowScreen.confirmPinCode)
                 }
             }
@@ -284,7 +286,13 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                         screen: destination,
                         showTopBar: true,
                         secondaryButtonAction: {
-                            path.append(OnboardingFlowScreen.finished)
+                            if viewModel.doesPinCodeMatchNew(pinCode: viewModel.pinCode2) {
+                                viewModel.enteredPinCode = viewModel.pinCode2
+                                path.append(OnboardingFlowScreen.finished)
+                            } else {
+                                viewModel.pinCodeError = L10n.pinCodeMismatch
+                                // add haptic feedback
+                            }
                         },
                         content: { _ in
                             AnyView(
@@ -317,8 +325,6 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             .onChange(of: viewModel.pinCode2) { oldValue, newValue in
                 if viewModel.doesPinCodeMatchNew(pinCode: newValue) {
                     path.append(OnboardingFlowScreen.finished)
-                } else {
-                    
                 }
             }
 
@@ -327,7 +333,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             NewOnboardingView(viewModel:
                     .init(
                         screen: destination,
-                        showTopBar: true,
+                        showTopBar: false,
                         bottomButtonTitle: L10n.createFirstAlbum,
                         bottomButtonAction: {
                             viewModel.showAddAlbumModal = true
