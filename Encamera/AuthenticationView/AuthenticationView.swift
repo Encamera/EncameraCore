@@ -153,11 +153,13 @@ struct AuthenticationView: View {
             }
             Spacer()
                 .frame(height: 28.0)
-            if let biometric = viewModel.availableBiometric {
+            if viewModel.availableBiometric != nil && viewModel.keyManager.passwordExists() {
                 Text(L10n.or.uppercased())
                     .fontType(.pt14, weight: .bold)
                     .opacity(0.5)
                 Spacer().frame(height: 20)
+            }
+            if let biometric = viewModel.availableBiometric {
                 Button {
                     viewModel.authenticateWithBiometrics()
                 } label: {

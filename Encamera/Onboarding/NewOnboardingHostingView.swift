@@ -17,7 +17,13 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     @Published var generalError: Error?
     @Published var pinCode1: String = ""
     @Published var pinCode2: String = ""
-    @Published var pinCodeError: String?
+    @Published var pinCodeError: String? {
+        didSet {
+            if pinCodeError != nil {
+                SensoryFeedback.impact()
+            }
+        }
+    }
     @Published var showAddAlbumModal: Bool = false
     @Published var passwordState: PasswordValidation?
 
@@ -29,6 +35,10 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     private var cancellables = Set<AnyCancellable>()
     private var authManager: AuthManager
     var enteredPinCode: String = ""
+
+    var areBiometricsAvailable: Bool {
+        authManager.canAuthenticateWithBiometrics
+    }
 
 
     @MainActor
@@ -192,7 +202,11 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     if viewModel.currentOnboardingImageIndex < 2 {
                         viewModel.currentOnboardingImageIndex += 1
                     } else {
-                        path.append(OnboardingFlowScreen.biometricsWithPin)
+                        if viewModel.areBiometricsAvailable {
+                            path.append(OnboardingFlowScreen.biometricsWithPin)
+                        } else {
+                            path.append(OnboardingFlowScreen.setPinCode)
+                        }
                     }
                 }, content:  { _ in
                     AnyView(
@@ -240,7 +254,11 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                 }.frame(width: 290)
                             )
                         })
-            )
+            ).onAppear {
+                // handles the case where the user goes back
+                // after entering a pin code once
+                viewModel.enteredPinCode = ""
+            }
         case .setPinCode:
 
             NewOnboardingView(viewModel:
@@ -266,6 +284,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
 
                                     Text(L10n.setPinCodeSubtitle)
                                         .fontType(.pt14)
+                                        .lineLimit(2, reservesSpace: true)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
                                     PinCodeView(pinCode: $viewModel.pinCode1, pinLength: AppConstants.pinCodeLength)
@@ -278,6 +297,8 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     viewModel.enteredPinCode = newValue
                     path.append(OnboardingFlowScreen.confirmPinCode)
                 }
+            }.onAppear {
+                viewModel.pinCodeError = nil
             }
 
         case .confirmPinCode:
@@ -312,11 +333,12 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                     Text(L10n.setPinCodeSubtitle)
                                         .fontType(.pt14)
                                         .multilineTextAlignment(.center)
+                                        .lineLimit(2, reservesSpace: true)
                                         .pad(.pt64, edge: .bottom)
+                                    PinCodeView(pinCode: $viewModel.pinCode2, pinLength: AppConstants.pinCodeLength)
                                     if let pinCodeError = viewModel.pinCodeError {
                                         Text(pinCodeError).alertText()
                                     }
-                                    PinCodeView(pinCode: $viewModel.pinCode2, pinLength: AppConstants.pinCodeLength)
                                 }.frame(width: 290)
 
                             )
@@ -324,7 +346,11 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             )
             .onChange(of: viewModel.pinCode2) { oldValue, newValue in
                 if viewModel.doesPinCodeMatchNew(pinCode: newValue) {
+                    viewModel.pinCodeError = nil
                     path.append(OnboardingFlowScreen.finished)
+                } else if newValue.count == AppConstants.pinCodeLength {
+                    viewModel.pinCodeError = "Pin code does not match"
+                    viewModel.pinCode2 = ""
                 }
             }
 
@@ -361,9 +387,6 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .fontType(.pt14)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
-                                    if let pinCodeError = viewModel.pinCodeError {
-                                        Text(pinCodeError).alertText()
-                                    }
                                 }.frame(width: 290)
 
                             )

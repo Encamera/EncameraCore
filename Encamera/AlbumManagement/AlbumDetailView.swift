@@ -159,17 +159,14 @@ struct AlbumDetailView<D: FileAccess>: View {
                                 }
                             } else {
                                 Menu {
-                                    Button(L10n.viewInFiles) {
-                                        LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: viewModel.album!)
-                                    }
+//                                    Button(L10n.viewInFiles) {
+//                                        LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: viewModel.album!)
+//                                    }
                                     Button(L10n.moveAlbumStorage) {
                                         isShowingMoveAlbumModal = true
                                     }
                                     Button(L10n.rename) {
                                         viewModel.isEditingAlbumName = true
-                                    }
-                                    Button(L10n.importMedia) {
-                                        gridViewModel.showPhotoPicker = true
                                     }
                                     Button(L10n.deleteAlbum, role: .destructive) {
                                         isShowingAlertForDeleteAllAlbumData = true
@@ -201,15 +198,12 @@ struct AlbumDetailView<D: FileAccess>: View {
                             }
                             .fontType(.pt14)
                             .opacity(viewModel.isEditingAlbumName ? 0 : 1)
-
                             Spacer().frame(height: 24)
-                            //                            Button {
-                            //
-                            //                            } label: {
-                            //                                Text(L10n.addPhotos)
-                            //                                    .fontType(.pt14, on: .textButton, weight: .bold)
-                            //                            }
                         }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
+                        Button(L10n.importMedia) {
+                            gridViewModel.showPhotoPicker = true
+                        }.textButton()
+
                     }
                 }
             }

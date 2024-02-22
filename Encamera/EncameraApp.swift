@@ -231,7 +231,6 @@ struct EncameraApp: App {
         
         WindowGroup {
             ZStack {
-                
                 if viewModel.showOnboarding {
                     NewOnboardingHostingView<AlbumManagerType>(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager, authManager: viewModel.authManager, finishedAction: {
                         viewModel.showOnboarding = false

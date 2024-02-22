@@ -33,7 +33,7 @@ enum CameraModeSelection: Int, CaseIterable {
 
 private enum Constants {
     static let viewportSize: CGFloat = 120
-    static let visibleWidthOfHiddenCard: CGFloat = 20
+    static let visibleWidthOfHiddenCard: CGFloat = 15
     static let spacing: CGFloat = 16
     static var cardWidth: CGFloat {
         viewportSize - (visibleWidthOfHiddenCard*2) - (spacing*2)

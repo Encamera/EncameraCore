@@ -42,6 +42,7 @@ struct AddAlbumModal: View {
                 Text(L10n.letsGiveYourAlbumAName)
                     .fontType(.pt32, weight: .bold)
                     .multilineTextAlignment(.leading)
+                    .lineLimit(2, reservesSpace: true)
                     .pad(.pt64, edge: .bottom)
                 Text(L10n.albumName.uppercased())
                     .fontType(.pt14, weight: .bold)
@@ -65,8 +66,6 @@ struct AddAlbumModal: View {
 
 #Preview {
 
-    Color.orange.sheet(isPresented: .constant(true), content: {
         AddAlbumModal()
-    })
 
 }

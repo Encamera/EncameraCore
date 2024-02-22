@@ -344,6 +344,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
             PhotoPicker(selectedItems: { results in
                 viewModel.handleSelectedMedia(items: results)
             }, filter: .any(of: [.images, .videos]))
+            .ignoresSafeArea(.all)
         })
     }
 
@@ -356,12 +357,12 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
             Button(action: {
                 viewModel.showCamera = true
             }, label: {
-                AlbumActionComponent(mainTitle: "Create a new memory", subTitle: "Open your camera and take a pic", actionTitle: "Take a picture", imageName: "Album-Camera")
+                AlbumActionComponent(mainTitle: L10n.emptyAlbumTakeAPictureHeading, subTitle: L10n.emptyAlbumTakeAPictureSubtitle, actionTitle: L10n.emptyAlbumTakeAPictureActionTitle, imageName: "Album-Camera")
             })
             Button(action: {
                 viewModel.showPhotoPicker = true
             }, label: {
-                AlbumActionComponent(mainTitle: "Secure your pics", subTitle: "Import pictures from your camera roll", actionTitle: "Import Pictures", imageName: "Premium-Albums")
+                AlbumActionComponent(mainTitle: L10n.emptyAlbumImportPhotosHeading, subTitle: L10n.emptyAlbumImportPhotosSubtitle, actionTitle: L10n.emptyAlbumImportPhotosActionTitle, imageName: "Premium-Albums")
             })
         }
     }

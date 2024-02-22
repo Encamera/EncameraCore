@@ -35,7 +35,7 @@ struct PinCodeView: View {
 
             .onChange(of: pinCode) { oldValue, newValue in
                 enteredDigitCount = newValue.count
-                if enteredDigitCount > pinLength - 1 { // Limit pinCode to 6 digits
+                if enteredDigitCount > pinLength { // Limit pinCode to 6 digits
                     pinCode = ""
                 }
             }
