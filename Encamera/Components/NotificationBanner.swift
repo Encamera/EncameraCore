@@ -33,6 +33,7 @@ struct NotificationBanner: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(viewModel.titleText)
+                            .lineLimit(2, reservesSpace: true)
                             .fontType(.pt16, weight: .bold)
                             .foregroundColor(.white)
                         Text(viewModel.bodyText)

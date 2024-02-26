@@ -79,10 +79,10 @@ extension Text {
 
     func alertText() -> some View {
         return self
-            .fontType(.pt18)
+            .foregroundColor(.alertTextColor)
+            .fontType(.pt14, weight: .bold)
             .lineLimit(3)
             .padding(10)
-                        .background(Color.red)
             .cornerRadius(10)
     }
 }

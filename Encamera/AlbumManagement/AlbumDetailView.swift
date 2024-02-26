@@ -200,9 +200,15 @@ struct AlbumDetailView<D: FileAccess>: View {
                             .opacity(viewModel.isEditingAlbumName ? 0 : 1)
                             Spacer().frame(height: 24)
                         }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
-                        Button(L10n.importMedia) {
+                        Button {
                             gridViewModel.showPhotoPicker = true
+                        }
+                        label: {
+                                Text(L10n.importMedia)
+                                .pad(.pt8, edge: .leading)
                         }.textButton()
+                            .pad(.pt8, edge: .leading)
+
 
                     }
                 }

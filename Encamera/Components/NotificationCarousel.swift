@@ -42,7 +42,43 @@ struct CustomPageControl: UIViewRepresentable {
         }
     }
 }
+struct NotificationBannerTopEdge<Content: View>: View {
+    let content: Content
+    let bumpOriginPoint: CGPoint
 
+    init(bumpOriginPoint: CGPoint, @ViewBuilder content: () -> Content) {
+        self.bumpOriginPoint = bumpOriginPoint
+        self.content = content()
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            Path { path in
+                let rect = geometry.frame(in: .local)
+                let bumpHeight: CGFloat = 20
+                let bumpWidth: CGFloat = 30
+                let bumpStartX = bumpOriginPoint.x - bumpWidth / 2
+                let bumpEndX = bumpOriginPoint.x + bumpWidth / 2
+                let cornerRadius: CGFloat = 5
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: max(bumpStartX, 0), y: 0))
+                path.addLine(to: CGPoint(x: bumpOriginPoint.x - 5, y: -bumpHeight))
+                path.addArc(center: CGPoint(x: bumpOriginPoint.x, y: -bumpHeight), radius: cornerRadius, startAngle: Angle(degrees: 180), endAngle: Angle(degrees: 0), clockwise: false)
+
+                path.addLine(to: CGPoint(x: min(bumpEndX, rect.width), y: 0))
+                path.addLine(to: CGPoint(x: rect.width, y: 0))
+                path.addLine(to: CGPoint(x: rect.width, y: rect.height))
+                path.addLine(to: CGPoint(x: 0, y: rect.height))
+                path.closeSubpath()
+            }
+//            .fill(Color.green)
+            .stroke(Color.orange, lineWidth: 0.5)
+
+            .background(content)
+        }
+
+    }
+}
 
 
 struct NotificationCarousel: View {
@@ -58,6 +94,7 @@ struct NotificationCarousel: View {
             .init(image: Image("NotificationBanner-Widget"), titleText: L10n.installWidgetTitle, bodyText: L10n.installWidgetBody, buttonText: L10n.installWidgetButtonText, buttonUrl: URL(string: "https://vimeo.com/896507875")!, id: 2)
         ].shuffled()
     }
+
     private var divider: some View {
         Divider()
             .frame(height: 1)
@@ -66,35 +103,40 @@ struct NotificationCarousel: View {
     }
 
     var body: some View {
-        VStack {
-            divider
-            Group {
-                TabView(selection: $selectedTabIndex) {
-                    //                if isPresented {
-                    ForEach(Array(notifications.enumerated()), id: \.element.id) { index, notif in
-                        NotificationBanner(viewModel: notif)
-                            .tag(index)
-                        // Now you can also use the index if needed
+        NotificationBannerTopEdge(bumpOriginPoint: CGPoint(x: 100, y: 0)) {
+                VStack {
+
+                Group {
+                    TabView(selection: $selectedTabIndex) {
+                        ForEach(Array(notifications.enumerated()), id: \.element.id) { index, notif in
+                            NotificationBanner(viewModel: notif)
+                                .tag(index)
+                        }
+                    }
+                    .onChange(of: selectedTabIndex, { oldValue, newValue in
+                        let viewedNotification = notifications[newValue]
+                        EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
+                    })
+
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .indexViewStyle(.page(backgroundDisplayMode: .never))
+                    .onAppear {
+                        let viewedNotification = notifications[selectedTabIndex]
+                        EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
                     }
                 }
-                .onChange(of: selectedTabIndex, { oldValue, newValue in
-                    let viewedNotification = notifications[newValue]
-                    EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
-                })
+                    HStack {
+                        CustomPageControl(numberOfPages: notifications.count, currentPage: $selectedTabIndex)
+                            .padding([.top, .bottom], 16)
+                            .frame(maxWidth: 100)
+                        Spacer()
+                    }
 
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .indexViewStyle(.page(backgroundDisplayMode: .never))
-                .frame(height: 165)
-                .onAppear {
-                    let viewedNotification = notifications[selectedTabIndex]
-                    EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
-                }
-                CustomPageControl(numberOfPages: notifications.count, currentPage: $selectedTabIndex)
-                    .padding([.top, .bottom], 16)
             }
-            divider
-        }
+            
 
+        }
+            .frame(height: 200)
         .if(!isPresented) { view in
             view.opacity(0).frame(height: 0)
         }
@@ -107,7 +149,5 @@ struct NotificationCarousel: View {
     ZStack {
         Color.black
         NotificationCarousel(isPresented: .constant(true))
-
-
     }
 }
