@@ -162,7 +162,10 @@ class AuthenticationViewModel: ObservableObject {
     }
 
     func authenticateWithBiometrics() {
-
+        guard authManager.useBiometricsForAuth else {
+            debugPrint("Biometrics not enabled")
+            return
+        }
         Task {
             do {
                 try await authManager.authorizeWithBiometrics()

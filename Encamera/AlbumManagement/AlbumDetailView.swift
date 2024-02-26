@@ -27,6 +27,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
     @Published var isEditingAlbumName = false
     @Published var albumName: String = ""
     @Published var albumManagerError: String?
+    @Published var showEmptyView: Bool = false
     var gridViewModel: GalleryGridViewModel<EncryptedMedia, D>?
 
     var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
@@ -48,7 +49,8 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
         self.fileManager = fileManager
         self.shouldCreateAlbum = shouldCreateAlbum
         self.isEditingAlbumName = shouldCreateAlbum
-        self.gridViewModel = GalleryGridViewModel<EncryptedMedia, D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager ?? D.init())
+        let gridViewModel = GalleryGridViewModel<EncryptedMedia, D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager ?? D.init())
+        self.gridViewModel = gridViewModel
         albumManager.albumOperationPublisher
             .receive(on: RunLoop.main)
             .sink { operation in
@@ -64,7 +66,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
         guard let album else { return }
         self.album = album
         self.albumName = album.name
-
+        gridViewModel.$showEmptyView.sink { value in
+            self.showEmptyView = value
+        }.store(in: &cancellables)
         Task {
             self.fileManager = await D(for: album, albumManager: albumManager)
         }
@@ -200,15 +204,16 @@ struct AlbumDetailView<D: FileAccess>: View {
                             .opacity(viewModel.isEditingAlbumName ? 0 : 1)
                             Spacer().frame(height: 24)
                         }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
-                        Button {
-                            gridViewModel.showPhotoPicker = true
-                        }
+                        if viewModel.album?.name != nil && viewModel.showEmptyView == false {
+                            Button {
+                                gridViewModel.showPhotoPicker = true
+                            }
                         label: {
-                                Text(L10n.importMedia)
+                            Text(L10n.importMedia)
                                 .pad(.pt8, edge: .leading)
                         }.textButton()
-                            .pad(.pt8, edge: .leading)
-
+                                .pad(.pt8, edge: .leading)
+                        }
 
                     }
                 }

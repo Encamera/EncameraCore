@@ -36,6 +36,7 @@ struct ChooseStorageModal: View {
                                 .fontType(.pt24, weight: .bold)
 
                             Text(L10n.chooseYourStorageDescription)
+                                .lineLimit(2, reservesSpace: true)
                                 .fontType(.pt16)
                                 .multilineTextAlignment(.center)
 

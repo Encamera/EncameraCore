@@ -63,8 +63,10 @@ struct NotificationBannerTopEdge<Content: View>: View {
                 path.move(to: CGPoint(x: 0, y: 0))
                 path.addLine(to: CGPoint(x: max(bumpStartX, 0), y: 0))
                 path.addLine(to: CGPoint(x: bumpOriginPoint.x - 5, y: -bumpHeight))
-                path.addArc(center: CGPoint(x: bumpOriginPoint.x, y: -bumpHeight), radius: cornerRadius, startAngle: Angle(degrees: 180), endAngle: Angle(degrees: 0), clockwise: false)
+                path.addArc(center: CGPoint(x: bumpOriginPoint.x, y: -bumpHeight), radius: cornerRadius, startAngle: Angle(degrees: 182), endAngle: Angle(degrees: 0), clockwise: false)
+//                let curve: CGPoint = .init(x: bumpOriginPoint.x, y: bumpOriginPoint.y)
 
+//                path.addQuadCurve(to: curve, control: CGPoint(x: curve.x, y: curve.y))
                 path.addLine(to: CGPoint(x: min(bumpEndX, rect.width), y: 0))
                 path.addLine(to: CGPoint(x: rect.width, y: 0))
                 path.addLine(to: CGPoint(x: rect.width, y: rect.height))
@@ -72,8 +74,7 @@ struct NotificationBannerTopEdge<Content: View>: View {
                 path.closeSubpath()
             }
 //            .fill(Color.green)
-            .stroke(Color.orange, lineWidth: 0.5)
-
+            .stroke(Color.notificationDividerColor, lineWidth: 0.5)
             .background(content)
         }
 
@@ -103,9 +104,8 @@ struct NotificationCarousel: View {
     }
 
     var body: some View {
-        NotificationBannerTopEdge(bumpOriginPoint: CGPoint(x: 100, y: 0)) {
                 VStack {
-
+                    divider
                 Group {
                     TabView(selection: $selectedTabIndex) {
                         ForEach(Array(notifications.enumerated()), id: \.element.id) { index, notif in
@@ -135,8 +135,7 @@ struct NotificationCarousel: View {
             }
             
 
-        }
-            .frame(height: 200)
+            .frame(height: 240)
         .if(!isPresented) { view in
             view.opacity(0).frame(height: 0)
         }

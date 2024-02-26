@@ -36,7 +36,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
     @MainActor
     @Published var startedImportCount: Int = 0 {
         didSet {
-            print("startedImportCount: \(startedImportCount)")
+            debugPrint("startedImportCount: \(startedImportCount)")
         }
     }
     @Published var carouselTarget: EncryptedMedia? {
@@ -48,8 +48,11 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
             }
         }
     }
+
     private var cancellables = Set<AnyCancellable>()
     var fileAccess: FileAccess
+    @MainActor
+    @Published var showEmptyView: Bool = false
 
     init(album: Album?,
          albumManager: AlbumManaging,
@@ -67,11 +70,11 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
         self.downloadPendingMediaCount = downloadPendingMediaCount
         self.carouselTarget = carouselTarget
 
-#if targetEnvironment(simulator)
-        self.fileAccess = DemoFileEnumerator()
-#else
+//#if targetEnvironment(simulator)
+//        self.fileAccess = DemoFileEnumerator()
+//#else
         self.fileAccess = fileAccess
-#endif
+//#endif
         self.purchasedPermissions = purchasedPermissions
         FileOperationBus.shared.operations.sink { operation in
             Task {
@@ -114,12 +117,18 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
     }
 
     func enumerateMedia() async {
-        guard let album = album else { return }
+        guard let album = album else {
+            debugPrint("No album")
+            return
+        }
         await fileAccess.configure(for: album, albumManager: albumManager)
         let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
+        debugPrint("enumerated: \(enumerated)")
         media = enumerated
         firstImage = enumerated.first
         enumerateiCloudUndownloaded()
+        let empty = enumerated.isEmpty
+        showEmptyView = empty
     }
 
     func blurItemAt(index: Int) -> Bool {
@@ -158,7 +167,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
 
             result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
                 guard let url = url else {
-                    print("Error loading file representation: \(String(describing: error))")
+                    debugPrint("Error loading file representation: \(String(describing: error))")
                     continuation.resume(returning: nil)
                     return
                 }
@@ -168,25 +177,28 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
                     .appendingPathComponent(fileName)
                 do {
                     try FileManager.default.copyItem(at: url, to: destinationURL)
-                    print("File copied to: \(destinationURL)")
+                    debugPrint("File copied to: \(destinationURL)")
                     continuation.resume(returning: destinationURL)
                 } catch {
-                    print("Error copying file: \(error)")
+                    debugPrint("Error copying file: \(error)")
                     continuation.resume(throwing: error)
                 }
             }
         }
 
         guard let url = url else {
+            debugPrint("Error loading file representation, url is nil")
             return
         }
         let media = CleartextMedia(source: url) // Ensure CleartextMedia can handle URLs for both images and videos
-
-        try await fileAccess.save(media: media) { progress in // Ensure fileAccess and its save method are correctly implemented
+        debugPrint("Will save media: \(media)")
+        let savedMedia = try await fileAccess.save(media: media) { progress in // Ensure fileAccess and its save method are correctly implemented
+            debugPrint("Progress: \(progress)")
             Task { @MainActor in
                 self.importProgress = progress
             }
         }
+        debugPrint("Media saved: \(savedMedia?.source.absoluteString ?? "nil")")
         await MainActor.run {
             self.importProgress = 0.0 // Reset or update progress as necessary
         }
@@ -247,8 +259,6 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
                         }
                         cancelButton
                     }
-
-
                 }
             }
             GeometryReader { geo in
@@ -283,7 +293,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
                             .animation(.easeIn, value: viewModel.blurImages)
                             .frame(width: largeSide)
 
-                        } else if viewModel.album != nil {
+                        } else if viewModel.showEmptyView {
                             emptyState
                         }
                     }
@@ -292,7 +302,6 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
                         EventTracking.trackOpenedCameraFromAlbumEmptyState()
                         viewModel.albumManager.currentAlbum = viewModel.album
                     }
-
                     NavigationLink(isActive: $viewModel.showingCarousel) {
                         if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
 
