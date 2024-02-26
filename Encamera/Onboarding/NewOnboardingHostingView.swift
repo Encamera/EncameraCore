@@ -17,6 +17,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     @Published var generalError: Error?
     @Published var pinCode1: String = ""
     @Published var pinCode2: String = ""
+    @Published var existingPassword: String = ""
     @Published var pinCodeError: String? {
         didSet {
             if pinCodeError != nil {
@@ -27,7 +28,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     @Published var showAddAlbumModal: Bool = false
     @Published var passwordState: PasswordValidation?
 
-    private var keyManager: KeyManager
+    var keyManager: KeyManager
     private var finishedAction: () -> ()
     private var onboardingManager: OnboardingManaging
     private var albumManager: GenericAlbumManaging?
@@ -101,7 +102,9 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     @MainActor func savePassword() throws {
         do {
             let validation = try validatePassword()
-            if validation == .valid {
+            if validation == .valid && existingPassword.isEmpty == false {
+                try keyManager.changePassword(newPassword: enteredPinCode, existingPassword: existingPassword)
+            } else if validation == .valid {
                 try keyManager.setPassword(enteredPinCode)
             } else {
                 throw OnboardingViewError.passwordInvalid
@@ -170,6 +173,21 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
 
         }
     }
+
+
+    @MainActor
+    func checkExistingPasswordAndAuth() throws {
+        do {
+            let existingPasswordCorrect = try keyManager.checkPassword(existingPassword)
+            if existingPasswordCorrect == false {
+                generalError = OnboardingViewError.passwordInvalid
+                throw OnboardingViewError.passwordInvalid
+            }
+        } catch {
+            generalError = OnboardingViewError.passwordInvalid
+            throw OnboardingViewError.passwordInvalid
+        }
+    }
 }
 
 struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
@@ -202,7 +220,9 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     if viewModel.currentOnboardingImageIndex < 2 {
                         viewModel.currentOnboardingImageIndex += 1
                     } else {
-                        if viewModel.areBiometricsAvailable {
+                        if viewModel.keyManager.passwordExists() {
+                            path.append(OnboardingFlowScreen.enterExistingPassword)
+                        } else if viewModel.areBiometricsAvailable {
                             path.append(OnboardingFlowScreen.biometricsWithPin)
                         } else {
                             path.append(OnboardingFlowScreen.setPinCode)
@@ -217,7 +237,43 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     )
                 }))
         case .enterExistingPassword:
-            fatalError("implement")
+            let model = PasswordEntryViewModel(keyManager: viewModel.keyManager, passwordBinding: $viewModel.existingPassword, stateUpdate: { state in
+                guard case .valid(let existingPassword) = state else {
+                    return
+                }
+                viewModel.existingPassword = existingPassword
+                do {
+                    try viewModel.checkExistingPasswordAndAuth()
+                    path.append(OnboardingFlowScreen.biometricsWithPin)
+                } catch {
+                    debugPrint("Error checking existing password")
+                }
+
+            })
+
+            NewOnboardingView(viewModel: .init(
+                screen: .enterExistingPassword,
+                title: L10n.enterPassword,
+                subheading: L10n.youHaveAnExistingPasswordForThisDevice, image: Image(systemName: "key.fill"), bottomButtonTitle: L10n.next, bottomButtonAction: {
+                    try viewModel.checkExistingPasswordAndAuth()
+                    path.append(OnboardingFlowScreen.biometricsWithPin)
+                }, content:  { _ in
+                    AnyView(
+                        VStack(alignment: .leading) {
+                            PasswordEntry(viewModel: model)
+                            if let error = viewModel.generalError as? OnboardingViewError, error == OnboardingViewError.passwordInvalid {
+                                Text(L10n.invalidPassword).alertText()
+                            }
+                            
+                            NavigationLink {
+                                PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: DiskFileAccess()))
+                            } label: {
+                                Text(L10n.eraseDeviceData)
+                            }.textButton()
+                        }
+                    )
+                }))
+
         case .biometricsWithPin:
             NewOnboardingView(viewModel:
                     .init(

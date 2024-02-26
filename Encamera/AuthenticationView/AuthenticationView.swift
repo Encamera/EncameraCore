@@ -21,6 +21,9 @@ private enum AuthenticationViewError: ErrorDescribable {
         case .noPasswordGiven:
             return L10n.missingPassword
         case .passwordIncorrect:
+            if UserDefaultUtils.bool(forKey: .usesPinPassword) {
+                return L10n.incorrectPinCode
+            }
             return L10n.passwordIncorrect
         case .biometricsFailed:
             return L10n.biometricsFailed
@@ -33,12 +36,36 @@ private enum AuthenticationViewError: ErrorDescribable {
     
 }
 
+extension TimeInterval {
+    func formatAsHoursMinutesSeconds() -> String {
+        let hours = Int(self) / 3600
+        let minutes = Int(self) / 60 % 60
+        let seconds = Int(self) % 60
+        if hours > 0 {
+            return String(format: "%02i:%02i:%02i", hours, minutes, seconds)
+        } else {
+            return String(format: "%02i:%02i", minutes, seconds)
+        }
+    }
+}
+
+
 class AuthenticationViewModel: ObservableObject {
     private var authManager: AuthManager
     var keyManager: KeyManager
     @Published fileprivate var displayedError: AuthenticationViewError?
     @Published var enteredPassword: String = ""
+    @Published var isPinCodeInputEnabled: Bool = true
+    @Published var remainingLockoutTime: TimeInterval?
+    private var passwordAttempts = 0
+#if DEBUG
+    private let lockoutDuration: TimeInterval = 30
+#else
+    private let lockoutDuration: TimeInterval = 3600 // 1 hour
+#endif
     var cancellables = Set<AnyCancellable>()
+    private var lockoutTimer: AnyCancellable?
+
     var availableBiometric: AuthenticationMethod? {
         if authManager.useBiometricsForAuth {
             return authManager.availableBiometric
@@ -46,51 +73,100 @@ class AuthenticationViewModel: ObservableObject {
             return nil
         }
     }
-    
+
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
-
+        setupLockoutTimer()
 
         if UserDefaultUtils.bool(forKey: .usesPinPassword) {
-            $enteredPassword.sink { [weak self] password in
-                guard PasswordValidator.validate(password: password) == .valid else {
-                    return
-                }
-                self?.authenticatePassword(password: password)
+            $enteredPassword
+                .removeDuplicates()
+                .sink { [weak self] password in
+                    print("Entered password", password)
+                    guard PasswordValidator.validate(password: password) == .valid else {
+                        return
+                    }
+                    self?.authenticatePassword(password: password)
             }.store(in: &cancellables)
         }
 
         NotificationUtils.willEnterForegroundPublisher
             .sink { [weak self] _ in
                 self?.authenticateWithBiometrics()
+                self?.checkLockoutStatus()
             }
             .store(in: &cancellables)
     }
-    
+
+    private func setupLockoutTimer() {
+        if let lockoutEnd = UserDefaults.standard.object(forKey: "lockoutEnd") as? Date, Date() < lockoutEnd {
+            startLockoutTimer(until: lockoutEnd)
+        }
+    }
+
     func authenticatePassword(password: String) {
+        guard isPinCodeInputEnabled else { return }
+        debugPrint("Password", password, "attempts", passwordAttempts)
+
         if password.count > 0 {
             do {
+
                 try authManager.authorize(with: password, using: keyManager)
-            
+                passwordAttempts = 0 // Reset attempts on successful auth
+
             } catch let keyManagerError as KeyManagerError {
                 displayedError = .keychainError(keyManagerError)
                 enteredPassword = ""
             } catch let authManagerError as AuthManagerError {
                 handleAuthManagerError(authManagerError)
+                passwordAttempts += 1
+                enteredPassword = ""
+                if passwordAttempts > 3 {
+                    let lockoutEnd = Date().addingTimeInterval(lockoutDuration)
+                    UserDefaultUtils.set(lockoutEnd, forKey: .lockoutEnd)
+                    startLockoutTimer(until: lockoutEnd)
+                }
             } catch {
                 debugPrint("Auth manager error", error)
             }
         }
     }
-    
-    func authenticateWithBiometrics() {
-        guard let availableBiometric = availableBiometric else {
-            return
+
+    private func startLockoutTimer(until endDate: Date) {
+        isPinCodeInputEnabled = false
+        lockoutTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect().sink { [weak self] _ in
+            let remainingTime = endDate.timeIntervalSinceNow
+            if remainingTime <= 0 {
+                self?.clearLockoutTimer()
+            } else {
+                self?.remainingLockoutTime = remainingTime
+            }
         }
+    }
+
+    func clearLockoutTimer() {
+        isPinCodeInputEnabled = true
+        remainingLockoutTime = nil
+        lockoutTimer?.cancel()
+        UserDefaultUtils.removeObject(forKey: .lockoutEnd)
+    }
+
+    func checkLockoutStatus() {
+        if let lockoutEnd = UserDefaultUtils.value(forKey: .lockoutEnd) as? Date, Date() < lockoutEnd {
+            startLockoutTimer(until: lockoutEnd)
+        } else {
+            remainingLockoutTime = nil
+            isPinCodeInputEnabled = true
+        }
+    }
+
+    func authenticateWithBiometrics() {
+
         Task {
             do {
                 try await authManager.authorizeWithBiometrics()
+                clearLockoutTimer()
             } catch let authManagerError as AuthManagerError {
                 await MainActor.run {
                     handleAuthManagerError(authManagerError)
@@ -121,7 +197,7 @@ struct AuthenticationView: View {
     
     
     @StateObject var viewModel: AuthenticationViewModel
-    
+    @State var enteredPassword: String = ""
     var body: some View {
         VStack(spacing: 8) {
             Image("LogoSquare").frame(height: 100)
@@ -134,9 +210,24 @@ struct AuthenticationView: View {
                     Text("\(L10n.enterPassword)")
                 }
                 Spacer().frame(height: 32)
-
+                
                 if UserDefaultUtils.bool(forKey: .usesPinPassword) {
-                    PinCodeView(pinCode: $viewModel.enteredPassword, pinLength: AppConstants.pinCodeLength)
+                    if viewModel.isPinCodeInputEnabled {
+                        PinCodeView(pinCode: $enteredPassword, pinLength: AppConstants.pinCodeLength)
+                            .onChange(of: enteredPassword) { oldValue, newValue in
+
+                                if PasswordValidator.validate(password: newValue) == .valid {
+                                    viewModel.authenticatePassword(password: newValue)
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        enteredPassword = ""
+                                    }
+                                }
+                            }
+                    } else if let lockoutTime = viewModel.remainingLockoutTime {
+                        Text(L10n.pinCodeLockTryAgainIn(lockoutTime.formatAsHoursMinutesSeconds()))
+                            .fontType(.pt14, weight: .bold)
+                            .opacity(0.5)
+                    }
                 } else {
                     PasswordEntry(viewModel: .init(
                         keyManager: viewModel.keyManager, stateUpdate: { update in
@@ -147,7 +238,7 @@ struct AuthenticationView: View {
                 }
             }
 
-            if let error = viewModel.displayedError {
+            if let error = viewModel.displayedError, viewModel.remainingLockoutTime == nil {
                 Text("\(error.displayDescription)")
                     .alertText()
             }

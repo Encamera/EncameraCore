@@ -32,12 +32,8 @@ struct PinCodeView: View {
             .onTapGesture {
                 self.isInputFieldFocused = true
             }
-
             .onChange(of: pinCode) { oldValue, newValue in
                 enteredDigitCount = newValue.count
-                if enteredDigitCount > pinLength { // Limit pinCode to 6 digits
-                    pinCode = ""
-                }
             }
         }
     }
