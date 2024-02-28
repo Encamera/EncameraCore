@@ -13,7 +13,7 @@ import EncameraCore
 class GalleryHorizontalScrollViewModel: ObservableObject {
     
     @Published var media: [EncryptedMedia]
-    @Published var selectedMedia: EncryptedMedia
+    @Published var selectedMedia: EncryptedMedia?
     @Published var showInfoSheet = false
     @Published var showPurchaseSheet = false
     @Published var isPlayingVideo = false
@@ -31,12 +31,15 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     }
     
     var selectedIndex: Int {
-        media.firstIndex(of: selectedMedia) ?? 0
+        guard let selectedMedia = selectedMedia else { return 0 }
+        return media.firstIndex(of: selectedMedia) ?? 0
     }
 
     func deleteAction() {
         let targetIndex = selectedIndex
-        let targetMedia = selectedMedia
+        guard let targetMedia = selectedMedia else {
+            return
+        }
 
         Task {
 
@@ -68,10 +71,12 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     }
 
     func shareEncrypted() {
+        guard let selectedMedia else { return }
         shareSheet(data: selectedMedia.source)
     }
     
     func shareDecrypted() {
+        guard let selectedMedia else { return }
         Task {
             switch selectedMedia.mediaType {
             case .photo:
@@ -160,8 +165,8 @@ struct GalleryHorizontalScrollView: View {
                     }
                 }
                 .screenBlocked()
-                .onChange(of: viewModel.isPlayingVideo) { isPlaying in
-                    isScrollEnabled = !isPlaying
+                .onChange(of: viewModel.isPlayingVideo) {
+                    isScrollEnabled = !viewModel.isPlayingVideo
                 }
             }
             if viewModel.showActionBar {
@@ -170,7 +175,11 @@ struct GalleryHorizontalScrollView: View {
         }
         .sheet(isPresented: $viewModel.showInfoSheet) {
             let content = Group {
-                PhotoInfoView(media: viewModel.selectedMedia, isPresented: $viewModel.showInfoSheet)
+                if let media = viewModel.selectedMedia {
+                    PhotoInfoView(media: media, isPresented: $viewModel.showInfoSheet)
+                } else {
+                    EmptyView()
+                }
             }
             if #available(iOS 16.0, *) {
                 VStack {
@@ -218,6 +227,7 @@ struct GalleryHorizontalScrollView: View {
                                 }
 
                         }
+                        .id(item)
                         .clipped()
                     }                                
 
@@ -227,9 +237,9 @@ struct GalleryHorizontalScrollView: View {
             }
             .scrollDisabled(!isScrollEnabled)
             .scrollTargetBehavior(.viewAligned)
-            .onChange(of: viewModel.selectedMedia) { newValue in
+            .scrollPosition(id: $viewModel.selectedMedia)
+            .onChange(of: viewModel.selectedMedia) {
                 viewModel.isPlayingVideo = false
-                scrollTo(media: newValue, with: proxy)
             }
             .onAppear {
                 scrollTo(media: viewModel.selectedMedia, with: proxy, animated: false)
@@ -283,7 +293,8 @@ struct GalleryHorizontalScrollView: View {
         .frame(height: 44)
     }
     
-    private func scrollTo(media: EncryptedMedia, with proxy: ScrollViewProxy, animated: Bool = true) {
+    private func scrollTo(media: EncryptedMedia?, with proxy: ScrollViewProxy, animated: Bool = true) {
+        guard let media else { return }
         let scrollClosure = {
             proxy.scrollTo(media.id, anchor: .center)
         }
