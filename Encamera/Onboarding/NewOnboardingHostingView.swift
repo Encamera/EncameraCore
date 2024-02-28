@@ -123,8 +123,10 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
                 if !enteredPinCode.isEmpty {
                     try await savePassword()
                     try authManager.authorize(with: enteredPinCode, using: keyManager)
-                } else {
+                } else if await useBiometrics {
                     try await authManager.authorizeWithBiometrics()
+                } else {
+                    fatalError("No password or biometrics")
                 }
                 UserDefaultUtils.set(true, forKey: .usesPinPassword)
 
@@ -149,21 +151,6 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
                 self?.finishedAction()
 
             }.store(in: &cancellables)
-            if await useBiometrics {
-                Task {
-                    do {
-                        try await authManager.authorizeWithBiometrics()
-                    } catch {
-                        debugPrint("Could not authorize with biometrics")
-                    }
-                }
-            } else {
-                do {
-                    try authManager.authorize(with: enteredPinCode, using: keyManager)
-                } catch {
-                    debugPrint("Could not authorize")
-                }
-            }
 
         }
     }

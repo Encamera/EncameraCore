@@ -14,7 +14,7 @@ enum OnboardingViewError: Error {
     case passwordInvalid
     case onboardingEnded
     case missingStorageType
-    case advanceImageCarousel
+    case advanceImageCarousel // hax
 }
 
 class OnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject {

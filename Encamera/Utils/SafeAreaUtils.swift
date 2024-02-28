@@ -8,28 +8,23 @@
 import Foundation
 import UIKit
 
-func getSafeAreaTop() -> CGFloat{
-
-    let keyWindow = UIApplication.shared.connectedScenes
-        .filter({$0.activationState == .foregroundActive})
+private var getKeyWindow: UIWindow? {
+    return UIApplication.shared.connectedScenes
         .map({$0 as? UIWindowScene})
         .compactMap({$0})
         .first?.windows
         .filter({$0.isKeyWindow}).first
+}
 
-    return (keyWindow?.safeAreaInsets.top) ?? 0
+func getSafeAreaTop() -> CGFloat{
 
+    return (getKeyWindow?.safeAreaInsets.top) ?? 0
+    
 }
 
 func getSafeAreaBottom() -> CGFloat{
 
-    let keyWindow = UIApplication.shared.connectedScenes
-        .map({$0 as? UIWindowScene})
-        .compactMap({$0})
-        .first?.windows
-        .filter({$0.isKeyWindow}).first
-
-    let retVal = (keyWindow?.safeAreaInsets.bottom) ?? 0
+    let retVal = (getKeyWindow?.safeAreaInsets.bottom) ?? 0
 
     return retVal
 
