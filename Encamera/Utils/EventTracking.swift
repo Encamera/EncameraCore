@@ -95,8 +95,8 @@ class EventTracking {
         track(category: "media", action: "import_opened")
     }
 
-    static func trackMediaImported() {
-        track(category: "media", action: "media_imported")
+    static func trackMediaImported(count: Int) {
+        track(category: "media", action: "media_imported", value: Float(count))
     }
 
     static func trackImageViewed() {

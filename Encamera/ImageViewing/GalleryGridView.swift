@@ -147,7 +147,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
                 }
                 try await self.loadAndSaveMediaAsync(result: result)
             }
-
+            EventTracking.trackMediaImported(count: items.count)
             isImporting = false
             await enumerateMedia()
         }
@@ -198,7 +198,6 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
             }
         }
         debugPrint("Media saved: \(savedMedia?.source.absoluteString ?? "nil")")
-        EventTracking.trackMediaImported()
         await MainActor.run {
             self.importProgress = 0.0 // Reset or update progress as necessary
         }
