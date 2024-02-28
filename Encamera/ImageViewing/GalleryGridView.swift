@@ -157,8 +157,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
 
         // Identify whether the item is a video or an image
         let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
-        let preferredType = isVideo ? UTType.movie.identifier : UTType.jpeg.identifier
-
+        let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
         let url: URL? = try await withCheckedThrowingContinuation { continuation in
             // Ensure we're on the main thread when modifying UI-bound properties
             Task { @MainActor in
@@ -199,6 +198,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
             }
         }
         debugPrint("Media saved: \(savedMedia?.source.absoluteString ?? "nil")")
+        EventTracking.trackMediaImported()
         await MainActor.run {
             self.importProgress = 0.0 // Reset or update progress as necessary
         }
@@ -370,6 +370,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
             })
             Button(action: {
                 viewModel.showPhotoPicker = true
+                EventTracking.trackMediaImportOpened()
             }, label: {
                 AlbumActionComponent(mainTitle: L10n.emptyAlbumImportPhotosHeading, subTitle: L10n.emptyAlbumImportPhotosSubtitle, actionTitle: L10n.emptyAlbumImportPhotosActionTitle, imageName: "Premium-Albums")
             })

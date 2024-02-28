@@ -98,6 +98,7 @@ struct NewOnboardingView: View {
                 }.padding(14)
             }
             .padding(EdgeInsets(top: 0, leading: 10, bottom: 20, trailing: 10))
+            .frame(maxWidth: .infinity)
             .navigationBarHidden(true)
             .gradientBackground()
             .onAppear {

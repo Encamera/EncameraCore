@@ -18,13 +18,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     @Published var pinCode1: String = ""
     @Published var pinCode2: String = ""
     @Published var existingPassword: String = ""
-    @Published var pinCodeError: String? {
-        didSet {
-            if pinCodeError != nil {
-                SensoryFeedback.impact()
-            }
-        }
-    }
+    @Published var pinCodeError: String?
     @Published var showAddAlbumModal: Bool = false
     @Published var passwordState: PasswordValidation?
 
@@ -383,10 +377,10 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                             .cornerRadius(24)
                                     }
                                     Spacer().frame(height: 32)
-                                    Text(L10n.setPinCode)
+                                    Text(L10n.confirmPinCode)
                                         .fontType(.pt24, weight: .bold)
                                     Spacer().frame(height: 12)
-                                    Text(L10n.setPinCodeSubtitle)
+                                    Text(L10n.repeatPinCodeSubtitle)
                                         .fontType(.pt14)
                                         .multilineTextAlignment(.center)
                                         .lineLimit(2, reservesSpace: true)

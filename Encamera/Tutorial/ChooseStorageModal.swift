@@ -43,6 +43,7 @@ struct ChooseStorageModal: View {
                             VStack(spacing: 7) {
                                 let availabilites = DataStorageAvailabilityUtil
                                     .storageAvailabilities()
+                                    .filter({$0.availability == .available })
                                     .sorted(by: {$0.storageType == .local && $1.storageType == .icloud})
                                 ForEach(availabilites) { storage in
 

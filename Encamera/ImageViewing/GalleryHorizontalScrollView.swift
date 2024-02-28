@@ -33,27 +33,13 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     var selectedIndex: Int {
         media.firstIndex(of: selectedMedia) ?? 0
     }
-    
-    func openInFiles() {
-        LocalDeeplinkingUtils.openInFiles(media: selectedMedia)
-    }
-    
-    func advanceIndex() {
-        let nextIndex = min(media.count - 1, selectedIndex + 1)
-        selectedMedia = media[nextIndex]
-        
-    }
-    
-    func rewindIndex() {
-        let nextIndex = max(0, selectedIndex - 1)
-        selectedMedia = media[nextIndex]
-    }
-    
+
     func deleteAction() {
+        let targetIndex = selectedIndex
+        let targetMedia = selectedMedia
+
         Task {
-            let targetIndex = selectedIndex
-            let targetMedia = selectedMedia
-            
+
             await MainActor.run {
                 _ = withAnimation {
                     media.remove(at: targetIndex)

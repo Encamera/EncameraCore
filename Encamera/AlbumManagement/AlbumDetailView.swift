@@ -28,6 +28,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
     @Published var albumName: String = ""
     @Published var albumManagerError: String?
     @Published var showEmptyView: Bool = false
+    var afterPurchaseAction: (() -> Void)?
     var gridViewModel: GalleryGridViewModel<EncryptedMedia, D>?
 
     var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
@@ -255,6 +256,9 @@ struct AlbumDetailView<D: FileAccess>: View {
                     isShowingMoveAlbumModal = false
                 } else if !hasEntitlement && storage == .icloud {
                     isShowingPurchaseSheet = true
+                    viewModel.afterPurchaseAction = {
+                        viewModel.moveAlbum(to: storage)
+                    }
                 }
             }, dismissAction: {
                 isShowingMoveAlbumModal = false
@@ -263,6 +267,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                 if case .purchaseComplete = action {
                     isShowingPurchaseSheet = false
                     isShowingMoveAlbumModal = false
+                    viewModel.afterPurchaseAction?()
                 } else {
                     isShowingPurchaseSheet = false
                 }

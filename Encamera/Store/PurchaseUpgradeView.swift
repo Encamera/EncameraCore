@@ -172,7 +172,7 @@ struct ProductStoreView: View {
                                 break
                             }
                             purchaseAction?(action)
-
+                            
 
                         }
                     }

@@ -50,7 +50,10 @@ class EventTracking {
         Self.shared.piwikTracker.sendEvent(category: category, action: action, name: name, value: value as NSNumber?, path: nil)
     #endif
     }
-
+    #if DEBUG
+    #else
+//    add tracking
+    #endif
     static func trackAppLaunched() {
         track(category: "app", action: "launched")
     }
@@ -71,6 +74,7 @@ class EventTracking {
         track(category: "camera", action: "button_pressed")
     }
 
+
     static func trackMediaTaken(type: CameraMode) {
         track(category: "camera", action: "media_captured", name: type.title)
     }
@@ -85,6 +89,14 @@ class EventTracking {
 
     static func trackAlbumSelectedFromTopBar() {
         track(category: "album", action: "selected", name: "top_bar")
+    }
+
+    static func trackMediaImportOpened() {
+        track(category: "media", action: "import_opened")
+    }
+
+    static func trackMediaImported() {
+        track(category: "media", action: "media_imported")
     }
 
     static func trackImageViewed() {

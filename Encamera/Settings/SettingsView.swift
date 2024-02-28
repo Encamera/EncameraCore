@@ -25,6 +25,10 @@ class SettingsViewViewModel: ObservableObject {
     @Published var showPremium: Bool = false
     @Published fileprivate var successMessage: String?
     @Published var useBiometrics: Bool = false
+    @Published var showChangePin: Bool = false
+    @Published var pinRememberedConfirmed: Bool = false
+    @Published var showPinRememberedAlert: Bool = false
+
     var keyManager: KeyManager
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
@@ -43,19 +47,37 @@ class SettingsViewViewModel: ObservableObject {
     }
     
     func setupBiometricToggleObserver() {
-        self.$useBiometrics.dropFirst().sink { value in
-            self.authManager.useBiometricsForAuth = value
-            if value {
-                EventTracking.trackBiometricsEnabled()
-                Task {
-                    try await self.authManager.authorizeWithBiometrics()
-                }
-            } else {
-                EventTracking.trackBiometricsDisabled()
+        self.$useBiometrics.dropFirst().sink { [weak self] value in
+            if value == true {
+                self?.toggleBiometrics(value: true)
+                return
+            }
+            guard self?.keyManager.passwordExists() ?? false else {
+                self?.showChangePin = true
+                return
+            }
+
+            guard self?.pinRememberedConfirmed ?? false else {
+                self?.showPinRememberedAlert = true
+                return
             }
         }.store(in: &cancellables)
     }
-    
+
+    func toggleBiometrics(value: Bool) {
+
+
+        authManager.useBiometricsForAuth = value
+        if value == true {
+            EventTracking.trackBiometricsEnabled()
+            Task { [weak self] in
+                try await self?.authManager.authorizeWithBiometrics()
+            }
+        } else {
+            EventTracking.trackBiometricsDisabled()
+        }
+    }
+
     func resetPasswordInputs() {
         keyManagerError = nil
         passwordState = nil
@@ -63,30 +85,30 @@ class SettingsViewViewModel: ObservableObject {
         newPassword2 = ""
         currentPassword = ""
     }
-    func savePassword() {
-        do {
-            self.keyManagerError = nil
-            self.passwordState = nil
-            let _ = try keyManager.checkPassword(currentPassword)
-            let passwordState =  PasswordValidator.validatePasswordPair(newPassword1, password2: newPassword2)
-            guard case .valid = passwordState else {
-                self.passwordState = passwordState
-                return
-            }
-            try keyManager.changePassword(newPassword: newPassword1, existingPassword: currentPassword)
-            Just(false).delay(for: .seconds(1), scheduler: RunLoop.main)
-                .sink { _ in
-                    self.showDetailView = false
-                    self.successMessage = nil
-                }.store(in: &cancellables)
-            self.successMessage = L10n.passwordSuccessfullyChanged
-            resetPasswordInputs()
-        } catch let keyManagerError as KeyManagerError {
-            self.keyManagerError = keyManagerError
-        } catch {
-            print("Change password failed: ", error)
-        }
-    }
+//    func savePassword() {
+//        do {
+//            self.keyManagerError = nil
+//            self.passwordState = nil
+//            let _ = try keyManager.checkPassword(currentPassword)
+//            let passwordState =  PasswordValidator.validatePasswordPair(newPassword1, password2: newPassword2)
+//            guard case .valid = passwordState else {
+//                self.passwordState = passwordState
+//                return
+//            }
+//            try keyManager.changePassword(newPassword: newPassword1, existingPassword: currentPassword)
+//            Just(false).delay(for: .seconds(1), scheduler: RunLoop.main)
+//                .sink { _ in
+//                    self.showDetailView = false
+//                    self.successMessage = nil
+//                }.store(in: &cancellables)
+//            self.successMessage = L10n.passwordSuccessfullyChanged
+//            resetPasswordInputs()
+//        } catch let keyManagerError as KeyManagerError {
+//            self.keyManagerError = keyManagerError
+//        } catch {
+//            print("Change password failed: ", error)
+//        }
+//    }
     
     func eraseKeychainData() {
         
@@ -167,7 +189,12 @@ struct SettingsView: View {
                     Section {
                         let _ = Self._printChanges()
 
-                        changePassword
+                        Button {
+                            viewModel.showChangePin = true
+                        } label: {
+                            Text(L10n.changePassword)
+                        }
+
                         if viewModel.authManager.canAuthenticateWithBiometrics {
                             biometricsToggle
                         }
@@ -206,6 +233,19 @@ struct SettingsView: View {
         .gradientBackground()
         .fontType(.pt14, weight: .bold)
         .productStore(isPresented: $viewModel.showPremium, fromViewName: "Settings")
+        .sheet(isPresented: $viewModel.showChangePin, content: {
+            ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
+                // tiny hack but we are relying here on the UI to keep the state of the biometrics
+                viewModel.toggleBiometrics(value: viewModel.useBiometrics)
+            }))
+        })
+        .alert(isPresented: $viewModel.showPinRememberedAlert) {
+            Alert(title: Text(L10n.doYouRememberYourPin), message: Text(L10n.doYouRememberYourPinSubtitle), primaryButton: .default(Text(L10n.iRemember)) {
+                viewModel.toggleBiometrics(value: viewModel.useBiometrics)
+            }, secondaryButton: .default(Text(L10n.iForgot)) {
+                viewModel.showChangePin = true
+            })
+        }
         .padding(.bottom, 90)
     }
     
@@ -259,40 +299,7 @@ struct SettingsView: View {
         }
     }
     
-    private var changePassword: some View {
-        NavigationLink(L10n.changePassword, isActive: $viewModel.showDetailView) {
-            Form {
-                Group {
-                    SecureField(L10n.currentPassword, text: $viewModel.currentPassword)
-                    if let keyManagerError = viewModel.keyManagerError {
-                        Text(keyManagerError.displayDescription).foregroundColor(.red)
-                        
-                    }
-                    SecureField(L10n.newPassword, text: $viewModel.newPassword1)
-                    
-                    SecureField(L10n.repeatPassword, text: $viewModel.newPassword2)
-                    if let validation = viewModel.passwordState {
-                        Text(validation.validationDescription).foregroundColor(.red)
-                    }
-                    if let message = viewModel.successMessage {
-                        Text(message).foregroundColor(.green)
-                    }
-                }
-            }
-            .scrollContentBackgroundColor(.background)
-            .fontType(.pt18)
-            .toolbar {
-                Button(L10n.save) {
-                    viewModel.savePassword()
-                }
-            }
-            .navigationTitle(L10n.changePassword)
-            .onDisappear {
-                viewModel.resetPasswordInputs()
-            }
-        }
 
-    }
 }
 
 struct SettingsView_Previews: PreviewProvider {

@@ -100,7 +100,7 @@ class AuthenticationViewModel: ObservableObject {
     }
 
     private func setupLockoutTimer() {
-        if let lockoutEnd = UserDefaults.standard.object(forKey: "lockoutEnd") as? Date, Date() < lockoutEnd {
+        if let lockoutEnd = UserDefaultUtils.value(forKey: .lockoutEnd) as? Date, Date() < lockoutEnd {
             startLockoutTimer(until: lockoutEnd)
         }
     }
@@ -140,6 +140,7 @@ class AuthenticationViewModel: ObservableObject {
             if remainingTime <= 0 {
                 self?.clearLockoutTimer()
             } else {
+                self?.isPinCodeInputEnabled = false
                 self?.remainingLockoutTime = remainingTime
             }
         }

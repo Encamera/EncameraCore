@@ -23,6 +23,7 @@ struct EncameraApp: App {
         @Published var showImportedMediaScreen = false
         @Published var shouldShowTweetScreen: Bool = false
         @Published var keyManagerKey: PrivateKey?
+
         var openedUrl: URL?
         var keyManager: KeyManager
         var albumManager: AlbumManaging?
