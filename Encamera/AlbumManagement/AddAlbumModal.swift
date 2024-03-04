@@ -54,7 +54,11 @@ struct AddAlbumModal: View {
                     .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
                         textField.becomeFirstResponder()
                     }
-
+                    .onChange(of: albumName) { oldValue, newValue in
+                        if newValue.count > AppConstants.maxCharacterAlbumName {
+                            albumName = oldValue
+                        }
+                    }
             }
             .pad(.pt24)
             Spacer()
@@ -62,6 +66,7 @@ struct AddAlbumModal: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.modalBackgroundColor)
     }
+
 }
 
 #Preview {

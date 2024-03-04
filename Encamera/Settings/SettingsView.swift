@@ -254,12 +254,6 @@ struct SettingsView: View {
             Form {
                 Group {
                     NavigationLink {
-                        PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
-                        
-                    } label: {
-                        Text(L10n.eraseKeychainData)
-                    }
-                    NavigationLink {
                         PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
                         
                     } label: {
@@ -272,7 +266,6 @@ struct SettingsView: View {
             .gradientBackground()
             .foregroundColor(.red)
             .navigationTitle(L10n.erase)
-
             .scrollContentBackgroundColor(.background)
         }
         

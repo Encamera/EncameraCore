@@ -68,11 +68,11 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
     }
 
     var showNotificationBellIndicator: Bool {
-        UserDefaultUtils.integer(forKey: .launchCount) < 5
+        LaunchCountUtils.fetchCurrentVersionLaunchCount() < 5
     }
 
     var showNotificationBannerDefault: Bool {
-        UserDefaultUtils.integer(forKey: .launchCount) < 3
+        LaunchCountUtils.fetchCurrentVersionLaunchCount() < 3
     }
 
 }

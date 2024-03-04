@@ -294,6 +294,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             ).onAppear {
                 // handles the case where the user goes back
                 // after entering a pin code once
+                viewModel.pinCode1 = ""
                 viewModel.enteredPinCode = ""
             }
         case .setPinCode:
@@ -335,9 +336,14 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     path.append(OnboardingFlowScreen.confirmPinCode)
                 }
             }.onAppear {
-                viewModel.pinCodeError = nil
-            }
+                // handles the case where the user goes back
+                // after entering a pin code once
 
+                viewModel.pinCodeError = nil
+                viewModel.pinCode1 = ""
+                viewModel.enteredPinCode = ""
+
+            }
         case .confirmPinCode:
             NewOnboardingView(viewModel:
                     .init(
