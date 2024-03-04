@@ -14,14 +14,16 @@ class NotificationBannerViewModel: ObservableObject, Identifiable {
     var buttonText: String?
     var buttonUrl: URL?
     var id: Int = 0
+    var tappedAction: ((URL) -> Void)?
 
-    init(image: Image? = nil, titleText: String, bodyText: String, buttonText: String? = nil, buttonUrl: URL? = nil, id: Int) {
+    init(image: Image? = nil, titleText: String, bodyText: String, buttonText: String? = nil, buttonUrl: URL? = nil, id: Int, tappedAction: ((URL) -> Void)? = nil) {
         self.image = image
         self.titleText = titleText
         self.bodyText = bodyText
         self.buttonText = buttonText
         self.buttonUrl = buttonUrl
         self.id = id
+        self.tappedAction = tappedAction
     }
 }
 
@@ -40,11 +42,14 @@ struct NotificationBanner: View {
                             .fontType(.pt14)
                             .lineLimit(3, reservesSpace: true)
                             .opacity(0.80)
-                        Spacer()
                         Button(action: {
                             guard let url = viewModel.buttonUrl else { return }
                             Task {
-                                await UIApplication.shared.open(url)
+                                if let tappedAction = viewModel.tappedAction {
+                                    tappedAction(url)
+                                } else {
+                                    await UIApplication.shared.open(url)
+                                }
                             }
                             EventTracking.trackNotificationButtonTapped(url: url)
                         }, label: {

@@ -81,69 +81,78 @@ struct NotificationBannerTopEdge<Content: View>: View {
     }
 }
 
+class NotificationCarouselViewModel: ObservableObject {
+    @Published var selectedTabIndex: Int = 0
+    @Published var notifications: [NotificationBannerViewModel] = []
+    @Published var showingWebView = false
+    @Published var webViewURL: URL?
 
-struct NotificationCarousel: View {
-    @Binding var isPresented: Bool
-    @State private var selectedTabIndex: Int = 0
-    @State private var notifications: [NotificationBannerViewModel]
-
-    init(isPresented: Binding<Bool>) {
-        _isPresented = isPresented
+    init() {
+        let tappedAction: (URL) -> Void = { [weak self] url in
+            self?.webViewURL = url
+            self?.showingWebView = true
+        }
         self.notifications = [
+            .init(image: Image("NotificationBanner-Survey"), titleText: L10n.takeSurveyTitle, bodyText: L10n.takeSurveyBody, buttonText: L10n.takeSurveyButtonText, buttonUrl: URL(string: "https://survey.encamera.app")!, id: 3, tappedAction: tappedAction),
+        ] + [
             .init(image: Image("NotificationBanner-ShieldCheck"), titleText: L10n.notificationBannerTitle, bodyText: L10n.notificationBannerBody, buttonText: nil, id: 0),
             .init(image: Image("Telegram-Logo"), titleText: L10n.telegramGroupJoinTitle, bodyText: L10n.telegramGroupJoinBody, buttonText: L10n.telegramGroupJoinButtonText, buttonUrl: URL(string: "https://t.me/encamera_app")!, id: 1),
-            .init(image: Image("NotificationBanner-Widget"), titleText: L10n.installWidgetTitle, bodyText: L10n.installWidgetBody, buttonText: L10n.installWidgetButtonText, buttonUrl: URL(string: "https://vimeo.com/896507875")!, id: 2),
-            .init(image: Image("NotificationBanner-Survey"), titleText: L10n.takeSurveyTitle, bodyText: L10n.takeSurveyBody, buttonText: L10n.takeSurveyButtonText, buttonUrl: URL(string: "")!, id: 3)
+            .init(image: Image("NotificationBanner-Widget"), titleText: L10n.installWidgetTitle, bodyText: L10n.installWidgetBody, buttonText: L10n.installWidgetButtonText, buttonUrl: URL(string: "https://vimeo.com/896507875")!, id: 2, tappedAction: tappedAction),
         ].shuffled()
     }
+}
 
+struct NotificationCarousel: View {
+    @StateObject private var viewModel: NotificationCarouselViewModel = .init()
+    @Binding var isPresented: Bool
     private var divider: some View {
         Divider()
             .frame(height: 1)
             .background(Color.notificationDividerColor)
-
     }
 
     var body: some View {
-                VStack {
-                    divider
-                Group {
-                    TabView(selection: $selectedTabIndex) {
-                        ForEach(Array(notifications.enumerated()), id: \.element.id) { index, notif in
-                            NotificationBanner(viewModel: notif)
-                                .tag(index)
-                        }
-                    }
-                    .onChange(of: selectedTabIndex, { oldValue, newValue in
-                        let viewedNotification = notifications[newValue]
-                        EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
-                    })
-
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .indexViewStyle(.page(backgroundDisplayMode: .never))
-                    .onAppear {
-                        let viewedNotification = notifications[selectedTabIndex]
-                        EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
+        VStack {
+            divider
+            Group {
+                TabView(selection: $viewModel.selectedTabIndex) {
+                    ForEach(Array(viewModel.notifications.enumerated()), id: \.element.id) { index, notif in
+                        NotificationBanner(viewModel: notif)
+                            .tag(index)
                     }
                 }
-                    HStack {
-                        CustomPageControl(numberOfPages: notifications.count, currentPage: $selectedTabIndex)
-                            .padding([.top, .bottom], 16)
-                            .frame(maxWidth: 100)
-                        Spacer()
-                    }
-                    divider
-            }
-            
+                .onChange(of: viewModel.selectedTabIndex) { oldValue, newValue in
+                    let viewedNotification = viewModel.notifications[newValue]
+                    EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
+                }
 
-            .frame(height: 240)
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .indexViewStyle(.page(backgroundDisplayMode: .never))
+                .onAppear {
+                    let viewedNotification = viewModel.notifications[viewModel.selectedTabIndex]
+                    EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
+                }
+            }
+            HStack {
+                CustomPageControl(numberOfPages: viewModel.notifications.count, currentPage: $viewModel.selectedTabIndex)
+                    .padding([.top, .bottom], 16)
+                    .frame(maxWidth: 100)
+                Spacer()
+            }
+            divider
+        }
+        .frame(height: 240)
         .if(!isPresented) { view in
             view.opacity(0).frame(height: 0)
         }
         .background(Color(red: 0.09, green: 0.09, blue: 0.09))
         .transition(.opacity)
+        .sheet(isPresented: $viewModel.showingWebView) {
+            WebView(url: viewModel.webViewURL)
+        }
     }
 }
+
 
 #Preview {
     ZStack {
