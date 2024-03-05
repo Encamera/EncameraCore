@@ -28,6 +28,7 @@ class SettingsViewViewModel: ObservableObject {
     @Published var showChangePin: Bool = false
     @Published var pinRememberedConfirmed: Bool = false
     @Published var showPinRememberedAlert: Bool = false
+    @Published var showSettingsBiometricsAlert: Bool = false
 
     var keyManager: KeyManager
     var fileAccess: FileAccess
@@ -43,11 +44,14 @@ class SettingsViewViewModel: ObservableObject {
         self.fileAccess = fileAccess
         self.authManager = authManager
         self.useBiometrics = authManager.useBiometricsForAuth
-        
     }
     
     func setupBiometricToggleObserver() {
         self.$useBiometrics.dropFirst().sink { [weak self] value in
+            if self?.authManager.canAuthenticateWithBiometrics == false {
+                self?.showSettingsBiometricsAlert = true
+                return
+            }
             if value == true {
                 self?.toggleBiometrics(value: true)
                 return
@@ -85,31 +89,7 @@ class SettingsViewViewModel: ObservableObject {
         newPassword2 = ""
         currentPassword = ""
     }
-//    func savePassword() {
-//        do {
-//            self.keyManagerError = nil
-//            self.passwordState = nil
-//            let _ = try keyManager.checkPassword(currentPassword)
-//            let passwordState =  PasswordValidator.validatePasswordPair(newPassword1, password2: newPassword2)
-//            guard case .valid = passwordState else {
-//                self.passwordState = passwordState
-//                return
-//            }
-//            try keyManager.changePassword(newPassword: newPassword1, existingPassword: currentPassword)
-//            Just(false).delay(for: .seconds(1), scheduler: RunLoop.main)
-//                .sink { _ in
-//                    self.showDetailView = false
-//                    self.successMessage = nil
-//                }.store(in: &cancellables)
-//            self.successMessage = L10n.passwordSuccessfullyChanged
-//            resetPasswordInputs()
-//        } catch let keyManagerError as KeyManagerError {
-//            self.keyManagerError = keyManagerError
-//        } catch {
-//            print("Change password failed: ", error)
-//        }
-//    }
-    
+
     func eraseKeychainData() {
         
     }
@@ -195,9 +175,7 @@ struct SettingsView: View {
                             Text(L10n.changePassword)
                         }
 
-                        if viewModel.authManager.canAuthenticateWithBiometrics {
-                            biometricsToggle
-                        }
+                        biometricsToggle
 //                        NavigationLink("Key Phrase") {
 //                            KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
 //                        }
@@ -246,6 +224,17 @@ struct SettingsView: View {
                 viewModel.showChangePin = true
             })
         }
+        .alert(isPresented: $viewModel.showSettingsBiometricsAlert) {
+            Alert(title: Text(L10n.settingsFaceIdDisabled), message: Text(L10n.settingsFaceIdOpenSettings), primaryButton: .default(Text(L10n.openSettings), action: {
+                if let url = URL(string: UIApplication.openSettingsURLString), UIApplication.shared.canOpenURL(url) {
+                    UIApplication.shared.open(url)
+                }
+            }), secondaryButton: .cancel({
+                viewModel.showSettingsBiometricsAlert = false
+                viewModel.useBiometrics = false
+            }))
+        }
+
         .padding(.bottom, 90)
     }
     
@@ -280,15 +269,13 @@ struct SettingsView: View {
     
     private var biometricsToggle: some View {
         return Group {
-            if let method = viewModel.availableBiometric {
-                Toggle(isOn: $viewModel.useBiometrics) {
-                    Text(L10n.use(method.nameForMethod))
-                }.onAppear {
-                    viewModel.setupBiometricToggleObserver()
-                }.tint(Color.actionYellowGreen)
-            } else {
-                EmptyView()
-            }
+            let method = viewModel.authManager.deviceBiometryType ?? .faceID
+            Toggle(isOn: $viewModel.useBiometrics) {
+                Text(L10n.use(method.nameForMethod))
+            }.onAppear {
+                viewModel.setupBiometricToggleObserver()
+            }.tint(Color.actionYellowGreen)
+
         }
     }
     
