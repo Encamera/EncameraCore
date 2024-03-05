@@ -61,12 +61,12 @@ struct SubscriptionOptionView: View {
 
             OptionItemView(
                 title: subscription.displayName,
-                description: savings == nil ? nil : subscription.priceText,
+                description: savings == nil ? nil : savings!.formattedMonthlyPrice(for: subscription),
                 isAvailable: true,
                 isSelected: $isOn, rightAccessoryView:  {
                     VStack {
                         if let savings {
-                            Text(savings.formattedMonthlyPrice(for: subscription))
+                            Text(subscription.priceText)
                                 .fontType(.pt14,
                                           on: isOn ? .lightBackground : .darkBackground,
                                           weight: .bold)
