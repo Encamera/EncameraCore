@@ -11,6 +11,12 @@ import Combine
 import EncameraCore
 import WebKit
 
+fileprivate enum AlertType {
+    case none
+    case pinRemembered
+    case biometricsDisabledOpenSettings
+}
+
 class SettingsViewViewModel: ObservableObject {
     
     
@@ -27,8 +33,8 @@ class SettingsViewViewModel: ObservableObject {
     @Published var useBiometrics: Bool = false
     @Published var showChangePin: Bool = false
     @Published var pinRememberedConfirmed: Bool = false
-    @Published var showPinRememberedAlert: Bool = false
-    @Published var showSettingsBiometricsAlert: Bool = false
+    @Published fileprivate var activeAlert: AlertType = .none
+    @Published var showAlert: Bool = false
 
     var keyManager: KeyManager
     var fileAccess: FileAccess
@@ -49,7 +55,8 @@ class SettingsViewViewModel: ObservableObject {
     func setupBiometricToggleObserver() {
         self.$useBiometrics.dropFirst().sink { [weak self] value in
             if self?.authManager.canAuthenticateWithBiometrics == false {
-                self?.showSettingsBiometricsAlert = true
+                self?.showAlert = true
+                self?.activeAlert = .biometricsDisabledOpenSettings
                 return
             }
             if value == true {
@@ -62,7 +69,8 @@ class SettingsViewViewModel: ObservableObject {
             }
 
             guard self?.pinRememberedConfirmed ?? false else {
-                self?.showPinRememberedAlert = true
+                self?.showAlert = true
+                self?.activeAlert = .pinRemembered
                 return
             }
         }.store(in: &cancellables)
@@ -217,22 +225,26 @@ struct SettingsView: View {
                 viewModel.toggleBiometrics(value: viewModel.useBiometrics)
             }))
         })
-        .alert(isPresented: $viewModel.showPinRememberedAlert) {
-            Alert(title: Text(L10n.doYouRememberYourPin), message: Text(L10n.doYouRememberYourPinSubtitle), primaryButton: .default(Text(L10n.iRemember)) {
-                viewModel.toggleBiometrics(value: viewModel.useBiometrics)
-            }, secondaryButton: .default(Text(L10n.iForgot)) {
-                viewModel.showChangePin = true
-            })
-        }
-        .alert(isPresented: $viewModel.showSettingsBiometricsAlert) {
-            Alert(title: Text(L10n.settingsFaceIdDisabled), message: Text(L10n.settingsFaceIdOpenSettings), primaryButton: .default(Text(L10n.openSettings), action: {
-                if let url = URL(string: UIApplication.openSettingsURLString), UIApplication.shared.canOpenURL(url) {
-                    UIApplication.shared.open(url)
-                }
-            }), secondaryButton: .cancel({
-                viewModel.showSettingsBiometricsAlert = false
-                viewModel.useBiometrics = false
-            }))
+        .alert(isPresented: $viewModel.showAlert) {
+
+            switch viewModel.activeAlert {
+            case .pinRemembered:
+                Alert(title: Text(L10n.doYouRememberYourPin), message: Text(L10n.doYouRememberYourPinSubtitle), primaryButton: .default(Text(L10n.iRemember)) {
+                    viewModel.toggleBiometrics(value: viewModel.useBiometrics)
+                }, secondaryButton: .default(Text(L10n.iForgot)) {
+                    viewModel.showChangePin = true
+                })
+            case .biometricsDisabledOpenSettings:
+                Alert(title: Text(L10n.settingsFaceIdDisabled), message: Text(L10n.settingsFaceIdOpenSettings), primaryButton: .default(Text(L10n.openSettings), action: {
+                    if let url = URL(string: UIApplication.openSettingsURLString), UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    }
+                }), secondaryButton: .cancel({
+                    viewModel.useBiometrics = false
+                }))
+            case .none:
+                Alert(title: Text("Error"), message: Text("Unknown error"), dismissButton: .default(Text(L10n.ok)))
+            }
         }
 
         .padding(.bottom, 90)
