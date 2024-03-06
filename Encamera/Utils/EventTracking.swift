@@ -220,7 +220,7 @@ class EventTracking {
         track(category: "settings", action: "leave_review_pressed")
     }
 
-    static func trackNotificationViewed(title: String) {
+    static func trackNotificationSwipedViewed(title: String) {
         track(category: "notification_banner", action: "viewed", name: title)
     }
 

@@ -123,14 +123,13 @@ struct NotificationCarousel: View {
                 }
                 .onChange(of: viewModel.selectedTabIndex) { oldValue, newValue in
                     let viewedNotification = viewModel.notifications[newValue]
-                    EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
+                    EventTracking.trackNotificationSwipedViewed(title: viewedNotification.titleText)
                 }
 
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .indexViewStyle(.page(backgroundDisplayMode: .never))
                 .onAppear {
                     let viewedNotification = viewModel.notifications[viewModel.selectedTabIndex]
-                    EventTracking.trackNotificationViewed(title: viewedNotification.titleText)
                 }
             }
             HStack {
