@@ -184,12 +184,12 @@ struct SettingsView: View {
                         }
 
                         biometricsToggle
-//                        NavigationLink("Key Phrase") {
-//                            KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
-//                        }
-//                        NavigationLink("Import Key Phrase") {
-//                            ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
-//                        }
+                        NavigationLink("Key Phrase") {
+                            KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
+                        }
+                        NavigationLink("Import Key Phrase") {
+                            ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
+                        }
                     }
                     .navigationTitle(L10n.settings)
 

@@ -1,15 +1,6 @@
 {
   "pins" : [
     {
-      "identity" : "matomo-sdk-ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/matomo-org/matomo-sdk-ios",
-      "state" : {
-        "revision" : "15a645e11eaa8053f93749d73ced03da1e56fd01",
-        "version" : "7.5.2"
-      }
-    },
-    {
       "identity" : "piwik-pro-sdk-framework-ios",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/PiwikPRO/piwik-pro-sdk-framework-ios",
@@ -32,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/siteline/SwiftUI-Introspect",
       "state" : {
-        "revision" : "18e965f867e37a558ad13c12d330dbe047099180",
-        "version" : "1.1.2"
+        "revision" : "0cd2a5a5895306bc21d54a2254302d24a9a571e4",
+        "version" : "1.1.3"
       }
     },
     {

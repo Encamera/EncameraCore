@@ -11,7 +11,7 @@ import SwiftUI
 struct StoreKitTestingApp: App {
     var body: some Scene {
         WindowGroup {
-            PurchaseUpgradeView()
+            ProductStoreView(fromView: "Test")
                 .preferredColorScheme(.dark)
         }
     }

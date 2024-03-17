@@ -41,12 +41,11 @@ private struct MostPopularIndicatorViewModifier: ViewModifier {
 
 
 struct SubscriptionOptionView: View {
-    let subscription: ServiceSubscription
-    let savings: SubscriptionSavings?
+    let subscription: any Purchasable
     let isSubscribed: Bool
 
     @Binding var isOn: Bool
-    
+    @State var hasFreeTrial: Bool = false
     private static var backgroundColor: Color {
         .black
     }
@@ -61,16 +60,16 @@ struct SubscriptionOptionView: View {
 
             OptionItemView(
                 title: subscription.displayName,
-                description: savings == nil ? nil : savings!.formattedMonthlyPrice(for: subscription),
+                description: subscription.productDescription,
                 isAvailable: true,
                 isSelected: $isOn, rightAccessoryView:  {
                     VStack {
-                        if let savings {
+                        if let savings = subscription.savings {
                             Text(subscription.priceText)
                                 .fontType(.pt14,
                                           on: isOn ? .lightBackground : .darkBackground,
                                           weight: .bold)
-                            Text(savings.formattedTotalSavings(for: subscription))
+                            Text(savings.formattedTotalSavings)
                                 .fontType(.pt10, on: isOn ? .darkBackground : .lightBackground, weight: .bold)
                                 .textPill(color: isOn ? .black : .white)
                         } else {
@@ -81,7 +80,13 @@ struct SubscriptionOptionView: View {
                             
                         }
                     }
-                }).if(savings != nil, transform: { view in
+                })
+            .task {
+                let isEligible = await subscription.product.subscription?.isEligibleForIntroOffer ?? false
+                let hasIntroOffer = subscription.product.subscription?.introductoryOffer != nil
+                hasFreeTrial = isEligible && hasIntroOffer
+            }
+            .if(hasFreeTrial == true, transform: { view in
                 view.modifier(MostPopularIndicatorViewModifier())
             })
 

@@ -5,7 +5,7 @@
   ],
   "products" : [
     {
-      "displayPrice" : "19.99",
+      "displayPrice" : "69.99",
       "familyShareable" : false,
       "internalID" : "6444623609",
       "localizations" : [
@@ -39,7 +39,7 @@
     "_applicationInternalID" : "1639202616",
     "_developerTeamID" : "KGJCC745S9",
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 724781577.359653,
+    "_lastSynchronizedDate" : 731916802.27780998,
     "_locale" : "en_US",
     "_storefront" : "USA",
     "_storeKitErrors" : [
@@ -49,7 +49,10 @@
         "name" : "Load Products"
       },
       {
-        "current" : null,
+        "current" : {
+          "index" : 1,
+          "type" : "purchase"
+        },
         "enabled" : false,
         "name" : "Purchase"
       },
@@ -107,12 +110,24 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "CE8AD20C",
+              "internalID" : "F0AF4141",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
               "referenceName" : "Reddit Privacy Guides",
               "subscriptionPeriod" : "P2M"
+            },
+            {
+              "eligibility" : [
+                "existing",
+                "new"
+              ],
+              "internalID" : "4A967286",
+              "isStackable" : false,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "free",
+              "referenceName" : "Survey Completed",
+              "subscriptionPeriod" : "P3M"
             }
           ],
           "displayPrice" : "4.99",
@@ -147,7 +162,18 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "52C9684A",
+              "internalID" : "64766B93",
+              "isStackable" : false,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "free",
+              "referenceName" : "Influencer Free Year Code",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "CA6009C2",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
@@ -159,19 +185,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "BD13D7D2",
-              "isStackable" : false,
-              "numberOfPeriods" : 1,
-              "paymentMode" : "payAsYouGo",
-              "referenceName" : "Instagram meme_splaining offer code",
-              "subscriptionPeriod" : "P1Y"
-            },
-            {
-              "displayPrice" : "4.99",
-              "eligibility" : [
-                "new"
-              ],
-              "internalID" : "AE5C6E64",
+              "internalID" : "86D338EC",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -179,11 +193,47 @@
               "subscriptionPeriod" : "P1Y"
             },
             {
+              "displayPrice" : "9.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "391D4954",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "kimou.bey 60% off",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "4.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "26EA012E",
+              "isStackable" : false,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Instagram meme_splaining offer code",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "9.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "7E914BB5",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Malia C Influencer",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
               "displayPrice" : "6.99",
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "62EC1D24",
+              "internalID" : "7003D256",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -196,7 +246,7 @@
           "groupNumber" : 1,
           "internalID" : "6444257244",
           "introductoryOffer" : {
-            "internalID" : "F2FDF0D1",
+            "internalID" : "FD769C4B",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
             "subscriptionPeriod" : "P1W"

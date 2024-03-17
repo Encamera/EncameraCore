@@ -32,17 +32,17 @@ struct PurchasedProductCell: View {
 }
 
 struct PurchaseUpgradeOptionsListView: View {
-    let subscriptions: [ServiceSubscription]
-    let products: [OneTimePurchase]
-    let purchasedProducts: [OneTimePurchase]
+    let subscriptionOptions: [ServiceSubscription]
+    let oneTimePurchaseOptions: [OneTimePurchase]
+    let purchasedProduct: OneTimePurchase?
     
-    @Binding var selectedOption: ServiceSubscription?
+    @Binding var selectedOption: (any Purchasable)?
     let currentActiveSubscription: ServiceSubscription?
     let freeUnlimitedTapped: () -> ()
     let onPurchase: () -> ()
     @Environment(\.dismiss) private var dismiss
 
-    func binding(for subscription: ServiceSubscription) -> Binding<Bool> {
+    func binding(for subscription: any Purchasable) -> Binding<Bool> {
         return Binding {
             selectedOption?.id == subscription.id
         } set: { newValue in
@@ -58,74 +58,42 @@ struct PurchaseUpgradeOptionsListView: View {
          to be updated.
          */
         VStack(spacing: 16) {
-            if purchasedProducts.isEmpty {
-                if subscriptions.count > 0 {                    
-                    ForEach(subscriptions) { subscription in
-                        subscriptionOptionCell(for: subscription)
-                    }
-                }
-                if products.count > 0 {
-                    Text(L10n.oneTimePurchase)
-                        .fontType(.pt24)
-                    ForEach(products) { product in
-                        productCell(for: product)
-                    }
-                }
-
+            if let purchasedProduct  {
+                purchasedProductCell(for: purchasedProduct)
             } else {
-                ForEach(purchasedProducts) { product in
-                    purchasedProductCell(for: product)
+                ForEach(subscriptionOptions) { subscription in
+                    subscriptionOptionCell(for: subscription)
                 }
-            }
-//            Spacer().frame(height: 5)
-            SubscriptionPurchaseButton(selectedSubscription: selectedOption) {
-                onPurchase()
+                ForEach(oneTimePurchaseOptions) { oneTimePurchase in
+                    subscriptionOptionCell(for: oneTimePurchase)
+                }
+                if let oneTimePurchase = selectedOption as? OneTimePurchase {
+                    SubscriptionPurchaseButton(selectedPurchasable: oneTimePurchase) {
+                        onPurchase()
+                    }
+                } else if let subscription = selectedOption as? ServiceSubscription {
+                    SubscriptionPurchaseButton(selectedPurchasable: subscription) {
+                        onPurchase()
+                    }
+                }
             }
         }.padding(.horizontal)
         
     }
     
-    func productCell(for product: OneTimePurchase) -> some View {
-        let hasPurchased = purchasedProducts.contains(product)
-        return ProductOptionView(
-            product: product, isPurchased: hasPurchased
-        )
-    }
+
     
     func purchasedProductCell(for product: OneTimePurchase) -> some View {
         return PurchasedProductCell(product: product)
     }
     
-    func subscriptionOptionCell(for subscription: ServiceSubscription) -> some View {
-        var savingsInfo: SubscriptionSavings?
-        if subscription.id == StoreActor.unlimitedYearlyID {
-            savingsInfo = self.savings()
-        }
+    func subscriptionOptionCell(for subscription: any Purchasable) -> some View {
+        
         return SubscriptionOptionView(
             subscription: subscription,
-            savings: savingsInfo,
             isSubscribed: currentActiveSubscription?.id == subscription.id,
             isOn: binding(for: subscription)
         )
     }
     
-    func savings() -> SubscriptionSavings? {
-        guard let yearlySubscription = subscriptions.first(where: { $0.id == StoreActor.unlimitedYearlyID }) else {
-            return nil
-        }
-        guard let monthlySubscription = subscriptions.first(where: { $0.id == StoreActor.unlimitedMonthlyID }) else {
-            return nil
-        }
-        
-        let yearlyPriceForMonthlySubscription = 12 * monthlySubscription.price
-        let amountSaved = yearlyPriceForMonthlySubscription - yearlySubscription.price
-        
-        guard amountSaved > 0 else {
-            return nil
-        }
-        
-        let monthlyPrice = yearlySubscription.price / 12
-        
-        return SubscriptionSavings(totalSavings: amountSaved, granularPrice: monthlyPrice, granularPricePeriod: .month)
-    }
 }

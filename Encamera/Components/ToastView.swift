@@ -26,7 +26,7 @@ struct ToastView: View {
     }
 }
 
-struct ContentView: View {
+struct ToastContentView: View {
     @State private var showToast = false
 
     var body: some View {

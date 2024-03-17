@@ -63,7 +63,7 @@ struct ProductStoreView: View {
 
     @ObservedObject var subscriptionController: StoreSubscriptionController = StoreActor.shared.subscriptionController
     @ObservedObject var productController: StoreProductController = StoreActor.shared.productController
-    @State private var selectedSubscription: ServiceSubscription?
+    @State private var selectedPurchasable: (any Purchasable)?
     @State private var currentActiveSubscription: ServiceSubscription?
     @State private var errorAlertIsPresented = false
     @State private var showTweetForFreeView = false
@@ -87,14 +87,17 @@ struct ProductStoreView: View {
                     .ignoresSafeArea(.all)
                 ScrollView {
                     VStack(spacing: 0) {
-                        PurchaseUpgradeHeaderView()
+                        PurchaseUpgradeHeaderView(purchasedProduct: productController.purchasedProduct)
                             .frame(maxWidth: .infinity)
-                        VStack(spacing: 0) {
-
-                            createFeatureRow(image: Image("Premium-Albums"), title: L10n.unlimitedStorageFeatureRowTitle)
-                            createFeatureRow(image: Image("Premium-Infinity"), title: L10n.unlimitedAlbumsFeatureRowTitle)
-                            createFeatureRow(image: Image("Premium-Folders"), title: L10n.iCloudStorageFeatureRowTitle)
-                        }.padding(.leading, 40)
+                        if productController.purchasedProduct == nil {
+                            productCellsScrollView
+                        }
+//                        VStack(spacing: 0) {
+//
+//                            createFeatureRow(image: Image("Premium-Albums"), title: L10n.unlimitedStorageFeatureRowTitle)
+//                            createFeatureRow(image: Image("Premium-Infinity"), title: L10n.unlimitedAlbumsFeatureRowTitle)
+//                            createFeatureRow(image: Image("Premium-Folders"), title: L10n.iCloudStorageFeatureRowTitle)
+//                        }.padding(.leading, 40)
                         Spacer()
                     }
                 }
@@ -107,7 +110,7 @@ struct ProductStoreView: View {
                     }
                 }
                 .onAppear {
-                    selectedSubscription = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
+                    selectedPurchasable = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
                     currentActiveSubscription = subscriptionController.entitledSubscription
                 }
                 .alert(
@@ -115,7 +118,7 @@ struct ProductStoreView: View {
                     isPresented: $errorAlertIsPresented,
                     actions: {}
                 )
-                productCellsScrollView
+
             }.onAppear {
                 EventTracking.trackShowPurchaseScreen(from: fromView)
             }
@@ -141,22 +144,32 @@ struct ProductStoreView: View {
 
         VStack {
             Spacer()
-            let subscriptions = subscriptionController.subscriptions
-            let products = productController.products
+            let subscriptionOptions = subscriptionController.subscriptions
+            let oneTimePurchaseOptions = productController.products
             PurchaseUpgradeOptionsListView(
-                subscriptions: subscriptions,
-                products: products,
-                purchasedProducts: productController.purchasedProducts,
-                selectedOption: $selectedSubscription,
+                subscriptionOptions: subscriptionOptions,
+                oneTimePurchaseOptions: oneTimePurchaseOptions,
+                purchasedProduct: productController.purchasedProduct,
+                selectedOption: $selectedPurchasable,
                 currentActiveSubscription: currentActiveSubscription,
                 freeUnlimitedTapped: {
                     self.showTweetForFreeView = true
                 },
                 onPurchase: {
-                    if let subscription = selectedSubscription {
+                    guard let subscription = selectedPurchasable else {
+                        return
+                    }
 
                         Task(priority: .userInitiated) { @MainActor in
-                            let action = await subscriptionController.purchase(option: subscription)
+                            var action: PurchaseFinishedAction
+                            if let subscription = subscription as? ServiceSubscription {
+                                action = await subscriptionController.purchase(option: subscription)
+                            } else if let product = subscription as? OneTimePurchase {
+                                action = await productController.purchase(product: product)
+                            } else {
+                                print("Unknown purchasable type")
+                                return
+                            }
                             switch action {
                             case .purchaseComplete(let price, let currencyCode):
                                 EventTracking.trackPurchaseCompleted(
@@ -172,9 +185,7 @@ struct ProductStoreView: View {
                                 break
                             }
                             purchaseAction?(action)
-                            
 
-                        }
                     }
                 }
             )

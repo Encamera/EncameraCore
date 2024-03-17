@@ -117,8 +117,7 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     }
 
 
-    func finishOnboarding(albumName: String) {
-        Task {
+    func finishOnboarding(albumName: String) async throws {
             do {
                 if !enteredPinCode.isEmpty {
                     try await savePassword()
@@ -151,8 +150,6 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
                 self?.finishedAction()
 
             }.store(in: &cancellables)
-
-        }
     }
 
 
@@ -437,8 +434,10 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
             )
             .sheet(isPresented: $viewModel.showAddAlbumModal, content: {
                 AddAlbumModal { albumName in
-                    viewModel.finishOnboarding(albumName: albumName)
-                    presentationMode.wrappedValue.dismiss()
+                    Task {
+                        try await viewModel.finishOnboarding(albumName: albumName)
+                        presentationMode.wrappedValue.dismiss()
+                    }
                 }
             })
         default:

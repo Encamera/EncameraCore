@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import MatomoTracker
 import PiwikPROSDK
 import EncameraCore
 

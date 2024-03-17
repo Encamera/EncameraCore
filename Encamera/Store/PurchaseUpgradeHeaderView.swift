@@ -36,21 +36,23 @@ struct TiltEffectModifier: ViewModifier {
 
 struct PurchaseUpgradeHeaderView: View {
     @State private var isAppearing = false
-
+    var purchasedProduct: OneTimePurchase?
     var body: some View {
         VStack(alignment: .center, spacing: 5) {
             Spacer()
             Image("Premium-Lock")
             Group {
-                Text(L10n.getPremium)
+                Text(purchasedProduct == nil ? L10n.getPremium : L10n.thanksForPurchasingLifetime)
                     .fontType(.pt24, on: .darkBackground, weight: .bold)
-                Text(L10n.premiumUnlockTheseBenefits)
+                Text(purchasedProduct == nil ? L10n.premiumUnlockTheseBenefits : L10n.thanksForPurchasingLifetimeSubtitle)
                     .fontType(.pt14)
-            }.frame(maxWidth: .infinity, alignment: .center)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .multilineTextAlignment(.center)
         }
         .padding(.bottom, 30)
         .frame(maxWidth: .infinity)
-        .frame(height: 275)
+        .frame(height: 285)
 
         .background {
             GeometryReader { geo in
