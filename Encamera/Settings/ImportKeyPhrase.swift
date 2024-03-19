@@ -8,13 +8,18 @@
 import SwiftUI
 import EncameraCore
 
+enum ImportKeyPhraseError: Error {
+    case invalidKeyPhrase(String)
+    case couldNotImportKeyPhrase
+}
+
 class ImportKeyPhraseViewModel: ObservableObject {
 
     var keyManager: KeyManager
 
+    @Published var importError: ImportKeyPhraseError?
     @Published var enteredKeyPhrase: String = "" {
         didSet {
-            print("words: \(words)")
             let components: [String] = enteredKeyPhrase.components(separatedBy: " ").filter({$0.isEmpty == false})
             words = components
         }
@@ -26,11 +31,16 @@ class ImportKeyPhraseViewModel: ObservableObject {
         self.keyManager = keyManager
     }
 
-    func importKeyPhrase() {
+    func importKeyPhrase() throws {
         do {
             try keyManager.generateKeyFromPasswordComponents(words, name: AppConstants.defaultKeyName)
-        } catch {
+        } catch let error as KeyManagerError {
+            importError = .invalidKeyPhrase(error.displayDescription)
             print("Error importing key phrase: \(error)")
+            throw error
+        } catch {
+            importError = .couldNotImportKeyPhrase
+            throw error
         }
     }
 }
@@ -38,33 +48,46 @@ class ImportKeyPhraseViewModel: ObservableObject {
 struct ImportKeyPhrase: View {
 
     @StateObject var viewModel: ImportKeyPhraseViewModel
+    @Environment(\.presentationMode) private var presentationMode
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text("Import Key Phrase")
+            Text(L10n.importKeyPhrase)
                 .fontType(.pt16, weight: .bold)
-            Text("Enter the key phrase you want to import. Separate each word with a space.\nThis will overwrite your current key phrase.")
+            Text(L10n.enterKeyPhraseDescription)
                 .fontType(.pt14)
             KeyPhraseComponent(words: viewModel.words)
-            TextField("Enter Key Phrase", text: $viewModel.enteredKeyPhrase)
+            TextField(L10n.enterKeyPhrase, text: $viewModel.enteredKeyPhrase)
                 .padding()
                 .border(Color.gray)
                 .padding()
                 .noAutoModification()
+            if let error = viewModel.importError {
+                if case .invalidKeyPhrase(let message) = error {
+                    Text("\(L10n.errorImportingKeyPhrase): \(message)").alertText()
+                } else {
+                    Text(L10n.errorImportingKeyPhrase).alertText()
+                }
+            }
             Spacer()
         }
         .pad(.pt16)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Import", action: {
+                Button(L10n.import, action: {
                     viewModel.showWarningForOverwrite = true
                 })
                     .textButton()
             }
         }
         .alert(isPresented: $viewModel.showWarningForOverwrite) {
-            Alert(title: Text("Overwrite Key Phrase?"), message: Text("Are you sure you want to overwrite your current key phrase?"), primaryButton: .default(Text("Yes"), action: {
-                viewModel.importKeyPhrase()
+            Alert(title: Text(L10n.overwriteKeyPhrase), message: Text(L10n.overwriteAreYouSure), primaryButton: .destructive(Text(L10n.imSure), action: {
+                do {
+                    try viewModel.importKeyPhrase()
+                    presentationMode.wrappedValue.dismiss()
+                } catch {
+
+                }
             }), secondaryButton: .cancel())
         }
 
