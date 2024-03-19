@@ -290,7 +290,7 @@ final class CameraModel: NSObject, ObservableObject {
             recordingCancellable.removeAll()
             UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
         }
-        EventTracking.trackMediaTaken(type: selectedCameraMode)
+        await EventTracking.trackMediaTaken(type: selectedCameraMode)
         await loadThumbnail()
     }
 

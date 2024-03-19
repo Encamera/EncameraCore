@@ -281,11 +281,19 @@ struct EncameraApp: App {
                             self.viewModel.hasOpenedURL = true
                             if let url = viewModel.openedUrl,
                                let urlType = URLType(url: url),
-                               viewModel.authManager.isAuthenticated,
-                               urlType == .cameraFromWidget {
-                                EventTracking.trackOpenedCameraFromWidget()
-                                withAnimation {
-                                    self.showCamera = true
+                               viewModel.authManager.isAuthenticated {
+                                switch urlType {
+
+                                case .featureToggle(let feature):
+                                    FeatureToggle.enable(feature: feature)
+                                case .cameraFromWidget:
+                                    EventTracking.trackOpenedCameraFromWidget()
+                                    withAnimation {
+                                        self.showCamera = true
+                                    }
+
+                                default:
+                                    break
                                 }
 
                             }

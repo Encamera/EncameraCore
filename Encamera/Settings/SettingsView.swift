@@ -81,12 +81,16 @@ class SettingsViewViewModel: ObservableObject {
 
         authManager.useBiometricsForAuth = value
         if value == true {
-            EventTracking.trackBiometricsEnabled()
+            Task { @MainActor in
+                EventTracking.trackBiometricsEnabled()
+            }
             Task { [weak self] in
                 try await self?.authManager.authorizeWithBiometrics()
             }
         } else {
-            EventTracking.trackBiometricsDisabled()
+            Task { @MainActor in
+                EventTracking.trackBiometricsDisabled()
+            }
         }
     }
 

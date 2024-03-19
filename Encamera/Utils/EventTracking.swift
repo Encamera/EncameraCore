@@ -28,7 +28,7 @@ enum PurchaseGoal: Int {
     }
 }
 
-
+@MainActor
 class EventTracking {
     private let piwikTracker: PiwikTracker = PiwikTracker.sharedInstance(siteID: "5ed9378f-f689-439c-ba90-694075efc81a", baseURL: URL(string: "https://encamera.piwik.pro/piwik.php")!)!
     static let shared = EventTracking()
@@ -42,10 +42,19 @@ class EventTracking {
     private static func track(category: String, action: String, name: String? = nil, value: Float? = nil) {
     #if DEBUG
         debugPrint("[Tracking] Category: \(category), action: \(action), name: \(name ?? "none"), value: \(String(describing: value))")
+
+
+
     #else
         if FeatureToggle.isEnabled(feature: .stopTracking) {
             return
         }
+        if let subscriptionId = StoreActor.shared.subscriptionController.entitledSubscriptionID {
+            Self.shared.piwikTracker.setCustomDimension(identifier: 2, value: subscriptionId)
+        } else if let productId = StoreActor.shared.productController.purchasedProduct?.id {
+            Self.shared.piwikTracker.setCustomDimension(identifier: 2, value: productId)
+        }
+
         Self.shared.piwikTracker.sendEvent(category: category, action: action, name: name, value: value as NSNumber?, path: nil)
     #endif
     }

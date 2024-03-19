@@ -51,7 +51,9 @@ struct ImportKeyPhrase: View {
                 .border(Color.gray)
                 .padding()
                 .noAutoModification()
+            Spacer()
         }
+        .pad(.pt16)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Import", action: {

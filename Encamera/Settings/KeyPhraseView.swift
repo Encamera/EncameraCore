@@ -45,7 +45,7 @@ struct KeyPhraseView: View {
 
             Spacer()
 
-        }
+        }.pad(.pt16)
     }
 }
 

@@ -67,6 +67,7 @@ struct PurchaseUpgradeOptionsListView: View {
                 ForEach(oneTimePurchaseOptions) { oneTimePurchase in
                     subscriptionOptionCell(for: oneTimePurchase)
                 }
+                Spacer()
                 if let oneTimePurchase = selectedOption as? OneTimePurchase {
                     SubscriptionPurchaseButton(selectedPurchasable: oneTimePurchase) {
                         onPurchase()

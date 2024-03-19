@@ -69,7 +69,8 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
         }
 
     }
-
+    
+    @MainActor
     func shareEncrypted() {
         guard let selectedMedia else { return }
         shareSheet(data: selectedMedia.source)
@@ -102,7 +103,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
             
         }
     }
-    
+    @MainActor
     func shareSheet(data: Any) {
         let activityView = UIActivityViewController(activityItems: [data], applicationActivities: nil)
         

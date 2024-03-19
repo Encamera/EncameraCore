@@ -92,16 +92,10 @@ struct ProductStoreView: View {
                         if productController.purchasedProduct == nil {
                             productCellsScrollView
                         }
-//                        VStack(spacing: 0) {
-//
-//                            createFeatureRow(image: Image("Premium-Albums"), title: L10n.unlimitedStorageFeatureRowTitle)
-//                            createFeatureRow(image: Image("Premium-Infinity"), title: L10n.unlimitedAlbumsFeatureRowTitle)
-//                            createFeatureRow(image: Image("Premium-Folders"), title: L10n.iCloudStorageFeatureRowTitle)
-//                        }.padding(.leading, 40)
                         Spacer()
                     }
                 }
-
+                .scrollIndicators(.never)
                 .navigationBarTitle(L10n.upgradeToday)
                 .overlay(alignment: .topLeading) {
                     if showDismissButton {

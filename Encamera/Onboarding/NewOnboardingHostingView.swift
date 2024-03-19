@@ -145,8 +145,11 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
                 debugPrint("Could not finish onboarding: \(error)")
                 try? await handle(error: error)
             }
-            authManager.isAuthenticatedPublisher.sink { [weak self] isAuthenticated in
-                EventTracking.trackOnboardingFinished(new: true)
+            authManager.isAuthenticatedPublisher
+            .sink { [weak self] isAuthenticated in
+                Task { @MainActor in
+                    EventTracking.trackOnboardingFinished(new: true)
+                }
                 self?.finishedAction()
 
             }.store(in: &cancellables)
