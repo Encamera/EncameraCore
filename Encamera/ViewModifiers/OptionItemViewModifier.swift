@@ -26,7 +26,7 @@ struct OptionItemViewModifier: ViewModifier {
     @ViewBuilder private var background: some View {
         let rect = RoundedRectangle(cornerRadius: Constants.cornerRadius, style: .continuous)
         let rectangle = rect
-            .stroke(Color.secondaryElementColor, lineWidth: Constants.lineWidth)
+            .stroke(Color.secondaryElementColor.opacity(0.4), lineWidth: Constants.lineWidth)
         if isSelected {
             rectangle.background(rect.fill(Color.white))
         } else {
