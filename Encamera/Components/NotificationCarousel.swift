@@ -93,8 +93,6 @@ class NotificationCarouselViewModel: ObservableObject {
             self?.showingWebView = true
         }
         self.notifications = [
-            .init(image: Image("NotificationBanner-Survey"), titleText: L10n.takeSurveyTitle, bodyText: L10n.takeSurveyBody, buttonText: L10n.takeSurveyButtonText, buttonUrl: URL(string: "https://survey.encamera.app")!, id: 3, tappedAction: tappedAction),
-        ] + [
             .init(image: Image("NotificationBanner-ShieldCheck"), titleText: L10n.notificationBannerTitle, bodyText: L10n.notificationBannerBody, buttonText: nil, id: 0),
             .init(image: Image("Telegram-Logo"), titleText: L10n.telegramGroupJoinTitle, bodyText: L10n.telegramGroupJoinBody, buttonText: L10n.telegramGroupJoinButtonText, buttonUrl: URL(string: "https://t.me/encamera_app")!, id: 1),
             .init(image: Image("NotificationBanner-Widget"), titleText: L10n.installWidgetTitle, bodyText: L10n.installWidgetBody, buttonText: L10n.installWidgetButtonText, buttonUrl: URL(string: "https://vimeo.com/896507875")!, id: 2, tappedAction: tappedAction),

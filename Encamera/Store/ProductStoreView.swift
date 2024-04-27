@@ -66,7 +66,7 @@ struct ProductStoreView: View {
     @State private var selectedPurchasable: (any Purchasable)?
     @State private var currentActiveSubscription: ServiceSubscription?
     @State private var errorAlertIsPresented = false
-    @State private var showTweetForFreeView = false
+    @State private var showPostPurchaseScreen = false
 
     @Environment(\.presentationMode) private var presentationMode
 
@@ -77,6 +77,23 @@ struct ProductStoreView: View {
     var purchaseAction: PurchaseResultAction?
 
     var body: some View {
+        Group {
+            if showPostPurchaseScreen {
+                PostPurchaseView()
+            } else {
+                purchaseScreen
+            }
+        }.transition(.scale)
+    }
+
+    var dismissButton: some View {
+        DismissButton {
+            dismiss()
+            EventTracking.trackPurchaseScreenDismissed(from: fromView)
+        }
+    }
+
+    private var purchaseScreen: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
                 Image("Premium-TopHalo")
@@ -119,13 +136,6 @@ struct ProductStoreView: View {
         }
     }
 
-    var dismissButton: some View {
-        DismissButton {
-            dismiss()
-            EventTracking.trackPurchaseScreenDismissed(from: fromView)
-        }
-    }
-
     private func createFeatureRow(image: Image, title: String, subtitle: String? = nil) -> some View {
         return HStack(alignment: .center, spacing: 12) {
             FeatureIcon(image: image)
@@ -146,9 +156,6 @@ struct ProductStoreView: View {
                 purchasedProduct: productController.purchasedProduct,
                 selectedOption: $selectedPurchasable,
                 currentActiveSubscription: currentActiveSubscription,
-                freeUnlimitedTapped: {
-                    self.showTweetForFreeView = true
-                },
                 onPurchase: {
                     guard let subscription = selectedPurchasable else {
                         return
@@ -166,12 +173,12 @@ struct ProductStoreView: View {
                             }
                             switch action {
                             case .purchaseComplete(let price, let currencyCode):
+                                showPostPurchaseScreen = true
                                 EventTracking.trackPurchaseCompleted(
                                     from: fromView,
                                     currency: currencyCode,
                                     amount: price,
                                     product: subscription.product.id)
-                                dismiss()
                             case .displayError: errorAlertIsPresented = true
                                 EventTracking.trackPurchaseIncomplete(from: fromView)
                             case .noAction:

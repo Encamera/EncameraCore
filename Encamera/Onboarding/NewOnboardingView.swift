@@ -67,35 +67,11 @@ struct NewOnboardingView: View {
                     nextActive = true
                 })
                 Spacer()
-                VStack {
-                    if let bottomButtonTitle = viewModel.bottomButtonTitle {
-                        Button(bottomButtonTitle) {
-                            Task {
-                                do {
-                                    try await viewModel.bottomButtonAction?()
-                                    nextActive = true
-                                } catch {
-                                    print("Error on bottom button action", error)
-                                }
-                            }
-                        }
-                        .primaryButton()
-                    }
-                    if let secondaryButtonTitle = viewModel.secondaryButtonTitle {
-                        Button(secondaryButtonTitle) {
-                            Task {
-                                do {
-                                    try await viewModel.secondaryButtonAction?()
-                                    nextActive = true
-                                } catch {
-                                    print("Error on secondary button action", error)
-                                }
-                            }
-                        }
-                        .textButton()
-
-                    }
-                }.padding(14)
+                DualButtonComponent(nextActive: $nextActive,
+                                      bottomButtonTitle: viewModel.bottomButtonTitle,
+                                      bottomButtonAction: viewModel.bottomButtonAction,
+                                      secondaryButtonTitle: viewModel.secondaryButtonTitle,
+                                      secondaryButtonAction: viewModel.secondaryButtonAction)
             }
             .padding(EdgeInsets(top: 0, leading: 10, bottom: 20, trailing: 10))
             .frame(maxWidth: .infinity)
@@ -106,39 +82,3 @@ struct NewOnboardingView: View {
             }
     }
 }
-//
-//
-struct NewOnboardingView_Previews: PreviewProvider {
-
-    static var previews: some View {
-        NavigationView {
-            NewOnboardingView(viewModel: .init(
-                screen: .biometrics,
-                title: "Here's the Title",
-                subheading: "And the subheading",
-                progress: (1, 5),
-                image: Image(systemName: "camera"),
-                bottomButtonTitle: "Next",
-                bottomButtonAction: {
-
-                },
-                secondaryButtonTitle: "No thanks",
-                secondaryButtonAction: {
-
-                }, content:  {_ in
-                    AnyView(VStack(alignment: .leading, spacing: 10) {
-                        Text(L10n.onboardingIntroHeadingText1)
-                            .fontType(.medium, weight: .bold)
-                        Text(L10n.onboardingIntroSubheadingText)
-                            .fontType(.pt18)
-                        Spacer()
-                    })
-
-                }))
-
-        }
-        .preferredColorScheme(.dark)
-    }
-
-}
-

@@ -38,7 +38,6 @@ struct PurchaseUpgradeOptionsListView: View {
     
     @Binding var selectedOption: (any Purchasable)?
     let currentActiveSubscription: ServiceSubscription?
-    let freeUnlimitedTapped: () -> ()
     let onPurchase: () -> ()
     @Environment(\.dismiss) private var dismiss
 
