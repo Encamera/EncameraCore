@@ -44,7 +44,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.1.4</string>
+	<string>2.1.6</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -57,7 +57,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>2.1.4</string>
+	<string>2.1.6</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationCategoryType</key>
@@ -208,6 +208,10 @@
 				</array>
 			</dict>
 		</dict>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>

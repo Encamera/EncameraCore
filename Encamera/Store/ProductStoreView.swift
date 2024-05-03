@@ -123,6 +123,7 @@ struct ProductStoreView: View {
                 .onAppear {
                     selectedPurchasable = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
                     currentActiveSubscription = subscriptionController.entitledSubscription
+                    NotificationManager.scheduleNotificationForPremiumReminder()
                 }
                 .alert(
                     subscriptionController.purchaseError?.errorDescription ?? "",
@@ -173,6 +174,7 @@ struct ProductStoreView: View {
                             }
                             switch action {
                             case .purchaseComplete(let price, let currencyCode):
+                                NotificationManager.cancelNotificationForPremiumReminder()
                                 showPostPurchaseScreen = true
                                 EventTracking.trackPurchaseCompleted(
                                     from: fromView,
