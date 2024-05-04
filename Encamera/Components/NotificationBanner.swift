@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import EncameraCore
 
 class NotificationBannerViewModel: ObservableObject, Identifiable {
     var image: Image? = Image("NotificationBanner-Lock")

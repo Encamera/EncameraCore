@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/PiwikPRO/piwik-pro-sdk-framework-ios",
       "state" : {
-        "revision" : "366cb89be47e8768e9996ead78c5abd874897446",
-        "version" : "1.2.3"
+        "revision" : "ac79820580868ad801b2ff644ba7c6e3825a3969",
+        "version" : "1.2.4"
       }
     },
     {
