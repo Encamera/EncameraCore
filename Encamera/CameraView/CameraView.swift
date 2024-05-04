@@ -164,6 +164,7 @@ struct CameraView: View {
                 }
                 EventTracking.trackConfirmStorageTypeSelected(type: selectedStorage)
                 cameraModel.albumManager.currentAlbum = try? cameraModel.albumManager.moveAlbum(album: currentAlbum, toStorage: selectedStorage)
+                
             } else if !hasEntitlement && selectedStorage == .icloud {
                 cameraModel.showPurchaseSheet = true
             }
