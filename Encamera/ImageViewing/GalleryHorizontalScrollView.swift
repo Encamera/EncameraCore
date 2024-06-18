@@ -230,7 +230,9 @@ struct GalleryHorizontalScrollView: View {
                         }
                         .id(item)
                         .clipped()
-                    }                                
+                    }.onAppear {
+                        scrollTo(media: viewModel.selectedMedia, with: proxy, animated: false)
+                    }
 
                 }
                 .scrollTargetLayout()
@@ -238,13 +240,10 @@ struct GalleryHorizontalScrollView: View {
             }
             .scrollDisabled(!isScrollEnabled)
             .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: $viewModel.selectedMedia)
             .onChange(of: viewModel.selectedMedia) {
                 viewModel.isPlayingVideo = false
             }
-            .onAppear {
-                scrollTo(media: viewModel.selectedMedia, with: proxy, animated: false)
-            }
+
         }
         .scrollIndicators(.hidden)
     }
@@ -297,7 +296,7 @@ struct GalleryHorizontalScrollView: View {
     private func scrollTo(media: EncryptedMedia?, with proxy: ScrollViewProxy, animated: Bool = true) {
         guard let media else { return }
         let scrollClosure = {
-            proxy.scrollTo(media.id, anchor: .center)
+            proxy.scrollTo(media.id, anchor: nil)
         }
         if animated {
             withAnimation {
