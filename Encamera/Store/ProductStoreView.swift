@@ -123,7 +123,9 @@ struct ProductStoreView: View {
                 .onAppear {
                     selectedPurchasable = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
                     currentActiveSubscription = subscriptionController.entitledSubscription
-                    NotificationManager.scheduleNotificationForPremiumReminder()
+                    if subscriptionController.entitledSubscription == nil {
+                        NotificationManager.scheduleNotificationForPremiumReminder()
+                    }
                 }
                 .alert(
                     subscriptionController.purchaseError?.errorDescription ?? "",
