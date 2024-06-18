@@ -137,6 +137,18 @@ struct EncameraApp: App {
                     }
                 }.store(in: &cancellables)
             TempFileAccess.cleanupTemporaryFiles()
+
+            FileOperationBus
+                .shared
+                .operations
+                .sink { operation in
+                switch operation {
+                case .create(_):
+                    NotificationLogic.setNotificationsForMediaAdded()
+                default:
+                    break
+                }
+            }.store(in: &cancellables)
         }
         
         
@@ -287,6 +299,7 @@ struct EncameraApp: App {
                                 case .featureToggle(let feature):
                                     FeatureToggle.enable(feature: feature)
                                 case .cameraFromWidget:
+                                    UserDefaultUtils.increaseInteger(forKey: .widgetOpenCount)
                                     EventTracking.trackOpenedCameraFromWidget()
                                     withAnimation {
                                         self.showCamera = true

@@ -156,13 +156,6 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
                 try await self.loadAndSaveMediaAsync(result: result)
             }
             EventTracking.trackMediaImported(count: items.count)
-            if ((try? await NotificationManager.requestLocalNotificationPermission()) != nil) {
-                if UserDefaultUtils.integer(forKey: .videoAddedCount) == 0 && UserDefaultUtils.integer(forKey: .photoAddedCount) > 5 {
-                    NotificationManager.cancelNotificationForImageSecurityReminder()
-                    NotificationManager.scheduleNotificationForImageSecurityReminder()
-                }
-
-            }
 
             isImporting = false
             await enumerateMedia()
@@ -414,6 +407,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
                                 secondaryButtonAction: {
                 viewModel.showCamera = true
             })
+            Spacer().frame(height: 8)
         }.padding()
     }
 

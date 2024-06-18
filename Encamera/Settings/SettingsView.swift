@@ -262,22 +262,7 @@ struct SettingsView: View {
     
     private var reset: some View {
         NavigationLink(L10n.erase) {
-            Form {
-                Group {
-                    NavigationLink {
-                        PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
-                        
-                    } label: {
-                        Text(L10n.eraseAllData)
-                            .foregroundColor(.red)
-
-                    }
-                }
-            }
-            .gradientBackground()
-            .foregroundColor(.red)
-            .navigationTitle(L10n.erase)
-            .scrollContentBackgroundColor(.background)
+            PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
         }
         
         .sheet(isPresented: $viewModel.showPromptToErase) {

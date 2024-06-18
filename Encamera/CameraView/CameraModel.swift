@@ -246,6 +246,7 @@ final class CameraModel: NSObject, ObservableObject {
                     try await fileAccess.save(media: livePhoto) { _ in }
                 }
                 UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
+                UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
 
             } catch let filesError as FileAccessError {
                 await MainActor.run {
@@ -289,8 +290,8 @@ final class CameraModel: NSObject, ObservableObject {
             recordingCancellable.forEach({ $0.cancel()})
             recordingCancellable.removeAll()
             UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
+            UserDefaultUtils.increaseInteger(forKey: .videoAddedCount)
         }
-        _ = try? await NotificationManager.requestLocalNotificationPermission()
         await EventTracking.trackMediaTaken(type: selectedCameraMode)
         await loadThumbnail()
     }
