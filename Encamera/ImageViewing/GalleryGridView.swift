@@ -145,9 +145,25 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
                     cancelImport = false
                     return
                 }
+
+                let provider = result.itemProvider
+                if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
+                    UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                }
+
                 try await self.loadAndSaveMediaAsync(result: result)
             }
             EventTracking.trackMediaImported(count: items.count)
+            if ((try? await NotificationManager.requestLocalNotificationPermission()) != nil) {
+                if UserDefaultUtils.integer(forKey: .videoAddedCount) == 0 && UserDefaultUtils.integer(forKey: .photoAddedCount) > 5 {
+                    NotificationManager.cancelNotificationForImageSecurityReminder()
+                    NotificationManager.scheduleNotificationForImageSecurityReminder()
+                }
+
+            }
+
             isImporting = false
             await enumerateMedia()
         }
@@ -260,94 +276,35 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
                     }
                 }
             }
-            GeometryReader { geo in
-                let frame = geo.frame(in: .local)
-                let outerMargin = 9.0
-                let spacing = 9.0
-                let largeSide = frame.width - spacing * Constants.numberOfImagesWide
-
-                let side = ((frame.width - outerMargin) / Constants.numberOfImagesWide) - spacing
-                let gridItems = [
-                    GridItem(.fixed(side), spacing: spacing),
-                    GridItem(.fixed(side), spacing: spacing),
-                ]
-                ZStack(alignment: .center) {
-                    ScrollView {
-                        HStack {
-                            if viewModel.downloadPendingMediaCount > 0 {
-                                downloadFromiCloudButton
-                            }
-                        }
-                        .padding(.bottom)
-                        if let first = viewModel.firstImage {
-                            let remainingImages = viewModel.media[1..<viewModel.media.count]
-                            imageForItem(mediaItem: first, width: largeSide, height: largeSide, index: 0)
-                            LazyVGrid(columns: gridItems, spacing: spacing) {
-                                ForEach(Array(remainingImages.enumerated()), id: \.element) { index, mediaItem in
-                                    imageForItem(mediaItem: mediaItem, width: side, height: side, index: index)
-                                }
-                                Spacer().frame(height: getSafeAreaBottom())
-                            }
-                            .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
-                            .animation(.easeIn, value: viewModel.blurImages)
-                            .frame(width: largeSide)
-
-                        } else if viewModel.showEmptyView {
-                            emptyState
-                        }
-                    }
-                    .padding(spacing)
-                    .onChange(of: viewModel.showCamera) { oldValue, newValue in
-                        EventTracking.trackOpenedCameraFromAlbumEmptyState()
-                        viewModel.albumManager.currentAlbum = viewModel.album
-                    }
-                    NavigationLink(isActive: $viewModel.showingCarousel) {
-                        if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
-
-                            GalleryHorizontalScrollView(
-                                viewModel: .init(
-                                    media: viewModel.media,
-                                    selectedMedia: carouselTarget,
-                                    fileAccess: viewModel.fileAccess,
-                                    purchasedPermissions: viewModel.purchasedPermissions
-                                ))
-                        }
-                    } label: {
-                        EmptyView()
-                    }
-
-                }
-                .task {
-                    await viewModel.enumerateMedia()
-                }
-                .onAppear {
-                    AskForReviewUtil.askForReviewIfNeeded()
-                }
-                .onDisappear {
-                    viewModel.cleanUp()
-                }
-                .scrollIndicators(.hidden)
-                .navigationBarTitle("")
-                .fullScreenCover(isPresented: $viewModel.showCamera, content: {
-
-                    if viewModel.album != nil {
-                        CameraView(cameraModel: .init(
-                            albumManager: viewModel.albumManager,
-                            cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
-                            fileAccess: viewModel.fileAccess,
-                            purchaseManager: viewModel.purchasedPermissions,
-                            closeButtonTapped: { _ in
-                                viewModel.showCamera = false
-                                viewModel.albumManager.currentAlbum = viewModel.album
-                                Task {
-                                    await viewModel.enumerateMedia()
-                                }
-                            }
-                        ), hasMediaToImport: .constant(false))
-                    }
-                })
+            if viewModel.showEmptyView {
+               emptyState
+            } else {
+                mainGridView
             }
+
         }
+        .onChange(of: viewModel.showCamera) { oldValue, newValue in
+            EventTracking.trackOpenedCameraFromAlbumEmptyState()
+            viewModel.albumManager.currentAlbum = viewModel.album
+        }
+        .fullScreenCover(isPresented: $viewModel.showCamera, content: {
+
+            if viewModel.album != nil {
+                CameraView(cameraModel: .init(
+                    albumManager: viewModel.albumManager,
+                    cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
+                    fileAccess: viewModel.fileAccess,
+                    purchaseManager: viewModel.purchasedPermissions,
+                    closeButtonTapped: { _ in
+                        viewModel.showCamera = false
+                        viewModel.albumManager.currentAlbum = viewModel.album
+                        Task {
+                            await viewModel.enumerateMedia()
+                        }
+                    }
+                ), hasMediaToImport: .constant(false))
+            }
+        })
         .sheet(isPresented: $viewModel.showPhotoPicker, content: {
             PhotoPicker(selectedItems: { results in
                 viewModel.handleSelectedMedia(items: results)
@@ -356,24 +313,108 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
         })
     }
 
+    private var mainGridView: some View {
+        GeometryReader { geo in
+            let frame = geo.frame(in: .local)
+            let outerMargin = 9.0
+            let spacing = 9.0
+            let largeSide = frame.width - spacing * Constants.numberOfImagesWide
+
+            let side = ((frame.width - outerMargin) / Constants.numberOfImagesWide) - spacing
+            let gridItems = [
+                GridItem(.fixed(side), spacing: spacing),
+                GridItem(.fixed(side), spacing: spacing),
+            ]
+            ZStack(alignment: .center) {
+                ScrollView {
+                    HStack {
+                        if viewModel.downloadPendingMediaCount > 0 {
+                            downloadFromiCloudButton
+                        }
+                    }
+                    .padding(.bottom)
+                    if let first = viewModel.firstImage {
+                        let remainingImages = viewModel.media[1..<viewModel.media.count]
+                        imageForItem(mediaItem: first, width: largeSide, height: largeSide, index: 0)
+                        LazyVGrid(columns: gridItems, spacing: spacing) {
+                            ForEach(Array(remainingImages.enumerated()), id: \.element) { index, mediaItem in
+                                imageForItem(mediaItem: mediaItem, width: side, height: side, index: index)
+                            }
+                            Spacer().frame(height: getSafeAreaBottom())
+                        }
+                        .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
+                        .animation(.easeIn, value: viewModel.blurImages)
+                        .frame(width: largeSide)
+
+                    }
+                }
+                .padding(spacing)
+                NavigationLink(isActive: $viewModel.showingCarousel) {
+                    if let carouselTarget = viewModel.carouselTarget, viewModel.showingCarousel == true {
+
+                        GalleryHorizontalScrollView(
+                            viewModel: .init(
+                                media: viewModel.media,
+                                selectedMedia: carouselTarget,
+                                fileAccess: viewModel.fileAccess,
+                                purchasedPermissions: viewModel.purchasedPermissions
+                            ))
+                    }
+                } label: {
+                    EmptyView()
+                }
+
+            }
+            .task {
+                await viewModel.enumerateMedia()
+            }
+            .onAppear {
+                AskForReviewUtil.askForReviewIfNeeded()
+            }
+            .onDisappear {
+                viewModel.cleanUp()
+            }
+            .scrollIndicators(.hidden)
+            .navigationBarTitle("")
+
+        }
+    }
+
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.selectAnOption.uppercased())
-                .fontType(.pt14, weight: .bold)
-                .foregroundColor(.white)
-                .opacity(0.40)
-            Button(action: {
-                viewModel.showCamera = true
-            }, label: {
-                AlbumActionComponent(mainTitle: L10n.emptyAlbumTakeAPictureHeading, subTitle: L10n.emptyAlbumTakeAPictureSubtitle, actionTitle: L10n.emptyAlbumTakeAPictureActionTitle, imageName: "Album-Camera")
-            })
-            Button(action: {
+
+            VStack(spacing: 24) {
+                VStack(spacing: 12) {
+                    Spacer().frame(height: 65)
+                    ImageWithBackgroundRectangle(imageName: "Album-Camera",
+                                                 rectWidth: 94,
+                                                 rectHeight: 94,
+                                                 rectCornerRadius: 24,
+                                                 rectOpacity: 0.10)
+                    Spacer().frame(height: 28)
+                    Group {
+                        Text(L10n.AlbumDetailView.addFirstImage)
+                            .fontType(.pt24, weight: .bold)
+                        Text(L10n.AlbumDetailView.addFirstImageSubtitle)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2, reservesSpace: true)
+                            .fontType(.pt14)
+                            .opacity(0.60)
+                    }.frame(alignment: .center)
+
+                }
+            }.frame(maxWidth: .infinity)
+            Spacer().frame(maxHeight: .infinity)
+            DualButtonComponent(nextActive: .constant(false),
+                                bottomButtonTitle: L10n.AlbumDetailView.importButton,
+                                bottomButtonAction: {
                 viewModel.showPhotoPicker = true
-                EventTracking.trackMediaImportOpened()
-            }, label: {
-                AlbumActionComponent(mainTitle: L10n.emptyAlbumImportPhotosHeading, subTitle: L10n.emptyAlbumImportPhotosSubtitle, actionTitle: L10n.emptyAlbumImportPhotosActionTitle, imageName: "Premium-Albums")
+            },
+                                secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
+                                secondaryButtonAction: {
+                viewModel.showCamera = true
             })
-        }
+        }.padding()
     }
 
     private func imageForItem(mediaItem: EncryptedMedia, width: CGFloat, height: CGFloat, index: Int) -> some View {

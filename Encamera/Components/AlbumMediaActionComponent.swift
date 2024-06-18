@@ -74,21 +74,6 @@ struct AlbumActionComponent: View {
     }
 }
 
-struct BackgroundRectangle: View {
-    var cornerRadius: CGFloat
-    var opacity: Double
-    var color: Color = .clear
-
-    var body: some View {
-
-        Rectangle()
-            .foregroundColor(.clear)
-            .background(color.opacity(opacity))
-            .cornerRadius(cornerRadius)
-
-    }
-}
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 12) {

@@ -159,9 +159,9 @@ struct SettingsView: View {
                                 await UIApplication.shared.open(URL(string: "https://t.me/encamera_app")!)
                             }
                         }
-                        Button(L10n.contact) {
+                        Button(L10n.Settings.contact) {
                             EventTracking.trackSettingsContactPressed()
-                            let email = "mailto:alex+contact@freas.me"
+                            let email = "mailto:alex@encamera.app"
                             let subject = "Encamera - Contact"
                             let urlString = "\(email)?subject=\(subject)"
 
@@ -213,8 +213,12 @@ struct SettingsView: View {
                             WebView(url: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
                         }.id(UUID())
                         reset
-                    }
 
+                    }
+                    Section {
+                        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown version"
+                        Text("\(L10n.Settings.version) \(appVersion)")
+                    }
                 }
                 .padding(.init(top: 10, leading: 0, bottom: 10, trailing: 0))
             }

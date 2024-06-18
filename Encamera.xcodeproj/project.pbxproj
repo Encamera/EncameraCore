@@ -38,6 +38,8 @@
 		189E8E09C8B2051B80EA5DD7 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 2E3847B535525CD631854FE2 /* SwiftUIIntrospect */; };
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
+		19FB74EE2C217887008AC6CA /* BackgroundRectangle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FB74ED2C217887008AC6CA /* BackgroundRectangle.swift */; };
+		19FB74F02C2178B1008AC6CA /* ImageWithBackgroundRectangle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19FB74EF2C2178B1008AC6CA /* ImageWithBackgroundRectangle.swift */; };
 		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
 		1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DF70D2CC410A637C7BB925 /* EncameraState.swift */; };
 		1B54606C7551FE409A2334E1 /* NotificationBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0CB527965415B1E27EAD16 /* NotificationBanner.swift */; };
@@ -356,6 +358,8 @@
 		15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewOnboardingView.swift; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		19FB74ED2C217887008AC6CA /* BackgroundRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRectangle.swift; sourceTree = "<group>"; };
+		19FB74EF2C2178B1008AC6CA /* ImageWithBackgroundRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageWithBackgroundRectangle.swift; sourceTree = "<group>"; };
 		1C05685B8D21E5E699385AF4 /* Satoshi-Black.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Black.otf"; sourceTree = "<group>"; };
 		1C3A2DC8EF95074331B6CBEE /* HeadingSubheadingImageComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadingSubheadingImageComponent.swift; sourceTree = "<group>"; };
 		1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInfoView.swift; sourceTree = "<group>"; };
@@ -907,6 +911,8 @@
 				9797F03E335C50ABCBD1610D /* UnderlineTextField.swift */,
 				25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */,
 				7FB2C08C3732EFAB967E6227 /* WebView.swift */,
+				19FB74ED2C217887008AC6CA /* BackgroundRectangle.swift */,
+				19FB74EF2C2178B1008AC6CA /* ImageWithBackgroundRectangle.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1319,6 +1325,7 @@
 				314C1682F74B89FEB81D801D /* DismissButton.swift in Sources */,
 				C08AB7E95C132673EC89904D /* DualButtonComponent.swift in Sources */,
 				F860061EE853A5C21899C1E4 /* EncameraApp.swift in Sources */,
+				19FB74F02C2178B1008AC6CA /* ImageWithBackgroundRectangle.swift in Sources */,
 				D9593E17F428493E19AC0277 /* EncameraState.swift in Sources */,
 				D6A68AA78C8F5FD15DA3360C /* EncameraTextField.swift in Sources */,
 				EB9D71FFC09A343782093FAA /* GalleryGridView.swift in Sources */,
@@ -1374,6 +1381,7 @@
 				287C6B691F74D954A27FBB00 /* ScreenBlocking.swift in Sources */,
 				52BE74575AF1E58D842FC87B /* SelectableGalleryView.swift in Sources */,
 				864AABB66247E3165F272A54 /* SettingsView.swift in Sources */,
+				19FB74EE2C217887008AC6CA /* BackgroundRectangle.swift in Sources */,
 				C5A2C1B02914147FB96D2AE3 /* Spacing.swift in Sources */,
 				B837693314775C8DFB17B4D6 /* StepIndicator.swift in Sources */,
 				12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */,
