@@ -382,6 +382,14 @@ struct EncameraApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        if LaunchCountUtils.isUpgradeLaunch() {
+            do {
+                try DiskFileAccess.deleteThumbnailDirectory()
+                debugPrint("Deleted thumbnail directory")
+            } catch {
+                debugPrint("Could not delete thumbnail directory")
+            }
+        }
         EventTracking.trackAppLaunched()
         LaunchCountUtils.recordCurrentVersionLaunch()
         return true

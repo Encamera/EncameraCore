@@ -237,7 +237,9 @@ struct ImageViewing<M: MediaDescribing>: View {
                                     calculateScaleAnchor())
                     .offset(viewModel.offset)
                     .zIndex(1)
-                    .gesture(viewModel.dragGesture)
+                    .if(viewModel.finalScale > 1.0, transform: { view in
+                        view.gesture(viewModel.dragGesture)
+                    })
                     .simultaneousGesture(viewModel.magnificationGesture)
                     .simultaneousGesture(viewModel.tapGesture)
                     .background(geometryReader)
