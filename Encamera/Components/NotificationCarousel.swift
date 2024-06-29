@@ -102,7 +102,7 @@ class NotificationCarouselViewModel: ObservableObject {
                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
             }),
             .init(image: Image("Telegram-Logo"), titleText: L10n.telegramGroupJoinTitle, bodyText: L10n.telegramGroupJoinBody, buttonText: L10n.telegramGroupJoinButtonText, buttonUrl: URL(string: "https://t.me/encamera_app")!, id: 3),
-            .init(image: Image("NotificationBanner-Widget"), titleText: L10n.installWidgetTitle, bodyText: L10n.installWidgetBody, buttonText: L10n.installWidgetButtonText, buttonUrl: URL(string: "https://vimeo.com/896507875")!, id: 4, tappedAction: tappedAction),
+            .init(image: Image("NotificationBanner-Widget"), titleText: L10n.installWidgetTitle, bodyText: L10n.installWidgetBody, buttonText: L10n.installWidgetButtonText, buttonUrl: AppConstants.widgetVimeoLink, id: 4, tappedAction: tappedAction),
 
         ].shuffled()
     }

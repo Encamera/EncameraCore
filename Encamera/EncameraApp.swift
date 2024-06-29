@@ -35,8 +35,6 @@ struct EncameraApp: App {
         private var cancellables = Set<AnyCancellable>()
 
         init() {
-            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-            try? AVAudioSession.sharedInstance().setActive(true)
             self.newMediaFileAccess = D.init()
             self.settingsManager = SettingsManager()
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
