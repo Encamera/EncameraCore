@@ -36,7 +36,7 @@ private enum Constants {
 }
 
 
-struct SelectableGalleryView<T: MediaDescribing>: View where T.MediaSource == URL {
+struct SelectableGalleryView<T: MediaDescribing>: View  {
     
     @StateObject var viewModel: SelectableGalleryViewModel<T>
     
@@ -77,28 +77,28 @@ struct SelectableGalleryView<T: MediaDescribing>: View where T.MediaSource == UR
     }
 }
 
-struct SelectableGalleryView_Previews: PreviewProvider {
-    
-    public static func withUrl() -> CleartextMedia<URL> {
-        guard let url = Bundle.main
-            .url(forResource: "3", withExtension: "JPG") else {
-            fatalError()
-        }
-        return CleartextMedia(source: url)
-    }
-    
-    public static var media: [CleartextMedia<URL>] {
-        (1..<6).map { i in
-            guard let url = Bundle.main
-                .url(forResource: "\(i)", withExtension: "JPG") else {
-                fatalError()
-            }
-            return CleartextMedia(source: url)
-
-        }
-    }
-    
-    static var previews: some View {
-        SelectableGalleryView(viewModel: .init(media: media, fileAccess: DemoFileEnumerator()))
-    }
-}
+//struct SelectableGalleryView_Previews: PreviewProvider {
+//    
+//    public static func withUrl() -> CleartextMedia<URL> {
+//        guard let url = Bundle.main
+//            .url(forResource: "3", withExtension: "JPG") else {
+//            fatalError()
+//        }
+//        return CleartextMedia(source: url)
+//    }
+//    
+//    public static var media: [CleartextMedia<URL>] {
+//        (1..<6).map { i in
+//            guard let url = Bundle.main
+//                .url(forResource: "\(i)", withExtension: "JPG") else {
+//                fatalError()
+//            }
+//            return CleartextMedia(source: url)
+//
+//        }
+//    }
+//    
+//    static var previews: some View {
+//        SelectableGalleryView(viewModel: .init(media: media, fileAccess: DemoFileEnumerator()))
+//    }
+//}

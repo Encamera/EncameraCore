@@ -11,11 +11,11 @@ import Combine
 
 class MediaImportViewModel: ObservableObject {
     
-    @Published var mediaToImport: [CleartextMedia<URL>] = []
-    @Published var selectedMedia: Set<CleartextMedia<URL>> = Set()
+    @Published var mediaToImport: [CleartextMedia] = []
+    @Published var selectedMedia: Set<CleartextMedia> = Set()
     @Published var showDeleteAlert: Bool = false
     @Published var saveProgress: Double = 0.0
-    var galleryViewModel: SelectableGalleryViewModel<CleartextMedia<URL>>
+    var galleryViewModel: SelectableGalleryViewModel<CleartextMedia>
     var privateKey: PrivateKey
     var albumManager: AlbumManaging
     private var cancellables = Set<AnyCancellable>()
@@ -34,7 +34,7 @@ class MediaImportViewModel: ObservableObject {
     }
     
     func loadMediaToImport() async {
-        let media: [CleartextMedia<URL>] = await appGroupFileAccess.enumerateMedia()
+        let media: [CleartextMedia] = await appGroupFileAccess.enumerateMedia()
         await MainActor.run {
             galleryViewModel.media = media
             galleryViewModel.$selectedMedia.sink(receiveValue: { selectedMedia in

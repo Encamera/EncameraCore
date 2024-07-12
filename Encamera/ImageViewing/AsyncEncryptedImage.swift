@@ -9,7 +9,7 @@ import Combine
 import SwiftUI
 import EncameraCore
 
-struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identifiable where T.MediaSource == URL {
+struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identifiable  {
     
     @MainActor
     class ViewModel: ObservableObject {
@@ -34,9 +34,11 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
                     cleartextMedia = preview
                 }
             } catch let err as SecretFilesError {
+                debugPrint("Error loading preview: \(err)")
                 self.error = err
             } catch {
-                self.error = SecretFilesError.sourceFileAccessError
+                debugPrint("Error loading preview: \(error)")
+                self.error = SecretFilesError.sourceFileAccessError("generic error")
             }
         }
     }
@@ -49,7 +51,7 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
     
     var body: some View {
 
-        if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.source,
+        if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.data,
            let image = UIImage(data: decrypted) {
             ZStack {
                 bodyContainer {

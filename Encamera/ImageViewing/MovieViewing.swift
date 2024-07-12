@@ -13,7 +13,7 @@ import EncameraCore
 class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, MediaViewingViewModel {
     var fileAccess: FileAccess?
     
-    @Published var decryptedFileRef: CleartextMedia<URL>?
+    @Published var decryptedFileRef: CleartextMedia?
     @MainActor
     @Published var decryptProgress: FileLoadingStatus = .notLoaded
     @Published var player: AVPlayer?
@@ -55,7 +55,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     private var durationObservation: NSKeyValueObservation?
 
     @MainActor
-    func decrypt() async throws -> CleartextMedia<URL> {
+    func decrypt() async throws -> CleartextMedia {
         guard let fileAccess = fileAccess else {
             throw MediaViewingError.fileAccessNotAvailable
         }
@@ -63,9 +63,13 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
             debugPrint("Decrypting movie: \(progress)")
             self.decryptProgress = progress
         }
-        
+
+        guard let url = cleartextMedia.url else {
+            throw MediaViewingError.decryptError(wrapped: NSError(domain: "No URL", code: 0, userInfo: nil))
+        }
+
         // Initialize the AVPlayer when the media is decrypted
-        let player = AVPlayer(url: cleartextMedia.source)
+        let player = AVPlayer(url: url)
         NotificationCenter.default
             .addObserver(self,
             selector: #selector(playerDidFinishPlaying),
@@ -109,7 +113,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     
 }
 
-struct MovieViewing<M: MediaDescribing>: View where M.MediaSource == URL {
+struct MovieViewing<M: MediaDescribing>: View {
     @State var progress = 0.0
     @StateObject var viewModel: MovieViewingViewModel<M>
     @State private var videoPosition: Double = 0

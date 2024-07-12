@@ -185,7 +185,7 @@ struct EncameraApp: App {
         
         func checkForImportedImages() async {
             
-            guard let images: [CleartextMedia<URL>] = await appGroupFileAccess?.enumerateMedia() else {
+            guard let images: [CleartextMedia] = await appGroupFileAccess?.enumerateMedia() else {
                 return
             }
             let hasMedia = images.count > 0

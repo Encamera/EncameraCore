@@ -31,17 +31,16 @@ enum MediaViewingError: ErrorDescribable {
 protocol MediaViewingViewModel: AnyObject {
 
     associatedtype SourceType = MediaDescribing
-    associatedtype TargetT: MediaSourcing
 
     var sourceMedia: SourceType { get set }
     var fileAccess: FileAccess? { get set }
     var error: MediaViewingError? { get set }
 
     @MainActor
-    var decryptedFileRef: CleartextMedia<TargetT>? { get set }
+    var decryptedFileRef: CleartextMedia? { get set }
     init(media: SourceType, fileAccess: FileAccess)
 
-    func decrypt() async throws -> CleartextMedia<TargetT>
+    func decrypt() async throws -> CleartextMedia
 }
 
 extension MediaViewingViewModel {
@@ -69,7 +68,7 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
     typealias TapGestureType = _EndedGesture<TapGesture>
 
-    @Published var decryptedFileRef: CleartextMedia<Data>?
+    @Published var decryptedFileRef: CleartextMedia?
     @Published var loadingProgress: Double = 0.0
     @Published var currentScale: CGFloat = 1.0
     @Published var finalScale: CGFloat = 1.0
@@ -228,7 +227,7 @@ struct ImageViewing<M: MediaDescribing>: View {
     var body: some View {
 
         ZStack {
-            if let imageData = viewModel.decryptedFileRef?.source,
+            if let imageData = viewModel.decryptedFileRef?.data,
                let image = UIImage(data: imageData) {
                 Image(uiImage: image)
                     .resizable()

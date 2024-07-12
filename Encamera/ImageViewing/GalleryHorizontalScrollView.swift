@@ -84,8 +84,12 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
                 let decrypted = try await fileAccess.loadMediaInMemory(media: selectedMedia) { _ in
                     
                 }
+                guard let data = decrypted.data else {
+                    return
+                }
+
                 await MainActor.run {
-                    if let image = UIImage(data: decrypted.source) {
+                    if let image = UIImage(data: data) {
                         shareSheet(data: image)
                     }
                 }

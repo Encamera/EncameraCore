@@ -206,7 +206,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
                 self.importProgress = progress
             }
         }
-        debugPrint("Media saved: \(savedMedia?.source.absoluteString ?? "nil")")
+        debugPrint("Media saved: \(savedMedia?.url?.absoluteString ?? "nil")")
         await MainActor.run {
             self.importProgress = 0.0 // Reset or update progress as necessary
         }
