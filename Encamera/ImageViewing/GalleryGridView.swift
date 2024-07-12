@@ -139,7 +139,39 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
         Task {
             totalImportCount = items.count
             isImporting = true
+
+            // Step 1: Extract creation dates
+            var itemsWithDates: [(result: PHPickerResult, date: Date?)] = []
+
             for result in items {
+                let provider = result.itemProvider
+                if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    if let date = await extractCreationDate(from: provider, typeIdentifier: UTType.image.identifier) {
+                        itemsWithDates.append((result: result, date: date))
+                    } else {
+                        itemsWithDates.append((result: result, date: nil))
+                    }
+                } else if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
+                    if let date = await extractCreationDate(from: provider, typeIdentifier: UTType.movie.identifier) {
+                        itemsWithDates.append((result: result, date: date))
+                    } else {
+                        itemsWithDates.append((result: result, date: nil))
+                    }
+                } else {
+                    itemsWithDates.append((result: result, date: nil))
+                }
+            }
+
+            // Step 2: Sort by date (ascending)
+            itemsWithDates.sort { (item1, item2) -> Bool in
+                guard let date1 = item1.date, let date2 = item2.date else {
+                    return item1.date != nil // Treat nil dates as the end of the list
+                }
+                return date1 < date2
+            }
+
+            // Step 3: Process sorted items
+            for (result, _) in itemsWithDates {
                 if cancelImport {
                     isImporting = false
                     cancelImport = false
@@ -155,12 +187,53 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
 
                 try await self.loadAndSaveMediaAsync(result: result)
             }
+
             EventTracking.trackMediaImported(count: items.count)
 
             isImporting = false
             await enumerateMedia()
         }
     }
+
+    func extractCreationDate(from provider: NSItemProvider, typeIdentifier: String) async -> Date? {
+        await withCheckedContinuation { continuation in
+            provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, error in
+                guard let data = data, error == nil else {
+                    continuation.resume(returning: Date())
+                    return
+                }
+
+                if typeIdentifier == UTType.image.identifier {
+                    if let source = CGImageSourceCreateWithData(data as CFData, nil),
+                       let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                       let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any],
+                       let dateString = exif[kCGImagePropertyExifDateTimeOriginal] as? String,
+                       let date = self.parseExifDate(dateString: dateString) {
+                        continuation.resume(returning: date)
+                        return
+                    }
+                } else if typeIdentifier == UTType.movie.identifier {
+                    if let url = URL(dataRepresentation: data, relativeTo: nil) {
+                        let asset = AVURLAsset(url: url)
+                       let dateItem = asset.metadata.first(where: { $0.commonKey?.rawValue == "creationDate" })
+                       let date = dateItem?.dateValue
+                        continuation.resume(returning: date)
+                        return
+                    }
+                }
+
+                continuation.resume(returning: nil)
+            }
+        }
+    }
+
+    nonisolated func parseExifDate(dateString: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        return dateFormatter.date(from: dateString)
+    }
+
 
     private func loadAndSaveMediaAsync(result: PHPickerResult) async throws {
 
