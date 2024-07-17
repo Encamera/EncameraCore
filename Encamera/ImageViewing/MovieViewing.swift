@@ -59,7 +59,7 @@ class MovieViewingViewModel: ObservableObject, MediaViewingViewModel {
         guard let fileAccess = fileAccess else {
             throw MediaViewingError.fileAccessNotAvailable
         }
-        let cleartextMedia = try await fileAccess.loadMediaToURL(media: sourceMedia) { progress in
+        let cleartextMedia = try await fileAccess.loadMedia(media: sourceMedia) { progress in
             debugPrint("Decrypting movie: \(progress)")
             self.decryptProgress = progress
         }

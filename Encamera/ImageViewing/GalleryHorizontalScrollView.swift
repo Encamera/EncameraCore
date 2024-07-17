@@ -74,12 +74,12 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
         guard let selectedMedia else { return }
         Task {
             #warning("implement live photo sharing")
+            let decrypted = try await fileAccess.loadMedia(media: selectedMedia) { _ in
 
+            }
             switch selectedMedia.mediaType {
             case .livePhoto, .stillPhoto:
-                let decrypted = try await fileAccess.loadMediaInMemory(media: selectedMedia) { _ in
-                    
-                }
+
                 guard let data = decrypted.imageData else {
                     return
                 }
@@ -91,9 +91,6 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
                 }
                 
             case .video:
-                let decrypted = try await fileAccess.loadMediaToURL(media: selectedMedia) {_ in
-                    
-                }
                 await MainActor.run {
                     shareSheet(data: decrypted.videoURL)
                 }
@@ -252,7 +249,7 @@ struct GalleryHorizontalScrollView: View {
     @ViewBuilder private func viewingFor(item: InteractableMedia<EncryptedMedia>) -> some View {
 
         switch item.mediaType {
-        case .stillPhoto:
+        case .stillPhoto, .livePhoto:
             let model = viewModel.modelForMedia(item: item)
             ImageViewing(viewModel: model, externalGesture: dragGestureRef)
                 .onDisappear {

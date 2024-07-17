@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import EncameraCore
+import AVFoundation
 
 enum MediaViewingError: ErrorDescribable {
     case noKeyAvailable
@@ -76,6 +77,8 @@ class ImageViewingViewModel: ObservableObject {
     @Published var finalOffset: CGSize = .zero
     @Published var currentOffset: CGSize = .zero
     @Published var currentFrame: CGRect = .zero
+    @Published var player: AVPlayer?
+
     var swipeLeft: (() -> Void)
     var swipeRight: (() -> Void)
 
@@ -93,7 +96,7 @@ class ImageViewingViewModel: ObservableObject {
     func decryptAndSet() {
         Task { [self] in
             do {
-                let result = try await fileAccess.loadMediaInMemory(media: sourceMedia) { [self] progress in
+                let result = try await fileAccess.loadMedia(media: sourceMedia) { [self] progress in
                     switch progress {
                     case .decrypting(progress: let progress), .downloading(progress: let progress):
                         loadingProgress = progress
@@ -103,6 +106,10 @@ class ImageViewingViewModel: ObservableObject {
                         loadingProgress = 0.0
                     }
                 }
+                if let url = result.videoURL {
+                    player = AVPlayer(url: url)
+                }
+
                 await MainActor.run {
                     decryptedFileRef = result
                 }
@@ -129,6 +136,7 @@ class ImageViewingViewModel: ObservableObject {
             height: finalOffset.height + currentOffset.height
         )
     }
+
     private func didResetViewStateIfNeeded(targetScale: CGFloat, targetOffset: CGSize) -> Bool {
         debugPrint("didResetViewStateIfNeeded: targetScale: \(targetScale), targetOffset: \(targetOffset)")
 
@@ -137,6 +145,14 @@ class ImageViewingViewModel: ObservableObject {
             return true
         }
         return false
+    }
+
+    func playVideo() {
+        player?.play()
+    }
+
+    func pauseVideo() {
+        player?.pause()
     }
 
     var dragGesture: DragGestureType {
@@ -228,6 +244,9 @@ struct ImageViewing: View {
     var body: some View {
 
         ZStack {
+            if viewModel.player != nil {
+                livePhotoViewport
+            }
             if let imageData = viewModel.decryptedFileRef?.imageData,
                let image = UIImage(data: imageData) {
                 Image(uiImage: image)
@@ -255,6 +274,14 @@ struct ImageViewing: View {
             EventTracking.trackImageViewed()
         }
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    var livePhotoViewport: some View {
+
+            AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: true)
+                .aspectRatio(contentMode: .fill)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
     }
 
     var geometryReader: some View {
