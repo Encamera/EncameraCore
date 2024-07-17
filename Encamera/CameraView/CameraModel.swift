@@ -196,7 +196,7 @@ final class CameraModel: NSObject, ObservableObject {
     
     func loadThumbnail() async {
         
-        let media: [EncryptedMedia] = await fileAccess.enumerateMedia()
+        let media: [InteractableMedia<EncryptedMedia>] = await fileAccess.enumerateMedia()
         guard let firstMedia = media.first else {
             await MainActor.run {
                 self.thumbnailImage = nil
@@ -239,13 +239,7 @@ final class CameraModel: NSObject, ObservableObject {
                 willCapturePhoto = true
             })
             do {
-                if let photo = photoObject.photo {
-                    try await fileAccess.save(media: photo) { _ in }
-                }
-                
-                if let livePhoto = photoObject.livePhoto {
-                    try await fileAccess.save(media: livePhoto) { _ in }
-                }
+                try await fileAccess.save(media: photoObject) { _ in }
                 UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
                 UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
             } catch let filesError as FileAccessError {

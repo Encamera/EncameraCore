@@ -5,7 +5,7 @@ import EncameraCore
 import AVFoundation
 
 typealias AlbumManagerType = AlbumManager
-typealias FileAccessType = DiskFileAccess
+typealias FileAccessType = InteractableMediaDiskAccess
 
 @main
 struct EncameraApp: App {
@@ -14,7 +14,7 @@ struct EncameraApp: App {
         @Published var hasOpenedURL: Bool = false
         @Published var promptToSaveMedia: Bool = false
         var newMediaFileAccess: D
-        var appGroupFileAccess: AppGroupFileReader?
+//        var appGroupFileAccess: AppGroupFileReader?
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
         @Published var showOnboarding = false
@@ -70,7 +70,7 @@ struct EncameraApp: App {
                     return
                 }
                 let albumManager: AlbumManaging = AlbumManager(keyManager: keyManager)
-                self.appGroupFileAccess = AppGroupFileReader(albumManager: albumManager)
+//                self.appGroupFileAccess = AppGroupFileReader(albumManager: albumManager)
                 self.albumManager = albumManager
                 self.albumManager?.albumOperationPublisher
                     .receive(on: RunLoop.main)
@@ -151,7 +151,7 @@ struct EncameraApp: App {
         
         
         
-        func moveOpenedFile(media: EncryptedMedia) {
+        func moveOpenedFile(media: InteractableMedia<EncryptedMedia>) {
             Task {
                 do {
                     try await newMediaFileAccess.move(media: media)
@@ -185,13 +185,13 @@ struct EncameraApp: App {
         
         func checkForImportedImages() async {
             
-            guard let images: [CleartextMedia] = await appGroupFileAccess?.enumerateMedia() else {
-                return
-            }
-            let hasMedia = images.count > 0
-            await MainActor.run {
-                hasMediaToImport = hasMedia
-            }
+//            guard let images: [CleartextMedia] = await appGroupFileAccess?.enumerateMedia() else {
+//                return
+//            }
+//            let hasMedia = images.count > 0
+//            await MainActor.run {
+//                hasMediaToImport = hasMedia
+//            }
 
 
         }
@@ -322,20 +322,20 @@ struct EncameraApp: App {
     }
     
     @ViewBuilder private var mediaImportSheet: some View {
-        if let key = viewModel.keyManager.currentKey, let albumManager = viewModel.albumManager {
-            MediaImportView(viewModel: .init(
-                privateKey: key,
-                albumManager: albumManager,
-                fileAccess: viewModel.newMediaFileAccess))
-        } else {
+//        if let key = viewModel.keyManager.currentKey, let albumManager = viewModel.albumManager {
+//            MediaImportView(viewModel: .init(
+//                privateKey: key,
+//                albumManager: albumManager,
+//                fileAccess: viewModel.newMediaFileAccess))
+//        } else {
             Text("Something went wrong")
-        }
+//        }
     }
 
-    @ViewBuilder private func galleryForMedia(media: EncryptedMedia) -> some View {
+    @ViewBuilder private func galleryForMedia(media: InteractableMedia<EncryptedMedia>) -> some View {
         let fileAccess = viewModel.newMediaFileAccess
         switch media.mediaType {
-        case .photo:
+        case .stillPhoto, .livePhoto:
             NavigationStack {
                 GalleryHorizontalScrollView(
                     viewModel: GalleryHorizontalScrollViewModel.init(
@@ -368,7 +368,7 @@ struct EncameraApp: App {
             }, set: { value in
                 isPlaying = value
             })
-            MovieViewing<EncryptedMedia>(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess), isPlayingVideo: playBinding)
+            MovieViewing(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess), isPlayingVideo: playBinding)
         default:
             EmptyView()
         }

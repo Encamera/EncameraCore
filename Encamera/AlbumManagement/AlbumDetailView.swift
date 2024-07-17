@@ -279,10 +279,10 @@ struct AlbumDetailView<D: FileAccess>: View {
     }
 }
 
-#Preview {
-//    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
-//        EventTracking.trackAlbumOpened()
-//    }
-    
-    AlbumDetailView<DiskFileAccess>(viewModel: .init(albumManager: DemoAlbumManager(), album: Album(name: "Test", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())))
-}
+//#Preview {
+////    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
+////        EventTracking.trackAlbumOpened()
+////    }
+//    
+//    AlbumDetailView<DiskFileAccess>(viewModel: .init(albumManager: DemoAlbumManager(), album: Album(name: "Test", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())))
+//}

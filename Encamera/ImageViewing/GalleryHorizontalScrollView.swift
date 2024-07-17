@@ -12,8 +12,8 @@ import EncameraCore
 
 class GalleryHorizontalScrollViewModel: ObservableObject {
     
-    @Published var media: [EncryptedMedia]
-    @Published var selectedMedia: EncryptedMedia?
+    @Published var media: [InteractableMedia<EncryptedMedia>]
+    @Published var selectedMedia: InteractableMedia<EncryptedMedia>?
     @Published var showInfoSheet = false
     @Published var showPurchaseSheet = false
     @Published var isPlayingVideo = false
@@ -22,7 +22,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
     
-    init(media: [EncryptedMedia], selectedMedia: EncryptedMedia, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging) {
+    init(media: [InteractableMedia<EncryptedMedia>], selectedMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging) {
         self.media = media
         self.fileAccess = fileAccess
         self.selectedMedia = selectedMedia
@@ -55,8 +55,8 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
             }
         }
     }
-    var imageModels: [EncryptedMedia.ID: ImageViewingViewModel<EncryptedMedia>] = [:]
-    func modelForMedia(item: EncryptedMedia) -> ImageViewingViewModel<EncryptedMedia> {
+    var imageModels: [InteractableMedia<EncryptedMedia>.ID: ImageViewingViewModel] = [:]
+    func modelForMedia(item: InteractableMedia<EncryptedMedia>) -> ImageViewingViewModel {
         if let model = imageModels[item.id] {
             return model
         } else {
@@ -70,21 +70,17 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
 
     }
     
-    @MainActor
-    func shareEncrypted() {
-        guard let selectedMedia else { return }
-        shareSheet(data: selectedMedia.source)
-    }
-    
     func shareDecrypted() {
         guard let selectedMedia else { return }
         Task {
+            #warning("implement live photo sharing")
+
             switch selectedMedia.mediaType {
-            case .photo:
+            case .livePhoto, .stillPhoto:
                 let decrypted = try await fileAccess.loadMediaInMemory(media: selectedMedia) { _ in
                     
                 }
-                guard let data = decrypted.data else {
+                guard let data = decrypted.imageData else {
                     return
                 }
 
@@ -99,7 +95,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
                     
                 }
                 await MainActor.run {
-                    shareSheet(data: decrypted.source)
+                    shareSheet(data: decrypted.videoURL)
                 }
             default:
                 return
@@ -253,10 +249,10 @@ struct GalleryHorizontalScrollView: View {
     }
 
 
-    @ViewBuilder private func viewingFor(item: EncryptedMedia) -> some View {
+    @ViewBuilder private func viewingFor(item: InteractableMedia<EncryptedMedia>) -> some View {
 
         switch item.mediaType {
-        case .photo:
+        case .stillPhoto:
             let model = viewModel.modelForMedia(item: item)
             ImageViewing(viewModel: model, externalGesture: dragGestureRef)
                 .onDisappear {
@@ -297,7 +293,7 @@ struct GalleryHorizontalScrollView: View {
         .frame(height: 44)
     }
     
-    private func scrollTo(media: EncryptedMedia?, with proxy: ScrollViewProxy, animated: Bool = true) {
+    private func scrollTo(media: InteractableMedia<EncryptedMedia>?, with proxy: ScrollViewProxy, animated: Bool = true) {
         guard let media else { return }
         let scrollClosure = {
             proxy.scrollTo(media.id, anchor: nil)
@@ -314,11 +310,11 @@ struct GalleryHorizontalScrollView: View {
 
 }
 
-struct GalleryHorizontalScrollView_Previews: PreviewProvider {
-    static var previews: some View {
-        let media = (0..<10).map { EncryptedMedia(source: URL(string: "/")!, mediaType: .photo, id: "\($0)") }
-        let model = GalleryHorizontalScrollViewModel(media: media, selectedMedia: media.first!, fileAccess: DemoFileEnumerator(), purchasedPermissions: AppPurchasedPermissionUtils())
-        GalleryHorizontalScrollView(viewModel: model)
-            .preferredColorScheme(.dark)
-    }
-}
+//struct GalleryHorizontalScrollView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        let media = (0..<10).map { InteractableMedia<EncryptedMedia>(source: URL(string: "/")!, mediaType: .photo, id: "\($0)") }
+//        let model = GalleryHorizontalScrollViewModel(media: media, selectedMedia: media.first!, fileAccess: DemoFileEnumerator(), purchasedPermissions: AppPurchasedPermissionUtils())
+//        GalleryHorizontalScrollView(viewModel: model)
+//            .preferredColorScheme(.dark)
+//    }
+//}

@@ -18,10 +18,10 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
     var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
     @MainActor
-    @Published var media: [EncryptedMedia] = []
+    @Published var media: [InteractableMedia<EncryptedMedia>] = []
     @Published var showCamera: Bool = false
     @Published var showPhotoPicker: Bool = false
-    @Published var firstImage: EncryptedMedia?
+    @Published var firstImage: InteractableMedia<EncryptedMedia>?
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
     @Published var downloadInProgress = false
@@ -39,7 +39,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
             debugPrint("startedImportCount: \(startedImportCount)")
         }
     }
-    @Published var carouselTarget: EncryptedMedia? {
+    @Published var carouselTarget: InteractableMedia<EncryptedMedia>? {
         didSet {
             if carouselTarget == nil {
                 showingCarousel = false
@@ -59,7 +59,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
          blurImages: Bool = false,
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,
-         carouselTarget: EncryptedMedia? = nil,
+         carouselTarget: InteractableMedia<EncryptedMedia>? = nil,
          fileAccess: FileAccess,
          purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
     ) {
@@ -122,7 +122,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
             return
         }
         await fileAccess.configure(for: album, albumManager: albumManager)
-        let enumerated: [EncryptedMedia] = await fileAccess.enumerateMedia()
+        let enumerated: [InteractableMedia<EncryptedMedia>] = await fileAccess.enumerateMedia()
         debugPrint("enumerated: \(enumerated)")
         media = enumerated
         firstImage = enumerated.first
@@ -271,7 +271,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
             debugPrint("Error loading file representation, url is nil")
             return
         }
-        let media = CleartextMedia(source: url) // Ensure CleartextMedia can handle URLs for both images and videos
+        let media = try InteractableMedia(underlyingMedia: [CleartextMedia(source: url)]) // Ensure CleartextMedia can handle URLs for both images and videos
         debugPrint("Will save media: \(media)")
         let savedMedia = try await fileAccess.save(media: media) { progress in // Ensure fileAccess and its save method are correctly implemented
             debugPrint("Progress: \(progress)")
@@ -279,7 +279,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
                 self.importProgress = progress
             }
         }
-        debugPrint("Media saved: \(savedMedia?.url?.absoluteString ?? "nil")")
+        debugPrint("Media saved: \(savedMedia?.photoURL?.absoluteString ?? "nil")")
         await MainActor.run {
             self.importProgress = 0.0 // Reset or update progress as necessary
         }
@@ -484,7 +484,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
         }.padding()
     }
 
-    private func imageForItem(mediaItem: EncryptedMedia, width: CGFloat, height: CGFloat, index: Int) -> some View {
+    private func imageForItem(mediaItem: InteractableMedia<EncryptedMedia>, width: CGFloat, height: CGFloat, index: Int) -> some View {
 
         AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
                             placeholder: ProgressView(), isInSelectionMode: .constant(false), isSelected: .constant(false))
@@ -523,6 +523,6 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
     }
 }
 
-#Preview {
-    GalleryGridView<EmptyView, EncryptedMedia, DemoFileEnumerator>(viewModel: .init(album: Album(name: "Chee", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), fileAccess: DemoFileEnumerator()))
-}
+//#Preview {
+//    GalleryGridView<EmptyView, InteractableMedia<EncryptedMedia>, DemoFileEnumerator>(viewModel: .init(album: Album(name: "Chee", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), fileAccess: DemoFileEnumerator()))
+//}

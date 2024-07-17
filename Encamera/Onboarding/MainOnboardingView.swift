@@ -307,7 +307,7 @@ private extension MainOnboardingView {
                             }
 
                             NavigationLink {
-                                PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: DiskFileAccess()))
+                                PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: InteractableMediaDiskAccess()))
                             } label: {
                                 Text(L10n.eraseDeviceData)
                             }.primaryButton()

@@ -9,20 +9,20 @@ import Foundation
 import SwiftUI
 import EncameraCore
 
-class SelectableGalleryViewModel<M: MediaDescribing>: ObservableObject where M: Hashable {
+class SelectableGalleryViewModel: ObservableObject {
     
     @Published var isSelecting: Bool = true
-    @Published var media: [M]
-    @Published var carouselTarget: M?
-    @Published var selectedMedia: Set<M> = Set()
+    @Published var media: [InteractableMedia<EncryptedMedia>]
+    @Published var carouselTarget: InteractableMedia<EncryptedMedia>?
+    @Published var selectedMedia: Set<InteractableMedia<EncryptedMedia>> = Set()
     var fileAccess: FileReader
     
-    init(media: [M], fileAccess: FileReader) {
+    init(media: [InteractableMedia<EncryptedMedia>], fileAccess: FileReader) {
         self.media = media
         self.fileAccess = fileAccess
     }
     
-    func toggleSelectedMedia(_ media: M) {
+    func toggleSelectedMedia(_ media: InteractableMedia<EncryptedMedia>) {
         if selectedMedia.contains(media) {
             selectedMedia.remove(media)
         } else {
@@ -38,8 +38,8 @@ private enum Constants {
 
 struct SelectableGalleryView<T: MediaDescribing>: View  {
     
-    @StateObject var viewModel: SelectableGalleryViewModel<T>
-    
+    @StateObject var viewModel: SelectableGalleryViewModel
+
     var body: some View {
         GeometryReader { geo in
             let frame = geo.frame(in: .global)

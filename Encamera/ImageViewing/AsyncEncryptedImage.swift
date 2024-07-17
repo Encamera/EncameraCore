@@ -9,12 +9,12 @@ import Combine
 import SwiftUI
 import EncameraCore
 
-struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identifiable  {
+struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
     
     @MainActor
     class ViewModel: ObservableObject {
         private var loader: FileReader
-        private var targetMedia: T
+        private var targetMedia: InteractableMedia<EncryptedMedia>
         @Published var cleartextMedia: PreviewModel?
         @Published var error: Error?
         
@@ -22,7 +22,7 @@ struct AsyncEncryptedImage<Placeholder: View, T: MediaDescribing>: View, Identif
             targetMedia.needsDownload
         }
         
-        init(targetMedia: T, loader: FileReader, isInSelectionMode: Bool = false, isSelected: Bool = false) {
+        init(targetMedia: InteractableMedia<EncryptedMedia>, loader: FileReader, isInSelectionMode: Bool = false, isSelected: Bool = false) {
             self.targetMedia = targetMedia
             self.loader = loader
         }

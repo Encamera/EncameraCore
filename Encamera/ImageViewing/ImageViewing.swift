@@ -30,17 +30,17 @@ enum MediaViewingError: ErrorDescribable {
 
 protocol MediaViewingViewModel: AnyObject {
 
-    associatedtype SourceType = MediaDescribing
+    associatedtype SourceType: EncryptedMedia
 
-    var sourceMedia: SourceType { get set }
+    var sourceMedia: InteractableMedia<SourceType> { get set }
     var fileAccess: FileAccess? { get set }
     var error: MediaViewingError? { get set }
 
     @MainActor
-    var decryptedFileRef: CleartextMedia? { get set }
-    init(media: SourceType, fileAccess: FileAccess)
+    var decryptedFileRef: InteractableMedia<CleartextMedia>? { get set }
+    init(media: InteractableMedia<SourceType>, fileAccess: FileAccess)
 
-    func decrypt() async throws -> CleartextMedia
+    func decrypt() async throws -> InteractableMedia<CleartextMedia>
 }
 
 extension MediaViewingViewModel {
@@ -63,12 +63,13 @@ extension MediaViewingViewModel {
 
 }
 
-class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
+class ImageViewingViewModel: ObservableObject {
+
     typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnifyGesture>>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
     typealias TapGestureType = _EndedGesture<TapGesture>
 
-    @Published var decryptedFileRef: CleartextMedia?
+    @Published var decryptedFileRef: InteractableMedia<CleartextMedia>?
     @Published var loadingProgress: Double = 0.0
     @Published var currentScale: CGFloat = 1.0
     @Published var finalScale: CGFloat = 1.0
@@ -78,11 +79,11 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
     var swipeLeft: (() -> Void)
     var swipeRight: (() -> Void)
 
-    var sourceMedia: SourceType
+    var sourceMedia: InteractableMedia<EncryptedMedia>
     var fileAccess: FileAccess
     var error: MediaViewingError?
 
-    init(swipeLeft: @escaping ( () -> Void), swipeRight: @escaping ( () -> Void), sourceMedia: SourceType, fileAccess: FileAccess) {
+    init(swipeLeft: @escaping ( () -> Void), swipeRight: @escaping ( () -> Void), sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess) {
         self.swipeLeft = swipeLeft
         self.swipeRight = swipeRight
         self.sourceMedia = sourceMedia
@@ -199,10 +200,10 @@ class ImageViewingViewModel<SourceType: MediaDescribing>: ObservableObject {
     }
 }
 
-struct ImageViewing<M: MediaDescribing>: View {
+struct ImageViewing: View {
 
     @State var showBottomActions = false
-    @ObservedObject var viewModel: ImageViewingViewModel<M>
+    @ObservedObject var viewModel: ImageViewingViewModel
     var externalGesture: DragGesture
 
     private func calculateScaleAnchor() -> UnitPoint {
@@ -227,7 +228,7 @@ struct ImageViewing<M: MediaDescribing>: View {
     var body: some View {
 
         ZStack {
-            if let imageData = viewModel.decryptedFileRef?.data,
+            if let imageData = viewModel.decryptedFileRef?.imageData,
                let image = UIImage(data: imageData) {
                 Image(uiImage: image)
                     .resizable()

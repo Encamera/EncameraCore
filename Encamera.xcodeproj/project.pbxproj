@@ -45,7 +45,6 @@
 		1B54606C7551FE409A2334E1 /* NotificationBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0CB527965415B1E27EAD16 /* NotificationBanner.swift */; };
 		1B7AA8BBD017D7E8B4EF9D3C /* KeyPhraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08E7ADEDD8142B9DA265EE15 /* KeyPhraseView.swift */; };
 		1CAB026A547B230F6A4CEDC4 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF307DAF9F7334418CF7C35A /* ImageViewing.swift */; };
-		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
 		1DA9A21AF6C93297A84175B3 /* Rajdhani-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 87B5267708C2781338CA02BF /* Rajdhani-Bold.ttf */; };
 		1E381C8BB1A37D4F34C2D2E7 /* NewOnboardingHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC53957D8134CC3C9398E08 /* NewOnboardingHostingView.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
@@ -84,10 +83,8 @@
 		3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF307DAF9F7334418CF7C35A /* ImageViewing.swift */; };
 		3AE0AEDA69ADA69631A0A8F5 /* PurchaseOptionsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F99DE24E4BB4ACCECA4742B /* PurchaseOptionsOverlay.swift */; };
 		3B399B01046441E93D3B0314 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */; };
-		3D8A9849A3BE9ABC428C738D /* SelectableGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398A5AAE1F22EC9052883DB6 /* SelectableGalleryView.swift */; };
 		3DBB8D4836BDB3B8D45248BF /* Satoshi-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 254B4401CD4663561438FCE0 /* Satoshi-Regular.otf */; };
 		3DEE077E90DD6AEBE44F32A4 /* Satoshi-BoldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 4FD935CBF1B92DA44E5A6196 /* Satoshi-BoldItalic.otf */; };
-		3ECC622BE09A0394BCA79AB6 /* MediaImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE4BE3A348C71B3A9832A0E3 /* MediaImportView.swift */; };
 		3F5542ACA59DF32F6249B89C /* PurchaseUpgradeOptionsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6160C505578FD25DED491FD /* PurchaseUpgradeOptionsListView.swift */; };
 		40C7605DB284B18C4C8ED36C /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */; };
 		453309E9AC4749F0E4C771DA /* PostPurchaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D7AAA14CD0E67A1FEEAC9ED /* PostPurchaseView.swift */; };
@@ -110,7 +107,6 @@
 		4CBB5A8C3F713BA73ADEC36E /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7CAE239AD061BB95D7E1C52A /* Localizable.strings */; };
 		4D6890B6437216E4444DE608 /* StoreKitTestCertificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */; };
 		4EAEDFDFBFA66602E0A4EA63 /* TopCameraControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC645487F5B1D6F9CC99BF09 /* TopCameraControls.swift */; };
-		52BE74575AF1E58D842FC87B /* SelectableGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398A5AAE1F22EC9052883DB6 /* SelectableGalleryView.swift */; };
 		544469FC8962611F6F8F615E /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = 966AD9D0BE48CC6E4C4FF069 /* Text.swift */; };
 		5A11DC5FE8387F57FE50E7ED /* DefaultEdgeSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90AFF3D0CA3F3E90F75BE891 /* DefaultEdgeSpacing.swift */; };
 		5B91C9DDD3379070F2A342BD /* HeadingSubheadingImageComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C3A2DC8EF95074331B6CBEE /* HeadingSubheadingImageComponent.swift */; };
@@ -241,7 +237,6 @@
 		D20598879403D27F8B7F97B1 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = AC1D3C50276AFF5184AECA95 /* Localizable.stringsdict */; };
 		D3072FF91CA383D53F411115 /* ScreenBlocking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DDB58308D21ABE7B46DAA7C /* ScreenBlocking.swift */; };
 		D31BD1AB9691F8EFFF27E510 /* UnderlineTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9797F03E335C50ABCBD1610D /* UnderlineTextField.swift */; };
-		D324CD27E75F8808F59B6049 /* MediaImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE4BE3A348C71B3A9832A0E3 /* MediaImportView.swift */; };
 		D38FDF91C4F82594EC3C2852 /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = D3DE825F6B01C343316B8034 /* EncameraCore */; };
 		D403C8C58814992C59E0CFBB /* TextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2129B2CE002C378326BC65B7 /* TextField.swift */; };
 		D6A68AA78C8F5FD15DA3360C /* EncameraTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */; };
@@ -343,7 +338,7 @@
 /* Begin PBXFileReference section */
 		040E7A97A59AEF4C2BA2F5FB /* HardwareVolumeButtonCaptureUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareVolumeButtonCaptureUtils.swift; sourceTree = "<group>"; };
 		0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
-		0800C028E300CFA4BA9D586B /* StoreKitTesting.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StoreKitTesting.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0800C028E300CFA4BA9D586B /* StoreKitTesting.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StoreKitTesting.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		08E7ADEDD8142B9DA265EE15 /* KeyPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyPhraseView.swift; sourceTree = "<group>"; };
 		0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuyButtonStyle.swift; sourceTree = "<group>"; };
 		0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Encamera.storekit; sourceTree = "<group>"; };
@@ -1346,7 +1341,6 @@
 				0BC85FE4F83BBCD0AAAB28A3 /* LockScreenKeypad.swift in Sources */,
 				13F2BC03E7B23D65C31D19CD /* MainHomeView.swift in Sources */,
 				114EBEBC2E22847C842A538D /* MainOnboardingView.swift in Sources */,
-				3ECC622BE09A0394BCA79AB6 /* MediaImportView.swift in Sources */,
 				EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */,
 				5C242765482F8F9C8B0BC2DA /* NavigationPath.swift in Sources */,
 				1E381C8BB1A37D4F34C2D2E7 /* NewOnboardingHostingView.swift in Sources */,
@@ -1379,7 +1373,6 @@
 				33ECD054AF9C6C4CF9386C6E /* SafeAreaUtils.swift in Sources */,
 				970C997C472D9D4A5A2B9CC8 /* ScreenBlock.swift in Sources */,
 				287C6B691F74D954A27FBB00 /* ScreenBlocking.swift in Sources */,
-				52BE74575AF1E58D842FC87B /* SelectableGalleryView.swift in Sources */,
 				864AABB66247E3165F272A54 /* SettingsView.swift in Sources */,
 				19FB74EE2C217887008AC6CA /* BackgroundRectangle.swift in Sources */,
 				C5A2C1B02914147FB96D2AE3 /* Spacing.swift in Sources */,
@@ -1407,7 +1400,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1464,7 +1456,6 @@
 				04110F65A1D786EEFBD39A56 /* LockScreenKeypad.swift in Sources */,
 				BBDE25364B1A8AEBB6D645AD /* MainHomeView.swift in Sources */,
 				C6F8EC4BB57A923444BD6CD1 /* MainOnboardingView.swift in Sources */,
-				D324CD27E75F8808F59B6049 /* MediaImportView.swift in Sources */,
 				6D38701EED69816C864AC33F /* MovieViewing.swift in Sources */,
 				90A67C8D7E6A28B34D2729DF /* NavigationPath.swift in Sources */,
 				831A00922154DB933D3D527A /* NewOnboardingHostingView.swift in Sources */,
@@ -1497,7 +1488,6 @@
 				0196521BACE59EF6F65440EE /* SafeAreaUtils.swift in Sources */,
 				B2FEAD9C2B093C1EAF09378E /* ScreenBlock.swift in Sources */,
 				D3072FF91CA383D53F411115 /* ScreenBlocking.swift in Sources */,
-				3D8A9849A3BE9ABC428C738D /* SelectableGalleryView.swift in Sources */,
 				BD25ADB842FA51360BE028AD /* SettingsView.swift in Sources */,
 				624334C11EFF29BDE9A2B208 /* Spacing.swift in Sources */,
 				044EEE9027A0FC3AFBEAF171 /* StepIndicator.swift in Sources */,

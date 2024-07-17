@@ -25,7 +25,8 @@ class MediaImportViewModel: ObservableObject {
     init(privateKey: PrivateKey,
          albumManager: AlbumManaging,
          fileAccess: FileAccess,
-         appGroupFileAccess: FileAccess = AppGroupFileReader()) {
+         appGroupFileAccess: FileAccess = AppGroupFileReader()
+    ) {
         self.appGroupFileAccess = appGroupFileAccess
         self.fileAccess = fileAccess
         self.albumManager = albumManager

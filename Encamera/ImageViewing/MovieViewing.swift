@@ -10,10 +10,10 @@ import AVKit
 import Combine
 import EncameraCore
 
-class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, MediaViewingViewModel {
+class MovieViewingViewModel: ObservableObject, MediaViewingViewModel {
     var fileAccess: FileAccess?
     
-    @Published var decryptedFileRef: CleartextMedia?
+    @Published var decryptedFileRef: InteractableMedia<CleartextMedia>?
     @MainActor
     @Published var decryptProgress: FileLoadingStatus = .notLoaded
     @Published var player: AVPlayer?
@@ -26,10 +26,10 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     var error: MediaViewingError?
     
     
-    var sourceMedia: SourceType
-    
+    var sourceMedia: InteractableMedia<EncryptedMedia>
 
-    required init(media: SourceType, fileAccess: FileAccess) {
+
+    required init(media: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess) {
         self.sourceMedia = media
         self.fileAccess = fileAccess
         
@@ -55,7 +55,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     private var durationObservation: NSKeyValueObservation?
 
     @MainActor
-    func decrypt() async throws -> CleartextMedia {
+    func decrypt() async throws -> InteractableMedia<CleartextMedia> {
         guard let fileAccess = fileAccess else {
             throw MediaViewingError.fileAccessNotAvailable
         }
@@ -64,7 +64,7 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
             self.decryptProgress = progress
         }
 
-        guard let url = cleartextMedia.url else {
+        guard let url = cleartextMedia.videoURL else {
             throw MediaViewingError.decryptError(wrapped: NSError(domain: "No URL", code: 0, userInfo: nil))
         }
 
@@ -113,9 +113,9 @@ class MovieViewingViewModel<SourceType: MediaDescribing>: ObservableObject, Medi
     
 }
 
-struct MovieViewing<M: MediaDescribing>: View {
+struct MovieViewing: View {
     @State var progress = 0.0
-    @StateObject var viewModel: MovieViewingViewModel<M>
+    @StateObject var viewModel: MovieViewingViewModel
     @State private var videoPosition: Double = 0
     @Binding var isPlayingVideo: Bool
     
@@ -131,7 +131,7 @@ struct MovieViewing<M: MediaDescribing>: View {
     var body: some View {
         VStack {
             
-            if viewModel.decryptedFileRef?.source != nil {
+            if viewModel.decryptedFileRef?.videoURL != nil {
                 AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: viewModel.isExpanded)
                     .aspectRatio(contentMode: .fill)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -211,7 +211,7 @@ struct MovieViewing<M: MediaDescribing>: View {
 //
 //struct MovieViewing_Previews: PreviewProvider {
 //    static var previews: some View {
-//        MovieViewing<EncryptedMedia>(progress: 20.0, viewModel: .init(media: EncryptedMedia(source: URL(fileURLWithPath: ""),
+//        MovieViewing<InteractableMedia<EncryptedMedia>>(progress: 20.0, viewModel: .init(media: InteractableMedia<EncryptedMedia>(source: URL(fileURLWithPath: ""),
 //                                                                            mediaType: .video,
 //                                                                            id: "234"),
 //                                                      fileAccess: DemoFileEnumerator()))
