@@ -201,6 +201,7 @@ struct CameraView: View {
                                       recordingDuration: $cameraModel.recordingDuration,
                                       showSavedToAlbumTooltip: $cameraModel.showSavedToAlbumTooltip,
                                       flashMode:  $cameraModel.flashMode,
+                                        isLivePhotoEnabled: $cameraModel.isLivePhotoEnabled,
                                       closeButtonTapped: closeCamera,
                                       flashButtonPressed: {
                     self.cameraModel.switchFlash()

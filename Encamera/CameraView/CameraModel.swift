@@ -35,6 +35,7 @@ final class CameraModel: NSObject, ObservableObject {
     @Published var showAlertError = false
     @Published var availableZoomLevels: [ZoomLevel] = []
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
+    @Published var isLivePhotoEnabled = false
     @Published var isRecordingVideo = false {
         didSet {
             UIApplication.shared.isIdleTimerDisabled = isRecordingVideo
@@ -230,7 +231,7 @@ final class CameraModel: NSObject, ObservableObject {
         case .photo:
             
             
-            let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode)
+            let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode, livePhotoEnabled: isLivePhotoEnabled)
             
             let photoObject = try await photoProcessor.takePhoto()
             
@@ -247,7 +248,6 @@ final class CameraModel: NSObject, ObservableObject {
                 }
                 UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
                 UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
-
             } catch let filesError as FileAccessError {
                 await MainActor.run {
                     switch filesError {

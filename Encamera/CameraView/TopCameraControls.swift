@@ -99,6 +99,8 @@ struct TopCameraControlsView: View {
     @Binding var recordingDuration: CMTime
     @Binding var showSavedToAlbumTooltip: Bool
     @Binding var flashMode: AVCaptureDevice.FlashMode
+    @Binding var isLivePhotoEnabled: Bool
+
     var closeButtonTapped: () -> ()
     var flashButtonPressed: () -> ()
     let cornerRadius = 30.0
@@ -163,6 +165,10 @@ struct TopCameraControlsView: View {
 
 
             Spacer()
+
+            livePhotoButton
+                .frame(width: 28, height: 28)
+            Spacer().frame(width: 5.0)
             flashButton
                 .frame(width: 28, height: 28)
         }
@@ -184,6 +190,20 @@ struct TopCameraControlsView: View {
                 .fill(Color.white)
         )
     }
+    let size = 27.0
+
+    private var livePhotoButton: some View {
+        Button(action: {
+            isLivePhotoEnabled.toggle()
+        }, label: {
+            Image(systemName: "livephoto")
+                .resizable()
+                .scaledToFit()
+                .foregroundColor(isLivePhotoEnabled ? .yellow : .gray)
+                .frame(width: size, height: size)
+        })
+    }
+
     private var flashButton: some View {
         Button(action: {
             flashButtonPressed()
@@ -216,6 +236,7 @@ struct TopCameraControlsView_Previews: PreviewProvider {
                 recordingDuration: .constant(.zero),
                 showSavedToAlbumTooltip: .constant(true),
                 flashMode: .constant(.on),
+                isLivePhotoEnabled: .constant(true),
                 closeButtonTapped: {},
                 flashButtonPressed: {}
             )
