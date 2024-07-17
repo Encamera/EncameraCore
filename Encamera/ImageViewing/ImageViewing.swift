@@ -69,6 +69,7 @@ class ImageViewingViewModel: ObservableObject {
     typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnifyGesture>>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
     typealias TapGestureType = _EndedGesture<TapGesture>
+    typealias LongPressGestureType = _EndedGesture<_ChangedGesture<LongPressGesture>>
 
     @Published var decryptedFileRef: InteractableMedia<CleartextMedia>?
     @Published var loadingProgress: Double = 0.0
@@ -78,6 +79,7 @@ class ImageViewingViewModel: ObservableObject {
     @Published var currentOffset: CGSize = .zero
     @Published var currentFrame: CGRect = .zero
     @Published var player: AVPlayer?
+    @Published var showLivePhotoViewport: Bool = false
 
     var swipeLeft: (() -> Void)
     var swipeRight: (() -> Void)
@@ -107,7 +109,14 @@ class ImageViewingViewModel: ObservableObject {
                     }
                 }
                 if let url = result.videoURL {
-                    player = AVPlayer(url: url)
+                    let player = AVPlayer(url: url)
+                    NotificationCenter.default
+                        .addObserver(self,
+                                     selector: #selector(playerDidFinishPlaying),
+                                     name: .AVPlayerItemDidPlayToEndTime,
+                                     object: player.currentItem
+                        )
+                    self.player = player
                 }
 
                 await MainActor.run {
@@ -120,6 +129,13 @@ class ImageViewingViewModel: ObservableObject {
         }
     }
 
+    @objc func playerDidFinishPlaying() {
+        print("did finish playing")
+        withAnimation {
+            showLivePhotoViewport = false
+        }
+        player?.seek(to: .zero)
+    }
 
     func resetViewState() {
         withAnimation {
@@ -214,6 +230,21 @@ class ImageViewingViewModel: ObservableObject {
             }
         }
     }
+
+    var longPressGesture: LongPressGestureType {
+        LongPressGesture(minimumDuration: 0.5).onChanged { [self] _ in
+            withAnimation {
+                showLivePhotoViewport = true
+                playVideo()
+            }
+        }
+        .onEnded { [self] _ in
+            withAnimation {
+//                showLivePhotoViewport = false
+//                pauseVideo()
+            }
+        }
+    }
 }
 
 struct ImageViewing: View {
@@ -244,9 +275,7 @@ struct ImageViewing: View {
     var body: some View {
 
         ZStack {
-            if viewModel.player != nil {
-                livePhotoViewport
-            }
+
             if let imageData = viewModel.decryptedFileRef?.imageData,
                let image = UIImage(data: imageData) {
                 Image(uiImage: image)
@@ -255,20 +284,21 @@ struct ImageViewing: View {
                     .scaleEffect(viewModel.finalScale * viewModel.currentScale, anchor:
                                     calculateScaleAnchor())
                     .offset(viewModel.offset)
-                    .zIndex(1)
                     .if(viewModel.finalScale > 1.0, transform: { view in
                         view.gesture(viewModel.dragGesture)
                     })
                     .simultaneousGesture(viewModel.magnificationGesture)
                     .simultaneousGesture(viewModel.tapGesture)
                     .background(geometryReader)
-
+                
             } else if let error = viewModel.error {
                 DecryptErrorExplanation(error: error)
             } else {
                 ProgressView()
             }
+            livePhotoViewport
         }
+        .simultaneousGesture(viewModel.longPressGesture)
         .onAppear {
             viewModel.decryptAndSet()
             EventTracking.trackImageViewed()
@@ -277,10 +307,16 @@ struct ImageViewing: View {
     }
 
     var livePhotoViewport: some View {
-
-            AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: true)
-                .aspectRatio(contentMode: .fill)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        Group {
+            if viewModel.showLivePhotoViewport {
+                AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: true)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }                    
+        .opacity(viewModel.showLivePhotoViewport ? 1 : 0)
+            .animation(.easeInOut, value: viewModel.showLivePhotoViewport)
+            .transition(.opacity)
 
     }
 
