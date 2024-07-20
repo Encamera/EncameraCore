@@ -26,11 +26,11 @@ extension CameraModel: CameraConfigurationServicableDelegate {
 final class CameraModel: NSObject, ObservableObject {
 
     var service: CameraConfigurationService
-    
+
     var session: AVCaptureSession {
         service.session
     }
-    
+
     @Published var cameraPosition: AVCaptureDevice.Position = .back
     @Published var showAlertError = false
     @Published var availableZoomLevels: [ZoomLevel] = []
@@ -42,11 +42,10 @@ final class CameraModel: NSObject, ObservableObject {
         }
     }
     @Published var recordingDuration: CMTime = .zero
-    @Published var willCapturePhoto = false
     @Published var selectedCameraMode: CameraMode = .photo
     @MainActor
     @Published var thumbnailImage: UIImage?
-    
+
     @Published var currentZoomFactor: ZoomLevel = .x1 {
         didSet {
             zoom(with: currentZoomFactor)
@@ -59,7 +58,7 @@ final class CameraModel: NSObject, ObservableObject {
     @Published var showAlertForMissingAlbum = false
     @Published var showStoreSheet = false
     @Published var showSettingsScreen = false
-    
+
     // Tutorial/info sheets
     @Published var showChooseStorageSheet = false
     @Published var showExplanationForUpgrade = false
@@ -75,15 +74,19 @@ final class CameraModel: NSObject, ObservableObject {
     var fileAccess: FileAccess
     var userDefaultsUtil = UserDefaultUtils()
     var purchaseManager: PurchasedPermissionManaging
+    var captureActionPublisher: AnyPublisher<Void, Never> {
+        captureSubject.eraseToAnyPublisher()
+    }
     private var currentVideoProcessor: AsyncVideoCaptureProcessor?
     var closeButtonTapped: (_ targetAlbum: Album?) -> Void
 
-    
+
     private var cancellables = Set<AnyCancellable>()
     private var recordingCancellable = Set<AnyCancellable>()
     var isProcessingEvent = false
-    let eventSubject = PassthroughSubject<Void, Never>()
-    
+    let hardwareButtonPressedSubject = PassthroughSubject<Void, Never>()
+    let captureSubject = PassthroughSubject<Void, Never>()
+
     init(albumManager: AlbumManaging,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
@@ -105,18 +108,7 @@ final class CameraModel: NSObject, ObservableObject {
             }
         }
         .store(in: &self.cancellables)
-        Task {
-            let result = await cameraService.model.setupResult
-            await MainActor.run {
-                self.cameraSetupResult = result
-            }
-            if let album = albumManager.currentAlbum {
-                await self.fileAccess.configure(
-                    for: album, albumManager: albumManager
-                )
-            }
-           await cameraService.setDelegate(self)
-        }
+
 
         albumManager.albumOperationPublisher
             .receive(on: RunLoop.main)
@@ -135,7 +127,7 @@ final class CameraModel: NSObject, ObservableObject {
             }
             .store(in: &cancellables)
 
-        eventSubject
+        hardwareButtonPressedSubject
             .handleEvents(receiveOutput: { _ in
                 if !self.isProcessingEvent {
                     self.isProcessingEvent = true
@@ -151,10 +143,10 @@ final class CameraModel: NSObject, ObservableObject {
             })
             .sink { _ in }
             .store(in: &cancellables)
-        
+
         NotificationUtils.hardwareButtonPressedPublisher
             .sink { _ in
-                self.eventSubject.send()
+                self.hardwareButtonPressedSubject.send()
             }.store(in: &cancellables)
         FileOperationBus.shared.operations.sink { operation in
             Task {
@@ -164,10 +156,22 @@ final class CameraModel: NSObject, ObservableObject {
         setupPublishedVars()
         albumManager.loadAlbumsFromFilesystem()
     }
-    
+
     func initialConfiguration() async {
         await service.checkForPermissions()
         await service.configure()
+        Task {
+            let result = await service.model.setupResult
+            await MainActor.run {
+                self.cameraSetupResult = result
+            }
+            if let album = albumManager.currentAlbum {
+                await self.fileAccess.configure(
+                    for: album, albumManager: albumManager
+                )
+            }
+           await service.setDelegate(self)
+        }
     }
 
     func setupPublishedVars() {
@@ -193,9 +197,9 @@ final class CameraModel: NSObject, ObservableObject {
                 }
             }.store(in: &cancellables)
     }
-    
+
     func loadThumbnail() async {
-        
+
         let media: [InteractableMedia<EncryptedMedia>] = await fileAccess.enumerateMedia()
         guard let firstMedia = media.first else {
             await MainActor.run {
@@ -214,7 +218,7 @@ final class CameraModel: NSObject, ObservableObject {
             await MainActor.run {
                 self.thumbnailImage = thumbnail
             }
-            
+
         } catch {
             debugPrint("Error loading media preview")
         }
@@ -226,18 +230,15 @@ final class CameraModel: NSObject, ObservableObject {
 
     func captureButtonPressed() async throws {
 
-        
+
         switch selectedCameraMode {
         case .photo:
-            
-            
+
+            captureSubject.send()
             let photoProcessor = try await service.createPhotoProcessor(flashMode: flashMode, livePhotoEnabled: isLivePhotoEnabled)
-            
+
             let photoObject = try await photoProcessor.takePhoto()
-            
-            await MainActor.run(body: {
-                willCapturePhoto = true
-            })
+
             do {
                 try await fileAccess.save(media: photoObject) { _ in }
                 UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
@@ -253,12 +254,9 @@ final class CameraModel: NSObject, ObservableObject {
                     }
                 }
             } catch {
-                
+
             }
-            
-            await MainActor.run(body: {
-                willCapturePhoto = false
-            })
+
         case .video:
             if let currentVideoProcessor = currentVideoProcessor {
                 currentVideoProcessor.stop()
@@ -302,23 +300,23 @@ final class CameraModel: NSObject, ObservableObject {
             service.toggleTorch(on: false)
         }
     }
-    
+
     func flipCamera() {
         Task {
             await service.flipCameraDevice()
         }
     }
-    
+
     func zoom(with factor: ZoomLevel) {
         Task {
             await service.set(zoom: factor)
         }
     }
-    
+
     func switchFlash() {
         flashMode = flashMode.nextMode
     }
-    
+
 
     func setOrientation(_ orientation: AVCaptureVideoOrientation) {
 //        service.model.orientation = orientation
@@ -326,10 +324,10 @@ final class CameraModel: NSObject, ObservableObject {
 }
 
 private extension AVCaptureDevice.FlashMode {
-    
+
     var nextMode: AVCaptureDevice.FlashMode {
         switch self {
-            
+
         case .off:
             return .auto
         case .on:

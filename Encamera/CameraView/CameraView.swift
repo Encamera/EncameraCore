@@ -63,13 +63,13 @@ struct CameraView: View {
 
     private var cameraPreview: some View {
 #if targetEnvironment(simulator)
-                Color.clear.background {
-                    Image("11").resizable().clipped().aspectRatio(contentMode: .fill)
-                }
+        Color.clear
 //        missingPermissionsView
 #else
-        CameraPreview(session: cameraModel.session,
-                      modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher())
+        CameraPreview(modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher(),
+                      capturePublisher: cameraModel.captureActionPublisher,
+            session: cameraModel.session
+        )
         .onReceive(cameraModeStateModel.$selectedMode, perform: { value in
             self.cameraModel.selectedCameraMode = value
         })
@@ -87,14 +87,6 @@ struct CameraView: View {
             HardwareVolumeButtonCaptureUtils.shared.setupVolumeView()
             HardwareVolumeButtonCaptureUtils.shared.startObservingCaptureButton()
         }
-        .overlay(
-            Group {
-                if cameraModel.willCapturePhoto {
-                    Color.black
-                }
-            }
-        )
-        .animation(.bouncy, value: cameraModel.willCapturePhoto)
 #endif
     }
 
@@ -132,15 +124,16 @@ struct CameraView: View {
             VStack {
                 Group {
                     Text(L10n.missingCameraAccess)
+                        .fontType(.pt14)
                     Button {
                         openSettings()
                     } label: {
-                        Text(L10n.openSettingsToAllowCameraAccessPermission)
-                    }.textPill(color: .foregroundSecondary)
-
+                        Text(L10n.openSystemSettings)
+                    }.textPill(color: .actionYellowGreen)
+                    .fontType(.pt14, on: .primaryButton)
                 }
             }
-            .fontType(.medium)
+
             .padding()
         }
     }
