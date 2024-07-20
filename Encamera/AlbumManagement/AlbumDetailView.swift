@@ -29,7 +29,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
     @Published var albumManagerError: String?
     @Published var showEmptyView: Bool = false
     var afterPurchaseAction: (() -> Void)?
-    var gridViewModel: GalleryGridViewModel<EncryptedMedia, D>?
+    var gridViewModel: GalleryGridViewModel<D>?
 
     var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
     var fileManager: D?
@@ -50,7 +50,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
         self.fileManager = fileManager
         self.shouldCreateAlbum = shouldCreateAlbum
         self.isEditingAlbumName = shouldCreateAlbum
-        let gridViewModel = GalleryGridViewModel<EncryptedMedia, D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager ?? D.init())
+        let gridViewModel = GalleryGridViewModel<D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager ?? D.init())
         self.gridViewModel = gridViewModel
         albumManager.albumOperationPublisher
             .receive(on: RunLoop.main)

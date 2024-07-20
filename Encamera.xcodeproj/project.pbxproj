@@ -247,7 +247,7 @@
 		DA7AD513C9E7A6B6C3B9294D /* BottomCameraButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05276D23DEE272B9B6B53D5 /* BottomCameraButtonView.swift */; };
 		DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 9BDB467AF8E2ABBB52B964F4 /* Sodium */; };
 		E02CDF136FEA73C34ED68EE1 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */; };
-		E1E2AA7DBC4EA734012FD345 /* ImageCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881709E68E56C0BC0A1EB710 /* ImageCarousel.swift */; };
+		E1E2AA7DBC4EA734012FD345 /* OnboardingImageCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881709E68E56C0BC0A1EB710 /* OnboardingImageCarousel.swift */; };
 		E372CBC2D865825DCE3FACA9 /* CreateAlbum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E120ED7D8DE4B9A5746FFE4 /* CreateAlbum.swift */; };
 		E5703E34B4B08252B30338CF /* StorageOptionSquare.swift in Sources */ = {isa = PBXBuildFile; fileRef = B659B984967304593F27C554 /* StorageOptionSquare.swift */; };
 		E57CD55CDC8051FBB6E47C9D /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
@@ -263,7 +263,7 @@
 		EF3CEC2443A9A43E572CECAF /* StorageOptionSquare.swift in Sources */ = {isa = PBXBuildFile; fileRef = B659B984967304593F27C554 /* StorageOptionSquare.swift */; };
 		EFBAB4839ACD8250A1CA6AF4 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */; };
 		EFDEAFF6596FBF2114A9F06A /* Satoshi-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 254B4401CD4663561438FCE0 /* Satoshi-Regular.otf */; };
-		F05236200E8FF893CBBE593A /* ImageCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881709E68E56C0BC0A1EB710 /* ImageCarousel.swift */; };
+		F05236200E8FF893CBBE593A /* OnboardingImageCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881709E68E56C0BC0A1EB710 /* OnboardingImageCarousel.swift */; };
 		F18AD24957E833C6893C7AC2 /* ChooseStorageModalViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C42A5938D4177B4BBACA5FC7 /* ChooseStorageModalViewModifier.swift */; };
 		F196675A30532A7E9CBB89F2 /* CameraZoomControlButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26A38C1E9C740A80200B877 /* CameraZoomControlButtons.swift */; };
 		F273E9D2828E571958321D6D /* HeadingSubheadingImageComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C3A2DC8EF95074331B6CBEE /* HeadingSubheadingImageComponent.swift */; };
@@ -428,7 +428,7 @@
 		851DD3DC1BD4F3BBDAB226B1 /* Satoshi-MediumItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-MediumItalic.otf"; sourceTree = "<group>"; };
 		8761F9FBD1C7297E54D6C0D5 /* DualButtonComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DualButtonComponent.swift; sourceTree = "<group>"; };
 		87B5267708C2781338CA02BF /* Rajdhani-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rajdhani-Bold.ttf"; sourceTree = "<group>"; };
-		881709E68E56C0BC0A1EB710 /* ImageCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCarousel.swift; sourceTree = "<group>"; };
+		881709E68E56C0BC0A1EB710 /* OnboardingImageCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingImageCarousel.swift; sourceTree = "<group>"; };
 		896B90B17849378B16413518 /* WidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A188D5FF84A453469F8C3EB /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		8A749ADBA6F481389A4AB39B /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
@@ -732,7 +732,7 @@
 		5F6560D8469FF41BB1361C3D /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
-				881709E68E56C0BC0A1EB710 /* ImageCarousel.swift */,
+				881709E68E56C0BC0A1EB710 /* OnboardingImageCarousel.swift */,
 				3E66AD1C897B9591AE534EAB /* ImageStepIndicator.swift */,
 				D51D9B421BB280892A96B442 /* MainOnboardingView.swift */,
 				0DC53957D8134CC3C9398E08 /* NewOnboardingHostingView.swift */,
@@ -1330,7 +1330,7 @@
 				84532170CBC007F8DE0C2CEB /* GradientBackground.swift in Sources */,
 				B285EF9833A810953F3BB899 /* HardwareVolumeButtonCaptureUtils.swift in Sources */,
 				F273E9D2828E571958321D6D /* HeadingSubheadingImageComponent.swift in Sources */,
-				E1E2AA7DBC4EA734012FD345 /* ImageCarousel.swift in Sources */,
+				E1E2AA7DBC4EA734012FD345 /* OnboardingImageCarousel.swift in Sources */,
 				342DE7FCAC5068FCEA226818 /* ImageStepIndicator.swift in Sources */,
 				3A7D49C9F37094335D088138 /* ImageViewing.swift in Sources */,
 				05D59850735EDC24C105E7F5 /* ImportKeyPhrase.swift in Sources */,
@@ -1445,7 +1445,7 @@
 				F68BE23E776434CF9436F156 /* GradientBackground.swift in Sources */,
 				ABBA2314949C02E270BB23A9 /* HardwareVolumeButtonCaptureUtils.swift in Sources */,
 				5B91C9DDD3379070F2A342BD /* HeadingSubheadingImageComponent.swift in Sources */,
-				F05236200E8FF893CBBE593A /* ImageCarousel.swift in Sources */,
+				F05236200E8FF893CBBE593A /* OnboardingImageCarousel.swift in Sources */,
 				6F25DA8800B9AFE79C610CBC /* ImageStepIndicator.swift in Sources */,
 				1CAB026A547B230F6A4CEDC4 /* ImageViewing.swift in Sources */,
 				F596EC4F00E6A9B85513EEB8 /* ImportKeyPhrase.swift in Sources */,

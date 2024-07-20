@@ -212,7 +212,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                 }, content:  { _ in
                     AnyView(
                         VStack {
-                            ImageCarousel(currentScrolledToImage: $viewModel.currentOnboardingImageIndex)
+                            OnboardingImageCarousel(currentScrolledToImage: $viewModel.currentOnboardingImageIndex)
                             Spacer()
                         }.padding(0)
                     )

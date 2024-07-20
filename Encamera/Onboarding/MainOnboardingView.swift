@@ -278,7 +278,7 @@ private extension MainOnboardingView {
 
                     AnyView(
                         VStack {
-                            ImageCarousel(currentScrolledToImage: $viewModel.currentOnboardingImageIndex)
+                            OnboardingImageCarousel(currentScrolledToImage: $viewModel.currentOnboardingImageIndex)
                             Spacer()
                         }.padding(0)
                     )

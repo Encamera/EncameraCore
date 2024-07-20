@@ -1,5 +1,5 @@
 //
-//  ImageCarousel.swift
+//  OnboardingImageCarousel.swift
 //  Encamera
 //
 //  Created by Alexander Freas on 16.10.23.
@@ -22,7 +22,7 @@ private class ImageCarouselItem: Identifiable {
 }
 
 //@available(iOS 17.0, *)
-struct ImageCarousel: View {
+struct OnboardingImageCarousel: View {
 
     @Binding var currentScrolledToImage: Int
 
@@ -120,6 +120,6 @@ struct ImageCarousel: View {
 struct ImageCarousel_Previews: PreviewProvider {
 
     static var previews: some View {
-        ImageCarousel(currentScrolledToImage: .constant(0))
+        OnboardingImageCarousel(currentScrolledToImage: .constant(0))
     }
 }

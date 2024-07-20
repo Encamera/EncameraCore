@@ -84,16 +84,21 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
                         
                 }
                 
-                if let duration = viewModel.cleartextMedia?.videoDuration {
+                if viewModel.cleartextMedia?.videoDuration != nil || viewModel.cleartextMedia?.isLivePhoto == true {
                     VStack {
                         Spacer()
                         HStack {
                             Spacer()
-                            Text(duration)
-                                .font(.system(size: 12, weight: .bold))
-                                        .padding(2.0)
+                            if let duration = viewModel.cleartextMedia?.videoDuration {
+                                Text(duration)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .padding(2.0)
+                            } else {
+                                Image(systemName: "livephoto")
+                                    .padding(2.0)
+                            }
                         }
-                        
+
                     }
                 }
             }
@@ -135,18 +140,18 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
     }
 }
 //
-//struct AsyncImage_Previews: PreviewProvider {
-//
-//    static var previews: some View {
-//        NavigationView {
-//
-//            GalleryGridView(viewModel: GalleryGridViewModel(
-//
-//                privateKey: DemoPrivateKey.dummyKey(),
-//                blurImages: false,
-//                downloadPendingMediaCount: 20,
-//                fileAccess: DemoFileEnumerator()
-//            ))
-//        }
-//    }
-//}
+struct AsyncImage_Previews: PreviewProvider {
+
+    static var previews: some View {
+        NavigationView {
+
+            GalleryGridView(viewModel: GalleryGridViewModel(
+                album: DemoAlbumManager().currentAlbum,
+                albumManager: DemoAlbumManager(),
+                blurImages: false,
+                downloadPendingMediaCount: 22,
+                fileAccess: DemoFileEnumerator()
+            ))
+        }
+    }
+}

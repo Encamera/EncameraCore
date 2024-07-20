@@ -229,8 +229,6 @@ final class CameraModel: NSObject, ObservableObject {
     }
 
     func captureButtonPressed() async throws {
-
-
         switch selectedCameraMode {
         case .photo:
 
@@ -246,7 +244,6 @@ final class CameraModel: NSObject, ObservableObject {
             } catch let filesError as FileAccessError {
                 await MainActor.run {
                     switch filesError {
-
                     case .missingPrivateKey:
                         showAlertForMissingAlbum = true
                     default:

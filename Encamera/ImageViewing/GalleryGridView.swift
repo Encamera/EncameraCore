@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 import PhotosUI
 
 @MainActor
-class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject {
+class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
     var album: Album?
     var albumManager: AlbumManaging
@@ -50,7 +50,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
     }
 
     private var cancellables = Set<AnyCancellable>()
-    var fileAccess: FileAccess
+    var fileAccess: D
     @MainActor
     @Published var showEmptyView: Bool = false
 
@@ -60,7 +60,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,
          carouselTarget: InteractableMedia<EncryptedMedia>? = nil,
-         fileAccess: FileAccess,
+         fileAccess: D,
          purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
     ) {
         self.blurImages = blurImages
@@ -127,8 +127,7 @@ class GalleryGridViewModel<T: MediaDescribing, D: FileAccess>: ObservableObject 
         media = enumerated
         firstImage = enumerated.first
         enumerateiCloudUndownloaded()
-        let empty = enumerated.isEmpty
-        showEmptyView = empty
+        showEmptyView = enumerated.isEmpty
     }
 
     func blurItemAt(index: Int) -> Bool {
