@@ -295,12 +295,12 @@ private enum Constants {
     static let buttonCornerRadius = 10.0
 }
 
-struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
+struct GalleryGridView<Content: View, D: FileAccess>: View {
 
-    @ObservedObject var viewModel: GalleryGridViewModel<T, D>
+    @ObservedObject var viewModel: GalleryGridViewModel<D>
     var content: Content
 
-    init(viewModel: GalleryGridViewModel<T, D>, @ViewBuilder content: () -> Content = { EmptyView() }) {
+    init(viewModel: GalleryGridViewModel<D>, @ViewBuilder content: () -> Content = { EmptyView() }) {
         self.viewModel = viewModel
         self.content = content()
     }
@@ -373,7 +373,7 @@ struct GalleryGridView<Content: View, T: MediaDescribing, D: FileAccess>: View {
         .sheet(isPresented: $viewModel.showPhotoPicker, content: {
             PhotoPicker(selectedItems: { results in
                 viewModel.handleSelectedMedia(items: results)
-            }, filter: .any(of: [.images, .videos]))
+            }, filter: .any(of: [.images, .videos, .livePhotos]))
             .ignoresSafeArea(.all)
         })
     }

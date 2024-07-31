@@ -146,6 +146,13 @@ class ImageViewingViewModel: ObservableObject {
         }
     }
 
+    func playLivePhoto() {
+        withAnimation {
+            showLivePhotoViewport = true
+            playVideo()
+        }
+    }
+
     var offset: CGSize {
         return CGSize(
             width: finalOffset.width + currentOffset.width,
@@ -230,21 +237,6 @@ class ImageViewingViewModel: ObservableObject {
             }
         }
     }
-
-    var longPressGesture: LongPressGestureType {
-        LongPressGesture(minimumDuration: 0.5).onChanged { [self] _ in
-            withAnimation {
-                showLivePhotoViewport = true
-                playVideo()
-            }
-        }
-        .onEnded { [self] _ in
-            withAnimation {
-//                showLivePhotoViewport = false
-//                pauseVideo()
-            }
-        }
-    }
 }
 
 struct ImageViewing: View {
@@ -298,7 +290,6 @@ struct ImageViewing: View {
             }
             livePhotoViewport
         }
-        .simultaneousGesture(viewModel.longPressGesture)
         .onAppear {
             viewModel.decryptAndSet()
             EventTracking.trackImageViewed()
