@@ -27,11 +27,12 @@ class MovieViewingViewModel: ObservableObject, MediaViewingViewModel {
     
     
     var sourceMedia: InteractableMedia<EncryptedMedia>
+    var delegate: MediaViewingDelegate
 
-
-    required init(media: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess) {
+    required init(media: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
         self.sourceMedia = media
         self.fileAccess = fileAccess
+        self.delegate = delegate
         
         NotificationUtils.didEnterBackgroundPublisher.sink { _ in
             self.player?.pause()

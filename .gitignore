@@ -105,3 +105,4 @@ xcuserdata
 !*.xcodeproj/project.pbxproj
 !*.xcworkspace/contents.xcworkspacedata
 **/Package.resolved
+Encamera/PreviewAssets

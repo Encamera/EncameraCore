@@ -26,7 +26,7 @@ private struct EncameraInputTextField: ViewModifier {
     }
 }
 
-
+@MainActor
 struct EncameraTextField: View {
     
     enum FieldType {

@@ -36,10 +36,11 @@ protocol MediaViewingViewModel: AnyObject {
     var sourceMedia: InteractableMedia<SourceType> { get set }
     var fileAccess: FileAccess? { get set }
     var error: MediaViewingError? { get set }
+    var delegate: MediaViewingDelegate { get }
 
     @MainActor
     var decryptedFileRef: InteractableMedia<CleartextMedia>? { get set }
-    init(media: InteractableMedia<SourceType>, fileAccess: FileAccess)
+    init(media: InteractableMedia<SourceType>, fileAccess: FileAccess, delegate: MediaViewingDelegate)
 
     func decrypt() async throws -> InteractableMedia<CleartextMedia>
 }
@@ -62,6 +63,10 @@ extension MediaViewingViewModel {
         }
     }
 
+}
+
+protocol MediaViewingDelegate: AnyObject {
+    func didView(media: InteractableMedia<EncryptedMedia>)
 }
 
 class ImageViewingViewModel: ObservableObject {
@@ -88,11 +93,15 @@ class ImageViewingViewModel: ObservableObject {
     var fileAccess: FileAccess
     var error: MediaViewingError?
 
-    init(swipeLeft: @escaping ( () -> Void), swipeRight: @escaping ( () -> Void), sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess) {
+    private var livePhotoFinished: (() -> Void)?
+    private var delegate: MediaViewingDelegate
+
+    init(swipeLeft: @escaping ( () -> Void), swipeRight: @escaping ( () -> Void), sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
         self.swipeLeft = swipeLeft
         self.swipeRight = swipeRight
         self.sourceMedia = sourceMedia
         self.fileAccess = fileAccess
+        self.delegate = delegate
     }
 
     func decryptAndSet() {
@@ -121,6 +130,7 @@ class ImageViewingViewModel: ObservableObject {
 
                 await MainActor.run {
                     decryptedFileRef = result
+                    delegate.didView(media: sourceMedia)
                 }
 
             } catch {
@@ -135,6 +145,7 @@ class ImageViewingViewModel: ObservableObject {
             showLivePhotoViewport = false
         }
         player?.seek(to: .zero)
+        livePhotoFinished?()
     }
 
     func resetViewState() {
@@ -146,7 +157,8 @@ class ImageViewingViewModel: ObservableObject {
         }
     }
 
-    func playLivePhoto() {
+    func playLivePhoto(finished: (() -> Void)? = nil) {
+        livePhotoFinished = finished
         withAnimation {
             showLivePhotoViewport = true
             playVideo()
@@ -242,7 +254,9 @@ class ImageViewingViewModel: ObservableObject {
 struct ImageViewing: View {
 
     @State var showBottomActions = false
+    @Binding var isPlayingLivePhoto: Bool
     @ObservedObject var viewModel: ImageViewingViewModel
+
     var externalGesture: DragGesture
 
     private func calculateScaleAnchor() -> UnitPoint {
@@ -263,6 +277,7 @@ struct ImageViewing: View {
             y: max(0, min(1, normalizedY))
         )
     }
+
 
     var body: some View {
 
@@ -290,6 +305,13 @@ struct ImageViewing: View {
             }
             livePhotoViewport
         }
+        .onChange(of: isPlayingLivePhoto, { oldValue, newValue in
+            if newValue == true {
+                viewModel.playLivePhoto {
+                    isPlayingLivePhoto = false
+                }
+            }
+        })
         .onAppear {
             viewModel.decryptAndSet()
             EventTracking.trackImageViewed()
@@ -300,9 +322,9 @@ struct ImageViewing: View {
     var livePhotoViewport: some View {
         Group {
             if viewModel.showLivePhotoViewport {
-                AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: true)
+                AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: false)
                     .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(width: viewModel.currentFrame.width, height: viewModel.currentFrame.height)
             }
         }                    
         .opacity(viewModel.showLivePhotoViewport ? 1 : 0)

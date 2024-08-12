@@ -96,6 +96,8 @@ targets:
       SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
       TARGETED_DEVICE_FAMILY: "1"
       OTHER_LDFLAGS: "-ObjC"
+      DEVELOPMENT_ASSET_PATHS:
+        "$(SRCROOT)/Encamera/PreviewAssets"
     dependencies:
       - package: Sodium
         link: true

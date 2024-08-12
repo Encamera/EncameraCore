@@ -332,47 +332,47 @@ struct EncameraApp: App {
 //        }
     }
 
-    @ViewBuilder private func galleryForMedia(media: InteractableMedia<EncryptedMedia>) -> some View {
-        let fileAccess = viewModel.newMediaFileAccess
-        switch media.mediaType {
-        case .stillPhoto, .livePhoto:
-            NavigationStack {
-                GalleryHorizontalScrollView(
-                    viewModel: GalleryHorizontalScrollViewModel.init(
-                        media: [media],
-                        selectedMedia: media,
-                        fileAccess: fileAccess,
-                        showActionBar: false,
-                        purchasedPermissions: viewModel.purchasedPermissions
-                    )
-                ).toolbar {
-                    Button(L10n.close) {
-                        self.viewModel.promptToSaveMedia = true
-                    }
-                }
-                .alert(L10n.saveThisMedia, isPresented: $viewModel.promptToSaveMedia) {
-                    Text(L10n.thisWillSaveTheMediaToYourLibrary)
-                    Button(L10n.cancel, role: .cancel) {
-                        self.viewModel.hasOpenedURL = false
-                    }
-                    Button(L10n.save) {
-                        viewModel.moveOpenedFile(media: media)
-                    }
-                }
-                
-            }
-        case .video:
-            var isPlaying = false
-            let playBinding = Binding<Bool>(get: {
-                isPlaying
-            }, set: { value in
-                isPlaying = value
-            })
-            MovieViewing(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess), isPlayingVideo: playBinding)
-        default:
-            EmptyView()
-        }
-    }
+//    @ViewBuilder private func galleryForMedia(media: InteractableMedia<EncryptedMedia>) -> some View {
+//        let fileAccess = viewModel.newMediaFileAccess
+//        switch media.mediaType {
+//        case .stillPhoto, .livePhoto:
+//            NavigationStack {
+//                GalleryHorizontalScrollView(
+//                    viewModel: GalleryHorizontalScrollViewModel.init(
+//                        media: [media],
+//                        selectedMedia: media,
+//                        fileAccess: fileAccess,
+//                        showActionBar: false,
+//                        purchasedPermissions: viewModel.purchasedPermissions
+//                    )
+//                ).toolbar {
+//                    Button(L10n.close) {
+//                        self.viewModel.promptToSaveMedia = true
+//                    }
+//                }
+//                .alert(L10n.saveThisMedia, isPresented: $viewModel.promptToSaveMedia) {
+//                    Text(L10n.thisWillSaveTheMediaToYourLibrary)
+//                    Button(L10n.cancel, role: .cancel) {
+//                        self.viewModel.hasOpenedURL = false
+//                    }
+//                    Button(L10n.save) {
+//                        viewModel.moveOpenedFile(media: media)
+//                    }
+//                }
+//                
+//            }
+//        case .video:
+//            var isPlaying = false
+//            let playBinding = Binding<Bool>(get: {
+//                isPlaying
+//            }, set: { value in
+//                isPlaying = value
+//            })
+//            MovieViewing(viewModel: MovieViewingViewModel(media: media, fileAccess: fileAccess), isPlayingVideo: playBinding)
+//        default:
+//            EmptyView()
+//        }
+//    }
 
     
 }

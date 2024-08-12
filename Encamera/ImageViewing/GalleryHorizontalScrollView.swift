@@ -17,6 +17,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     @Published var showInfoSheet = false
     @Published var showPurchaseSheet = false
     @Published var isPlayingVideo = false
+    @Published var isPlayingLivePhoto = false
     var purchasedPermissions: PurchasedPermissionManaging
     var showActionBar = true
     var fileAccess: FileAccess
@@ -63,7 +64,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
             let model = ImageViewingViewModel(swipeLeft: {
             }, swipeRight: {
 
-            }, sourceMedia: item, fileAccess: fileAccess)
+            }, sourceMedia: item, fileAccess: fileAccess, delegate: self)
             imageModels[item.id] = model
             return model
         }
@@ -124,6 +125,12 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     
 }
 
+extension GalleryHorizontalScrollViewModel: MediaViewingDelegate {
+    func didView(media: InteractableMedia<EncryptedMedia>) {
+        self.selectedMedia = media
+    }
+}
+
 struct GalleryHorizontalScrollView: View {
     
     
@@ -147,6 +154,7 @@ struct GalleryHorizontalScrollView: View {
 
     var body: some View {
         VStack {
+
             GeometryReader { geo in
                 let frame = geo.frame(in: .global)
                 VStack {
@@ -251,45 +259,62 @@ struct GalleryHorizontalScrollView: View {
         switch item.mediaType {
         case .stillPhoto, .livePhoto:
             let model = viewModel.modelForMedia(item: item)
-            ImageViewing(viewModel: model, externalGesture: dragGestureRef)
+            ImageViewing(isPlayingLivePhoto: $viewModel.isPlayingLivePhoto, viewModel: model, externalGesture: dragGestureRef)
                 .onDisappear {
                     model.resetViewState()
                 }
         case .video:
-            MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess), isPlayingVideo: $viewModel.isPlayingVideo)
-        default:
-            EmptyView()
+            MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, delegate: viewModel), isPlayingVideo: $viewModel.isPlayingVideo)
 
         }
     }
     
     private var actionBar: some View {
-        HStack(alignment: .center) {
-            Group {
-                if viewModel.canAccessPhoto(at: viewModel.selectedIndex) {
-                    Button {
-                        showingShareSheet = true
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    Button {
-                        viewModel.showInfoSheet = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                    }
-                    Button {
-                        showingDeleteConfirmation = true
-                    } label: {
-                        Image(systemName: "trash")
+        ZStack {
+            HStack {
+                Spacer()
+
+                Group {
+                    if viewModel.canAccessPhoto(at: viewModel.selectedIndex) {
+                        Menu {
+                            Button {
+                                showingShareSheet = true
+                            } label: {
+                                Label(L10n.shareThisImage, systemImage: "square.and.arrow.up")
+                            }
+                            Button {
+                                viewModel.showInfoSheet = true
+                            } label: {
+                                Label("Info", systemImage: "info.circle")
+                            }
+                            Button {
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label(L10n.delete, systemImage: "trash")
+                            }
+                        } label: {
+                            Image("Album-OptionsDots")
+                        }
                     }
                 }
             }
-            .frame(maxWidth: .infinity)
+            .padding()
+            .frame(height: 44)
+
+            if viewModel.selectedMedia?.mediaType == .livePhoto {
+                Button {
+                    viewModel.isPlayingLivePhoto = true
+                } label: {
+                    HStack {
+                        Image(systemName: "livephoto")
+                        Text(L10n.GalleryView.playLivePhoto)
+                    }
+                }
+                .textPill(color: .gray)
+                .frame(maxWidth: .infinity)
+            }
         }
-        .padding()
-        .frame(height: 44)
     }
-    
     private func scrollTo(media: InteractableMedia<EncryptedMedia>?, with proxy: ScrollViewProxy, animated: Bool = true) {
         guard let media else { return }
         let scrollClosure = {
@@ -307,11 +332,12 @@ struct GalleryHorizontalScrollView: View {
 
 }
 
-//struct GalleryHorizontalScrollView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        let media = (0..<10).map { InteractableMedia<EncryptedMedia>(source: URL(string: "/")!, mediaType: .photo, id: "\($0)") }
-//        let model = GalleryHorizontalScrollViewModel(media: media, selectedMedia: media.first!, fileAccess: DemoFileEnumerator(), purchasedPermissions: AppPurchasedPermissionUtils())
-//        GalleryHorizontalScrollView(viewModel: model)
-//            .preferredColorScheme(.dark)
-//    }
-//}
+struct GalleryHorizontalScrollView_Previews: PreviewProvider {
+    static var previews: some View {
+        let media = (0..<10).map { try! InteractableMedia<EncryptedMedia>(underlyingMedia: [.init(source: URL(string: "/")!, mediaType: .photo, id: "\($0)")])
+        }
+        let model = GalleryHorizontalScrollViewModel(media: media, selectedMedia: media.first!, fileAccess: DemoFileEnumerator(), purchasedPermissions: AppPurchasedPermissionUtils())
+        GalleryHorizontalScrollView(viewModel: model)
+            .preferredColorScheme(.dark)
+    }
+}
