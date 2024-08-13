@@ -259,7 +259,7 @@ struct GalleryHorizontalScrollView: View {
         switch item.mediaType {
         case .stillPhoto, .livePhoto:
             let model = viewModel.modelForMedia(item: item)
-            ImageViewing(isPlayingLivePhoto: $viewModel.isPlayingLivePhoto, viewModel: model, externalGesture: dragGestureRef)
+            ImageViewing(viewModel: model, externalGesture: dragGestureRef)
                 .onDisappear {
                     model.resetViewState()
                 }

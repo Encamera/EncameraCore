@@ -8,13 +8,14 @@
 import SwiftUI
 import Combine
 import EncameraCore
+import AVFoundation
 
-
-class ImageViewingViewModel: ObservableObject {
+class LivePhotoViewingViewModel: ObservableObject {
 
     typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnifyGesture>>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
     typealias TapGestureType = _EndedGesture<TapGesture>
+    typealias LongPressGestureType = _EndedGesture<_ChangedGesture<LongPressGesture>>
 
     @Published var decryptedFileRef: InteractableMedia<CleartextMedia>?
     @Published var loadingProgress: Double = 0.0
@@ -23,6 +24,9 @@ class ImageViewingViewModel: ObservableObject {
     @Published var finalOffset: CGSize = .zero
     @Published var currentOffset: CGSize = .zero
     @Published var currentFrame: CGRect = .zero
+    @Published var player: AVPlayer?
+    @Published var showLivePhotoViewport: Bool = false
+
     var swipeLeft: (() -> Void)
     var swipeRight: (() -> Void)
 
@@ -30,6 +34,7 @@ class ImageViewingViewModel: ObservableObject {
     var fileAccess: FileAccess
     var error: MediaViewingError?
 
+    private var livePhotoFinished: (() -> Void)?
     private var delegate: MediaViewingDelegate
 
     init(swipeLeft: @escaping ( () -> Void), swipeRight: @escaping ( () -> Void), sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
@@ -53,6 +58,17 @@ class ImageViewingViewModel: ObservableObject {
                         loadingProgress = 0.0
                     }
                 }
+                if let url = result.videoURL {
+                    let player = AVPlayer(url: url)
+                    NotificationCenter.default
+                        .addObserver(self,
+                                     selector: #selector(playerDidFinishPlaying),
+                                     name: .AVPlayerItemDidPlayToEndTime,
+                                     object: player.currentItem
+                        )
+                    self.player = player
+                }
+
                 await MainActor.run {
                     decryptedFileRef = result
                     delegate.didView(media: sourceMedia)
@@ -64,6 +80,14 @@ class ImageViewingViewModel: ObservableObject {
         }
     }
 
+    @objc func playerDidFinishPlaying() {
+        print("did finish playing")
+        withAnimation {
+            showLivePhotoViewport = false
+        }
+        player?.seek(to: .zero)
+        livePhotoFinished?()
+    }
 
     func resetViewState() {
         withAnimation {
@@ -74,12 +98,21 @@ class ImageViewingViewModel: ObservableObject {
         }
     }
 
+    func playLivePhoto(finished: (() -> Void)? = nil) {
+        livePhotoFinished = finished
+        withAnimation {
+            showLivePhotoViewport = true
+            playVideo()
+        }
+    }
+
     var offset: CGSize {
         return CGSize(
             width: finalOffset.width + currentOffset.width,
             height: finalOffset.height + currentOffset.height
         )
     }
+
     private func didResetViewStateIfNeeded(targetScale: CGFloat, targetOffset: CGSize) -> Bool {
         debugPrint("didResetViewStateIfNeeded: targetScale: \(targetScale), targetOffset: \(targetOffset)")
 
@@ -88,6 +121,14 @@ class ImageViewingViewModel: ObservableObject {
             return true
         }
         return false
+    }
+
+    func playVideo() {
+        player?.play()
+    }
+
+    func pauseVideo() {
+        player?.pause()
     }
 
     var dragGesture: DragGestureType {
@@ -151,10 +192,12 @@ class ImageViewingViewModel: ObservableObject {
     }
 }
 
-struct ImageViewing: View {
+struct LivePhotoViewing: View {
 
     @State var showBottomActions = false
-    @ObservedObject var viewModel: ImageViewingViewModel
+    @Binding var isPlayingLivePhoto: Bool
+    @ObservedObject var viewModel: LivePhotoViewingViewModel
+
     var externalGesture: DragGesture
 
     private func calculateScaleAnchor() -> UnitPoint {
@@ -176,9 +219,11 @@ struct ImageViewing: View {
         )
     }
 
+
     var body: some View {
 
         ZStack {
+
             if let imageData = viewModel.decryptedFileRef?.imageData,
                let image = UIImage(data: imageData) {
                 Image(uiImage: image)
@@ -187,25 +232,46 @@ struct ImageViewing: View {
                     .scaleEffect(viewModel.finalScale * viewModel.currentScale, anchor:
                                     calculateScaleAnchor())
                     .offset(viewModel.offset)
-                    .zIndex(1)
                     .if(viewModel.finalScale > 1.0, transform: { view in
                         view.gesture(viewModel.dragGesture)
                     })
                     .simultaneousGesture(viewModel.magnificationGesture)
                     .simultaneousGesture(viewModel.tapGesture)
                     .background(geometryReader)
-
+                
             } else if let error = viewModel.error {
                 DecryptErrorExplanation(error: error)
             } else {
                 ProgressView()
             }
+            livePhotoViewport
         }
+        .onChange(of: isPlayingLivePhoto, { oldValue, newValue in
+            if newValue == true {
+                viewModel.playLivePhoto {
+                    isPlayingLivePhoto = false
+                }
+            }
+        })
         .onAppear {
             viewModel.decryptAndSet()
             EventTracking.trackImageViewed()
         }
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    var livePhotoViewport: some View {
+        Group {
+            if viewModel.showLivePhotoViewport {
+                AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: false)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: viewModel.currentFrame.width, height: viewModel.currentFrame.height)
+            }
+        }                    
+        .opacity(viewModel.showLivePhotoViewport ? 1 : 0)
+            .animation(.easeInOut, value: viewModel.showLivePhotoViewport)
+            .transition(.opacity)
+
     }
 
     var geometryReader: some View {
@@ -216,13 +282,5 @@ struct ImageViewing: View {
         .onPreferenceChange(FramePreferenceKey.self) { value in
             viewModel.currentFrame = value
         }
-    }
-}
-
-struct FramePreferenceKey: PreferenceKey {
-    static var defaultValue: CGRect = .zero
-
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        value = nextValue()
     }
 }
