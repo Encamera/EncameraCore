@@ -58,6 +58,7 @@ class MovieViewingViewModel: ObservableObject, MediaViewingViewModel {
     @MainActor
     func decrypt() async throws -> InteractableMedia<CleartextMedia> {
         guard let fileAccess = fileAccess else {
+            debugPrint("File access not available")
             throw MediaViewingError.fileAccessNotAvailable
         }
         let cleartextMedia = try await fileAccess.loadMedia(media: sourceMedia) { progress in

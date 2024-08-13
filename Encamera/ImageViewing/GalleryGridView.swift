@@ -235,121 +235,112 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
     private func loadAndSaveMediaAsync(result: PHPickerResult) async throws {
         // Identify whether the item is a video or an image
-        let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
         let isLivePhoto = result.itemProvider.canLoadObject(ofClass: PHLivePhoto.self)
 
         if isLivePhoto {
             try await handleLivePhoto(result: result)
         } else {
-            let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
-            let url: URL? = try await withCheckedThrowingContinuation { continuation in
-                // Ensure we're on the main thread when modifying UI-bound properties
-                Task { @MainActor in
-                    self.startedImportCount += 1
-                }
-
-                result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
-                    guard let url = url else {
-                        debugPrint("Error loading file representation: \(String(describing: error))")
-                        continuation.resume(returning: nil)
-                        return
-                    }
-                    // Generate a unique file name to prevent overwriting existing files
-                    let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
-                    let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
-                    do {
-                        try FileManager.default.copyItem(at: url, to: destinationURL)
-                        debugPrint("File copied to: \(destinationURL)")
-                        continuation.resume(returning: destinationURL)
-                    } catch {
-                        debugPrint("Error copying file: \(error)")
-                        continuation.resume(throwing: error)
-                    }
-                }
-            }
-
-            guard let url = url else {
-                debugPrint("Error loading file representation, url is nil")
-                return
-            }
-
-            let media = try InteractableMedia(underlyingMedia: [CleartextMedia(source: url, mediaType: isVideo ? .video : .photo, id: UUID().uuidString)]) // Ensure CleartextMedia can handle URLs for both images and videos
-            debugPrint("Will save media: \(media)")
-            let savedMedia = try await fileAccess.save(media: media) { progress in // Ensure fileAccess and its save method are correctly implemented
-                debugPrint("Progress: \(progress)")
-                Task { @MainActor in
-                    self.importProgress = progress
-                }
-            }
-            debugPrint("Media saved: \(savedMedia?.photoURL?.absoluteString ?? "nil")")
-            await MainActor.run {
-                self.importProgress = 0.0 // Reset or update progress as necessary
-            }
+            try await handleMedia(result: result)
         }
     }
 
-    private func handleLivePhoto(result: PHPickerResult) async throws {
-        let imageURL: URL? = try await withCheckedThrowingContinuation { continuation in
-            result.itemProvider.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { url, error in
+    private func handleMedia(result: PHPickerResult) async throws {
+        let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+
+        let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
+        let url: URL? = try await withCheckedThrowingContinuation { continuation in
+            // Ensure we're on the main thread when modifying UI-bound properties
+            Task { @MainActor in
+                self.startedImportCount += 1
+            }
+
+            result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
                 guard let url = url else {
-                    debugPrint("Error loading image representation: \(String(describing: error))")
+                    debugPrint("Error loading file representation: \(String(describing: error))")
                     continuation.resume(returning: nil)
                     return
                 }
-                let fileName = NSUUID().uuidString + ".jpeg"
+                // Generate a unique file name to prevent overwriting existing files
+                let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
                 let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
                 do {
                     try FileManager.default.copyItem(at: url, to: destinationURL)
-                    debugPrint("Image file copied to: \(destinationURL)")
+                    debugPrint("File copied to: \(destinationURL)")
                     continuation.resume(returning: destinationURL)
                 } catch {
-                    debugPrint("Error copying image file: \(error)")
+                    debugPrint("Error copying file: \(error)")
                     continuation.resume(throwing: error)
                 }
             }
         }
 
-        let videoURL: URL? = try await withCheckedThrowingContinuation { continuation in
-            result.itemProvider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { url, error in
-                guard let url = url else {
-                    debugPrint("Error loading video representation: \(String(describing: error))")
-                    continuation.resume(returning: nil)
-                    return
-                }
-                let fileName = NSUUID().uuidString + ".mov"
-                let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
-                do {
-                    try FileManager.default.copyItem(at: url, to: destinationURL)
-                    debugPrint("Video file copied to: \(destinationURL)")
-                    continuation.resume(returning: destinationURL)
-                } catch {
-                    debugPrint("Error copying video file: \(error)")
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-
-        guard let imageURL = imageURL, let videoURL = videoURL else {
-            debugPrint("Error loading live photo components, URLs are nil")
+        guard let url = url else {
+            debugPrint("Error loading file representation, url is nil")
             return
         }
 
-        let id = UUID().uuidString
-        let imageMedia = CleartextMedia(source: imageURL, mediaType: .photo, id: id)
-        let videoMedia = CleartextMedia(source: videoURL, mediaType: .video, id: id)
-        let media = try InteractableMedia(underlyingMedia: [imageMedia, videoMedia])
-        debugPrint("Will save live photo media: \(media)")
+        try await saveCleartextMedia(mediaArray: [CleartextMedia(source: url, mediaType: isVideo ? .video : .photo, id: UUID().uuidString)])
 
-        let savedMedia = try await fileAccess.save(media: media) { progress in
+    }
+
+    private func saveCleartextMedia(mediaArray: [CleartextMedia]) async throws {
+        let media = try InteractableMedia(underlyingMedia: mediaArray)
+        let savedMedia = try await fileAccess.save(media: media) { progress in // Ensure fileAccess and its save method are correctly implemented
             debugPrint("Progress: \(progress)")
             Task { @MainActor in
                 self.importProgress = progress
             }
         }
-        debugPrint("Live photo media saved: \(savedMedia?.photoURL?.absoluteString ?? "nil")")
+        debugPrint("Media saved: \(savedMedia?.photoURL?.absoluteString ?? "nil")")
         await MainActor.run {
             self.importProgress = 0.0 // Reset or update progress as necessary
         }
+    }
+
+    private func handleLivePhoto(result: PHPickerResult) async throws {
+
+         let assetResources = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[PHAssetResource], Error>) in
+            // Load the PHLivePhoto object from the picker result
+            result.itemProvider.loadObject(ofClass: PHLivePhoto.self) { (object, error) in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let livePhoto = object as? PHLivePhoto else {
+                    continuation.resume(throwing: NSError(domain: "LivePhotoErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not load PHLivePhoto from the result"]))
+                    return
+                }
+
+                continuation.resume(returning: PHAssetResource.assetResources(for: livePhoto))
+
+
+            }
+        }
+        var cleartextMediaArray: [CleartextMedia] = []
+        let id = UUID().uuidString
+        // Process the asset resources as needed
+        for resource in assetResources {
+            // Here you can handle the resource, e.g., save it to disk or upload it
+            print("Resource type: \(resource.type), filename: \(resource.originalFilename)")
+
+            // Example: If you want to retrieve the data of a resource
+            let options = PHAssetResourceRequestOptions()
+            options.isNetworkAccessAllowed = true
+
+            let documentsDirectory = URL.tempMediaDirectory
+            let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
+
+            do {
+                try await PHAssetResourceManager.default().writeData(for: resource, toFile: fileURL, options: options)
+                let media = CleartextMedia(source: fileURL, mediaType: .photo, id: id)
+                cleartextMediaArray.append(media)
+            } catch {
+                throw error
+            }
+        }
+
+        try await saveCleartextMedia(mediaArray: cleartextMediaArray)
     }
 
 
