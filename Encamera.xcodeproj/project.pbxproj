@@ -41,6 +41,7 @@
 		189E8E09C8B2051B80EA5DD7 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 2E3847B535525CD631854FE2 /* SwiftUIIntrospect */; };
 		1935F4092C6BB6CC001CA769 /* MediaViewingDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1935F4082C6BB6CC001CA769 /* MediaViewingDelegate.swift */; };
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
+		1971C37F2C6BC0CD00227DDC /* LivePhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1971C37E2C6BC0CD00227DDC /* LivePhotoView.swift */; };
 		19C0E0F42C6B6092007A63A7 /* MediaViewingError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C0E0F32C6B6092007A63A7 /* MediaViewingError.swift */; };
 		19C0E0F62C6B60AA007A63A7 /* MediaViewingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C0E0F52C6B60AA007A63A7 /* MediaViewingViewModel.swift */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
@@ -411,6 +412,7 @@
 		15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewOnboardingView.swift; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		1935F4082C6BB6CC001CA769 /* MediaViewingDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaViewingDelegate.swift; sourceTree = "<group>"; };
+		1971C37E2C6BC0CD00227DDC /* LivePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoView.swift; sourceTree = "<group>"; };
 		19C0E0F32C6B6092007A63A7 /* MediaViewingError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaViewingError.swift; sourceTree = "<group>"; };
 		19C0E0F52C6B60AA007A63A7 /* MediaViewingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaViewingViewModel.swift; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -738,6 +740,7 @@
 				1935F4082C6BB6CC001CA769 /* MediaViewingDelegate.swift */,
 				19C0E0F32C6B6092007A63A7 /* MediaViewingError.swift */,
 				E32FD7F27B195845AF9C0F2A /* LivePhotoViewing.swift */,
+				1971C37E2C6BC0CD00227DDC /* LivePhotoView.swift */,
 				CB0AF4D110AAADF74FE13DAC /* MovieViewing.swift */,
 				1DC2B4EA86DCED1610632479 /* PhotoInfoView.swift */,
 			);
@@ -1520,6 +1523,7 @@
 				F30D4AE8166C0034674E0DBB /* PromptToErase.swift in Sources */,
 				6C17DD325876225EA9C2E3DE /* PurchaseButton.swift in Sources */,
 				8843B3BB8423B03110780E53 /* PurchaseOptionViewModifier.swift in Sources */,
+				1971C37F2C6BC0CD00227DDC /* LivePhotoView.swift in Sources */,
 				478EDCEDE153938683788430 /* PurchaseOptionsOverlay.swift in Sources */,
 				4B34A3BACAAE910FCFF72639 /* PurchasePhotoSubscriptionOverlay.swift in Sources */,
 				F52B09D9AEBF17B9E89E4219 /* PurchaseUpgradeHeaderView.swift in Sources */,

@@ -9,6 +9,8 @@ import SwiftUI
 import Combine
 import EncameraCore
 import AVFoundation
+import Photos
+
 
 class LivePhotoViewingViewModel: ObservableObject {
 
@@ -18,6 +20,7 @@ class LivePhotoViewingViewModel: ObservableObject {
     typealias LongPressGestureType = _EndedGesture<_ChangedGesture<LongPressGesture>>
 
     @Published var decryptedFileRef: InteractableMedia<CleartextMedia>?
+    @Published var preparedLivePhoto: PHLivePhoto?
     @Published var loadingProgress: Double = 0.0
     @Published var currentScale: CGFloat = 1.0
     @Published var finalScale: CGFloat = 1.0
@@ -27,19 +30,15 @@ class LivePhotoViewingViewModel: ObservableObject {
     @Published var player: AVPlayer?
     @Published var showLivePhotoViewport: Bool = false
 
-    var swipeLeft: (() -> Void)
-    var swipeRight: (() -> Void)
-
     var sourceMedia: InteractableMedia<EncryptedMedia>
     var fileAccess: FileAccess
     var error: MediaViewingError?
 
     private var livePhotoFinished: (() -> Void)?
     private var delegate: MediaViewingDelegate
+    private var cancellables = Set<AnyCancellable>()  // Store cancellables
 
-    init(swipeLeft: @escaping ( () -> Void), swipeRight: @escaping ( () -> Void), sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
-        self.swipeLeft = swipeLeft
-        self.swipeRight = swipeRight
+    init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
         self.sourceMedia = sourceMedia
         self.fileAccess = fileAccess
         self.delegate = delegate
@@ -69,10 +68,19 @@ class LivePhotoViewingViewModel: ObservableObject {
                     self.player = player
                 }
 
-                await MainActor.run {
-                    decryptedFileRef = result
-                    delegate.didView(media: sourceMedia)
-                }
+                // Subscribe to the Combine publisher for generating the live photo
+                result.generateLivePhoto()
+                    .receive(on: RunLoop.main)
+                    .sink(receiveCompletion: { completion in
+                        if case .failure(let error) = completion {
+                            self.error = .decryptError(wrapped: error)
+                        }
+                    }, receiveValue: { livePhoto in
+                        self.preparedLivePhoto = livePhoto
+                        self.decryptedFileRef = result
+                        self.delegate.didView(media: self.sourceMedia)
+                    })
+                    .store(in: &cancellables)
 
             } catch {
                 self.error = .decryptError(wrapped: error)
@@ -98,14 +106,6 @@ class LivePhotoViewingViewModel: ObservableObject {
         }
     }
 
-    func playLivePhoto(finished: (() -> Void)? = nil) {
-        livePhotoFinished = finished
-        withAnimation {
-            showLivePhotoViewport = true
-            playVideo()
-        }
-    }
-
     var offset: CGSize {
         return CGSize(
             width: finalOffset.width + currentOffset.width,
@@ -123,14 +123,6 @@ class LivePhotoViewingViewModel: ObservableObject {
         return false
     }
 
-    func playVideo() {
-        player?.play()
-    }
-
-    func pauseVideo() {
-        player?.pause()
-    }
-
     var dragGesture: DragGestureType {
 
         DragGesture(minimumDistance: 1).onChanged({ [self] value in
@@ -142,11 +134,6 @@ class LivePhotoViewingViewModel: ObservableObject {
         }).onEnded({ [self] value in
             if finalScale <= 1.0 {
                 resetViewState()
-                if value.location.x > value.startLocation.x {
-                    swipeLeft()
-                } else {
-                    swipeRight()
-                }
             } else {
                 let nextOffset: CGSize = .init(
                     width: finalOffset.width + currentOffset.width,
@@ -180,7 +167,6 @@ class LivePhotoViewingViewModel: ObservableObject {
         })
     }
 
-
     var tapGesture: TapGestureType {
         TapGesture(count: 2).onEnded { [self] in
             withAnimation { [self] in
@@ -195,8 +181,7 @@ class LivePhotoViewingViewModel: ObservableObject {
 struct LivePhotoViewing: View {
 
     @State var showBottomActions = false
-    @Binding var isPlayingLivePhoto: Bool
-    @ObservedObject var viewModel: LivePhotoViewingViewModel
+    @StateObject var viewModel: LivePhotoViewingViewModel
 
     var externalGesture: DragGesture
 
@@ -224,11 +209,8 @@ struct LivePhotoViewing: View {
 
         ZStack {
 
-            if let imageData = viewModel.decryptedFileRef?.imageData,
-               let image = UIImage(data: imageData) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
+            if let imageData = viewModel.preparedLivePhoto {
+                LivePhotoView(livePhoto: imageData, playbackStyle: .hint)
                     .scaleEffect(viewModel.finalScale * viewModel.currentScale, anchor:
                                     calculateScaleAnchor())
                     .offset(viewModel.offset)
@@ -244,35 +226,18 @@ struct LivePhotoViewing: View {
             } else {
                 ProgressView()
             }
-            livePhotoViewport
         }
-        .onChange(of: isPlayingLivePhoto, { oldValue, newValue in
-            if newValue == true {
-                viewModel.playLivePhoto {
-                    isPlayingLivePhoto = false
-                }
-            }
-        })
         .onAppear {
             viewModel.decryptAndSet()
             EventTracking.trackImageViewed()
         }
+        .onDisappear {
+            viewModel.finalScale = 1.0
+            viewModel.finalOffset = .zero
+        }
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    var livePhotoViewport: some View {
-        Group {
-            if viewModel.showLivePhotoViewport {
-                AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: false)
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: viewModel.currentFrame.width, height: viewModel.currentFrame.height)
-            }
-        }                    
-        .opacity(viewModel.showLivePhotoViewport ? 1 : 0)
-            .animation(.easeInOut, value: viewModel.showLivePhotoViewport)
-            .transition(.opacity)
-
-    }
 
     var geometryReader: some View {
         GeometryReader { geometry in

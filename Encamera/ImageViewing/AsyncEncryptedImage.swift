@@ -89,13 +89,14 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
                         Spacer()
                         HStack {
                             Spacer()
-                            if let duration = viewModel.cleartextMedia?.videoDuration {
+                            if viewModel.cleartextMedia?.isLivePhoto == true {
+                                Image(systemName: "livephoto")
+                                    .padding(2.0)
+                            } else if let duration = viewModel.cleartextMedia?.videoDuration  {
                                 Text(duration)
                                     .font(.system(size: 12, weight: .bold))
                                     .padding(2.0)
-                            } else {
-                                Image(systemName: "livephoto")
-                                    .padding(2.0)
+
                             }
                         }
 

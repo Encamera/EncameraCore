@@ -32,3 +32,4 @@ struct DecryptErrorExplanation_Previews: PreviewProvider {
         DecryptErrorExplanation(error: .noKeyAvailable)
     }
 }
+

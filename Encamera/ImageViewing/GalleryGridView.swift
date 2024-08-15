@@ -11,6 +11,10 @@ import EncameraCore
 import UniformTypeIdentifiers
 import PhotosUI
 
+enum ImportError: Error {
+    case mismatchedType
+}
+
 @MainActor
 class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
@@ -313,8 +317,6 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 }
 
                 continuation.resume(returning: PHAssetResource.assetResources(for: livePhoto))
-
-
             }
         }
         var cleartextMediaArray: [CleartextMedia] = []
@@ -330,10 +332,24 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
             let documentsDirectory = URL.tempMediaDirectory
             let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
-
+            resource.type
             do {
+                var mediaType: MediaType
+                switch resource.type {
+                case .pairedVideo:
+                    mediaType = .video
+                case .photo:
+                    mediaType = .photo
+                default:
+                    debugPrint("Error, could not handle media type \(resource.type)")
+                    throw ImportError.mismatchedType
+                }
                 try await PHAssetResourceManager.default().writeData(for: resource, toFile: fileURL, options: options)
-                let media = CleartextMedia(source: fileURL, mediaType: .photo, id: id)
+                let media = CleartextMedia(
+                    source: fileURL,
+                    mediaType: mediaType,
+                    id: id
+                )
                 cleartextMediaArray.append(media)
             } catch {
                 throw error
@@ -544,8 +560,12 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
 
     private func imageForItem(mediaItem: InteractableMedia<EncryptedMedia>, width: CGFloat, height: CGFloat, index: Int) -> some View {
 
-        AsyncEncryptedImage(viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
-                            placeholder: ProgressView(), isInSelectionMode: .constant(false), isSelected: .constant(false))
+        AsyncEncryptedImage(
+            viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
+            placeholder: ProgressView(),
+            isInSelectionMode: .constant(false),
+            isSelected: .constant(false)
+        )
         .id(mediaItem.gridID)
         .frame(width: width, height: height)
         .onTapGesture {

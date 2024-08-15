@@ -257,12 +257,14 @@ struct GalleryHorizontalScrollView: View {
     @ViewBuilder private func viewingFor(item: InteractableMedia<EncryptedMedia>) -> some View {
 
         switch item.mediaType {
-        case .stillPhoto, .livePhoto:
+        case .stillPhoto:
             let model = viewModel.modelForMedia(item: item)
             ImageViewing(viewModel: model, externalGesture: dragGestureRef)
                 .onDisappear {
                     model.resetViewState()
                 }
+        case .livePhoto:
+            LivePhotoViewing(viewModel: .init(sourceMedia: item, fileAccess: viewModel.fileAccess, delegate: viewModel), externalGesture: dragGestureRef)
         case .video:
             MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, delegate: viewModel), isPlayingVideo: $viewModel.isPlayingVideo)
 
@@ -301,18 +303,6 @@ struct GalleryHorizontalScrollView: View {
             .padding()
             .frame(height: 44)
 
-            if viewModel.selectedMedia?.mediaType == .livePhoto {
-                Button {
-                    viewModel.isPlayingLivePhoto = true
-                } label: {
-                    HStack {
-                        Image(systemName: "livephoto")
-                        Text(L10n.GalleryView.playLivePhoto)
-                    }
-                }
-                .textPill(color: .gray)
-                .frame(maxWidth: .infinity)
-            }
         }
     }
     private func scrollTo(media: InteractableMedia<EncryptedMedia>?, with proxy: ScrollViewProxy, animated: Bool = true) {
