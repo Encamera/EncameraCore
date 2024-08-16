@@ -132,8 +132,8 @@ struct TopCameraControlsView: View {
     }
 
     private var mainControls: some View {
-        ZStack {
-            HStack {
+        ZStack(alignment: .center) {
+            HStack(alignment: .center) {
                 Button {
                     closeButtonTapped()
                 } label: {
@@ -163,10 +163,11 @@ struct TopCameraControlsView: View {
                         .tracking(0.24)
                         .foregroundColor(.black)
                 }
-                .padding(EdgeInsets(top: 10, leading: 24, bottom: 10, trailing: 24))
+                .padding(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
                 .frame(height: 36)
                 .background(.white)
                 .cornerRadius(40)
+                .padding(.top, getSafeAreaTop())
             }
         }
         .background(.ultraThinMaterial)
