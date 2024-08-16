@@ -9,11 +9,12 @@ import SwiftUI
 import Combine
 import EncameraCore
 
-
+@MainActor
 class GalleryHorizontalScrollViewModel: ObservableObject {
-    
+
     @Published var media: [InteractableMedia<EncryptedMedia>]
     @Published var selectedMedia: InteractableMedia<EncryptedMedia>?
+    @Published var selectedMediaPreview: PreviewModel?
     @Published var initialMedia: InteractableMedia<EncryptedMedia>?
     @Published var showInfoSheet = false
     @Published var showPurchaseSheet = false
@@ -23,7 +24,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     var showActionBar = true
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
-    
+
     init(media: [InteractableMedia<EncryptedMedia>], initialMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging) {
         self.media = media
         self.fileAccess = fileAccess
@@ -31,7 +32,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
         self.showActionBar = showActionBar
         self.purchasedPermissions = purchasedPermissions
     }
-    
+
     var selectedIndex: Int {
         guard let selectedMedia = selectedMedia else { return 0 }
         return media.firstIndex(of: selectedMedia) ?? 0
@@ -69,11 +70,23 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
         }
 
     }
-    
+
+    func loadThumnailForActiveMedia() {
+        guard let selectedMedia = selectedMedia else { return }
+        Task {
+            do {
+                let thumbnail = try await fileAccess.loadMediaPreview(for: selectedMedia)
+                selectedMediaPreview = thumbnail
+            } catch {
+                debugPrint("Error loading thumbnail", error)
+            }
+        }
+    }
+
     func shareDecrypted() {
         guard let selectedMedia else { return }
         Task {
-            #warning("implement live photo sharing")
+#warning("implement live photo sharing")
             let decrypted = try await fileAccess.loadMedia(media: selectedMedia) { _ in
 
             }
@@ -89,7 +102,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
                         shareSheet(data: image)
                     }
                 }
-                
+
             case .video:
                 await MainActor.run {
                     shareSheet(data: decrypted.videoURL)
@@ -97,31 +110,31 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
             default:
                 return
             }
-            
+
         }
     }
     @MainActor
     func shareSheet(data: Any) {
         let activityView = UIActivityViewController(activityItems: [data], applicationActivities: nil)
-        
-        
+
+
         let allScenes = UIApplication.shared.connectedScenes
         let scene = allScenes.first { $0.activationState == .foregroundActive }
-        
+
         if let windowScene = scene as? UIWindowScene {
             windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
         }
         EventTracking.trackMediaShared()
     }
-    
+
     func canAccessPhoto(at index: Int) -> Bool {
         return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(media.count - index)))
     }
-    
+
     func showPurchaseScreen() {
         showPurchaseSheet = true
     }
-    
+
 }
 
 extension GalleryHorizontalScrollViewModel: MediaViewingDelegate {
@@ -131,15 +144,15 @@ extension GalleryHorizontalScrollViewModel: MediaViewingDelegate {
 }
 
 struct GalleryHorizontalScrollView: View {
-    
-    
+
+
     typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnifyGesture>>
     typealias TapGestureType = _EndedGesture<TapGesture>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
 
     @State var isScrollEnabled = true
 
-    
+
     @StateObject var viewModel: GalleryHorizontalScrollViewModel
     @State var nextScrollViewXOffset: CGFloat = .zero
     @Namespace var scrollSpace
@@ -148,7 +161,7 @@ struct GalleryHorizontalScrollView: View {
     @State var showingDeleteConfirmation = false
     @Environment(\.dismiss) private var dismiss
     var dragGestureRef = DragGesture(minimumDistance: 0)
-    
+
     private let viewTitle: String = "GalleryView"
 
     var body: some View {
@@ -197,10 +210,30 @@ struct GalleryHorizontalScrollView: View {
                 }
             }
         }
+        .background {
+            if let preview = viewModel.selectedMediaPreview,
+               let previewData = preview.thumbnailMedia.data,
+               let image = UIImage(data: previewData) {
+                Image(uiImage: image)
+                    .resizable() // Ensure the image can be resized
+                    .scaledToFill() // Scale the image to fill the entire view
+                    .frame(maxWidth: .infinity, maxHeight: .infinity) // Make the image take up the full width and height
+                    .blur(radius: 20) // Apply a blur effect to the image
+                    .overlay(Color.black.opacity(0.3)) // Optional: Add a frost effect with an overlay
+                    .clipped() // Clip the image to the bounds of the view
+                    .ignoresSafeArea(.all)
+            } else {
+                EmptyView()
+            }
+        }
+
+        .onChange(of: viewModel.selectedMedia) { oldValue, newValue in
+            viewModel.loadThumnailForActiveMedia()
+        }
         .productStore(isPresented: $viewModel.showPurchaseSheet, fromViewName: viewTitle)
     }
-    
-    
+
+
     @ViewBuilder private func scrollView(frame: CGRect) -> some View {
         let gridItems = [
             GridItem(.fixed(frame.width), spacing: 0)
@@ -254,7 +287,8 @@ struct GalleryHorizontalScrollView: View {
 
 
     @ViewBuilder private func viewingFor(item: InteractableMedia<EncryptedMedia>) -> some View {
-        ZStack {
+
+        Group {
             switch item.mediaType {
             case .stillPhoto:
                 let model = viewModel.modelForMedia(item: item)
@@ -266,12 +300,10 @@ struct GalleryHorizontalScrollView: View {
                 LivePhotoViewing(viewModel: .init(sourceMedia: item, fileAccess: viewModel.fileAccess, delegate: viewModel), externalGesture: dragGestureRef)
             case .video:
                 MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, delegate: viewModel), isPlayingVideo: $viewModel.isPlayingVideo)
-
             }
-
         }
     }
-    
+
     private var actionBar: some View {
         ZStack {
             HStack {
