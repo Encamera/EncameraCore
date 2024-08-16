@@ -69,25 +69,39 @@ struct BubbleArrowShape: Shape {
 }
 
 
-
-
 class TopCameraControlsViewViewModel: ObservableObject {
-
     @Published var selectedAlbum: Album?
+    @Published var mode: CameraMode
+    @Published var canCaptureLivePhoto: Bool
 
     private var cancellables = Set<AnyCancellable>()
     var albumManager: AlbumManaging
-    init(albumManager: AlbumManaging) {
-        self.albumManager = albumManager
 
+    init(albumManager: AlbumManaging, mode: Published<CameraMode>.Publisher, canCaptureLivePhoto: Published<Bool>.Publisher) {
+        self.albumManager = albumManager
+        self.mode = .photo // Default value, this will be overridden by the incoming publisher
+        self.canCaptureLivePhoto = true // Default value, this will be overridden by the incoming publisher
+
+        // Subscribe to the incoming mode publisher
+        mode
+            .receive(on: RunLoop.main)
+            .assign(to: &$mode)
+
+        // Subscribe to the incoming canCaptureLivePhoto publisher
+        canCaptureLivePhoto
+            .receive(on: RunLoop.main)
+            .assign(to: &$canCaptureLivePhoto)
+
+        // Subscribe to the albumManager's albumOperationPublisher
         albumManager.albumOperationPublisher
             .receive(on: RunLoop.main)
             .sink { operation in
-            guard case .selectedAlbumChanged(album: let album) = operation else {
-                return
+                guard case .selectedAlbumChanged(album: let album) = operation else {
+                    return
+                }
+                self.selectedAlbum = album
             }
-            self.selectedAlbum = album
-        }.store(in: &cancellables)
+            .store(in: &cancellables)
     }
 }
 
@@ -127,8 +141,10 @@ struct TopCameraControlsView: View {
                         .frame(width: 28, height: 28)
                 }
                 Spacer()
-                livePhotoButton
-                    .frame(width: 28, height: 28)
+                if viewModel.mode == .photo && viewModel.canCaptureLivePhoto {
+                    livePhotoButton
+                        .frame(width: 28, height: 28)
+                }
                 Spacer().frame(width: 5.0)
                 flashButton
                     .frame(width: 28, height: 28)
@@ -228,23 +244,29 @@ struct TopCameraControlsView: View {
     }
 }
 
-struct TopCameraControlsView_Previews: PreviewProvider {
-    static var previews: some View {
-        ZStack {
-            Image("maria-cappelli")
-                .resizable()
-            //                .frame(width: 500, height: 1000)
-            TopCameraControlsView(
-                viewModel: TopCameraControlsViewViewModel(albumManager: DemoAlbumManager()),
-                isRecordingVideo: .constant(true),
-                recordingDuration: .constant(.zero),
-                showSavedToAlbumTooltip: .constant(true),
-                flashMode: .constant(.on),
-                isLivePhotoEnabled: .constant(true),
-                closeButtonTapped: {},
-                flashButtonPressed: {}
-            )
-
-        }
-    }
-}
+//struct TopCameraControlsView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        ZStack {
+//            Image("maria-cappelli")
+//                .resizable()
+//                .frame(width: 500, height: 1000)
+//
+//            TopCameraControlsView(
+//                viewModel: TopCameraControlsViewViewModel(
+//                    albumManager: DemoAlbumManager(),
+//                    mode: .constant(CameraMode.photo),
+//                    canCaptureLivePhoto: .constant(false)
+//                ),
+//                isRecordingVideo: .constant(true),
+//                recordingDuration: .constant(.zero),
+//                showSavedToAlbumTooltip: .constant(true),
+//                flashMode: .constant(.on),
+//                isLivePhotoEnabled: .constant(true),
+//                closeButtonTapped: {},
+//                flashButtonPressed: {
+//                    // Flash button pressed action
+//                }
+//            )
+//        }
+//    }
+//}

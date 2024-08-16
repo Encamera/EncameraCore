@@ -190,15 +190,18 @@ struct CameraView: View {
                 .frame(maxHeight: .infinity)
 
             VStack {
-                TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager), isRecordingVideo: $cameraModel.isRecordingVideo,
+                TopCameraControlsView(viewModel: .init(albumManager: cameraModel.albumManager,
+                                                       mode: cameraModel.$selectedCameraMode,
+                                                       canCaptureLivePhoto: cameraModel.canCaptureLivePhoto),
+                                      isRecordingVideo: $cameraModel.isRecordingVideo,
                                       recordingDuration: $cameraModel.recordingDuration,
                                       showSavedToAlbumTooltip: $cameraModel.showSavedToAlbumTooltip,
                                       flashMode:  $cameraModel.flashMode,
-                                        isLivePhotoEnabled: $cameraModel.isLivePhotoEnabled,
+                                      isLivePhotoEnabled: $cameraModel.isLivePhotoEnabled,
                                       closeButtonTapped: closeCamera,
                                       flashButtonPressed: {
-                    self.cameraModel.switchFlash()
-                })
+                                          self.cameraModel.switchFlash()
+                                      })
                 tooltip
                 if hasMediaToImport {
                     HStack {

@@ -74,6 +74,9 @@ final class CameraModel: NSObject, ObservableObject {
     var fileAccess: FileAccess
     var userDefaultsUtil = UserDefaultUtils()
     var purchaseManager: PurchasedPermissionManaging
+    var canCaptureLivePhoto: Published<Bool>.Publisher {
+        service.canCaptureLivePhoto
+    }
     var captureActionPublisher: AnyPublisher<Void, Never> {
         captureSubject.eraseToAnyPublisher()
     }

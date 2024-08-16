@@ -91,15 +91,18 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
                 guard let self = self else { return }
                 let setValues = Set(values.values)
                 self.lastProcessedValues = setValues
-                let scrollViewFrame = values[UUID()] ?? 0
-                for (id, minX) in values where id != UUID() {
-                    let viewFrame = minX - scrollViewFrame
+                for (id, minX) in values {
+                    let viewFrame = minX
                     if viewFrame >= 0 && viewFrame + UIScreen.main.bounds.width <= UIScreen.main.bounds.width {
                         let newSelection = self.mediaMap[id.uuidString]
                         if self.selectedMedia != newSelection {
                             self.selectedMedia = newSelection
                             loadThumbnailForActiveMedia()
                         }
+                        debugPrint("Viewframe \(viewFrame) bounds: \(viewFrame + UIScreen.main.bounds.width) <= \(UIScreen.main.bounds.width)")
+
+                    } else {
+                        debugPrint("Not Viewframe \(viewFrame) bounds: \(viewFrame + UIScreen.main.bounds.width) <= \(UIScreen.main.bounds.width)")
                     }
                 }
             }

@@ -152,8 +152,9 @@ struct MovieViewing: View {
             
             if viewModel.decryptedFileRef?.videoURL != nil {
                 AVPlayerLayerRepresentable(player: viewModel.player, isExpanded: viewModel.isExpanded)
-                    .aspectRatio(contentMode: .fill)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+
                 if viewModel.videoDuration > 0 {
                     VideoScrubbingSlider(value: videoPositionBinding(), isPlayingVideo: $isPlayingVideo, isExpanded: $viewModel.isExpanded, range: 0...viewModel.videoDuration)
                         .padding()
