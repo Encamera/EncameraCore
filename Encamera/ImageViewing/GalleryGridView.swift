@@ -498,6 +498,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                                 fileAccess: viewModel.fileAccess,
                                 purchasedPermissions: viewModel.purchasedPermissions
                             ))
+
                     }
                 } label: {
                     EmptyView()

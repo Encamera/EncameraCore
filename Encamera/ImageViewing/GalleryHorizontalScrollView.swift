@@ -9,10 +9,55 @@ import SwiftUI
 import Combine
 import EncameraCore
 
+struct ViewOffsetKey: PreferenceKey {
+    typealias Value = [UUID: CGFloat]
+
+    static var defaultValue: [UUID: CGFloat] = [:]
+
+    static func reduce(value: inout [UUID: CGFloat], nextValue: () -> [UUID: CGFloat]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
+    }
+}
+
+// 2. Wrap each view inside a GeometryReader to track its position within the ScrollView
+struct TrackableView<Content: View>: View {
+    let id: UUID
+    let content: Content
+
+    init(id: UUID, @ViewBuilder content: () -> Content) {
+        self.id = id
+        self.content = content()
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            content
+                .background(
+                    Color.clear
+                        .preference(key: ViewOffsetKey.self, value: [id: geometry.frame(in: .global).minX])
+                )
+        }
+    }
+}
+
+
 @MainActor
 class GalleryHorizontalScrollViewModel: ObservableObject {
 
-    @Published var media: [InteractableMedia<EncryptedMedia>]
+    @Published var media: [InteractableMedia<EncryptedMedia>] {
+        didSet {
+            updateMediaMap()
+        }
+    }
+
+    func updateMediaMap() {
+        let map = media.reduce(into: [:]) { result, media in
+            result[media.id] = media
+        }
+        debugPrint("Media map updated: \(map)")
+        mediaMap = map
+    }
+    var mediaMap: [String: InteractableMedia<EncryptedMedia>] = [:]
     @Published var selectedMedia: InteractableMedia<EncryptedMedia>?
     @Published var selectedMediaPreview: PreviewModel?
     @Published var initialMedia: InteractableMedia<EncryptedMedia>?
@@ -20,17 +65,40 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     @Published var showPurchaseSheet = false
     @Published var isPlayingVideo = false
     @Published var isPlayingLivePhoto = false
+    var lastProcessedValues = Set<CGFloat>()
     var purchasedPermissions: PurchasedPermissionManaging
     var showActionBar = true
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
-
+    @Published var viewOffsets: [UUID: CGFloat] = [:]
     init(media: [InteractableMedia<EncryptedMedia>], initialMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging) {
         self.media = media
         self.fileAccess = fileAccess
         self.initialMedia = initialMedia
         self.showActionBar = showActionBar
         self.purchasedPermissions = purchasedPermissions
+        updateMediaMap()
+        // Debounce the viewOffsets updates
+        $viewOffsets
+            .sink { [weak self] values in
+                guard let self = self else { return }
+                let setValues = Set(values.values)
+                debugPrint("View offsets changed: \(setValues), last processed: \(self.lastProcessedValues)")
+                self.lastProcessedValues = setValues
+                let scrollViewFrame = values[UUID()] ?? 0
+                for (id, minX) in values where id != UUID() {
+                    let viewFrame = minX - scrollViewFrame
+                    if viewFrame >= 0 && viewFrame + UIScreen.main.bounds.width <= UIScreen.main.bounds.width {
+                        print("Item fully visible: \(id)")
+                        let newSelection = self.mediaMap[id.uuidString]
+                        if self.selectedMedia != newSelection {
+                            self.selectedMedia = newSelection
+                            loadThumbnailForActiveMedia()
+                        }
+                    }
+                }
+            }
+            .store(in: &cancellables)
     }
 
     var selectedIndex: Int {
@@ -71,7 +139,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
 
     }
 
-    func loadThumnailForActiveMedia() {
+    func loadThumbnailForActiveMedia() {
         guard let selectedMedia = selectedMedia else { return }
         Task {
             do {
@@ -107,8 +175,6 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
                 await MainActor.run {
                     shareSheet(data: decrypted.videoURL)
                 }
-            default:
-                return
             }
 
         }
@@ -139,7 +205,6 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
 
 extension GalleryHorizontalScrollViewModel: MediaViewingDelegate {
     func didView(media: InteractableMedia<EncryptedMedia>) {
-        self.selectedMedia = media
     }
 }
 
@@ -186,11 +251,13 @@ struct GalleryHorizontalScrollView: View {
                 .onChange(of: viewModel.isPlayingVideo) {
                     isScrollEnabled = !viewModel.isPlayingVideo
                 }
+
             }
             if viewModel.showActionBar {
                 actionBar
             }
         }
+
         .sheet(isPresented: $viewModel.showInfoSheet) {
             let content = Group {
                 if let media = viewModel.selectedMedia {
@@ -222,22 +289,22 @@ struct GalleryHorizontalScrollView: View {
                     .overlay(Color.black.opacity(0.3)) // Optional: Add a frost effect with an overlay
                     .clipped() // Clip the image to the bounds of the view
                     .ignoresSafeArea(.all)
+                    .transition(.blurReplace)
             } else {
                 EmptyView()
             }
         }
-
-        .onChange(of: viewModel.selectedMedia) { oldValue, newValue in
-            viewModel.loadThumnailForActiveMedia()
-        }
         .productStore(isPresented: $viewModel.showPurchaseSheet, fromViewName: viewTitle)
     }
+
+    @State private var scrollViewWidth: CGFloat = 0 // Store the width of the ScrollView
 
 
     @ViewBuilder private func scrollView(frame: CGRect) -> some View {
         let gridItems = [
             GridItem(.fixed(frame.width), spacing: 0)
         ]
+
 
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
@@ -246,34 +313,51 @@ struct GalleryHorizontalScrollView: View {
                         ZStack {
                             let modalBinding = Binding<Bool> {
                                 !viewModel.canAccessPhoto(at: index)
-                            } set: { _ in
+                            } set: { _ in }
 
+                            TrackableView(id: UUID(uuidString: item.id)!) { // Wrap each item in TrackableView
+                                viewingFor(item: item)
+                                    .blur(radius: viewModel.canAccessPhoto(at: index) ? 0.0 : AppConstants.blockingBlurRadius)
+                                    .photoLimitReachedModal(isPresented: modalBinding) {
+                                        viewModel.showPurchaseScreen()
+                                        EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: "ImageScrollView")
+                                    } onSecondaryButtonPressed: {
+                                        EventTracking.trackPhotoLimitReachedScreenDismissed(from: "ImageScrollView")
+                                        dismiss()
+                                    }
                             }
-                            viewingFor(item: item)
-                                .blur(radius:
-                                        viewModel.canAccessPhoto(at: index)
-                                      ? 0.0 : AppConstants.blockingBlurRadius)
-                                .frame(
-                                    width: frame.width,
-                                    height: frame.height)
-                                .photoLimitReachedModal(isPresented: modalBinding) {
-                                    viewModel.showPurchaseScreen()
-                                    EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: "ImageScrollView")
-                                } onSecondaryButtonPressed: {
-                                    EventTracking.trackPhotoLimitReachedScreenDismissed(from: "ImageScrollView")
-                                    dismiss()
-                                }
+                            .frame(width: frame.width, height: frame.height)
 
+                            .id(item)
+                            .clipped()
                         }
-                        .id(item)
-                        .clipped()
-                    }.onAppear {
+                    }
+                    .onAppear {
                         scrollTo(media: viewModel.initialMedia, with: proxy, animated: false)
                     }
 
                 }
                 .scrollTargetLayout()
                 .frame(maxHeight: .infinity)
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear.preference(key: ViewOffsetKey.self, value: [UUID(): geometry.frame(in: .global).minX])
+                            .onAppear {
+                                guard scrollViewWidth == 0 else { return }
+                                debugPrint("geometry appeared: \(geometry.size.width)")
+                                scrollViewWidth = geometry.size.width // Capture the ScrollView width
+                            }
+                    }
+                )
+                .onPreferenceChange(ViewOffsetKey.self) { values in
+                    debugPrint("View offsets changed: \(values)")
+                    let setValues = Set(values.values)
+                    guard setValues != viewModel.lastProcessedValues else {
+                        return
+                    }
+                    print("setValues: \(setValues), lastProcessed: \(viewModel.lastProcessedValues)")
+                    viewModel.viewOffsets = values
+                }
             }
             .scrollDisabled(!isScrollEnabled)
             .scrollTargetBehavior(.viewAligned)
@@ -284,23 +368,19 @@ struct GalleryHorizontalScrollView: View {
         }
         .scrollIndicators(.hidden)
     }
-
-
     @ViewBuilder private func viewingFor(item: InteractableMedia<EncryptedMedia>) -> some View {
 
-        Group {
-            switch item.mediaType {
-            case .stillPhoto:
-                let model = viewModel.modelForMedia(item: item)
-                ImageViewing(viewModel: model, externalGesture: dragGestureRef)
-                    .onDisappear {
-                        model.resetViewState()
-                    }
-            case .livePhoto:
-                LivePhotoViewing(viewModel: .init(sourceMedia: item, fileAccess: viewModel.fileAccess, delegate: viewModel), externalGesture: dragGestureRef)
-            case .video:
-                MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, delegate: viewModel), isPlayingVideo: $viewModel.isPlayingVideo)
-            }
+        switch item.mediaType {
+        case .stillPhoto:
+            let model = viewModel.modelForMedia(item: item)
+            ImageViewing(viewModel: model, externalGesture: dragGestureRef)
+                .onDisappear {
+                    model.resetViewState()
+                }
+        case .livePhoto:
+            LivePhotoViewing(viewModel: .init(sourceMedia: item, fileAccess: viewModel.fileAccess, delegate: viewModel), externalGesture: dragGestureRef)
+        case .video:
+            MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, delegate: viewModel), isPlayingVideo: $viewModel.isPlayingVideo)
         }
     }
 

@@ -12,6 +12,7 @@ import AVFoundation
 import Photos
 
 
+@MainActor
 class LivePhotoViewingViewModel: ObservableObject {
 
     typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnifyGesture>>

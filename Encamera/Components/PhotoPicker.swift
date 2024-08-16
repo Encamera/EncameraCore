@@ -1,5 +1,5 @@
 import SwiftUI
-import PhotosUI;
+import PhotosUI
 
 struct PhotoPicker: UIViewControllerRepresentable {
     var selectedItems: ([PHPickerResult]) -> ()
@@ -9,13 +9,16 @@ struct PhotoPicker: UIViewControllerRepresentable {
         var config = PHPickerConfiguration()
         config.selectionLimit = 0 // 0 for unlimited selection, set to 1 or any number for specific limits
         config.filter = filter
+        config.selection = .ordered
 
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = context.coordinator
         return picker
     }
 
-    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {
+        // Update the picker view if needed
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
