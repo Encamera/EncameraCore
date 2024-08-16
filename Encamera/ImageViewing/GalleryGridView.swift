@@ -571,7 +571,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
         .onTapGesture {
             viewModel.carouselTarget = mediaItem
         }
-        .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
+        .blur(radius: viewModel.blurItemAt(index: index + 1) ? Constants.blurRadius : 0.0)
         .galleryClipped()
 
     }
