@@ -332,7 +332,6 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
             let documentsDirectory = URL.tempMediaDirectory
             let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
-            resource.type
             do {
                 var mediaType: MediaType
                 switch resource.type {

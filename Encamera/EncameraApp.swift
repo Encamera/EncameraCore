@@ -381,7 +381,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         #if DEBUG
-        let isUpgradeLaunch = true
+        let isUpgradeLaunch = false
         #else
         let isUpgradeLaunch = LaunchCountUtils.isUpgradeLaunch()
         #endif

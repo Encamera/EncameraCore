@@ -73,7 +73,7 @@ struct CameraView: View {
         .onReceive(cameraModeStateModel.$selectedMode, perform: { value in
             self.cameraModel.selectedCameraMode = value
         })
-        .onChange(of: rotationFromOrientation, perform: { newValue in
+        .onChange(of: rotationFromOrientation, { oldValue, newValue in
             cameraModel.setOrientation(AVCaptureVideoOrientation(rawValue: UIDevice.current.orientation.rawValue) ?? .portrait)
         }).alert(isPresented: $cameraModel.showAlertError, content: {
             Alert(title: Text(cameraModel.alertError.title), message: Text(cameraModel.alertError.message), dismissButton: .default(Text(cameraModel.alertError.primaryButtonTitle), action: {

@@ -44,13 +44,14 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
 
         Task {
 
-            await MainActor.run {
-                _ = withAnimation {
-                    media.remove(at: targetIndex)
-                }
-            }
+
             do {
                 try await fileAccess.delete(media: targetMedia)
+                await MainActor.run {
+                    _ = withAnimation {
+                        media.remove(at: targetIndex)
+                    }
+                }
             } catch {
                 debugPrint("Error deleting media", error)
             }
@@ -255,18 +256,20 @@ struct GalleryHorizontalScrollView: View {
 
 
     @ViewBuilder private func viewingFor(item: InteractableMedia<EncryptedMedia>) -> some View {
+        ZStack {
+            switch item.mediaType {
+            case .stillPhoto:
+                let model = viewModel.modelForMedia(item: item)
+                ImageViewing(viewModel: model, externalGesture: dragGestureRef)
+                    .onDisappear {
+                        model.resetViewState()
+                    }
+            case .livePhoto:
+                LivePhotoViewing(viewModel: .init(sourceMedia: item, fileAccess: viewModel.fileAccess, delegate: viewModel), externalGesture: dragGestureRef)
+            case .video:
+                MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, delegate: viewModel), isPlayingVideo: $viewModel.isPlayingVideo)
 
-        switch item.mediaType {
-        case .stillPhoto:
-            let model = viewModel.modelForMedia(item: item)
-            ImageViewing(viewModel: model, externalGesture: dragGestureRef)
-                .onDisappear {
-                    model.resetViewState()
-                }
-        case .livePhoto:
-            LivePhotoViewing(viewModel: .init(sourceMedia: item, fileAccess: viewModel.fileAccess, delegate: viewModel), externalGesture: dragGestureRef)
-        case .video:
-            MovieViewing(viewModel: .init(media: item, fileAccess: viewModel.fileAccess, delegate: viewModel), isPlayingVideo: $viewModel.isPlayingVideo)
+            }
 
         }
     }

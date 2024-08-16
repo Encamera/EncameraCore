@@ -316,7 +316,9 @@ final class CameraModel: NSObject, ObservableObject {
 
 
     func setOrientation(_ orientation: AVCaptureVideoOrientation) {
-//        service.model.orientation = orientation
+        Task {
+            await service.set(rotation: orientation)
+        }
     }
 }
 
