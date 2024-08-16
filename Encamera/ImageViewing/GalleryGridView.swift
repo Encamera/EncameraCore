@@ -402,7 +402,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                             ProgressView(value: 0.5, total: 1.0) {
                             }.progressViewStyle(.circular)
                                 .pad(.pt8, edge: [.trailing, .leading])
-                            Text("\(L10n.downloadingFromICloud) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
+                            Text("\(L10n.importingPleaseWait) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
                                 .fontType(.pt14)
                             Spacer()
 

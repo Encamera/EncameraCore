@@ -220,7 +220,7 @@ struct MovieViewing: View {
         case .notLoaded:
             return L10n.decrypting
         case .downloading(progress: _):
-            return L10n.downloadingFromICloud
+            return L10n.importingPleaseWait
         case .loaded:
             return ""
         case .decrypting(progress: _):
