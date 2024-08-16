@@ -17,11 +17,14 @@ struct ModalViewModifier: ViewModifier {
     let onPrimaryButtonPressed: () -> Void
     let onSecondaryButtonPressed: () -> Void
     var animated: Bool = false  // Added animated property with default value
+    var addOverlay: Bool = true
 
     func body(content: Content) -> some View {
         ZStack(alignment: .bottom) {
             content
-            Color.clear.background(.ultraThinMaterial)
+            if addOverlay {
+                Color.clear.background(.ultraThinMaterial)
+            }
             VStack(alignment: .center, spacing: 0) {
                 Spacer().frame(height: 40)
                 Image(imageName)
@@ -61,9 +64,9 @@ struct ModalViewModifier: ViewModifier {
 // Usage
 extension View {
     @ViewBuilder
-    func genericModal(isPresented: Binding<Bool>, imageName: String, titleText: String, descriptionText: String, primaryButtonText: String, secondaryButtonText: String, onPrimaryButtonPressed: @escaping () -> Void, onSecondaryButtonPressed: @escaping () -> Void, animated: Bool = false) -> some View {
+    func genericModal(isPresented: Binding<Bool>, imageName: String, titleText: String, descriptionText: String, primaryButtonText: String, secondaryButtonText: String, onPrimaryButtonPressed: @escaping () -> Void, onSecondaryButtonPressed: @escaping () -> Void, animated: Bool = false, addOverlay: Bool = true) -> some View {
         if isPresented.wrappedValue {
-            self.modifier(ModalViewModifier(imageName: imageName, titleText: titleText, descriptionText: descriptionText, primaryButtonText: primaryButtonText, secondaryButtonText: secondaryButtonText, onPrimaryButtonPressed: onPrimaryButtonPressed, onSecondaryButtonPressed: onSecondaryButtonPressed, animated: animated))
+            self.modifier(ModalViewModifier(imageName: imageName, titleText: titleText, descriptionText: descriptionText, primaryButtonText: primaryButtonText, secondaryButtonText: secondaryButtonText, onPrimaryButtonPressed: onPrimaryButtonPressed, onSecondaryButtonPressed: onSecondaryButtonPressed, animated: animated, addOverlay: addOverlay))
         } else {
             self
         }

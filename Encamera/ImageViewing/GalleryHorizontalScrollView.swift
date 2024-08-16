@@ -8,6 +8,10 @@
 import SwiftUI
 import Combine
 import EncameraCore
+import LinkPresentation
+import UniformTypeIdentifiers
+
+
 
 struct ViewOffsetKey: PreferenceKey {
     typealias Value = [UUID: CGFloat]
@@ -42,7 +46,7 @@ struct TrackableView<Content: View>: View {
 
 
 @MainActor
-class GalleryHorizontalScrollViewModel: ObservableObject {
+class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
 
     @Published var media: [InteractableMedia<EncryptedMedia>] {
         didSet {
@@ -69,27 +73,28 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     var purchasedPermissions: PurchasedPermissionManaging
     var showActionBar = true
     var fileAccess: FileAccess
+    var currentSharingData: Any?
     private var cancellables = Set<AnyCancellable>()
     @Published var viewOffsets: [UUID: CGFloat] = [:]
     init(media: [InteractableMedia<EncryptedMedia>], initialMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging) {
+
         self.media = media
         self.fileAccess = fileAccess
         self.initialMedia = initialMedia
         self.showActionBar = showActionBar
         self.purchasedPermissions = purchasedPermissions
+        super.init()
         updateMediaMap()
         // Debounce the viewOffsets updates
         $viewOffsets
             .sink { [weak self] values in
                 guard let self = self else { return }
                 let setValues = Set(values.values)
-                debugPrint("View offsets changed: \(setValues), last processed: \(self.lastProcessedValues)")
                 self.lastProcessedValues = setValues
                 let scrollViewFrame = values[UUID()] ?? 0
                 for (id, minX) in values where id != UUID() {
                     let viewFrame = minX - scrollViewFrame
                     if viewFrame >= 0 && viewFrame + UIScreen.main.bounds.width <= UIScreen.main.bounds.width {
-                        print("Item fully visible: \(id)")
                         let newSelection = self.mediaMap[id.uuidString]
                         if self.selectedMedia != newSelection {
                             self.selectedMedia = newSelection
@@ -173,7 +178,10 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
 
             case .video:
                 await MainActor.run {
-                    shareSheet(data: decrypted.videoURL)
+                    guard let data = decrypted.videoURL else {
+                        return
+                    }
+                    shareSheet(data: data)
                 }
             }
 
@@ -181,8 +189,10 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     }
     @MainActor
     func shareSheet(data: Any) {
-        let activityView = UIActivityViewController(activityItems: [data], applicationActivities: nil)
+        // Ensure data is either UIImage or URL
+        self.currentSharingData = data
 
+        let activityView = UIActivityViewController(activityItems: [self], applicationActivities: nil)
 
         let allScenes = UIApplication.shared.connectedScenes
         let scene = allScenes.first { $0.activationState == .foregroundActive }
@@ -201,6 +211,35 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
         showPurchaseSheet = true
     }
 
+}
+
+extension GalleryHorizontalScrollViewModel: UIActivityItemSource {
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        // Return a placeholder item (e.g., an empty string)
+        return "Encamera Image"
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        // Return nil, or the actual item if you want to customize it for specific activity types
+
+        return currentSharingData
+    }
+
+    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
+        // Create and return LPLinkMetadata with the image preview
+        let metadata = LPLinkMetadata()
+        
+        if let selectedMediaPreview {
+            guard let thumbnailData = selectedMediaPreview.thumbnailMedia.data else {
+                return nil
+            }
+            let imageProvider = NSItemProvider(item: thumbnailData as NSData, typeIdentifier: UTType.png.identifier)
+            metadata.imageProvider = imageProvider
+            metadata.title = selectedMedia?.id
+        }
+
+        return metadata
+    }
 }
 
 extension GalleryHorizontalScrollViewModel: MediaViewingDelegate {
@@ -318,7 +357,7 @@ struct GalleryHorizontalScrollView: View {
                             TrackableView(id: UUID(uuidString: item.id)!) { // Wrap each item in TrackableView
                                 viewingFor(item: item)
                                     .blur(radius: viewModel.canAccessPhoto(at: index) ? 0.0 : AppConstants.blockingBlurRadius)
-                                    .photoLimitReachedModal(isPresented: modalBinding) {
+                                    .photoLimitReachedModal(isPresented: modalBinding, addOverlay: false) {
                                         viewModel.showPurchaseScreen()
                                         EventTracking.trackPhotoLimitReachedScreenUpgradeTapped(from: "ImageScrollView")
                                     } onSecondaryButtonPressed: {

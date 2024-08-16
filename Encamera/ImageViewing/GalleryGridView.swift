@@ -321,12 +321,8 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         }
         var cleartextMediaArray: [CleartextMedia] = []
         let id = UUID().uuidString
-        // Process the asset resources as needed
-        for resource in assetResources {
-            // Here you can handle the resource, e.g., save it to disk or upload it
-            print("Resource type: \(resource.type), filename: \(resource.originalFilename)")
 
-            // Example: If you want to retrieve the data of a resource
+        for resource in assetResources {
             let options = PHAssetResourceRequestOptions()
             options.isNetworkAccessAllowed = true
 

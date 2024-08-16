@@ -2,7 +2,7 @@ import SwiftUI
 import EncameraCore
 
 extension View {
-    func photoLimitReachedModal(isPresented: Binding<Bool>, onPrimaryButtonPressed: @escaping () -> Void, onSecondaryButtonPressed: @escaping () -> Void) -> some View {
+    func photoLimitReachedModal(isPresented: Binding<Bool>, addOverlay: Bool = true, onPrimaryButtonPressed: @escaping () -> Void, onSecondaryButtonPressed: @escaping () -> Void) -> some View {
         self
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         .genericModal(
@@ -13,7 +13,8 @@ extension View {
             primaryButtonText: L10n.upgradeToPremium,
             secondaryButtonText: L10n.cancel,
             onPrimaryButtonPressed: onPrimaryButtonPressed,
-            onSecondaryButtonPressed: onSecondaryButtonPressed
+            onSecondaryButtonPressed: onSecondaryButtonPressed,
+            addOverlay: addOverlay
         )
     }
 }
