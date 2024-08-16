@@ -118,38 +118,28 @@ struct TopCameraControlsView: View {
     }
 
     private var mainControls: some View {
-        HStack(spacing: 0) {
-            Button {
-                closeButtonTapped()
-            } label: {
-                Image("Camera-Close")
+        ZStack {
+            HStack {
+                Button {
+                    closeButtonTapped()
+                } label: {
+                    Image("Camera-Close")
+                        .frame(width: 28, height: 28)
+                }
+                Spacer()
+                livePhotoButton
+                    .frame(width: 28, height: 28)
+                Spacer().frame(width: 5.0)
+                flashButton
                     .frame(width: 28, height: 28)
             }
-            Spacer()
+            .padding(EdgeInsets(top: getSafeAreaTop() + 10, leading: 16, bottom: 16, trailing: 16))
+            .background(.ultraThinMaterial)
+            .frame(height: 102)
+
             if UserDefaultUtils.integer(forKey: .capturedPhotos) > 0 {
-
-                Menu {
-
-                    ForEach(Array(viewModel.albumManager.albums)) { album in
-                        Button(album.name) {
-                            viewModel.albumManager.currentAlbum = album
-                            EventTracking.trackAlbumSelectedFromTopBar()
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(viewModel.albumManager.currentAlbum?.name ?? L10n.noAlbum)
-                            .fontType(.pt10, on: .background)
-                            .tracking(0.20)
-                        Image("Camera-Album-Arrow")
-                            .frame(width: 14, height: 14)
-                    }
-                    .padding(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                    .background(Color(red: 1, green: 1, blue: 1).opacity(0.10))
-                    .cornerRadius(800)
-
-                }
-
+                albumSelectionPill
+                    .frame(height: 36)
             } else {
                 HStack(spacing: 10) {
                     Text(L10n.takeYourFirstPicture)
@@ -162,20 +152,34 @@ struct TopCameraControlsView: View {
                 .background(.white)
                 .cornerRadius(40)
             }
-
-
-            Spacer()
-
-            livePhotoButton
-                .frame(width: 28, height: 28)
-            Spacer().frame(width: 5.0)
-            flashButton
-                .frame(width: 28, height: 28)
         }
-        .padding(EdgeInsets(top: getSafeAreaTop() + 10, leading: 16, bottom: 16, trailing: 16))
         .background(.ultraThinMaterial)
         .frame(height: 102)
     }
+    private var albumSelectionPill: some View {
+        Menu {
+
+            ForEach(Array(viewModel.albumManager.albums)) { album in
+                Button(album.name) {
+                    viewModel.albumManager.currentAlbum = album
+                    EventTracking.trackAlbumSelectedFromTopBar()
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(viewModel.albumManager.currentAlbum?.name ?? L10n.noAlbum)
+                    .fontType(.pt10, on: .background)
+                    .tracking(0.20)
+                Image("Camera-Album-Arrow")
+                    .frame(width: 14, height: 14)
+            }
+            .padding(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            .background(Color(red: 1, green: 1, blue: 1).opacity(0.10))
+            .cornerRadius(800)
+
+        }
+    }
+
     private var tooltip: some View {
         HStack(spacing: 10) {
             Text(L10n.imageSavedToAlbum)

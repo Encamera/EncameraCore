@@ -98,8 +98,11 @@ final class CameraModel: NSObject, ObservableObject {
         self.fileAccess = fileAccess
         self.purchaseManager = purchaseManager
         self.albumManager = albumManager
-
+        self.isLivePhotoEnabled = UserDefaultUtils.bool(forKey: .livePhotosActivated)
         super.init()
+        $isLivePhotoEnabled.sink { enabled in
+            UserDefaultUtils.set(enabled, forKey: .livePhotosActivated)
+        }.store(in: &cancellables)
         self.$selectedCameraMode
             .receive(on: RunLoop.main)
             .sink { newMode in
