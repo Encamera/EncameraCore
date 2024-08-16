@@ -286,7 +286,6 @@ struct GalleryHorizontalScrollView: View {
                         viewModel.shareDecrypted()
                     }
                 }
-                .screenBlocked()
                 .onChange(of: viewModel.isPlayingVideo) {
                     isScrollEnabled = !viewModel.isPlayingVideo
                 }
@@ -295,7 +294,9 @@ struct GalleryHorizontalScrollView: View {
             if viewModel.showActionBar {
                 actionBar
             }
-        }
+        }        
+        .screenBlocked()
+
 
         .sheet(isPresented: $viewModel.showInfoSheet) {
             let content = Group {
