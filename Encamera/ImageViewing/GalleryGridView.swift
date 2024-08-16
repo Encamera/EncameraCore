@@ -494,7 +494,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                         GalleryHorizontalScrollView(
                             viewModel: .init(
                                 media: viewModel.media,
-                                selectedMedia: carouselTarget,
+                                initialMedia: carouselTarget,
                                 fileAccess: viewModel.fileAccess,
                                 purchasedPermissions: viewModel.purchasedPermissions
                             ))

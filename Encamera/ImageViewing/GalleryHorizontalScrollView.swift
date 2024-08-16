@@ -14,6 +14,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     
     @Published var media: [InteractableMedia<EncryptedMedia>]
     @Published var selectedMedia: InteractableMedia<EncryptedMedia>?
+    @Published var initialMedia: InteractableMedia<EncryptedMedia>?
     @Published var showInfoSheet = false
     @Published var showPurchaseSheet = false
     @Published var isPlayingVideo = false
@@ -23,10 +24,10 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
     var fileAccess: FileAccess
     private var cancellables = Set<AnyCancellable>()
     
-    init(media: [InteractableMedia<EncryptedMedia>], selectedMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging) {
+    init(media: [InteractableMedia<EncryptedMedia>], initialMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging) {
         self.media = media
         self.fileAccess = fileAccess
-        self.selectedMedia = selectedMedia
+        self.initialMedia = initialMedia
         self.showActionBar = showActionBar
         self.purchasedPermissions = purchasedPermissions
     }
@@ -62,10 +63,7 @@ class GalleryHorizontalScrollViewModel: ObservableObject {
         if let model = imageModels[item.id] {
             return model
         } else {
-            let model = ImageViewingViewModel(swipeLeft: {
-            }, swipeRight: {
-
-            }, sourceMedia: item, fileAccess: fileAccess, delegate: self)
+            let model = ImageViewingViewModel(sourceMedia: item, fileAccess: fileAccess, delegate: self)
             imageModels[item.id] = model
             return model
         }
@@ -161,7 +159,7 @@ struct GalleryHorizontalScrollView: View {
                 VStack {
                     scrollView(frame: frame)
                 }.confirmationDialog(L10n.deleteThisImage, isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
-                    
+
                     Button(L10n.delete, role: .destructive) {
                         viewModel.deleteAction()
                     }
@@ -237,7 +235,7 @@ struct GalleryHorizontalScrollView: View {
                         .id(item)
                         .clipped()
                     }.onAppear {
-                        scrollTo(media: viewModel.selectedMedia, with: proxy, animated: false)
+                        scrollTo(media: viewModel.initialMedia, with: proxy, animated: false)
                     }
 
                 }
@@ -329,7 +327,7 @@ struct GalleryHorizontalScrollView_Previews: PreviewProvider {
     static var previews: some View {
         let media = (0..<10).map { try! InteractableMedia<EncryptedMedia>(underlyingMedia: [.init(source: URL(string: "/")!, mediaType: .photo, id: "\($0)")])
         }
-        let model = GalleryHorizontalScrollViewModel(media: media, selectedMedia: media.first!, fileAccess: DemoFileEnumerator(), purchasedPermissions: AppPurchasedPermissionUtils())
+        let model = GalleryHorizontalScrollViewModel(media: media, initialMedia: media.first!, fileAccess: DemoFileEnumerator(), purchasedPermissions: AppPurchasedPermissionUtils())
         GalleryHorizontalScrollView(viewModel: model)
             .preferredColorScheme(.dark)
     }

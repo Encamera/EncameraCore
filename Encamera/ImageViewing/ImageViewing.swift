@@ -23,8 +23,6 @@ class ImageViewingViewModel: ObservableObject {
     @Published var finalOffset: CGSize = .zero
     @Published var currentOffset: CGSize = .zero
     @Published var currentFrame: CGRect = .zero
-    var swipeLeft: (() -> Void)
-    var swipeRight: (() -> Void)
 
     var sourceMedia: InteractableMedia<EncryptedMedia>
     var fileAccess: FileAccess
@@ -32,9 +30,7 @@ class ImageViewingViewModel: ObservableObject {
 
     private var delegate: MediaViewingDelegate
 
-    init(swipeLeft: @escaping ( () -> Void), swipeRight: @escaping ( () -> Void), sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
-        self.swipeLeft = swipeLeft
-        self.swipeRight = swipeRight
+    init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
         self.sourceMedia = sourceMedia
         self.fileAccess = fileAccess
         self.delegate = delegate
@@ -101,11 +97,6 @@ class ImageViewingViewModel: ObservableObject {
         }).onEnded({ [self] value in
             if finalScale <= 1.0 {
                 resetViewState()
-                if value.location.x > value.startLocation.x {
-                    swipeLeft()
-                } else {
-                    swipeRight()
-                }
             } else {
                 let nextOffset: CGSize = .init(
                     width: finalOffset.width + currentOffset.width,
