@@ -19,7 +19,7 @@ class ChangePinModalViewModel: ObservableObject {
     var completedAction: (() -> Void)?
     private var authManager: AuthManager
     private var keyManager: KeyManager
-    
+
 
     func doesPinCodeMatchNew(pinCode: String) -> Bool {
         return PasswordValidator.validatePasswordPair(pinCode, password2: enteredPinCode) == .valid
@@ -90,20 +90,18 @@ struct ChangePinModal: View {
                                             .lineLimit(2, reservesSpace: true)
                                             .multilineTextAlignment(.center)
                                             .pad(.pt64, edge: .bottom)
-                                        PinCodeView(pinCode: $viewModel.pinCode1, pinLength: AppConstants.pinCodeLength)
+                                        PinCodeView(pinCode: $viewModel.pinCode1, pinActionButtonTitle: L10n.next) { pinCode in
+                                            viewModel.enteredPinCode = pinCode
+                                            path.append(OnboardingFlowScreen.confirmPinCode)
+
+                                        }
                                     }.frame(width: 290)
 
                                 )
                             }))
-
-                .onChange(of: viewModel.pinCode1) { oldValue, newValue in
-                                if newValue.count == AppConstants.pinCodeLength {
-                                    viewModel.enteredPinCode = newValue
-                                    path.append(OnboardingFlowScreen.confirmPinCode)
-                                }
-                            }.onAppear {
-                                viewModel.pinCodeError = nil
-                            }
+                .onAppear {
+                    viewModel.pinCodeError = nil
+                }
 
                 .navigationDestination(for: OnboardingFlowScreen.self) { screen in
                     if screen == .confirmPinCode {
@@ -131,7 +129,21 @@ struct ChangePinModal: View {
                                                     .multilineTextAlignment(.center)
                                                     .lineLimit(2, reservesSpace: true)
                                                     .pad(.pt64, edge: .bottom)
-                                                PinCodeView(pinCode: $viewModel.pinCode2, pinLength: AppConstants.pinCodeLength)
+                                                PinCodeView(pinCode: $viewModel.pinCode2, pinActionButtonTitle: L10n.savePinCode) { pinCode in
+                                                    if viewModel.doesPinCodeMatchNew(pinCode: pinCode) {
+                                                        viewModel.pinCodeError = nil
+                                                        do {
+                                                            try viewModel.savePassword()
+                                                            viewModel.showPasswordChangedAlert = true
+                                                        } catch {
+                                                            viewModel.pinCodeError = "Error saving password"
+                                                        }
+
+                                                    } else {
+                                                        viewModel.pinCodeError = L10n.pinCodeMismatch
+                                                        viewModel.pinCode2 = ""
+                                                    }
+                                                }
                                                 if let pinCodeError = viewModel.pinCodeError {
                                                     Text(pinCodeError).alertText()
                                                 }
@@ -140,23 +152,6 @@ struct ChangePinModal: View {
                                         )
                                     })
                         )
-                        .onChange(of: viewModel.pinCode2) { oldValue, newValue in
-                            if viewModel.doesPinCodeMatchNew(pinCode: newValue) {
-                                viewModel.pinCodeError = nil
-                                do {
-                                    try viewModel.savePassword()
-                                    viewModel.showPasswordChangedAlert = true
-                                } catch {
-                                    viewModel.pinCodeError = "Error saving password"
-                                }
-
-                            } else if newValue.count == AppConstants.pinCodeLength {
-                                viewModel.pinCodeError = L10n.pinCodeMismatch
-                                viewModel.pinCode2 = ""
-
-                            }
-                        }
-
                     }
                 }
             }
