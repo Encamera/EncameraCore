@@ -231,7 +231,7 @@ struct CameraView: View {
                 } else if cameraModel.cameraPosition == .back {
                     VStack {
                         Spacer()
-                        CameraZoomControlButtons(supportedZoomScales: cameraModel.availableZoomLevels, selectedZoomScale: $cameraModel.currentZoomFactor)
+                        CameraZoomControlButtons(supportedZoomScales: $cameraModel.availableZoomLevels, selectedZoomScale: $cameraModel.currentZoomFactor)
                             .frame(width: 300, height: 44)
                     }
                 }
