@@ -429,15 +429,14 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     albumManager: viewModel.albumManager,
                     cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
                     fileAccess: viewModel.fileAccess,
-                    purchaseManager: viewModel.purchasedPermissions,
-                    closeButtonTapped: { _ in
-                        viewModel.showCamera = false
-                        viewModel.albumManager.currentAlbum = viewModel.album
-                        Task {
-                            await viewModel.enumerateMedia()
-                        }
+                    purchaseManager: viewModel.purchasedPermissions
+                ), hasMediaToImport: .constant(false), closeButtonTapped:  { _ in
+                    viewModel.showCamera = false
+                    viewModel.albumManager.currentAlbum = viewModel.album
+                    Task {
+                        await viewModel.enumerateMedia()
                     }
-                ), hasMediaToImport: .constant(false))
+                })
             }
         })
         .sheet(isPresented: $viewModel.showPhotoPicker, content: {

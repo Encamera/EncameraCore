@@ -20,11 +20,12 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
     @Published var showImportedMediaScreen = false
     @Published var shouldShowTweetScreen: Bool = false
     @Published var selectedPath: NavigationPath = .init()
-
+    @Published var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums
     var fileAccess: D
     var cameraService: CameraConfigurationService
     var keyManager: KeyManager
     var albumManager: AlbumManaging
+    var cameraModel: CameraModel
     var purchasedPermissions: PurchasedPermissionManaging
     var settingsManager: SettingsManager
     private(set) var authManager: AuthManager
@@ -47,6 +48,12 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
         self.settingsManager = SettingsManager()
         self.cameraService = cameraService
         self.authManager = authManager
+        self.cameraModel = .init(
+            albumManager: albumManager,
+            cameraService: cameraService,
+            fileAccess: fileAccess,
+            purchaseManager: purchasedPermissions
+        )
     }
 
     func popLastView() {
@@ -73,8 +80,6 @@ struct MainHomeView<D: FileAccess>: View {
         }
     }
 
-
-
     init(viewModel: MainHomeViewViewModel<D>, showCamera: Binding<Bool>) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _showCamera = showCamera
@@ -84,21 +89,15 @@ struct MainHomeView<D: FileAccess>: View {
         NavigationStack(path: $viewModel.selectedPath) {
             ZStack(alignment: .bottom) {
                 if selectedNavigationItem == .camera || showCamera {
-                    CameraView(cameraModel: .init(
-                        albumManager: viewModel.albumManager,
-                        cameraService: viewModel.cameraService,
-                        fileAccess: viewModel.fileAccess,
-                        purchaseManager: viewModel.purchasedPermissions,
-                        closeButtonTapped: { targetAlbum in
-                            UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
-                            if let targetAlbum {
-                                viewModel.navigateToAlbumDetailView(with: targetAlbum)
-                            }
-                            withAnimation {
-                                selectedNavigationItem = .albums
-                            }
+                    CameraView(cameraModel: viewModel.cameraModel, hasMediaToImport: $viewModel.hasMediaToImport, closeButtonTapped:{ targetAlbum in
+                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
+                        if let targetAlbum {
+                            viewModel.navigateToAlbumDetailView(with: targetAlbum)
                         }
-                    ), hasMediaToImport: $viewModel.hasMediaToImport)
+                        withAnimation {
+                            selectedNavigationItem = .albums
+                        }
+                    })
                     .transition(.opacity)
                 } else {
                     if selectedNavigationItem == .settings {
@@ -121,6 +120,9 @@ struct MainHomeView<D: FileAccess>: View {
                     }
                 }
             }
+            .onChange(of: viewModel.selectedNavigationItem, { oldValue, newValue in
+                selectedNavigationItem = newValue
+            })
             .toolbar(.hidden)
             .ignoresSafeArea(edges: .bottom)
             .gradientBackground()

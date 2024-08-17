@@ -81,7 +81,6 @@ final class CameraModel: NSObject, ObservableObject {
         captureSubject.eraseToAnyPublisher()
     }
     private var currentVideoProcessor: AsyncVideoCaptureProcessor?
-    var closeButtonTapped: (_ targetAlbum: Album?) -> Void
 
 
     private var cancellables = Set<AnyCancellable>()
@@ -93,17 +92,63 @@ final class CameraModel: NSObject, ObservableObject {
     init(albumManager: AlbumManaging,
          cameraService: CameraConfigurationService,
          fileAccess: FileAccess,
-         purchaseManager: PurchasedPermissionManaging,
-         closeButtonTapped: @escaping (Album?) -> Void) {
+         purchaseManager: PurchasedPermissionManaging) {
 
         self.service = cameraService
-        self.closeButtonTapped = closeButtonTapped
         self.fileAccess = fileAccess
         self.purchaseManager = purchaseManager
         self.albumManager = albumManager
         self.isLivePhotoEnabled = UserDefaultUtils.bool(forKey: .livePhotosActivated)
         super.init()
-        $isLivePhotoEnabled.sink { enabled in
+    }
+
+    func initialConfiguration() async {
+        await service.setDelegate(self)
+        await service.checkForPermissions()
+        await service.configure()
+        albumManager.loadAlbumsFromFilesystem()
+        Task {
+            let result = await service.model.setupResult
+            await MainActor.run {
+                self.cameraSetupResult = result
+            }
+            if let album = albumManager.currentAlbum {
+                await self.fileAccess.configure(
+                    for: album, albumManager: albumManager
+                )
+            }
+        }
+        setupPublishedVars()
+    }
+
+    func setupPublishedVars() {
+        UserDefaultUtils.publisher(for: .capturedPhotos)
+            .receive(on: DispatchQueue.main)
+            .delay(for: .seconds(0.2), scheduler: RunLoop.main)
+            .sink { published in
+                let value = Double(published as? Int ?? 0)
+                withAnimation {
+                    switch value {
+                    case let count where count > AppConstants.maxPhotoCountBeforePurchase &&
+                        !self.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: count)):
+                        self.showExplanationForUpgrade = true
+                    default:
+                        if let album = self.albumManager.currentAlbum,
+                           self.albumManager.albumMediaCount(album: album) == 1 {
+                            self.showChooseStorageSheet = true
+                        } else {
+                            self.showChooseStorageSheet = false
+                            self.showExplanationForUpgrade = false
+                        }
+                    }
+                }
+            }.store(in: &cancellables)
+        $availableZoomLevels.sink { zoom in
+            print("Zoom levels: \(zoom)")
+        }.store(in: &cancellables)
+        $isLivePhotoEnabled
+            .dropFirst()
+            .sink { enabled in
             UserDefaultUtils.set(enabled, forKey: .livePhotosActivated)
         }.store(in: &cancellables)
         self.$selectedCameraMode
@@ -114,8 +159,6 @@ final class CameraModel: NSObject, ObservableObject {
             }
         }
         .store(in: &self.cancellables)
-
-
         albumManager.albumOperationPublisher
             .receive(on: RunLoop.main)
             .sink { operation in
@@ -127,7 +170,7 @@ final class CameraModel: NSObject, ObservableObject {
                         return
                     }
                     await self.fileAccess.configure(
-                        for: album, albumManager: albumManager
+                        for: album, albumManager: self.albumManager
                     )
                 }
             }
@@ -159,49 +202,6 @@ final class CameraModel: NSObject, ObservableObject {
                 await self.loadThumbnail()
             }
         }.store(in: &cancellables)
-        setupPublishedVars()
-        albumManager.loadAlbumsFromFilesystem()
-    }
-
-    func initialConfiguration() async {
-        await service.checkForPermissions()
-        await service.configure()
-        Task {
-            let result = await service.model.setupResult
-            await MainActor.run {
-                self.cameraSetupResult = result
-            }
-            if let album = albumManager.currentAlbum {
-                await self.fileAccess.configure(
-                    for: album, albumManager: albumManager
-                )
-            }
-           await service.setDelegate(self)
-        }
-    }
-
-    func setupPublishedVars() {
-        UserDefaultUtils.publisher(for: .capturedPhotos)
-            .receive(on: DispatchQueue.main)
-            .delay(for: .seconds(0.2), scheduler: RunLoop.main)
-            .sink { published in
-                let value = Double(published as? Int ?? 0)
-                withAnimation {
-                    switch value {
-                    case let count where count > AppConstants.maxPhotoCountBeforePurchase &&
-                        !self.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: count)):
-                        self.showExplanationForUpgrade = true
-                    default:
-                        if let album = self.albumManager.currentAlbum,
-                           self.albumManager.albumMediaCount(album: album) == 1 {
-                            self.showChooseStorageSheet = true
-                        } else {
-                            self.showChooseStorageSheet = false
-                            self.showExplanationForUpgrade = false
-                        }
-                    }
-                }
-            }.store(in: &cancellables)
     }
 
     func loadThumbnail() async {

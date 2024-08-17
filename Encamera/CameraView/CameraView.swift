@@ -13,10 +13,11 @@ struct CameraView: View {
     }
 
 
-    @StateObject var cameraModel: CameraModel
+    @ObservedObject var cameraModel: CameraModel
     @State var cameraModeStateModel = CameraModeStateModel()
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
+    var closeButtonTapped: (_ targetAlbum: Album?) -> Void
 
     private var captureButton: some View {
 
@@ -56,7 +57,11 @@ struct CameraView: View {
     }
 
     private var bottomButtonPanel: some View {
-        BottomCameraButtonView(cameraModel: cameraModel, cameraModeStateModel: cameraModeStateModel)
+        BottomCameraButtonView(
+            cameraModel: cameraModel,
+            cameraModeStateModel: cameraModeStateModel,
+            closeButtonTapped: closeButtonTapped
+        )
     }
 
     private let viewTitle: String = "Camera"
@@ -260,7 +265,7 @@ struct CameraView: View {
             await cameraModel.stopCamera()
         }
         EventTracking.trackCameraClosed()
-        cameraModel.closeButtonTapped(nil)
+        closeButtonTapped(nil)
     }
 }
 
@@ -295,10 +300,10 @@ struct CameraView_Previews: PreviewProvider {
             albumManager: DemoAlbumManager(),
             cameraService: CameraConfigurationService(model: .init()),
             fileAccess: DemoFileEnumerator(),
-            purchaseManager: DemoPurchasedPermissionManaging(),
-            closeButtonTapped: {_ in}
+            purchaseManager: DemoPurchasedPermissionManaging()
         )
-        CameraView(cameraModel: model, hasMediaToImport: .constant(false))
+        CameraView(cameraModel: model, hasMediaToImport: .constant(false)) { _ in
+        }
         .preferredColorScheme(.dark)
     }
 }

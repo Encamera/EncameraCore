@@ -81,6 +81,7 @@ class AuthenticationViewModel: ObservableObject {
 
         if UserDefaultUtils.bool(forKey: .usesPinPassword) {
             $enteredPassword
+                .dropFirst()
                 .removeDuplicates()
                 .sink { [weak self] password in
                     print("Entered password", password)

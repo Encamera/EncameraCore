@@ -19,6 +19,7 @@ struct BottomCameraButtonView: View {
     }
     @ObservedObject var cameraModel: CameraModel
     var cameraModeStateModel: CameraModeStateModel
+    var closeButtonTapped: (Album?) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -59,7 +60,7 @@ struct BottomCameraButtonView: View {
     }
     private var capturedPhotoThumbnail: some View {
         Button {
-            cameraModel.closeButtonTapped(cameraModel.albumManager.currentAlbum)
+            closeButtonTapped(cameraModel.albumManager.currentAlbum)
         } label: {
             if let thumbnail = cameraModel.thumbnailImage {
                 ZStack(alignment: .leading) {

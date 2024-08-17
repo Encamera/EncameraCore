@@ -30,7 +30,7 @@ private struct CameraZoomControlButton: View {
 
 struct CameraZoomControlButtons: View {
 
-    var supportedZoomScales: [ZoomLevel]
+    @Binding var supportedZoomScales: [ZoomLevel]
     @Binding var selectedZoomScale: ZoomLevel
     var body: some View {
         ZStack() {
@@ -55,8 +55,8 @@ struct CameraZoomControlButtons: View {
     }
 }
 
-#Preview {
-    var zoom: ZoomLevel = .x1
-    let selectedZoomScale = Binding<ZoomLevel>(get: { zoom }, set: { zoom = $0 })
-    return CameraZoomControlButtons(supportedZoomScales: [.x05, .x1], selectedZoomScale: selectedZoomScale).frame(width: 175, height: 50)
-}
+//#Preview {
+//    var zoom: ZoomLevel = .x1
+//    let selectedZoomScale = Binding<ZoomLevel>(get: { zoom }, set: { zoom = $0 })
+//    return CameraZoomControlButtons(supportedZoomScales: [.x05, .x1], selectedZoomScale: selectedZoomScale).frame(width: 175, height: 50)
+//}
