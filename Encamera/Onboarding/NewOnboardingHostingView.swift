@@ -325,11 +325,11 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .lineLimit(2, reservesSpace: true)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
-                                    PinCodeView(pinCode: $viewModel.pinCode1, pinActionButtonTitle: L10n.savePinCode) { pinCode in
+                                    PinCodeView(pinCode: $viewModel.pinCode1, pinActionButtonTitle: L10n.savePinCode, confirmPinAction: { pinCode in
                                         viewModel.enteredPinCode = pinCode
                                         path.append(OnboardingFlowScreen.confirmPinCode)
 
-                                    }
+                                    })
                                 }.frame(width: 290)
 
                             )
@@ -377,7 +377,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .multilineTextAlignment(.center)
                                         .lineLimit(2, reservesSpace: true)
                                         .pad(.pt64, edge: .bottom)
-                                    PinCodeView(pinCode: $viewModel.pinCode2, pinActionButtonTitle: L10n.savePinCode) { pinCode in
+                                    PinCodeView(pinCode: $viewModel.pinCode2, pinActionButtonTitle: L10n.savePinCode, confirmPinAction: { pinCode in
                                         if viewModel.doesPinCodeMatchNew(pinCode: pinCode) {
                                             viewModel.pinCodeError = nil
                                             path.append(OnboardingFlowScreen.finished)
@@ -385,7 +385,7 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                             viewModel.pinCodeError = "Pin code does not match"
                                             viewModel.pinCode2 = ""
                                         }
-                                    }
+                                    })
                                     if let pinCodeError = viewModel.pinCodeError {
                                         Text(pinCodeError).alertText()
                                     }

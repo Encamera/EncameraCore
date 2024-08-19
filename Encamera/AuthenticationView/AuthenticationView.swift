@@ -218,14 +218,14 @@ struct AuthenticationView: View {
                 
                 if UserDefaultUtils.bool(forKey: .usesPinPassword) {
                     if viewModel.isPinCodeInputEnabled {
-                        PinCodeView(pinCode: $enteredPassword, pinActionButtonTitle: L10n.unlockWithPin) { pinCode in
+                        PinCodeView(pinCode: $enteredPassword, pinActionButtonTitle: L10n.unlockWithPin, onCharacterEntered:  { pinCode in
                             if PasswordValidator.validate(password: pinCode) == .valid {
                                 viewModel.authenticatePassword(password: pinCode)
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                     enteredPassword = ""
                                 }
                             }
-                        }
+                        })
 
                     } else if let lockoutTime = viewModel.remainingLockoutTime {
                         Text(L10n.pinCodeLockTryAgainIn(lockoutTime.formatAsHoursMinutesSeconds()))

@@ -58,14 +58,14 @@ struct OnboardingImageCarousel: View {
                                                         .scaledToFill()
                                                 }.clipShape(RoundedRectangle(cornerSize: .init(width: 30, height: 30)))
                                                 .frame(width: frame.width, height: frame.height * 0.7)
-                                                .padding(.bottom, 32)
+                                                .padding(.bottom, Spacing.pt16.value)
                                             Group {
                                                 Text(image.heading)
                                                     .fontType(.medium, weight: .bold)
                                                     .lineLimit(2, reservesSpace: true)
                                                 Text(image.subheading)
                                                     .fontType(.pt18)
-                                                    .lineLimit(2, reservesSpace: true)
+                                                    .lineLimit(3, reservesSpace: true)
                                             }
                                             .multilineTextAlignment(.center)
 

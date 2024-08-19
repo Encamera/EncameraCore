@@ -6,10 +6,12 @@ struct PinCodeView: View {
     @Binding var pinCode: String
 
     @State private var enteredDigitCount: Int = 0
-    @State private var errorMessage: String? = nil
+    @State var errorMessage: String? = nil
     @FocusState private var isInputFieldFocused: Bool
     var pinActionButtonTitle: String
-    var savePinAction: ((String) -> Void)?
+    var confirmPinAction: ((String) -> Void)?
+    var onCharacterEntered: ((String) -> Void)?
+
     var body: some View {
         VStack(alignment: .center) {
             if let errorMessage = errorMessage {
@@ -42,28 +44,28 @@ struct PinCodeView: View {
                     if enteredDigitCount >= 4 {
                         errorMessage = nil // Clear error when sufficient digits are entered
                     }
+                    onCharacterEntered?(pinCode) // Call the closure with the updated pinCode
                 }
                 .frame(maxWidth: 1, maxHeight: 1)
                 .opacity(0.01) // Hide the actual text field but keep it interactable
 
-                Button(action: savePin) {
-                    Text(pinActionButtonTitle)
-                        .textButton()
-                }
-                .padding(.top, 20)
-                .opacity(PasswordValidator.validate(password: pinCode) == .valid ? 1 : 0.2)
-
+            Button(action: confirmPin) {
+                Text(pinActionButtonTitle)
+                    .textButton()
+            }
+            .padding(.top, 20)
+            .opacity(PasswordValidator.validate(password: pinCode) == .valid ? 1 : 0.2)
         }
         .padding()
     }
 
-    private func savePin() {
+    private func confirmPin() {
         if enteredDigitCount < PasswordValidation.minPasswordLength {
-            errorMessage = L10n.pinTooShort
+            errorMessage = L10n.pinTooShort(PasswordValidation.minPasswordLength)
         } else {
             errorMessage = nil
             // Proceed with saving the PIN
-            savePinAction?(pinCode)
+            confirmPinAction?(pinCode)
         }
     }
 }

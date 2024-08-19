@@ -479,7 +479,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                         .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
                         .animation(.easeIn, value: viewModel.blurImages)
                         .frame(width: largeSide)
-
                     }
                 }
                 .padding(spacing)
