@@ -58,6 +58,8 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     @MainActor
     @Published var showEmptyView: Bool = false
 
+    var cameraModel: CameraModel
+
     init(album: Album?,
          albumManager: AlbumManaging,
          blurImages: Bool = false,
@@ -79,6 +81,12 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 //#else
         self.fileAccess = fileAccess
 //#endif
+        self.cameraModel = .init(
+            albumManager: albumManager,
+            cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
+            fileAccess: fileAccess,
+            purchaseManager: purchasedPermissions
+        )
         self.purchasedPermissions = purchasedPermissions
         FileOperationBus.shared.operations.sink { operation in
             Task {
@@ -425,12 +433,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
         .fullScreenCover(isPresented: $viewModel.showCamera, content: {
 
             if viewModel.album != nil {
-                CameraView(cameraModel: .init(
-                    albumManager: viewModel.albumManager,
-                    cameraService: CameraConfigurationService(model: CameraConfigurationServiceModel()),
-                    fileAccess: viewModel.fileAccess,
-                    purchaseManager: viewModel.purchasedPermissions
-                ), hasMediaToImport: .constant(false), closeButtonTapped:  { _ in
+                CameraView(cameraModel: viewModel.cameraModel, hasMediaToImport: .constant(false), closeButtonTapped:  { _ in
                     viewModel.showCamera = false
                     viewModel.albumManager.currentAlbum = viewModel.album
                     Task {

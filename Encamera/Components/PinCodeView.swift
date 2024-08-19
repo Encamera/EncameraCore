@@ -1,71 +1,40 @@
 import SwiftUI
 import Combine
-import EncameraCore
+
 
 struct PinCodeView: View {
     @Binding var pinCode: String
+    var pinLength: Int
 
     @State private var enteredDigitCount: Int = 0
-    @State var errorMessage: String? = nil
     @FocusState private var isInputFieldFocused: Bool
-    var pinActionButtonTitle: String
-    var confirmPinAction: ((String) -> Void)?
-    var onCharacterEntered: ((String) -> Void)?
 
     var body: some View {
-        VStack(alignment: .center) {
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding(.bottom, 10)
-            }
-
+        VStack {
             HStack(alignment: .top, spacing: 8) {
-                ForEach(0..<enteredDigitCount, id: \.self) { index in
-                    CircleView(isFilled: index < enteredDigitCount)
+                ForEach(0..<pinLength, id: \.self) { index in
+                    ZStack {
+                        if index == 0 {
+                            TextField("", text: $pinCode)
+                                .focused($isInputFieldFocused)
+                                .frame(maxWidth: 10)
+                                .foregroundStyle(Color.clear)
+                                .background(Color.clear)
+                                .onAppear {
+                                    self.isInputFieldFocused = true // Automatically focus to show keyboard
+                                }
+                                .keyboardType(.numberPad)
+                        }
+                        CircleView(isFilled: index < enteredDigitCount)
+                    }
                 }
             }
-            .frame(height: 56)
             .onTapGesture {
                 self.isInputFieldFocused = true
             }
-
-            TextField("", text: $pinCode)
-                .focused($isInputFieldFocused)
-                .keyboardType(.numberPad)
-                .foregroundColor(.clear)
-                .background(Color.clear)
-                .onAppear {
-                    self.isInputFieldFocused = true // Automatically focus to show keyboard
-                }
-                .limitInputLength(to: PasswordValidation.maxPasswordLength) // Limiting input to 8 digits
-                .onChange(of: pinCode) { oldValue, newValue in
-                    enteredDigitCount = min(newValue.count, PasswordValidation.maxPasswordLength)
-                    if enteredDigitCount >= 4 {
-                        errorMessage = nil // Clear error when sufficient digits are entered
-                    }
-                    onCharacterEntered?(pinCode) // Call the closure with the updated pinCode
-                }
-                .frame(maxWidth: 1, maxHeight: 1)
-                .opacity(0.01) // Hide the actual text field but keep it interactable
-
-            Button(action: confirmPin) {
-                Text(pinActionButtonTitle)
-                    .textButton()
+            .onChange(of: pinCode) { oldValue, newValue in
+                enteredDigitCount = newValue.count
             }
-            .padding(.top, 20)
-            .opacity(PasswordValidator.validate(password: pinCode) == .valid ? 1 : 0.2)
-        }
-        .padding()
-    }
-
-    private func confirmPin() {
-        if enteredDigitCount < PasswordValidation.minPasswordLength {
-            errorMessage = L10n.pinTooShort(PasswordValidation.minPasswordLength)
-        } else {
-            errorMessage = nil
-            // Proceed with saving the PIN
-            confirmPinAction?(pinCode)
         }
     }
 }
@@ -102,10 +71,14 @@ struct LimitInputLengthModifier: ViewModifier {
     }
 }
 
-//struct PinCodeView_Preview: PreviewProvider {
-//    @State static var pinCode: String = ""
-//
-//    static var previews: some View {
-//        PinCodeView(pinCode: $pinCode)
-//    }
-//}
+struct PinCodeView_Preview: PreviewProvider {
+
+
+    @State static var pinCode: String = ""
+
+
+    static var previews: some View {
+
+        PinCodeView(pinCode: $pinCode, pinLength: 4)
+    }
+}
