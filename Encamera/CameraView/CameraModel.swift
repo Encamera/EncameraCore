@@ -23,7 +23,7 @@ extension CameraModel: CameraConfigurationServicableDelegate {
     }
 }
 
-final class CameraModel: NSObject, ObservableObject {
+final class CameraModel: NSObject, ObservableObject, DebugPrintable {
 
     var service: CameraConfigurationService
 
@@ -143,9 +143,6 @@ final class CameraModel: NSObject, ObservableObject {
                     }
                 }
             }.store(in: &cancellables)
-        $availableZoomLevels.sink { zoom in
-            print("Zoom levels: \(zoom)")
-        }.store(in: &cancellables)
         $isLivePhotoEnabled
             .dropFirst()
             .sink { enabled in
@@ -226,7 +223,7 @@ final class CameraModel: NSObject, ObservableObject {
             }
 
         } catch {
-            debugPrint("Error loading media preview")
+            printDebug("Error loading media preview")
         }
     }
 

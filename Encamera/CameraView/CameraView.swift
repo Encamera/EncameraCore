@@ -76,6 +76,7 @@ struct CameraView: View {
             session: cameraModel.session
         )
         .onReceive(cameraModeStateModel.$selectedMode, perform: { value in
+            self.cameraModel.currentZoomFactor = .x1
             self.cameraModel.selectedCameraMode = value
         })
         .onChange(of: rotationFromOrientation, { oldValue, newValue in
@@ -228,7 +229,8 @@ struct CameraView: View {
                         .primaryButton()
                         .padding()
                     }
-                } else if cameraModel.cameraPosition == .back {
+                }
+                if cameraModel.isRecordingVideo == false {
                     VStack {
                         Spacer()
                         CameraZoomControlButtons(supportedZoomScales: $cameraModel.availableZoomLevels, selectedZoomScale: $cameraModel.currentZoomFactor)
