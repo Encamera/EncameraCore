@@ -475,7 +475,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                         imageForItem(mediaItem: first, width: largeSide, height: largeSide, index: 0)
                         LazyVGrid(columns: gridItems, spacing: spacing) {
                             ForEach(Array(remainingImages.enumerated()), id: \.element) { index, mediaItem in
-                                imageForItem(mediaItem: mediaItem, width: side, height: side, index: index)
+                                imageForItem(mediaItem: mediaItem, width: side, height: side, index: index + 1)
                             }
                             Spacer().frame(height: getSafeAreaBottom())
                         }
@@ -568,7 +568,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
         .onTapGesture {
             viewModel.carouselTarget = mediaItem
         }
-        .blur(radius: viewModel.blurItemAt(index: index + 1) ? Constants.blurRadius : 0.0)
+        .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
         .galleryClipped()
 
     }

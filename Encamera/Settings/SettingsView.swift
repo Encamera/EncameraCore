@@ -179,8 +179,6 @@ struct SettingsView: View {
                         }
                     }
                     Section {
-                        let _ = Self._printChanges()
-
                         Button {
                             viewModel.showChangePin = true
                         } label: {

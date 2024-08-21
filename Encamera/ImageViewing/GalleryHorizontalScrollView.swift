@@ -23,7 +23,6 @@ struct ViewOffsetKey: PreferenceKey {
     }
 }
 
-// 2. Wrap each view inside a GeometryReader to track its position within the ScrollView
 struct TrackableView<Content: View>: View {
     let id: UUID
     let content: Content
@@ -309,16 +308,7 @@ struct GalleryHorizontalScrollView: View {
                     EmptyView()
                 }
             }
-            if #available(iOS 16.0, *) {
-                VStack {
-                    content
-                }
-                .presentationDetents([.fraction(0.2)])
-            } else {
-                VStack {
-                    content
-                }
-            }
+            .presentationDetents([.fraction(0.2)])
         }
         .background {
             if let preview = viewModel.selectedMediaPreview,
@@ -347,17 +337,15 @@ struct GalleryHorizontalScrollView: View {
         let gridItems = [
             GridItem(.fixed(frame.width), spacing: 0)
         ]
-
-
+        
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
-                LazyHGrid(rows: gridItems) {
+                LazyHGrid(rows: gridItems, spacing: 0) {
                     ForEach(Array(viewModel.media.enumerated()), id: \.element.id) { index, item in
                         ZStack {
                             let modalBinding = Binding<Bool> {
                                 !viewModel.canAccessPhoto(at: index)
                             } set: { _ in }
-
                             TrackableView(id: UUID(uuidString: item.id)!) { // Wrap each item in TrackableView
                                 viewingFor(item: item)
                                     .blur(radius: viewModel.canAccessPhoto(at: index) ? 0.0 : AppConstants.blockingBlurRadius)

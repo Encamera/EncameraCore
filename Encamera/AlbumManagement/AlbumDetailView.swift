@@ -138,7 +138,7 @@ struct AlbumDetailView<D: FileAccess>: View {
 
 
     var body: some View {
-        let _ = Self._printChanges()
+
         if let gridViewModel = viewModel.gridViewModel {
             GalleryGridView(viewModel: gridViewModel) {
                 ZStack(alignment: .leading) {
