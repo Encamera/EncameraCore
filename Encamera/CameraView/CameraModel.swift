@@ -288,7 +288,7 @@ final class CameraModel: NSObject, ObservableObject, DebugPrintable {
             UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
             UserDefaultUtils.increaseInteger(forKey: .videoAddedCount)
 
-            await EventTracking.trackMediaTaken(type: selectedCameraMode)
+            await EventTracking.trackMediaTaken(type: selectedCameraMode, videoDuration: recordingDuration.seconds)
         }
         await loadThumbnail()
     }
