@@ -160,15 +160,15 @@ struct ProductStoreView: View {
                 selectedOption: $selectedPurchasable,
                 currentActiveSubscription: currentActiveSubscription,
                 onPurchase: {
-                    guard let subscription = selectedPurchasable else {
+                    guard let purchasable = selectedPurchasable else {
                         return
                     }
 
                         Task(priority: .userInitiated) { @MainActor in
                             var action: PurchaseFinishedAction
-                            if let subscription = subscription as? ServiceSubscription {
+                            if let subscription = purchasable as? ServiceSubscription {
                                 action = await subscriptionController.purchase(option: subscription)
-                            } else if let product = subscription as? OneTimePurchase {
+                            } else if let product = purchasable as? OneTimePurchase {
                                 action = await productController.purchase(product: product)
                             } else {
                                 print("Unknown purchasable type")
@@ -182,12 +182,17 @@ struct ProductStoreView: View {
                                     from: fromView,
                                     currency: currencyCode,
                                     amount: price,
-                                    product: subscription.product.id)
-                            case .displayError: errorAlertIsPresented = true
-                                EventTracking.trackPurchaseIncomplete(from: fromView)
+                                    product: purchasable.product.id)
+                            case .displayError: 
+                                errorAlertIsPresented = true
+                                EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.product.id)
                             case .noAction:
-                                EventTracking.trackPurchaseIncomplete(from: fromView)
-                                break
+                                EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.product.id)
+                            case .cancelled:
+                                EventTracking.trackPurchaseCancelled(from: fromView, product: purchasable.product.id)
+
+                            case .pending:
+                                EventTracking.trackPurcasePending(from: fromView, product: purchasable.product.id)
                             }
                             purchaseAction?(action)
 

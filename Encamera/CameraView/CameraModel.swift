@@ -126,7 +126,10 @@ final class CameraModel: NSObject, ObservableObject, DebugPrintable {
             .receive(on: DispatchQueue.main)
             .delay(for: .seconds(0.2), scheduler: RunLoop.main)
             .sink { published in
-                let value = Double(published as? Int ?? 0)
+                guard let count = self.albumManager.currentAlbumMediaCount else {
+                    return
+                }
+                let value = Double(count)
                 withAnimation {
                     switch value {
                     case let count where count > AppConstants.maxPhotoCountBeforePurchase &&
@@ -256,6 +259,7 @@ final class CameraModel: NSObject, ObservableObject, DebugPrintable {
             } catch {
 
             }
+            await EventTracking.trackMediaTaken(type: selectedCameraMode, isLivePhotoEnabled: isLivePhotoEnabled)
 
         case .video:
             if let currentVideoProcessor = currentVideoProcessor {
@@ -283,8 +287,9 @@ final class CameraModel: NSObject, ObservableObject, DebugPrintable {
             recordingCancellable.removeAll()
             UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
             UserDefaultUtils.increaseInteger(forKey: .videoAddedCount)
+
+            await EventTracking.trackMediaTaken(type: selectedCameraMode)
         }
-        await EventTracking.trackMediaTaken(type: selectedCameraMode)
         await loadThumbnail()
     }
 

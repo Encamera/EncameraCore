@@ -111,7 +111,6 @@ struct TopCameraControlsView: View {
 
     @Binding var isRecordingVideo: Bool
     @Binding var recordingDuration: CMTime
-    @Binding var showSavedToAlbumTooltip: Bool
     @Binding var flashMode: AVCaptureDevice.FlashMode
     @Binding var isLivePhotoEnabled: Bool
 
@@ -121,9 +120,6 @@ struct TopCameraControlsView: View {
     var body: some View {
         ZStack {
             mainControls
-//            tooltip
-////                .opacity(showSavedToAlbumTooltip ? 1 : 0)
-//                .offset(y: 102/2 + 25)
             durationText
                 .opacity(isRecordingVideo ? 1 : 0)
                 .offset(y: 102/2 + 25)
@@ -197,25 +193,12 @@ struct TopCameraControlsView: View {
         }
     }
 
-    private var tooltip: some View {
-        HStack(spacing: 10) {
-            Text(L10n.imageSavedToAlbum)
-                .fontType(.pt12, on: .lightBackground, weight: .bold)
-                .tracking(0.24)
-                .foregroundColor(.black)
-        }
-        .padding(EdgeInsets(top: 10, leading: 24, bottom: 10, trailing: 24))
-        .frame(height: 36)
-        .background(
-            BubbleArrowShape(arrowWidth: 10, arrowHeight: 5, cornerRadius: 18)
-                .fill(Color.white)
-        )
-    }
     let size = 27.0
 
     private var livePhotoButton: some View {
         Button(action: {
             isLivePhotoEnabled.toggle()
+            EventTracking.livePhotoModeSet(to: isLivePhotoEnabled)
         }, label: {
             Image(systemName: "livephoto")
                 .resizable()

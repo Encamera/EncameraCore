@@ -186,7 +186,14 @@ struct CameraView: View {
         .background(
             BubbleArrowShape(arrowWidth: 10, arrowHeight: 5, cornerRadius: 18)
                 .fill(Color.white)
-        ).opacity(cameraModel.showSavedToAlbumTooltip ? 1 : 0)
+        )
+        .opacity(cameraModel.showSavedToAlbumTooltip ? 1 : 0)
+        .transition(.opacity)
+        .onTapGesture {
+            withAnimation {
+                cameraModel.showSavedToAlbumTooltip = false
+            }
+        }
     }
     private var mainCamera: some View {
         ZStack {
@@ -201,7 +208,6 @@ struct CameraView: View {
                                                        canCaptureLivePhoto: cameraModel.canCaptureLivePhoto),
                                       isRecordingVideo: $cameraModel.isRecordingVideo,
                                       recordingDuration: $cameraModel.recordingDuration,
-                                      showSavedToAlbumTooltip: $cameraModel.showSavedToAlbumTooltip,
                                       flashMode:  $cameraModel.flashMode,
                                       isLivePhotoEnabled: $cameraModel.isLivePhotoEnabled,
                                       closeButtonTapped: closeCamera,

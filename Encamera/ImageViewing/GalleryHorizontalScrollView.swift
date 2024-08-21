@@ -337,7 +337,7 @@ struct GalleryHorizontalScrollView: View {
         let gridItems = [
             GridItem(.fixed(frame.width), spacing: 0)
         ]
-        
+
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 LazyHGrid(rows: gridItems, spacing: 0) {
