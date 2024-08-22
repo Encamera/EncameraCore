@@ -81,6 +81,7 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
         self.initialMedia = initialMedia
         self.showActionBar = showActionBar
         self.purchasedPermissions = purchasedPermissions
+        self.selectedMedia = initialMedia   
         super.init()
         updateMediaMap()
         // Debounce the viewOffsets updates
@@ -112,6 +113,7 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
     func deleteAction() {
         let targetIndex = selectedIndex
         guard let targetMedia = selectedMedia else {
+            debugPrint("No media selected for deletion")
             return
         }
 
