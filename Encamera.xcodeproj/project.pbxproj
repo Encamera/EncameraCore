@@ -414,6 +414,7 @@
 		1555F94A3CA4AB10FF868C52 /* LivePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoView.swift; sourceTree = "<group>"; };
 		15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewOnboardingView.swift; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		195D8A142C774F0400E67A88 /* AppStoreDescription.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AppStoreDescription.md; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1B60005D9CB1D186BF8FB5D2 /* 1.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.jpg; sourceTree = "<group>"; };
 		1BDE42B029680FCDC41E48E9 /* BackgroundRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRectangle.swift; sourceTree = "<group>"; };
@@ -670,6 +671,7 @@
 		084849976FB83985DA6F2C09 = {
 			isa = PBXGroup;
 			children = (
+				195D8A132C774EE800E67A88 /* App Store */,
 				F8E25D1CB96BBE7C0604CA54 /* Encamera */,
 				4EEA8683D2DD954DE3F9C9B3 /* EncameraTests */,
 				B7831CC31D02501BE75D6B60 /* Packages */,
@@ -717,6 +719,14 @@
 				3162B27F501FF1524351D663 /* MainHomeView.swift */,
 			);
 			path = MainHomeView;
+			sourceTree = "<group>";
+		};
+		195D8A132C774EE800E67A88 /* App Store */ = {
+			isa = PBXGroup;
+			children = (
+				195D8A142C774F0400E67A88 /* AppStoreDescription.md */,
+			);
+			path = "App Store";
 			sourceTree = "<group>";
 		};
 		2E24F8696D214DA704579ADE /* Tutorial */ = {
