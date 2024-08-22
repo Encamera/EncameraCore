@@ -57,7 +57,6 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
         let map = media.reduce(into: [:]) { result, media in
             result[media.id] = media
         }
-        debugPrint("Media map updated: \(map)")
         mediaMap = map
     }
     var mediaMap: [String: InteractableMedia<EncryptedMedia>] = [:]
@@ -98,10 +97,7 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
                             self.selectedMedia = newSelection
                             loadThumbnailForActiveMedia()
                         }
-                        debugPrint("Viewframe \(viewFrame) bounds: \(viewFrame + UIScreen.main.bounds.width) <= \(UIScreen.main.bounds.width)")
 
-                    } else {
-                        debugPrint("Not Viewframe \(viewFrame) bounds: \(viewFrame + UIScreen.main.bounds.width) <= \(UIScreen.main.bounds.width)")
                     }
                 }
             }
@@ -165,49 +161,51 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
             switch selectedMedia.mediaType {
             case .stillPhoto:
                 guard let data = decrypted.imageData, 
-                        let image = UIImage(data: data)
-                         else {
+                        let image = UIImage(data: data) else {
                     debugPrint("Error creating image provider")
                     return
                 }
-                let imageProvider = NSItemProvider(object: image)
                 await MainActor.run {
-                    shareSheet(data: [imageProvider])
+                    shareSheet(data: [image])
                 }
 
             case .livePhoto:
                 guard let imageData = decrypted.imageData,
                       let videoURL = decrypted.videoURL,
-                      let image = UIImage(data: imageData),
-                      let videoProvider = NSItemProvider(contentsOf: videoURL) else {
+                      let image = UIImage(data: imageData) else {
                     debugPrint("Error creating image provider for Live Photo")
                     return
                 }
 
-                let imageProvider = NSItemProvider(object: image)
-
                 await MainActor.run {
-                    shareSheet(data: [imageProvider, videoProvider])
+                    shareSheet(data: [image, videoURL])
                 }
 
             case .video:
-                guard let videoURL = decrypted.videoURL, let videoProvider = NSItemProvider(contentsOf: videoURL) else {
+                guard let videoURL = decrypted.videoURL else {
                     debugPrint("Error creating video provider")
                     return
                 }
                 await MainActor.run {
 
-                    shareSheet(data: [videoProvider])
+                    shareSheet(data: [videoURL])
                 }
             }
         }
     }
 
     @MainActor
-    func shareSheet(data: [NSItemProvider]) {
+    func shareSheet(data: [Any]) {
         self.currentSharingData = data
 
-        let activityView = UIActivityViewController(activityItems: data, applicationActivities: nil)
+        let activityView = UIActivityViewController(activityItems: data + [self], applicationActivities: nil)
+        activityView.completionWithItemsHandler = { activityType, completed, returnedItems, error in
+            if let error = error {
+                print("Share error: \(error.localizedDescription)")
+            }
+            self.currentSharingData = nil
+            EventTracking.trackMediaShared()
+        }
 
         let allScenes = UIApplication.shared.connectedScenes
         let scene = allScenes.first { $0.activationState == .foregroundActive }
@@ -215,7 +213,6 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
         if let windowScene = scene as? UIWindowScene {
             windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
         }
-        EventTracking.trackMediaShared()
     }
 
     func canAccessPhoto(at index: Int) -> Bool {
@@ -233,7 +230,8 @@ extension GalleryHorizontalScrollViewModel: UIActivityItemSource {
         return "Encamera Media"
     }
 
-    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+    func activityViewController(_ activityViewController: UIActivityViewController, 
+                                itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
         return currentSharingData
     }
 
@@ -248,6 +246,13 @@ extension GalleryHorizontalScrollViewModel: UIActivityItemSource {
         }
 
         return metadata
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
+        if let currentData = currentSharingData as? [NSItemProvider], currentData.contains(where: { $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier) }) {
+            return UTType.movie.identifier
+        }
+        return UTType.image.identifier
     }
 }
 
@@ -381,13 +386,11 @@ struct GalleryHorizontalScrollView: View {
                         Color.clear.preference(key: ViewOffsetKey.self, value: [UUID(): geometry.frame(in: .global).minX])
                             .onAppear {
                                 guard scrollViewWidth == 0 else { return }
-                                debugPrint("geometry appeared: \(geometry.size.width)")
                                 scrollViewWidth = geometry.size.width // Capture the ScrollView width
                             }
                     }
                 )
                 .onPreferenceChange(ViewOffsetKey.self) { values in
-                    debugPrint("View offsets changed: \(values)")
                     let setValues = Set(values.values)
                     guard setValues != viewModel.lastProcessedValues else {
                         return
