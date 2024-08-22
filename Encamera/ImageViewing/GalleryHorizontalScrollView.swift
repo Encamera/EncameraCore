@@ -157,44 +157,57 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
             }
         }
     }
-
     func shareDecrypted() {
         guard let selectedMedia else { return }
         Task {
-#warning("implement live photo sharing")
-            let decrypted = try await fileAccess.loadMedia(media: selectedMedia) { _ in
+            let decrypted = try await self.fileAccess.loadMedia(media: selectedMedia) { _ in }
 
-            }
             switch selectedMedia.mediaType {
-            case .livePhoto, .stillPhoto:
+            case .stillPhoto:
+                guard let data = decrypted.imageData, 
+                        let image = UIImage(data: data)
+                         else {
+                    debugPrint("Error creating image provider")
+                    return
+                }
+                let imageProvider = NSItemProvider(object: image)
+                await MainActor.run {
+                    shareSheet(data: [imageProvider])
+                }
 
-                guard let data = decrypted.imageData else {
+            case .livePhoto:
+                guard let imageData = decrypted.imageData,
+                      let videoURL = decrypted.videoURL,
+                      let image = UIImage(data: imageData),
+                      let videoProvider = NSItemProvider(contentsOf: videoURL) else {
+                    debugPrint("Error creating image provider for Live Photo")
                     return
                 }
 
+                let imageProvider = NSItemProvider(object: image)
+
                 await MainActor.run {
-                    if let image = UIImage(data: data) {
-                        shareSheet(data: image)
-                    }
+                    shareSheet(data: [imageProvider, videoProvider])
                 }
 
             case .video:
+                guard let videoURL = decrypted.videoURL, let videoProvider = NSItemProvider(contentsOf: videoURL) else {
+                    debugPrint("Error creating video provider")
+                    return
+                }
                 await MainActor.run {
-                    guard let data = decrypted.videoURL else {
-                        return
-                    }
-                    shareSheet(data: data)
+
+                    shareSheet(data: [videoProvider])
                 }
             }
-
         }
     }
+
     @MainActor
-    func shareSheet(data: Any) {
-        // Ensure data is either UIImage or URL
+    func shareSheet(data: [NSItemProvider]) {
         self.currentSharingData = data
 
-        let activityView = UIActivityViewController(activityItems: [self], applicationActivities: nil)
+        let activityView = UIActivityViewController(activityItems: data, applicationActivities: nil)
 
         let allScenes = UIApplication.shared.connectedScenes
         let scene = allScenes.first { $0.activationState == .foregroundActive }
@@ -212,29 +225,23 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
     func showPurchaseScreen() {
         showPurchaseSheet = true
     }
-
 }
 
+// Ensure that the GalleryHorizontalScrollViewModel conforms to UIActivityItemSource
 extension GalleryHorizontalScrollViewModel: UIActivityItemSource {
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        // Return a placeholder item (e.g., an empty string)
-        return "Encamera Image"
+        return "Encamera Media"
     }
 
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
-        // Return nil, or the actual item if you want to customize it for specific activity types
-
         return currentSharingData
     }
 
     func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
-        // Create and return LPLinkMetadata with the image preview
         let metadata = LPLinkMetadata()
-        
+
         if let selectedMediaPreview {
-            guard let thumbnailData = selectedMediaPreview.thumbnailMedia.data else {
-                return nil
-            }
+            guard let thumbnailData = selectedMediaPreview.thumbnailMedia.data else { return nil }
             let imageProvider = NSItemProvider(item: thumbnailData as NSData, typeIdentifier: UTType.png.identifier)
             metadata.imageProvider = imageProvider
             metadata.title = selectedMedia?.id
@@ -296,7 +303,7 @@ struct GalleryHorizontalScrollView: View {
             if viewModel.showActionBar {
                 actionBar
             }
-        }        
+        }
         .screenBlocked()
 
 
@@ -308,7 +315,7 @@ struct GalleryHorizontalScrollView: View {
                     EmptyView()
                 }
             }
-            .presentationDetents([.fraction(0.2)])
+                .presentationDetents([.fraction(0.2)])
         }
         .background {
             if let preview = viewModel.selectedMediaPreview,
