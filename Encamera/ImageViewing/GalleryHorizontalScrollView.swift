@@ -92,7 +92,7 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
                 self.lastProcessedValues = setValues
                 for (id, minX) in values {
                     let viewFrame = minX
-                    if viewFrame >= 0 && viewFrame + UIScreen.main.bounds.width <= UIScreen.main.bounds.width {
+                    if viewFrame >= 0  {
                         let newSelection = self.mediaMap[id.uuidString]
                         if self.selectedMedia != newSelection {
                             self.selectedMedia = newSelection
@@ -358,7 +358,6 @@ struct GalleryHorizontalScrollView: View {
                                     }
                             }
                             .frame(width: frame.width, height: frame.height)
-
                             .id(item)
                             .clipped()
                         }
