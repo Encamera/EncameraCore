@@ -315,14 +315,14 @@ struct GalleryHorizontalScrollView: View {
 
 
         .sheet(isPresented: $viewModel.showInfoSheet) {
-            let content = Group {
+            VStack {
                 if let media = viewModel.selectedMedia {
                     PhotoInfoView(media: media, isPresented: $viewModel.showInfoSheet)
                 } else {
                     EmptyView()
                 }
             }
-                .presentationDetents([.fraction(0.2)])
+            .presentationDetents([.fraction(0.2)])
         }
         .background {
             if let preview = viewModel.selectedMediaPreview,
@@ -397,7 +397,6 @@ struct GalleryHorizontalScrollView: View {
                     guard setValues != viewModel.lastProcessedValues else {
                         return
                     }
-                    print("setValues: \(setValues), lastProcessed: \(viewModel.lastProcessedValues)")
                     viewModel.viewOffsets = values
                 }
             }

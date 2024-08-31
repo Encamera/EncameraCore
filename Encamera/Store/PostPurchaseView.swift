@@ -37,6 +37,9 @@ struct PostPurchaseView: View {
             dismissButton
                 .padding()
         }
+        .onAppear {
+            AskForReviewUtil.requestReview()
+        }
         .gradientBackground()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
 

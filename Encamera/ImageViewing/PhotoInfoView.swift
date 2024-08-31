@@ -42,26 +42,26 @@ struct PhotoInfoView: View {
     }
 }
 
-//@available(iOS 16.0, *)
-//struct PhotoInfoView_Previews: PreviewProvider {
-//    
-//    static var media: EncryptedMedia {
-//        let media = EncryptedMedia(source: URL(string: "file://")!, mediaType: .photo, id: NSUUID().uuidString)
-//        return media
-//    }
-//    
-//    static var shouldDisplay = true
-//    
-//    static var previews: some View {
-//        let binding = Binding<Bool> {
-//            return shouldDisplay
-//        } set: { value in
-//            shouldDisplay = value
-//        }
-//        Color.black.sheet(isPresented: binding) {
-//            PhotoInfoView(media: media, isPresented: binding)
-//                .presentationDetents([.fraction(0.1)])
-//        }.previewDevice("iPhone 7")
-//        
-//    }
-//}
+@available(iOS 16.0, *)
+struct PhotoInfoView_Previews: PreviewProvider {
+    
+    static var media: EncryptedMedia {
+        let media = EncryptedMedia(source: URL(string: "file://")!, mediaType: .photo, id: NSUUID().uuidString)
+        return media
+    }
+    
+    static var shouldDisplay = true
+    
+    static var previews: some View {
+        let binding = Binding<Bool> {
+            return shouldDisplay
+        } set: { value in
+            shouldDisplay = value
+        }
+        Color.black.sheet(isPresented: binding) {
+            PhotoInfoView(media: try! InteractableMedia(underlyingMedia: [media]), isPresented: binding)
+                .presentationDetents([.fraction(0.1)])
+        }.previewDevice("iPhone 7")
+        
+    }
+}

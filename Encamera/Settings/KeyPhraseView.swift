@@ -26,26 +26,34 @@ class KeyPhraseViewModel: ObservableObject {
 struct KeyPhraseView: View {
 
     @StateObject var viewModel: KeyPhraseViewModel
+    @State var copyPressed: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Your Recovery Phrase")
+            Text(L10n.yourRecoveryPhrase)
                 .frame(maxWidth: .infinity)
                 .fontType(.pt24, weight: .bold)
-            Text("Write down or copy these words in the right order and save them somewhere safe")
+            Text(L10n.copyPhraseInstructions)
             if let phraseArray = viewModel.phraseArray {
                 KeyPhraseComponent(words: phraseArray)
-                Button("Copy Phrase") {
+                Button(copyPressed ? L10n.recoveryPhraseCopied : L10n.copyPhrase) {
                     let phraseString = phraseArray.joined(separator: " ")
 
-                    // copy to clipboard
                     UIPasteboard.general.string = phraseString
+                    copyPressed = true
                 }.textButton()
             }
-
             Spacer()
-
-        }.pad(.pt16)
+        }
+        .onChange(of: copyPressed, { oldValue, newValue in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                withAnimation {
+                    copyPressed = false
+                }
+            }
+        })
+        .pad(.pt16)
+        .gradientBackground()
     }
 }
 

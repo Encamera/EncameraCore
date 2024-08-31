@@ -186,13 +186,11 @@ struct SettingsView: View {
                         }
 
                         biometricsToggle
-                        if FeatureToggle.isEnabled(feature: .recoveryPhrase) {
-                            NavigationLink("Key Phrase") {
-                                KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
-                            }
-                            NavigationLink("Import Key Phrase") {
-                                ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
-                            }
+                        NavigationLink(L10n.Settings.backupKeyPhrase) {
+                            KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
+                        }
+                        NavigationLink(L10n.Settings.importKeyPhrase) {
+                            ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
                         }
                     }
                     .navigationTitle(L10n.settings)

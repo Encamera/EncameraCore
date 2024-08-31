@@ -142,7 +142,8 @@ struct EncameraApp: App {
                 .sink { operation in
                 switch operation {
                 case .create(_):
-                    NotificationLogic.setNotificationsForMediaAdded()
+//                    NotificationLogic.setNotificationsForMediaAdded()
+                    break
                 default:
                     break
                 }

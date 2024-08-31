@@ -90,7 +90,7 @@ struct ImportKeyPhrase: View {
                 }
             }), secondaryButton: .cancel())
         }
-
+        .gradientBackground()
     }
 }
 
