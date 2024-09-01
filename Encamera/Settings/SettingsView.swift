@@ -35,6 +35,7 @@ class SettingsViewViewModel: ObservableObject {
     @Published var pinRememberedConfirmed: Bool = false
     @Published fileprivate var activeAlert: AlertType = .none
     @Published var showAlert: Bool = false
+    @Published var showKeyBackup: Bool = false
 
     var keyManager: KeyManager
     var fileAccess: FileAccess
@@ -50,6 +51,7 @@ class SettingsViewViewModel: ObservableObject {
         self.fileAccess = fileAccess
         self.authManager = authManager
         self.useBiometrics = authManager.useBiometricsForAuth
+        self.showKeyBackup = ((try? keyManager.retrieveKeyPassphrase()) != nil)
     }
     
     func setupBiometricToggleObserver() {
@@ -186,11 +188,13 @@ struct SettingsView: View {
                         }
 
                         biometricsToggle
-                        NavigationLink(L10n.Settings.backupKeyPhrase) {
-                            KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
-                        }
-                        NavigationLink(L10n.Settings.importKeyPhrase) {
-                            ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
+                        if viewModel.showKeyBackup {
+                            NavigationLink(L10n.Settings.backupKeyPhrase) {
+                                KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
+                            }
+                            NavigationLink(L10n.Settings.importKeyPhrase) {
+                                ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
+                            }
                         }
                     }
                     .navigationTitle(L10n.settings)

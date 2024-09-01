@@ -7,18 +7,35 @@
 
 import SwiftUI
 import EncameraCore
+import Combine
 
 class KeyPhraseViewModel: ObservableObject {
 
+    @Published var iCloudBackupEnabled: Bool = false
+
     var keyManager: KeyManager
 
-    var phraseArray: [String]? {
-        try? keyManager.retrieveKeyPassphrase()
-    }
+    var phraseArray: KeyPassphrase?
+
+    private var cancellables = Set<AnyCancellable>()
 
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
+        phraseArray = try? keyManager.retrieveKeyPassphrase()
+        if let phraseArray = phraseArray {
+            iCloudBackupEnabled = phraseArray.iCloudBackupEnabled
+        }
+        $iCloudBackupEnabled.sink { isOn in
+            self.toggleCloudBackup(isOn: isOn)
+        }.store(in: &cancellables)
+    }
 
+    func toggleCloudBackup(isOn: Bool) {
+        do {
+            try self.keyManager.backupKeychainToiCloud(backupEnabled: isOn)
+        } catch {
+            debugPrint("Error toggling key backup to iCloud: \(error)")
+        }
     }
 
 }
@@ -30,11 +47,9 @@ struct KeyPhraseView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.yourRecoveryPhrase)
-                .frame(maxWidth: .infinity)
-                .fontType(.pt24, weight: .bold)
             Text(L10n.copyPhraseInstructions)
-            if let phraseArray = viewModel.phraseArray {
+            if let passphrase = viewModel.phraseArray {
+                let phraseArray = passphrase.words
                 KeyPhraseComponent(words: phraseArray)
                 Button(copyPressed ? L10n.recoveryPhraseCopied : L10n.copyPhrase) {
                     let phraseString = phraseArray.joined(separator: " ")
@@ -43,6 +58,10 @@ struct KeyPhraseView: View {
                     copyPressed = true
                 }.textButton()
             }
+            Divider()
+            Toggle("Back up key to iCloud", isOn: $viewModel.iCloudBackupEnabled)
+            Text("If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.")
+                .fontType(.pt12)
             Spacer()
         }
         .onChange(of: copyPressed, { oldValue, newValue in
@@ -52,6 +71,7 @@ struct KeyPhraseView: View {
                 }
             }
         })
+        .navigationTitle(L10n.yourRecoveryPhrase)
         .pad(.pt16)
         .gradientBackground()
     }
