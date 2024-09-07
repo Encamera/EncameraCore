@@ -52,8 +52,6 @@ struct ImportKeyPhrase: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text(L10n.importKeyPhrase)
-                .fontType(.pt16, weight: .bold)
             Text(L10n.enterKeyPhraseDescription)
                 .fontType(.pt14)
             KeyPhraseComponent(words: viewModel.words)
@@ -70,16 +68,11 @@ struct ImportKeyPhrase: View {
                 }
             }
             Spacer()
+            Button(L10n.import, action: {
+                viewModel.showWarningForOverwrite = true
+            }).primaryButton()
         }
         .pad(.pt16)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(L10n.import, action: {
-                    viewModel.showWarningForOverwrite = true
-                })
-                    .textButton()
-            }
-        }
         .alert(isPresented: $viewModel.showWarningForOverwrite) {
             Alert(title: Text(L10n.overwriteKeyPhrase), message: Text(L10n.overwriteAreYouSure), primaryButton: .destructive(Text(L10n.imSure), action: {
                 do {
@@ -90,6 +83,7 @@ struct ImportKeyPhrase: View {
                 }
             }), secondaryButton: .cancel())
         }
+        .navigationTitle(L10n.importKeyPhrase)
         .gradientBackground()
     }
 }

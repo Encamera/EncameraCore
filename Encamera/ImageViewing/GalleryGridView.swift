@@ -505,9 +505,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             .task {
                 await viewModel.enumerateMedia()
             }
-            .onAppear {
-                AskForReviewUtil.askForReviewIfNeeded()
-            }
             .onDisappear {
                 viewModel.cleanUp()
             }

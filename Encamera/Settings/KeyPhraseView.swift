@@ -51,18 +51,19 @@ struct KeyPhraseView: View {
             if let passphrase = viewModel.phraseArray {
                 let phraseArray = passphrase.words
                 KeyPhraseComponent(words: phraseArray)
+                Spacer()
                 Button(copyPressed ? L10n.recoveryPhraseCopied : L10n.copyPhrase) {
                     let phraseString = phraseArray.joined(separator: " ")
 
                     UIPasteboard.general.string = phraseString
                     copyPressed = true
-                }.textButton()
+                }.primaryButton()
             }
-            Divider()
-            Toggle("Back up key to iCloud", isOn: $viewModel.iCloudBackupEnabled)
-            Text("If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.")
-                .fontType(.pt12)
-            Spacer()
+//            Divider()
+//            Toggle("Back up key to iCloud", isOn: $viewModel.iCloudBackupEnabled)
+//            Text("If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.")
+//                .fontType(.pt12)
+//            Spacer()
         }
         .onChange(of: copyPressed, { oldValue, newValue in
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
