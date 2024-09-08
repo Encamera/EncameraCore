@@ -54,7 +54,7 @@ struct KeyPhraseView: View {
                 Spacer()
                 Button(copyPressed ? L10n.recoveryPhraseCopied : L10n.copyPhrase) {
                     let phraseString = phraseArray.joined(separator: " ")
-
+                    EventTracking.trackKeyPhraseBackupCopied()
                     UIPasteboard.general.string = phraseString
                     copyPressed = true
                 }.primaryButton()
@@ -72,6 +72,9 @@ struct KeyPhraseView: View {
                 }
             }
         })
+        .onAppear {
+            EventTracking.trackKeyPhraseBackupScreenOpened()
+        }
         .navigationTitle(L10n.yourRecoveryPhrase)
         .pad(.pt16)
         .gradientBackground()

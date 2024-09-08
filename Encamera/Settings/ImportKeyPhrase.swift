@@ -77,11 +77,15 @@ struct ImportKeyPhrase: View {
             Alert(title: Text(L10n.overwriteKeyPhrase), message: Text(L10n.overwriteAreYouSure), primaryButton: .destructive(Text(L10n.imSure), action: {
                 do {
                     try viewModel.importKeyPhrase()
+                    EventTracking.trackKeyPhraseBackupImported()
                     presentationMode.wrappedValue.dismiss()
                 } catch {
 
                 }
             }), secondaryButton: .cancel())
+        }
+        .onAppear {
+            EventTracking.trackImportKeyPhraseScreenOpened()
         }
         .navigationTitle(L10n.importKeyPhrase)
         .gradientBackground()
