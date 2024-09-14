@@ -38,7 +38,7 @@ struct EncameraApp: App {
             self.newMediaFileAccess = D.init()
             self.settingsManager = SettingsManager()
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
-            let keyManager = MultipleKeyKeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
+            let keyManager = KeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
 
             self.keyManager = keyManager
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager, settingsManager: settingsManager)

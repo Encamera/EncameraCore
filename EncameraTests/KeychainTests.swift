@@ -14,7 +14,7 @@ import Sodium
 
 class KeychainTests: XCTestCase {
     
-    var keyManager: MultipleKeyKeychainManager = MultipleKeyKeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
+    var keyManager: KeychainManager = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
     
     override func setUp() async throws {
         try? keyManager.clearKeychainData()
@@ -187,7 +187,7 @@ class KeychainTests: XCTestCase {
         let key = try keyManager.generateNewKey(name: "test1_key")
         try keyManager.setActiveKey(key.name)
         let subject = PassthroughSubject<Bool, Never>()
-        let newManager = MultipleKeyKeychainManager(isAuthenticated: subject.eraseToAnyPublisher())
+        let newManager = KeychainManager(isAuthenticated: subject.eraseToAnyPublisher())
         subject.send(true)
         
         XCTAssertEqual(newManager.currentKey, key)
@@ -198,7 +198,7 @@ class KeychainTests: XCTestCase {
         
         try keyManager.generateNewKey(name: "test1_key")
 
-        let newManager = MultipleKeyKeychainManager(isAuthenticated: Just(false).eraseToAnyPublisher())
+        let newManager = KeychainManager(isAuthenticated: Just(false).eraseToAnyPublisher())
 
         XCTAssertNil(newManager.currentKey)
         
@@ -280,7 +280,7 @@ class KeychainTests: XCTestCase {
 
 }
 
-private extension MultipleKeyKeychainManager {
+private extension KeychainManager {
     func clearPassword() throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword
