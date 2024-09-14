@@ -1,5 +1,5 @@
 //
-//  NewOnboardingHostingView.swift
+//  OnboardingHostingView.swift
 //  Encamera
 //
 //  Created by Alexander Freas on 04.02.24.
@@ -9,7 +9,7 @@ import SwiftUI
 import EncameraCore
 import Combine
 
-class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject {
+class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObject {
     @Published var currentOnboardingImageIndex = 0
     @MainActor
     @Published var useBiometrics: Bool = false
@@ -171,9 +171,9 @@ class NewOnboardingViewModel<GenericAlbumManaging: AlbumManaging>: ObservableObj
     }
 }
 
-struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
+struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
 
-    @StateObject var viewModel: NewOnboardingViewModel<GenericAlbumManaging>
+    @StateObject var viewModel: OnboardingHostingViewModel<GenericAlbumManaging>
     @State var path: NavigationPath = .init()
 
     @Environment(\.presentationMode) private var presentationMode
@@ -454,5 +454,5 @@ struct NewOnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
 
 
 #Preview {
-    NewOnboardingHostingView<DemoAlbumManager>(viewModel: .init(onboardingManager: DemoOnboardingManager(), keyManager: DemoKeyManager(), authManager: DemoAuthManager(), finishedAction: {}))
+    OnboardingHostingView<DemoAlbumManager>(viewModel: .init(onboardingManager: DemoOnboardingManager(), keyManager: DemoKeyManager(), authManager: DemoAuthManager(), finishedAction: {}))
 }
