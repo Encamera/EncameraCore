@@ -137,6 +137,11 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
             .aspectRatio(contentMode:.fill)
             .clipped()
             .contentShape(Rectangle())
+            .if(isInSelectionMode) { view in
+                view.onTapGesture {
+                    isSelected.toggle()
+                }
+            }
 
     }
 }

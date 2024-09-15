@@ -127,6 +127,8 @@ struct MainHomeView<D: FileAccess>: View {
             .ignoresSafeArea(edges: .bottom)
             .gradientBackground()
             .screenBlocked()
+           
+
             .navigationDestination(for: AppNavigationPaths.self) { destination in
                 switch destination {
                 case .createAlbum:
