@@ -90,7 +90,7 @@ struct MainHomeView<D: FileAccess>: View {
             ZStack(alignment: .bottom) {
                 if selectedNavigationItem == .camera || showCamera {
                     CameraView(cameraModel: viewModel.cameraModel, hasMediaToImport: $viewModel.hasMediaToImport, closeButtonTapped:{ targetAlbum in
-                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
+                        UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
                         if let targetAlbum {
                             viewModel.navigateToAlbumDetailView(with: targetAlbum)
                         }
@@ -109,14 +109,14 @@ struct MainHomeView<D: FileAccess>: View {
                 }
             }
             .onAppear {
-                if UserDefaultUtils.bool(forKey: .showCameraOnLaunch) {
+                if UserDefaultUtils.bool(forKey: .showCurrentAlbumOnLaunch) {
                     guard let album = viewModel.albumManager.currentAlbum else {
                         selectedNavigationItem = .albums
                         return
                     }
                     withAnimation {
                         viewModel.selectedPath.append(album)
-                        UserDefaultUtils.set(false, forKey: .showCameraOnLaunch)
+                        UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
                     }
                 }
             }

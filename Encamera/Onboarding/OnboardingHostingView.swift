@@ -140,7 +140,7 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
                 self.albumManager = albumManager
 
                 try await onboardingManager.saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
-                UserDefaultUtils.set(true, forKey: .showCameraOnLaunch)
+                UserDefaultUtils.set(true, forKey: .showCurrentAlbumOnLaunch)
             } catch {
                 debugPrint("Could not finish onboarding: \(error)")
                 try? await handle(error: error)

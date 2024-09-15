@@ -33,25 +33,25 @@
 		1013B7EEC03534771F597691 /* Satoshi-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = C6D4F6A7A4F99FA1D28BB937 /* Satoshi-Bold.otf */; };
 		112571158CAB54CD43F8D86D /* PhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66E2E2187D84C00DD938BE5D /* PhotoPicker.swift */; };
 		112CE54F53B1EE09771F0D6F /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F87130057593981EF7E23745 /* StoreKit.framework */; };
-		114EBEBC2E22847C842A538D /* MainOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D51D9B421BB280892A96B442 /* MainOnboardingView.swift */; };
 		12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9180088B6F3C787C103F69C5 /* StorageOptionItemView.swift */; };
+		124B89103248D6BCC4EB89A1 /* OnboardingHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */; };
 		13F2BC03E7B23D65C31D19CD /* MainHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3162B27F501FF1524351D663 /* MainHomeView.swift */; };
 		140AB4BCD985F10CF7E026CD /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		173846240608B3AE76784429 /* MediaViewingError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A55AE312E788A2CC62124A23 /* MediaViewingError.swift */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		189E8E09C8B2051B80EA5DD7 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 2E3847B535525CD631854FE2 /* SwiftUIIntrospect */; };
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
-		196A7C0A2C96348F00F5FEA0 /* KeychainMigrationUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196A7C092C96348F00F5FEA0 /* KeychainMigrationUtil.swift */; };
+		196A7C0C2C96417000F5FEA0 /* OnboardingViewError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196A7C0B2C96417000F5FEA0 /* OnboardingViewError.swift */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
 		1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DF70D2CC410A637C7BB925 /* EncameraState.swift */; };
 		1B54606C7551FE409A2334E1 /* NotificationBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0CB527965415B1E27EAD16 /* NotificationBanner.swift */; };
 		1B7AA8BBD017D7E8B4EF9D3C /* KeyPhraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08E7ADEDD8142B9DA265EE15 /* KeyPhraseView.swift */; };
+		1B98E49FD14319208D12DBA3 /* OnboardingHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */; };
 		1CAB026A547B230F6A4CEDC4 /* ImageViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF307DAF9F7334418CF7C35A /* ImageViewing.swift */; };
 		1CECD2284B9A9562B5E2F29F /* 7.jpg in Resources */ = {isa = PBXBuildFile; fileRef = C20B2422A2989B857C2C7C74 /* 7.jpg */; };
 		1CFA06219597D2B4D3CCB4BC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3EF10EE91927485D25DD47 /* ShareViewController.swift */; };
 		1DA9A21AF6C93297A84175B3 /* Rajdhani-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 87B5267708C2781338CA02BF /* Rajdhani-Bold.ttf */; };
-		1E381C8BB1A37D4F34C2D2E7 /* OnboardingHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC53957D8134CC3C9398E08 /* OnboardingHostingView.swift */; };
 		1E6477A51D2BD6EC1BFBB84A /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
 		1EBA8A3C8C97CFBE9F88BFC2 /* ConditionalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C527DA5AC80243DE0313A911 /* ConditionalModifier.swift */; };
 		21AB41A327AB666FFDD36DB6 /* OptionItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34C358B92EB06894B597ADE0 /* OptionItemView.swift */; };
@@ -182,7 +182,6 @@
 		7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 49A2EF989B2F8643105205DF /* Assets.xcassets */; };
 		7DC2231581A3F368332F048F /* PurchaseOptionViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A762967418965025A4C91F09 /* PurchaseOptionViewModifier.swift */; };
 		8040C7E145902BB5C26BFD0D /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7347AE6141886EEF6FABC1 /* Color.swift */; };
-		831A00922154DB933D3D527A /* OnboardingHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC53957D8134CC3C9398E08 /* OnboardingHostingView.swift */; };
 		83A8A287B555F3055F3599FA /* Rajdhani-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 87B5267708C2781338CA02BF /* Rajdhani-Bold.ttf */; };
 		84532170CBC007F8DE0C2CEB /* GradientBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = F278F26D7C02E26D7FF4B39A /* GradientBackground.swift */; };
 		84F75D77E845034DB9895462 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DC9B1566E5F63DD273CBCA /* OnboardingView.swift */; };
@@ -268,12 +267,12 @@
 		C5A9017D90629C088B3CA53C /* Satoshi-LightItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 3CEFAA012887940F0776105B /* Satoshi-LightItalic.otf */; };
 		C662E276CD00A447DF41EA79 /* BottomNavigationBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978DFBA064D16EA0AE814467 /* BottomNavigationBar.swift */; };
 		C6F2F02BF5F3032BAF4106F6 /* GalleryHorizontalScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1829EB4E75483E034EE3180 /* GalleryHorizontalScrollView.swift */; };
-		C6F8EC4BB57A923444BD6CD1 /* MainOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D51D9B421BB280892A96B442 /* MainOnboardingView.swift */; };
 		C754F557A41AF57CC6A6ADFA /* BottomCameraButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05276D23DEE272B9B6B53D5 /* BottomCameraButtonView.swift */; };
 		C9F8453D895180F1E9813D2A /* PiwikPROSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 4CCD757806714279705AE19F /* PiwikPROSDK */; };
 		CA61DBCFAAFB8F7AE29C4D0B /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = D51A93C7E90C89B4D1831EE5 /* InfoPlist.strings */; };
 		CBCEFE097E391E593ED22AFF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 19C7747E8920172ADE32329F /* Assets.xcassets */; };
 		CC079EB595368D6AB256E7EB /* Satoshi-BlackItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8CC3EF584D715B91450BDEA3 /* Satoshi-BlackItalic.otf */; };
+		CDBB6B5E04641D87444F70AF /* KeychainMigrationUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 579AA9FDAFF42FCF15BEF857 /* KeychainMigrationUtil.swift */; };
 		CDCE7BEBD2E12D0BD8FC3C56 /* ProductStoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B236EF6F41893C40FCD37ECC /* ProductStoreView.swift */; };
 		CEE3865B1C11ED3D0AA5D2AA /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */; };
 		CF867A7CB87CADAB0E800FDD /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57C54146880DB6F836B1AB7F /* Rotation.swift */; };
@@ -329,6 +328,7 @@
 		F4E6DE89AF56549BA339C272 /* CreateAlbum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E120ED7D8DE4B9A5746FFE4 /* CreateAlbum.swift */; };
 		F52B09D9AEBF17B9E89E4219 /* PurchaseUpgradeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93BD2E6D2DFBF7562EBC70FB /* PurchaseUpgradeHeaderView.swift */; };
 		F596EC4F00E6A9B85513EEB8 /* ImportKeyPhrase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40DE9D924F220F92F648807C /* ImportKeyPhrase.swift */; };
+		F5A3C7CC4C0FF5CDF4850A2A /* KeychainMigrationUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 579AA9FDAFF42FCF15BEF857 /* KeychainMigrationUtil.swift */; };
 		F68BE23E776434CF9436F156 /* GradientBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = F278F26D7C02E26D7FF4B39A /* GradientBackground.swift */; };
 		F725C4D1788668AD2168345E /* Satoshi-LightItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 3CEFAA012887940F0776105B /* Satoshi-LightItalic.otf */; };
 		F754F16FFA685BB1E107941B /* TopCameraControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC645487F5B1D6F9CC99BF09 /* TopCameraControls.swift */; };
@@ -405,7 +405,6 @@
 		0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Encamera.storekit; sourceTree = "<group>"; };
 		0C09BE63CB580E8A7E3D0C1C /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = es; path = es.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		0D4E617FB35B8C6F46542FB9 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
-		0DC53957D8134CC3C9398E08 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
 		100820BA1E8149437DEBE885 /* EncameraDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = EncameraDebug.entitlements; sourceTree = "<group>"; };
 		11C7B29A1513223174BB5CDB /* joanie-simon-2r8BzVYZIeo-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "joanie-simon-2r8BzVYZIeo-unsplash.jpg"; sourceTree = "<group>"; };
 		13501C8BD163FDB992526254 /* TweetToShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TweetToShareView.swift; sourceTree = "<group>"; };
@@ -415,7 +414,8 @@
 		1555F94A3CA4AB10FF868C52 /* LivePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoView.swift; sourceTree = "<group>"; };
 		15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewOnboardingView.swift; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		196A7C092C96348F00F5FEA0 /* KeychainMigrationUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainMigrationUtil.swift; sourceTree = "<group>"; };
+		196A7C0B2C96417000F5FEA0 /* OnboardingViewError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewError.swift; sourceTree = "<group>"; };
+		198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1B60005D9CB1D186BF8FB5D2 /* 1.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.jpg; sourceTree = "<group>"; };
 		1BDE42B029680FCDC41E48E9 /* BackgroundRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRectangle.swift; sourceTree = "<group>"; };
@@ -463,6 +463,7 @@
 		4FD935CBF1B92DA44E5A6196 /* Satoshi-BoldItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-BoldItalic.otf"; sourceTree = "<group>"; };
 		521B131F36DC968FE7429140 /* ShareExtension-debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "ShareExtension-debug.xcconfig"; sourceTree = "<group>"; };
 		5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressViewCircular.swift; sourceTree = "<group>"; };
+		579AA9FDAFF42FCF15BEF857 /* KeychainMigrationUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainMigrationUtil.swift; sourceTree = "<group>"; };
 		57C54146880DB6F836B1AB7F /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
 		5876A43225B15FCEC1E6CF1C /* Satoshi-Light.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Light.otf"; sourceTree = "<group>"; };
 		5899D9E93CFB8F7399D56A2E /* kristina-flour-BcjdbyKWquw-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "kristina-flour-BcjdbyKWquw-unsplash.jpg"; sourceTree = "<group>"; };
@@ -501,7 +502,7 @@
 		87579EF65AEC30986C5238A0 /* 3.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 3.jpg; sourceTree = "<group>"; };
 		8761F9FBD1C7297E54D6C0D5 /* DualButtonComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DualButtonComponent.swift; sourceTree = "<group>"; };
 		87B5267708C2781338CA02BF /* Rajdhani-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rajdhani-Bold.ttf"; sourceTree = "<group>"; };
-		896B90B17849378B16413518 /* WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		896B90B17849378B16413518 /* WidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A188D5FF84A453469F8C3EB /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		8A749ADBA6F481389A4AB39B /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 		8BAE18BAE7D519FAC62943F1 /* AlbumMediaActionComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumMediaActionComponent.swift; sourceTree = "<group>"; };
@@ -565,7 +566,6 @@
 		CE15C5D7EB03BF1BF5D80070 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		D4DDF93C2E1725BC42C2CE84 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D50482CE53A5E780FA8F3B38 /* DemoFileEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFileEnumerator.swift; sourceTree = "<group>"; };
-		D51D9B421BB280892A96B442 /* MainOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainOnboardingView.swift; sourceTree = "<group>"; };
 		D6758B0A04FA196EDAF9CA1F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		D85AFFF69DE741F555B05A79 /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = debug.xcconfig; sourceTree = "<group>"; };
 		D9E040DE4298869CF563F016 /* DecryptErrorExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptErrorExplanation.swift; sourceTree = "<group>"; };
@@ -825,9 +825,9 @@
 			isa = PBXGroup;
 			children = (
 				3E66AD1C897B9591AE534EAB /* ImageStepIndicator.swift */,
-				D51D9B421BB280892A96B442 /* MainOnboardingView.swift */,
-				0DC53957D8134CC3C9398E08 /* OnboardingHostingView.swift */,
+				196A7C0B2C96417000F5FEA0 /* OnboardingViewError.swift */,
 				15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */,
+				198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */,
 				DA9ED071A4401A48F70E65EF /* OnboardingImageCarousel.swift */,
 				B4DC9B1566E5F63DD273CBCA /* OnboardingView.swift */,
 				138280AC97F5CFC2182D9667 /* StepIndicator.swift */,
@@ -929,8 +929,8 @@
 			children = (
 				D50482CE53A5E780FA8F3B38 /* DemoFileEnumerator.swift */,
 				040E7A97A59AEF4C2BA2F5FB /* HardwareVolumeButtonCaptureUtils.swift */,
+				579AA9FDAFF42FCF15BEF857 /* KeychainMigrationUtil.swift */,
 				9C5962A9B956E3B444997D50 /* SafeAreaUtils.swift */,
-				196A7C092C96348F00F5FEA0 /* KeychainMigrationUtil.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -1239,6 +1239,7 @@
 						DevelopmentTeam = KGJCC745S9;
 					};
 					4A947C5139ACF4F002A48F27 = {
+						DevelopmentTeam = KGJCC745S9;
 						ProvisioningStyle = Automatic;
 					};
 					957551F090AA18A5EB652379 = {
@@ -1493,23 +1494,23 @@
 				5F2F8BA6B70C49A3250E2FA8 /* KeyOperationCell.swift in Sources */,
 				FF323A06BEE82490EF5519D3 /* KeyPhraseComponent.swift in Sources */,
 				BFD5BE89C6444B0F1E4D0EEB /* KeyPhraseView.swift in Sources */,
+				CDBB6B5E04641D87444F70AF /* KeychainMigrationUtil.swift in Sources */,
 				61AF31980C7C83808E95CC0B /* List.swift in Sources */,
 				359A618EB75B1C946A01FA13 /* LivePhotoView.swift in Sources */,
 				6EAA5B98F0F53E8171F54E1D /* LivePhotoViewing.swift in Sources */,
 				0BC85FE4F83BBCD0AAAB28A3 /* LockScreenKeypad.swift in Sources */,
 				13F2BC03E7B23D65C31D19CD /* MainHomeView.swift in Sources */,
-				114EBEBC2E22847C842A538D /* MainOnboardingView.swift in Sources */,
 				3ECC622BE09A0394BCA79AB6 /* MediaImportView.swift in Sources */,
 				D6CB997B5300E48551DC634A /* MediaViewingDelegate.swift in Sources */,
 				6637DE974ED5A2C6860A8D0E /* MediaViewingError.swift in Sources */,
 				D4AD2628394DF3E2399EFFEF /* MediaViewingViewModel.swift in Sources */,
 				EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */,
 				5C242765482F8F9C8B0BC2DA /* NavigationPath.swift in Sources */,
-				1E381C8BB1A37D4F34C2D2E7 /* OnboardingHostingView.swift in Sources */,
 				098A77C708BD24A2E5550238 /* NewOnboardingView.swift in Sources */,
 				1B54606C7551FE409A2334E1 /* NotificationBanner.swift in Sources */,
 				5FDDE54340E91E222BE751D7 /* NotificationBell.swift in Sources */,
 				36C5677F5BE2E84E24004996 /* NotificationCarousel.swift in Sources */,
+				124B89103248D6BCC4EB89A1 /* OnboardingHostingView.swift in Sources */,
 				71475C04899325ED4C4B13EA /* OnboardingImageCarousel.swift in Sources */,
 				AD8F6464844061B17FAFE50E /* OnboardingView.swift in Sources */,
 				21AB41A327AB666FFDD36DB6 /* OptionItemView.swift in Sources */,
@@ -1531,6 +1532,7 @@
 				F52B09D9AEBF17B9E89E4219 /* PurchaseUpgradeHeaderView.swift in Sources */,
 				003E154D889385DEACD50E3B /* PurchaseUpgradeOptionsListView.swift in Sources */,
 				70D8B277BC2C42A22907B619 /* Rotation.swift in Sources */,
+				196A7C0C2C96417000F5FEA0 /* OnboardingViewError.swift in Sources */,
 				2F24514B8BEACEE3B50D390E /* RotationViewModifier.swift in Sources */,
 				33ECD054AF9C6C4CF9386C6E /* SafeAreaUtils.swift in Sources */,
 				970C997C472D9D4A5A2B9CC8 /* ScreenBlock.swift in Sources */,
@@ -1542,7 +1544,6 @@
 				12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */,
 				EF3CEC2443A9A43E572CECAF /* StorageOptionSquare.swift in Sources */,
 				E9C36D15F15ACB3E66847F49 /* StorageSettingView.swift in Sources */,
-				196A7C0A2C96348F00F5FEA0 /* KeychainMigrationUtil.swift in Sources */,
 				A5DF5722A4CD5CAF67E3F27A /* StorePresentationViewModifier.swift in Sources */,
 				6EB8ECF5ECF2C40FAEFB792B /* SubscriptionOptionView.swift in Sources */,
 				2F4FED2E99F8D79E178058BA /* SubscriptionView.swift in Sources */,
@@ -1618,23 +1619,23 @@
 				082225897B3ADCC54FBF2DD7 /* KeyOperationCell.swift in Sources */,
 				F29F4C947B33E2FFED22AA1A /* KeyPhraseComponent.swift in Sources */,
 				1B7AA8BBD017D7E8B4EF9D3C /* KeyPhraseView.swift in Sources */,
+				F5A3C7CC4C0FF5CDF4850A2A /* KeychainMigrationUtil.swift in Sources */,
 				EF16FB21DB08966295C0D24E /* List.swift in Sources */,
 				0B83DD8474950954462B7D82 /* LivePhotoView.swift in Sources */,
 				0F4D1A2B193734E1C188B494 /* LivePhotoViewing.swift in Sources */,
 				04110F65A1D786EEFBD39A56 /* LockScreenKeypad.swift in Sources */,
 				BBDE25364B1A8AEBB6D645AD /* MainHomeView.swift in Sources */,
-				C6F8EC4BB57A923444BD6CD1 /* MainOnboardingView.swift in Sources */,
 				D324CD27E75F8808F59B6049 /* MediaImportView.swift in Sources */,
 				BCED6B7B1594B7955A529364 /* MediaViewingDelegate.swift in Sources */,
 				173846240608B3AE76784429 /* MediaViewingError.swift in Sources */,
 				D31AC5E5EF17DD59E61D486D /* MediaViewingViewModel.swift in Sources */,
 				6D38701EED69816C864AC33F /* MovieViewing.swift in Sources */,
 				90A67C8D7E6A28B34D2729DF /* NavigationPath.swift in Sources */,
-				831A00922154DB933D3D527A /* OnboardingHostingView.swift in Sources */,
 				A2E31E5A67DA982A00908D5E /* NewOnboardingView.swift in Sources */,
 				D90CFC69F5637068E0C974A1 /* NotificationBanner.swift in Sources */,
 				081557A474000747981691D7 /* NotificationBell.swift in Sources */,
 				468D2687EA06F608B4698069 /* NotificationCarousel.swift in Sources */,
+				1B98E49FD14319208D12DBA3 /* OnboardingHostingView.swift in Sources */,
 				4F5415ACCF57859ABA2A3145 /* OnboardingImageCarousel.swift in Sources */,
 				84F75D77E845034DB9895462 /* OnboardingView.swift in Sources */,
 				C38F484E59AC541B2FAACBA3 /* OptionItemView.swift in Sources */,
