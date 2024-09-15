@@ -28,7 +28,6 @@ class NotificationListViewModel: ObservableObject {
 struct NotificationList: View {
 
     @StateObject private var viewModel: NotificationListViewModel = .init()
-    @Binding var isPresented: Bool
     private var divider: some View {
         Divider()
             .frame(height: 1)
@@ -36,10 +35,12 @@ struct NotificationList: View {
     }
 
     var body: some View {
-        LazyVStack {
-            ForEach(Array(viewModel.notifications.enumerated()), id: \.element.id) { index, notif in
-                NotificationListCell(viewModel: notif)
-                    .tag(index)
+        ScrollView {
+            LazyVStack {
+                ForEach(Array(viewModel.notifications.enumerated()), id: \.element.id) { index, notif in
+                    NotificationListCell(viewModel: notif)
+                        .tag(index)
+                }
             }
         }
         .frame(maxHeight: .infinity)
@@ -50,14 +51,13 @@ struct NotificationList: View {
 
         .tabViewStyle(.page(indexDisplayMode: .never))
         .indexViewStyle(.page(backgroundDisplayMode: .never))
-        .if(!isPresented) { view in
-            view.opacity(0).frame(height: 0)
-        }
+
         .background(Color(red: 0.09, green: 0.09, blue: 0.09))
         .transition(.opacity)
         .sheet(isPresented: $viewModel.showingWebView) {
             WebView(url: viewModel.webViewURL)
         }
+        .navigationTitle(L10n.notificationListTitle)
     }
 }
 
@@ -65,6 +65,6 @@ struct NotificationList: View {
 #Preview {
     ZStack {
         Color.black
-        NotificationList(isPresented: .constant(true))
+        NotificationList()
     }
 }

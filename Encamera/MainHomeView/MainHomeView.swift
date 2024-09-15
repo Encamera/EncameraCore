@@ -127,14 +127,14 @@ struct MainHomeView<D: FileAccess>: View {
             .ignoresSafeArea(edges: .bottom)
             .gradientBackground()
             .screenBlocked()
-            .navigationDestination(for: String.self) { destination in
+            .navigationDestination(for: AppNavigationPaths.self) { destination in
                 switch destination {
-                case "CreateAlbum":
+                case .createAlbum:
                     AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: nil, shouldCreateAlbum: true)).onAppear {
                         EventTracking.trackCreateAlbumButtonPressed()
                     }
-                default:
-                    EmptyView()
+                case .notificationList:
+                    NotificationList()
                 }
             }
             .navigationDestination(for: Album.self) { album in

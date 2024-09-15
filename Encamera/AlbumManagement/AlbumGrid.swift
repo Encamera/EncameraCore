@@ -13,7 +13,6 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
     @Published var albums: [Album] = .init()
     @Published var isShowingAddExistingKeyView: Bool = false
     @Published var isKeyTutorialClosed: Bool = true
-    @Published var isShowingNotificationBanner: Bool = false
     @Published var isShowingStoreView: Bool = false
 
     var albumManager: AlbumManaging
@@ -50,7 +49,6 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
                 self.albumManager.loadAlbumsFromFilesystem()
                 self.setAlbums()
             }.store(in: &cancellables)
-        self.isShowingNotificationBanner = showNotificationBannerDefault
     }
 
     func setAlbums() {
@@ -79,23 +77,20 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
 
 struct AlbumGrid<D: FileAccess>: View {
     @StateObject var viewModel: AlbumGridViewModel<D>
-
+    @State var path: NavigationPath = .init()
 
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
-                Text(L10n.albumsTitle)
+                Text("Encamera")
                     .fontType(.large, weight: .bold)
                 Spacer()
-                NotificationBell(showIndicator: viewModel.showNotificationBellIndicator) {
-                    EventTracking.trackNotificationBellPressed()
-                    withAnimation {
-                        viewModel.isShowingNotificationBanner.toggle()
-                    }
+                NavigationLink(value: AppNavigationPaths.notificationList) {
+
+                    NotificationBell(showIndicator: viewModel.showNotificationBellIndicator)
                 }
             }
-            .padding(24)
-            NotificationCarousel(isPresented: $viewModel.isShowingNotificationBanner)
+            .pad(.pt24)
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
                 let spacing = CGFloat(17.0)
@@ -121,17 +116,19 @@ struct AlbumGrid<D: FileAccess>: View {
             .onAppear {
                 viewModel.setAlbums()
             }
-            .padding(24)
+            .pad(.pt24)
             .toolbar(.hidden)
         }
         .productStore(isPresented: $viewModel.isShowingStoreView, fromViewName: "AlbumGrid")
     }
 
+    
+
     @ViewBuilder
     private func createAlbumButton(side: CGFloat) -> some View {
         let button = AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheading: nil, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
         if !viewModel.shouldShowPurchaseScreenForKeys {
-            NavigationLink(value: "CreateAlbum") {
+            NavigationLink(value: AppNavigationPaths.createAlbum) {
                 button
             }
         } else {
@@ -157,9 +154,11 @@ struct AlbumGrid<D: FileAccess>: View {
 
 }
 
-//#Preview {
-//    AlbumGrid(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging(),
-//                               fileManager: DemoFileEnumerator(),
-//                               albumManger: DemoAlbumManager()))
-//    .gradientBackground()
-//}
+#Preview {
+    NavigationStack {
+        AlbumGrid(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging(),
+                                   fileManager: DemoFileEnumerator(),
+                                   albumManger: DemoAlbumManager()))
+        .gradientBackground()
+    }
+}
