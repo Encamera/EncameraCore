@@ -106,3 +106,4 @@ xcuserdata
 !*.xcworkspace/contents.xcworkspacedata
 **/Package.resolved
 Encamera/PreviewAssets
+*.xcodeproj
