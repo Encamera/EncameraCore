@@ -31,7 +31,6 @@ class NotificationListCellViewModel: ObservableObject, Identifiable {
 struct NotificationListCell: View {
     @ObservedObject var viewModel: NotificationListCellViewModel
     var body: some View {
-            GeometryReader { geo in
 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
@@ -70,7 +69,6 @@ struct NotificationListCell: View {
                 }
                 .padding([.leading, .trailing], 24)
 
-            }
             .background(Color(red: 0.09, green: 0.09, blue: 0.09))
 
     }

@@ -10,7 +10,7 @@ import EncameraCore
 
 class NotificationListViewModel: ObservableObject {
     @Published var selectedTabIndex: Int = 0
-    @Published var notifications: [NotificationBannerViewModel] = []
+    @Published var notifications: [NotificationListCellViewModel] = []
     @Published var showingWebView = false
     @Published var webViewURL: URL?
 
@@ -26,7 +26,8 @@ class NotificationListViewModel: ObservableObject {
 }
 
 struct NotificationList: View {
-    @StateObject private var viewModel: NotificationCarouselViewModel = .init()
+
+    @StateObject private var viewModel: NotificationListViewModel = .init()
     @Binding var isPresented: Bool
     private var divider: some View {
         Divider()
@@ -37,7 +38,7 @@ struct NotificationList: View {
     var body: some View {
         LazyVStack {
             ForEach(Array(viewModel.notifications.enumerated()), id: \.element.id) { index, notif in
-                NotificationBanner(viewModel: notif)
+                NotificationListCell(viewModel: notif)
                     .tag(index)
             }
         }

@@ -12,7 +12,7 @@ import SwiftUI
 class NotificationContentRepository {
 
 
-    func allNotifications(tappedAction: @escaping (URL) -> Void) -> [NotificationBannerViewModel] {
+    func allNotifications(tappedAction: @escaping (URL) -> Void) -> [NotificationListCellViewModel] {
         return [
             .init(image: Image("NotificationBanner-LeaveReview"), titleText: L10n.NotificationBanner.LeaveAReview.title, bodyText: L10n.NotificationBanner.LeaveAReview.body, buttonText: L10n.leaveAReview, buttonUrl: AskForReviewUtil.reviewURL, id: 1, tappedAction: { _ in
                 Task { @MainActor in
