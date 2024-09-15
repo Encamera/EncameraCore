@@ -14,7 +14,7 @@ class KeychainMigrationUtil {
     private let keyManager: KeyManager
     private let keyForPrivateKey: String = "keyMigration"
     private let keyForPassphraseData: String = "passphraseMigration"
-
+    private let keyForPasswordHash: String = "passwordHashMigration"
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
     }
@@ -32,8 +32,13 @@ class KeychainMigrationUtil {
             let passphrase = try keyManager.retrieveKeyPassphrase()
             let passphraseData = try JSONEncoder().encode(passphrase)
             UserDefaults.standard.setValue(passphraseData, forKey: keyForPassphraseData)
+
+            let passwordHash = try keyManager.getPasswordHash()
+            UserDefaults.standard.setValue(passwordHash, forKey: keyForPasswordHash)
+
+            EventTracking.trackKeyMigrationPrepared()
         } catch {
-            
+            debugPrint("Error pulling data \(error)")
         }
     }
 
@@ -55,9 +60,17 @@ class KeychainMigrationUtil {
             let passphrase = try JSONDecoder().decode(KeyPassphrase.self, from: passphraseData)
 
             try keyManager.saveKeyWithPassphrase(passphrase: passphrase)
-            EventTracking.trackKeyMigrationCompleted()
-        } catch {
 
+            guard let passwordHash = UserDefaults.standard.data(forKey: keyForPasswordHash) else {
+                debugPrint("Could not get password hash")
+                return
+            }
+            try keyManager.setPasswordHash(hash: passwordHash)
+
+            EventTracking.trackKeyMigrationCompleted()
+
+        } catch {
+            debugPrint("Migration did not complete: \(error)")
         }
     }
 
