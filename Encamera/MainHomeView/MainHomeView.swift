@@ -10,6 +10,7 @@ import EncameraCore
 import AVFoundation
 import Combine
 
+@MainActor
 class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
 
     @Published var cameraMode: CameraMode = .photo
@@ -28,6 +29,7 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
     var cameraModel: CameraModel
     var purchasedPermissions: PurchasedPermissionManaging
     var settingsManager: SettingsManager
+    var keychainMigrationUtil: KeychainMigrationUtil
     private(set) var authManager: AuthManager
     private var cancellables = Set<AnyCancellable>()
 
@@ -54,6 +56,7 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
             fileAccess: fileAccess,
             purchaseManager: purchasedPermissions
         )
+        self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)
     }
 
     func popLastView() {
@@ -73,7 +76,6 @@ struct MainHomeView<D: FileAccess>: View {
 
     @StateObject var viewModel: MainHomeViewViewModel<D>
     @Binding var showCamera: Bool
-    
     @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums {
         didSet {
             showCamera = false
@@ -119,6 +121,7 @@ struct MainHomeView<D: FileAccess>: View {
                         UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
                     }
                 }
+                viewModel.keychainMigrationUtil.prepareMigration()
             }
             .onChange(of: viewModel.selectedNavigationItem, { oldValue, newValue in
                 selectedNavigationItem = newValue
@@ -127,7 +130,6 @@ struct MainHomeView<D: FileAccess>: View {
             .ignoresSafeArea(edges: .bottom)
             .gradientBackground()
             .screenBlocked()
-           
 
             .navigationDestination(for: AppNavigationPaths.self) { destination in
                 switch destination {
@@ -135,8 +137,6 @@ struct MainHomeView<D: FileAccess>: View {
                     AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: nil, shouldCreateAlbum: true)).onAppear {
                         EventTracking.trackCreateAlbumButtonPressed()
                     }
-                case .notificationList:
-                    NotificationList()
                 }
             }
             .navigationDestination(for: Album.self) { album in

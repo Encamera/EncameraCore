@@ -39,12 +39,24 @@ struct EncameraDestructiveButtonStyle: ButtonStyle {
     }
 }
 
+struct FrostedBackgroundButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background {
+                Rectangle()
+                    .fill(.ultraThinMaterial) // Background color and transparency
+                    .frame(width: 44, height: 36) // Size of the circular button
+                    .cornerRadius(44)
+            }
+    }
+}
+
 extension View {
     //TODO: Remove references to surface, we don't need it
     func primaryButton(enabled: Bool = true) -> some View {
         buttonStyle(EncameraButtonStyle(hostSurface: enabled ? .primaryButton : .disabledButton))
     }
-    
+
     func destructiveButton(on surface: SurfaceType = .background) -> some View {
         buttonStyle(EncameraDestructiveButtonStyle(hostSurface: surface))
     }
@@ -56,6 +68,10 @@ extension View {
     func textButton() -> some View {
         self.padding(12.0)
         .fontType(.pt14, on: .textButton, weight: .bold)
+    }
+
+    func frostedButton() -> some View {
+        self.modifier(FrostedBackgroundButtonStyle())
     }
 }
 

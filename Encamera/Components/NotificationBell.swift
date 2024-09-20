@@ -11,30 +11,22 @@ struct NotificationBell: View {
 
     @State var showIndicator: Bool = false
     var body: some View {
-        ZStack() {
             ZStack(alignment: .topTrailing, content: {
 
-                Ellipse()
-                    .foregroundColor(.clear)
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Ellipse()
-                            .inset(by: 0.50)
-                            .stroke(
-                                .white.opacity(0.3), lineWidth: 1
-                            )
-                    )
-                    .offset(x: 0, y: 0)
                 Image("Bell-Notification")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if showIndicator {
                     Ellipse()
+                        .stroke(.black, lineWidth: 3)
+                        .fill(Color.notificationBadgeColor)
                         .foregroundColor(.notificationBadgeColor)
                         .frame(width: 10, height: 10)
+                        .offset(x: 5, y: -5)
+
                 }
             })
-        }
         .frame(width: 32, height: 32)
+        .frostedButton()
     }
 }
 

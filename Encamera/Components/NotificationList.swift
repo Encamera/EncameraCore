@@ -28,6 +28,7 @@ class NotificationListViewModel: ObservableObject {
 struct NotificationList: View {
 
     @StateObject private var viewModel: NotificationListViewModel = .init()
+    var closeAction: () -> (Void)
     private var divider: some View {
         Divider()
             .frame(height: 1)
@@ -35,29 +36,49 @@ struct NotificationList: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack {
-                ForEach(Array(viewModel.notifications.enumerated()), id: \.element.id) { index, notif in
-                    NotificationListCell(viewModel: notif)
-                        .tag(index)
+        VStack {
+            HStack {
+
+                Text(L10n.notificationListTitle)
+                    .fontType(.pt20, weight: .bold)
+                Spacer()
+                Button {
+                    closeAction()
+                } label: {
+                    Image("Close-X")
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 20, height: 20) // Adjust size as needed
+                        .foregroundStyle(.white)
+                }
+                .frostedButton()
+            }
+            .padding([.leading, .trailing], Spacing.pt24.value)
+            .padding([.top, .bottom], Spacing.pt16.value)
+            ScrollView {
+                LazyVStack(spacing: Spacing.pt8.value) {
+                    ForEach(Array(viewModel.notifications.enumerated()), id: \.element.id) { index, notif in
+                        NotificationListCell(viewModel: notif)
+                            .tag(index)
+                    }
                 }
             }
-        }
-        .frame(maxHeight: .infinity)
-        .onChange(of: viewModel.selectedTabIndex) { oldValue, newValue in
-            let viewedNotification = viewModel.notifications[newValue]
-            EventTracking.trackNotificationSwipedViewed(title: viewedNotification.titleText)
-        }
+            .frame(maxHeight: .infinity)
+            .onChange(of: viewModel.selectedTabIndex) { oldValue, newValue in
+                let viewedNotification = viewModel.notifications[newValue]
+                EventTracking.trackNotificationSwipedViewed(title: viewedNotification.titleText)
+            }
 
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .indexViewStyle(.page(backgroundDisplayMode: .never))
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .indexViewStyle(.page(backgroundDisplayMode: .never))
 
-        .background(Color(red: 0.09, green: 0.09, blue: 0.09))
-        .transition(.opacity)
-        .sheet(isPresented: $viewModel.showingWebView) {
-            WebView(url: viewModel.webViewURL)
+            .transition(.opacity)
+            .sheet(isPresented: $viewModel.showingWebView) {
+                WebView(url: viewModel.webViewURL)
+            }
+            .navigationTitle(L10n.notificationListTitle)
         }
-        .navigationTitle(L10n.notificationListTitle)
+        .gradientBackground()
+
     }
 }
 
@@ -65,6 +86,8 @@ struct NotificationList: View {
 #Preview {
     ZStack {
         Color.black
-        NotificationList()
+        NotificationList() {
+            
+        }
     }
 }

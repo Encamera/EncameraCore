@@ -78,19 +78,23 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
 struct AlbumGrid<D: FileAccess>: View {
     @StateObject var viewModel: AlbumGridViewModel<D>
     @State var path: NavigationPath = .init()
+    @State private var showNotificationSheet: Bool = false
 
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
                 Text("Encamera")
-                    .fontType(.large, weight: .bold)
+                    .fontType(.pt20, weight: .bold)
                 Spacer()
-                NavigationLink(value: AppNavigationPaths.notificationList) {
 
+                Button {
+                    showNotificationSheet = true
+                } label: {
                     NotificationBell(showIndicator: viewModel.showNotificationBellIndicator)
                 }
             }
-            .pad(.pt24)
+            .padding([.leading, .trailing], Spacing.pt24.value)
+            .padding([.top, .bottom], Spacing.pt16.value)
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
                 let spacing = CGFloat(17.0)
@@ -119,10 +123,15 @@ struct AlbumGrid<D: FileAccess>: View {
             .pad(.pt24)
             .toolbar(.hidden)
         }
+        .fullScreenCover(isPresented: $showNotificationSheet) {
+            NotificationList {
+                showNotificationSheet = false
+            }
+        }
         .productStore(isPresented: $viewModel.isShowingStoreView, fromViewName: "AlbumGrid")
     }
 
-    
+
 
     @ViewBuilder
     private func createAlbumButton(side: CGFloat) -> some View {

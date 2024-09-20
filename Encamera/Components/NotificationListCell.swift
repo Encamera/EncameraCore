@@ -34,15 +34,28 @@ struct NotificationListCell: View {
     var body: some View {
 
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(viewModel.titleText)
-                    .lineLimit(2, reservesSpace: true)
-                    .fontType(.pt16, weight: .bold)
-                    .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: Spacing.pt8.value) {
+                HStack(spacing: Spacing.pt16.value) {
+                    if let image = viewModel.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 40, height: 40)
+                    }
+                    Text(viewModel.titleText)
+                        .lineLimit(2, reservesSpace: false)
+                        .fontType(.pt16, weight: .bold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer()
+                }
+
                 Text(viewModel.bodyText)
                     .fontType(.pt14)
                     .lineLimit(3, reservesSpace: true)
                     .opacity(0.80)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
                 Button(action: {
                     guard let url = viewModel.buttonUrl else { return }
                     Task {
@@ -59,22 +72,27 @@ struct NotificationListCell: View {
                 })
 
             }
-            .padding([.top], 24)
-            if let image = viewModel.image {
-                Spacer()
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 100, height: 100)
-            }
+            .padding([.top, .bottom], 16)
         }
         .padding([.leading, .trailing], 24)
-
+        .frame(height: 190)
         .background(Color(red: 0.09, green: 0.09, blue: 0.09))
+        .overlay(
+            VStack {
+                Group {
+                    Rectangle()
+                        .frame(height: 1) // Top border
+                    Spacer()
+                    Rectangle()
+                        .frame(height: 1) // Bottom border
+                }
+                .foregroundColor(.notificationDividerColor)
 
+            }
+        )
     }
 }
 
-//#Preview {
-//    NotificationListCell(viewModel: .init())
-//}
+#Preview {
+    NotificationListCell(viewModel:.init(image: Image("Telegram-Logo"), titleText: L10n.telegramGroupJoinTitle, bodyText: L10n.telegramGroupJoinBody, buttonText: L10n.telegramGroupJoinButtonText, buttonUrl: URL(string: "https://t.me/encamera_app")!, id: 3))
+}
