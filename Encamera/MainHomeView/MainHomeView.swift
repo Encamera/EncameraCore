@@ -67,7 +67,7 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
 
     func navigateToAlbumDetailView(with album: Album) {
         // Append the album to the navigation path
-        selectedPath.append(album)
+        selectedPath.append(AppNavigationPaths.albumDetail(album: album))
     }
 }
 
@@ -117,7 +117,7 @@ struct MainHomeView<D: FileAccess>: View {
                         return
                     }
                     withAnimation {
-                        viewModel.selectedPath.append(album)
+                        viewModel.selectedPath.append(AppNavigationPaths.albumDetail(album: album))
                         UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
                     }
                 }
@@ -130,18 +130,24 @@ struct MainHomeView<D: FileAccess>: View {
             .ignoresSafeArea(edges: .bottom)
             .gradientBackground()
             .screenBlocked()
-
             .navigationDestination(for: AppNavigationPaths.self) { destination in
                 switch destination {
                 case .createAlbum:
                     AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: nil, shouldCreateAlbum: true)).onAppear {
                         EventTracking.trackCreateAlbumButtonPressed()
                     }
-                }
-            }
-            .navigationDestination(for: Album.self) { album in
-                AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
-                    EventTracking.trackAlbumOpened()
+                case .albumDetail(album: let album):
+                    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
+                        EventTracking.trackAlbumOpened()
+                    }
+                case .galleryScrollView(context: let context):
+                    GalleryHorizontalScrollView(
+                        viewModel: .init(
+                            media: context.media,
+                            initialMedia: context.targetMedia,
+                            fileAccess: viewModel.fileAccess,
+                            purchasedPermissions: viewModel.purchasedPermissions
+                        ))
                 }
             }
         }

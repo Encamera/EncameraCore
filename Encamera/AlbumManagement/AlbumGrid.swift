@@ -154,7 +154,7 @@ struct AlbumGrid<D: FileAccess>: View {
     @ViewBuilder
     private func albums(side: CGFloat) -> some View {
         ForEach(Array(viewModel.albums), id: \.id) { album in
-            NavigationLink(value: album) {
+            NavigationLink(value: AppNavigationPaths.albumDetail(album: album)) {
                 AlbumGridItem(album: album,
                               albumManager: viewModel.albumManager,
                               width: side, fileReader: D.init())

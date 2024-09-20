@@ -440,16 +440,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             }, filter: .any(of: [.images, .videos, .livePhotos]))
             .ignoresSafeArea(.all)
         })
-        
-        .navigationDestination(for: InteractableMedia<EncryptedMedia>.self) { media in
-            GalleryHorizontalScrollView(
-                viewModel: .init(
-                    media: viewModel.media,
-                    initialMedia: media,
-                    fileAccess: viewModel.fileAccess,
-                    purchasedPermissions: viewModel.purchasedPermissions
-                ))
-        }
     }
     
     private var mainGridView: some View {
@@ -472,19 +462,15 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                         }
                     }
                     .padding(.bottom)
-                    if let first = viewModel.firstImage {
-                        let remainingImages = viewModel.media[1..<viewModel.media.count]
-                        imageForItem(mediaItem: first, width: largeSide, height: largeSide, index: 0)
-                        LazyVGrid(columns: gridItems, spacing: spacing) {
-                            ForEach(Array(remainingImages.enumerated()), id: \.element) { index, mediaItem in
-                                imageForItem(mediaItem: mediaItem, width: side, height: side, index: index + 1)
-                            }
-                            Spacer().frame(height: getSafeAreaBottom())
+                    LazyVGrid(columns: gridItems, spacing: spacing) {
+                        ForEach(Array(viewModel.media.enumerated()), id: \.element) { index, mediaItem in
+                            imageForItem(mediaItem: mediaItem, width: side, height: side, index: index)
                         }
-                        .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
-                        .animation(.easeIn, value: viewModel.blurImages)
-                        .frame(width: largeSide)
+                        Spacer().frame(height: getSafeAreaBottom())
                     }
+                    .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
+                    .animation(.easeIn, value: viewModel.blurImages)
+                    .frame(width: largeSide)
                 }
                 .padding(spacing)
                 
@@ -500,7 +486,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             
         }
     }
-    
+
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 16) {
             
@@ -538,37 +524,40 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             Spacer().frame(height: 8)
         }.padding()
     }
-    
+
     private func imageForItem(mediaItem: InteractableMedia<EncryptedMedia>, width: CGFloat, height: CGFloat, index: Int) -> some View {
-        Group {
-            let selectionBinding = Binding<Bool> {
-                viewModel.selectedMedia.contains(mediaItem)
-            } set: { selected, _ in
-                if selected {
-                    viewModel.selectedMedia.insert(mediaItem)
-                } else {
-                    viewModel.selectedMedia.remove(mediaItem)
-                }
-            }
-            
-            AsyncEncryptedImage(
-                viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
-                placeholder: ProgressView(),
-                isInSelectionMode: $viewModel.isSelectingMedia,
-                isSelected: selectionBinding
-            )
-            .id(mediaItem.gridID)
-            .frame(width: width, height: height)
-            .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
-            .galleryClipped()
-            .if(viewModel.isSelectingMedia == false) { view in
-                NavigationLink(value: mediaItem) {
-                    view
-                }
-            }
+
+        NavigationLink(value: AppNavigationPaths.galleryScrollView(
+            context: GalleryScrollViewContext(
+                media: viewModel.media,
+                targetMedia: mediaItem))) {
+//            let _ = print("Rendering image for item: \(mediaItem.id)")
+//            Group {
+//                let selectionBinding = Binding<Bool> {
+//                    viewModel.selectedMedia.contains(mediaItem)
+//                } set: { selected, _ in
+//                    if selected {
+//                        viewModel.selectedMedia.insert(mediaItem)
+//                    } else {
+//                        viewModel.selectedMedia.remove(mediaItem)
+//                    }
+//                }
+
+                AsyncEncryptedImage(
+                    viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
+                    placeholder: ProgressView(),
+                    isInSelectionMode: $viewModel.isSelectingMedia,
+                    isSelected: .constant(false)
+                )
+                .id(mediaItem.gridID)
+                .frame(width: width, height: height)
+                .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
+                .galleryClipped()
+
+//            }
         }
     }
-    
+
     private var downloadFromiCloudButton: some View {
         Button {
             viewModel.startiCloudDownload()

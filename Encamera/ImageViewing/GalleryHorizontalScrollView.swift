@@ -84,7 +84,15 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
         self.selectedMedia = initialMedia   
         super.init()
         updateMediaMap()
-        // Debounce the viewOffsets updates
+        startObservingOffsets()
+    }
+
+    var selectedIndex: Int {
+        guard let selectedMedia = selectedMedia else { return 0 }
+        return media.firstIndex(of: selectedMedia) ?? 0
+    }
+
+    func startObservingOffsets() {
         $viewOffsets
             .sink { [weak self] values in
                 guard let self = self else { return }
@@ -98,16 +106,10 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
                             self.selectedMedia = newSelection
                             loadThumbnailForActiveMedia()
                         }
-
                     }
                 }
             }
             .store(in: &cancellables)
-    }
-
-    var selectedIndex: Int {
-        guard let selectedMedia = selectedMedia else { return 0 }
-        return media.firstIndex(of: selectedMedia) ?? 0
     }
 
     func deleteAction() {
@@ -372,14 +374,16 @@ struct GalleryHorizontalScrollView: View {
                                     }
                             }
                             .frame(width: frame.width, height: frame.height)
-                            .id(item)
+                            .id(item.id)
                             .clipped()
                         }
                     }
-                    .onAppear {
-                        scrollTo(media: viewModel.initialMedia, with: proxy, animated: false)
-                    }
 
+
+                }
+                .onAppear {
+                    scrollTo(media: viewModel.initialMedia, with: proxy, animated: false)
+                    viewModel.loadThumbnailForActiveMedia()
                 }
                 .scrollTargetLayout()
                 .frame(maxHeight: .infinity)

@@ -64,7 +64,10 @@ struct EncameraApp: App {
             } catch {
                 fatalError("Onboarding error \(error)")
             }
-            self.keyManager.keyPublisher.sink { key in
+            self.keyManager
+                .keyPublisher
+                .receive(on: RunLoop.main)
+                .sink { key in
                 self.keyManagerKey = key
                 guard key != nil else {
                     return

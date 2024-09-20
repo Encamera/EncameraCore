@@ -6,8 +6,16 @@
 //
 
 import Foundation
+import EncameraCore
 
-enum AppNavigationPaths {
+struct GalleryScrollViewContext: Hashable {
+    let media: [InteractableMedia<EncryptedMedia>]
+    let targetMedia: InteractableMedia<EncryptedMedia>
+}
+
+enum AppNavigationPaths: Hashable {
 
     case createAlbum
+    case albumDetail(album: Album)
+    case galleryScrollView(context: GalleryScrollViewContext)
 }
