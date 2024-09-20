@@ -81,6 +81,8 @@ struct AlbumGrid<D: FileAccess>: View {
     @State private var showNotificationSheet: Bool = false
 
     var body: some View {
+        let spacing = CGFloat(17.0)
+
         VStack(alignment: .leading) {
             HStack {
                 Text("Encamera")
@@ -95,9 +97,9 @@ struct AlbumGrid<D: FileAccess>: View {
             }
             .padding([.leading, .trailing], Spacing.pt24.value)
             .padding([.top, .bottom], Spacing.pt16.value)
+            GradientDivider()
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
-                let spacing = CGFloat(17.0)
                 let side = CGFloat(CGFloat(frame.width / 2) - spacing)
                 let columns = [
                     GridItem(.fixed(side), spacing: spacing),
@@ -113,14 +115,13 @@ struct AlbumGrid<D: FileAccess>: View {
                     }
                     .padding(.bottom, 80)
                 }
-
-
                 .screenBlocked()
             }
             .onAppear {
                 viewModel.setAlbums()
             }
-            .pad(.pt24)
+            .padding([.leading, .trailing], Spacing.pt24.value - spacing / 2)
+            .padding([.top, .bottom], Spacing.pt16.value)
             .toolbar(.hidden)
         }
         .fullScreenCover(isPresented: $showNotificationSheet) {
