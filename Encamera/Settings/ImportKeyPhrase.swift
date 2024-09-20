@@ -13,6 +13,7 @@ enum ImportKeyPhraseError: Error {
     case couldNotImportKeyPhrase
 }
 
+@MainActor
 class ImportKeyPhraseViewModel: ObservableObject {
 
     var keyManager: KeyManager
@@ -34,6 +35,7 @@ class ImportKeyPhraseViewModel: ObservableObject {
     func importKeyPhrase() throws {
         do {
             try keyManager.generateKeyFromPasswordComponents(words, name: AppConstants.defaultKeyName)
+            KeychainMigrationUtil(keyManager: keyManager).prepareMigration()
         } catch let error as KeyManagerError {
             importError = .invalidKeyPhrase(error.displayDescription)
             print("Error importing key phrase: \(error)")

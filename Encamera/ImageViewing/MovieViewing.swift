@@ -170,7 +170,7 @@ struct MovieViewing: View {
                 }
 
             } else if let error = viewModel.error {
-                Text(L10n.couldNotDecryptMovie(error.localizedDescription))
+                Text(L10n.movieDecryptionError(error.localizedDescription))
                     .foregroundColor(.red)
             } else {
                 progressView
