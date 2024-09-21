@@ -91,6 +91,7 @@ struct AlbumGrid<D: FileAccess>: View {
 
                 Button {
                     showNotificationSheet = true
+                    EventTracking.trackNotificationBellPressed()
                 } label: {
                     NotificationBell(showIndicator: viewModel.showNotificationBellIndicator)
                 }
