@@ -6,7 +6,7 @@ struct PhotoPicker: UIViewControllerRepresentable {
     var filter: PHPickerFilter = .images // Use .videos for videos, or .any(of: [.images, .videos]) for both
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
-        var config = PHPickerConfiguration()
+        var config = PHPickerConfiguration(photoLibrary: .shared())
         config.selectionLimit = 0 // 0 for unlimited selection, set to 1 or any number for specific limits
         config.filter = filter
         config.selection = .ordered

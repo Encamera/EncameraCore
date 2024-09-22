@@ -21,10 +21,17 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     var album: Album?
     var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
+    var mediaImportStarted: Bool = false {
+        didSet {
+            checkForLibraryPermissionsAndContinue()
+        }
+    }
     @MainActor
     @Published var media: [InteractableMedia<EncryptedMedia>] = []
     @Published var showCamera: Bool = false
+
     @Published var showPhotoPicker: Bool = false
+    @Published var showPhotoAccessAlert: Bool = false
     @Published var firstImage: InteractableMedia<EncryptedMedia>?
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
@@ -45,7 +52,6 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             debugPrint("startedImportCount: \(startedImportCount)")
         }
     }
-    
     
     private var cancellables = Set<AnyCancellable>()
     var fileAccess: D
@@ -86,7 +92,30 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             }
         }.store(in: &cancellables)
     }
-    
+
+    func checkForLibraryPermissionsAndContinue()	 {
+        let status = PHPhotoLibrary.authorizationStatus()
+
+        if status == .notDetermined {
+            showPhotoAccessAlert = true
+        } else {
+            showPhotoPicker = true
+        }
+    }
+
+    func requestPhotoLibraryPermission() async {
+        let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        switch status {
+        case .authorized:
+            EventTracking.trackPhotoLibraryPermissionsGranted()
+        case .limited:
+            EventTracking.trackPhotoLibraryPermissionsLimited()
+        default:
+            EventTracking.trackPhotoLibraryPermissionsDenied()
+        }
+        self.showPhotoPicker = true
+    }
+
     func startiCloudDownload() {
         guard let album else { return }
         let directory = albumManager.storageModel(for: album)
@@ -173,7 +202,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 return date1 < date2
             }
             
-            // Step 3: Process sorted items
+
             for (result, _) in itemsWithDates {
                 if cancelImport {
                     isImporting = false
@@ -190,7 +219,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 
                 try await self.loadAndSaveMediaAsync(result: result)
             }
-            
+            try await deleteMediaFromPhotoLibrary(result: itemsWithDates.map { $0.result })
             EventTracking.trackMediaImported(count: items.count)
             
             isImporting = false
@@ -250,23 +279,25 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     
     private func handleMedia(result: PHPickerResult) async throws {
         let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
-        
         let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
+
         let url: URL? = try await withCheckedThrowingContinuation { continuation in
             // Ensure we're on the main thread when modifying UI-bound properties
             Task { @MainActor in
                 self.startedImportCount += 1
             }
-            
+
             result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
                 guard let url = url else {
                     debugPrint("Error loading file representation: \(String(describing: error))")
                     continuation.resume(returning: nil)
                     return
                 }
+
                 // Generate a unique file name to prevent overwriting existing files
                 let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
                 let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
+
                 do {
                     try FileManager.default.copyItem(at: url, to: destinationURL)
                     debugPrint("File copied to: \(destinationURL)")
@@ -277,19 +308,39 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 }
             }
         }
-        
+
         guard let url = url else {
             debugPrint("Error loading file representation, url is nil")
             return
         }
-        
+
         try await saveCleartextMedia(mediaArray: [CleartextMedia(source: url, mediaType: isVideo ? .video : .photo, id: UUID().uuidString)])
-        
     }
-    
+
+    private func deleteMediaFromPhotoLibrary(result: [PHPickerResult]) async throws {
+
+        let assetIdentifier = result.compactMap({$0.assetIdentifier})
+
+        let assets = PHAsset.fetchAssets(withLocalIdentifiers: assetIdentifier, options: nil)
+
+        if assets.count > 0 {
+            do {
+                try await PHPhotoLibrary.shared().performChanges({
+                    PHAssetChangeRequest.deleteAssets(assets)
+                })
+                debugPrint("Media successfully deleted from Photo Library")
+
+            } catch {
+                debugPrint("Failed to delete media: \(error)")
+            }
+        } else {
+            debugPrint("No assets found to delete")
+        }
+    }
+
     private func saveCleartextMedia(mediaArray: [CleartextMedia]) async throws {
         let media = try InteractableMedia(underlyingMedia: mediaArray)
-        let savedMedia = try await fileAccess.save(media: media) { progress in // Ensure fileAccess and its save method are correctly implemented
+        let savedMedia = try await fileAccess.save(media: media) { progress in
             debugPrint("Progress: \(progress)")
             Task { @MainActor in
                 self.importProgress = progress
@@ -297,7 +348,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         }
         debugPrint("Media saved: \(savedMedia?.photoURL?.absoluteString ?? "nil")")
         await MainActor.run {
-            self.importProgress = 0.0 // Reset or update progress as necessary
+            self.importProgress = 0.0
         }
     }
     
@@ -434,6 +485,20 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 })
             }
         })
+        .alert(isPresented: $viewModel.showPhotoAccessAlert) {
+            Alert(
+                title: Text(L10n.AlbumDetailView.photoAccessAlertTitle),
+                message: Text(L10n.AlbumDetailView.photoAccessAlertMessage),
+                primaryButton: .destructive(Text(L10n.AlbumDetailView.photoAccessAlertPrimaryButton)) {
+                    Task {
+                        await viewModel.requestPhotoLibraryPermission()
+                    }
+            },
+                secondaryButton: .cancel(Text(L10n.AlbumDetailView.photoAccessAlertSecondaryButton)) {
+                    viewModel.showPhotoPicker = true
+                }
+            )
+        }
         .sheet(isPresented: $viewModel.showPhotoPicker, content: {
             PhotoPicker(selectedItems: { results in
                 viewModel.handleSelectedMedia(items: results)
@@ -515,7 +580,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             DualButtonComponent(nextActive: .constant(false),
                                 bottomButtonTitle: L10n.AlbumDetailView.importButton,
                                 bottomButtonAction: {
-                viewModel.showPhotoPicker = true
+                viewModel.mediaImportStarted = true
             },
                                 secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
                                 secondaryButtonAction: {
