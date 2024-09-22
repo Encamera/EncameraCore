@@ -233,7 +233,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                         }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
                         if viewModel.album?.name != nil && viewModel.showEmptyView == false {
                             Button {
-                                viewModel.gridViewModel.mediaImportStarted = true
+                                viewModel.gridViewModel.showPhotoPicker = true
                             }
                             label: {
                                 Text(L10n.importMedia)

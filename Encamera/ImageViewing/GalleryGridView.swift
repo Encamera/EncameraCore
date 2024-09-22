@@ -21,11 +21,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     var album: Album?
     var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
-    var mediaImportStarted: Bool = false {
-        didSet {
-            checkForLibraryPermissionsAndContinue()
-        }
-    }
+
     @MainActor
     @Published var media: [InteractableMedia<EncryptedMedia>] = []
     @Published var showCamera: Bool = false
@@ -52,7 +48,10 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             debugPrint("startedImportCount: \(startedImportCount)")
         }
     }
-    
+    @Published var lastImportedAssets: [PHPickerResult] = []
+    @Published var showNoLicenseDeletionWarning: Bool = false
+    var agreedToDeleteWithNoLicense: Bool = false
+
     private var cancellables = Set<AnyCancellable>()
     var fileAccess: D
     @MainActor
@@ -93,17 +92,21 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         }.store(in: &cancellables)
     }
 
-    func checkForLibraryPermissionsAndContinue()	 {
+    func checkForLibraryPermissionsAndContinue() async throws {
         let status = PHPhotoLibrary.authorizationStatus()
 
         if status == .notDetermined {
             showPhotoAccessAlert = true
-        } else {
-            showPhotoPicker = true
+        } else if status == .authorized || status == .limited {
+            try await deleteMediaFromPhotoLibrary(result: lastImportedAssets)
         }
     }
 
     func requestPhotoLibraryPermission() async {
+        if agreedToDeleteWithNoLicense == false && purchasedPermissions.hasEntitlement() == false {
+            showNoLicenseDeletionWarning = true
+            return
+        }
         let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
         switch status {
         case .authorized:
@@ -113,7 +116,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         default:
             EventTracking.trackPhotoLibraryPermissionsDenied()
         }
-        self.showPhotoPicker = true
+        try? await deleteMediaFromPhotoLibrary(result: lastImportedAssets)
     }
 
     func startiCloudDownload() {
@@ -219,7 +222,9 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 
                 try await self.loadAndSaveMediaAsync(result: result)
             }
-            try await deleteMediaFromPhotoLibrary(result: itemsWithDates.map { $0.result })
+            lastImportedAssets = itemsWithDates.map { $0.result }
+            try await checkForLibraryPermissionsAndContinue()
+            
             EventTracking.trackMediaImported(count: items.count)
             
             isImporting = false
@@ -485,19 +490,39 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 })
             }
         })
-        .alert(isPresented: $viewModel.showPhotoAccessAlert) {
-            Alert(
-                title: Text(L10n.AlbumDetailView.photoAccessAlertTitle),
-                message: Text(L10n.AlbumDetailView.photoAccessAlertMessage),
-                primaryButton: .destructive(Text(L10n.AlbumDetailView.photoAccessAlertPrimaryButton)) {
-                    Task {
-                        await viewModel.requestPhotoLibraryPermission()
+        .alert(isPresented: Binding<Bool>(
+            get: { viewModel.showNoLicenseDeletionWarning || viewModel.showPhotoAccessAlert },
+            set: { newValue in
+                viewModel.showNoLicenseDeletionWarning = false
+                viewModel.showPhotoAccessAlert = false
+            }
+        )) {
+            if viewModel.showNoLicenseDeletionWarning {
+                return Alert(
+                    title: Text(L10n.AlbumDetailView.noLicenseDeletionWarningTitle),
+                    message: Text(L10n.AlbumDetailView.noLicenseDeletionWarningMessage),
+                    dismissButton: .destructive(Text(L10n.AlbumDetailView.noLicenseDeletionWarningPrimaryButton)) {
+                        viewModel.agreedToDeleteWithNoLicense = true
+                        Task {
+                            await viewModel.requestPhotoLibraryPermission()
+                        }
                     }
-            },
-                secondaryButton: .cancel(Text(L10n.AlbumDetailView.photoAccessAlertSecondaryButton)) {
-                    viewModel.showPhotoPicker = true
-                }
-            )
+                )
+            } else if viewModel.showPhotoAccessAlert {
+                return Alert(
+                    title: Text(L10n.AlbumDetailView.photoAccessAlertTitle),
+                    message: Text(L10n.AlbumDetailView.photoAccessAlertMessage),
+                    primaryButton: .destructive(Text(L10n.AlbumDetailView.photoAccessAlertPrimaryButton)) {
+                        Task {
+                            await viewModel.requestPhotoLibraryPermission()
+                        }
+                    },
+                    secondaryButton: .cancel(Text(L10n.AlbumDetailView.photoAccessAlertSecondaryButton))
+                )
+            } else {
+                // Fallback alert to prevent SwiftUI from complaining, though this shouldn't be shown
+                return Alert(title: Text("Unknown Error"))
+            }
         }
         .sheet(isPresented: $viewModel.showPhotoPicker, content: {
             PhotoPicker(selectedItems: { results in
@@ -506,7 +531,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             .ignoresSafeArea(.all)
         })
     }
-    
+
     private var mainGridView: some View {
         GeometryReader { geo in
             let frame = geo.frame(in: .local)
@@ -580,7 +605,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             DualButtonComponent(nextActive: .constant(false),
                                 bottomButtonTitle: L10n.AlbumDetailView.importButton,
                                 bottomButtonAction: {
-                viewModel.mediaImportStarted = true
+                viewModel.showPhotoPicker = true
             },
                                 secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
                                 secondaryButtonAction: {
