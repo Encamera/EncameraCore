@@ -24,6 +24,7 @@ struct ViewHeader<Content: View>: View {
                 Spacer()
                 rightContent?()
             }
+            .frame(height: 45)
             .padding([.leading, .trailing], Spacing.pt24.value)
             .padding([.top, .bottom], Spacing.pt16.value)
             GradientDivider()
