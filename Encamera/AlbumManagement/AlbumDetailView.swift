@@ -92,7 +92,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
         }
         do {
             if shouldCreateAlbum {
-                album = try albumManager.create(name: albumName, storageOption: .local)
+                album = try albumManager.create(name: albumName, storageOption: albumManager.defaultStorageForAlbum)
             } else if let album {
                 self.album = try albumManager.renameAlbum(album: album, to: albumName)
             }

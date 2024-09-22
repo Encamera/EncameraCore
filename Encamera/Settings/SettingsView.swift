@@ -36,9 +36,16 @@ class SettingsViewViewModel: ObservableObject {
     @Published fileprivate var activeAlert: AlertType = .none
     @Published var showAlert: Bool = false
     @Published var showKeyBackup: Bool = false
+    @Published var defaultStorageOption: StorageType = .local {
+        didSet {
+            albumManager.defaultStorageForAlbum = defaultStorageOption
+        }
+    }
 
     var keyManager: KeyManager
     var fileAccess: FileAccess
+    var albumManager: AlbumManaging
+
     private var cancellables = Set<AnyCancellable>()
     private var passwordValidator = PasswordValidator()
     var authManager: AuthManager
@@ -46,12 +53,17 @@ class SettingsViewViewModel: ObservableObject {
         return authManager.availableBiometric
     }
     
-    init(keyManager: KeyManager, authManager: AuthManager, fileAccess: FileAccess) {
+    init(keyManager: KeyManager,
+         authManager: AuthManager,
+         fileAccess: FileAccess,
+         albumManager: AlbumManaging) {
         self.keyManager = keyManager
+        self.albumManager = albumManager
         self.fileAccess = fileAccess
         self.authManager = authManager
         self.useBiometrics = authManager.useBiometricsForAuth
         self.showKeyBackup = ((try? keyManager.retrieveKeyPassphrase()) != nil)
+        self.defaultStorageOption = albumManager.defaultStorageForAlbum
     }
     
     func setupBiometricToggleObserver() {
@@ -130,7 +142,7 @@ struct SettingsView: View {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
     
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ViewHeader(title: L10n.settings)
@@ -193,6 +205,14 @@ struct SettingsView: View {
                                 ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
                             }
                         }
+                        HStack {
+                            Picker(L10n.Settings.defaultStorageOption, selection: $viewModel.defaultStorageOption) {
+                                ForEach(StorageType.allCases) { storageType in
+                                    Text(storageType.title)
+                                }
+                            }
+                            .fontType(.pt14, weight: .bold)
+                        }
                     }
                     .navigationTitle(L10n.settings)
 
@@ -253,7 +273,6 @@ struct SettingsView: View {
                 Alert(title: Text("Error"), message: Text("Unknown error"), dismissButton: .default(Text(L10n.ok)))
             }
         }
-
         .padding(.bottom, 90)
     }
     
@@ -296,7 +315,7 @@ struct SettingsView: View {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
 
-        SettingsView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), fileAccess: DemoFileEnumerator()))
-        
+        SettingsView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), fileAccess: DemoFileEnumerator(), albumManager: DemoAlbumManager()))
+
     }
 }

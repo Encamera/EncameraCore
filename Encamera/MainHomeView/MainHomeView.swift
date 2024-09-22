@@ -103,7 +103,12 @@ struct MainHomeView<D: FileAccess>: View {
                     .transition(.opacity)
                 } else {
                     if selectedNavigationItem == .settings {
-                        SettingsView(viewModel: .init(keyManager: viewModel.keyManager, authManager: viewModel.authManager, fileAccess: viewModel.fileAccess))
+                        SettingsView(viewModel: .init(
+                            keyManager: viewModel.keyManager,
+                            authManager: viewModel.authManager,
+                            fileAccess: viewModel.fileAccess,
+                            albumManager: viewModel.albumManager
+                        ))
                     } else {
                         AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
                     }

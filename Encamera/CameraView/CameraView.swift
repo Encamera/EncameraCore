@@ -162,6 +162,7 @@ struct CameraView: View {
                     return
                 }
                 EventTracking.trackConfirmStorageTypeSelected(type: selectedStorage)
+                cameraModel.albumManager.defaultStorageForAlbum = selectedStorage
                 cameraModel.albumManager.currentAlbum = try? cameraModel.albumManager.moveAlbum(album: currentAlbum, toStorage: selectedStorage)
                 
             } else if !hasEntitlement && selectedStorage == .icloud {

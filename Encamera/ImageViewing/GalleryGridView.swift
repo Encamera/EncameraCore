@@ -197,7 +197,6 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 }
             }
             
-            // Step 2: Sort by date (ascending)
             itemsWithDates.sort { (item1, item2) -> Bool in
                 guard let date1 = item1.date, let date2 = item2.date else {
                     return item1.date != nil // Treat nil dates as the end of the list
@@ -252,6 +251,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 } else if typeIdentifier == UTType.movie.identifier {
                     if let url = URL(dataRepresentation: data, relativeTo: nil) {
                         let asset = AVURLAsset(url: url)
+
                         let dateItem = asset.metadata.first(where: { $0.commonKey?.rawValue == "creationDate" })
                         let date = dateItem?.dateValue
                         continuation.resume(returning: date)
