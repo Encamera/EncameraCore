@@ -301,6 +301,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                 selectionTray
             }
         }
+        .gradientBackground()
         .ignoresSafeArea(edges: [.top, .bottom])
 
     }
