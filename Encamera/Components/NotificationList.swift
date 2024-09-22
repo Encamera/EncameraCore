@@ -36,24 +36,18 @@ struct NotificationList: View {
     }
 
     var body: some View {
-        VStack {
-            HStack {
-
-                Text(L10n.notificationListTitle)
-                    .fontType(.pt20, weight: .bold)
-                Spacer()
+        VStack(spacing: 0) {
+            ViewHeader(title: L10n.notificationListTitle, rightContent: {
                 Button {
                     closeAction()
                 } label: {
                     Image("Close-X")
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 20, height: 20) // Adjust size as needed
+                        .frame(width: 20, height: 20)
                         .foregroundStyle(.white)
                 }
                 .frostedButton()
-            }
-            .padding([.leading, .trailing], Spacing.pt24.value)
-            .padding([.top, .bottom], Spacing.pt16.value)
+            })
             ScrollView {
                 LazyVStack(spacing: Spacing.pt8.value) {
                     ForEach(Array(viewModel.notifications.enumerated()), id: \.element.id) { index, notif in

@@ -84,21 +84,15 @@ struct AlbumGrid<D: FileAccess>: View {
         let spacing = CGFloat(17.0)
 
         VStack(alignment: .leading) {
-            HStack {
-                Text("Encamera")
-                    .fontType(.pt20, weight: .bold)
-                Spacer()
-
+            ViewHeader(title: "Encamera", rightContent: {
                 Button {
                     showNotificationSheet = true
                     EventTracking.trackNotificationBellPressed()
                 } label: {
                     NotificationBell(showIndicator: viewModel.showNotificationBellIndicator)
                 }
-            }
-            .padding([.leading, .trailing], Spacing.pt24.value)
-            .padding([.top, .bottom], Spacing.pt16.value)
-            GradientDivider()
+
+            })
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
                 let side = CGFloat(CGFloat(frame.width / 2) - spacing)
