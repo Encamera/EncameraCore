@@ -174,38 +174,8 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         Task {
             totalImportCount = items.count
             isImporting = true
-            
-            // Step 1: Extract creation dates
-            var itemsWithDates: [(result: PHPickerResult, date: Date?)] = []
-            
-            for result in items {
-                let provider = result.itemProvider
-                if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-                    if let date = await extractCreationDate(from: provider, typeIdentifier: UTType.image.identifier) {
-                        itemsWithDates.append((result: result, date: date))
-                    } else {
-                        itemsWithDates.append((result: result, date: nil))
-                    }
-                } else if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
-                    if let date = await extractCreationDate(from: provider, typeIdentifier: UTType.movie.identifier) {
-                        itemsWithDates.append((result: result, date: date))
-                    } else {
-                        itemsWithDates.append((result: result, date: nil))
-                    }
-                } else {
-                    itemsWithDates.append((result: result, date: nil))
-                }
-            }
-            
-            itemsWithDates.sort { (item1, item2) -> Bool in
-                guard let date1 = item1.date, let date2 = item2.date else {
-                    return item1.date != nil // Treat nil dates as the end of the list
-                }
-                return date1 < date2
-            }
-            
 
-            for (result, _) in itemsWithDates {
+            for result in items {
                 if cancelImport {
                     isImporting = false
                     cancelImport = false
@@ -221,7 +191,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 
                 try await self.loadAndSaveMediaAsync(result: result)
             }
-            lastImportedAssets = itemsWithDates.map { $0.result }
+            lastImportedAssets = items
             try await checkForLibraryPermissionsAndContinue()
             
             EventTracking.trackMediaImported(count: items.count)
@@ -230,51 +200,13 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             await enumerateMedia()
         }
     }
-    
-    func extractCreationDate(from provider: NSItemProvider, typeIdentifier: String) async -> Date? {
-        await withCheckedContinuation { continuation in
-            provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, error in
-                guard let data = data, error == nil else {
-                    continuation.resume(returning: Date())
-                    return
-                }
-                
-                if typeIdentifier == UTType.image.identifier {
-                    if let source = CGImageSourceCreateWithData(data as CFData, nil),
-                       let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-                       let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any],
-                       let dateString = exif[kCGImagePropertyExifDateTimeOriginal] as? String,
-                       let date = self.parseExifDate(dateString: dateString) {
-                        continuation.resume(returning: date)
-                        return
-                    }
-                } else if typeIdentifier == UTType.movie.identifier {
-                    if let url = URL(dataRepresentation: data, relativeTo: nil) {
-                        let asset = AVURLAsset(url: url)
 
-                        let dateItem = asset.metadata.first(where: { $0.commonKey?.rawValue == "creationDate" })
-                        let date = dateItem?.dateValue
-                        continuation.resume(returning: date)
-                        return
-                    }
-                }
-                
-                continuation.resume(returning: nil)
-            }
-        }
-    }
-    
-    nonisolated func parseExifDate(dateString: String) -> Date? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
-        dateFormatter.timeZone = TimeZone(identifier: "UTC")
-        return dateFormatter.date(from: dateString)
-    }
-    
     private func loadAndSaveMediaAsync(result: PHPickerResult) async throws {
         // Identify whether the item is a video or an image
         let isLivePhoto = result.itemProvider.canLoadObject(ofClass: PHLivePhoto.self)
-        
+        Task { @MainActor in
+            self.startedImportCount += 1
+        }
         if isLivePhoto {
             try await handleLivePhoto(result: result)
         } else {
@@ -287,10 +219,8 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
 
         let url: URL? = try await withCheckedThrowingContinuation { continuation in
-            // Ensure we're on the main thread when modifying UI-bound properties
-            Task { @MainActor in
-                self.startedImportCount += 1
-            }
+
+
 
             result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
                 guard let url = url else {
@@ -501,7 +431,8 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 return Alert(
                     title: Text(L10n.AlbumDetailView.noLicenseDeletionWarningTitle),
                     message: Text(L10n.AlbumDetailView.noLicenseDeletionWarningMessage),
-                    dismissButton: .destructive(Text(L10n.AlbumDetailView.noLicenseDeletionWarningPrimaryButton)) {
+                    primaryButton: .cancel(Text(L10n.cancel)),
+                    secondaryButton: .destructive(Text(L10n.AlbumDetailView.noLicenseDeletionWarningPrimaryButton)) {
                         viewModel.agreedToDeleteWithNoLicense = true
                         Task {
                             await viewModel.requestPhotoLibraryPermission()
