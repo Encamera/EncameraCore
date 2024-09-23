@@ -22,9 +22,11 @@ struct ChooseStorageModalViewModifier: ViewModifier {
             content
             if isPresented {
                 let hasEntitlement = purchasedPermissions.hasEntitlement()
-                ChooseStorageModal(hasEntitlement: hasEntitlement, selectedStorage: album.storageOption, storageSelected: { storage in
-                    didSelectStorage(storage, hasEntitlement)
-                }, dismissButtonPressed: dismissAction)
+                ChooseStorageModal(hasEntitlement: hasEntitlement,
+                                   selectedStorage: album.storageOption,
+                                   storageSelected: { storage in
+                    didSelectStorage(storage, hasEntitlement)},
+                                   dismissButtonPressed: dismissAction)
             }
         }
     }
@@ -33,7 +35,10 @@ struct ChooseStorageModalViewModifier: ViewModifier {
 extension View {
 
     @ViewBuilder
-    func chooseStorageModal(isPresented: Binding<Bool>, album: Album?, purchasedPermissions: PurchasedPermissionManaging, didSelectStorage: @escaping DidSelectStorage, dismissAction: @escaping () -> ()) -> some View {
+    func chooseStorageModal(isPresented: Binding<Bool>, album: Album?,
+                            purchasedPermissions: PurchasedPermissionManaging,
+                            didSelectStorage: @escaping DidSelectStorage,
+                            dismissAction: @escaping () -> ()) -> some View {
         if let album {
             self.modifier(ChooseStorageModalViewModifier(isPresented: isPresented,
                                                          purchasedPermissions: purchasedPermissions,

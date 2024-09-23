@@ -188,6 +188,9 @@ struct SettingsView: View {
                             EventTracking.trackSettingsLeaveReviewPressed()
                             AskForReviewUtil.openAppStoreReview()
                         }
+                        NavigationLink(L10n.roadmap) {
+                            WebView(url: URL(string: "https://encamera.featurebase.app/")!)
+                        }.id(UUID())
                     }
                     Section {
                         Button {
@@ -222,9 +225,6 @@ struct SettingsView: View {
                         }.id(UUID())
                         NavigationLink(L10n.privacyPolicy) {
                             WebView(url: URL(string: "https://encamera.app/privacy/")!)
-                        }.id(UUID())
-                        NavigationLink(L10n.roadmap) {
-                            WebView(url: URL(string: "https://encamera.featurebase.app/")!)
                         }.id(UUID())
                         NavigationLink(L10n.termsOfUse) {
                             WebView(url: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
