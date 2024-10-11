@@ -22,6 +22,7 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
     @Published var shouldShowTweetScreen: Bool = false
     @Published var selectedPath: NavigationPath = .init()
     @Published var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums
+    @Published var showPushNotificationPrompt: Bool = false
     var fileAccess: D
     var cameraService: CameraConfigurationService
     var keyManager: KeyManager
@@ -115,7 +116,22 @@ struct MainHomeView<D: FileAccess>: View {
                     BottomNavigationBar(selectedItem: $selectedNavigationItem)
                 }
             }
+            .pushNotificationPromptModal(isPresented: $viewModel.showPushNotificationPrompt, onPrimaryButtonPressed: {
+                EventTracking.trackNotificationPromptAccepted()
+                Task { @MainActor in
+                    try await NotificationManager.requestLocalNotificationPermission()
+                    viewModel.showPushNotificationPrompt = false
+                }
+            }, onSecondaryButtonPressed: {
+                EventTracking.trackNotificationPromptDismissed()
+                viewModel.showPushNotificationPrompt = false
+            })
             .onAppear {
+                Task { @MainActor in
+                    if await NotificationLogic.shouldAskForNotificationPermissions {
+                        viewModel.showPushNotificationPrompt = true
+                    }
+                }
                 if UserDefaultUtils.bool(forKey: .showCurrentAlbumOnLaunch) {
                     guard let album = viewModel.albumManager.currentAlbum else {
                         selectedNavigationItem = .albums

@@ -384,6 +384,7 @@ struct GalleryHorizontalScrollView: View {
                 .onAppear {
                     scrollTo(media: viewModel.initialMedia, with: proxy, animated: false)
                     viewModel.loadThumbnailForActiveMedia()
+                    AskForReviewUtil.askForReviewIfNeeded()
                 }
                 .scrollTargetLayout()
                 .frame(maxHeight: .infinity)

@@ -42,9 +42,11 @@ struct ModalViewModifier: ViewModifier {
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color(red: 0, green: 0, blue: 0))
                     .opacity(0.80)
-                Spacer().frame(height: 48)
+                    .lineSpacing(Spacing.pt8.value)
+                    .padding([.leading, .trailing])
+                Spacer().frame(height: Spacing.pt48.value)
 
-                VStack(spacing: 24) {
+                VStack(spacing: Spacing.pt24.value) {
                     Button(primaryButtonText, action: onPrimaryButtonPressed)
                         .primaryButton()
                     Button(secondaryButtonText, action: onSecondaryButtonPressed)
@@ -83,7 +85,7 @@ extension View {
                 isPresented: .constant(true),
                 imageName: "Image-Camera",
                 titleText: L10n.coolPicture,
-                descriptionText: L10n.whereToFindYourPictures,
+                descriptionText: L10n.whereToFindYourPictures + L10n.loginMethodDescription,
                 primaryButtonText: L10n.viewAlbums,
                 secondaryButtonText: L10n.takeAnotherPhoto,
                 onPrimaryButtonPressed: { print("Upgrade to Premium") },
