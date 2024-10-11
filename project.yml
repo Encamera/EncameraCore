@@ -164,3 +164,4 @@ targets:
       - package: Sodium
       - target: Encamera
       - package: EncameraCore
+      - package: PiwikPROSDK
