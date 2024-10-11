@@ -390,13 +390,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let isUpgradeLaunch = LaunchCountUtils.isUpgradeLaunch()
         #endif
         if isUpgradeLaunch {
-
-            do {
-                try DiskFileAccess.deleteThumbnailDirectory()
-                debugPrint("Deleted thumbnail directory")
-            } catch {
-                debugPrint("Could not delete thumbnail directory")
-            }
+            UserDefaultUtils.resetReviewMetric()
         }
         EventTracking.trackAppLaunched()
         LaunchCountUtils.recordCurrentVersionLaunch()
