@@ -129,7 +129,9 @@ struct MainHomeView<D: FileAccess>: View {
             .onAppear {
                 Task { @MainActor in
                     if await NotificationLogic.shouldAskForNotificationPermissions {
-                        viewModel.showPushNotificationPrompt = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            viewModel.showPushNotificationPrompt = true
+                        }
                     }
                 }
                 if UserDefaultUtils.bool(forKey: .showCurrentAlbumOnLaunch) {
