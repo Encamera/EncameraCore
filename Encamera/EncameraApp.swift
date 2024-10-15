@@ -391,10 +391,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         #endif
         if isUpgradeLaunch {
             UserDefaultUtils.resetReviewMetric()
-            UserDefaultUtils.set(true, forKey: .showPushNotificationPrompt)
-        } else {
-            UserDefaultUtils.set(false, forKey: .showPushNotificationPrompt)
         }
+        UserDefaultUtils.set(isUpgradeLaunch, forKey: .showPushNotificationPrompt)
+
         EventTracking.trackAppLaunched()
         LaunchCountUtils.recordCurrentVersionLaunch()
         return true
