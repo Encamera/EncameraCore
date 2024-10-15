@@ -118,9 +118,14 @@ struct MainHomeView<D: FileAccess>: View {
             }
             .pushNotificationPromptModal(isPresented: $viewModel.showPushNotificationPrompt, onPrimaryButtonPressed: {
                 EventTracking.trackNotificationPromptAccepted()
+
                 Task { @MainActor in
-                    try await NotificationManager.requestLocalNotificationPermission()
-                    viewModel.showPushNotificationPrompt = false
+                    if await NotificationManager.isDenied {
+                        SystemSettings.openNotificationSettings()
+                    } else {
+                        try await NotificationManager.requestLocalNotificationPermission()
+                        viewModel.showPushNotificationPrompt = false
+                    }
                 }
             }, onSecondaryButtonPressed: {
                 EventTracking.trackNotificationPromptDismissed()

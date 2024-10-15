@@ -132,7 +132,7 @@ struct CameraView: View {
                     Text(L10n.missingCameraAccess)
                         .fontType(.pt14)
                     Button {
-                        openSettings()
+                        SystemSettings.openSettings()
                     } label: {
                         Text(L10n.openSystemSettings)
                     }.textPill(color: .actionYellowGreen)
@@ -231,7 +231,7 @@ struct CameraView: View {
                     VStack {
                         Spacer()
                         Button("\(Image(systemName: "mic.slash.fill")) \(L10n.openSettings)") {
-                            openSettings()
+                            SystemSettings.openSettings()
                         }
                         .primaryButton()
                         .padding()
@@ -260,13 +260,6 @@ struct CameraView: View {
         }
         .navigationBarHidden(true)
         .navigationTitle("")
-    }
-
-    private func openSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else {
-            return
-        }
-        UIApplication.shared.open(url)
     }
 
     private func closeCamera() {
