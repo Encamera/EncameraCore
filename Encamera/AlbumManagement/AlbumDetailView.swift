@@ -23,7 +23,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
     @Published var keyViewerError: KeyViewerError?
     @Published var deleteAlbumConfirmation: String = ""
     @Published var deleteActionError: String = ""
-    @Published var showDeleteActionError = false
     @Published var isEditingAlbumName = false
     @Published var albumName: String = ""
     @Published var albumManagerError: String?
@@ -103,8 +102,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
                 albumManagerError = L10n.couldNotRenameAlbumError
             }
         }
-
-        isEditingAlbumName = false
     }
 
     func deleteAlbum() {
@@ -125,6 +122,42 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
         self.album = try? albumManager.moveAlbum(album: album, toStorage: storage)
         EventTracking.trackConfirmStorageTypeSelected(type: storage)
     }
+
+    var currentSharingData: Any?
+
+    @MainActor
+    func shareSheet(data: [Any]) {
+        self.currentSharingData = data
+
+        let activityView = UIActivityViewController(activityItems: data + [self], applicationActivities: nil)
+        activityView.completionWithItemsHandler = { activityType, completed, returnedItems, error in
+            if let error = error {
+                print("Share error: \(error.localizedDescription)")
+            }
+            self.currentSharingData = nil
+            EventTracking.trackMediaShared()
+        }
+
+        let allScenes = UIApplication.shared.connectedScenes
+        let scene = allScenes.first { $0.activationState == .foregroundActive }
+
+        if let windowScene = scene as? UIWindowScene {
+            windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
+        }
+    }
+
+    func shareSelected() {
+        selectedMedia.forEach { media in
+            fileManager?.loadMedia(media: media) { result in
+                switch result {
+                case .success(let data):
+                    shareSheet(data: [data])
+                case .failure(let error):
+                    print("Error loading media: \(error)")
+                }
+            }
+        }
+    }
 }
 
 private enum Constants {
@@ -132,10 +165,8 @@ private enum Constants {
 }
 
 struct AlbumDetailView<D: FileAccess>: View {
-    @State var isShowingAlertForClearKey: Bool = false
     @State var isShowingAlertForDeleteAllAlbumData: Bool = false
     @State var isShowingMoveAlbumModal = false
-    @State var isShowingAlertForCopyKey: Bool = false
     @State var isShowingPurchaseSheet = false
 
     @StateObject var viewModel: AlbumDetailViewModel<D>
@@ -152,122 +183,17 @@ struct AlbumDetailView<D: FileAccess>: View {
         VStack {
             GalleryGridView(viewModel: viewModel.gridViewModel) {
                 ZStack(alignment: .leading) {
-                    Color.inputFieldBackgroundColor
-                        .frame(height: 230)
-
-                    VStack(alignment: .leading, spacing: 0) {
-                        Spacer().frame(height: getSafeAreaTop() / 2)
-                        HStack(alignment: .center) {
-                            Button {
-                                popLastView()
-                            } label: {
-                                Image("Album-BackButton")
-                            }
-                            .frame(width: 44, height: 44)
-                            Spacer()
-                            if viewModel.isEditingAlbumName {
-                                Button {
-                                    viewModel.renameAlbum()
-                                } label: {
-                                    Text(L10n.done)
-                                        .fontType(.pt14, on: .textButton, weight: .bold)
-                                }
-                            } else {
-                                Group {
-                                    //                                        Button {
-                                    //                                            viewModel.isSelectingMedia.toggle()
-                                    //                                        } label: {
-                                    //                                            Text(viewModel.isSelectingMedia ? L10n.cancel : "Select")
-                                    ////                                                .fontType(.pt14)
-                                    //                                                .frame(width: 50)
-                                    //
-                                    //                                        }.textButton()
-
-                                    VStack(alignment: .center) {
-                                        Menu {
-                                            Button(L10n.moveAlbumStorage) {
-                                                isShowingMoveAlbumModal = true
-                                            }
-                                            Button(L10n.viewInFiles) {
-                                                LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: viewModel.album!)
-                                            }
-                                            Button(L10n.rename) {
-                                                viewModel.isEditingAlbumName = true
-                                            }
-                                            Button(L10n.deleteAlbum, role: .destructive) {
-                                                isShowingAlertForDeleteAllAlbumData = true
-                                            }
-
-                                        } label: {
-                                            Image("Album-OptionsDots")
-                                                .contentShape(Rectangle()) // Optional: make sure
-
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                }
-                                .frame(width: 44, height: 44)
-                            }
-                        }.padding(.trailing, 17)
-                        VStack(alignment: .leading, spacing: 0) {
-                            Spacer().frame(height: 24)
-                            if viewModel.isEditingAlbumName {
-                                TextField(L10n.albumName, text: $viewModel.albumName)
-                                    .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
-                                        textField.becomeFirstResponder()
-                                    }
-                                    .fontType(.pt24, weight: .bold)
-                                    .noAutoModification()
-
-                            } else {
-                                Text(viewModel.albumName)
-                                    .fontType(.pt24, weight: .bold)
-                            }
-                            Spacer().frame(height: 8)
-                            Group {
-                                Text("\(viewModel.album?.creationDate.formatted() ?? "") • \(viewModel.album?.storageOption == .icloud ? L10n.savedToICloud : L10n.savedToDevice)")
-                            }
-                            .fontType(.pt14)
-                            .opacity(viewModel.isEditingAlbumName ? 0 : 1)
-                            Spacer().frame(height: 24)
-                        }.padding(.init(top: .zero, leading: 24, bottom: .zero, trailing: 24))
-                        if viewModel.album?.name != nil && viewModel.showEmptyView == false {
-                            Button {
-                                viewModel.gridViewModel.showPhotoPicker = true
-                            }
-                            label: {
-                                Text(L10n.importMedia)
-                                    .pad(.pt8, edge: .leading)
-                            }.textButton()
-                                .pad(.pt8, edge: .leading)
-                        }
-
-                    }
+                    horizontalTitleComponents
                 }
             }
             .screenBlocked()
-            .alert(L10n.copiedToClipboard, isPresented: $isShowingAlertForCopyKey, actions: {
-                Button(L10n.ok) {
-                    isShowingAlertForCopyKey = false
-                }
-            }, message: {
-                Text(L10n.KeyCopiedToClipboard.storeThisInAPasswordManagerOrOtherSecurePlace)
-            })
             .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllAlbumData, actions: {
                 Button(L10n.deleteEverything, role: .destructive) {
                     viewModel.deleteAlbum()
                     popLastView()
                 }
                 Button(L10n.cancel, role: .cancel) {
-                    isShowingAlertForClearKey = false
-                }
-            }, message: {
-                Text(L10n.deleteAlbumForever)
-
-            })
-            .alert(L10n.deletionError, isPresented: $viewModel.showDeleteActionError, actions: {
-                Button(L10n.ok) {
-                    viewModel.showDeleteActionError = false
+                    isShowingAlertForDeleteAllAlbumData = false
                 }
             }, message: {
                 Text(viewModel.deleteActionError)
@@ -302,8 +228,83 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
         }
         .gradientBackground()
-        .ignoresSafeArea(edges: [.top, .bottom])
+        .ignoresSafeArea(edges: [.bottom])
+    }
 
+    var horizontalTitleComponents: some View {
+        Group {
+            if viewModel.isEditingAlbumName {
+                ViewHeader(centerContent: {
+                    TextField(L10n.albumName, text: $viewModel.albumName)
+                        .becomeFirstResponder()
+                        .fontType(.pt24, weight: .bold)
+                        .noAutoModification()
+                }, rightContent: {
+                    HStack {
+                        Button {
+                            viewModel.albumName = viewModel.album?.name ?? ""
+                            viewModel.isEditingAlbumName = false
+                        } label: {
+                            Text(L10n.cancel)
+                                .fontType(.pt14, weight: .bold)
+                        }.frostedButton()
+                        Button {
+                            viewModel.renameAlbum()
+                            viewModel.isEditingAlbumName = false
+                        } label: {
+                            Text(L10n.save)
+                                .fontType(.pt14, weight: .bold)
+                        }.frostedButton()
+                    }
+                })
+            } else {
+
+                ViewHeader(title: viewModel.albumName, rightContent: {
+                    Group {
+                        Button {
+                            viewModel.isSelectingMedia.toggle()
+                        } label: {
+                            Text(viewModel.isSelectingMedia ? L10n.cancel : L10n.AlbumDetailView.select)
+                                .fontType(.pt14, weight: .bold)
+                        }.frostedButton()
+                        if viewModel.isSelectingMedia == false {
+                            VStack(alignment: .center) {
+                                buttonMenu
+                            }
+                        }
+                    }
+                }, leftContent: {
+
+                    Button {
+                        popLastView()
+                    } label: {
+                        Image("Album-BackButton")
+                    }
+                }).transition(.slide)
+            }
+        }
+    }
+
+    var buttonMenu: some View {
+        Menu {
+            Button(L10n.moveAlbumStorage) {
+                isShowingMoveAlbumModal = true
+            }
+            Button(L10n.viewInFiles) {
+                LocalDeeplinkingUtils.openAlbumContentsInFiles(albumManager: viewModel.albumManager, album: viewModel.album!)
+            }
+            Button(L10n.rename) {
+                viewModel.isEditingAlbumName = true
+            }
+            Button(L10n.deleteAlbum, role: .destructive) {
+                isShowingAlertForDeleteAllAlbumData = true
+            }
+
+        } label: {
+            Image("Album-OptionsDots")
+                .contentShape(Rectangle())
+                .frostedButton()
+        }
     }
 
     var selectionTray: some View {
@@ -314,12 +315,31 @@ struct AlbumDetailView<D: FileAccess>: View {
         }, selectedMedia: $viewModel.selectedMedia)
 
     }
+
+
 }
 
-//#Preview {
-////    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
-////        EventTracking.trackAlbumOpened()
-////    }
-//
-//    AlbumDetailView<DemoFileEnumerator>(viewModel: .init(albumManager: DemoAlbumManager(), album: DemoAlbumManager().currentAlbum))
-//}
+extension AlbumDetailView: UIActivityItemSource {
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        return "Encamera Media"
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController,
+                                itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+
+    }
+
+    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
+    }
+}
+
+#Preview {
+    //    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
+    //        EventTracking.trackAlbumOpened()
+    //    }
+
+    AlbumDetailView<DemoFileEnumerator>(viewModel: .init(albumManager: DemoAlbumManager(), album: DemoAlbumManager().currentAlbum))
+}

@@ -26,7 +26,6 @@ struct ModalViewModifier: ViewModifier {
             content
 
             if addOverlay {
-                // Frosted background that fades in
                 Color.clear
                     .background(.ultraThinMaterial)
                     .opacity(showContent ? 1 : 0)

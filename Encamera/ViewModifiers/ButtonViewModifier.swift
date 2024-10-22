@@ -42,12 +42,14 @@ struct EncameraDestructiveButtonStyle: ButtonStyle {
 struct FrostedBackgroundButtonStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
+            .padding([.leading, .trailing])
             .background {
                 Rectangle()
                     .fill(.ultraThinMaterial) // Background color and transparency
-                    .frame(width: 44, height: 36) // Size of the circular button
+                    .frame(height: 36) // Size of the circular button
                     .cornerRadius(44)
             }
+
     }
 }
 
@@ -104,7 +106,7 @@ struct EncameraButton_Previews: PreviewProvider {
                 Color.white.frame(width: 100, height: 100  )
                 Button("Destroy") {
 
-                }.secondaryButton()
+                }.frostedButton()
             }
 
         }

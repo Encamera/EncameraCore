@@ -53,6 +53,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     var agreedToDeleteWithNoLicense: Bool = false
 
     private var cancellables = Set<AnyCancellable>()
+    private var iCloudCancellables = Set<AnyCancellable>()
     var fileAccess: D
     @MainActor
     @Published var showEmptyView: Bool = false
@@ -72,7 +73,6 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         self.album = album
         self.showingCarousel = showingCarousel
         self.downloadPendingMediaCount = downloadPendingMediaCount
-        
         //#if targetEnvironment(simulator)
         //        self.fileAccess = DemoFileEnumerator()
         //#else
@@ -90,6 +90,12 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 await self.enumerateMedia()
             }
         }.store(in: &cancellables)
+        self.$isSelectingMedia.sink { value in
+            if value == false {
+                self.selectedMedia = []
+            }
+        }.store(in: &cancellables)
+
     }
 
     func checkForLibraryPermissionsAndContinue() async throws {
@@ -136,19 +142,19 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                     await self.enumerateMedia()
                 }
             }
-            .store(in: &cancellables)
+            .store(in: &iCloudCancellables)
     }
     
     func enumerateiCloudUndownloaded() {
         downloadPendingMediaCount = media.filter({$0.needsDownload == true}).count
         if downloadPendingMediaCount == 0 {
             downloadInProgress = false
-            cancellables.forEach({$0.cancel()})
+            iCloudCancellables.forEach({$0.cancel()})
         }
     }
     
     func cleanUp() {
-        cancellables.forEach({$0.cancel()})
+        iCloudCancellables.forEach({$0.cancel()})
         downloadInProgress = false
     }
     
@@ -552,30 +558,29 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             context: GalleryScrollViewContext(
                 media: viewModel.media,
                 targetMedia: mediaItem))) {
-//            let _ = print("Rendering image for item: \(mediaItem.id)")
-//            Group {
-//                let selectionBinding = Binding<Bool> {
-//                    viewModel.selectedMedia.contains(mediaItem)
-//                } set: { selected, _ in
-//                    if selected {
-//                        viewModel.selectedMedia.insert(mediaItem)
-//                    } else {
-//                        viewModel.selectedMedia.remove(mediaItem)
-//                    }
-//                }
+            Group {
+                let selectionBinding = Binding<Bool> {
+                    viewModel.selectedMedia.contains(mediaItem)
+                } set: { selected, _ in
+                    if selected {
+                        viewModel.selectedMedia.insert(mediaItem)
+                    } else {
+                        viewModel.selectedMedia.remove(mediaItem)
+                    }
+                }
 
                 AsyncEncryptedImage(
                     viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
                     placeholder: ProgressView(),
                     isInSelectionMode: $viewModel.isSelectingMedia,
-                    isSelected: .constant(false)
+                    isSelected: selectionBinding
                 )
                 .id(mediaItem.gridID)
                 .frame(width: width, height: height)
                 .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
                 .galleryClipped()
 
-//            }
+            }
         }
     }
 

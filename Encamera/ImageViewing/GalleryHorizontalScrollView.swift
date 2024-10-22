@@ -362,7 +362,7 @@ struct GalleryHorizontalScrollView: View {
                             let modalBinding = Binding<Bool> {
                                 !viewModel.canAccessPhoto(at: index)
                             } set: { _ in }
-                            TrackableView(id: UUID(uuidString: item.id)!) { // Wrap each item in TrackableView
+                            TrackableView(id: UUID(uuidString: item.id) ?? UUID()) { // Wrap each item in TrackableView
                                 viewingFor(item: item)
                                     .blur(radius: viewModel.canAccessPhoto(at: index) ? 0.0 : AppConstants.blockingBlurRadius)
                                     .photoLimitReachedModal(isPresented: modalBinding, addOverlay: false) {

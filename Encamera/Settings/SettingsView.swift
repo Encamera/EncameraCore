@@ -281,15 +281,10 @@ struct SettingsView: View {
             NavigationLink(L10n.eraseAllData) {
                 PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
             }
-            .sheet(isPresented: $viewModel.showPromptToErase) {
-                promptToErase
-            }
             NavigationLink(L10n.eraseAppData) {
                 PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
             }
-            .sheet(isPresented: $viewModel.showPromptToErase) {
-                promptToErase
-            }
+
         }
     }
     

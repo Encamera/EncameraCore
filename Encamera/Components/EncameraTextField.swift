@@ -84,7 +84,7 @@ struct EncameraTextField: View {
         switch fieldType {
         case .normal:
             TextField("", text: $text)
-                .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
+                .introspectTextField { textField in
                     handleIntrospectTextField(textField)
                 }
                 .onSubmit {
@@ -95,7 +95,7 @@ struct EncameraTextField: View {
 
         case .secure:
             SecureField("", text: $text)
-                .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17)) { (textField: UITextField) in
+                .introspectTextField { textField in
                     handleIntrospectTextField(textField)
                 }
                 .textContentType(contentType)

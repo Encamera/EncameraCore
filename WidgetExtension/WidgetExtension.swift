@@ -75,9 +75,9 @@ struct WidgetExtension: Widget {
     }
 }
 
-#Preview(as: .systemSmall) {
-    WidgetExtension()
-} timeline: {
-    SimpleEntry(date: .now, emoji: "😀")
-    SimpleEntry(date: .now, emoji: "🤩")
-}
+//#Preview(as: .systemSmall) {
+//    WidgetExtension()
+//} timeline: {
+//    SimpleEntry(date: .now, emoji: "😀")
+//    SimpleEntry(date: .now, emoji: "🤩")
+//}

@@ -25,7 +25,7 @@ struct NotificationBell: View {
 
                 }
             })
-        .frame(width: 32, height: 32)
+        .frame(width: 20, height: 32)
         .frostedButton()
     }
 }

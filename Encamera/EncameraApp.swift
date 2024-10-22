@@ -384,8 +384,12 @@ struct EncameraApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        for (key, value) in UserDefaults.standard.dictionaryRepresentation() {
+            print("\(key) = \(value) \n")
+        }
+
         #if DEBUG
-        let isUpgradeLaunch = false
+        let isUpgradeLaunch = true
         #else
         let isUpgradeLaunch = LaunchCountUtils.isUpgradeLaunch()
         #endif
