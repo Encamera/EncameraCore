@@ -59,18 +59,6 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
                         .resizable()
                         .scaledToFill()
                 }
-                if isInSelectionMode && isSelected {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.blue)
-                                .background(Circle().foregroundColor(.white))
-                                .padding(5.0)
-                        }
-                    }
-                }
                 if viewModel.needsDownload {
                     ZStack(alignment: .bottomTrailing) {
                         Rectangle().foregroundColor(.clear)
@@ -84,7 +72,7 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
                         
                 }
                 
-                if viewModel.cleartextMedia?.videoDuration != nil || viewModel.cleartextMedia?.isLivePhoto == true {
+                if !isSelected && (viewModel.cleartextMedia?.videoDuration != nil || viewModel.cleartextMedia?.isLivePhoto == true) {
                     VStack {
                         Spacer()
                         HStack {
@@ -100,6 +88,18 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
                             }
                         }
 
+                    }
+                }
+                if isInSelectionMode && isSelected {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.blue)
+                                .background(Circle().foregroundColor(.white))
+                                .padding(5.0)
+                        }
                     }
                 }
             }
@@ -131,8 +131,11 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
     @ViewBuilder func bodyContainer<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         Color.clear
             .background {
-                
-                content()
+                ZStack {
+                    Color.disabledButtonBackgroundColor
+                    content()
+
+                }
             }
             .aspectRatio(contentMode:.fill)
             .clipped()

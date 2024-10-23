@@ -15,6 +15,10 @@ public class DemoFileEnumerator: FileAccess {
         }
     }
 
+    public func loadMediaToURLs(media: InteractableMedia<EncryptedMedia>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> [URL] {
+        return []
+    }
+
     public required init(for album: Album, albumManager: AlbumManaging) async {
         mediaList = await enumerateMedia()
     }

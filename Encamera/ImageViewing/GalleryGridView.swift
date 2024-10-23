@@ -562,6 +562,9 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 let selectionBinding = Binding<Bool> {
                     viewModel.selectedMedia.contains(mediaItem)
                 } set: { selected, _ in
+                    guard viewModel.blurItemAt(index: index) == false else {
+                        return
+                    }
                     if selected {
                         viewModel.selectedMedia.insert(mediaItem)
                     } else {

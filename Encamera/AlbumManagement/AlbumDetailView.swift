@@ -13,7 +13,7 @@ import SwiftUIIntrospect
 import SwiftUI
 
 @MainActor
-class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
+class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     enum KeyViewerError {
         case couldNotSetKeychain
     }
@@ -147,14 +147,25 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject {
     }
 
     func shareSelected() {
-        selectedMedia.forEach { media in
-            fileManager?.loadMedia(media: media) { result in
-                switch result {
-                case .success(let data):
-                    shareSheet(data: [data])
-                case .failure(let error):
-                    print("Error loading media: \(error)")
+        guard let fileManager = fileManager else {
+            printDebug("No file access")
+            return
+        }
+        let sharingUtil = ShareMediaUtil(fileAccess: fileManager, targetMedia: Array(selectedMedia))
+        Task {
+            do {
+                try await sharingUtil.prepareSharingData { status in
+                    self.printDebug("Prepare sharing status: \(status)")
                 }
+                Task { @MainActor in
+                    do {
+                        try await sharingUtil.showShareSheet()
+                    } catch {
+                        self.printDebug("Error sharing: \(error)")
+                    }
+                }
+            } catch {
+                self.printDebug("Error preparing sharing data: \(error)")
             }
         }
     }
@@ -309,7 +320,7 @@ struct AlbumDetailView<D: FileAccess>: View {
 
     var selectionTray: some View {
         MediaSelectionTray(shareAction: {
-
+            viewModel.shareSelected()
         }, deleteAction: {
 
         }, selectedMedia: $viewModel.selectedMedia)
@@ -319,22 +330,7 @@ struct AlbumDetailView<D: FileAccess>: View {
 
 }
 
-extension AlbumDetailView: UIActivityItemSource {
-    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        return "Encamera Media"
-    }
 
-    func activityViewController(_ activityViewController: UIActivityViewController,
-                                itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
-
-    }
-
-    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
-    }
-}
 
 #Preview {
     //    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {

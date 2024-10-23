@@ -45,7 +45,7 @@ struct TrackableView<Content: View>: View {
 
 
 @MainActor
-class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
+class GalleryHorizontalScrollViewModel: NSObject, ObservableObject, DebugPrintable {
 
     @Published var media: [InteractableMedia<EncryptedMedia>] {
         didSet {
@@ -158,66 +158,26 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
         }
     }
     func shareDecrypted() {
-        guard let selectedMedia else { return }
         Task {
-            let decrypted = try await self.fileAccess.loadMedia(media: selectedMedia) { _ in }
-
-            switch selectedMedia.mediaType {
-            case .stillPhoto:
-                guard let data = decrypted.imageData, 
-                        let image = UIImage(data: data) else {
-                    debugPrint("Error creating image provider")
-                    return
+            guard let selectedMedia else { return }
+            let sharingUtil = ShareMediaUtil(fileAccess: self.fileAccess, targetMedia: [selectedMedia])
+            do {
+                try await sharingUtil.prepareSharingData { status in
+                    debugPrint("Status: \(status)")
                 }
-                await MainActor.run {
-                    shareSheet(data: [image])
-                }
-
-            case .livePhoto:
-                guard let imageData = decrypted.imageData,
-                      let videoURL = decrypted.videoURL,
-                      let image = UIImage(data: imageData) else {
-                    debugPrint("Error creating image provider for Live Photo")
-                    return
-                }
-
-                await MainActor.run {
-                    shareSheet(data: [image, videoURL])
-                }
-
-            case .video:
-                guard let videoURL = decrypted.videoURL else {
-                    debugPrint("Error creating video provider")
-                    return
-                }
-                await MainActor.run {
-
-                    shareSheet(data: [videoURL])
+            } catch {
+                debugPrint("Error: \(error)")
+            }
+            Task { @MainActor in
+                do {
+                    try await sharingUtil.showShareSheet()
+                } catch {
+                    printDebug("Error showing share sheet", error)
                 }
             }
         }
     }
 
-    @MainActor
-    func shareSheet(data: [Any]) {
-        self.currentSharingData = data
-
-        let activityView = UIActivityViewController(activityItems: data + [self], applicationActivities: nil)
-        activityView.completionWithItemsHandler = { activityType, completed, returnedItems, error in
-            if let error = error {
-                print("Share error: \(error.localizedDescription)")
-            }
-            self.currentSharingData = nil
-            EventTracking.trackMediaShared()
-        }
-
-        let allScenes = UIApplication.shared.connectedScenes
-        let scene = allScenes.first { $0.activationState == .foregroundActive }
-
-        if let windowScene = scene as? UIWindowScene {
-            windowScene.keyWindow?.rootViewController?.present(activityView, animated: true, completion: nil)
-        }
-    }
 
     func canAccessPhoto(at index: Int) -> Bool {
         return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(media.count - index)))
@@ -225,38 +185,6 @@ class GalleryHorizontalScrollViewModel: NSObject, ObservableObject {
 
     func showPurchaseScreen() {
         showPurchaseSheet = true
-    }
-}
-
-// Ensure that the GalleryHorizontalScrollViewModel conforms to UIActivityItemSource
-extension GalleryHorizontalScrollViewModel: UIActivityItemSource {
-    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        return "Encamera Media"
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController, 
-                                itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
-        return currentSharingData
-    }
-
-    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
-        let metadata = LPLinkMetadata()
-
-        if let selectedMediaPreview {
-            guard let thumbnailData = selectedMediaPreview.thumbnailMedia.data else { return nil }
-            let imageProvider = NSItemProvider(item: thumbnailData as NSData, typeIdentifier: UTType.png.identifier)
-            metadata.imageProvider = imageProvider
-            metadata.title = selectedMedia?.id
-        }
-
-        return metadata
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
-        if let currentData = currentSharingData as? [NSItemProvider], currentData.contains(where: { $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier) }) {
-            return UTType.movie.identifier
-        }
-        return UTType.image.identifier
     }
 }
 
