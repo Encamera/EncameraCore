@@ -49,7 +49,7 @@ struct SubscriptionPurchaseButton<T: Purchasable>: View {
                         if canRedeemIntroOffer {
                             VStack {
                                 Text(L10n.startTrialOffer)
-                                Text(L10n.freeTrialTerms(selectedPurchasable.priceText))
+                                Text(AppConstants.isInPromoMode ? L10n.promoFreeTrialTerms(selectedPurchasable.priceText) : L10n.freeTrialTerms(selectedPurchasable.priceText))
                                     .fontType(.pt12, on: .primaryButton)
                             }
                         } else if StoreActor.shared.hasPurchased(product: selectedPurchasable) {

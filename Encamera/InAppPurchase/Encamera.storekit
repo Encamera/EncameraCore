@@ -1,4 +1,14 @@
 {
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
   "identifier" : "45BEDFA6",
   "nonRenewingSubscriptions" : [
 
@@ -10,7 +20,7 @@
       "internalID" : "6444623609",
       "localizations" : [
         {
-          "description" : "Access unlimited keys and photos for life",
+          "description" : "Buy once. Use forever.",
           "displayName" : "Lifetime Unlimited",
           "locale" : "en_US"
         }
@@ -18,28 +28,13 @@
       "productID" : "purchase.lifetimeunlimitedbasic",
       "referenceName" : "LifetimeUnlimitedBasic",
       "type" : "NonConsumable"
-    },
-    {
-      "displayPrice" : "24.99",
-      "familyShareable" : true,
-      "internalID" : "6444687090",
-      "localizations" : [
-        {
-          "description" : "Unlimited photos and keys, family shared",
-          "displayName" : "Lifetime Unlimited Family",
-          "locale" : "en_US"
-        }
-      ],
-      "productID" : "purchase.lifetimeunlimitedbasicfamily",
-      "referenceName" : "LifetimeUnlimitedBasicFamily",
-      "type" : "NonConsumable"
     }
   ],
   "settings" : {
     "_applicationInternalID" : "1639202616",
     "_developerTeamID" : "KGJCC745S9",
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 731916802.27780998,
+    "_lastSynchronizedDate" : 751406144.82990098,
     "_locale" : "en_US",
     "_storefront" : "USA",
     "_storeKitErrors" : [
@@ -110,7 +105,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "F0AF4141",
+              "internalID" : "DF4EEDFD",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
@@ -119,10 +114,10 @@
             },
             {
               "eligibility" : [
-                "existing",
-                "new"
+                "new",
+                "existing"
               ],
-              "internalID" : "4A967286",
+              "internalID" : "863DB8E9",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
@@ -137,21 +132,24 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Benutze alle Features, monatlich berechnet.",
-              "displayName" : "Unlimited Monatlich",
-              "locale" : "de"
-            },
-            {
-              "description" : "Use premium features, billed monthly",
+              "description" : "Billed monthly",
               "displayName" : "Unlimited Monthly",
               "locale" : "en_US"
+            },
+            {
+              "description" : "Monatlich berechnet",
+              "displayName" : "Unlimited Monatlich",
+              "locale" : "de"
             }
           ],
           "productID" : "subscription.monthly.unlimitedkeysandphotos",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "UnlimitedKeysAndPhotosMonthly",
           "subscriptionGroupID" : "21023642",
-          "type" : "RecurringSubscription"
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         },
         {
           "adHocOffers" : [
@@ -162,7 +160,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "64766B93",
+              "internalID" : "D8450A05",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
@@ -173,7 +171,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "CA6009C2",
+              "internalID" : "8713587E",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
@@ -181,15 +179,15 @@
               "subscriptionPeriod" : "P6M"
             },
             {
-              "displayPrice" : "4.99",
+              "displayPrice" : "6.99",
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "86D338EC",
-              "isStackable" : true,
+              "internalID" : "CEB71A50",
+              "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
-              "referenceName" : "Reddit Privacy Guides",
+              "referenceName" : "meme_splaining",
               "subscriptionPeriod" : "P1Y"
             },
             {
@@ -197,7 +195,31 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "391D4954",
+              "internalID" : "523C3D35",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Malia C Influencer",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "9.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "1C2D1D27",
+              "isStackable" : false,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Reddit Startups",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "9.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "23360EF9",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -205,11 +227,35 @@
               "subscriptionPeriod" : "P1Y"
             },
             {
+              "displayPrice" : "19.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "C2014274",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "General offer code 20%",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
               "displayPrice" : "4.99",
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "26EA012E",
+              "internalID" : "CF08F591",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Reddit Privacy Guides",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "4.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "479ED3E8",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -221,23 +267,23 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "7E914BB5",
+              "internalID" : "7EBCF43F",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
-              "referenceName" : "Malia C Influencer",
+              "referenceName" : "Indie App Salex",
               "subscriptionPeriod" : "P1Y"
             },
             {
-              "displayPrice" : "6.99",
+              "displayPrice" : "19.99",
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "7003D256",
-              "isStackable" : false,
+              "internalID" : "34DC2DB2",
+              "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
-              "referenceName" : "meme_splaining",
+              "referenceName" : "All Things Secured 20%",
               "subscriptionPeriod" : "P1Y"
             }
           ],
@@ -246,7 +292,7 @@
           "groupNumber" : 1,
           "internalID" : "6444257244",
           "introductoryOffer" : {
-            "internalID" : "FD769C4B",
+            "internalID" : "924AFB4D",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
             "subscriptionPeriod" : "P1W"
@@ -267,13 +313,16 @@
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "UnlimitedKeysAndPhotosYearly",
           "subscriptionGroupID" : "21023642",
-          "type" : "RecurringSubscription"
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         }
       ]
     }
   ],
   "version" : {
-    "major" : 3,
+    "major" : 4,
     "minor" : 0
   }
 }

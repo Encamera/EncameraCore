@@ -55,7 +55,7 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
             }
             .frame(height: 45)
             .padding([.leading, .trailing], Spacing.pt24.value)
-            .padding([.top, .bottom], Spacing.pt16.value)
+            .padding([.top, .bottom], Spacing.pt8.value)
             GradientDivider()
         }
     }

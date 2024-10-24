@@ -36,16 +36,24 @@ struct TiltEffectModifier: ViewModifier {
 
 struct PurchaseUpgradeHeaderView: View {
     @State private var isAppearing = false
+    var isInPromoMode: Bool = true
     var purchasedProduct: OneTimePurchase?
     var body: some View {
         VStack(alignment: .center, spacing: 5) {
             Spacer()
-            Image("Premium-Lock")
+            Image(AppConstants.isInPromoMode ? "Pumpkin" : "Premium-Lock")
             Group {
-                Text(purchasedProduct == nil ? L10n.getPremium : L10n.thanksForPurchasingLifetime)
-                    .fontType(.pt24, on: .darkBackground, weight: .bold)
-                Text(purchasedProduct == nil ? L10n.premiumUnlockTheseBenefits : L10n.thanksForPurchasingLifetimeSubtitle)
-                    .fontType(.pt14)
+                if (purchasedProduct != nil) {
+                    Text(L10n.thanksForPurchasingLifetime)
+                        .fontType(.pt24, on: .darkBackground, weight: .bold)
+                    Text(L10n.thanksForPurchasingLifetimeSubtitle)
+                        .fontType(.pt14)
+                } else {
+                    Text(AppConstants.isInPromoMode ? L10n.getPremiumPromoText : L10n.getPremium)
+                        .fontType(.pt24, on: .darkBackground, weight: .bold)
+                    Text(AppConstants.isInPromoMode ? L10n.promoPremiumUnlockTheseBenefits : L10n.premiumUnlockTheseBenefits)
+                        .fontType(.pt14)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .multilineTextAlignment(.center)
@@ -65,18 +73,15 @@ struct PurchaseUpgradeHeaderView: View {
                     Group {
                         Image("Premium-London")
                             .position(frame.offsetBy(dx: offsetX, dy: offsetY).origin)
+                            .opacity(AppConstants.isInPromoMode ? 0 : 1)
                         Image("Premium-Couple")
                             .position(frame.offsetBy(dx: frame.width - offsetX, dy: offsetY).origin)
-                        Image("Premium-Fitness")
+                            .opacity(AppConstants.isInPromoMode ? 0 : 1)
+                        Image(AppConstants.isInPromoMode ? "CandyBlur1" : "Premium-Fitness")
                             .position(frame.offsetBy(dx: foregroundImageXOffset, dy: foregroundImageYOffset).origin)
-                        Image("Premium-Bachelor")
+                        Image(AppConstants.isInPromoMode ? "CandyBlur" : "Premium-Bachelor")
                             .position(frame.offsetBy(dx: frame.width - foregroundImageXOffset, dy: foregroundImageYOffset).origin)
                     }
-                    .opacity(isAppearing ? 1 : 0)
-                    .modifier(TiltEffectModifier())
-                    .transition(.slide)
-
-
                 }
             }
         }

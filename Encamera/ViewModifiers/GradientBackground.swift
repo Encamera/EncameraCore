@@ -10,7 +10,8 @@ import SwiftUI
 
 private struct GradientBackground: ViewModifier {
     func body(content: Content) -> some View {
-        content.background {
+        content
+            .background {
             ZStack(alignment: .trailing) {
                 Color.background
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

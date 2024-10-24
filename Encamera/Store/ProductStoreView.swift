@@ -96,7 +96,7 @@ struct ProductStoreView: View {
     private var purchaseScreen: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
-                Image("Premium-TopHalo")
+                Image(AppConstants.isInPromoMode ? "HalloweenBG" : "Premium-TopHalo")
                     .resizable()
 
                     .aspectRatio(contentMode: .fit)

@@ -21,6 +21,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     var albumManager: AlbumManaging
 
     @Published var keyViewerError: KeyViewerError?
+    @Published var promptToDeleteShown: Bool = false
     @Published var deleteAlbumConfirmation: String = ""
     @Published var deleteActionError: String = ""
     @Published var isEditingAlbumName = false
@@ -87,6 +88,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     func renameAlbum() {
         guard albumName.count > 0 else {
             albumManagerError = L10n.pleaseEnterAnAlbumName
+            albumName = album?.name ?? L10n.defaultAlbumName
             return
         }
         do {
@@ -268,16 +270,19 @@ struct AlbumDetailView<D: FileAccess>: View {
                         }.frostedButton()
                     }
                 })
-            } else {
+            } else  {
 
                 ViewHeader(title: viewModel.albumName, rightContent: {
+
                     Group {
-                        Button {
-                            viewModel.isSelectingMedia.toggle()
-                        } label: {
-                            Text(viewModel.isSelectingMedia ? L10n.cancel : L10n.AlbumDetailView.select)
-                                .fontType(.pt14, weight: .bold)
-                        }.frostedButton()
+//                        if viewModel.gridViewModel.media.count > 0 {
+//                            Button {
+//                                viewModel.isSelectingMedia.toggle()
+//                            } label: {
+//                                Text(viewModel.isSelectingMedia ? L10n.cancel : L10n.AlbumDetailView.select)
+//                                    .fontType(.pt14, weight: .bold)
+//                            }.frostedButton()
+//                        }
                         if viewModel.isSelectingMedia == false {
                             VStack(alignment: .center) {
                                 buttonMenu
@@ -307,9 +312,16 @@ struct AlbumDetailView<D: FileAccess>: View {
             Button(L10n.rename) {
                 viewModel.isEditingAlbumName = true
             }
+
+            Button(L10n.importMedia) {
+                viewModel.gridViewModel.showPhotoPicker = true
+            }
+
             Button(L10n.deleteAlbum, role: .destructive) {
                 isShowingAlertForDeleteAllAlbumData = true
             }
+
+
 
         } label: {
             Image("Album-OptionsDots")
