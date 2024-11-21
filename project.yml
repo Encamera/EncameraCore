@@ -22,6 +22,7 @@ targets:
 
   WidgetExtension:
     type: app-extension
+    deploymentTarget: 17.0
     configFiles:
       Debug: ./xcconfigs/WidgetExtension-debug.xcconfig
       Release: ./xcconfigs/WidgetExtension-release.xcconfig
@@ -51,6 +52,7 @@ targets:
  
   ShareExtension:
     type: app-extension
+    deploymentTarget: 17.0
     configFiles:
       Debug: ./xcconfigs/ShareExtension-debug.xcconfig
       Release: ./xcconfigs/ShareExtension-release.xcconfig
@@ -80,6 +82,8 @@ targets:
       executable: ShareExtension
   Encamera:
     type: application
+
+    deploymentTarget: 17.0
     postBuildScripts:
       - script: 'if [ "${CONFIGURATION}" != "Debug" ]; then rm -rf "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/PreviewContent"; fi'
     configFiles:
@@ -117,6 +121,7 @@ targets:
 
   StoreKitTesting:
     type: application
+    deploymentTarget: 17.0
     configFiles:
       Debug: ./xcconfigs/debug.xcconfig
       Release: ./xcconfigs/release.xcconfig
