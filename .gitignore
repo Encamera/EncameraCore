@@ -101,9 +101,7 @@ xcuserdata
 
 ### Xcode Patch ###
 **/*.xcodeproj/*
-**/*.xcodeproj
-!*.xcodeproj/project.pbxproj
+!**project.pbxproj
 !*.xcworkspace/contents.xcworkspacedata
 **/Package.resolved
 Encamera/PreviewAssets
-*.xcodeproj
