@@ -17,7 +17,7 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
     typealias ViewModel = ImageViewingViewModel
 
     // View model
-    private let viewModel: ImageViewingViewModel
+    internal let viewModel: ImageViewingViewModel?
     private var cancellables = Set<AnyCancellable>()
 
     // UI Components
@@ -31,17 +31,10 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
 
         setupViews()
         setupBindings()
-
-        // Trigger the decryption and setting process
-        viewModel.decryptAndSet()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    func setMediaAndLoad(image: LightboxImage) {
-        viewModel.decryptAndSet()
     }
 
     private func setupViews() {
@@ -83,7 +76,7 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
 
     private func setupBindings() {
         // Observe changes in decryptedFileRef
-        viewModel.$decryptedFileRef
+        viewModel?.$decryptedFileRef
             .receive(on: RunLoop.main)
             .sink { [weak self] decryptedFileRef in
                 guard let self = self else { return }
@@ -97,7 +90,7 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
             .store(in: &cancellables)
 
         // Observe changes in loadingProgress
-        viewModel.$loadingProgress
+        viewModel?.$loadingProgress
             .receive(on: RunLoop.main)
             .sink { [weak self] progress in
                 guard let self = self else { return }
@@ -111,7 +104,7 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
             .store(in: &cancellables)
 
         // Observe errors
-        viewModel.$error
+        viewModel?.$error
             .receive(on: RunLoop.main)
             .sink { [weak self] error in
                 guard let self = self else { return }

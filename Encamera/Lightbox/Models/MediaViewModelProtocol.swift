@@ -8,4 +8,6 @@ import EncameraCore
 
 protocol MediaViewModelProtocol {
     init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate)
+    var sourceMedia: InteractableMedia<EncryptedMedia> { get }
+    func decryptAndSet()
 }

@@ -103,16 +103,31 @@ open class LightboxController: UIViewController {
             if currentPage == numberOfPages - 1 {
                 seen = true
             }
-
             pageDelegate?.lightboxController(self, didMoveToPage: currentPage)
-
-//            if let image = pageViews[currentPage].imageView.image, dynamicBackground {
-//                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.125) {
-//                    self.loadDynamicBackground(image)
-//                }
-//            }
+            reconfigurePagesForPreload()
+            if let image = pageViews[currentPage].imageView.image, dynamicBackground {
+                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.125) {
+                    self.loadDynamicBackground(image)
+                }
+            }
         }
     }
+
+    func reconfigurePagesForPreload() {
+      let preloadIndicies = calculatePreloadIndicies()
+
+      for i in 0..<initialImages.count {
+        let pageView = pageViews[i]
+        if preloadIndicies.contains(i) {
+          if pageView.image == nil {
+            pageView.update(with: initialImages[i])
+          }
+        } else {
+            pageView.update(with: nil)  
+        }
+      }
+    }
+
 
     open var numberOfPages: Int {
         return pageViews.count
@@ -138,9 +153,10 @@ open class LightboxController: UIViewController {
         }
     }
 
+
     open var images: [LightboxImage] {
         get {
-            return []//pageViews.map { $0.image }
+            return initialImages
         }
         set(value) {
             initialImages = value
@@ -248,8 +264,6 @@ open class LightboxController: UIViewController {
         pageViews.forEach { $0.removeFromSuperview() }
         pageViews = []
 
-        let preloadIndicies = calculatePreloadIndicies()
-
         for i in 0..<images.count {
             let pageView = PageView(image: images[i], fileAccess: fileAccess)
             pageView.pageViewDelegate = self
@@ -257,6 +271,14 @@ open class LightboxController: UIViewController {
             scrollView.addSubview(pageView)
             pageViews.append(pageView)
         }
+
+        let indicesToLoad = calculatePreloadIndicies()
+
+        indicesToLoad.forEach({ index in
+            let page = pageViews[index]
+            let image = images[index]
+            page.imageView.setMediaAndLoad(image: image)
+        })
 
         configureLayout(view.bounds.size)
     }
@@ -316,6 +338,7 @@ open class LightboxController: UIViewController {
         overlayView.frame = scrollView.frame
         overlayView.resizeGradientLayer()
     }
+
 
     fileprivate func loadDynamicBackground(_ image: UIImage) {
         backgroundView.image = image

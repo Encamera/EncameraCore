@@ -44,9 +44,8 @@ class LivePhotoViewingViewModel: ObservableObject, MediaViewModelProtocol {
         self.fileAccess = fileAccess
         self.delegate = delegate
     }
-
     func decryptAndSet() {
-        Task { [self] in
+        Task { @MainActor [self] in
             do {
                 let result = try await fileAccess.loadMedia(media: sourceMedia) { [self] progress in
                     switch progress {

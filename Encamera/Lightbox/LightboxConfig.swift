@@ -31,7 +31,7 @@ public class LightboxConfig {
   /// Number of images to preload.
   ///
   /// 0 - Preload all images (default).
-  public static var preload = 0
+  public static var preload = 3
 
   public struct PageIndicator {
     public static var enabled = true

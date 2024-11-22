@@ -13,10 +13,12 @@ import EncameraCore
 
 class LivePhotoViewingUIView: UIView, MediaViewProtocol {
 
+
+
     typealias ViewModel = LivePhotoViewingViewModel
 
     // View model
-    private let viewModel: LivePhotoViewingViewModel
+    internal let viewModel: LivePhotoViewingViewModel?
     private var cancellables = Set<AnyCancellable>()
 
     // UI Components
@@ -30,17 +32,10 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
 
         setupViews()
         setupBindings()
-
-        // Trigger the decryption and setting process
-        viewModel.decryptAndSet()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    func setMediaAndLoad(image: LightboxImage) {
-        viewModel.decryptAndSet()
     }
 
     private func setupViews() {
@@ -81,7 +76,7 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
 
     private func setupBindings() {
         // Observe changes in preparedLivePhoto
-        viewModel.$preparedLivePhoto
+        viewModel?.$preparedLivePhoto
             .receive(on: RunLoop.main)
             .sink { [weak self] livePhoto in
                 guard let self = self else { return }
@@ -95,7 +90,7 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
             .store(in: &cancellables)
 
         // Observe changes in loadingProgress
-        viewModel.$loadingProgress
+        viewModel?.$loadingProgress
             .receive(on: RunLoop.main)
             .sink { [weak self] progress in
                 guard let self = self else { return }
@@ -109,7 +104,7 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
             .store(in: &cancellables)
 
 //         Observe errors
-        viewModel.$error
+        viewModel?.$error
             .receive(on: RunLoop.main)
             .sink { [weak self] error in
                 guard let self = self else { return }

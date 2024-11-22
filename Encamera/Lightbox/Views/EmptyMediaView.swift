@@ -9,6 +9,8 @@ import Foundation
 import UIKit
 
 class EmptyMediaView: UIView, MediaViewProtocol {
+    var viewModel: ImageViewingViewModel?
+
     required init(viewModel: ImageViewingViewModel) {
         super.init(frame: .zero)
     }

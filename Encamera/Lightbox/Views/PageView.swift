@@ -119,10 +119,12 @@ class PageView: UIScrollView {
     }
 
     // MARK: - Update
-    func update(with image: LightboxImage) {
+    func update(with image: LightboxImage?) {
         self.image = image
         updatePlayButton()
-        imageView.setMediaAndLoad(image: image)
+        if let image {
+            imageView.setMediaAndLoad(image: image)
+        }
     }
 
     func updatePlayButton () {
@@ -171,47 +173,47 @@ class PageView: UIScrollView {
     }
 
     func configureImageView() {
-//        guard let imageView = imageView as? UIImageView else {
-//            centerImageView()
-//            return
-//        }
-//
-//        let imageViewSize = imageView.frame.size
-//        let imageSize = image.size
-//        let realImageViewSize: CGSize
-//
-//        if imageSize.width / imageSize.height > imageViewSize.width / imageViewSize.height {
-//            realImageViewSize = CGSize(
-//                width: imageViewSize.width,
-//                height: imageViewSize.width / imageSize.width * imageSize.height)
-//        } else {
-//            realImageViewSize = CGSize(
-//                width: imageViewSize.height / imageSize.height * imageSize.width,
-//                height: imageViewSize.height)
-//        }
-//
-//        imageView.frame = CGRect(origin: CGPoint.zero, size: realImageViewSize)
-//
-//        centerImageView()
+        guard let imageView = imageView as? UIImageView else {
+            centerImageView()
+            return
+        }
+
+        let imageViewSize = imageView.frame.size
+        let imageSize = image?.uiImage?.size ?? .zero
+        let realImageViewSize: CGSize
+
+        if imageSize.width / imageSize.height > imageViewSize.width / imageViewSize.height {
+            realImageViewSize = CGSize(
+                width: imageViewSize.width,
+                height: imageViewSize.width / imageSize.width * imageSize.height)
+        } else {
+            realImageViewSize = CGSize(
+                width: imageViewSize.height / imageSize.height * imageSize.width,
+                height: imageViewSize.height)
+        }
+
+        imageView.frame = CGRect(origin: CGPoint.zero, size: realImageViewSize)
+
+        centerImageView()
     }
 
     func centerImageView() {
-//        let boundsSize = contentFrame.size
-//        var imageViewFrame = imageView.frame
-//
-//        if imageViewFrame.size.width < boundsSize.width {
-//            imageViewFrame.origin.x = (boundsSize.width - imageViewFrame.size.width) / 2.0
-//        } else {
-//            imageViewFrame.origin.x = 0.0
-//        }
-//
-//        if imageViewFrame.size.height < boundsSize.height {
-//            imageViewFrame.origin.y = (boundsSize.height - imageViewFrame.size.height) / 2.0
-//        } else {
-//            imageViewFrame.origin.y = 0.0
-//        }
-//
-//        imageView.frame = imageViewFrame
+        let boundsSize = contentFrame.size
+        var imageViewFrame = imageView.frame
+
+        if imageViewFrame.size.width < boundsSize.width {
+            imageViewFrame.origin.x = (boundsSize.width - imageViewFrame.size.width) / 2.0
+        } else {
+            imageViewFrame.origin.x = 0.0
+        }
+
+        if imageViewFrame.size.height < boundsSize.height {
+            imageViewFrame.origin.y = (boundsSize.height - imageViewFrame.size.height) / 2.0
+        } else {
+            imageViewFrame.origin.y = 0.0
+        }
+
+        imageView.frame = imageViewFrame
     }
 
     // MARK: - Action
