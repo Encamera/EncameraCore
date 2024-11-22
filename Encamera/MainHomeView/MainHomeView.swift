@@ -168,12 +168,9 @@ struct MainHomeView<D: FileAccess>: View {
                     AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
                         EventTracking.trackAlbumOpened()
                     }
-                case .galleryScrollView(context: let context):
-                    GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions))
                 }
             }
         }
-
     }
 }
 

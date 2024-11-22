@@ -17,5 +17,9 @@ enum AppNavigationPaths: Hashable {
 
     case createAlbum
     case albumDetail(album: Album)
+}
+
+enum AppModal: Hashable {
     case galleryScrollView(context: GalleryScrollViewContext)
+    case cameraView
 }

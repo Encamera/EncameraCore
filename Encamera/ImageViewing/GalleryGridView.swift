@@ -24,7 +24,17 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
     @MainActor
     @Published var media: [InteractableMedia<EncryptedMedia>] = []
-    @Published var showCamera: Bool = false
+    @Published var currentModal: AppModal?
+
+    var showFullScreenCover: Binding<Bool> {
+        Binding {
+            self.currentModal != nil
+        } set: { newValue in
+            if newValue == false {
+                self.currentModal = nil
+            }
+        }
+    }
 
     @Published var showPhotoPicker: Bool = false
     @Published var showPhotoAccessAlert: Bool = false
@@ -410,21 +420,31 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             }
             
         }
-        .onChange(of: viewModel.showCamera) { oldValue, newValue in
-            EventTracking.trackOpenedCameraFromAlbumEmptyState()
-            viewModel.albumManager.currentAlbum = viewModel.album
-        }
-        .fullScreenCover(isPresented: $viewModel.showCamera, content: {
-            
-            if viewModel.album != nil {
-                CameraView(cameraModel: viewModel.cameraModel, hasMediaToImport: .constant(false), closeButtonTapped:  { _ in
-                    viewModel.showCamera = false
-                    viewModel.albumManager.currentAlbum = viewModel.album
-                    Task {
-                        await viewModel.enumerateMedia()
-                    }
-                })
+        .onChange(of: viewModel.currentModal) { oldValue, newValue in
+            if case .cameraView = newValue {
+                EventTracking.trackOpenedCameraFromAlbumEmptyState()
+                viewModel.albumManager.currentAlbum = viewModel.album
             }
+        }
+        .fullScreenCover(isPresented: viewModel.showFullScreenCover, content: {
+
+            switch viewModel.currentModal {
+            case .cameraView:
+                if viewModel.album != nil {
+                    CameraView(cameraModel: viewModel.cameraModel, hasMediaToImport: .constant(false), closeButtonTapped:  { _ in
+                        viewModel.currentModal = nil
+                        viewModel.albumManager.currentAlbum = viewModel.album
+                        Task {
+                            await viewModel.enumerateMedia()
+                        }
+                    })
+                }
+            case .galleryScrollView(context: let context):
+                GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions))
+            case nil:
+                AnyView(EmptyView())
+            }
+
         })
         .alert(isPresented: Binding<Bool>(
             get: { viewModel.showNoLicenseDeletionWarning || viewModel.showPhotoAccessAlert },
@@ -546,18 +566,15 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             },
                                 secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
                                 secondaryButtonAction: {
-                viewModel.showCamera = true
+                viewModel.currentModal = .cameraView
             })
             Spacer().frame(height: 8)
         }.padding()
     }
 
     private func imageForItem(mediaItem: InteractableMedia<EncryptedMedia>, width: CGFloat, height: CGFloat, index: Int) -> some View {
+        
 
-        NavigationLink(value: AppNavigationPaths.galleryScrollView(
-            context: GalleryScrollViewContext(
-                media: viewModel.media,
-                targetMedia: mediaItem))) {
             Group {
                 let selectionBinding = Binding<Bool> {
                     viewModel.selectedMedia.contains(mediaItem)
@@ -583,8 +600,13 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
                 .galleryClipped()
 
+            }.onTapGesture {
+                viewModel.currentModal = AppModal.galleryScrollView(
+                    context: GalleryScrollViewContext(
+                        media: viewModel.media,
+                        targetMedia: mediaItem))
             }
-        }
+
     }
 
     private var downloadFromiCloudButton: some View {

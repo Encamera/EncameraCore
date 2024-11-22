@@ -9,15 +9,15 @@ import Foundation
 import SwiftUI
 
 struct GalleryViewWrapper: UIViewControllerRepresentable {
-    typealias UIViewControllerType = GalleryViewController
+    typealias UIViewControllerType = LightboxController
 
     let viewModel: GalleryHorizontalCollectionViewModel
 
-    func makeUIViewController(context: Context) -> GalleryViewController {
-        return GalleryViewController(viewModel: viewModel)
+    func makeUIViewController(context: Context) -> LightboxController {
+        return LightboxController(images: viewModel.media, fileAccess: viewModel.fileAccess)
     }
 
-    func updateUIViewController(_ uiViewController: GalleryViewController, context: Context) {
+    func updateUIViewController(_ uiViewController: LightboxController, context: Context) {
         // Update the view controller if needed
     }
 }
