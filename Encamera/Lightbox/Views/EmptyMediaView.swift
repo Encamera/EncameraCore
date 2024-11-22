@@ -9,6 +9,10 @@ import Foundation
 import UIKit
 
 class EmptyMediaView: UIView, MediaViewProtocol {
+    var hostingView: UIView = UIView()
+    
+    typealias HostingView = UIView
+
     var viewModel: ImageViewingViewModel?
 
     required init(viewModel: ImageViewingViewModel) {

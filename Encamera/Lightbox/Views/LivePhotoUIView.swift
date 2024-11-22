@@ -7,15 +7,13 @@ import EncameraCore
 class LivePhotoViewingUIView: UIView, MediaViewProtocol {
 
     typealias ViewModel = LivePhotoViewingViewModel
-
+    typealias HostingView = PHLivePhotoView
     // View model
     internal let viewModel: LivePhotoViewingViewModel?
     private var cancellables = Set<AnyCancellable>()
 
     // UI Components
-    private let livePhotoView = PHLivePhotoView()
-    private let activityIndicator = UIActivityIndicatorView(style: .large)
-    private let errorLabel = UILabel()
+    internal let hostingView = PHLivePhotoView()
 
     required init(viewModel: ViewModel) {
         self.viewModel = viewModel
@@ -29,43 +27,6 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func setupViews() {
-        // Setup live photo view
-        livePhotoView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(livePhotoView)
-
-        // Setup activity indicator
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        activityIndicator.hidesWhenStopped = true
-        addSubview(activityIndicator)
-
-        // Setup error label
-        errorLabel.translatesAutoresizingMaskIntoConstraints = false
-        errorLabel.textAlignment = .center
-        errorLabel.numberOfLines = 0
-        addSubview(errorLabel)
-
-        // Layout Constraints
-        NSLayoutConstraint.activate([
-            livePhotoView.topAnchor.constraint(equalTo: topAnchor),
-            livePhotoView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            livePhotoView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            livePhotoView.bottomAnchor.constraint(equalTo: bottomAnchor),
-
-            activityIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
-
-            errorLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            errorLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            errorLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            errorLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20)
-        ])
-
-        // Initially hide all components except the activity indicator
-        livePhotoView.isHidden = true
-        errorLabel.isHidden = true
-        activityIndicator.startAnimating()
-    }
 
     private func setupBindings() {
         // Observe changes in preparedLivePhoto
@@ -74,8 +35,8 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
             .sink { [weak self] livePhoto in
                 guard let self = self else { return }
                 if let livePhoto = livePhoto {
-                    self.livePhotoView.livePhoto = livePhoto
-                    self.livePhotoView.isHidden = false
+                    self.hostingView.livePhoto = livePhoto
+                    self.hostingView.isHidden = false
                     self.activityIndicator.stopAnimating()
                     self.errorLabel.isHidden = true
                 }
@@ -91,7 +52,7 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
                     self.errorLabel.text = "Error: \(error.localizedDescription)"
                     self.errorLabel.isHidden = false
                     self.activityIndicator.stopAnimating()
-                    self.livePhotoView.isHidden = true
+                    self.hostingView.isHidden = true
                 }
             }
             .store(in: &cancellables)
