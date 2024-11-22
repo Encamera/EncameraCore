@@ -10,7 +10,7 @@ import Combine
 import EncameraCore
 
 
-class ImageViewingViewModel: ObservableObject {
+class ImageViewingViewModel: ObservableObject, MediaViewModelProtocol {
 
     typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnifyGesture>>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
@@ -26,11 +26,11 @@ class ImageViewingViewModel: ObservableObject {
 
     var sourceMedia: InteractableMedia<EncryptedMedia>
     var fileAccess: FileAccess
-    var error: MediaViewingError?
+    @Published var error: MediaViewingError?
 
     private var delegate: MediaViewingDelegate
 
-    init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
+    required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
         self.sourceMedia = sourceMedia
         self.fileAccess = fileAccess
         self.delegate = delegate

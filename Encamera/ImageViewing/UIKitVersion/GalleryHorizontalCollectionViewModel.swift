@@ -26,13 +26,13 @@ class GalleryHorizontalCollectionViewModel: NSObject, ObservableObject, DebugPri
         mediaMap = map
     }
     var mediaMap: [String: InteractableMedia<EncryptedMedia>] = [:]
-    @Published var selectedMedia: InteractableMedia<EncryptedMedia>?
-    @Published var selectedMediaPreview: PreviewModel?
-    @Published var initialMedia: InteractableMedia<EncryptedMedia>?
-    @Published var showInfoSheet = false
-    @Published var showPurchaseSheet = false
-    @Published var isPlayingVideo = false
-    @Published var isPlayingLivePhoto = false
+    var selectedMedia: InteractableMedia<EncryptedMedia>?
+    var selectedMediaPreview: PreviewModel?
+    var initialMedia: InteractableMedia<EncryptedMedia>?
+    var showInfoSheet = false
+    var showPurchaseSheet = false
+    var isPlayingVideo = false
+    var isPlayingLivePhoto = false
     var lastProcessedValues = Set<CGFloat>()
     var purchasedPermissions: PurchasedPermissionManaging
     var showActionBar = true

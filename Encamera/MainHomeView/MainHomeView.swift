@@ -169,13 +169,7 @@ struct MainHomeView<D: FileAccess>: View {
                         EventTracking.trackAlbumOpened()
                     }
                 case .galleryScrollView(context: let context):
-                    GalleryHorizontalScrollView(
-                        viewModel: .init(
-                            media: context.media,
-                            initialMedia: context.targetMedia,
-                            fileAccess: viewModel.fileAccess,
-                            purchasedPermissions: viewModel.purchasedPermissions
-                        ))
+                    GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions))
                 }
             }
         }

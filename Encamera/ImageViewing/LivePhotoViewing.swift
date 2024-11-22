@@ -13,7 +13,7 @@ import Photos
 
 
 @MainActor
-class LivePhotoViewingViewModel: ObservableObject {
+class LivePhotoViewingViewModel: ObservableObject, MediaViewModelProtocol {
 
     typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnifyGesture>>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
@@ -33,13 +33,13 @@ class LivePhotoViewingViewModel: ObservableObject {
 
     var sourceMedia: InteractableMedia<EncryptedMedia>
     var fileAccess: FileAccess
-    var error: MediaViewingError?
+    @Published var error: MediaViewingError?
 
     private var livePhotoFinished: (() -> Void)?
-    private var delegate: MediaViewingDelegate
+    internal var delegate: MediaViewingDelegate
     private var cancellables = Set<AnyCancellable>()  // Store cancellables
 
-    init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
+    required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
         self.sourceMedia = sourceMedia
         self.fileAccess = fileAccess
         self.delegate = delegate
