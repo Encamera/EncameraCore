@@ -174,7 +174,6 @@ open class LightboxController: UIViewController {
 
     lazy var transitionManager: LightboxTransition = LightboxTransition()
     var pageViews = [PageView]()
-    var statusBarHidden = false
 
     fileprivate var initialImages: [InteractableMedia<EncryptedMedia>]
     fileprivate let initialPage: Int
@@ -186,6 +185,7 @@ open class LightboxController: UIViewController {
         self.fileAccess = fileAccess
         self.initialImages = images
         self.initialPage = index
+        self.currentPage = index
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -201,8 +201,6 @@ open class LightboxController: UIViewController {
         // 9 July 2020: @3lvis
         // Lightbox hasn't been optimized to be used in presentation styles other than fullscreen.
         modalPresentationStyle = .fullScreen
-
-        statusBarHidden = UIApplication.shared.isStatusBarHidden
 
         view.backgroundColor = LightboxConfig.imageBackgroundColor
         transitionManager.lightboxController = self

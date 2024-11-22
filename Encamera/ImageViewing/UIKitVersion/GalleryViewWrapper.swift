@@ -14,7 +14,8 @@ struct GalleryViewWrapper: UIViewControllerRepresentable {
     let viewModel: GalleryHorizontalCollectionViewModel
 
     func makeUIViewController(context: Context) -> LightboxController {
-        return LightboxController(images: viewModel.media, fileAccess: viewModel.fileAccess)
+        let startIndex = (viewModel.initialMedia != nil) ? Int(viewModel.media.firstIndex(of: viewModel.initialMedia!) ?? 0) : 0
+        return LightboxController(images: viewModel.media, startIndex: startIndex, fileAccess: viewModel.fileAccess)
     }
 
     func updateUIViewController(_ uiViewController: LightboxController, context: Context) {

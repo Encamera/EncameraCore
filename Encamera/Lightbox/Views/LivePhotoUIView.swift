@@ -1,10 +1,3 @@
-//
-//  LivePhotoUIView.swift
-//  Encamera
-//
-//  Created by Alexander Freas on 21.11.24.
-//
-
 import Foundation
 import UIKit
 import Combine
@@ -12,8 +5,6 @@ import PhotosUI
 import EncameraCore
 
 class LivePhotoViewingUIView: UIView, MediaViewProtocol {
-
-
 
     typealias ViewModel = LivePhotoViewingViewModel
 
@@ -23,7 +14,7 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
 
     // UI Components
     private let livePhotoView = PHLivePhotoView()
-    private let progressView = UIProgressView(progressViewStyle: .default)
+    private let activityIndicator = UIActivityIndicatorView(style: .large)
     private let errorLabel = UILabel()
 
     required init(viewModel: ViewModel) {
@@ -43,9 +34,10 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
         livePhotoView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(livePhotoView)
 
-        // Setup progress view
-        progressView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(progressView)
+        // Setup activity indicator
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        activityIndicator.hidesWhenStopped = true
+        addSubview(activityIndicator)
 
         // Setup error label
         errorLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -60,8 +52,8 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
             livePhotoView.trailingAnchor.constraint(equalTo: trailingAnchor),
             livePhotoView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            progressView.centerXAnchor.constraint(equalTo: centerXAnchor),
-            progressView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            activityIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
+            activityIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
 
             errorLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
             errorLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -69,9 +61,10 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
             errorLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20)
         ])
 
-        // Initially hide all components except the progress view
+        // Initially hide all components except the activity indicator
         livePhotoView.isHidden = true
         errorLabel.isHidden = true
+        activityIndicator.startAnimating()
     }
 
     private func setupBindings() {
@@ -83,27 +76,13 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
                 if let livePhoto = livePhoto {
                     self.livePhotoView.livePhoto = livePhoto
                     self.livePhotoView.isHidden = false
-                    self.progressView.isHidden = true
+                    self.activityIndicator.stopAnimating()
                     self.errorLabel.isHidden = true
                 }
             }
             .store(in: &cancellables)
 
-        // Observe changes in loadingProgress
-        viewModel?.$loadingProgress
-            .receive(on: RunLoop.main)
-            .sink { [weak self] progress in
-                guard let self = self else { return }
-                self.progressView.progress = Float(progress)
-                if progress >= 1.0 {
-                    self.progressView.isHidden = true
-                } else {
-                    self.progressView.isHidden = false
-                }
-            }
-            .store(in: &cancellables)
-
-//         Observe errors
+        // Observe errors
         viewModel?.$error
             .receive(on: RunLoop.main)
             .sink { [weak self] error in
@@ -111,7 +90,7 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
                 if let error = error {
                     self.errorLabel.text = "Error: \(error.localizedDescription)"
                     self.errorLabel.isHidden = false
-                    self.progressView.isHidden = true
+                    self.activityIndicator.stopAnimating()
                     self.livePhotoView.isHidden = true
                 }
             }
