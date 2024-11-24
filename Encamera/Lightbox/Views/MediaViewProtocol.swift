@@ -18,18 +18,13 @@ protocol MediaViewProtocol: UIView {
     var image: UIImage? { get }
     var viewModel: ViewModel? { get }
     var hostingView: HostingView { get }
-    var errorLabel: UILabel { get }
+    var errorLabel: UILabel { get set }
 
-    var activityIndicator: UIActivityIndicatorView { get }
+    var activityIndicator: UIActivityIndicatorView { get set }
 }
 
 extension MediaViewProtocol {
 
-    var errorLabel: UILabel {
-        UILabel()
-    }
-    var activityIndicator: UIActivityIndicatorView { return UIActivityIndicatorView(style: .large)
-    }
 
     var image: UIImage? {
         if let imageData = viewModel?.sourceMedia.imageData {
@@ -40,12 +35,15 @@ extension MediaViewProtocol {
     }
 
     func setMediaAndLoad(image: LightboxImage) {
+        activityIndicator.startAnimating()
         viewModel?.decryptAndSet()
     }
 
 
     func setupViews() {
         // Setup live photo view
+        hostingView.contentMode = .scaleAspectFit
+
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(hostingView)
 

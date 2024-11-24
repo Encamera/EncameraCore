@@ -10,7 +10,9 @@ import UIKit
 
 class EmptyMediaView: UIView, MediaViewProtocol {
     var hostingView: UIView = UIView()
-    
+    var activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .large)
+    var errorLabel: UILabel = UILabel()
+
     typealias HostingView = UIView
 
     var viewModel: ImageViewingViewModel?

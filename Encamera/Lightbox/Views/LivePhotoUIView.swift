@@ -14,6 +14,8 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
 
     // UI Components
     internal let hostingView = PHLivePhotoView()
+    var activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .large)
+    var errorLabel: UILabel = UILabel()
 
     required init(viewModel: ViewModel) {
         self.viewModel = viewModel

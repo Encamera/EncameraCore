@@ -32,8 +32,8 @@ class PageView: UIScrollView {
             let viewModel = ImageViewingUIView.ViewModel(sourceMedia: image, fileAccess: self.fileAccess, delegate: self)
             return ImageViewingUIView(viewModel: viewModel)
         case .video:
-            let viewModel = ImageViewingUIView.ViewModel(sourceMedia: image, fileAccess: self.fileAccess, delegate: self)
-            return ImageViewingUIView(viewModel: viewModel)
+            let viewModel = VideoViewingUIView.ViewModel(sourceMedia: image, fileAccess: self.fileAccess, delegate: self)
+            return VideoViewingUIView(viewModel: viewModel)
         }
     }()
 
@@ -134,7 +134,7 @@ class PageView: UIScrollView {
         } else if subviews.contains(playButton) {
             playButton.removeFromSuperview()
         }
-    }
+    }   
 
     // MARK: - Recognizers
 
@@ -165,9 +165,7 @@ class PageView: UIScrollView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard let imageView = imageView as? UIView else {
-            return
-        }
+
         loadingIndicator.center = imageView.center
         playButton.center = imageView.center
     }

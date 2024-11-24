@@ -22,7 +22,8 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
 
     // UI Components
     internal let hostingView = UIImageView()
-    private let progressView = UIProgressView(progressViewStyle: .default)
+    var activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .large)
+    var errorLabel: UILabel = UILabel()
 
     required init(viewModel: ImageViewingViewModel) {
         self.viewModel = viewModel
@@ -45,22 +46,8 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
                 if let imageData = decryptedFileRef?.imageData, let image = UIImage(data: imageData) {
                     self.hostingView.image = image
                     self.hostingView.isHidden = false
-                    self.progressView.isHidden = true
+                    self.activityIndicator.stopAnimating()
                     self.errorLabel.isHidden = true
-                }
-            }
-            .store(in: &cancellables)
-
-        // Observe changes in loadingProgress
-        viewModel?.$loadingProgress
-            .receive(on: RunLoop.main)
-            .sink { [weak self] progress in
-                guard let self = self else { return }
-                self.progressView.progress = Float(progress)
-                if progress >= 1.0 {
-                    self.progressView.isHidden = true
-                } else {
-                    self.progressView.isHidden = false
                 }
             }
             .store(in: &cancellables)
@@ -73,7 +60,7 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
                 if let error = error {
                     self.errorLabel.text = "Error: \(error.localizedDescription)"
                     self.errorLabel.isHidden = false
-                    self.progressView.isHidden = true
+                    self.activityIndicator.stopAnimating()
                     self.hostingView.isHidden = true
                 }
             }
