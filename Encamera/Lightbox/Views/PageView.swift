@@ -66,7 +66,6 @@ class PageView: UIScrollView {
     lazy var loadingIndicator: UIView = LightboxConfig.makeLoadingIndicator()
 
     var image: LightboxImage?
-    var contentFrame = CGRect.zero
     weak var pageViewDelegate: (any PageViewDelegate)?
 
     var hasZoomed: Bool {
@@ -147,8 +146,8 @@ class PageView: UIScrollView {
         ? minimumZoomScale
         : maximumZoomScale
 
-        let width = contentFrame.size.width / newZoomScale
-        let height = contentFrame.size.height / newZoomScale
+        let width = frame.size.width / newZoomScale
+        let height = frame.size.height / newZoomScale
         let x = pointInView.x - (width / 2.0)
         let y = pointInView.y - (height / 2.0)
 
@@ -198,7 +197,7 @@ class PageView: UIScrollView {
     }
 
     func centerImageView() {
-        let boundsSize = contentFrame.size
+        let boundsSize = frame.size
         var imageViewFrame = imageView.frame
 
         if imageViewFrame.size.width < boundsSize.width {
@@ -240,7 +239,7 @@ extension PageView: MediaViewingDelegate {
 extension PageView: LayoutConfigurable {
 
     @objc func configureLayout() {
-        contentFrame = frame
+
         contentSize = frame.size
         imageView.frame = frame
         zoomScale = minimumZoomScale
