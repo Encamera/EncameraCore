@@ -39,6 +39,7 @@ open class LightboxController: UIViewController {
         scrollView.isPagingEnabled = false
         scrollView.delegate = self
         scrollView.showsHorizontalScrollIndicator = false
+        scrollView.showsVerticalScrollIndicator = false
         scrollView.decelerationRate = UIScrollView.DecelerationRate.fast
 
         return scrollView
@@ -219,6 +220,16 @@ open class LightboxController: UIViewController {
 
     open override var prefersStatusBarHidden: Bool {
         return LightboxConfig.hideStatusBar
+    }
+
+    // MARK: - Supported Orientations
+
+    open override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return [.portrait, .landscapeLeft, .landscapeRight]
+    }
+
+    open override var shouldAutorotate: Bool {
+        return true
     }
 
     // MARK: - Rotation
