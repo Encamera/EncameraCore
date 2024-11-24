@@ -132,7 +132,7 @@ open class LightboxController: UIViewController {
         }
     }
 
-    open var spacing: CGFloat = 20 {
+    open var spacing: CGFloat = 0 {
         didSet {
             configureLayout(view.bounds.size)
         }
@@ -204,7 +204,6 @@ open class LightboxController: UIViewController {
     open override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
-        scrollView.frame = view.bounds
         headerView.frame = CGRect(
             x: 0,
             y: 16,
@@ -214,7 +213,7 @@ open class LightboxController: UIViewController {
 
         if !presented {
             presented = true
-            configureLayout(view.bounds.size)
+            configureLayout(view.frame.size)
         }
     }
 
@@ -312,6 +311,7 @@ open class LightboxController: UIViewController {
     // MARK: - Layout
 
     open func configureLayout(_ size: CGSize) {
+        print("lbx configureLayout size: \(size)")
         scrollView.frame.size = size
         scrollView.contentSize = CGSize(
             width: size.width * CGFloat(numberOfPages) + spacing * CGFloat(numberOfPages - 1),
@@ -319,9 +319,9 @@ open class LightboxController: UIViewController {
         scrollView.contentOffset = CGPoint(x: CGFloat(currentPage) * (size.width + spacing), y: 0)
 
         for (index, pageView) in pageViews.enumerated() {
-            var frame = scrollView.bounds
-            frame.origin.x = (frame.width + spacing) * CGFloat(index)
-            pageView.frame = frame
+            let point = CGPoint(x:(size.width + spacing) * CGFloat(index), y: 0)
+            pageView.frame = CGRect(origin: point, size: size)
+            print("lbx pageView.frame: \(pageView.frame)")
             pageView.configureLayout()
             if index != numberOfPages - 1 {
                 pageView.frame.size.width += spacing
@@ -378,9 +378,10 @@ extension LightboxController: UIScrollViewDelegate {
         if velocity.x == 0 {
             speed = 0
         }
-
-        let pageWidth = scrollView.bounds.width + spacing
-        var x = scrollView.contentOffset.x + speed * 60.0
+        print("lbx scrollView frame: \(scrollView.frame)")
+        let pageWidth = scrollView.frame.width + spacing
+        print("lbx pageWidth: \(pageWidth)")
+        var x = scrollView.contentOffset.x//+ speed * 60.0
 
         if speed > 0 {
             x = ceil(x / pageWidth) * pageWidth
@@ -391,7 +392,7 @@ extension LightboxController: UIScrollViewDelegate {
         }
 
         targetContentOffset.pointee.x = x
-        currentPage = Int(x / pageWidth)
+//        currentPage = Int(x / pageWidth)
     }
 }
 
