@@ -19,11 +19,12 @@ import EncameraCore
 
 class VideoViewingViewModel: ObservableObject, MediaViewModelProtocol {
 
+
     typealias MagnificationGestureType = _EndedGesture<_ChangedGesture<MagnifyGesture>>
     typealias DragGestureType = _EndedGesture<_ChangedGesture<DragGesture>>
     typealias TapGestureType = _EndedGesture<TapGesture>
 
-    @Published var decryptedFileRef: CleartextMedia?
+    @Published var decryptedFileRef: InteractableMedia<CleartextMedia>?
     @Published var loadingProgress: Double = 0.0
     @Published var currentScale: CGFloat = 1.0
     @Published var finalScale: CGFloat = 1.0
@@ -34,10 +35,11 @@ class VideoViewingViewModel: ObservableObject, MediaViewModelProtocol {
     var sourceMedia: InteractableMedia<EncryptedMedia>
     var fileAccess: FileAccess
     @Published var error: MediaViewingError?
-
+    var pageIndex: Int
     private var delegate: MediaViewingDelegate
 
-    required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
+    required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate, pageIndex: Int) {
+        self.pageIndex = pageIndex
         self.sourceMedia = sourceMedia
         self.fileAccess = fileAccess
         self.delegate = delegate
@@ -48,10 +50,13 @@ class VideoViewingViewModel: ObservableObject, MediaViewModelProtocol {
             do {
                 let result = try await fileAccess.loadMediaPreview(for: sourceMedia)
                 await MainActor.run {
-                    decryptedFileRef = result.thumbnailMedia
+                    decryptedFileRef = try? InteractableMedia(underlyingMedia: [result.thumbnailMedia])
                     delegate.didView(media: sourceMedia)
+                    if let uiImage = sourceMedia.uiImage {
+                        delegate.didLoad(media: uiImage, atIndex: pageIndex)
+                    }
                 }
-
+                
             } catch {
                 self.error = .decryptError(wrapped: error)
             }
@@ -91,12 +96,12 @@ class VideoViewingUIView: UIView, MediaViewProtocol {
             .receive(on: RunLoop.main)
             .sink { [weak self] decryptedFileRef in
                 guard let self = self else { return }
-                if case .data(let imageData) = decryptedFileRef?.source, let image = UIImage(data: imageData) {
-                    self.hostingView.image = image
-                    self.hostingView.isHidden = false
-                    self.activityIndicator.stopAnimating()
-                    self.errorLabel.isHidden = true
-                }
+//                if case .data(let imageData) = decryptedFileRef?., let image = UIImage(data: imageData) {
+//                    self.hostingView.image = image
+//                    self.hostingView.isHidden = false
+//                    self.activityIndicator.stopAnimating()
+//                    self.errorLabel.isHidden = true
+//                }
             }
             .store(in: &cancellables)
 

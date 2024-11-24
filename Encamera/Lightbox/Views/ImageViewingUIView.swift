@@ -10,7 +10,7 @@ import UIKit
 import Combine
 import EncameraCore
 
-class ImageViewingUIView: UIView, MediaViewProtocol {
+class ImageViewingUIView: UIView, MediaViewProtocol {    
 
     
 
@@ -28,7 +28,7 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
     required init(viewModel: ImageViewingViewModel) {
         self.viewModel = viewModel
         super.init(frame: .zero)
-
+        
         setupViews()
         setupBindings()
     }

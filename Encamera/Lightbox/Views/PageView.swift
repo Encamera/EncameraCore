@@ -6,7 +6,7 @@ protocol PageViewDelegate: AnyObject {
     @MainActor
     func pageViewDidZoom(_ pageView: PageView)
     @MainActor
-    func remoteImageDidLoad(_ image: UIImage?, imageView: UIImageView)
+    func imageDidLoad(_ image: UIImage?, atIndex: Int)
     @MainActor
     func pageView(_ pageView: PageView, didTouchPlayButton videoURL: URL)
     @MainActor
@@ -26,13 +26,13 @@ class PageView: UIScrollView {
         switch image.mediaType {
         case .livePhoto:
 
-            let viewModel = LivePhotoViewingUIView.ViewModel(sourceMedia: image, fileAccess: self.fileAccess, delegate: self)
+            let viewModel = LivePhotoViewingUIView.ViewModel(sourceMedia: image, fileAccess: self.fileAccess, delegate: self, pageIndex: pageIndex)
             return LivePhotoViewingUIView(viewModel: viewModel)
         case .stillPhoto:
-            let viewModel = ImageViewingUIView.ViewModel(sourceMedia: image, fileAccess: self.fileAccess, delegate: self)
+            let viewModel = ImageViewingUIView.ViewModel(sourceMedia: image, fileAccess: self.fileAccess, delegate: self, pageIndex: pageIndex)
             return ImageViewingUIView(viewModel: viewModel)
         case .video:
-            let viewModel = VideoViewingUIView.ViewModel(sourceMedia: image, fileAccess: self.fileAccess, delegate: self)
+            let viewModel = VideoViewingUIView.ViewModel(sourceMedia: image, fileAccess: self.fileAccess, delegate: self, pageIndex: pageIndex)
             return VideoViewingUIView(viewModel: viewModel)
         }
     }()
@@ -74,12 +74,14 @@ class PageView: UIScrollView {
     }
 
     private var fileAccess: FileAccess
+    private var pageIndex: Int
 
     // MARK: - Initializers
 
-    init(image: LightboxImage?, fileAccess: FileAccess) {
+    init(image: LightboxImage?, fileAccess: FileAccess, pageIndex: Int) {
         self.image = image
         self.fileAccess = fileAccess
+        self.pageIndex = pageIndex
         super.init(frame: CGRect.zero)
 
         configure()
@@ -226,6 +228,10 @@ class PageView: UIScrollView {
 extension PageView: MediaViewingDelegate {
     func didView(media: InteractableMedia<EncryptedMedia>) {
         
+    }
+
+    func didLoad(media: UIImage, atIndex index: Int) {
+        pageViewDelegate?.imageDidLoad(media, atIndex: index)
     }
 }
 

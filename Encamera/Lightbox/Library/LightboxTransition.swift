@@ -64,7 +64,6 @@ class LightboxTransition: UIPercentDrivenInteractiveTransition {
         guard let controller = lightboxController else { return }
 
         controller.headerView.alpha = 0
-        controller.footerView.alpha = 0
 
         UIView.animate(withDuration: TimeInterval(time), delay: 0, options: [.allowUserInteraction], animations: {
           self.scrollView?.frame.origin.y = translation.y * 3

@@ -23,6 +23,7 @@ class ImageViewingViewModel: ObservableObject, MediaViewModelProtocol {
     @Published var finalOffset: CGSize = .zero
     @Published var currentOffset: CGSize = .zero
     @Published var currentFrame: CGRect = .zero
+    var pageIndex: Int
 
     var sourceMedia: InteractableMedia<EncryptedMedia>
     var fileAccess: FileAccess
@@ -30,10 +31,11 @@ class ImageViewingViewModel: ObservableObject, MediaViewModelProtocol {
 
     private var delegate: MediaViewingDelegate
 
-    required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
+    required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate, pageIndex: Int) {
         self.sourceMedia = sourceMedia
         self.fileAccess = fileAccess
         self.delegate = delegate
+        self.pageIndex = pageIndex
     }
 
     func decryptAndSet() {
@@ -51,7 +53,10 @@ class ImageViewingViewModel: ObservableObject, MediaViewModelProtocol {
                 }
                 await MainActor.run {
                     decryptedFileRef = result
-                    delegate.didView(media: sourceMedia)
+                    if let uiImage = result.uiImage {
+                        delegate.didLoad(media: uiImage, atIndex: pageIndex)
+                        delegate.didView(media: sourceMedia)
+                    }
                 }
 
             } catch {

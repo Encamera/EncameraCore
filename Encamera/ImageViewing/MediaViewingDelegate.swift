@@ -7,7 +7,12 @@
 
 import Foundation
 import EncameraCore
+import UIKit
 
 protocol MediaViewingDelegate: AnyObject {
     func didView(media: InteractableMedia<EncryptedMedia>)
+    func didLoad(media: UIImage, atIndex: Int)
 }
+
+
+

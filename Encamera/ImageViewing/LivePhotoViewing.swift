@@ -30,7 +30,7 @@ class LivePhotoViewingViewModel: ObservableObject, MediaViewModelProtocol {
     @Published var currentFrame: CGRect = .zero
     @Published var player: AVPlayer?
     @Published var showLivePhotoViewport: Bool = false
-
+    var pageIndex: Int
     var sourceMedia: InteractableMedia<EncryptedMedia>
     var fileAccess: FileAccess
     @Published var error: MediaViewingError?
@@ -39,13 +39,14 @@ class LivePhotoViewingViewModel: ObservableObject, MediaViewModelProtocol {
     internal var delegate: MediaViewingDelegate
     private var cancellables = Set<AnyCancellable>()  // Store cancellables
 
-    required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate) {
+    required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate, pageIndex: Int) {
+        self.pageIndex = pageIndex
         self.sourceMedia = sourceMedia
         self.fileAccess = fileAccess
         self.delegate = delegate
     }
     func decryptAndSet() {
-        Task { @MainActor [self] in
+        Task { [self] in
             do {
                 let result = try await fileAccess.loadMedia(media: sourceMedia) { [self] progress in
                     switch progress {
@@ -75,10 +76,17 @@ class LivePhotoViewingViewModel: ObservableObject, MediaViewModelProtocol {
                         if case .failure(let error) = completion {
                             self.error = .decryptError(wrapped: error)
                         }
+                        if let uiImage = result.uiImage {
+                            self.delegate.didLoad(media: uiImage, atIndex: self.pageIndex)
+                        }
+
                     }, receiveValue: { livePhoto in
                         self.preparedLivePhoto = livePhoto
                         self.decryptedFileRef = result
                         self.delegate.didView(media: self.sourceMedia)
+                        if let uiImage = result.uiImage {
+                            self.delegate.didLoad(media: uiImage, atIndex: self.pageIndex)
+                        }
                     })
                     .store(in: &cancellables)
 

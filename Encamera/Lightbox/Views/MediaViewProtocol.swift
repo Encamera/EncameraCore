@@ -14,7 +14,6 @@ protocol MediaViewProtocol: UIView {
     init(viewModel: ViewModel)
     
     func setMediaAndLoad(image: LightboxImage)
-
     var image: UIImage? { get }
     var viewModel: ViewModel? { get }
     var hostingView: HostingView { get }
@@ -27,11 +26,7 @@ extension MediaViewProtocol {
 
 
     var image: UIImage? {
-        if let imageData = viewModel?.sourceMedia.imageData {
-            return UIImage(data: imageData)
-        } else {
-            return nil
-        }
+        return viewModel?.decryptedFileRef?.uiImage
     }
 
     func setMediaAndLoad(image: LightboxImage) {

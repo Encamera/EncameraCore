@@ -75,13 +75,6 @@ open class LightboxController: UIViewController {
         return view
     }()
 
-    open fileprivate(set) lazy var footerView: FooterView = { [unowned self] in
-        let view = FooterView()
-        view.delegate = self
-
-        return view
-    }()
-
     open fileprivate(set) lazy var overlayView: UIView = { [unowned self] in
         let view = UIView(frame: CGRect.zero)
         let gradient = CAGradientLayer()
@@ -98,14 +91,13 @@ open class LightboxController: UIViewController {
     open fileprivate(set) var currentPage = 0 {
         didSet {
             currentPage = min(numberOfPages - 1, max(0, currentPage))
-            footerView.updatePage(currentPage + 1, numberOfPages)
 
             if currentPage == numberOfPages - 1 {
                 seen = true
             }
             pageDelegate?.lightboxController(self, didMoveToPage: currentPage)
             reconfigurePagesForPreload()
-            if let image = pageViews[currentPage].imageView.image, dynamicBackground {
+            if let image = pageViews[currentPage].imageView.image {
                 DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.125) {
                     self.loadDynamicBackground(image)
                 }
@@ -133,17 +125,9 @@ open class LightboxController: UIViewController {
         return pageViews.count
     }
 
-    open var dynamicBackground: Bool = false {
+    open var dynamicBackground: Bool = true {
         didSet {
-            if dynamicBackground == true {
-                effectView.frame = view.frame
-                backgroundView.frame = effectView.frame
-                view.insertSubview(effectView, at: 0)
-                view.insertSubview(backgroundView, at: 0)
-            } else {
-                effectView.removeFromSuperview()
-                backgroundView.removeFromSuperview()
-            }
+            configureDynmaicBackground()
         }
     }
 
@@ -213,22 +197,13 @@ open class LightboxController: UIViewController {
         configurePages(initialImages)
 
         goTo(initialPage, animated: false)
+        configureDynmaicBackground()
     }
 
     open override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
         scrollView.frame = view.bounds
-        footerView.frame.size = CGSize(
-            width: view.bounds.width,
-            height: 100
-        )
-
-        footerView.frame.origin = CGPoint(
-            x: 0,
-            y: view.bounds.height - footerView.frame.height
-        )
-
         headerView.frame = CGRect(
             x: 0,
             y: 16,
@@ -258,12 +233,24 @@ open class LightboxController: UIViewController {
 
     // MARK: - Configuration
 
+    func configureDynmaicBackground() {
+        if dynamicBackground == true {
+            effectView.frame = view.frame
+            backgroundView.frame = effectView.frame
+            view.insertSubview(effectView, at: 0)
+            view.insertSubview(backgroundView, at: 0)
+        } else {
+            effectView.removeFromSuperview()
+            backgroundView.removeFromSuperview()
+        }
+    }
+
     func configurePages(_ images: [LightboxImage]) {
         pageViews.forEach { $0.removeFromSuperview() }
         pageViews = []
 
-        for i in 0..<images.count {
-            let pageView = PageView(image: images[i], fileAccess: fileAccess)
+        for pageIndex in 0..<images.count {
+            let pageView = PageView(image: images[pageIndex], fileAccess: fileAccess, pageIndex: pageIndex)
             pageView.pageViewDelegate = self
 
             scrollView.addSubview(pageView)
@@ -309,7 +296,6 @@ open class LightboxController: UIViewController {
     // MARK: - Actions
 
     @objc func overlayViewDidTap(_ tapGestureRecognizer: UITapGestureRecognizer) {
-        footerView.expand(false)
     }
 
     // MARK: - Layout
@@ -331,7 +317,7 @@ open class LightboxController: UIViewController {
             }
         }
 
-        [headerView, footerView].forEach { ($0 as AnyObject).configureLayout() }
+        [headerView].forEach { ($0 as AnyObject).configureLayout() }
 
         overlayView.frame = scrollView.frame
         overlayView.resizeGradientLayer()
@@ -350,7 +336,6 @@ open class LightboxController: UIViewController {
 
         UIView.animate(withDuration: duration, delay: delay, options: [], animations: {
             self.headerView.alpha = alpha
-            self.footerView.alpha = alpha
             pageView?.playButton.alpha = alpha
         }, completion: nil)
     }
@@ -403,13 +388,8 @@ extension LightboxController: UIScrollViewDelegate {
 
 extension LightboxController: PageViewDelegate {
 
-    func remoteImageDidLoad(_ image: UIImage?, imageView: UIImageView) {
-        guard let image = image, dynamicBackground else {
-            return
-        }
-
-        let imageViewFrame = imageView.convert(imageView.frame, to: view)
-        guard view.frame.intersects(imageViewFrame) else {
+    func imageDidLoad(_ image: UIImage?, atIndex index: Int) {
+        guard index == currentPage, let image else {
             return
         }
 
@@ -482,17 +462,5 @@ extension LightboxController: HeaderViewDelegate {
         presented = false
         dismissalDelegate?.lightboxControllerWillDismiss(self)
         dismiss(animated: true, completion: nil)
-    }
-}
-
-// MARK: - FooterViewDelegate
-
-extension LightboxController: FooterViewDelegate {
-
-    public func footerView(_ footerView: FooterView, didExpand expanded: Bool) {
-        UIView.animate(withDuration: 0.25, animations: {
-            self.overlayView.alpha = expanded ? 1.0 : 0.0
-            self.headerView.deleteButton.alpha = expanded ? 0.0 : 1.0
-        })
     }
 }
