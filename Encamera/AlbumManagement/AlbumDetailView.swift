@@ -1,10 +1,3 @@
-//
-//  KeyPickerView.swift
-//  encamera
-//
-//  Created by Alexander Freas on 09.11.21.
-//
-
 import Combine
 import EncameraCore
 import SwiftUI
@@ -16,6 +9,11 @@ import SwiftUI
 class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     enum KeyViewerError {
         case couldNotSetKeychain
+    }
+
+    enum AlertType {
+        case deleteAllAlbumData
+        case deleteSelectedMedia
     }
 
     var albumManager: AlbumManaging
@@ -31,6 +29,8 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var isSelectingMedia: Bool = false
     @Published var selectedMedia: Set<InteractableMedia<EncryptedMedia>> = Set()
     @Published var isShowingPurchaseSheet = false
+    @Published var alertType: AlertType? = nil
+
     var afterPurchaseAction: (() -> Void)?
     var gridViewModel: GalleryGridViewModel<D>
 
@@ -115,6 +115,28 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         albumManager.delete(album: album)
     }
 
+    func deleteSelectedMedia() {
+        guard let fileManager = fileManager else { return }
+        Task {
+            var completedItems: [InteractableMedia<EncryptedMedia>] = []
+            for media in selectedMedia {
+                do {
+                    try await fileManager.delete(media: media)
+                    completedItems.append(media)
+                } catch {
+                    printDebug("Error deleting media: \(error)")
+                }
+
+            }
+            selectedMedia.removeAll()
+
+            await MainActor.run {
+                gridViewModel.removeMedia(items: completedItems)
+                isSelectingMedia = false
+            }
+        }
+    }
+
     func canDeleteKey() -> Bool {
         return true
     }
@@ -178,7 +200,6 @@ private enum Constants {
 }
 
 struct AlbumDetailView<D: FileAccess>: View {
-    @State var isShowingAlertForDeleteAllAlbumData: Bool = false
     @State var isShowingMoveAlbumModal = false
 
     @StateObject var viewModel: AlbumDetailViewModel<D>
@@ -198,17 +219,12 @@ struct AlbumDetailView<D: FileAccess>: View {
                 }
             }
             .screenBlocked()
-            .alert(L10n.deleteAllAssociatedData, isPresented: $isShowingAlertForDeleteAllAlbumData, actions: {
-                Button(L10n.deleteEverything, role: .destructive) {
-                    viewModel.deleteAlbum()
-                    popLastView()
-                }
-                Button(L10n.cancel, role: .cancel) {
-                    isShowingAlertForDeleteAllAlbumData = false
-                }
-            }, message: {
-                Text(viewModel.deleteActionError)
-            })
+            .alert(isPresented: Binding<Bool>(
+                get: { viewModel.alertType != nil },
+                set: { if !$0 { viewModel.alertType = nil } }
+            )) {
+                alert(for: viewModel.alertType)
+            }
             .navigationBarHidden(true)
             .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
                                 album: viewModel.album,
@@ -229,6 +245,9 @@ struct AlbumDetailView<D: FileAccess>: View {
                 if case .purchaseComplete = action {
                     isShowingMoveAlbumModal = false
                     viewModel.afterPurchaseAction?()
+                    Task {
+                        await viewModel.gridViewModel.enumerateMedia()
+                    }
                 } else {
                     viewModel.isShowingPurchaseSheet = false
                 }
@@ -315,11 +334,8 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
 
             Button(L10n.deleteAlbum, role: .destructive) {
-                isShowingAlertForDeleteAllAlbumData = true
+                viewModel.alertType = .deleteAllAlbumData
             }
-
-
-
         } label: {
             Image("Album-OptionsDots")
                 .contentShape(Rectangle())
@@ -331,19 +347,37 @@ struct AlbumDetailView<D: FileAccess>: View {
         MediaSelectionTray(shareAction: {
             viewModel.shareSelected()
         }, deleteAction: {
-            
+            viewModel.alertType = .deleteSelectedMedia
         }, selectedMedia: $viewModel.selectedMedia)
-
     }
 
+    private func alert(for alertType: AlbumDetailViewModel<D>.AlertType?) -> Alert {
+        switch alertType {
+        case .deleteAllAlbumData:
+            return Alert(
+                title: Text(L10n.deleteAllAssociatedData),
+                message: Text(viewModel.deleteActionError),
+                primaryButton: .destructive(Text(L10n.deleteEverything)) {
+                    viewModel.deleteAlbum()
+                    popLastView()
+                },
+                secondaryButton: .cancel(Text(L10n.cancel))
+            )
+        case .deleteSelectedMedia:
+            return Alert(
+                title: Text(L10n.AlbumDetailView.confirmDeletion),
+                message: Text(L10n.AlbumDetailView.deleteSelectedMedia(L10n.imageS(viewModel.selectedMedia.count))),
+                primaryButton: .destructive(Text(L10n.delete)) {
+                    viewModel.deleteSelectedMedia()
+                },
+                secondaryButton: .cancel(Text(L10n.cancel))
+            )
+        case .none:
+            return Alert(title: Text(""))
+        }
+    }
 }
 
-
-
 #Preview {
-    //    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
-    //        EventTracking.trackAlbumOpened()
-    //    }
-
     AlbumDetailView<DemoFileEnumerator>(viewModel: .init(albumManager: DemoAlbumManager(), album: DemoAlbumManager().currentAlbum))
 }

@@ -38,7 +38,6 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
     @Published var showPhotoPicker: Bool = false
     @Published var showPhotoAccessAlert: Bool = false
-    @Published var firstImage: InteractableMedia<EncryptedMedia>?
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
     @Published var downloadInProgress = false
@@ -97,6 +96,11 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         )
         self.purchasedPermissions = purchasedPermissions
         FileOperationBus.shared.operations.sink { operation in
+            #warning("This is a temporary fix, make it more graceful and refactor FileOperationBus")
+            guard self.isSelectingMedia == false else {
+                return
+            }
+
             Task {
                 await self.enumerateMedia()
             }
@@ -176,9 +180,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         }
         await fileAccess.configure(for: album, albumManager: albumManager)
         let enumerated: [InteractableMedia<EncryptedMedia>] = await fileAccess.enumerateMedia()
-        debugPrint("enumerated: \(enumerated)")
         media = enumerated
-        firstImage = enumerated.first
         enumerateiCloudUndownloaded()
         showEmptyView = enumerated.isEmpty
     }
@@ -357,6 +359,17 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         try await saveCleartextMedia(mediaArray: cleartextMediaArray)
     }
     
+    func removeMedia(items: [InteractableMedia<EncryptedMedia>]) {
+        withAnimation(.easeInOut(duration: 0.4)) {
+            for item in items {
+                if let index = self.media.firstIndex(of: item) {
+                    media.remove(at: index)
+                }
+            }
+            showEmptyView = media.isEmpty
+        }
+    }
+
     
 }
 
@@ -601,6 +614,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 .id(mediaItem.gridID)
                 .frame(width: width, height: height)
                 .galleryClipped()
+                .transition(.asymmetric(insertion: .scale, removal: .opacity.combined(with: .scale(scale: 0.7))))
 
             }.onTapGesture {
                 viewModel.currentModal = AppModal.galleryScrollView(
