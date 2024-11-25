@@ -126,16 +126,13 @@ struct TopCameraControlsView: View {
 
         }
     }
-
     private var mainControls: some View {
         ZStack(alignment: .center) {
             HStack(alignment: .center) {
-                Button {
+                DismissButton {
                     closeButtonTapped()
-                } label: {
-                    Image("Camera-Close")
-                        .frame(width: 28, height: 28)
                 }
+
                 Spacer()
                 if viewModel.mode == .photo && viewModel.canCaptureLivePhoto {
                     livePhotoButton
@@ -145,30 +142,32 @@ struct TopCameraControlsView: View {
                 flashButton
                     .frame(width: 28, height: 28)
             }
-            .padding(EdgeInsets(top: getSafeAreaTop() + 10, leading: 16, bottom: 16, trailing: 16))
-            .background(.ultraThinMaterial)
-            .frame(height: 102)
-
-            if UserDefaultUtils.integer(forKey: .capturedPhotos) > 0 {
-                albumSelectionPill
+            Group {
+                if UserDefaultUtils.integer(forKey: .capturedPhotos) > 0 {
+                    albumSelectionPill
+                        .frame(height: 36)
+                } else {
+                    HStack(spacing: 10) {
+                        Text(L10n.takeYourFirstPicture)
+                            .fontType(.pt12, on: .lightBackground, weight: .bold)
+                            .tracking(0.24)
+                            .foregroundColor(.black)
+                    }
                     .frame(height: 36)
-            } else {
-                HStack(spacing: 10) {
-                    Text(L10n.takeYourFirstPicture)
-                        .fontType(.pt12, on: .lightBackground, weight: .bold)
-                        .tracking(0.24)
-                        .foregroundColor(.black)
+                    .padding(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+                    .background(.white)
+                    .cornerRadius(40)
                 }
-                .padding(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
-                .frame(height: 36)
-                .background(.white)
-                .cornerRadius(40)
-                .padding(.top, getSafeAreaTop())
             }
+            .frame(height: 36)
+
         }
+        .padding(EdgeInsets(top: getSafeAreaTop() + 10, leading: 16, bottom: 16, trailing: 16))
         .background(.ultraThinMaterial)
         .frame(height: 102)
     }
+
+
     private var albumSelectionPill: some View {
         Menu {
 
@@ -186,7 +185,7 @@ struct TopCameraControlsView: View {
                 Image("Camera-Album-Arrow")
                     .frame(width: 14, height: 14)
             }
-            .padding(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            .padding(EdgeInsets(top: 11, leading: 16, bottom: 11, trailing: 16))
             .background(Color(red: 1, green: 1, blue: 1).opacity(0.10))
             .cornerRadius(800)
 
