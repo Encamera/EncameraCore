@@ -495,7 +495,18 @@ extension LightboxController: FooterViewDelegate {
     }
 
     func footerView(_ footerView: FooterView, didPressShareButton shareButton: UIButton) {
-
+        let currentMedia = initialImages[currentPage]
+        let util = ShareMediaUtil(fileAccess: fileAccess, targetMedia: [currentMedia])
+        Task {
+            do {
+                try await util.prepareSharingData { status in
+                    print("Preparing share data")
+                }
+                try await util.showShareSheet()
+            } catch {
+                print("Error sharing media: \(error)")
+            }
+        }
     }
 
     func footerView(_ footerView: FooterView, didPressDeleteButton deleteButton: UIButton) {
