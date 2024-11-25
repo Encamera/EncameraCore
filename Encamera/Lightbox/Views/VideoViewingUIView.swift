@@ -96,12 +96,12 @@ class VideoViewingUIView: UIView, MediaViewProtocol {
             .receive(on: RunLoop.main)
             .sink { [weak self] decryptedFileRef in
                 guard let self = self else { return }
-//                if case .data(let imageData) = decryptedFileRef?., let image = UIImage(data: imageData) {
-//                    self.hostingView.image = image
-//                    self.hostingView.isHidden = false
-//                    self.activityIndicator.stopAnimating()
-//                    self.errorLabel.isHidden = true
-//                }
+                if let imageData = decryptedFileRef?.imageData, let image = UIImage(data: imageData) {
+                    self.hostingView.image = image
+                    self.hostingView.isHidden = false
+                    self.activityIndicator.stopAnimating()
+                    self.errorLabel.isHidden = true
+                }
             }
             .store(in: &cancellables)
 

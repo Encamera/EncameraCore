@@ -235,9 +235,20 @@ class PageView: UIScrollView {
     // MARK: - Action
 
     @objc func playButtonTouched(_ button: UIButton) {
-        guard let videoURL = image?.videoURL else { return }
+        guard let image else {
+            return
+        }
+        Task {
+            let decryptedVideo = try await fileAccess.loadMediaToURLs(media: image) { status in
+                print("Status: \(status)")
+            }
+            guard let decryptedVideo = decryptedVideo.first else { return }
+            await MainActor.run {
+                pageViewDelegate?.pageView(self, didTouchPlayButton: decryptedVideo as URL)
+            }
+        }
 
-        pageViewDelegate?.pageView(self, didTouchPlayButton: videoURL as URL)
+
     }
 }
 
