@@ -5,39 +5,43 @@ struct MediaSelectionTray: View {
 
     var shareAction: () -> Void
     var deleteAction: () -> Void
+
     @Binding var selectedMedia: Set<InteractableMedia<EncryptedMedia>>
+    @Binding var showShareOption: Bool
     @State private var selectedMediaCount: Int = 0
 
     var body: some View {
-        HStack {
-            Spacer()
-            Text(selectedMediaCount == 0 ? L10n.MediaSelectionTray.selectMedia : "\(L10n.imageS(selectedMedia.count)) \(L10n.MediaSelectionTray.itemSelected)")
-            Spacer()
+        ZStack {
+            HStack {
+                Spacer()
+                Menu {
+                    Button(action: {
 
-            Menu {
-                Button(action: {
+                    }) {
+                        Label(L10n.MediaSelectionTray.moveMedia, systemImage: "folder")
+                    }
+                    if showShareOption {
+                        Button(action: {
+                            shareAction()
+                        }) {
+                            Label(L10n.share, systemImage: "square.and.arrow.up")
+                        }
+                    }
 
-                }) {
-                    Label(L10n.MediaSelectionTray.moveMedia, systemImage: "folder")
+                    Button(role: .destructive, action: {
+                        deleteAction()
+                    }) {
+                        Label(L10n.delete, systemImage: "trash")
+                    }
+
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundColor(.white)
+                        .opacity(selectedMediaCount > 0 ? 1.0 : 0.0)
                 }
-                Button(action: {
-                    shareAction()
-                }) {
-                    Label(L10n.share, systemImage: "square.and.arrow.up")
-                }
-
-                Button(role: .destructive, action: {
-                    deleteAction()
-                }) {
-                    Label(L10n.delete, systemImage: "trash")
-                }
-
-
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .foregroundColor(.white)
-                    .opacity(selectedMediaCount > 0 ? 1.0 : 0.0)
             }
+            Text(selectedMediaCount == 0 ? L10n.MediaSelectionTray.selectMedia : "\(L10n.imageS(selectedMedia.count)) \(L10n.MediaSelectionTray.itemSelected)")
+                .foregroundColor(.white)
         }
         .onAppear {
             selectedMediaCount = selectedMedia.count
@@ -57,14 +61,14 @@ struct MediaSelectionTray: View {
 
         }, deleteAction: {
 
-        }, selectedMedia: .constant(Set<InteractableMedia<EncryptedMedia>>()))
+        }, selectedMedia: .constant(Set<InteractableMedia<EncryptedMedia>>()), showShareOption: .constant(false))
         MediaSelectionTray(shareAction: {
 
         }, deleteAction: {
 
         }, selectedMedia: .constant(Set<InteractableMedia<EncryptedMedia>>([
             InteractableMedia(emptyWithType: .livePhoto, id: "234")
-        ])))
+        ])), showShareOption: .constant(true))
 
     }.background(Color.white)
 }

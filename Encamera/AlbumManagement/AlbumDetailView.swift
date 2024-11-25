@@ -344,11 +344,12 @@ struct AlbumDetailView<D: FileAccess>: View {
     }
 
     var selectionTray: some View {
-        MediaSelectionTray(shareAction: {
+
+        return MediaSelectionTray(shareAction: {
             viewModel.shareSelected()
         }, deleteAction: {
             viewModel.alertType = .deleteSelectedMedia
-        }, selectedMedia: $viewModel.selectedMedia)
+        }, selectedMedia: $viewModel.selectedMedia, showShareOption: .constant(true))
     }
 
     private func alert(for alertType: AlbumDetailViewModel<D>.AlertType?) -> Alert {
