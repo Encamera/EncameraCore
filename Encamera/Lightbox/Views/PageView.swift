@@ -18,12 +18,6 @@ protocol PageViewDelegate: AnyObject {
 
 class PageView: UIScrollView {
 
-    override var frame: CGRect {
-        didSet {
-            print("lbx Frame changed to \(frame)")
-        }
-    }
-
     lazy var imageView: any MediaViewProtocol = {
         guard let image = self.image else {
             return EmptyMediaView()

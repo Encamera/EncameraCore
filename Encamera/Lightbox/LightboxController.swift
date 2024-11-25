@@ -296,7 +296,6 @@ open class LightboxController: UIViewController {
     // MARK: - Layout
 
     open func configureLayout(_ size: CGSize) {
-        print("lbx configureLayout size: \(size)")
         scrollView.contentSize = CGSize(
             width: size.width * CGFloat(numberOfPages) + spacing * CGFloat(numberOfPages - 1),
             height: size.height)
@@ -305,7 +304,6 @@ open class LightboxController: UIViewController {
         for (index, pageView) in pageViews.enumerated() {
             let point = CGPoint(x:(size.width + spacing) * CGFloat(index), y: 0)
             pageView.frame = CGRect(origin: point, size: size)
-            print("lbx pageView.frame: \(pageView.frame)")
             pageView.configureLayout()
             if index != numberOfPages - 1 {
                 pageView.frame.size.width += spacing
