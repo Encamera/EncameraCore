@@ -17,7 +17,7 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
         private var targetMedia: InteractableMedia<EncryptedMedia>
         @Published var cleartextMedia: PreviewModel?
         @Published var error: Error?
-        
+
         var needsDownload: Bool {
             targetMedia.needsDownload
         }
@@ -48,7 +48,8 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
     var placeholder: Placeholder
     @Binding var isInSelectionMode: Bool
     @Binding var isSelected: Bool
-    
+    @State var isBlurred: Bool
+
     var body: some View {
 
         if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.data,
@@ -59,6 +60,7 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
                         .resizable()
                         .scaledToFill()
                 }
+                .blur(radius: isBlurred ? AppConstants.blockingBlurRadius : 0.0)
                 if viewModel.needsDownload {
                     ZStack(alignment: .bottomTrailing) {
                         Rectangle().foregroundColor(.clear)

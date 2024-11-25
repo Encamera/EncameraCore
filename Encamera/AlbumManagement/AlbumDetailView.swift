@@ -116,11 +116,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     }
 
     func canDeleteKey() -> Bool {
-        //        if #available(iOS 16.0, *) {
-        //            return deleteAlbumConfirmation == album.name
-        //        } else {
         return true
-        //        }
     }
 
     func moveAlbum(to storage: StorageType) {
@@ -276,14 +272,14 @@ struct AlbumDetailView<D: FileAccess>: View {
                 ViewHeader(title: viewModel.albumName, rightContent: {
 
                     Group {
-//                        if viewModel.gridViewModel.media.count > 0 {
-//                            Button {
-//                                viewModel.isSelectingMedia.toggle()
-//                            } label: {
-//                                Text(viewModel.isSelectingMedia ? L10n.cancel : L10n.AlbumDetailView.select)
-//                                    .fontType(.pt14, weight: .bold)
-//                            }.frostedButton()
-//                        }
+                        if viewModel.gridViewModel.media.count > 0 {
+                            Button {
+                                viewModel.isSelectingMedia.toggle()
+                            } label: {
+                                Text(viewModel.isSelectingMedia ? L10n.cancel : L10n.AlbumDetailView.select)
+                                    .fontType(.pt14, weight: .bold)
+                            }.frostedButton()
+                        }
                         if viewModel.isSelectingMedia == false {
                             VStack(alignment: .center) {
                                 buttonMenu
@@ -335,11 +331,10 @@ struct AlbumDetailView<D: FileAccess>: View {
         MediaSelectionTray(shareAction: {
             viewModel.shareSelected()
         }, deleteAction: {
-
+            
         }, selectedMedia: $viewModel.selectedMedia)
 
     }
-
 
 }
 

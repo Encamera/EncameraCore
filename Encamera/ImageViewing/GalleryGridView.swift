@@ -363,7 +363,6 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 private enum Constants {
     static let hideButtonWidth = 100.0
     static let numberOfImagesWide = 2.0
-    static let blurRadius = AppConstants.blockingBlurRadius
     static let buttonPadding = 7.0
     static let buttonCornerRadius = 10.0
 }
@@ -584,9 +583,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 let selectionBinding = Binding<Bool> {
                     viewModel.selectedMedia.contains(mediaItem)
                 } set: { selected, _ in
-                    guard viewModel.blurItemAt(index: index) == false else {
-                        return
-                    }
+
                     if selected {
                         viewModel.selectedMedia.insert(mediaItem)
                     } else {
@@ -598,11 +595,11 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
                     placeholder: ProgressView(),
                     isInSelectionMode: $viewModel.isSelectingMedia,
-                    isSelected: selectionBinding
+                    isSelected: selectionBinding,
+                    isBlurred: viewModel.blurItemAt(index: index)
                 )
                 .id(mediaItem.gridID)
                 .frame(width: width, height: height)
-                .blur(radius: viewModel.blurItemAt(index: index) ? Constants.blurRadius : 0.0)
                 .galleryClipped()
 
             }.onTapGesture {
