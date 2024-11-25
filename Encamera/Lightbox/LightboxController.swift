@@ -62,8 +62,8 @@ open class LightboxController: UIViewController {
 
     // MARK: - Public views
 
-    open fileprivate(set) lazy var headerView: HeaderView = { [unowned self] in
-        let view = HeaderView()
+    open fileprivate(set) lazy var footerView: FooterView = { [unowned self] in
+        let view = FooterView()
         view.delegate = self
 
         return view
@@ -99,7 +99,7 @@ open class LightboxController: UIViewController {
             pageView.update(with: initialImages[i])
           }
         } else {
-            pageView.update(with: nil)  
+            pageView.update(with: nil)
         }
       }
     }
@@ -115,7 +115,7 @@ open class LightboxController: UIViewController {
         }
     }
 
-    open var spacing: CGFloat = 0 {
+    open var spacing: CGFloat = 20 {
         didSet {
             configureLayout(view.bounds.size)
         }
@@ -179,16 +179,16 @@ open class LightboxController: UIViewController {
         transitionManager.scrollView = scrollView
         transitioningDelegate = transitionManager
 
-        [scrollView, headerView].forEach {
+        [scrollView, footerView].forEach {
             view.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
         NSLayoutConstraint.activate([
             // Constraints for headerView
-            headerView.topAnchor.constraint(equalTo: view.topAnchor),
-            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            headerView.heightAnchor.constraint(equalToConstant: 44),
+            footerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            footerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            footerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            footerView.heightAnchor.constraint(equalToConstant: 76),
 
             // Constraints for scrollView
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -330,7 +330,7 @@ open class LightboxController: UIViewController {
         pageView?.playButton.isHidden = !visible
 
         UIView.animate(withDuration: duration, delay: delay, options: [], animations: {
-            self.headerView.alpha = alpha
+            self.footerView.alpha = alpha
             pageView?.playButton.alpha = alpha
         }, completion: nil)
     }
@@ -349,6 +349,73 @@ open class LightboxController: UIViewController {
             preloadIndicies = [Int](0..<initialImages.count)
         }
         return preloadIndicies
+    }
+
+    func dismiss() {
+        presented = false
+        dismissalDelegate?.lightboxControllerWillDismiss(self)
+        dismiss(animated: true, completion: nil)
+    }
+
+    // New Alert View Function
+    func presentDeleteAlert(deleteButton: UIButton) {
+        let alert = UIAlertController(
+            title: L10n.AlbumDetailView.confirmDeletion,
+            message: L10n.AlbumDetailView.deleteSelectedMedia(L10n.imageS(1)),
+            preferredStyle: .alert
+        )
+
+        let deleteAction = UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            self.performDelete(deleteButton: deleteButton)
+        }
+        let cancelAction = UIAlertAction(title: L10n.cancel, style: .cancel, handler: nil)
+
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+
+        present(alert, animated: true, completion: nil)
+    }
+
+    // Separate delete functionality
+    private func performDelete(deleteButton: UIButton) {
+        deleteButton.isEnabled = false
+        let targetMedia = initialImages[currentPage]
+        Task {
+            do {
+                try await fileAccess.delete(media: targetMedia)
+                Task { @MainActor in
+                    guard numberOfPages != 1 else {
+                        pageViews.removeAll()
+                        dismiss()
+                        return
+                    }
+
+                    let prevIndex = currentPage
+
+                    if currentPage == numberOfPages - 1 {
+                        previous()
+                    } else {
+                        next()
+                        currentPage -= 1
+                    }
+
+                    self.initialImages.remove(at: prevIndex)
+                    self.pageViews.remove(at: prevIndex).removeFromSuperview()
+
+                    DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.5) {
+                        self.configureLayout(self.view.bounds.size)
+                        self.currentPage = Int(self.scrollView.contentOffset.x / self.view.bounds.width)
+                        deleteButton.isEnabled = true
+                    }
+                }
+
+            } catch {
+                // handle error
+            }
+        }
+
+
     }
 }
 
@@ -406,7 +473,7 @@ extension LightboxController: PageViewDelegate {
 
         imageTouchDelegate?.lightboxController(self, didTouch: images[currentPage], at: currentPage)
 
-        let visible = (headerView.alpha == 1.0)
+        let visible = (footerView.alpha == 1.0)
         toggleControls(pageView: pageView, visible: !visible)
     }
 
@@ -421,42 +488,20 @@ extension LightboxController: PageViewDelegate {
 
 // MARK: - HeaderViewDelegate
 
-extension LightboxController: HeaderViewDelegate {
+extension LightboxController: FooterViewDelegate {
 
-    func headerView(_ headerView: HeaderView, didPressDeleteButton deleteButton: UIButton) {
-        deleteButton.isEnabled = false
+    func footerView(_ footerView: FooterView, didPressInfoButton infoButton: UIButton) {
 
-        imageDeleteDelegate?.lightboxController(self, willDeleteAt: currentPage)
-
-        guard numberOfPages != 1 else {
-            pageViews.removeAll()
-            self.headerView(headerView, didPressCloseButton: headerView.closeButton)
-            return
-        }
-
-        let prevIndex = currentPage
-
-        if currentPage == numberOfPages - 1 {
-            previous()
-        } else {
-            next()
-            currentPage -= 1
-        }
-
-        self.initialImages.remove(at: prevIndex)
-        self.pageViews.remove(at: prevIndex).removeFromSuperview()
-
-        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.5) {
-            self.configureLayout(self.view.bounds.size)
-            self.currentPage = Int(self.scrollView.contentOffset.x / self.view.bounds.width)
-            deleteButton.isEnabled = true
-        }
     }
 
-    func headerView(_ headerView: HeaderView, didPressCloseButton closeButton: UIButton) {
-        closeButton.isEnabled = false
-        presented = false
-        dismissalDelegate?.lightboxControllerWillDismiss(self)
-        dismiss(animated: true, completion: nil)
+    func footerView(_ footerView: FooterView, didPressShareButton shareButton: UIButton) {
+
+    }
+
+    func footerView(_ footerView: FooterView, didPressDeleteButton deleteButton: UIButton) {
+        presentDeleteAlert(deleteButton: deleteButton)
+    }
+
+    func footerView(_ footerView: FooterView, didPressCloseButton closeButton: UIButton) {
     }
 }
