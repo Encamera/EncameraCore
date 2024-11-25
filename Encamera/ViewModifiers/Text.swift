@@ -18,62 +18,57 @@ struct TextViewModifier: ViewModifier {
 enum EncameraFont {
     case large
     case medium
-    case pt14
-    case pt12
-    case pt10
-    case pt16
-    case pt18
-    case pt20
-    case pt24
-    case pt32
-    case rajdhaniBold
-    case rajdhaniBoldSmall
+    case pt10, pt12, pt14, pt16, pt18, pt20, pt24, pt32
+    case rajdhaniBold, rajdhaniBoldSmall
 
     enum Name: String {
         case regular = "Satoshi-Regular"
         case bold = "Satoshi-Bold"
         case rajdhaniBold = "Rajdhani-Bold"
     }
+
     var offset: CGFloat {
         return 2.0
     }
-    var font: Font {
 
+    var fontSize: CGFloat {
         switch self {
-        case .large:
-            return satoshi(size: 35)
-        case .medium:
-            return satoshi(size: 30)
-        case .pt32:
-            return satoshi(size: 32)
-        case .pt24:
-            return satoshi(size: 24)
-        case .pt20:
-            return satoshi(size: 20)
-        case .pt18:
-            return satoshi(size: 18)
-        case .pt16:
-            return satoshi(size: 16)
-        case .pt14:
-            return satoshi(size: 14)
-        case .pt12:
-            return satoshi(size: 12)
-
-        case .pt10:
-            return satoshi(size: 10)
-        case .rajdhaniBold:
-            return .custom(Name.rajdhaniBold.rawValue, size: 16)
-        case .rajdhaniBoldSmall:
-            return .custom(Name.rajdhaniBold.rawValue, size: 12)
-
+        case .large: return 35
+        case .medium: return 30
+        case .pt10: return 10
+        case .pt12: return 12
+        case .pt14: return 14
+        case .pt16: return 16
+        case .pt18: return 18
+        case .pt20: return 20
+        case .pt24: return 24
+        case .pt32: return 32
+        case .rajdhaniBold: return 16
+        case .rajdhaniBoldSmall: return 12
         }
     }
 
-    private func satoshi(size: CGFloat) -> Font {
-        return .custom(Name.regular.rawValue, size: size + offset)
+    var fontName: String {
+        switch self {
+        case .rajdhaniBold, .rajdhaniBoldSmall:
+            return Name.rajdhaniBold.rawValue
+        default:
+            return Name.regular.rawValue
+        }
+    }
+
+    var font: Font {
+        return .custom(fontName, size: fontSize + (isSatoshi ? offset : 0))
+    }
+
+    var uiFont: UIFont {
+        return UIFont(name: fontName, size: fontSize + (isSatoshi ? offset : 0)) ?? UIFont.systemFont(ofSize: fontSize)
+    }
+
+    private var isSatoshi: Bool {
+        return fontName == Name.regular.rawValue
     }
 }
-
 extension Text {
 
 

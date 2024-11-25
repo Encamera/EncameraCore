@@ -17,7 +17,10 @@ struct GalleryViewWrapper: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIViewControllerType {
         let startIndex = (viewModel.initialMedia != nil) ? Int(viewModel.media.firstIndex(of: viewModel.initialMedia!) ?? 0) : 0
-        return LightboxController(images: viewModel.media, startIndex: startIndex, fileAccess: viewModel.fileAccess)
+        return LightboxController(images: viewModel.media,
+                                  startIndex: startIndex,
+                                  fileAccess: viewModel.fileAccess,
+                                  purchasePermissionsManager: viewModel.purchasedPermissions)
     }
 
     func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {

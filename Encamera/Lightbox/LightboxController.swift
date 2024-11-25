@@ -146,14 +146,16 @@ open class LightboxController: UIViewController {
     fileprivate var initialImages: [InteractableMedia<EncryptedMedia>]
     fileprivate let initialPage: Int
     private let fileAccess: FileAccess
+    private let purchasePermissionsManager: PurchasedPermissionManaging
 
     // MARK: - Initializers
 
-    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess) {
+    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging) {
         self.fileAccess = fileAccess
         self.initialImages = images
         self.initialPage = index
         self.currentPage = index
+        self.purchasePermissionsManager = purchasePermissionsManager
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -161,11 +163,12 @@ open class LightboxController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+
     // MARK: - View lifecycle
 
     open override func viewDidLoad() {
         super.viewDidLoad()
-
+        edgesForExtendedLayout = [.top, .bottom]
         // 9 July 2020: @3lvis
         // Lightbox hasn't been optimized to be used in presentation styles other than fullscreen.
         modalPresentationStyle = .fullScreen
@@ -249,7 +252,8 @@ open class LightboxController: UIViewController {
         pageViews = []
 
         for pageIndex in 0..<images.count {
-            let pageView = PageView(image: images[pageIndex], fileAccess: fileAccess, pageIndex: pageIndex)
+            let showPurchaseOverlay = purchasePermissionsManager.isAllowedAccess(feature: .accessPhoto(count: Double(pageIndex + 1)))
+            let pageView = PageView(image: images[pageIndex], fileAccess: fileAccess, pageIndex: pageIndex, showPurchaseOverlay: showPurchaseOverlay)
             pageView.pageViewDelegate = self
 
             scrollView.addSubview(pageView)

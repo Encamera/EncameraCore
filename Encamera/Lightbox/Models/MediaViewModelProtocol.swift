@@ -10,7 +10,7 @@ protocol MediaViewModelProtocol {
     init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate, pageIndex: Int)
     var sourceMedia: InteractableMedia<EncryptedMedia> { get }
     var decryptedFileRef: InteractableMedia<CleartextMedia>? { get }
-    var pageIndex: Int { get set }
+    nonisolated var pageIndex: Int { get set } 
     
     func decryptAndSet()
 }

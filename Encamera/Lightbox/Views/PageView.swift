@@ -36,6 +36,9 @@ class PageView: UIScrollView {
         }
     }()
 
+    let photoLimitReachedView = PhotoLimitReachedView()
+
+
     lazy var playButton: UIButton = {
         let button = UIButton(type: .custom)
         button.frame.size = CGSize(width: 60, height: 60)
@@ -73,10 +76,12 @@ class PageView: UIScrollView {
 
     private var fileAccess: FileAccess
     private var pageIndex: Int
+    private var showPurchaseOverlay: Bool
 
     // MARK: - Initializers
 
-    init(image: LightboxImage?, fileAccess: FileAccess, pageIndex: Int) {
+    init(image: LightboxImage?, fileAccess: FileAccess, pageIndex: Int, showPurchaseOverlay: Bool) {
+        self.showPurchaseOverlay = showPurchaseOverlay
         self.image = image
         self.fileAccess = fileAccess
         self.pageIndex = pageIndex
@@ -92,29 +97,40 @@ class PageView: UIScrollView {
     // MARK: - Configuration
 
     func configure() {
+        if showPurchaseOverlay {
+            addSubview(photoLimitReachedView)
+            photoLimitReachedView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                photoLimitReachedView.centerXAnchor.constraint(equalTo: centerXAnchor),
+                photoLimitReachedView.centerYAnchor.constraint(equalTo: centerYAnchor),
+                photoLimitReachedView.widthAnchor.constraint(equalToConstant: 300),
+                photoLimitReachedView.heightAnchor.constraint(equalToConstant: 400)
+            ])
 
-        addSubview(imageView)
+        } else {
+            addSubview(imageView)
 
-        updatePlayButton()
+            updatePlayButton()
 
-        addSubview(loadingIndicator)
+            addSubview(loadingIndicator)
 
-        delegate = self
-        isMultipleTouchEnabled = true
-        minimumZoomScale = LightboxConfig.Zoom.minimumScale
-        maximumZoomScale = LightboxConfig.Zoom.maximumScale
-        showsHorizontalScrollIndicator = false
-        showsVerticalScrollIndicator = false
+            delegate = self
+            isMultipleTouchEnabled = true
+            minimumZoomScale = LightboxConfig.Zoom.minimumScale
+            maximumZoomScale = LightboxConfig.Zoom.maximumScale
+            showsHorizontalScrollIndicator = false
+            showsVerticalScrollIndicator = false
 
-        let doubleTapRecognizer = UITapGestureRecognizer(target: self, action: #selector(scrollViewDoubleTapped(_:)))
-        doubleTapRecognizer.numberOfTapsRequired = 2
-        doubleTapRecognizer.numberOfTouchesRequired = 1
-        addGestureRecognizer(doubleTapRecognizer)
+            let doubleTapRecognizer = UITapGestureRecognizer(target: self, action: #selector(scrollViewDoubleTapped(_:)))
+            doubleTapRecognizer.numberOfTapsRequired = 2
+            doubleTapRecognizer.numberOfTouchesRequired = 1
+            addGestureRecognizer(doubleTapRecognizer)
 
-        let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(viewTapped(_:)))
-        addGestureRecognizer(tapRecognizer)
+            let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(viewTapped(_:)))
+            addGestureRecognizer(tapRecognizer)
 
-        tapRecognizer.require(toFail: doubleTapRecognizer)
+            tapRecognizer.require(toFail: doubleTapRecognizer)
+        }
     }
 
     // MARK: - Update
