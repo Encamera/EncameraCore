@@ -85,9 +85,9 @@ extension HeaderView: LayoutConfigurable {
             closeButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -26),
             closeButton.topAnchor.constraint(equalTo: topAnchor, constant: 18),
 
-            // Delete Button Constraints (using safe area)
-            deleteButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
-            deleteButton.topAnchor.constraint(equalTo: safeArea.topAnchor)
+            // Delete Button Constraints (use safe area for vertical centering)
+            deleteButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 26),
+            deleteButton.topAnchor.constraint(equalTo: topAnchor, constant: 18)
         ])
     }
 
