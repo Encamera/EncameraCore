@@ -14,23 +14,15 @@ open class HeaderView: UIView {
       attributes: LightboxConfig.CloseButton.textAttributes)
 
     let button = UIButton(type: .system)
-
     button.setAttributedTitle(title, for: UIControl.State())
 
-    if let size = LightboxConfig.CloseButton.size {
-      button.frame.size = size
-    } else {
-      button.sizeToFit()
-    }
-
-    button.addTarget(self, action: #selector(closeButtonDidPress(_:)),
-      for: .touchUpInside)
-
     if let image = LightboxConfig.CloseButton.image {
-        button.setBackgroundImage(image, for: UIControl.State())
+      button.setBackgroundImage(image, for: UIControl.State())
     }
 
+    button.addTarget(self, action: #selector(closeButtonDidPress(_:)), for: .touchUpInside)
     button.isHidden = !LightboxConfig.CloseButton.enabled
+    button.translatesAutoresizingMaskIntoConstraints = false
 
     return button
   }()
@@ -41,23 +33,15 @@ open class HeaderView: UIView {
       attributes: LightboxConfig.DeleteButton.textAttributes)
 
     let button = UIButton(type: .system)
-
     button.setAttributedTitle(title, for: .normal)
 
-    if let size = LightboxConfig.DeleteButton.size {
-      button.frame.size = size
-    } else {
-      button.sizeToFit()
-    }
-
-    button.addTarget(self, action: #selector(deleteButtonDidPress(_:)),
-      for: .touchUpInside)
-
     if let image = LightboxConfig.DeleteButton.image {
-        button.setBackgroundImage(image, for: UIControl.State())
+      button.setBackgroundImage(image, for: UIControl.State())
     }
 
+    button.addTarget(self, action: #selector(deleteButtonDidPress(_:)), for: .touchUpInside)
     button.isHidden = !LightboxConfig.DeleteButton.enabled
+    button.translatesAutoresizingMaskIntoConstraints = false
 
     return button
   }()
@@ -68,10 +52,10 @@ open class HeaderView: UIView {
 
   public init() {
     super.init(frame: CGRect.zero)
-
     backgroundColor = UIColor.clear
 
     [closeButton, deleteButton].forEach { addSubview($0) }
+    configureLayout()
   }
 
   public required init?(coder aDecoder: NSCoder) {
@@ -93,23 +77,18 @@ open class HeaderView: UIView {
 
 extension HeaderView: LayoutConfigurable {
 
-  @objc public func configureLayout() {
-    let topPadding: CGFloat
+    @objc public func configureLayout() {
+        let safeArea = self.safeAreaLayoutGuide
 
-    if #available(iOS 11, *) {
-      topPadding = safeAreaInsets.top
-    } else {
-      topPadding = 0
+        NSLayoutConstraint.activate([
+            // Close Button Constraints (use safe area for vertical centering)
+            closeButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -26),
+            closeButton.topAnchor.constraint(equalTo: topAnchor, constant: 18),
+
+            // Delete Button Constraints (using safe area)
+            deleteButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
+            deleteButton.topAnchor.constraint(equalTo: safeArea.topAnchor)
+        ])
     }
 
-    closeButton.frame.origin = CGPoint(
-      x: bounds.width - closeButton.frame.width - 17,
-      y: topPadding
-    )
-
-    deleteButton.frame.origin = CGPoint(
-      x: 17,
-      y: topPadding
-    )
-  }
 }

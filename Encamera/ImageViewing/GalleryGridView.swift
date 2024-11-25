@@ -441,6 +441,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 }
             case .galleryScrollView(context: let context):
                 GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions))
+                    .ignoresSafeArea(edges: [.top, .bottom, .leading, .trailing])
             case nil:
                 AnyView(EmptyView())
             }

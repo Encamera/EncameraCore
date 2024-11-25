@@ -87,7 +87,6 @@ class PageView: UIScrollView {
         self.fileAccess = fileAccess
         self.pageIndex = pageIndex
         super.init(frame: CGRect.zero)
-        backgroundColor = UIColor.random
         configure()
 
     }
@@ -216,7 +215,6 @@ class PageView: UIScrollView {
         } else {
             imageViewFrame.origin.y = 0.0
         }
-
         imageView.frame = imageViewFrame
     }
 

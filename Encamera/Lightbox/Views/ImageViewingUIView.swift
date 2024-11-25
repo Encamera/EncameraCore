@@ -37,6 +37,7 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
         fatalError("init(coder:) has not been implemented")
     }
 
+
     private func setupBindings() {
         // Observe changes in decryptedFileRef
         viewModel?.$decryptedFileRef

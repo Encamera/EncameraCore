@@ -45,13 +45,6 @@ open class LightboxController: UIViewController {
         return scrollView
     }()
 
-    lazy var overlayTapGestureRecognizer: UITapGestureRecognizer = { [unowned self] in
-        let gesture = UITapGestureRecognizer()
-        gesture.addTarget(self, action: #selector(overlayViewDidTap(_:)))
-
-        return gesture
-    }()
-
     lazy var effectView: UIVisualEffectView = {
         let effect = UIBlurEffect(style: .dark)
         let view = UIVisualEffectView(effect: effect)
@@ -76,16 +69,6 @@ open class LightboxController: UIViewController {
         return view
     }()
 
-    open fileprivate(set) lazy var overlayView: UIView = { [unowned self] in
-        let view = UIView(frame: CGRect.zero)
-        let gradient = CAGradientLayer()
-        let colors = [UIColor(hex: "090909").withAlphaComponent(0), UIColor(hex: "040404")]
-
-        view.addGradientLayer(colors)
-        view.alpha = 0
-
-        return view
-    }()
 
     // MARK: - Properties
 
@@ -192,24 +175,31 @@ open class LightboxController: UIViewController {
         transitionManager.scrollView = scrollView
         transitioningDelegate = transitionManager
 
-        [scrollView, overlayView, headerView].forEach { view.addSubview($0) }
-        overlayView.addGestureRecognizer(overlayTapGestureRecognizer)
+        [scrollView, headerView].forEach {
+            view.addSubview($0)
+            $0.translatesAutoresizingMaskIntoConstraints = false
+        }
+        NSLayoutConstraint.activate([
+            // Constraints for headerView
+            headerView.topAnchor.constraint(equalTo: view.topAnchor),
+            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerView.heightAnchor.constraint(equalToConstant: 44),
+
+            // Constraints for scrollView
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
 
         configurePages(initialImages)
-
         goTo(initialPage, animated: false)
         configureDynmaicBackground()
     }
 
     open override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-
-        headerView.frame = CGRect(
-            x: 0,
-            y: 16,
-            width: view.bounds.width,
-            height: 100
-        )
 
         if !presented {
             presented = true
@@ -235,7 +225,6 @@ open class LightboxController: UIViewController {
 
     override open func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-
         coordinator.animate(alongsideTransition: { _ in
             self.configureLayout(size)
         }, completion: nil)
@@ -303,16 +292,11 @@ open class LightboxController: UIViewController {
         goTo(currentPage - 1, animated: animated)
     }
 
-    // MARK: - Actions
-
-    @objc func overlayViewDidTap(_ tapGestureRecognizer: UITapGestureRecognizer) {
-    }
 
     // MARK: - Layout
 
     open func configureLayout(_ size: CGSize) {
         print("lbx configureLayout size: \(size)")
-        scrollView.frame.size = size
         scrollView.contentSize = CGSize(
             width: size.width * CGFloat(numberOfPages) + spacing * CGFloat(numberOfPages - 1),
             height: size.height)
@@ -327,11 +311,6 @@ open class LightboxController: UIViewController {
                 pageView.frame.size.width += spacing
             }
         }
-
-        [headerView].forEach { ($0 as AnyObject).configureLayout() }
-
-        overlayView.frame = scrollView.frame
-        overlayView.resizeGradientLayer()
     }
 
 
@@ -378,10 +357,10 @@ extension LightboxController: UIScrollViewDelegate {
         if velocity.x == 0 {
             speed = 0
         }
-        print("lbx scrollView frame: \(scrollView.frame)")
+
         let pageWidth = scrollView.frame.width + spacing
-        print("lbx pageWidth: \(pageWidth)")
-        var x = scrollView.contentOffset.x//+ speed * 60.0
+
+        var x = scrollView.contentOffset.x + speed * 60.0
 
         if speed > 0 {
             x = ceil(x / pageWidth) * pageWidth
@@ -392,7 +371,7 @@ extension LightboxController: UIScrollViewDelegate {
         }
 
         targetContentOffset.pointee.x = x
-//        currentPage = Int(x / pageWidth)
+        currentPage = Int(x / pageWidth)
     }
 }
 
