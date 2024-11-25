@@ -202,6 +202,12 @@ open class LightboxController: UIViewController {
         configureDynmaicBackground()
     }
 
+    open override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        AskForReviewUtil.askForReviewIfNeeded()
+    }
+
     open override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
@@ -255,7 +261,9 @@ open class LightboxController: UIViewController {
         for pageIndex in 0..<images.count {
             let showPurchaseOverlay = !purchasePermissionsManager.isAllowedAccess(feature: .accessPhoto(count: Double(images.count - pageIndex)))
             let pageView = PageView(image: images[pageIndex], fileAccess: fileAccess, pageIndex: pageIndex, showPurchaseOverlay: showPurchaseOverlay, upgradeButtonPressed: { [weak self] in
-                self?.purchaseButtonPressed()
+                self?.dismiss(completion: {
+                    self?.purchaseButtonPressed()
+                })
             })
             pageView.pageViewDelegate = self
 
@@ -351,10 +359,10 @@ open class LightboxController: UIViewController {
         return preloadIndicies
     }
 
-    func dismiss() {
+    func dismiss(completion: @escaping () -> Void = {}) {
         presented = false
         dismissalDelegate?.lightboxControllerWillDismiss(self)
-        dismiss(animated: true, completion: nil)
+        dismiss(animated: true, completion: completion)
     }
 
     // New Alert View Function
