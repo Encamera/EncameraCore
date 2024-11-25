@@ -1,17 +1,13 @@
-//
-//  PurchasePromptView.swift
-//  Encamera
-//
-//  Created by Alexander Freas on 25.11.24.
-//
-
 import Foundation
 import UIKit
 import EncameraCore
 
 class PhotoLimitReachedView: UIView {
 
-    override init(frame: CGRect) {
+    private var upgradeAction: (() -> Void)?
+
+    init(frame: CGRect, upgradeAction: @escaping () -> Void) {
+        self.upgradeAction = upgradeAction
         super.init(frame: frame)
         setupView()
     }
@@ -61,14 +57,8 @@ class PhotoLimitReachedView: UIView {
         upgradeButton.backgroundColor = SurfaceType.primaryButton.foregroundSecondaryUIColor
         upgradeButton.applyFontType(.pt16, on: .primaryButton, weight: .bold)
         upgradeButton.layer.cornerRadius = 8
+        upgradeButton.addTarget(self, action: #selector(upgradeButtonTapped), for: .touchUpInside)
         containerView.addSubview(upgradeButton)
-        
-        // Back Button
-        let backButton = UIButton(type: .system)
-        backButton.translatesAutoresizingMaskIntoConstraints = false
-        backButton.setTitle(L10n.backToAlbum, for: .normal)
-        backButton.setTitleColor(UIColor.systemBlue, for: .normal)
-        containerView.addSubview(backButton)
 
         // Constraints
         NSLayoutConstraint.activate([
@@ -98,12 +88,11 @@ class PhotoLimitReachedView: UIView {
             upgradeButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             upgradeButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             upgradeButton.heightAnchor.constraint(equalToConstant: 44),
-
-            // Back button constraints
-            backButton.topAnchor.constraint(equalTo: upgradeButton.bottomAnchor, constant: 16),
-            backButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            backButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-            backButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -24)
+            upgradeButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -24)
         ])
+    }
+
+    @objc private func upgradeButtonTapped() {
+        upgradeAction?()
     }
 }

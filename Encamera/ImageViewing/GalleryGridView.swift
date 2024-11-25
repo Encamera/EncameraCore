@@ -58,6 +58,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             debugPrint("startedImportCount: \(startedImportCount)")
         }
     }
+    @Published var showPurchaseScreen: Bool = false
     @Published var lastImportedAssets: [PHPickerResult] = []
     @Published var showNoLicenseDeletionWarning: Bool = false
     var agreedToDeleteWithNoLicense: Bool = false
@@ -440,7 +441,10 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     })
                 }
             case .galleryScrollView(context: let context):
-                GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions))
+                GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions, purchaseButtonPressed: {
+                    viewModel.currentModal = nil
+                    viewModel.showPurchaseScreen = true
+                }))
                     .ignoresSafeArea(edges: [.top, .bottom, .leading, .trailing])
             case nil:
                 AnyView(EmptyView())

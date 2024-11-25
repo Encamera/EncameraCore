@@ -30,6 +30,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var showEmptyView: Bool = false
     @Published var isSelectingMedia: Bool = false
     @Published var selectedMedia: Set<InteractableMedia<EncryptedMedia>> = Set()
+    @Published var isShowingPurchaseSheet = false
     var afterPurchaseAction: (() -> Void)?
     var gridViewModel: GalleryGridViewModel<D>
 
@@ -54,6 +55,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         self.isEditingAlbumName = shouldCreateAlbum
         let gridViewModel = GalleryGridViewModel<D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager ?? D.init())
         self.gridViewModel = gridViewModel
+        gridViewModel.$showPurchaseScreen.sink { [weak self] show in
+            self?.isShowingPurchaseSheet = show
+        }.store(in: &cancellables)
 
         self.$isSelectingMedia.sink { isSelecting in
             gridViewModel.isSelectingMedia = isSelecting
@@ -180,7 +184,6 @@ private enum Constants {
 struct AlbumDetailView<D: FileAccess>: View {
     @State var isShowingAlertForDeleteAllAlbumData: Bool = false
     @State var isShowingMoveAlbumModal = false
-    @State var isShowingPurchaseSheet = false
 
     @StateObject var viewModel: AlbumDetailViewModel<D>
     @Environment(\.presentationMode) private var presentationMode
@@ -188,7 +191,6 @@ struct AlbumDetailView<D: FileAccess>: View {
     func popLastView() {
         presentationMode.wrappedValue.dismiss()
     }
-
 
 
     var body: some View {
@@ -219,7 +221,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                     viewModel.moveAlbum(to: storage)
                     isShowingMoveAlbumModal = false
                 } else if !hasEntitlement && storage == .icloud {
-                    isShowingPurchaseSheet = true
+                    viewModel.isShowingPurchaseSheet = true
                     viewModel.afterPurchaseAction = {
                         viewModel.moveAlbum(to: storage)
                     }
@@ -227,13 +229,13 @@ struct AlbumDetailView<D: FileAccess>: View {
             }, dismissAction: {
                 isShowingMoveAlbumModal = false
             })
-            .productStore(isPresented: $isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
+            .productStore(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
                 if case .purchaseComplete = action {
-                    isShowingPurchaseSheet = false
+                    viewModel.isShowingPurchaseSheet = false
                     isShowingMoveAlbumModal = false
                     viewModel.afterPurchaseAction?()
                 } else {
-                    isShowingPurchaseSheet = false
+                    viewModel.isShowingPurchaseSheet = false
                 }
             }
             if viewModel.isSelectingMedia {

@@ -20,7 +20,7 @@ struct GalleryViewWrapper: UIViewControllerRepresentable {
         return LightboxController(images: viewModel.media,
                                   startIndex: startIndex,
                                   fileAccess: viewModel.fileAccess,
-                                  purchasePermissionsManager: viewModel.purchasedPermissions)
+                                  purchasePermissionsManager: viewModel.purchasedPermissions, purchaseButtonPressed: viewModel.purchaseButtonPressed)
     }
 
     func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {

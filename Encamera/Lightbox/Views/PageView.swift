@@ -36,7 +36,6 @@ class PageView: UIScrollView {
         }
     }()
 
-    let photoLimitReachedView = PhotoLimitReachedView()
 
 
     lazy var playButton: UIButton = {
@@ -77,10 +76,15 @@ class PageView: UIScrollView {
     private var fileAccess: FileAccess
     private var pageIndex: Int
     private var showPurchaseOverlay: Bool
+    let photoLimitReachedView: PhotoLimitReachedView
 
     // MARK: - Initializers
 
-    init(image: LightboxImage?, fileAccess: FileAccess, pageIndex: Int, showPurchaseOverlay: Bool) {
+    init(image: LightboxImage?, fileAccess: FileAccess, pageIndex: Int, showPurchaseOverlay: Bool, upgradeButtonPressed: @escaping () -> Void) {
+        self.photoLimitReachedView = PhotoLimitReachedView(frame: .zero, upgradeAction: {
+            upgradeButtonPressed()
+        })
+
         self.showPurchaseOverlay = showPurchaseOverlay
         self.image = image
         self.fileAccess = fileAccess

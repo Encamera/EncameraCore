@@ -147,10 +147,11 @@ open class LightboxController: UIViewController {
     fileprivate let initialPage: Int
     private let fileAccess: FileAccess
     private let purchasePermissionsManager: PurchasedPermissionManaging
-
+    private let purchaseButtonPressed: () -> (Void)
     // MARK: - Initializers
 
-    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging) {
+    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging, purchaseButtonPressed: @escaping () -> (Void)) {
+        self.purchaseButtonPressed = purchaseButtonPressed
         self.fileAccess = fileAccess
         self.initialImages = images
         self.initialPage = index
@@ -253,7 +254,9 @@ open class LightboxController: UIViewController {
 
         for pageIndex in 0..<images.count {
             let showPurchaseOverlay = purchasePermissionsManager.isAllowedAccess(feature: .accessPhoto(count: Double(pageIndex + 1)))
-            let pageView = PageView(image: images[pageIndex], fileAccess: fileAccess, pageIndex: pageIndex, showPurchaseOverlay: showPurchaseOverlay)
+            let pageView = PageView(image: images[pageIndex], fileAccess: fileAccess, pageIndex: pageIndex, showPurchaseOverlay: showPurchaseOverlay, upgradeButtonPressed: { [weak self] in
+                self?.purchaseButtonPressed()
+            })
             pageView.pageViewDelegate = self
 
             scrollView.addSubview(pageView)
