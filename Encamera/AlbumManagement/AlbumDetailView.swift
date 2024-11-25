@@ -231,7 +231,6 @@ struct AlbumDetailView<D: FileAccess>: View {
             })
             .productStore(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
                 if case .purchaseComplete = action {
-                    viewModel.isShowingPurchaseSheet = false
                     isShowingMoveAlbumModal = false
                     viewModel.afterPurchaseAction?()
                 } else {

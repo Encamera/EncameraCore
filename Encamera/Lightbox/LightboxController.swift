@@ -253,7 +253,7 @@ open class LightboxController: UIViewController {
         pageViews = []
 
         for pageIndex in 0..<images.count {
-            let showPurchaseOverlay = purchasePermissionsManager.isAllowedAccess(feature: .accessPhoto(count: Double(pageIndex + 1)))
+            let showPurchaseOverlay = !purchasePermissionsManager.isAllowedAccess(feature: .accessPhoto(count: Double(images.count - pageIndex)))
             let pageView = PageView(image: images[pageIndex], fileAccess: fileAccess, pageIndex: pageIndex, showPurchaseOverlay: showPurchaseOverlay, upgradeButtonPressed: { [weak self] in
                 self?.purchaseButtonPressed()
             })
