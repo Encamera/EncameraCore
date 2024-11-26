@@ -52,7 +52,7 @@ class VideoViewingViewModel: ObservableObject, MediaViewModelProtocol {
                 await MainActor.run {
                     decryptedFileRef = try? InteractableMedia(underlyingMedia: [result.thumbnailMedia])
                     delegate.didView(media: sourceMedia)
-                    if let uiImage = sourceMedia.uiImage {
+                    if let uiImage = decryptedFileRef?.uiImage {
                         delegate.didLoad(media: uiImage, atIndex: pageIndex)
                     }
                 }

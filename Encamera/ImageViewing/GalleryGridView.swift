@@ -375,7 +375,16 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
 private enum Constants {
     static let hideButtonWidth = 100.0
-    static let numberOfImagesWide = 2.0
+    static let numberOfImagesWide: Double = {
+        switch UIDevice.current.userInterfaceIdiom {
+        case .pad:
+            return 4.0
+        case .phone:
+            return 2.0
+        default:
+            return 2.0
+        }
+    }()
     static let buttonPadding = 7.0
     static let buttonCornerRadius = 10.0
 }
@@ -511,13 +520,13 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             let frame = geo.frame(in: .local)
             let outerMargin = 9.0
             let spacing = 9.0
-            let largeSide = frame.width - spacing * Constants.numberOfImagesWide
-            
+
+            // Calculate the side length dynamically based on the number of images wide
             let side = ((frame.width - outerMargin) / Constants.numberOfImagesWide) - spacing
-            let gridItems = [
-                GridItem(.fixed(side), spacing: spacing),
-                GridItem(.fixed(side), spacing: spacing),
-            ]
+            
+            // Generate a dynamic number of grid items based on numberOfImagesWide
+            let gridItems = Array(repeating: GridItem(.fixed(side), spacing: spacing), count: Int(Constants.numberOfImagesWide))
+            
             ZStack(alignment: .center) {
                 ScrollView {
                     HStack {
@@ -534,10 +543,8 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     }
                     .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
                     .animation(.easeIn, value: viewModel.blurImages)
-                    .frame(width: largeSide)
                 }
                 .padding(spacing)
-                
             }
             .task {
                 await viewModel.enumerateMedia()
@@ -547,7 +554,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             }
             .scrollIndicators(.hidden)
             .navigationBarTitle("")
-            
         }
     }
 

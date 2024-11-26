@@ -273,6 +273,9 @@ struct AlbumDetailView<D: FileAccess>: View {
                         Button {
                             viewModel.albumName = viewModel.album?.name ?? ""
                             viewModel.isEditingAlbumName = false
+                            if viewModel.albumName == "" {
+                                popLastView()
+                            }
                         } label: {
                             Text(L10n.cancel)
                                 .fontType(.pt14, weight: .bold)

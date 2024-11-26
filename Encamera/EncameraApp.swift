@@ -7,6 +7,8 @@ import AVFoundation
 typealias AlbumManagerType = AlbumManager
 typealias FileAccessType = InteractableMediaDiskAccess
 
+
+
 @main
 struct EncameraApp: App {
     class ViewModel<D: FileAccess>: ObservableObject {
@@ -400,6 +402,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
         EventTracking.trackAppLaunched()
         LaunchCountUtils.recordCurrentVersionLaunch()
+
+        let audioSession = AVAudioSession.sharedInstance()
+            do {
+                try audioSession.setCategory(.playback, mode: .default, options: [])
+                try audioSession.setActive(true)
+            } catch {
+                print("Failed to set audio session category: \(error)")
+            }
         return true
     }
 

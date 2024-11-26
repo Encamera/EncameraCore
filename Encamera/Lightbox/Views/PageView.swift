@@ -146,9 +146,9 @@ class PageView: UIScrollView {
         }
     }
 
-    func updatePlayButton () {
+    func updatePlayButton() {
         guard let image = image else { return }
-        if image.mediaType == .video && !subviews.contains(playButton) {
+        if image.mediaType == .video && !subviews.contains(playButton) && imageView.image != nil {
             addSubview(playButton)
         } else if subviews.contains(playButton) {
             playButton.removeFromSuperview()
@@ -259,6 +259,7 @@ extension PageView: MediaViewingDelegate {
 
     func didLoad(media: UIImage, atIndex index: Int) {
         pageViewDelegate?.imageDidLoad(media, atIndex: index)
+        updatePlayButton()
     }
 }
 

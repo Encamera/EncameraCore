@@ -15,11 +15,11 @@ struct MediaSelectionTray: View {
             HStack {
                 Spacer()
                 Menu {
-                    Button(action: {
-
-                    }) {
-                        Label(L10n.MediaSelectionTray.moveMedia, systemImage: "folder")
-                    }
+//                    Button(action: {
+//
+//                    }) {
+//                        Label(L10n.MediaSelectionTray.moveMedia, systemImage: "folder")
+//                    }
                     if showShareOption {
                         Button(action: {
                             shareAction()
