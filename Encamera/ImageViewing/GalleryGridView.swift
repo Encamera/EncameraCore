@@ -617,12 +617,17 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     }
                 }
 
+                let blurBinding = Binding<Bool> {
+                    viewModel.blurItemAt(index: index)
+                } set: { _ in
+                }
+
                 AsyncEncryptedImage(
                     viewModel: .init(targetMedia: mediaItem, loader: viewModel.fileAccess),
                     placeholder: ProgressView(),
                     isInSelectionMode: $viewModel.isSelectingMedia,
                     isSelected: selectionBinding,
-                    isBlurred: viewModel.blurItemAt(index: index)
+                    isBlurred: blurBinding
                 )
                 .id(mediaItem.gridID)
                 .frame(width: width, height: height)

@@ -41,6 +41,7 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
                     self.hostingView.isHidden = false
                     self.activityIndicator.stopAnimating()
                     self.errorLabel.isHidden = true
+                    self.hostingView.startPlayback(with: .hint)
                 }
             }
             .store(in: &cancellables)

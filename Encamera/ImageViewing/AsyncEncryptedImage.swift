@@ -48,7 +48,7 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
     var placeholder: Placeholder
     @Binding var isInSelectionMode: Bool
     @Binding var isSelected: Bool
-    @State var isBlurred: Bool
+    @Binding var isBlurred: Bool
 
     var body: some View {
 
