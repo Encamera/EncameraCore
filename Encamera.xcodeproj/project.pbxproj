@@ -45,6 +45,8 @@
 		173846240608B3AE76784429 /* MediaViewingError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A55AE312E788A2CC62124A23 /* MediaViewingError.swift */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		189E8E09C8B2051B80EA5DD7 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 2E3847B535525CD631854FE2 /* SwiftUIIntrospect */; };
+		19181B972CF6330B00340B23 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19181B962CF6330B00340B23 /* FeedbackView.swift */; };
+		19181B982CF6330B00340B23 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19181B962CF6330B00340B23 /* FeedbackView.swift */; };
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A4FD6D71B93F3D4A75F09C8 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541C934E3C2228AEF133A9AE /* Color+Extensions.swift */; };
@@ -474,6 +476,7 @@
 		1555F94A3CA4AB10FF868C52 /* LivePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoView.swift; sourceTree = "<group>"; };
 		15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewOnboardingView.swift; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		19181B962CF6330B00340B23 /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
 		198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1B60005D9CB1D186BF8FB5D2 /* 1.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.jpg; sourceTree = "<group>"; };
@@ -1190,6 +1193,7 @@
 				25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */,
 				9C92640E8CF7E155E8E1BA52 /* ViewHeader.swift */,
 				7FB2C08C3732EFAB967E6227 /* WebView.swift */,
+				19181B962CF6330B00340B23 /* FeedbackView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1633,6 +1637,7 @@
 				AA47FB62FF6FA9E4F45E5AE8 /* AlbumGridItem.swift in Sources */,
 				9A804ADA33AFDEF150A9F7DF /* AlbumMediaActionComponent.swift in Sources */,
 				9B0990DE913D9544A89BF89D /* AppNavigationPaths.swift in Sources */,
+				19181B972CF6330B00340B23 /* FeedbackView.swift in Sources */,
 				640833FAABF03B985D60D67E /* Array+Safe.swift in Sources */,
 				D95B7B1D8B343D31D783F79B /* AssetManager.swift in Sources */,
 				70AC154CF1FE49A51C0C72A1 /* AsyncEncryptedImage.swift in Sources */,
@@ -1799,6 +1804,7 @@
 				3B399B01046441E93D3B0314 /* CameraModePicker.swift in Sources */,
 				19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */,
 				CEE3865B1C11ED3D0AA5D2AA /* CameraPreview.swift in Sources */,
+				19181B982CF6330B00340B23 /* FeedbackView.swift in Sources */,
 				ACC2F6D0E8C2505DA795A526 /* CameraView.swift in Sources */,
 				F196675A30532A7E9CBB89F2 /* CameraZoomControlButtons.swift in Sources */,
 				65098F85279EAB56FB774FA7 /* ChangePinModal.swift in Sources */,

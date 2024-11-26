@@ -39,9 +39,12 @@ class GalleryHorizontalCollectionViewModel: NSObject, ObservableObject, DebugPri
     var fileAccess: FileAccess
     var currentSharingData: Any?
     var purchaseButtonPressed: () -> (Void)
+    var reviewAlertActionPressed: (AskForReviewUtil.ReviewSelection) -> (Void)
     private var cancellables = Set<AnyCancellable>()
+
     @Published var viewOffsets: [UUID: CGFloat] = [:]
-    init(media: [InteractableMedia<EncryptedMedia>], initialMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging, purchaseButtonPressed: @escaping () -> (Void)) {
+    init(media: [InteractableMedia<EncryptedMedia>], initialMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging, purchaseButtonPressed: @escaping () -> (Void), reviewAlertActionPressed: @escaping (AskForReviewUtil.ReviewSelection) -> (Void)) {
+        self.reviewAlertActionPressed = reviewAlertActionPressed
         self.purchaseButtonPressed = purchaseButtonPressed
         self.media = media
         self.fileAccess = fileAccess

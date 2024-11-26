@@ -22,4 +22,5 @@ enum AppNavigationPaths: Hashable {
 enum AppModal: Hashable {
     case galleryScrollView(context: GalleryScrollViewContext)
     case cameraView
+    case feedbackView
 }

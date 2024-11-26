@@ -148,15 +148,17 @@ open class LightboxController: UIViewController {
     private let fileAccess: FileAccess
     private let purchasePermissionsManager: PurchasedPermissionManaging
     private let purchaseButtonPressed: () -> (Void)
+    private let reviewAlertActionPressed: (AskForReviewUtil.ReviewSelection) -> (Void)
     // MARK: - Initializers
 
-    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging, purchaseButtonPressed: @escaping () -> (Void)) {
+    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging, purchaseButtonPressed: @escaping () -> (Void), reviewAlertActionPressed: @escaping (AskForReviewUtil.ReviewSelection) -> (Void)) {
         self.purchaseButtonPressed = purchaseButtonPressed
         self.fileAccess = fileAccess
         self.initialImages = images
         self.initialPage = index
         self.currentPage = index
         self.purchasePermissionsManager = purchasePermissionsManager
+        self.reviewAlertActionPressed = reviewAlertActionPressed
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -205,7 +207,7 @@ open class LightboxController: UIViewController {
     open override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
-        AskForReviewUtil.askForReviewIfNeeded()
+        AskForReviewUtil.askForReviewIfNeeded(completion: self.reviewAlertActionPressed)
     }
 
     open override func viewDidLayoutSubviews() {

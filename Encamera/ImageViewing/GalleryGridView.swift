@@ -465,8 +465,15 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions, purchaseButtonPressed: {
                     viewModel.currentModal = nil
                     viewModel.showPurchaseScreen = true
+                }, reviewAlertActionPressed: { selection in
+                    if selection == .no {
+                        viewModel.currentModal = .feedbackView
+                    }
+
                 }))
                     .ignoresSafeArea(edges: [.top, .bottom, .leading, .trailing])
+            case .feedbackView:
+                FeedbackView()
             case nil:
                 AnyView(EmptyView())
             }
