@@ -80,27 +80,34 @@ open class LightboxController: UIViewController {
             }
             pageDelegate?.lightboxController(self, didMoveToPage: currentPage)
             reconfigurePagesForPreload()
-            if let image = pageViews[currentPage].imageView.image {
-                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.125) {
-                    self.loadDynamicBackground(image)
-                }
+            let page = pageViews[currentPage]
+            configure(for: page)
+
+        }
+    }
+
+    func configure(for page: PageView) {
+        if let media = page.image, let image = page.imageView.image {
+            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.125) {
+                self.loadDynamicBackground(image)
+                self.footerView.media = media
             }
         }
     }
 
     func reconfigurePagesForPreload() {
-      let preloadIndicies = calculatePreloadIndicies()
+        let preloadIndicies = calculatePreloadIndicies()
 
-      for i in 0..<initialImages.count {
-        let pageView = pageViews[i]
-        if preloadIndicies.contains(i) {
-          if pageView.image == nil {
-            pageView.update(with: initialImages[i])
-          }
-        } else {
-            pageView.update(with: nil)
+        for i in 0..<initialImages.count {
+            let pageView = pageViews[i]
+            if preloadIndicies.contains(i) {
+                if pageView.image == nil {
+                    pageView.update(with: initialImages[i])
+                }
+            } else {
+                pageView.update(with: nil)
+            }
         }
-      }
     }
 
 
@@ -110,7 +117,7 @@ open class LightboxController: UIViewController {
 
     open var dynamicBackground: Bool = true {
         didSet {
-            configureDynmaicBackground()
+            configureDynamicBackground()
         }
     }
 
@@ -201,8 +208,9 @@ open class LightboxController: UIViewController {
         ])
 
         configurePages(initialImages)
+        configure(for: pageViews[currentPage])
         goTo(initialPage, animated: false)
-        configureDynmaicBackground()
+        configureDynamicBackground()
     }
 
     open override func viewDidAppear(_ animated: Bool) {
@@ -245,7 +253,7 @@ open class LightboxController: UIViewController {
 
     // MARK: - Configuration
 
-    func configureDynmaicBackground() {
+    func configureDynamicBackground() {
         if dynamicBackground == true {
             effectView.frame = view.frame
             backgroundView.frame = effectView.frame
@@ -463,11 +471,7 @@ extension LightboxController: UIScrollViewDelegate {
 extension LightboxController: PageViewDelegate {
 
     func imageDidLoad(_ image: UIImage?, atIndex index: Int) {
-        guard index == currentPage, let image else {
-            return
-        }
-
-        loadDynamicBackground(image)
+        configure(for: pageViews[currentPage])
     }
 
     func pageViewDidZoom(_ pageView: PageView) {
@@ -498,7 +502,8 @@ extension LightboxController: PageViewDelegate {
 
     private func toggleFooterView() {
         isFooterExpanded.toggle()
-        footerViewHeightConstraint.constant = isFooterExpanded ? view.frame.height * 0.25 : 76
+        scrollView.isScrollEnabled = !isFooterExpanded
+        footerViewHeightConstraint.constant = isFooterExpanded ? view.frame.height * 0.20 : 76
 
         UIView.animate(withDuration: 0.3, animations: {
             self.view.layoutIfNeeded()

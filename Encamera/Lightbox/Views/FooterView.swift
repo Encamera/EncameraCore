@@ -1,8 +1,64 @@
 import UIKit
+import EncameraCore
 
 protocol FooterViewDelegate: AnyObject {
     @MainActor
     func footerView(_ footerView: FooterView, didPressButton button: UIButton, buttonType: FooterView.ButtonType)
+}
+
+open class MediaInfo: UIView {
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Image Details"
+        label.applyFontType(.pt16, on: .darkBackground, weight: .bold)
+        label.textAlignment = .left
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let dateLabel: UILabel = {
+        let label = UILabel()
+        label.applyFontType(.pt16, on: .darkBackground, weight: .regular)
+        label.textAlignment = .left
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let stackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .vertical
+        stackView.alignment = .leading
+        stackView.spacing = 8
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupView()
+    }
+
+    required public init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupView()
+    }
+
+    private func setupView() {
+        stackView.addArrangedSubview(titleLabel)
+        stackView.addArrangedSubview(dateLabel)
+        addSubview(stackView)
+
+        NSLayoutConstraint.activate([
+            stackView.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            stackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
+        ])
+    }
+
+    func configure(with dateText: String) {
+        dateLabel.text = dateText
+    }
 }
 
 open class FooterView: UIView {
@@ -38,35 +94,42 @@ open class FooterView: UIView {
         action: #selector(buttonDidPress(_:))
     )
 
-    open fileprivate(set) lazy var helloWorldLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Hello World"
-        label.textColor = .black
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.isHidden = true
-        return label
+    open fileprivate(set) lazy var mediaInfoView: MediaInfo = {
+        let view = MediaInfo()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
     }()
 
+    var media: InteractableMedia<EncryptedMedia>! {
+        didSet {
+            if let timestamp = media.timestamp {
+                mediaInfoView.configure(with: DateUtils.dateTimeString(from: timestamp))
+            } else {
+                mediaInfoView.configure(with: L10n.noInfoAvailable)
+            }
+        }
+    }
+
     weak var delegate: (any FooterViewDelegate)?
-
-    // MARK: - Instance Variables
-
-    private var originalHeight: CGFloat = 0
 
     // MARK: - Initializers
 
     public override init(frame: CGRect) {
         super.init(frame: frame)
-        originalHeight = frame.height
+    }
+
+    convenience init() {
+        self.init(frame: .zero)
+        self.media = media
         backgroundColor = UIColor.clear
         let blurEffect = UIBlurEffect(style: .systemUltraThinMaterial)
         let blurEffectView = UIVisualEffectView(effect: blurEffect)
         blurEffectView.frame = bounds
         blurEffectView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        insertSubview(blurEffectView, at: 0)  // Ultra-thin frosted background
+        insertSubview(blurEffectView, at: 0)
 
-        [deleteButton, shareButton, infoButton, helloWorldLabel].forEach { addSubview($0) }
+        [deleteButton, shareButton, infoButton, mediaInfoView].forEach { addSubview($0) }
         configureLayout()
     }
 
@@ -108,24 +171,34 @@ open class FooterView: UIView {
     private func expandView() {
         self.infoButton.isHidden = true
         self.addSubview(self.chevronDownButton)
-        self.helloWorldLabel.isHidden = false
+        self.mediaInfoView.isHidden = false
+        self.mediaInfoView.alpha = 0
 
         NSLayoutConstraint.activate([
             chevronDownButton.centerXAnchor.constraint(equalTo: centerXAnchor),
             chevronDownButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
             chevronDownButton.widthAnchor.constraint(equalToConstant: 50),
             chevronDownButton.heightAnchor.constraint(equalToConstant: 50),
-            helloWorldLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            helloWorldLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
+            mediaInfoView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            mediaInfoView.topAnchor.constraint(equalTo: topAnchor, constant: 16),
+            mediaInfoView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16)
         ])
         layoutIfNeeded()
+        UIView.animate(withDuration: 0.2) {
+            self.mediaInfoView.alpha = 1
+        }
     }
 
     private func collapseView() {
-            self.chevronDownButton.removeFromSuperview()
-            self.infoButton.isHidden = false
-            self.helloWorldLabel.isHidden = true
-            }
+        self.chevronDownButton.removeFromSuperview()
+        self.infoButton.isHidden = false
+
+        UIView.animate(withDuration: 0.2, animations: {
+            self.mediaInfoView.alpha = 0
+        }) { _ in
+            self.mediaInfoView.isHidden = true
+        }
+    }
 }
 
 // MARK: - LayoutConfigurable
