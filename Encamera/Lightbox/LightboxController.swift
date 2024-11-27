@@ -69,7 +69,6 @@ open class LightboxController: UIViewController {
         return view
     }()
 
-
     // MARK: - Properties
 
     open fileprivate(set) var currentPage = 0 {
@@ -149,6 +148,9 @@ open class LightboxController: UIViewController {
     private let purchasePermissionsManager: PurchasedPermissionManaging
     private let purchaseButtonPressed: () -> (Void)
     private let reviewAlertActionPressed: (AskForReviewUtil.ReviewSelection) -> (Void)
+    private var footerViewHeightConstraint: NSLayoutConstraint!
+    private var isFooterExpanded = false
+
     // MARK: - Initializers
 
     public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging, purchaseButtonPressed: @escaping () -> (Void), reviewAlertActionPressed: @escaping (AskForReviewUtil.ReviewSelection) -> (Void)) {
@@ -166,14 +168,11 @@ open class LightboxController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-
     // MARK: - View lifecycle
 
     open override func viewDidLoad() {
         super.viewDidLoad()
         edgesForExtendedLayout = [.top, .bottom]
-        // 9 July 2020: @3lvis
-        // Lightbox hasn't been optimized to be used in presentation styles other than fullscreen.
         modalPresentationStyle = .fullScreen
 
         view.backgroundColor = LightboxConfig.imageBackgroundColor
@@ -185,12 +184,14 @@ open class LightboxController: UIViewController {
             view.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
+        footerViewHeightConstraint = footerView.heightAnchor.constraint(equalToConstant: 76)
+
         NSLayoutConstraint.activate([
-            // Constraints for headerView
+            // Constraints for footerView
             footerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             footerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             footerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            footerView.heightAnchor.constraint(equalToConstant: 76),
+            footerViewHeightConstraint,
 
             // Constraints for scrollView
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -494,35 +495,47 @@ extension LightboxController: PageViewDelegate {
     func pageViewDidDoubleTap(_ pageView: PageView) {
         imageTapDelegate?.lightboxController(self, didDoubleTap: images[currentPage], at: currentPage)
     }
+
+    private func toggleFooterView() {
+        isFooterExpanded.toggle()
+        footerViewHeightConstraint.constant = isFooterExpanded ? view.frame.height * 0.25 : 76
+
+        UIView.animate(withDuration: 0.3, animations: {
+            self.view.layoutIfNeeded()
+        })
+    }
+
+
 }
 
 // MARK: - HeaderViewDelegate
 
 extension LightboxController: FooterViewDelegate {
 
-    func footerView(_ footerView: FooterView, didPressInfoButton infoButton: UIButton) {
+    // MARK: - FooterViewDelegate
 
-    }
-
-    func footerView(_ footerView: FooterView, didPressShareButton shareButton: UIButton) {
-        let currentMedia = initialImages[currentPage]
-        let util = ShareMediaUtil(fileAccess: fileAccess, targetMedia: [currentMedia])
-        Task {
-            do {
-                try await util.prepareSharingData { status in
-                    print("Preparing share data")
+    func footerView(_ footerView: FooterView, didPressButton button: UIButton, buttonType: FooterView.ButtonType) {
+        switch buttonType {
+        case .info, .chevronDown:
+            toggleFooterView()
+        case .share:
+            let currentMedia = initialImages[currentPage]
+            let util = ShareMediaUtil(fileAccess: fileAccess, targetMedia: [currentMedia])
+            Task {
+                do {
+                    try await util.prepareSharingData { status in
+                        print("Preparing share data")
+                    }
+                    try await util.showShareSheet()
+                } catch {
+                    print("Error sharing media: \(error)")
                 }
-                try await util.showShareSheet()
-            } catch {
-                print("Error sharing media: \(error)")
             }
+        case .delete:
+            presentDeleteAlert(deleteButton: button)
+        case .chevronDown:
+            // Handle chevron down button press
+            break
         }
-    }
-
-    func footerView(_ footerView: FooterView, didPressDeleteButton deleteButton: UIButton) {
-        presentDeleteAlert(deleteButton: deleteButton)
-    }
-
-    func footerView(_ footerView: FooterView, didPressCloseButton closeButton: UIButton) {
     }
 }

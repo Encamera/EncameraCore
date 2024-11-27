@@ -2,60 +2,63 @@ import UIKit
 
 protocol FooterViewDelegate: AnyObject {
     @MainActor
-    func footerView(_ footerView: FooterView, didPressDeleteButton deleteButton: UIButton)
-    @MainActor
-    func footerView(_ footerView: FooterView, didPressShareButton shareButton: UIButton)
-    @MainActor
-    func footerView(_ footerView: FooterView, didPressInfoButton infoButton: UIButton)
+    func footerView(_ footerView: FooterView, didPressButton button: UIButton, buttonType: FooterView.ButtonType)
 }
 
 open class FooterView: UIView {
-    open fileprivate(set) lazy var deleteButton: UIButton = { [unowned self] in
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "trash"), for: .normal)
-        button.tintColor = .systemRed
-        button.backgroundColor = UIColor(white: 0.0, alpha: 0.1)
-        button.layer.cornerRadius = 25  // Make it round assuming width and height are equal
-        button.clipsToBounds = true
-        button.addTarget(self, action: #selector(deleteButtonDidPress(_:)), for: .touchUpInside)
-        button.isHidden = !LightboxConfig.DeleteButton.enabled
-        button.translatesAutoresizingMaskIntoConstraints = false
+    enum ButtonType: Int {
+        case delete, share, info, chevronDown
+    }
 
-        return button
-    }()
+    open fileprivate(set) lazy var deleteButton: UIButton = createButton(
+        type: .delete,
+        imageName: "trash",
+        tintColor: .systemRed,
+        action: #selector(buttonDidPress(_:))
+    )
 
-    open fileprivate(set) lazy var shareButton: UIButton = { [unowned self] in
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "square.and.arrow.up"), for: .normal)
-        button.tintColor = .systemBlue
-        button.backgroundColor = UIColor(white: 0.0, alpha: 0.1)
-        button.layer.cornerRadius = 25  // Make it round assuming width and height are equal
-        button.clipsToBounds = true
-        button.addTarget(self, action: #selector(shareButtonDidPress(_:)), for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
+    open fileprivate(set) lazy var shareButton: UIButton = createButton(
+        type: .share,
+        imageName: "square.and.arrow.up",
+        tintColor: .systemBlue,
+        action: #selector(buttonDidPress(_:))
+    )
 
-        return button
-    }()
+    open fileprivate(set) lazy var infoButton: UIButton = createButton(
+        type: .info,
+        imageName: "info.circle",
+        tintColor: .systemGray,
+        action: #selector(buttonDidPress(_:))
+    )
 
-    open fileprivate(set) lazy var infoButton: UIButton = { [unowned self] in
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "info.circle"), for: .normal)
-        button.tintColor = .systemGray
-        button.backgroundColor = UIColor(white: 0.0, alpha: 0.1)
-        button.layer.cornerRadius = 25  // Make it round assuming width and height are equal
-        button.clipsToBounds = true
-        button.addTarget(self, action: #selector(infoButtonDidPress(_:)), for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
+    open fileprivate(set) lazy var chevronDownButton: UIButton = createButton(
+        type: .chevronDown,
+        imageName: "chevron.down",
+        tintColor: .systemGray,
+        action: #selector(buttonDidPress(_:))
+    )
 
-        return button
+    open fileprivate(set) lazy var helloWorldLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Hello World"
+        label.textColor = .black
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.isHidden = true
+        return label
     }()
 
     weak var delegate: (any FooterViewDelegate)?
+
+    // MARK: - Instance Variables
+
+    private var originalHeight: CGFloat = 0
 
     // MARK: - Initializers
 
     public override init(frame: CGRect) {
         super.init(frame: frame)
+        originalHeight = frame.height
         backgroundColor = UIColor.clear
         let blurEffect = UIBlurEffect(style: .systemUltraThinMaterial)
         let blurEffectView = UIVisualEffectView(effect: blurEffect)
@@ -63,7 +66,7 @@ open class FooterView: UIView {
         blurEffectView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         insertSubview(blurEffectView, at: 0)  // Ultra-thin frosted background
 
-        [deleteButton, shareButton, infoButton].forEach { addSubview($0) }
+        [deleteButton, shareButton, infoButton, helloWorldLabel].forEach { addSubview($0) }
         configureLayout()
     }
 
@@ -71,19 +74,58 @@ open class FooterView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - Button Factory Method
+
+    private func createButton(type: ButtonType, imageName: String, tintColor: UIColor, action: Selector) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: imageName), for: .normal)
+        button.tintColor = tintColor
+        button.backgroundColor = UIColor(white: 0.0, alpha: 0.1)
+        button.layer.cornerRadius = 25  // Make it round assuming width and height are equal
+        button.clipsToBounds = true
+        button.addTarget(self, action: action, for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.tag = type.rawValue
+        return button
+    }
+
     // MARK: - Actions
 
-    @objc func deleteButtonDidPress(_ button: UIButton) {
-        delegate?.footerView(self, didPressDeleteButton: button)
+    @objc func buttonDidPress(_ button: UIButton) {
+        guard let buttonType = ButtonType(rawValue: button.tag) else { return }
+
+        switch buttonType {
+        case .info:
+            expandView()
+        case .chevronDown:
+            collapseView()
+        default:
+            break
+        }
+        delegate?.footerView(self, didPressButton: button, buttonType: buttonType)
     }
 
-    @objc func shareButtonDidPress(_ button: UIButton) {
-        delegate?.footerView(self, didPressShareButton: button)
+    private func expandView() {
+        self.infoButton.isHidden = true
+        self.addSubview(self.chevronDownButton)
+        self.helloWorldLabel.isHidden = false
+
+        NSLayoutConstraint.activate([
+            chevronDownButton.centerXAnchor.constraint(equalTo: centerXAnchor),
+            chevronDownButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
+            chevronDownButton.widthAnchor.constraint(equalToConstant: 50),
+            chevronDownButton.heightAnchor.constraint(equalToConstant: 50),
+            helloWorldLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            helloWorldLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+        layoutIfNeeded()
     }
 
-    @objc func infoButtonDidPress(_ button: UIButton) {
-        delegate?.footerView(self, didPressInfoButton: button)
-    }
+    private func collapseView() {
+            self.chevronDownButton.removeFromSuperview()
+            self.infoButton.isHidden = false
+            self.helloWorldLabel.isHidden = true
+            }
 }
 
 // MARK: - LayoutConfigurable
@@ -92,19 +134,19 @@ extension FooterView: LayoutConfigurable {
 
     @objc public func configureLayout() {
         NSLayoutConstraint.activate([
-            // Delete Button Constraints (use safe area for vertical centering)
+            // Delete Button Constraints
             deleteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -26),
             deleteButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
             deleteButton.widthAnchor.constraint(equalToConstant: 50),
             deleteButton.heightAnchor.constraint(equalToConstant: 50),
 
-            // Share Button Constraints (use safe area for vertical centering)
+            // Share Button Constraints
             shareButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 26),
             shareButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
             shareButton.widthAnchor.constraint(equalToConstant: 50),
             shareButton.heightAnchor.constraint(equalToConstant: 50),
 
-            // Info Button Constraints (use center X anchor)
+            // Info Button Constraints
             infoButton.centerXAnchor.constraint(equalTo: centerXAnchor),
             infoButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
             infoButton.widthAnchor.constraint(equalToConstant: 50),
