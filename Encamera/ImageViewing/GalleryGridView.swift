@@ -375,16 +375,20 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
 private enum Constants {
     static let hideButtonWidth = 100.0
-    static let numberOfImagesWide: Double = {
-        switch UIDevice.current.userInterfaceIdiom {
-        case .pad:
-            return 4.0
-        case .phone:
-            return 2.0
-        default:
-            return 2.0
+
+    static func numberOfImagesWide(for size: CGSize) -> Int {
+            let device = UIDevice.current
+            let width = size.width
+
+            switch device.userInterfaceIdiom {
+            case .pad:
+                return width > 800 ? 5 : 3  // iPads: 4 columns for wide screens, 3 for narrow screens
+            case .phone:
+                return width > 600 ? 3 : 2  // iPhones: 3 columns for wide screens, 2 for narrow screens
+            default:
+                return 2
+            }
         }
-    }()
     static let buttonPadding = 7.0
     static let buttonCornerRadius = 10.0
 }
@@ -392,6 +396,8 @@ private enum Constants {
 struct GalleryGridView<Content: View, D: FileAccess>: View {
     
     @ObservedObject var viewModel: GalleryGridViewModel<D>
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+
     var content: Content
     
     init(viewModel: GalleryGridViewModel<D>, @ViewBuilder content: () -> Content = { EmptyView() }) {
@@ -527,13 +533,11 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             let frame = geo.frame(in: .local)
             let outerMargin = 9.0
             let spacing = 9.0
+            let numberOfImages = Constants.numberOfImagesWide(for: frame.size)
+            let side = ((frame.width - outerMargin) / Double(numberOfImages)) - spacing
 
-            // Calculate the side length dynamically based on the number of images wide
-            let side = ((frame.width - outerMargin) / Constants.numberOfImagesWide) - spacing
-            
-            // Generate a dynamic number of grid items based on numberOfImagesWide
-            let gridItems = Array(repeating: GridItem(.fixed(side), spacing: spacing), count: Int(Constants.numberOfImagesWide))
-            
+            let gridItems = Array(repeating: GridItem(.fixed(side), spacing: spacing), count: numberOfImages)
+
             ZStack(alignment: .center) {
                 ScrollView {
                     HStack {

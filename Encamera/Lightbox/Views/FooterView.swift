@@ -9,7 +9,7 @@ protocol FooterViewDelegate: AnyObject {
 open class MediaInfo: UIView {
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Image Details"
+        label.text = L10n.FooterView.mediaDetails
         label.applyFontType(.pt16, on: .darkBackground, weight: .bold)
         label.textAlignment = .left
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -98,6 +98,9 @@ open class FooterView: UIView {
         let view = MediaInfo()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
+        let gesture = UISwipeGestureRecognizer(target: self, action: #selector(collapseViewFromSwipe))
+        gesture.direction = .down
+        view.addGestureRecognizer(gesture)
         return view
     }()
 
@@ -187,6 +190,11 @@ open class FooterView: UIView {
         UIView.animate(withDuration: 0.2) {
             self.mediaInfoView.alpha = 1
         }
+    }
+    @objc private func collapseViewFromSwipe() {
+        collapseView()
+        delegate?.footerView(self, didPressButton: chevronDownButton, buttonType: .chevronDown)
+
     }
 
     private func collapseView() {

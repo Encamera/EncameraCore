@@ -145,7 +145,7 @@ open class LightboxController: UIViewController {
     open weak var imageDeleteDelegate: (any LightboxControllerDeleteDelegate)?
     open internal(set) var presented = false
     open fileprivate(set) var seen = false
-
+    let closeButton = UIButton(type: .system)
     lazy var transitionManager: LightboxTransition = LightboxTransition()
     var pageViews = [PageView]()
 
@@ -157,6 +157,11 @@ open class LightboxController: UIViewController {
     private let reviewAlertActionPressed: (AskForReviewUtil.ReviewSelection) -> (Void)
     private var footerViewHeightConstraint: NSLayoutConstraint!
     private var isFooterExpanded = false
+    private var statusBarHidden = false
+
+    open override var prefersStatusBarHidden: Bool {
+        return statusBarHidden
+    }
 
     // MARK: - Initializers
 
@@ -211,6 +216,27 @@ open class LightboxController: UIViewController {
         configure(for: pageViews[currentPage])
         goTo(initialPage, animated: false)
         configureDynamicBackground()
+
+        addCloseButton()
+    }
+
+    private func addCloseButton() {
+
+        closeButton.setImage(UIImage(named: "Album-BackButton"), for: .normal)
+        closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
+
+        view.addSubview(closeButton)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            closeButton.widthAnchor.constraint(equalToConstant: 60),
+            closeButton.heightAnchor.constraint(equalToConstant: 44),
+            closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 0),
+            closeButton.trailingAnchor.constraint(equalTo: view.leadingAnchor, constant: 60)
+        ])
+    }
+
+    @objc private func closeButtonTapped() {
+        dismiss(completion: {})
     }
 
     open override func viewDidAppear(_ animated: Bool) {
@@ -226,10 +252,6 @@ open class LightboxController: UIViewController {
             presented = true
             configureLayout(view.frame.size)
         }
-    }
-
-    open override var prefersStatusBarHidden: Bool {
-        return LightboxConfig.hideStatusBar
     }
 
     // MARK: - Supported Orientations
@@ -343,17 +365,21 @@ open class LightboxController: UIViewController {
         backgroundView.layer.add(CATransition(), forKey: "fade")
     }
 
+
     func toggleControls(pageView: PageView?, visible: Bool, duration: TimeInterval = 0.1, delay: TimeInterval = 0) {
         let alpha: CGFloat = visible ? 1.0 : 0.0
-
+        closeButton.alpha = visible ? 1.0 : 0.0
         pageView?.playButton.isHidden = !visible
+
+        // Update statusBarHidden variable and request the status bar update
+        statusBarHidden = !visible
+        setNeedsStatusBarAppearanceUpdate()
 
         UIView.animate(withDuration: duration, delay: delay, options: [], animations: {
             self.footerView.alpha = alpha
             pageView?.playButton.alpha = alpha
         }, completion: nil)
     }
-
     // MARK: - Helper functions
     func calculatePreloadIndicies () -> [Int] {
         var preloadIndicies: [Int] = []
@@ -471,7 +497,11 @@ extension LightboxController: UIScrollViewDelegate {
 extension LightboxController: PageViewDelegate {
 
     func imageDidLoad(_ image: UIImage?, atIndex index: Int) {
-        configure(for: pageViews[currentPage])
+        let loadedPage = pageViews[currentPage]
+        if loadedPage.image?.mediaType != .video {
+            EventTracking.trackImageViewed()
+        }
+        configure(for: loadedPage)
     }
 
     func pageViewDidZoom(_ pageView: PageView) {
@@ -480,6 +510,7 @@ extension LightboxController: PageViewDelegate {
     }
 
     func pageView(_ pageView: PageView, didTouchPlayButton videoURL: URL) {
+        EventTracking.trackMovieViewed()
         LightboxConfig.handleVideo(self, videoURL)
     }
 

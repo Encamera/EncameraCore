@@ -9,6 +9,39 @@ import Combine
 import EncameraCore
 import SwiftUI
 
+private enum Constants {
+
+    static let numberOfAlbumsWide: Int = {
+        let device = UIDevice.current
+        let orientation = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.interfaceOrientation ?? .unknown
+
+        switch device.userInterfaceIdiom {
+        case .pad:
+            return orientation.isLandscape ? 4 : 3
+        case .phone:
+            return orientation.isLandscape ? 3 : 2
+        default:
+            return 2
+        }
+    }()
+
+    static func numberOfAlbumsWide(for size: CGSize) -> Int {
+            let device = UIDevice.current
+            let width = size.width
+
+            switch device.userInterfaceIdiom {
+            case .pad:
+                return width > 800 ? 4 : 3  // iPads: 4 columns for wide screens, 3 for narrow screens
+            case .phone:
+                return width > 600 ? 3 : 2  // iPhones: 3 columns for wide screens, 2 for narrow screens
+            default:
+                return 2
+            }
+        }
+}
+
+
+
 class AlbumGridViewModel<D: FileAccess>: ObservableObject {
     @Published var albums: [Album] = .init()
     @Published var isShowingAddExistingKeyView: Bool = false
@@ -79,6 +112,7 @@ struct AlbumGrid<D: FileAccess>: View {
     @StateObject var viewModel: AlbumGridViewModel<D>
     @State var path: NavigationPath = .init()
     @State private var showNotificationSheet: Bool = false
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     var body: some View {
         let spacing = CGFloat(17.0)
@@ -91,22 +125,21 @@ struct AlbumGrid<D: FileAccess>: View {
                 } label: {
                     NotificationBell(showIndicator: viewModel.showNotificationBellIndicator)
                 }
-
             })
+
             GeometryReader { geo in
                 let frame = geo.frame(in: .local)
-                let side = CGFloat(CGFloat(frame.width / 2) - spacing)
-                let columns = [
-                    GridItem(.fixed(side), spacing: spacing),
-                    GridItem(.fixed(side))
-                ]
+                let numberOfColumns = Constants.numberOfAlbumsWide(for: frame.size)
+                let side = ((frame.width - CGFloat(numberOfColumns + 1) * spacing) / CGFloat(numberOfColumns))
+                let columns = Array(repeating: GridItem(.fixed(side), spacing: spacing), count: numberOfColumns)
+
                 ScrollView(showsIndicators: false) {
                     LazyVGrid(columns: columns, spacing: spacing) {
                         Group {
                             createAlbumButton(side: side)
                             albums(side: side)
-
-                        }.frame(height: side + 60)
+                        }
+                        .frame(height: side + 60)
                     }
                     .padding(.bottom, 80)
                 }

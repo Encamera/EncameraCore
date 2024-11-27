@@ -91,7 +91,6 @@ targets:
       Release: ./xcconfigs/release.xcconfig
     platform: iOS
     sources: [Encamera]
-    storeKitConfiguration: "../../../EncameraCore/Sources/EncameraCore/InAppPurchase/Encamera.storekit"
     settings:
       DEVELOPMENT_TEAM: KGJCC745S9
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ForegroundPrimaryColor
@@ -116,8 +115,10 @@ targets:
       - package: TagCloud
         link: true
     scheme:
+      storeKitConfiguration: "Encamera/InAppPurchase/Encamera.storekit"
       testTargets:
         - EncameraTests
+
 
   StoreKitTesting:
     type: application

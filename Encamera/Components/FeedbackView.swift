@@ -9,6 +9,7 @@ struct Feedback: Codable {
 struct FeedbackView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var feedbackText: String = ""
+    @State private var showAlert: Bool = false
 
     var body: some View {
         VStack {
@@ -32,11 +33,12 @@ struct FeedbackView: View {
                         if feedbackText.isEmpty {
                             Text(L10n.FeedbackView.placeholderText)
                                 .foregroundColor(.gray)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 12)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 20)
                         }
                         TextEditor(text: $feedbackText)
-                            .padding()
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 12)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .fontType(.pt16)
                             .scrollContentBackgroundColor(.clear)
@@ -55,10 +57,15 @@ struct FeedbackView: View {
         }
         .gradientBackground()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text(L10n.FeedbackView.thanks), message: Text(L10n.FeedbackView.weAppreciateIt), dismissButton: .default(Text(L10n.ok)) {
+                dismiss()
+            })
+        }
     }
 
     private func submitFeedback() {
-        let feedback = Feedback(id: UUID().uuidString, feedback: feedbackText)
+        let feedback = Feedback(id: EventTracking.shared.piwikTracker.visitorID, feedback: feedbackText)
 
         guard let postData = try? JSONEncoder().encode(feedback) else {
             print("Failed to encode feedback")
@@ -77,7 +84,7 @@ struct FeedbackView: View {
             }
             print(String(data: data, encoding: .utf8)!)
             DispatchQueue.main.async {
-                dismiss()
+                showAlert = true
             }
         }
         task.resume()

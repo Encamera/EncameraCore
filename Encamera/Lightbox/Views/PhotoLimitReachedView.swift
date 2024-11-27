@@ -60,35 +60,44 @@ class PhotoLimitReachedView: UIView {
         upgradeButton.addTarget(self, action: #selector(upgradeButtonTapped), for: .touchUpInside)
         containerView.addSubview(upgradeButton)
 
+        // Define constants for reused values
+        let sidePadding: CGFloat = 16
+        let containerPadding: CGFloat = 24
+        let warningImageSize: CGFloat = 48
+        let buttonHeight: CGFloat = 54
+        let titleToWarningSpacing: CGFloat = 16
+        let descriptionToTitleSpacing: CGFloat = 8
+        let buttonToDescriptionSpacing: CGFloat = 24
+
         // Constraints
         NSLayoutConstraint.activate([
             // Container view constraints
             containerView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            containerView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 24),
-            containerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
+            containerView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: containerPadding),
+            containerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -containerPadding),
 
             // Warning icon constraints
-            warningImageView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 24),
+            warningImageView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: containerPadding),
             warningImageView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            warningImageView.heightAnchor.constraint(equalToConstant: 48),
-            warningImageView.widthAnchor.constraint(equalToConstant: 48),
+            warningImageView.heightAnchor.constraint(equalToConstant: warningImageSize),
+            warningImageView.widthAnchor.constraint(equalToConstant: warningImageSize),
 
             // Title label constraints
-            titleLabel.topAnchor.constraint(equalTo: warningImageView.bottomAnchor, constant: 16),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            titleLabel.topAnchor.constraint(equalTo: warningImageView.bottomAnchor, constant: titleToWarningSpacing),
+            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: sidePadding),
+            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -sidePadding),
 
             // Description label constraints
-            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            descriptionLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: descriptionToTitleSpacing),
+            descriptionLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: sidePadding),
+            descriptionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -sidePadding),
 
             // Upgrade button constraints
-            upgradeButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 24),
-            upgradeButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            upgradeButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-            upgradeButton.heightAnchor.constraint(equalToConstant: 44),
-            upgradeButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -24)
+            upgradeButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: buttonToDescriptionSpacing),
+            upgradeButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: sidePadding),
+            upgradeButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -sidePadding),
+            upgradeButton.heightAnchor.constraint(equalToConstant: buttonHeight),
+            upgradeButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -containerPadding)
         ])
     }
 

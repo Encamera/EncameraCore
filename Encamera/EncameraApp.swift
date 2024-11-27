@@ -319,7 +319,7 @@ struct EncameraApp: App {
                     }
                 }
 
-                .statusBar(hidden: true)
+                .statusBar(hidden: false)
                 .environment(
                     \.isScreenBlockingActive,
                      self.viewModel.showScreenBlocker

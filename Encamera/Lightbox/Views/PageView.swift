@@ -107,9 +107,10 @@ class PageView: UIScrollView {
             NSLayoutConstraint.activate([
                 photoLimitReachedView.centerXAnchor.constraint(equalTo: centerXAnchor),
                 photoLimitReachedView.centerYAnchor.constraint(equalTo: centerYAnchor),
-                photoLimitReachedView.widthAnchor.constraint(equalToConstant: 300),
-                photoLimitReachedView.heightAnchor.constraint(equalToConstant: 400)
+                photoLimitReachedView.widthAnchor.constraint(equalTo: widthAnchor, multiplier: 0.75), // 75% of the screen width
+                photoLimitReachedView.heightAnchor.constraint(equalToConstant: 500) // Fixed height of 500
             ])
+
 
         } else {
             addSubview(imageView)
