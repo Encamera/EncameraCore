@@ -154,7 +154,7 @@ class PageView: UIScrollView {
         } else if subviews.contains(playButton) {
             playButton.removeFromSuperview()
         }
-    }   
+    }
 
     // MARK: - Recognizers
 
@@ -235,27 +235,85 @@ class PageView: UIScrollView {
 
     // MARK: - Action
 
+
     @objc func playButtonTouched(_ button: UIButton) {
         guard let image else {
             return
         }
-        Task {
-            let decryptedVideo = try await fileAccess.loadMediaToURLs(media: image) { status in
-                print("Status: \(status)")
-            }
-            guard let decryptedVideo = decryptedVideo.first else { return }
-            await MainActor.run {
-                pageViewDelegate?.pageView(self, didTouchPlayButton: decryptedVideo as URL)
-            }
+
+        let alertController = UIAlertController(title: L10n.Alert.LoadingFile.title, message: L10n.Alert.LoadingFile.message, preferredStyle: .alert)
+
+        // Add a progress view to the alert
+        let progressView = UIProgressView(progressViewStyle: .default)
+        progressView.translatesAutoresizingMaskIntoConstraints = false
+        alertController.view.addSubview(progressView)
+
+        NSLayoutConstraint.activate([
+            progressView.leadingAnchor.constraint(equalTo: alertController.view.leadingAnchor, constant: 20),
+            progressView.trailingAnchor.constraint(equalTo: alertController.view.trailingAnchor, constant: -20),
+            progressView.bottomAnchor.constraint(equalTo: alertController.view.bottomAnchor, constant: -50),
+        ])
+        alertController.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        // Present the alert controller
+        if let topController = UIApplication.topMostViewController() {
+            topController.present(alertController, animated: true, completion: nil)
         }
 
+        Task {
+            do {
+                let decryptedVideo = try await fileAccess.loadMediaToURLs(media: image) { status in
+                    DispatchQueue.main.async {
+                        switch status {
+                        case .notLoaded:
+                            progressView.progress = 0.0
+                            alertController.message = L10n.ProgressView.startingDownload
+                        case .downloading(let progress):
+                            progressView.progress = Float(progress)
+                            alertController.message = L10n.ProgressView.downloading(Float(progress) * 100)
+                        case .decrypting(let progress):
+                            progressView.progress = Float(progress)
+                            alertController.message = L10n.ProgressView.decrypting(Float(progress) * 100)
+                        case .loaded:
+                            progressView.progress = 1.0
+                            alertController.message = L10n.ProgressView.fileLoadedSuccessfully
+                        }
+                    }
+                }
+                guard let decryptedVideo = decryptedVideo.first else { return }
 
+                await MainActor.run {
+                    alertController.dismiss(animated: true, completion: { [weak self] in
+                        guard let self else {
+                            return
+                        }
+                        self.pageViewDelegate?.pageView(self, didTouchPlayButton: decryptedVideo as URL)
+                    })
+
+                }
+            } catch {
+                await MainActor.run {
+                    alertController.dismiss(animated: true, completion: nil)
+                    var errorString: String
+                    if let viewingError = error as? ErrorDescribable {
+                        errorString = viewingError.displayDescription
+                    } else {
+                        errorString = error.localizedDescription
+                    }
+                    // Handle error if needed, e.g., show an error alert
+                    let errorAlert = UIAlertController(title: L10n.Error.Alert.title, message: L10n.Error.Alert.failedToLoadFile(errorString), preferredStyle: .alert)
+                    errorAlert.addAction(UIAlertAction(title: L10n.ok, style: .default, handler: nil))
+                    if let topController = UIApplication.topMostViewController() {
+                        topController.present(errorAlert, animated: true, completion: nil)
+                    }
+                }
+            }
+        }
     }
 }
 
 extension PageView: MediaViewingDelegate {
     func didView(media: InteractableMedia<EncryptedMedia>) {
-        
+
     }
 
     func didLoad(media: UIImage, atIndex index: Int) {

@@ -510,8 +510,12 @@ extension LightboxController: PageViewDelegate {
     }
 
     func pageView(_ pageView: PageView, didTouchPlayButton videoURL: URL) {
+        guard let viewController = UIApplication.topMostViewController() else {
+            return
+        }
         EventTracking.trackMovieViewed()
-        LightboxConfig.handleVideo(self, videoURL)
+
+        LightboxConfig.handleVideo(viewController, videoURL)
     }
 
     func pageViewDidTouch(_ pageView: PageView) {
