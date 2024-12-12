@@ -138,12 +138,23 @@ class PageView: UIScrollView {
         }
     }
 
+    private var loadingTask: Task<Void, Never>?
+    func cancelLoading() {
+        imageView.viewModel?.reset()
+        loadingTask?.cancel()
+        loadingTask = nil
+        imageView.reset()
+    }
     // MARK: - Update
     func update(with image: LightboxImage?) {
         self.image = image
         updatePlayButton()
-        if let image {
-            imageView.setMediaAndLoad(image: image)
+        if let image,
+            imageView.image == nil,
+            loadingTask == nil {
+            loadingTask = Task {
+                await imageView.setMediaAndLoad(image: image)
+            }
         }
     }
 
@@ -253,15 +264,26 @@ class PageView: UIScrollView {
             progressView.trailingAnchor.constraint(equalTo: alertController.view.trailingAnchor, constant: -20),
             progressView.bottomAnchor.constraint(equalTo: alertController.view.bottomAnchor, constant: -50),
         ])
-        alertController.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+
+        let task = createLoadMediaTask(for: image, alertController: alertController, progressView: progressView)
+
+
+        alertController.addAction(UIAlertAction(title: L10n.cancel, style: .cancel) { _ in 
+            task.cancel()
+        })
+
         // Present the alert controller
         if let topController = UIApplication.topMostViewController() {
             topController.present(alertController, animated: true, completion: nil)
         }
 
-        Task {
+
+    }
+
+    private func createLoadMediaTask(for media: InteractableMedia<EncryptedMedia>, alertController: UIAlertController, progressView: UIProgressView) -> Task<Void, Never> {
+        return Task {
             do {
-                let decryptedVideo = try await fileAccess.loadMediaToURLs(media: image) { status in
+                let decryptedVideo = try await fileAccess.loadMediaToURLs(media: media) { status in
                     DispatchQueue.main.async {
                         switch status {
                         case .notLoaded:
@@ -288,9 +310,12 @@ class PageView: UIScrollView {
                         }
                         self.pageViewDelegate?.pageView(self, didTouchPlayButton: decryptedVideo as URL)
                     })
-
                 }
-            } catch {
+            } catch  {
+                
+                guard let chunkedError = error as? ChunkedFilesError, chunkedError != .operationCancelled else {
+                    return
+                }
                 await MainActor.run {
                     alertController.dismiss(animated: true, completion: nil)
                     var errorString: String
@@ -309,6 +334,7 @@ class PageView: UIScrollView {
             }
         }
     }
+
 }
 
 extension PageView: MediaViewingDelegate {

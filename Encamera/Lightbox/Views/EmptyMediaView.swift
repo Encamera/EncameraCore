@@ -26,7 +26,9 @@ class EmptyMediaView: UIView, MediaViewProtocol {
     func setMediaAndLoad(image: LightboxImage) {
 
     }
-
+    func reset() {
+        
+    }
     init() {
         super.init(frame: .zero)
         backgroundColor = .systemBackground

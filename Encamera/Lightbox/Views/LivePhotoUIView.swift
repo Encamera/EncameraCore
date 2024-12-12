@@ -9,7 +9,7 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
     typealias ViewModel = LivePhotoViewingViewModel
     typealias HostingView = PHLivePhotoView
     // View model
-    internal let viewModel: LivePhotoViewingViewModel?
+    internal var viewModel: LivePhotoViewingViewModel?
     private var cancellables = Set<AnyCancellable>()
 
     // UI Components
@@ -29,6 +29,9 @@ class LivePhotoViewingUIView: UIView, MediaViewProtocol {
         fatalError("init(coder:) has not been implemented")
     }
 
+    func reset() {
+        hostingView.livePhoto = nil
+    }
 
     private func setupBindings() {
         // Observe changes in preparedLivePhoto

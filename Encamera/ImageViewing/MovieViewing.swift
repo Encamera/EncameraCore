@@ -17,7 +17,6 @@ class MovieViewingViewModel: ObservableObject, MediaViewingViewModel {
     @MainActor
     @Published var decryptProgress: FileLoadingStatus = .notLoaded
     @Published var player: AVPlayer?
-    fileprivate var cancellables = Set<AnyCancellable>()
 
 
     var error: MediaViewingError?
@@ -34,7 +33,6 @@ class MovieViewingViewModel: ObservableObject, MediaViewingViewModel {
 
     private var durationObservation: NSKeyValueObservation?
 
-    @MainActor
     func decrypt() async throws -> InteractableMedia<CleartextMedia> {
         guard let fileAccess = fileAccess else {
             debugPrint("File access not available")
@@ -42,13 +40,14 @@ class MovieViewingViewModel: ObservableObject, MediaViewingViewModel {
         }
         let cleartextMedia = try await fileAccess.loadMedia(media: sourceMedia) { progress in
             debugPrint("Decrypting movie: \(progress)")
-            self.decryptProgress = progress
+            Task { @MainActor in
+                self.decryptProgress = progress
+            }
         }
 
-        guard let url = cleartextMedia.videoURL else {
+        guard cleartextMedia.videoURL != nil else {
             throw MediaViewingError.decryptError(wrapped: NSError(domain: "No URL", code: 0, userInfo: nil))
         }
-
         return cleartextMedia
         
     }

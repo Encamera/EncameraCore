@@ -17,7 +17,7 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
     typealias ViewModel = ImageViewingViewModel
     typealias HostingView = UIImageView
     // View model
-    internal let viewModel: ImageViewingViewModel?
+    internal var viewModel: ImageViewingViewModel?
     private var cancellables = Set<AnyCancellable>()
 
     // UI Components
@@ -37,6 +37,9 @@ class ImageViewingUIView: UIView, MediaViewProtocol {
         fatalError("init(coder:) has not been implemented")
     }
 
+    func reset() {
+        hostingView.image = nil
+    }
 
     private func setupBindings() {
         // Observe changes in decryptedFileRef

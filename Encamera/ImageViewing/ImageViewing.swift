@@ -24,7 +24,7 @@ class ImageViewingViewModel: ObservableObject, MediaViewModelProtocol {
     var sourceMedia: InteractableMedia<EncryptedMedia>
     var fileAccess: FileAccess
     @Published var error: MediaViewingError?
-
+    private var decryptTask: Task<Void, Never>?
     private var delegate: MediaViewingDelegate
 
     required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate, pageIndex: Int) {
@@ -34,30 +34,28 @@ class ImageViewingViewModel: ObservableObject, MediaViewModelProtocol {
         self.pageIndex = pageIndex
     }
 
-    func decryptAndSet() {
-        Task { [self] in
-            do {
-                let result = try await fileAccess.loadMedia(media: sourceMedia) { [self] progress in
-                    switch progress {
-                    case .decrypting(progress: let progress), .downloading(progress: let progress):
-                        loadingProgress = progress
-                    case .loaded:
-                        loadingProgress = 1.0
-                    case .notLoaded:
-                        loadingProgress = 0.0
-                    }
+    func decryptAndSet() async {
+        do {
+            let result = try await fileAccess.loadMedia(media: sourceMedia) { [self] progress in
+                switch progress {
+                case .decrypting(progress: let progress), .downloading(progress: let progress):
+                    loadingProgress = progress
+                case .loaded:
+                    loadingProgress = 1.0
+                case .notLoaded:
+                    loadingProgress = 0.0
                 }
-                await MainActor.run {
-                    decryptedFileRef = result
-                    if let uiImage = result.uiImage {
-                        delegate.didLoad(media: uiImage, atIndex: pageIndex)
-                        delegate.didView(media: sourceMedia)
-                    }
-                }
-
-            } catch {
-                self.error = .decryptError(wrapped: error)
             }
+            await MainActor.run {
+                decryptedFileRef = result
+                if let uiImage = result.uiImage {
+                    delegate.didLoad(media: uiImage, atIndex: pageIndex)
+                    delegate.didView(media: sourceMedia)
+                }
+            }
+
+        } catch {
+            self.error = .decryptError(wrapped: error)
         }
     }
 }

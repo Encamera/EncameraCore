@@ -70,19 +70,19 @@ open class LightboxController: UIViewController {
     }()
 
     // MARK: - Properties
-
     open fileprivate(set) var currentPage = 0 {
         didSet {
             currentPage = min(numberOfPages - 1, max(0, currentPage))
 
-            if currentPage == numberOfPages - 1 {
-                seen = true
-            }
+
             pageDelegate?.lightboxController(self, didMoveToPage: currentPage)
+
             reconfigurePagesForPreload()
+
+            cancelNonPreloadPages()
+
             let page = pageViews[currentPage]
             configure(for: page)
-
         }
     }
 
@@ -93,6 +93,7 @@ open class LightboxController: UIViewController {
                 self.footerView.media = media
             }
         }
+        
     }
 
     func reconfigurePagesForPreload() {
@@ -110,6 +111,15 @@ open class LightboxController: UIViewController {
         }
     }
 
+    func cancelNonPreloadPages() {
+        let preloadIndicies = calculatePreloadIndicies()
+
+        for i in 0..<pageViews.count {
+            if !preloadIndicies.contains(i) {
+                pageViews[i].cancelLoading()
+            }
+        }
+    }
 
     open var numberOfPages: Int {
         return pageViews.count
@@ -144,7 +154,6 @@ open class LightboxController: UIViewController {
     open weak var imageTapDelegate: (any LightboxControllerTapDelegate)?
     open weak var imageDeleteDelegate: (any LightboxControllerDeleteDelegate)?
     open internal(set) var presented = false
-    open fileprivate(set) var seen = false
     let closeButton = UIButton(type: .system)
     lazy var transitionManager: LightboxTransition = LightboxTransition()
     var pageViews = [PageView]()
@@ -174,6 +183,7 @@ open class LightboxController: UIViewController {
         self.purchasePermissionsManager = purchasePermissionsManager
         self.reviewAlertActionPressed = reviewAlertActionPressed
         super.init(nibName: nil, bundle: nil)
+        self.pageDelegate = self
     }
 
     public required init?(coder aDecoder: NSCoder) {
@@ -309,7 +319,7 @@ open class LightboxController: UIViewController {
         indicesToLoad.forEach({ index in
             let page = pageViews[index]
             let image = images[index]
-            page.imageView.setMediaAndLoad(image: image)
+            page.update(with: image)
         })
 
         configureLayout(view.bounds.size)
@@ -498,9 +508,6 @@ extension LightboxController: PageViewDelegate {
 
     func imageDidLoad(_ image: UIImage?, atIndex index: Int) {
         let loadedPage = pageViews[currentPage]
-        if loadedPage.image?.mediaType != .video {
-            EventTracking.trackImageViewed()
-        }
         configure(for: loadedPage)
     }
 
@@ -576,6 +583,15 @@ extension LightboxController: FooterViewDelegate {
         case .chevronDown:
             // Handle chevron down button press
             break
+        }
+    }
+}
+
+extension LightboxController: LightboxControllerPageDelegate {
+    public func lightboxController(_ controller: LightboxController, didMoveToPage page: Int) {
+        let loadedPage = images[page]
+        if loadedPage.mediaType != .video {
+            EventTracking.trackImageViewed()
         }
     }
 }

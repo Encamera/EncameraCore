@@ -13,13 +13,14 @@ protocol MediaViewProtocol: UIView {
     associatedtype HostingView: UIView
     init(viewModel: ViewModel)
     
-    func setMediaAndLoad(image: LightboxImage)
+    func setMediaAndLoad(image: LightboxImage) async
     var image: UIImage? { get }
     var viewModel: ViewModel? { get }
     var hostingView: HostingView { get }
     var errorLabel: UILabel { get set }
 
     var activityIndicator: UIActivityIndicatorView { get set }
+    func reset()
 }
 
 extension MediaViewProtocol {
@@ -29,9 +30,11 @@ extension MediaViewProtocol {
         return viewModel?.decryptedFileRef?.uiImage
     }
 
-    func setMediaAndLoad(image: LightboxImage) {
-        activityIndicator.startAnimating()
-        viewModel?.decryptAndSet()
+    func setMediaAndLoad(image: LightboxImage) async {
+        Task { @MainActor in
+            activityIndicator.startAnimating()
+        }
+        await viewModel?.decryptAndSet()
     }
 
 

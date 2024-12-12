@@ -37,29 +37,25 @@ class VideoViewingViewModel: ObservableObject, MediaViewModelProtocol {
     @Published var error: MediaViewingError?
     var pageIndex: Int
     private var delegate: MediaViewingDelegate
-
     required init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate, pageIndex: Int) {
         self.pageIndex = pageIndex
         self.sourceMedia = sourceMedia
         self.fileAccess = fileAccess
         self.delegate = delegate
     }
-
-    func decryptAndSet() {
-        Task { [self] in
-            do {
-                let result = try await fileAccess.loadMediaPreview(for: sourceMedia)
-                await MainActor.run {
-                    decryptedFileRef = try? InteractableMedia(underlyingMedia: [result.thumbnailMedia])
-                    delegate.didView(media: sourceMedia)
-                    if let uiImage = decryptedFileRef?.uiImage {
-                        delegate.didLoad(media: uiImage, atIndex: pageIndex)
-                    }
+    func decryptAndSet() async {
+        do {
+            let result = try await fileAccess.loadMediaPreview(for: sourceMedia)
+            await MainActor.run {
+                decryptedFileRef = try? InteractableMedia(underlyingMedia: [result.thumbnailMedia])
+                delegate.didView(media: sourceMedia)
+                if let uiImage = decryptedFileRef?.uiImage {
+                    delegate.didLoad(media: uiImage, atIndex: pageIndex)
                 }
-                
-            } catch {
-                self.error = .decryptError(wrapped: error)
             }
+
+        } catch {
+            self.error = .decryptError(wrapped: error)
         }
     }
 }
@@ -71,7 +67,7 @@ class VideoViewingUIView: UIView, MediaViewProtocol {
     typealias ViewModel = VideoViewingViewModel
     typealias HostingView = UIImageView
     // View model
-    internal let viewModel: VideoViewingViewModel?
+    internal var viewModel: VideoViewingViewModel?
     private var cancellables = Set<AnyCancellable>()
 
     // UI Components
@@ -88,6 +84,10 @@ class VideoViewingUIView: UIView, MediaViewProtocol {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    func reset() {
+        hostingView.image = nil
     }
 
     private func setupBindings() {

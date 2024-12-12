@@ -6,11 +6,18 @@
 //
 import EncameraCore
 
-protocol MediaViewModelProtocol {
+protocol MediaViewModelProtocol: AnyObject {
     init(sourceMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, delegate: MediaViewingDelegate, pageIndex: Int)
     var sourceMedia: InteractableMedia<EncryptedMedia> { get }
-    var decryptedFileRef: InteractableMedia<CleartextMedia>? { get }
+    var decryptedFileRef: InteractableMedia<CleartextMedia>? { get set }
     nonisolated var pageIndex: Int { get set } 
     
-    func decryptAndSet()
+    func decryptAndSet() async
+    func reset()
+}
+
+extension MediaViewModelProtocol {
+    func reset() {
+        decryptedFileRef = nil
+    }
 }

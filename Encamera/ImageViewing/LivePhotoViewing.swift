@@ -12,7 +12,6 @@ import AVFoundation
 import Photos
 
 
-@MainActor
 class LivePhotoViewingViewModel: ObservableObject, MediaViewModelProtocol {
 
     @Published var decryptedFileRef: InteractableMedia<CleartextMedia>?
@@ -33,44 +32,45 @@ class LivePhotoViewingViewModel: ObservableObject, MediaViewModelProtocol {
         self.fileAccess = fileAccess
         self.delegate = delegate
     }
-    func decryptAndSet() {
-        Task { [self] in
-            do {
-                let result = try await fileAccess.loadMedia(media: sourceMedia) { [self] progress in
-                    switch progress {
-                    case .decrypting(progress: let progress), .downloading(progress: let progress):
-                        loadingProgress = progress
-                    case .loaded:
-                        loadingProgress = 1.0
-                    case .notLoaded:
-                        loadingProgress = 0.0
-                    }
+
+    func reset() {
+        decryptedFileRef = nil
+        cancellables.forEach({ $0.cancel() })
+        cancellables.removeAll()
+    }
+
+    func decryptAndSet() async {
+        do {
+            let result = try await fileAccess.loadMedia(media: sourceMedia) { [self] progress in
+                switch progress {
+                case .decrypting(progress: let progress), .downloading(progress: let progress):
+                    loadingProgress = progress
+                case .loaded:
+                    loadingProgress = 1.0
+                case .notLoaded:
+                    loadingProgress = 0.0
                 }
-
-                // Subscribe to the Combine publisher for generating the live photo
-                result.generateLivePhoto()
-                    .receive(on: RunLoop.main)
-                    .sink(receiveCompletion: { completion in
-                        if case .failure(let error) = completion {
-                            self.error = .decryptError(wrapped: error)
-                        }
-                        if let uiImage = result.uiImage {
-                            self.delegate.didLoad(media: uiImage, atIndex: self.pageIndex)
-                        }
-
-                    }, receiveValue: { livePhoto in
-                        self.preparedLivePhoto = livePhoto
-                        self.decryptedFileRef = result
-                        self.delegate.didView(media: self.sourceMedia)
-                        if let uiImage = result.uiImage {
-                            self.delegate.didLoad(media: uiImage, atIndex: self.pageIndex)
-                        }
-                    })
-                    .store(in: &cancellables)
-
-            } catch {
-                self.error = .decryptError(wrapped: error)
             }
+
+            // Subscribe to the Combine publisher for generating the live photo
+            result.generateLivePhoto()
+                .receive(on: RunLoop.main)
+                .sink(receiveCompletion: { completion in
+                    if case .failure(let error) = completion {
+                        self.error = .decryptError(wrapped: error)
+                    }
+                }, receiveValue: { livePhoto in
+                    self.preparedLivePhoto = livePhoto
+                    self.decryptedFileRef = result
+                    self.delegate.didView(media: self.sourceMedia)
+                    if let uiImage = result.uiImage {
+                        self.delegate.didLoad(media: uiImage, atIndex: self.pageIndex)
+                    }
+                })
+                .store(in: &cancellables)
+
+        } catch {
+            self.error = .decryptError(wrapped: error)
         }
     }
 }
