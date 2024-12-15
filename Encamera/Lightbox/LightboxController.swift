@@ -206,7 +206,7 @@ open class LightboxController: UIViewController {
             view.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
-        footerViewHeightConstraint = footerView.heightAnchor.constraint(equalToConstant: 76)
+        footerViewHeightConstraint = footerView.heightAnchor.constraint(equalToConstant: 98)
 
         NSLayoutConstraint.activate([
             // Constraints for footerView

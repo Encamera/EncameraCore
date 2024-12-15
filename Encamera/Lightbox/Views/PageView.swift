@@ -302,7 +302,7 @@ class PageView: UIScrollView {
                     }
                 }
                 guard let decryptedVideo = decryptedVideo.first else { return }
-
+                try Task.checkCancellation()
                 await MainActor.run {
                     alertController.dismiss(animated: true, completion: { [weak self] in
                         guard let self else {

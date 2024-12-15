@@ -172,6 +172,12 @@ open class FooterView: UIView {
     }
 
     private func expandView() {
+        let chevronButtonSize: CGFloat = 50
+        let chevronButtonBottomOffset: CGFloat = 0
+        let mediaInfoViewSidePadding: CGFloat = 16
+        let mediaInfoViewHeight: CGFloat = 80
+        let animationDuration: TimeInterval = 0.2
+
         self.infoButton.isHidden = true
         self.addSubview(self.chevronDownButton)
         self.mediaInfoView.isHidden = false
@@ -179,18 +185,23 @@ open class FooterView: UIView {
 
         NSLayoutConstraint.activate([
             chevronDownButton.centerXAnchor.constraint(equalTo: centerXAnchor),
-            chevronDownButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
-            chevronDownButton.widthAnchor.constraint(equalToConstant: 50),
-            chevronDownButton.heightAnchor.constraint(equalToConstant: 50),
-            mediaInfoView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            mediaInfoView.topAnchor.constraint(equalTo: topAnchor, constant: 16),
-            mediaInfoView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16)
+            chevronDownButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: chevronButtonBottomOffset),
+            chevronDownButton.widthAnchor.constraint(equalToConstant: chevronButtonSize),
+            chevronDownButton.heightAnchor.constraint(equalToConstant: chevronButtonSize),
+            mediaInfoView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: mediaInfoViewSidePadding),
+            mediaInfoView.topAnchor.constraint(equalTo: topAnchor, constant: mediaInfoViewSidePadding),
+            mediaInfoView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -mediaInfoViewSidePadding),
+            mediaInfoView.heightAnchor.constraint(equalToConstant: mediaInfoViewHeight) // Added height constraint
         ])
+
         layoutIfNeeded()
-        UIView.animate(withDuration: 0.2) {
+
+        UIView.animate(withDuration: animationDuration) {
             self.mediaInfoView.alpha = 1
         }
     }
+
+
     @objc private func collapseViewFromSwipe() {
         collapseView()
         delegate?.footerView(self, didPressButton: chevronDownButton, buttonType: .chevronDown)
@@ -214,24 +225,30 @@ open class FooterView: UIView {
 extension FooterView: LayoutConfigurable {
 
     @objc public func configureLayout() {
+        let buttonSize: CGFloat = 50
+        let buttonBottomOffset: CGFloat = 0
+        let deleteButtonTrailingOffset: CGFloat = -26
+        let shareButtonLeadingOffset: CGFloat = 26
+
         NSLayoutConstraint.activate([
             // Delete Button Constraints
-            deleteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -26),
-            deleteButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
-            deleteButton.widthAnchor.constraint(equalToConstant: 50),
-            deleteButton.heightAnchor.constraint(equalToConstant: 50),
+            deleteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: deleteButtonTrailingOffset),
+            deleteButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: buttonBottomOffset),
+            deleteButton.widthAnchor.constraint(equalToConstant: buttonSize),
+            deleteButton.heightAnchor.constraint(equalToConstant: buttonSize),
 
             // Share Button Constraints
-            shareButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 26),
-            shareButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
-            shareButton.widthAnchor.constraint(equalToConstant: 50),
-            shareButton.heightAnchor.constraint(equalToConstant: 50),
+            shareButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: shareButtonLeadingOffset),
+            shareButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: buttonBottomOffset),
+            shareButton.widthAnchor.constraint(equalToConstant: buttonSize),
+            shareButton.heightAnchor.constraint(equalToConstant: buttonSize),
 
             // Info Button Constraints
             infoButton.centerXAnchor.constraint(equalTo: centerXAnchor),
-            infoButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
-            infoButton.widthAnchor.constraint(equalToConstant: 50),
-            infoButton.heightAnchor.constraint(equalToConstant: 50)
+            infoButton.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: buttonBottomOffset),
+            infoButton.widthAnchor.constraint(equalToConstant: buttonSize),
+            infoButton.heightAnchor.constraint(equalToConstant: buttonSize)
         ])
     }
+
 }

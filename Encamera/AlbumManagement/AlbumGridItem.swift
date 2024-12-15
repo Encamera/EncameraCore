@@ -42,7 +42,6 @@ class AlbumGridItemModel: ObservableObject {
     }
 
     func load() async throws {
-
         do {
             let thumb = try await fileReader.loadLeadingThumbnail()
             debugPrint("Loaded thumb: \(String(describing: thumb))")
@@ -71,13 +70,12 @@ struct AlbumGridItem: View {
     }
 
     var body: some View {
-
+        let _ = Self._printChanges()
         AlbumBaseGridItem(uiImage: viewModel.leadingImage,
                           title: albumName,
                           subheading: viewModel.imageCount != nil ? L10n.imageS(viewModel.imageCount!) : nil,
                           width: width)
             .task {
-
                 try? await viewModel.load()
             }
     }

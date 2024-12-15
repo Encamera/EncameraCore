@@ -141,7 +141,7 @@ struct AlbumGrid<D: FileAccess>: View {
                         }
                         .frame(height: side + 60)
                     }
-                    .padding(.bottom, 80)
+                    .padding(.bottom, 120)
                 }
                 .screenBlocked()
             }

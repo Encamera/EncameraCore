@@ -448,6 +448,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             }
             
         }
+        .padding(.bottom, Spacing.pt16.rawValue)
         .onChange(of: viewModel.currentModal) { oldValue, newValue in
             if case .cameraView = newValue {
                 EventTracking.trackOpenedCameraFromAlbumEmptyState()
