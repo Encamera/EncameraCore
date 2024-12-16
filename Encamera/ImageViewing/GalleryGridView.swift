@@ -15,6 +15,11 @@ enum ImportError: Error {
     case mismatchedType
 }
 
+enum ImportSource {
+    case photoLibrary
+    case files
+}
+
 @MainActor
 class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     
@@ -36,7 +41,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         }
     }
 
-    @Published var showPhotoPicker: Bool = false
+    @Published var showPhotoPicker: ImportSource? = nil
     @Published var showPhotoAccessAlert: Bool = false
     @Published var showingCarousel = false
     @Published var downloadPendingMediaCount: Int = 0
@@ -188,7 +193,28 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     func blurItemAt(index: Int) -> Bool {
         return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(media.count - index))) == false
     }
-    
+
+    func handleSelectedFiles(urls: [URL]) {
+        Task {
+            isImporting = true
+            totalImportCount = urls.count
+            for url in urls {
+                if cancelImport {
+                    isImporting = false
+                    cancelImport = false
+                    return
+                }
+                do {
+                    try await saveCleartextMedia(mediaArray: [CleartextMedia(source: url)])
+                } catch {
+                    debugPrint("Error saving media: \(error)")
+                }
+            }
+            isImporting = false
+            await enumerateMedia()
+        }
+    }
+
     func handleSelectedMedia(items: [PHPickerResult]) {
         Task {
             totalImportCount = items.count
@@ -521,11 +547,24 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 return Alert(title: Text("Unknown Error"))
             }
         }
-        .sheet(isPresented: $viewModel.showPhotoPicker, content: {
-            PhotoPicker(selectedItems: { results in
-                viewModel.handleSelectedMedia(items: results)
-            }, filter: .any(of: [.images, .videos, .livePhotos]))
-            .ignoresSafeArea(.all)
+        .sheet(isPresented: Binding<Bool>(get: {
+            viewModel.showPhotoPicker != nil
+        }, set: { newValue in
+            viewModel.showPhotoPicker = nil
+        }), content: {
+            switch viewModel.showPhotoPicker {
+            case .photoLibrary:
+                PhotoPicker(selectedItems: { results in
+                    viewModel.handleSelectedMedia(items: results)
+                }, filter: .any(of: [.images, .videos, .livePhotos]))
+                .ignoresSafeArea(.all)
+            case .files:
+                FilePicker { urls in
+                    viewModel.handleSelectedFiles(urls: urls)
+                }
+            case .none:
+                EmptyView()
+            }
         })
     }
 
@@ -597,7 +636,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             DualButtonComponent(nextActive: .constant(false),
                                 bottomButtonTitle: L10n.AlbumDetailView.importButton,
                                 bottomButtonAction: {
-                viewModel.showPhotoPicker = true
+                viewModel.showPhotoPicker = .photoLibrary
             },
                                 secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
                                 secondaryButtonAction: {

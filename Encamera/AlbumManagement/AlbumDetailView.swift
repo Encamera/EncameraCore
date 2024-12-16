@@ -333,7 +333,11 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
 
             Button(L10n.importMedia) {
-                viewModel.gridViewModel.showPhotoPicker = true
+                viewModel.gridViewModel.showPhotoPicker = .photoLibrary
+            }
+            
+            Button(L10n.importFiles) {
+                viewModel.gridViewModel.showPhotoPicker = .files
             }
 
             Button(L10n.deleteAlbum, role: .destructive) {

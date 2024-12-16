@@ -10,7 +10,7 @@ import SwiftUI
 import EncameraCore
 
 struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
-    
+
     @MainActor
     class ViewModel: ObservableObject {
         private var loader: FileReader
@@ -21,12 +21,12 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
         var needsDownload: Bool {
             targetMedia.needsDownload
         }
-        
+
         init(targetMedia: InteractableMedia<EncryptedMedia>, loader: FileReader, isInSelectionMode: Bool = false, isSelected: Bool = false) {
             self.targetMedia = targetMedia
             self.loader = loader
         }
-        
+
         func loadPreview() async {
             do {
                 let preview = try await loader.loadMediaPreview(for: targetMedia)
@@ -43,7 +43,7 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
         }
     }
     var id: String = NSUUID().uuidString
-    
+
     @StateObject var viewModel: ViewModel
     var placeholder: Placeholder
     @Binding var isInSelectionMode: Bool
@@ -51,10 +51,10 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
     @Binding var isBlurred: Bool
 
     var body: some View {
+        ZStack {
 
-        if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.data,
-           let image = UIImage(data: decrypted) {
-            ZStack {
+            if let decrypted = viewModel.cleartextMedia?.thumbnailMedia.data,
+               let image = UIImage(data: decrypted) {
                 bodyContainer {
                     Image(uiImage: image)
                         .resizable()
@@ -69,11 +69,11 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
                     }
                     .padding(5)
                     .onTapGesture {
-                        
+
                     }
-                        
+
                 }
-                
+
                 if !isSelected && (viewModel.cleartextMedia?.videoDuration != nil || viewModel.cleartextMedia?.isLivePhoto == true) {
                     VStack {
                         Spacer()
@@ -92,44 +92,46 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
 
                     }
                 }
-                if isInSelectionMode && isSelected {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.blue)
-                                .background(Circle().foregroundColor(.white))
-                                .padding(5.0)
-                        }
+
+
+            } else if let error = viewModel.error {
+
+                bodyContainer {
+                    switch error {
+                    case SecretFilesError.createVideoThumbnailError:
+                        Image(systemName: "play.rectangle.fill")
+                    default:
+                        Image(systemName: "x.square")
+                    }
+
+                }.task {
+                    await viewModel.loadPreview()
+                }
+
+
+            } else {
+                bodyContainer {
+                    placeholder.task {
+                        await viewModel.loadPreview()
                     }
                 }
             }
-            
-        } else if let error = viewModel.error {
-            
-            bodyContainer {
-                switch error {
-                case SecretFilesError.createVideoThumbnailError:
-                    Image(systemName: "play.rectangle.fill")
-                default:
-                    Image(systemName: "x.square")
-                }
-                
-            }.task {
-                await viewModel.loadPreview()
-            }
-            
-            
-        } else {
-            bodyContainer {
-                placeholder.task {
-                    await viewModel.loadPreview()
+            if isInSelectionMode && isSelected {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.blue)
+                            .background(Circle().foregroundColor(.white))
+                            .padding(5.0)
+                    }
                 }
             }
         }
+
     }
-    
+
     @ViewBuilder func bodyContainer<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         Color.clear
             .background {
@@ -147,7 +149,7 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
                     isSelected.toggle()
                 }
             }
-
+        
     }
 }
 //
