@@ -474,7 +474,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             }
             
         }
-        .padding(.bottom, Spacing.pt16.rawValue)
         .onChange(of: viewModel.currentModal) { oldValue, newValue in
             if case .cameraView = newValue {
                 EventTracking.trackOpenedCameraFromAlbumEmptyState()
@@ -595,7 +594,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
                     .animation(.easeIn, value: viewModel.blurImages)
                 }
-                .padding(spacing)
+                .padding([.leading, .trailing], outerMargin)
             }
             .task {
                 await viewModel.enumerateMedia()

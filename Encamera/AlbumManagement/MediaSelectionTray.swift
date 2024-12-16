@@ -52,9 +52,8 @@ struct MediaSelectionTray: View {
         .onChange(of: selectedMedia) { _, newValue in
             selectedMediaCount = newValue.count
         }
-        .padding()
-        .frame(height: 75)
         .background(Color.black)
+        .frame(height: 75)
     }
 }
 

@@ -195,10 +195,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     }
 }
 
-private enum Constants {
-    static var outerPadding = 20.0
-}
-
 struct AlbumDetailView<D: FileAccess>: View {
     @State var isShowingMoveAlbumModal = false
 
@@ -212,7 +208,7 @@ struct AlbumDetailView<D: FileAccess>: View {
 
     var body: some View {
 
-        VStack {
+        VStack(spacing: 0) {
             GalleryGridView(viewModel: viewModel.gridViewModel) {
                 ZStack(alignment: .leading) {
                     horizontalTitleComponents
@@ -332,11 +328,11 @@ struct AlbumDetailView<D: FileAccess>: View {
                 viewModel.isEditingAlbumName = true
             }
 
-            Button(L10n.importMedia) {
+            Button(L10n.importFromPhotos) {
                 viewModel.gridViewModel.showPhotoPicker = .photoLibrary
             }
-            
-            Button(L10n.importFiles) {
+
+            Button(L10n.importFromFiles) {
                 viewModel.gridViewModel.showPhotoPicker = .files
             }
 
