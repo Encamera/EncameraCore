@@ -117,7 +117,7 @@ struct AlbumGrid<D: FileAccess>: View {
     var body: some View {
         let spacing = CGFloat(17.0)
 
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 0) {
             ViewHeader(title: "Encamera", rightContent: {
                 Button {
                     showNotificationSheet = true

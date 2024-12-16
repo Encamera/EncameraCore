@@ -38,7 +38,7 @@ struct MediaSelectionTray: View {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.white)
                         .opacity(selectedMediaCount > 0 ? 1.0 : 0.0)
-                        .frame(maxWidth: 44, maxHeight: .infinity)
+                        .frame(maxWidth: 75, maxHeight: .infinity)
                         .padding(0)
                 }
 
