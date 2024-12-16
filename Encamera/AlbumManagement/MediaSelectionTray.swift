@@ -35,11 +35,20 @@ struct MediaSelectionTray: View {
                     }
 
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundColor(.white)
-                        .opacity(selectedMediaCount > 0 ? 1.0 : 0.0)
-                        .frame(maxWidth: 75, maxHeight: .infinity)
-                        .padding(0)
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray.opacity(0.4))
+                            .frame(width: 50, height: 50)
+
+                        Image(systemName: "ellipsis.circle")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 20, height: 20) // Adjust icon size
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: 75, maxHeight: .infinity)
+                    .padding(0)
+                    .opacity(selectedMediaCount > 0 ? 1.0 : 0.0)
                 }
 
             }
