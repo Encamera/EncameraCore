@@ -167,7 +167,8 @@ open class LightboxController: UIViewController {
     private var footerViewHeightConstraint: NSLayoutConstraint!
     private var isFooterExpanded = false
     private var statusBarHidden = false
-
+    private var initialFooterHeight: CGFloat = 98.0
+    
     open override var prefersStatusBarHidden: Bool {
         return statusBarHidden
     }
@@ -206,7 +207,7 @@ open class LightboxController: UIViewController {
             view.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
-        footerViewHeightConstraint = footerView.heightAnchor.constraint(equalToConstant: 98)
+        footerViewHeightConstraint = footerView.heightAnchor.constraint(equalToConstant: initialFooterHeight)
 
         NSLayoutConstraint.activate([
             // Constraints for footerView
@@ -545,7 +546,7 @@ extension LightboxController: PageViewDelegate {
     private func toggleFooterView() {
         isFooterExpanded.toggle()
         scrollView.isScrollEnabled = !isFooterExpanded
-        footerViewHeightConstraint.constant = isFooterExpanded ? view.frame.height * 0.20 : 76
+        footerViewHeightConstraint.constant = isFooterExpanded ? view.frame.height * 0.20 : initialFooterHeight
 
         UIView.animate(withDuration: 0.3, animations: {
             self.view.layoutIfNeeded()

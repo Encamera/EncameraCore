@@ -11,49 +11,51 @@ struct MediaSelectionTray: View {
     @State private var selectedMediaCount: Int = 0
 
     var body: some View {
-        ZStack {
-            HStack {
-                Spacer()
-                Menu {
-//                    Button(action: {
-//
-//                    }) {
-//                        Label(L10n.MediaSelectionTray.moveMedia, systemImage: "folder")
-//                    }
-                    if showShareOption {
-                        Button(action: {
-                            shareAction()
-                        }) {
-                            Label(L10n.share, systemImage: "square.and.arrow.up")
+        VStack {
+            ZStack {
+                HStack {
+                    Spacer()
+                    Menu {
+                        //                    Button(action: {
+                        //
+                        //                    }) {
+                        //                        Label(L10n.MediaSelectionTray.moveMedia, systemImage: "folder")
+                        //                    }
+                        if showShareOption {
+                            Button(action: {
+                                shareAction()
+                            }) {
+                                Label(L10n.share, systemImage: "square.and.arrow.up")
+                            }
                         }
-                    }
 
-                    Button(role: .destructive, action: {
-                        deleteAction()
-                    }) {
-                        Label(L10n.delete, systemImage: "trash")
-                    }
+                        Button(role: .destructive, action: {
+                            deleteAction()
+                        }) {
+                            Label(L10n.delete, systemImage: "trash")
+                        }
 
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(Color.gray.opacity(0.4))
-                            .frame(width: 50, height: 50)
-
-                        Image(systemName: "ellipsis.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 20, height: 20) // Adjust icon size
-                            .foregroundColor(.white)
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(Color.gray.opacity(0.4))
+                                .frame(width: 50, height: 50)
+                            Image(systemName: "ellipsis.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 20, height: 20) // Adjust icon size
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: 50, maxHeight: .infinity)
+                        .padding(0)
+                        .opacity(selectedMediaCount > 0 ? 1.0 : 0.0)
                     }
-                    .frame(maxWidth: 75, maxHeight: .infinity)
-                    .padding(0)
-                    .opacity(selectedMediaCount > 0 ? 1.0 : 0.0)
+                    Spacer().frame(width: 26)
                 }
-
+                Text(selectedMediaCount == 0 ? L10n.MediaSelectionTray.selectMedia : "\(L10n.imageS(selectedMedia.count)) \(L10n.MediaSelectionTray.itemSelected)")
+                    .foregroundColor(.white)
             }
-            Text(selectedMediaCount == 0 ? L10n.MediaSelectionTray.selectMedia : "\(L10n.imageS(selectedMedia.count)) \(L10n.MediaSelectionTray.itemSelected)")
-                .foregroundColor(.white)
+            Spacer().frame(height: 18)
         }
         .onAppear {
             selectedMediaCount = selectedMedia.count
@@ -62,7 +64,7 @@ struct MediaSelectionTray: View {
             selectedMediaCount = newValue.count
         }
         .background(Color.black)
-        .frame(height: 75)
+        .frame(height: 98)
     }
 }
 
