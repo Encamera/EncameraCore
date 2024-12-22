@@ -346,26 +346,31 @@ struct AlbumDetailView<D: FileAccess>: View {
                 viewModel.gridViewModel.showPhotoPicker = .files
             }
 
-            Button(L10n.deleteAlbum, role: .destructive) {
-                viewModel.alertType = .deleteAllAlbumData
-            }
-            if viewModel.purchasedPermissions.hasEntitlement() {
-                Button {
-                    if viewModel.isAlbumHidden {
-                        viewModel.isAlbumHidden = false
-                    } else {
+            Button {
+                if viewModel.purchasedPermissions.hasEntitlement() == false {
+                    viewModel.isShowingPurchaseSheet = true
+                    viewModel.afterPurchaseAction = {
                         viewModel.alertType = .hideAlbum
                     }
-                } label: {
-                    HStack {
-                        Text(L10n.AlbumDetailView.hideAlbumMenuItem)
-                        Spacer()
-                        if viewModel.isAlbumHidden {
-                            Image(systemName: "checkmark")
-                        }
+                } else if viewModel.isAlbumHidden {
+                    viewModel.isAlbumHidden = false
+                } else {
+                    viewModel.alertType = .hideAlbum
+                }
+            } label: {
+                HStack {
+                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
+                    Spacer()
+                    if viewModel.isAlbumHidden {
+                        Image(systemName: "checkmark")
                     }
                 }
             }
+
+            Button(L10n.deleteAlbum, role: .destructive) {
+                viewModel.alertType = .deleteAllAlbumData
+            }
+
         } label: {
             Image("Album-OptionsDots")
                 .contentShape(Rectangle())
