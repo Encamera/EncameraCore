@@ -14,6 +14,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     enum AlertType {
         case deleteAllAlbumData
         case deleteSelectedMedia
+        case hideAlbum
     }
 
     var albumManager: AlbumManaging
@@ -30,7 +31,12 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var selectedMedia: Set<InteractableMedia<EncryptedMedia>> = Set()
     @Published var isShowingPurchaseSheet = false
     @Published var alertType: AlertType? = nil
-
+    @Published var isAlbumHidden = false {
+        didSet {
+            guard let album = album else { return }
+            albumManager.setIsAlbumHidden(isAlbumHidden, album: album)
+        }
+    }
     var afterPurchaseAction: (() -> Void)?
     var gridViewModel: GalleryGridViewModel<D>
 
@@ -39,6 +45,11 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     var album: Album? {
         didSet {
             guard let album = album else { return }
+            if purchasedPermissions.hasEntitlement() == false {
+                self.isAlbumHidden = false
+            } else {
+                self.isAlbumHidden = albumManager.isAlbumHidden(album)
+            }
             self.albumName = album.name
             self.gridViewModel.album = album
         }
@@ -89,7 +100,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
     }
 
-    func renameAlbum() {
+    func setAlbumNameFromInput() {
         guard albumName.count > 0 else {
             albumManagerError = L10n.pleaseEnterAnAlbumName
             albumName = album?.name ?? L10n.defaultAlbumName
@@ -277,7 +288,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                                 .fontType(.pt14, weight: .bold)
                         }.frostedButton()
                         Button {
-                            viewModel.renameAlbum()
+                            viewModel.setAlbumNameFromInput()
                             viewModel.isEditingAlbumName = false
                         } label: {
                             Text(L10n.save)
@@ -315,7 +326,6 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
         }
     }
-
     var buttonMenu: some View {
         Menu {
             Button(L10n.moveAlbumStorage) {
@@ -339,12 +349,30 @@ struct AlbumDetailView<D: FileAccess>: View {
             Button(L10n.deleteAlbum, role: .destructive) {
                 viewModel.alertType = .deleteAllAlbumData
             }
+            if viewModel.purchasedPermissions.hasEntitlement() {
+                Button {
+                    if viewModel.isAlbumHidden {
+                        viewModel.isAlbumHidden = false
+                    } else {
+                        viewModel.alertType = .hideAlbum
+                    }
+                } label: {
+                    HStack {
+                        Text(L10n.AlbumDetailView.hideAlbumMenuItem)
+                        Spacer()
+                        if viewModel.isAlbumHidden {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
         } label: {
             Image("Album-OptionsDots")
                 .contentShape(Rectangle())
                 .frostedButton()
         }
     }
+
 
     var selectionTray: some View {
 
@@ -373,6 +401,15 @@ struct AlbumDetailView<D: FileAccess>: View {
                 message: Text(L10n.AlbumDetailView.deleteSelectedMedia(L10n.imageS(viewModel.selectedMedia.count))),
                 primaryButton: .destructive(Text(L10n.delete)) {
                     viewModel.deleteSelectedMedia()
+                },
+                secondaryButton: .cancel(Text(L10n.cancel))
+            )
+        case .hideAlbum:
+            return Alert(
+                title: Text(L10n.AlbumDetailView.hideAlbumAlertTitle),
+                message: Text(L10n.AlbumDetailView.hideAlbumAlertMessage),
+                primaryButton: .destructive(Text(L10n.hide)) {
+                    viewModel.isAlbumHidden = true
                 },
                 secondaryButton: .cancel(Text(L10n.cancel))
             )

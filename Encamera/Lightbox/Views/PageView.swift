@@ -160,7 +160,10 @@ class PageView: UIScrollView {
 
     func updatePlayButton() {
         guard let image = image else { return }
-        if image.mediaType == .video && !subviews.contains(playButton) && imageView.image != nil {
+        if image.mediaType == .video
+            && !subviews.contains(playButton)
+            && imageView.image != nil
+            && showPurchaseOverlay == false {
             addSubview(playButton)
         } else if subviews.contains(playButton) {
             playButton.removeFromSuperview()
