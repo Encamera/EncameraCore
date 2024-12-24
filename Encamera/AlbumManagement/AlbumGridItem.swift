@@ -70,7 +70,6 @@ struct AlbumGridItem: View {
     }
 
     var body: some View {
-        let _ = Self._printChanges()
         AlbumBaseGridItem(uiImage: viewModel.leadingImage,
                           title: albumName,
                           subheading: viewModel.imageCount != nil ? L10n.imageS(viewModel.imageCount!) : nil,
