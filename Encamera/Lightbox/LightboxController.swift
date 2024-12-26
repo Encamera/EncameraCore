@@ -1,5 +1,6 @@
 import UIKit
 import EncameraCore
+import Combine
 
 public typealias LightboxImage = InteractableMedia<EncryptedMedia>
 
@@ -93,7 +94,7 @@ open class LightboxController: UIViewController {
                 self.footerView.media = media
             }
         }
-        
+
     }
 
     func reconfigurePagesForPreload() {
@@ -168,7 +169,8 @@ open class LightboxController: UIViewController {
     private var isFooterExpanded = false
     private var statusBarHidden = false
     private var initialFooterHeight: CGFloat = 98.0
-    
+    private var cancellable = Set<AnyCancellable>()
+
     open override var prefersStatusBarHidden: Bool {
         return statusBarHidden
     }
@@ -185,6 +187,13 @@ open class LightboxController: UIViewController {
         self.reviewAlertActionPressed = reviewAlertActionPressed
         super.init(nibName: nil, bundle: nil)
         self.pageDelegate = self
+
+        NotificationUtils.didEnterBackgroundPublisher.sink { _ in
+            guard let viewController = UIApplication.topMostViewController() else {
+                return
+            }
+            viewController.dismiss(animated: false, completion: {})
+        }.store(in: &cancellable)
     }
 
     public required init?(coder aDecoder: NSCoder) {

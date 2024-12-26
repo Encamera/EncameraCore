@@ -170,7 +170,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 print("Share error: \(error.localizedDescription)")
             }
             self.currentSharingData = nil
-            EventTracking.trackMediaShared()
+            EventTracking.trackMediaShared(count: data.count)
         }
 
         let allScenes = UIApplication.shared.connectedScenes

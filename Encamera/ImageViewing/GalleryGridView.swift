@@ -22,7 +22,7 @@ enum ImportSource {
 
 @MainActor
 class GalleryGridViewModel<D: FileAccess>: ObservableObject {
-    
+
     var album: Album?
     var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
@@ -72,9 +72,9 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     var fileAccess: D
     @MainActor
     @Published var showEmptyView: Bool = false
-    
+
     var cameraModel: CameraModel
-    
+
     init(album: Album?,
          albumManager: AlbumManaging,
          blurImages: Bool = false,
@@ -164,7 +164,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             }
             .store(in: &iCloudCancellables)
     }
-    
+
     func enumerateiCloudUndownloaded() {
         downloadPendingMediaCount = media.filter({$0.needsDownload == true}).count
         if downloadPendingMediaCount == 0 {
@@ -172,12 +172,12 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             iCloudCancellables.forEach({$0.cancel()})
         }
     }
-    
+
     func cleanUp() {
         iCloudCancellables.forEach({$0.cancel()})
         downloadInProgress = false
     }
-    
+
     func enumerateMedia() async {
         guard let album = album else {
             debugPrint("No album")
@@ -189,7 +189,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         enumerateiCloudUndownloaded()
         showEmptyView = enumerated.isEmpty
     }
-    
+
     func blurItemAt(index: Int) -> Bool {
         return purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(media.count - index))) == false
     }
@@ -205,11 +205,12 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                     return
                 }
                 do {
-                    try await saveCleartextMedia(mediaArray: [CleartextMedia(source: url)])
+                    try await saveCleartextMedia(mediaArray: [CleartextMedia(source: .url(url), generateID: true)])
                 } catch {
                     debugPrint("Error saving media: \(error)")
                 }
             }
+            EventTracking.trackFilesImported(count: urls.count)
             isImporting = false
             await enumerateMedia()
         }
@@ -226,21 +227,21 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                     cancelImport = false
                     return
                 }
-                
+
                 let provider = result.itemProvider
                 if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
                     UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
                 } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
                     UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
                 }
-                
+
                 try await self.loadAndSaveMediaAsync(result: result)
             }
             lastImportedAssets = items
             try await checkForLibraryPermissionsAndContinue()
-            
+
             EventTracking.trackMediaImported(count: items.count)
-            
+
             isImporting = false
             await enumerateMedia()
         }
@@ -258,7 +259,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             try await handleMedia(result: result)
         }
     }
-    
+
     private func handleMedia(result: PHPickerResult) async throws {
         let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
         let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
@@ -331,9 +332,9 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             self.importProgress = 0.0
         }
     }
-    
+
     private func handleLivePhoto(result: PHPickerResult) async throws {
-        
+
         let assetResources = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[PHAssetResource], Error>) in
             // Load the PHLivePhoto object from the picker result
             result.itemProvider.loadObject(ofClass: PHLivePhoto.self) { (object, error) in
@@ -341,22 +342,22 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                     continuation.resume(throwing: error)
                     return
                 }
-                
+
                 guard let livePhoto = object as? PHLivePhoto else {
                     continuation.resume(throwing: NSError(domain: "LivePhotoErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not load PHLivePhoto from the result"]))
                     return
                 }
-                
+
                 continuation.resume(returning: PHAssetResource.assetResources(for: livePhoto))
             }
         }
         var cleartextMediaArray: [CleartextMedia] = []
         let id = UUID().uuidString
-        
+
         for resource in assetResources {
             let options = PHAssetResourceRequestOptions()
             options.isNetworkAccessAllowed = true
-            
+
             let documentsDirectory = URL.tempMediaDirectory
             let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
             do {
@@ -381,10 +382,10 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                 throw error
             }
         }
-        
+
         try await saveCleartextMedia(mediaArray: cleartextMediaArray)
     }
-    
+
     func removeMedia(items: [InteractableMedia<EncryptedMedia>]) {
         withAnimation(.easeInOut(duration: 0.4)) {
             for item in items {
@@ -396,7 +397,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         }
     }
 
-    
+
 }
 
 private enum Constants {
@@ -420,17 +421,17 @@ private enum Constants {
 }
 
 struct GalleryGridView<Content: View, D: FileAccess>: View {
-    
+
     @ObservedObject var viewModel: GalleryGridViewModel<D>
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     var content: Content
-    
+
     init(viewModel: GalleryGridViewModel<D>, @ViewBuilder content: () -> Content = { EmptyView() }) {
         self.viewModel = viewModel
         self.content = content()
     }
-    
+
     private var cancelButton: some View {
         Button {
             viewModel.cancelImport = true
@@ -439,10 +440,10 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
         }
         .pad(.pt8, edge: .trailing)
     }
-    
+
     var body: some View {
         VStack {
-            
+
             content
             if viewModel.cancelImport == false {
                 HStack {
@@ -452,7 +453,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                                 .fontType(.pt14)
                         }                    .pad(.pt8, edge: [.trailing, .leading])
                         cancelButton
-                        
+
                     } else if viewModel.isImporting {
                         HStack {
                             ProgressView(value: 0.5, total: 1.0) {
@@ -461,7 +462,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                             Text("\(L10n.importingPleaseWait) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
                                 .fontType(.pt14)
                             Spacer()
-                            
+
                         }
                         cancelButton
                     }
@@ -472,7 +473,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             } else {
                 mainGridView
             }
-            
+
         }
         .onChange(of: viewModel.currentModal) { oldValue, newValue in
             if case .cameraView = newValue {
@@ -609,7 +610,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 16) {
-            
+
             VStack(spacing: 24) {
                 VStack(spacing: 12) {
                     Spacer().frame(height: 65)
@@ -628,7 +629,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                             .fontType(.pt14)
                             .opacity(0.60)
                     }.frame(alignment: .center)
-                    
+
                 }
             }.frame(maxWidth: .infinity)
             Spacer().frame(maxHeight: .infinity)
@@ -646,7 +647,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
     }
 
     private func imageForItem(mediaItem: InteractableMedia<EncryptedMedia>, width: CGFloat, height: CGFloat, index: Int) -> some View {
-        
+
 
             Group {
                 let selectionBinding = Binding<Bool> {
@@ -690,7 +691,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
         Button {
             viewModel.startiCloudDownload()
         } label: {
-            
+
             HStack {
                 if viewModel.downloadInProgress {
                     ProgressView()
@@ -707,7 +708,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
         .padding(Constants.buttonPadding)
         .background(Color.foregroundSecondary)
         .cornerRadius(Constants.buttonCornerRadius)
-        
+
     }
 }
 
