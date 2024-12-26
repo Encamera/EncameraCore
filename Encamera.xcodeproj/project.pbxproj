@@ -478,6 +478,10 @@
 		1555F94A3CA4AB10FF868C52 /* LivePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoView.swift; sourceTree = "<group>"; };
 		15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewOnboardingView.swift; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		19543BC52D1C670900CCFC7C /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/MainInterface.strings; sourceTree = "<group>"; };
+		19543BC62D1C670900CCFC7C /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		19543BC72D1C670A00CCFC7C /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
+		19543BC82D1C670A00CCFC7C /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ko; path = ko.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1B60005D9CB1D186BF8FB5D2 /* 1.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.jpg; sourceTree = "<group>"; };
@@ -1444,6 +1448,7 @@
 				de,
 				en,
 				es,
+				ko,
 			);
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
@@ -1959,6 +1964,7 @@
 				1502C040838F3770BEF5B8E0 /* de */,
 				31AB13EE6FE68BA8614D0253 /* en */,
 				CA6EA3006B6C149A02A8AA44 /* es */,
+				19543BC72D1C670A00CCFC7C /* ko */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
@@ -1969,6 +1975,7 @@
 				7661A4F3701B87A8341BC477 /* de */,
 				17013E390B68CD4CCB918341 /* en */,
 				0C09BE63CB580E8A7E3D0C1C /* es */,
+				19543BC82D1C670A00CCFC7C /* ko */,
 			);
 			name = Localizable.stringsdict;
 			sourceTree = "<group>";
@@ -1979,6 +1986,7 @@
 				8A188D5FF84A453469F8C3EB /* de */,
 				D6758B0A04FA196EDAF9CA1F /* en */,
 				3AC87A1E6FAC6F4E4C5E385B /* es */,
+				19543BC62D1C670900CCFC7C /* ko */,
 			);
 			name = InfoPlist.strings;
 			sourceTree = "<group>";
@@ -1990,6 +1998,7 @@
 				C928D55420DA4790784059AA /* de */,
 				903923372525CB58F5D969EB /* en */,
 				391EB27CBC7FE5A91E4CA4F3 /* es */,
+				19543BC52D1C670900CCFC7C /* ko */,
 			);
 			name = MainInterface.storyboard;
 			sourceTree = "<group>";
