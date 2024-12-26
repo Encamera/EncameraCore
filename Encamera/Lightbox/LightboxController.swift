@@ -46,6 +46,12 @@ open class LightboxController: UIViewController {
         return scrollView
     }()
 
+    lazy var coverView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.black
+        return view
+    }()
+
     lazy var effectView: UIVisualEffectView = {
         let effect = UIBlurEffect(style: .dark)
         let view = UIVisualEffectView(effect: effect)
@@ -188,12 +194,20 @@ open class LightboxController: UIViewController {
         super.init(nibName: nil, bundle: nil)
         self.pageDelegate = self
 
-        NotificationUtils.didEnterBackgroundPublisher.sink { _ in
+        NotificationUtils.didEnterBackgroundPublisher.sink { [weak self] _ in
+            self?.coverView.alpha = 1.0
             guard let viewController = UIApplication.topMostViewController() else {
                 return
             }
             viewController.dismiss(animated: false, completion: {})
         }.store(in: &cancellable)
+        NotificationUtils.willResignActivePublisher.sink { [weak self] _ in
+            self?.coverView.alpha = 1.0
+        }.store(in: &cancellable)
+        NotificationUtils.didBecomeActivePublisher.sink { [weak self] _ in
+            self?.coverView.alpha = 0.0
+        }.store(in: &cancellable)
+
     }
 
     public required init?(coder aDecoder: NSCoder) {
@@ -212,10 +226,13 @@ open class LightboxController: UIViewController {
         transitionManager.scrollView = scrollView
         transitioningDelegate = transitionManager
 
-        [scrollView, footerView].forEach {
+        [scrollView, footerView, coverView].forEach {
             view.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
+        coverView.alpha = 0.0
+
+
         footerViewHeightConstraint = footerView.heightAnchor.constraint(equalToConstant: initialFooterHeight)
 
         NSLayoutConstraint.activate([
@@ -229,7 +246,13 @@ open class LightboxController: UIViewController {
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
+            // Constraints for coverView
+            coverView.topAnchor.constraint(equalTo: view.topAnchor),
+            coverView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            coverView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            coverView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
 
         configurePages(initialImages)
