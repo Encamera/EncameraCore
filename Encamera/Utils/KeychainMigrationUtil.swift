@@ -70,7 +70,7 @@ class KeychainMigrationUtil: DebugPrintable {
 
 
                 let key = try JSONDecoder().decode(PrivateKey.self, from: keys)
-                try keyManager.save(key: key, setNewKeyToCurrent: true, backupToiCloud: false)
+                try keyManager.save(key: key, setNewKeyToCurrent: true, backupToiCloud: keyManager.areKeysStoredIniCloud)
                 UserDefaults.standard.set(nil, forKey: keyForPrivateKey)
                 printDebug("Keychain migration completed")
             }

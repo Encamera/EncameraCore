@@ -22,7 +22,6 @@ class CreateAlbumViewModel: ObservableObject {
     @MainActor
     @Published var albumStorageType: StorageType?
     @Published var generalError: CreateAlbumError?
-    @Published var saveToiCloud = false
 
     var albumManager: AlbumManaging
 

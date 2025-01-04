@@ -36,6 +36,7 @@ class SettingsViewViewModel: ObservableObject {
     @Published fileprivate var activeAlert: AlertType = .none
     @Published var showAlert: Bool = false
     @Published var showKeyBackup: Bool = false
+    @Published var useiCloudKeyBackup: Bool = false
     @Published var defaultStorageOption: StorageType = .local {
         didSet {
             albumManager.defaultStorageForAlbum = defaultStorageOption
@@ -87,6 +88,10 @@ class SettingsViewViewModel: ObservableObject {
                 self?.activeAlert = .pinRemembered
                 return
             }
+        }.store(in: &cancellables)
+
+        self.$useiCloudKeyBackup.dropFirst().sink { [weak self] value in
+            try? self?.keyManager.backupKeychainToiCloud(backupEnabled: value)
         }.store(in: &cancellables)
     }
 
@@ -208,6 +213,7 @@ struct SettingsView: View {
                                 ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
                             }
                         }
+                        iCloudKeyBackupToggle
                         HStack {
                             Picker(L10n.Settings.defaultStorageOption, selection: $viewModel.defaultStorageOption) {
                                 ForEach(StorageType.allCases) { storageType in
@@ -303,7 +309,15 @@ struct SettingsView: View {
 
         }
     }
-    
+
+    private var iCloudKeyBackupToggle: some View {
+        return Group {
+            Toggle(isOn: $viewModel.useiCloudKeyBackup) {
+                Text(L10n.Settings.backupKeyToiCloud)
+            }.tint(Color.actionYellowGreen)
+        }
+    }
+
 
 }
 
