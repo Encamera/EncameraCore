@@ -22,7 +22,6 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
     @Published var shouldShowTweetScreen: Bool = false
     @Published var selectedPath: NavigationPath = .init()
     @Published var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums
-    @Published var showPushNotificationPrompt: Bool = false
     var fileAccess: D
     var cameraService: CameraConfigurationService
     var keyManager: KeyManager
@@ -30,7 +29,6 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
     var cameraModel: CameraModel
     var purchasedPermissions: PurchasedPermissionManaging
     var settingsManager: SettingsManager
-    var keychainMigrationUtil: KeychainMigrationUtil
     private(set) var authManager: AuthManager
     private var cancellables = Set<AnyCancellable>()
 
@@ -57,7 +55,6 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
             fileAccess: fileAccess,
             purchaseManager: purchasedPermissions
         )
-        self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)
     }
 
     func popLastView() {
@@ -116,29 +113,7 @@ struct MainHomeView<D: FileAccess>: View {
                     BottomNavigationBar(selectedItem: $selectedNavigationItem)
                 }
             }
-            .pushNotificationPromptModal(isPresented: $viewModel.showPushNotificationPrompt, onPrimaryButtonPressed: {
-                EventTracking.trackNotificationPromptAccepted()
-
-                Task { @MainActor in
-                    if await NotificationManager.isDenied {
-                        SystemSettings.openNotificationSettings()
-                    } else {
-                        try await NotificationManager.requestLocalNotificationPermission()
-                        viewModel.showPushNotificationPrompt = false
-                    }
-                }
-            }, onSecondaryButtonPressed: {
-                EventTracking.trackNotificationPromptDismissed()
-                viewModel.showPushNotificationPrompt = false
-            })
             .onAppear {
-                Task { @MainActor in
-                    if await NotificationLogic.shouldAskForNotificationPermissions {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            viewModel.showPushNotificationPrompt = true
-                        }
-                    }
-                }
                 if UserDefaultUtils.bool(forKey: .showCurrentAlbumOnLaunch) {
                     guard let album = viewModel.albumManager.currentAlbum else {
                         selectedNavigationItem = .albums
@@ -149,7 +124,6 @@ struct MainHomeView<D: FileAccess>: View {
                         UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
                     }
                 }
-                viewModel.keychainMigrationUtil.prepareMigration()
             }
             .onChange(of: viewModel.selectedNavigationItem, { oldValue, newValue in
                 selectedNavigationItem = newValue

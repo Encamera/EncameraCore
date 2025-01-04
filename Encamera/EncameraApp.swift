@@ -11,6 +11,8 @@ typealias FileAccessType = InteractableMediaDiskAccess
 
 @main
 struct EncameraApp: App {
+
+    @MainActor
     class ViewModel<D: FileAccess>: ObservableObject {
         @MainActor
         @Published var hasOpenedURL: Bool = false
@@ -33,6 +35,8 @@ struct EncameraApp: App {
         var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
         var settingsManager: SettingsManager
         var cameraService: CameraConfigurationService
+        var keychainMigrationUtil: KeychainMigrationUtil
+
         private(set) var authManager: AuthManager
         private var cancellables = Set<AnyCancellable>()
 
@@ -41,8 +45,9 @@ struct EncameraApp: App {
             self.settingsManager = SettingsManager()
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
             let keyManager = KeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
-
+            
             self.keyManager = keyManager
+            self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager, settingsManager: settingsManager)
             self.cameraService = CameraConfigurationService(model: CameraConfigurationServiceModel())
             self.onboardingManager
@@ -50,15 +55,18 @@ struct EncameraApp: App {
                 .$shouldShowOnboarding
                 .dropFirst()
                 .sink { value in
-                self.showOnboarding = value
-            }.store(in: &cancellables)
+                    self.showOnboarding = value
+                }.store(in: &cancellables)
             self.authManager
                 .isAuthenticatedPublisher
                 .receive(on: DispatchQueue.main)
                 .sink { value in
-                self.isAuthenticated = value
-            }.store(in: &cancellables)
-            
+                    self.isAuthenticated = value
+                    if value == true {
+                        self.keychainMigrationUtil.completeMigration()
+                    }
+                }.store(in: &cancellables)
+
             do {
                 try onboardingManager.loadOnboardingState()
             } catch let onboardingError as OnboardingManagerError {

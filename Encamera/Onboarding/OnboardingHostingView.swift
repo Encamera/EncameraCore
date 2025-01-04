@@ -133,7 +133,6 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
                 if keys == nil || keys?.isEmpty ?? false {
                     let _ = try keyManager.generateKeyUsingRandomWords(name: AppConstants.defaultKeyName)
                 }
-                await KeychainMigrationUtil(keyManager: keyManager).prepareMigration()
                 var albumManager = GenericAlbumManaging(keyManager: keyManager)
                 let album = try? albumManager.create(name: albumName, storageOption: .local)
                 albumManager.currentAlbum = album

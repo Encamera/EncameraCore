@@ -49,7 +49,7 @@ extension TimeInterval {
     }
 }
 
-
+@MainActor
 class AuthenticationViewModel: ObservableObject {
     private var authManager: AuthManager
     var keyManager: KeyManager
@@ -57,6 +57,8 @@ class AuthenticationViewModel: ObservableObject {
     @Published var enteredPassword: String = ""
     @Published var isPinCodeInputEnabled: Bool = true
     @Published var remainingLockoutTime: TimeInterval?
+    var keychainMigrationUtil: KeychainMigrationUtil
+
     private var passwordAttempts = 0
 #if DEBUG
     private let lockoutDuration: TimeInterval = 30
@@ -77,6 +79,7 @@ class AuthenticationViewModel: ObservableObject {
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
+        self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)
         setupLockoutTimer()
 
         if UserDefaultUtils.bool(forKey: .usesPinPassword) {

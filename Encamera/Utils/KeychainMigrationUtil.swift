@@ -9,12 +9,13 @@ import Foundation
 import EncameraCore
 
 @MainActor
-class KeychainMigrationUtil {
+class KeychainMigrationUtil: DebugPrintable {
 
     private let keyManager: KeyManager
     private let keyForPrivateKey: String = "keyMigration"
     private let keyForPassphraseData: String = "passphraseMigration"
     private let keyForPasswordHash: String = "passwordHashMigration"
+    private let keyForCompletedMigration: String = "completedMigration"
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
     }
@@ -22,76 +23,78 @@ class KeychainMigrationUtil {
     func prepareMigration() {
         do {
             guard let key = keyManager.currentKey else {
-                debugPrint("No current active key")
+                printDebug("No current active key")
                 return
             }
-            debugPrint("Keychain migration started")
+            printDebug("Keychain migration started")
 
             let data = try JSONEncoder().encode(key)
             UserDefaults.standard.set(data, forKey: keyForPrivateKey)
-            debugPrint("Migration: Set key data")
+            printDebug("Migration: Set key data")
             let passphrase = try keyManager.retrieveKeyPassphrase()
             let passphraseData = try JSONEncoder().encode(passphrase)
             UserDefaults.standard.setValue(passphraseData, forKey: keyForPassphraseData)
-            debugPrint("Migration: Set passphrase data")
+            printDebug("Migration: Set passphrase data")
 
             let passwordHash = try keyManager.getPasswordHash()
             UserDefaults.standard.setValue(passwordHash, forKey: keyForPasswordHash)
-            debugPrint("Migration: Set password hash data")
+            printDebug("Migration: Set password hash data")
 
             EventTracking.trackKeyMigrationPrepared()
         } catch {
-            debugPrint("Error pulling data \(error)")
+            printDebug("Error pulling data \(error)")
         }
     }
 
     func completeMigration() {
+
+        guard !UserDefaults.standard.bool(forKey: keyForCompletedMigration) else {
+            return
+        }
+
         var completedWithoutError = true
 
+
         do {
-            guard let keys = UserDefaults.standard.data(forKey: keyForPrivateKey) else {
-                debugPrint("Could not get data for key")
-                return
+            if let passphraseData = UserDefaults.standard.data(forKey: keyForPassphraseData) {
+
+                let passphrase = try JSONDecoder().decode(KeyPassphrase.self, from: passphraseData)
+
+                try keyManager.saveKeyWithPassphrase(passphrase: passphrase)
+                UserDefaults.standard.set(nil, forKey: keyForPassphraseData)
+                UserDefaults.standard.set(nil, forKey: keyForPrivateKey)
+                printDebug("Passphrase migration completed")
+            } else if let keys = UserDefaults.standard.data(forKey: keyForPrivateKey),
+                      UserDefaults.standard.data(forKey: keyForPassphraseData) == nil {
+                printDebug("Could not get data for key")
+
+
+                let key = try JSONDecoder().decode(PrivateKey.self, from: keys)
+                try keyManager.save(key: key, setNewKeyToCurrent: true, backupToiCloud: false)
+                UserDefaults.standard.set(nil, forKey: keyForPrivateKey)
+                printDebug("Keychain migration completed")
             }
 
-            let key = try JSONDecoder().decode(PrivateKey.self, from: keys)
-            try keyManager.save(key: key, setNewKeyToCurrent: true, backupToiCloud: false)
-            UserDefaults.standard.set(nil, forKey: keyForPrivateKey)
         } catch {
-            debugPrint("Migration did not complete: \(error)")
+            printDebug("Could not migrate passphrase data: \(error)")
             completedWithoutError = false
         }
 
         do {
-            guard let passphraseData = UserDefaults.standard.data(forKey: keyForPassphraseData) else {
-                debugPrint("Could not get passphrase")
-                return
+            if let passwordHash = UserDefaults.standard.data(forKey: keyForPasswordHash) {
+
+                try keyManager.setPasswordHash(hash: passwordHash)
+                UserDefaults.standard.set(nil, forKey: keyForPasswordHash)
+                printDebug("Keychain migration completed")
             }
-
-            let passphrase = try JSONDecoder().decode(KeyPassphrase.self, from: passphraseData)
-
-            try keyManager.saveKeyWithPassphrase(passphrase: passphrase)
-            UserDefaults.standard.set(nil, forKey: keyForPassphraseData)
         } catch {
-            debugPrint("Could not migrate passphrase data: \(error)")
-            completedWithoutError = false
-        }
-
-        do {
-            guard let passwordHash = UserDefaults.standard.data(forKey: keyForPasswordHash) else {
-                debugPrint("Could not get password hash")
-                return
-            }
-            try keyManager.setPasswordHash(hash: passwordHash)
-            UserDefaults.standard.set(nil, forKey: keyForPasswordHash)
-            debugPrint("Keychain migration completed")
-        } catch {
-            debugPrint("Could not migrate password hash: \(error)")
+            printDebug("Could not migrate password hash: \(error)")
             completedWithoutError = false
         }
 
         if completedWithoutError {
             EventTracking.trackKeyMigrationCompleted()
+            UserDefaults.standard.set(true, forKey: keyForCompletedMigration)
         } else {
             EventTracking.trackKeyMigrationFailedWithError()
         }

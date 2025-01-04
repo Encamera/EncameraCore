@@ -36,7 +36,7 @@ targets:
       CODE_SIGN_IDENTITY: "iPhone Developer"
       CODE_SIGN_STYLE: Automatic
       CURRENT_PROJECT_VERSION: 1
-      DEVELOPMENT_TEAM: KGJCC745S9
+      DEVELOPMENT_TEAM: 5UMBL85J64
       GENERATE_INFOPLIST_FILE: YES
       INFOPLIST_FILE: WidgetExtension/Info.plist
       INFOPLIST_KEY_CFBundleDisplayName: WidgetExtension
@@ -62,12 +62,12 @@ targets:
       - package: Sodium
       - package: EncameraCore
     settings:
-      DEVELOPMENT_TEAM: KGJCC745S9
+      DEVELOPMENT_TEAM: 5UMBL85J64
       CLANG_CXX_LANGUAGE_STANDARD: "gnu++20"
       CODE_SIGN_IDENTITY: "iPhone Developer"
       CODE_SIGN_STYLE: Automatic
       CURRENT_PROJECT_VERSION: 1
-      DEVELOPMENT_TEAM: KGJCC745S9
+      DEVELOPMENT_TEAM: 5UMBL85J64
       GENERATE_INFOPLIST_FILE: YES
       INFOPLIST_FILE: ShareExtension/Info.plist
       INFOPLIST_KEY_CFBundleDisplayName: ShareExtension
@@ -92,12 +92,12 @@ targets:
     platform: iOS
     sources: [Encamera]
     settings:
-      DEVELOPMENT_TEAM: KGJCC745S9
+      DEVELOPMENT_TEAM: 5UMBL85J64
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ForegroundPrimaryColor
       SUPPORTED_PLATFORMS: "iphoneos iphonesimulator" 
       SUPPORTS_MACCATALYST: NO
-      SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: YES
-      TARGETED_DEVICE_FAMILY: "1,2"
+      SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+      TARGETED_DEVICE_FAMILY: "1"
       OTHER_LDFLAGS: "-ObjC"
       DEVELOPMENT_ASSET_PATHS:
         "$(SRCROOT)/Encamera/PreviewAssets"
@@ -136,7 +136,7 @@ targets:
       CURRENT_PROJECT_VERSION: 1
       MARKETING_VERSION: 1.0
       GENERATE_INFOPLIST_FILE: YES
-      DEVELOPMENT_TEAM: KGJCC745S9
+      DEVELOPMENT_TEAM: 5UMBL85J64
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ForegroundPrimaryColor
       SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
       SUPPORTS_MACCATALYST: NO
