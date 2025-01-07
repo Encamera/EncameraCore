@@ -284,6 +284,7 @@ final class CameraModel: NSObject, ObservableObject, DebugPrintable {
             })
             currentVideoProcessor = nil
             try await fileAccess.save(media: video) { _ in }
+            TempFileAccess.cleanupRecordings()
             recordingCancellable.forEach({ $0.cancel()})
             recordingCancellable.removeAll()
             UserDefaultUtils.increaseInteger(forKey: .capturedPhotos)
