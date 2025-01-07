@@ -1,11 +1,5 @@
-//
-//  DualButtonComponent.swift
-//  Encamera
-//
-//  Created by Alexander Freas on 23.04.24.
-//
-
 import SwiftUI
+import UIKit
 
 struct DualButtonComponent: View {
     @Binding var nextActive: Bool
@@ -20,6 +14,7 @@ struct DualButtonComponent: View {
                 Button(bottomButtonTitle) {
                     Task {
                         do {
+                            triggerHapticFeedback()
                             try await bottomButtonAction?()
                             nextActive = true
                         } catch {
@@ -41,9 +36,13 @@ struct DualButtonComponent: View {
                     }
                 }
                 .textButton()
-
             }
         }.padding(14)
+    }
+
+    private func triggerHapticFeedback() {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
     }
 }
 

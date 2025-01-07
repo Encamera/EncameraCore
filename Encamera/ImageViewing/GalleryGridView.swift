@@ -584,12 +584,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
 
             ZStack(alignment: .center) {
                 ScrollView {
-                    HStack {
-                        if viewModel.downloadPendingMediaCount > 0 {
-                            downloadFromiCloudButton
-                        }
-                    }
-                    .padding(.bottom)
                     LazyVGrid(columns: gridItems, spacing: spacing) {
                         ForEach(Array(viewModel.media.enumerated()), id: \.element) { index, mediaItem in
                             imageForItem(mediaItem: mediaItem, width: side, height: side, index: index)
@@ -691,29 +685,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
 
     }
 
-    private var downloadFromiCloudButton: some View {
-        Button {
-            viewModel.startiCloudDownload()
-        } label: {
-
-            HStack {
-                if viewModel.downloadInProgress {
-                    ProgressView()
-                        .tint(Color.foregroundPrimary)
-                    Spacer()
-                        .frame(width: 5)
-                } else {
-                    Text("\(viewModel.downloadPendingMediaCount)")
-                        .fontType(.pt18)
-                }
-                Image(systemName: "icloud.and.arrow.down")
-            }
-        }
-        .padding(Constants.buttonPadding)
-        .background(Color.foregroundSecondary)
-        .cornerRadius(Constants.buttonCornerRadius)
-
-    }
 }
 
 //#Preview {

@@ -62,15 +62,12 @@ struct AsyncEncryptedImage<Placeholder: View>: View, Identifiable  {
                 }
                 .blur(radius: isBlurred ? AppConstants.blockingBlurRadius : 0.0)
                 if viewModel.needsDownload {
-                    ZStack(alignment: .bottomTrailing) {
+                    ZStack(alignment: .topTrailing) {
                         Rectangle().foregroundColor(.clear)
-                        Image(systemName: "icloud.and.arrow.down")
+                        Image(systemName: "icloud")
                             .foregroundColor(.white)
                     }
-                    .padding(5)
-                    .onTapGesture {
-
-                    }
+                    .padding(3)
 
                 }
 
