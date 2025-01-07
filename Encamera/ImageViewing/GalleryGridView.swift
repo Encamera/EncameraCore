@@ -69,20 +69,21 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private var iCloudCancellables = Set<AnyCancellable>()
+    private var currentTask: Task<Void, Error>?
     var fileAccess: D
     @MainActor
     @Published var showEmptyView: Bool = false
 
     var cameraModel: CameraModel
-
+    
     init(album: Album?,
          albumManager: AlbumManaging,
          blurImages: Bool = false,
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,
-         fileAccess: D,
-         purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
+         fileAccess: D
     ) {
+        self.purchasedPermissions = AppPurchasedPermissionUtils()
         self.blurImages = blurImages
         self.albumManager = albumManager
         self.album = album
@@ -99,7 +100,6 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
             fileAccess: fileAccess,
             purchaseManager: purchasedPermissions
         )
-        self.purchasedPermissions = purchasedPermissions
         FileOperationBus.shared.operations.sink { operation in
             #warning("This is a temporary fix, make it more graceful and refactor FileOperationBus")
             guard self.isSelectingMedia == false else {
@@ -126,6 +126,11 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         } else if status == .authorized || status == .limited {
             try await deleteMediaFromPhotoLibrary(result: lastImportedAssets)
         }
+    }
+
+    func cancelImporting() {
+        currentTask?.cancel()
+        cancelImport = true
     }
 
     func requestPhotoLibraryPermission() async {
@@ -195,7 +200,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     }
 
     func handleSelectedFiles(urls: [URL]) {
-        Task {
+        currentTask = Task {
             isImporting = true
             totalImportCount = urls.count
             for url in urls {
@@ -217,7 +222,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     }
 
     func handleSelectedMedia(items: [PHPickerResult]) {
-        Task {
+        currentTask = Task {
             totalImportCount = items.count
             isImporting = true
 
@@ -322,7 +327,6 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     private func saveCleartextMedia(mediaArray: [CleartextMedia]) async throws {
         let media = try InteractableMedia(underlyingMedia: mediaArray)
         let savedMedia = try await fileAccess.save(media: media) { progress in
-            debugPrint("Progress: \(progress)")
             Task { @MainActor in
                 self.importProgress = progress
             }
@@ -434,7 +438,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
 
     private var cancelButton: some View {
         Button {
-            viewModel.cancelImport = true
+            viewModel.cancelImporting()
         } label: {
             Image(systemName: "x.circle.fill")
         }

@@ -46,7 +46,7 @@ open class LightboxController: UIViewController {
         return scrollView
     }()
 
-    lazy var coverView: UIView = {
+    lazy var screenBlockingView: UIView = {
         let view = UIView()
         view.backgroundColor = UIColor.black
         return view
@@ -193,19 +193,21 @@ open class LightboxController: UIViewController {
         self.reviewAlertActionPressed = reviewAlertActionPressed
         super.init(nibName: nil, bundle: nil)
         self.pageDelegate = self
-
+        NotificationUtils.willResignActivePublisher.sink { [weak self] _ in
+            self?.screenBlockingView.alpha = 1.0
+        }.store(in: &cancellable)
         NotificationUtils.didEnterBackgroundPublisher.sink { [weak self] _ in
-            self?.coverView.alpha = 1.0
+            self?.screenBlockingView.alpha = 1.0
             guard let viewController = UIApplication.topMostViewController() else {
                 return
             }
             viewController.dismiss(animated: false, completion: {})
         }.store(in: &cancellable)
         NotificationUtils.willResignActivePublisher.sink { [weak self] _ in
-            self?.coverView.alpha = 1.0
+            self?.screenBlockingView.alpha = 1.0
         }.store(in: &cancellable)
         NotificationUtils.didBecomeActivePublisher.sink { [weak self] _ in
-            self?.coverView.alpha = 0.0
+            self?.screenBlockingView.alpha = 0.0
         }.store(in: &cancellable)
 
     }
@@ -226,11 +228,11 @@ open class LightboxController: UIViewController {
         transitionManager.scrollView = scrollView
         transitioningDelegate = transitionManager
 
-        [scrollView, footerView, coverView].forEach {
+        [scrollView, footerView, screenBlockingView].forEach {
             view.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
-        coverView.alpha = 0.0
+        screenBlockingView.alpha = 0.0
 
 
         footerViewHeightConstraint = footerView.heightAnchor.constraint(equalToConstant: initialFooterHeight)
@@ -249,10 +251,10 @@ open class LightboxController: UIViewController {
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
             // Constraints for coverView
-            coverView.topAnchor.constraint(equalTo: view.topAnchor),
-            coverView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            coverView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            coverView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            screenBlockingView.topAnchor.constraint(equalTo: view.topAnchor),
+            screenBlockingView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            screenBlockingView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            screenBlockingView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
 
         configurePages(initialImages)

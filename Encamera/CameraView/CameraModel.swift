@@ -100,6 +100,7 @@ final class CameraModel: NSObject, ObservableObject, DebugPrintable {
         self.albumManager = albumManager
         self.isLivePhotoEnabled = UserDefaultUtils.bool(forKey: .livePhotosActivated)
         super.init()
+        setOrientation(AVCaptureVideoOrientation(rawValue: UIDevice.current.orientation.rawValue) ?? .portrait)
     }
 
     func initialConfiguration() async {

@@ -25,11 +25,15 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
     var keyManager: KeyManager
     private var finishedAction: () -> ()
     private var onboardingManager: OnboardingManaging
-    private var albumManager: GenericAlbumManaging?
+    private var albumManager: GenericAlbumManaging
     private var passwordValidator = PasswordValidator()
     private var cancellables = Set<AnyCancellable>()
     private var authManager: AuthManager
     var enteredPinCode: String = ""
+    var hasAlbums: Bool {
+        albumManager.loadAlbumsFromFilesystem()
+        return albumManager.albums.count > 0
+    }
 
     var areBiometricsAvailable: Bool {
         authManager.canAuthenticateWithBiometrics
@@ -39,7 +43,7 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
     @MainActor
     func authWithBiometrics() async throws {
         do {
-            try await authManager.evaluateWithBiometrics()
+            try await authManager.authorizeWithBiometrics()
             useBiometrics = true
         } catch let authError as AuthManagerError {
             switch authError {
@@ -69,10 +73,11 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
         self.keyManager = keyManager
         self.authManager = authManager
         self.finishedAction = finishedAction
+        self.albumManager = GenericAlbumManaging(keyManager: keyManager)
     }
 
     func saveAlbum(name: String) {
-        _ = try? albumManager?.create(name: name, storageOption: .local)
+        _ = try? albumManager.create(name: name, storageOption: .local)
     }
 
     @discardableResult func validatePassword() throws -> PasswordValidation {
@@ -117,7 +122,7 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
     }
 
 
-    func finishOnboarding(albumName: String) async throws {
+    func finishOnboarding(albumName: String?) async throws {
             do {
                 if !enteredPinCode.isEmpty {
                     try await savePassword()
@@ -133,10 +138,13 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
                 if keys == nil || keys?.isEmpty ?? false {
                     let _ = try keyManager.generateKeyUsingRandomWords(name: AppConstants.defaultKeyName)
                 }
-                var albumManager = GenericAlbumManaging(keyManager: keyManager)
-                let album = try? albumManager.create(name: albumName, storageOption: .local)
+                var album: Album?
+                if let albumName = albumName {
+                    album = try albumManager.create(name: albumName, storageOption: .local)
+                } else if let firstAlbum = albumManager.albums.first {
+                    album = firstAlbum
+                }
                 albumManager.currentAlbum = album
-                self.albumManager = albumManager
 
                 try await onboardingManager.saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: await useBiometrics))
                 UserDefaultUtils.set(true, forKey: .showCurrentAlbumOnLaunch)
@@ -398,13 +406,21 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
 
 
         case .finished:
+
             NewOnboardingView(viewModel:
                     .init(
                         screen: destination,
                         showTopBar: false,
-                        bottomButtonTitle: L10n.createFirstAlbum,
+                        bottomButtonTitle: viewModel.hasAlbums ? L10n.letsGo : L10n.createFirstAlbum,
                         bottomButtonAction: {
-                            viewModel.showAddAlbumModal = true
+                            if viewModel.hasAlbums {
+                                Task {
+                                    try await viewModel.finishOnboarding(albumName: nil)
+                                    presentationMode.wrappedValue.dismiss()
+                                }
+                            } else {
+                                viewModel.showAddAlbumModal = true
+                            }
                         },
                         secondaryButtonAction: {
                             path.append(OnboardingFlowScreen.finished)
@@ -425,7 +441,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .fontType(.pt24, weight: .bold)
                                         .multilineTextAlignment(.center)
                                     Spacer().frame(height: 12)
-                                    Text(L10n.finishedSubtitle)
+                                    Text(viewModel.hasAlbums ? "" : L10n.finishedSubtitle)
                                         .fontType(.pt14)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)

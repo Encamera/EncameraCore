@@ -36,7 +36,7 @@ class PageView: UIScrollView {
         }
     }()
 
-
+    
 
     lazy var playButton: UIButton = {
         let button = UIButton(type: .custom)
@@ -165,6 +165,7 @@ class PageView: UIScrollView {
             && imageView.image != nil
             && showPurchaseOverlay == false {
             addSubview(playButton)
+
         } else if subviews.contains(playButton) {
             playButton.removeFromSuperview()
         }

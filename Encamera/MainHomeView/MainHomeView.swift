@@ -19,7 +19,6 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
     @Published var isAuthenticated = false
     @Published var hasMediaToImport = false
     @Published var showImportedMediaScreen = false
-    @Published var shouldShowTweetScreen: Bool = false
     @Published var selectedPath: NavigationPath = .init()
     @Published var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums
     var fileAccess: D
@@ -105,7 +104,8 @@ struct MainHomeView<D: FileAccess>: View {
                             keyManager: viewModel.keyManager,
                             authManager: viewModel.authManager,
                             fileAccess: viewModel.fileAccess,
-                            albumManager: viewModel.albumManager
+                            albumManager: viewModel.albumManager,
+                            purchasedPermissions: viewModel.purchasedPermissions
                         ))
                     } else {
                         AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))

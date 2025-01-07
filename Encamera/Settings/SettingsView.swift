@@ -28,7 +28,7 @@ class SettingsViewViewModel: ObservableObject {
     @Published var showDetailView: Bool = false
     @Published var readyToErase: Bool = false
     @Published var showPromptToErase: Bool = false
-    @Published var showPremium: Bool = false
+    @Published var showPurchaseScreen: Bool = false
     @Published fileprivate var successMessage: String?
     @Published var useBiometrics: Bool = false
     @Published var showChangePin: Bool = false
@@ -46,6 +46,7 @@ class SettingsViewViewModel: ObservableObject {
     var keyManager: KeyManager
     var fileAccess: FileAccess
     var albumManager: AlbumManaging
+    var purchasedPermissions: PurchasedPermissionManaging
 
     private var cancellables = Set<AnyCancellable>()
     private var passwordValidator = PasswordValidator()
@@ -57,7 +58,8 @@ class SettingsViewViewModel: ObservableObject {
     init(keyManager: KeyManager,
          authManager: AuthManager,
          fileAccess: FileAccess,
-         albumManager: AlbumManaging) {
+         albumManager: AlbumManaging,
+         purchasedPermissions: PurchasedPermissionManaging) {
         self.keyManager = keyManager
         self.albumManager = albumManager
         self.fileAccess = fileAccess
@@ -65,9 +67,11 @@ class SettingsViewViewModel: ObservableObject {
         self.useBiometrics = authManager.useBiometricsForAuth
         self.showKeyBackup = ((try? keyManager.retrieveKeyPassphrase()) != nil)
         self.defaultStorageOption = albumManager.defaultStorageForAlbum
+        self.purchasedPermissions = purchasedPermissions
+        self.useiCloudKeyBackup = purchasedPermissions.hasEntitlement() && keyManager.areKeysStoredIniCloud
     }
     
-    func setupBiometricToggleObserver() {
+    func setupToggleObservers() {
         self.$useBiometrics.dropFirst().sink { [weak self] value in
             if self?.authManager.canAuthenticateWithBiometrics == false {
                 self?.showAlert = true
@@ -91,7 +95,13 @@ class SettingsViewViewModel: ObservableObject {
         }.store(in: &cancellables)
 
         self.$useiCloudKeyBackup.dropFirst().sink { [weak self] value in
-            try? self?.keyManager.backupKeychainToiCloud(backupEnabled: value)
+            guard let self else { return }
+            if self.purchasedPermissions.hasEntitlement() {
+                try? self.keyManager.backupKeychainToiCloud(backupEnabled: value)
+            } else {
+                self.showPurchaseScreen = value
+                self.useiCloudKeyBackup = false
+            }
         }.store(in: &cancellables)
     }
 
@@ -155,7 +165,7 @@ struct SettingsView: View {
                 Group {
                     Section {
                         Button(L10n.getPremium) {
-                            viewModel.showPremium = true
+                            viewModel.showPurchaseScreen = true
                         }
                         Button(L10n.restorePurchases) {
                             Task(priority: .userInitiated) {
@@ -213,7 +223,6 @@ struct SettingsView: View {
                                 ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
                             }
                         }
-                        iCloudKeyBackupToggle
                         HStack {
                             Picker(L10n.Settings.defaultStorageOption, selection: $viewModel.defaultStorageOption) {
                                 ForEach(StorageType.allCases) { storageType in
@@ -251,7 +260,7 @@ struct SettingsView: View {
         }
         .gradientBackground()
         .fontType(.pt14, weight: .bold)
-        .productStore(isPresented: $viewModel.showPremium, fromViewName: "Settings")
+        .productStore(isPresented: $viewModel.showPurchaseScreen, fromViewName: "Settings")
         .sheet(isPresented: $viewModel.showChangePin, content: {
             ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
                 // tiny hack but we are relying here on the UI to keep the state of the biometrics
@@ -304,7 +313,7 @@ struct SettingsView: View {
             Toggle(isOn: $viewModel.useBiometrics) {
                 Text(L10n.use(method.nameForMethod))
             }.onAppear {
-                viewModel.setupBiometricToggleObserver()
+                viewModel.setupToggleObservers()
             }.tint(Color.actionYellowGreen)
 
         }
@@ -324,7 +333,7 @@ struct SettingsView: View {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
 
-        SettingsView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), fileAccess: DemoFileEnumerator(), albumManager: DemoAlbumManager()))
+        SettingsView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), fileAccess: DemoFileEnumerator(), albumManager: DemoAlbumManager(), purchasedPermissions: DemoPurchasedPermissionManaging()))
 
     }
 }
