@@ -593,6 +593,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
                     .animation(.easeIn, value: viewModel.blurImages)
                 }
+                .contentMargins([.top, .bottom], outerMargin)
                 .padding([.leading, .trailing], outerMargin)
             }
             .task {
@@ -605,7 +606,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             .navigationBarTitle("")
         }
     }
-
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 16) {
 

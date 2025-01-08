@@ -82,7 +82,7 @@ public class DemoFileEnumerator: FileAccess {
     }
 
     public func enumerateMedia<T>() async -> [InteractableMedia<T>] where T : MediaDescribing {
-        let retVal: [InteractableMedia<T>] = (7...11).compactMap { val in
+        let retVal: [InteractableMedia<T>] = (7...31).compactMap { val in
             let url = URL(fileURLWithPath: "/Users/akfreas/github/Encamera/Encamera/\(val)")
             return try? InteractableMedia(underlyingMedia: [T(source: .url(url), mediaType: .photo, id: "\(val)")])
         }.shuffled()
