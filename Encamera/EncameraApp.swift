@@ -48,6 +48,7 @@ struct EncameraApp: App {
             self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager, settingsManager: settingsManager)
             self.cameraService = CameraConfigurationService(model: CameraConfigurationServiceModel())
+            self.keychainMigrationUtil.completeMigration()
             self.onboardingManager
                 .observables
                 .$shouldShowOnboarding
@@ -60,9 +61,6 @@ struct EncameraApp: App {
                 .receive(on: DispatchQueue.main)
                 .sink { value in
                     self.isAuthenticated = value
-                    if value == true {
-                        self.keychainMigrationUtil.completeMigration()
-                    }
                 }.store(in: &cancellables)
 
             do {
@@ -81,7 +79,6 @@ struct EncameraApp: App {
                         return
                     }
                     let albumManager: AlbumManaging = AlbumManager(keyManager: keyManager)
-                    //                self.appGroupFileAccess = AppGroupFileReader(albumManager: albumManager)
                     self.albumManager = albumManager
                     self.albumManager?.albumOperationPublisher
                         .receive(on: RunLoop.main)
@@ -229,7 +226,7 @@ struct EncameraApp: App {
                     OnboardingHostingView<AlbumManagerType>(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager, authManager: viewModel.authManager, finishedAction: {
                         viewModel.showOnboarding = false
                     }))
-                } else if viewModel.isAuthenticated == false && viewModel.keyManagerKey == nil {
+                } else if viewModel.isAuthenticated == false {
                     AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                 } else if viewModel.isAuthenticated == true,
                           viewModel.keyManagerKey != nil,

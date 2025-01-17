@@ -54,7 +54,6 @@ class KeychainMigrationUtil: DebugPrintable {
 
         var completedWithoutError = true
 
-
         do {
             if let passphraseData = UserDefaults.standard.data(forKey: keyForPassphraseData) {
 
