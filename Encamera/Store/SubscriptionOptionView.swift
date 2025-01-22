@@ -8,7 +8,7 @@
 import SwiftUI
 import EncameraCore
 
-private struct MostPopularIndicatorViewModifier: ViewModifier {
+ struct MostPopularIndicatorViewModifier: ViewModifier {
     let popularWidth: CGFloat = 113.0
     let popularHeight: CGFloat = 22.0
 

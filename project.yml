@@ -117,6 +117,8 @@ targets:
         embed: false
       - package: TagCloud
         link: true
+      - package: RevenueCat
+        link: true
     scheme:
       storeKitConfiguration: "Encamera/InAppPurchase/Encamera.storekit"
       testTargets:
@@ -160,8 +162,7 @@ targets:
         embed: false
       - package: TagCloud
         link: true
-      - package: RevenueCat
-        link: true
+      
     scheme:
       testTargets:
 
