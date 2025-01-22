@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import StoreKit
 import EncameraCore
 
 private struct MostPopularIndicatorViewModifier: ViewModifier {

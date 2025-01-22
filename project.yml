@@ -17,6 +17,9 @@ packages:
   TagCloud:
     url: https://github.com/yarspirin/TagCloud
     majorVersion: 1.0.4
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios-spm.git
+    majorVersion: 5.0.0
 
 targets:
 
@@ -156,6 +159,8 @@ targets:
       - framework: StoreKit.framework
         embed: false
       - package: TagCloud
+        link: true
+      - package: RevenueCat
         link: true
     scheme:
       testTargets:

@@ -6,10 +6,10 @@
 //
 
 import SwiftUI
-import StoreKit
 import Combine
 import EncameraCore
 import WebKit
+import RevenueCat
 
 fileprivate enum AlertType {
     case none
@@ -169,13 +169,11 @@ struct SettingsView: View {
                         }
                         Button(L10n.restorePurchases) {
                             Task(priority: .userInitiated) {
-                                try await AppStore.sync()
+                                try await Purchases.shared.syncPurchases()
                             }
                         }
                         Button(L10n.enterPromoCode) {
-                            Task {
-                                await StoreActor.shared.presentCodeRedemptionSheet()
-                            }
+                            Purchases.shared.presentCodeRedemptionSheet()
                         }
                     }
                     Section {

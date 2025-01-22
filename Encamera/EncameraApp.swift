@@ -3,6 +3,7 @@ import Combine
 import MediaPlayer
 import EncameraCore
 import AVFoundation
+import RevenueCat
 
 typealias AlbumManagerType = AlbumManager
 typealias FileAccessType = InteractableMediaDiskAccess
@@ -309,7 +310,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
         EventTracking.trackAppLaunched()
         LaunchCountUtils.recordCurrentVersionLaunch()
-
+#if DEBUG
+        Purchases.logLevel = .debug
+#endif
+        Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT")
+        
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(.playback, mode: .default, options: [])

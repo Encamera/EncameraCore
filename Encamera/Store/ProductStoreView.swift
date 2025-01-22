@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftUI
-import StoreKit
 import EncameraCore
 
 struct FeatureIcon: View {
