@@ -12,12 +12,12 @@ struct StorePurchaseButton: View {
 
     @Binding var isSubscribedToSelectedSubscription: Bool
     let selectedPurchasable: Binding<(any PurchaseOptionComponentProtocol)?>
-    let onPurchase: () -> Void
+    let onPurchase: (any PurchaseOptionComponentProtocol) -> Void
 
     init(
         selectedPurchasable: Binding<(any PurchaseOptionComponentProtocol)?>,
         isSubscribedToSelectedSubscription: Binding<Bool>,
-        onPurchase: @escaping () -> Void
+        onPurchase: @escaping (any PurchaseOptionComponentProtocol) -> Void
     ) {
         self._isSubscribedToSelectedSubscription = isSubscribedToSelectedSubscription
         self.selectedPurchasable = selectedPurchasable
@@ -27,7 +27,9 @@ struct StorePurchaseButton: View {
     var body: some View {
         VStack(spacing: 8) {
             Button {
-                onPurchase()
+                if let selectedPurchasable = selectedPurchasable.wrappedValue {
+                    onPurchase(selectedPurchasable)
+                }
             } label: {
                 Group {
                     if let selectedPurchasable = selectedPurchasable.wrappedValue {

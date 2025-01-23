@@ -7,18 +7,15 @@
 
 import SwiftUI
 import EncameraCore
+import RevenueCat
 
-class PurchaseStorefrontViewModel: ObservableObject {
-
-    @Published var selectedPurchasable: (any PurchaseOptionComponentProtocol)?
-
-}
 
 struct PurchaseStorefront: View {
 
-    @StateObject var viewModel: PurchaseStorefrontViewModel = .init()
-    @State var currentSubscription: (any PurchaseOptionComponentProtocol)?
-
+    var currentSubscription: (any PurchaseOptionComponentProtocol)?
+    var purchaseOptions: [any PurchaseOptionComponentProtocol]
+    var onPurchase: ((any PurchaseOptionComponentProtocol) -> Void)
+    @State var selectedPurchasable: (any PurchaseOptionComponentProtocol)?
     var body: some View {
         GeometryReader { geo in
 
@@ -32,17 +29,12 @@ struct PurchaseStorefront: View {
                 VStack {
                     ScrollView(showsIndicators: false) {
                         PurchaseUpgradeHeaderView()
-                        PurchaseOptionComponent(viewModel: .init(options: [
-                            PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month", savingsPercentage: 0.17),
-                            PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year", savingsPercentage: nil),
-                            PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time", savingsPercentage: nil)
-                        ]), selectedOption: $viewModel.selectedPurchasable).padding()
+                        PurchaseOptionComponent(viewModel: .init(options: purchaseOptions), selectedOption: $selectedPurchasable).padding()
                         PremiumBenefitsScrollView()
                     }
-                    StorePurchaseButton(selectedPurchasable: $viewModel.selectedPurchasable,
+                    StorePurchaseButton(selectedPurchasable: $selectedPurchasable,
                                         isSubscribedToSelectedSubscription: .constant(false),
-                                        onPurchase: {
-                    })
+                                        onPurchase: onPurchase)
                 }
             }
         }
@@ -50,5 +42,11 @@ struct PurchaseStorefront: View {
 }
 
 #Preview {
-    PurchaseStorefront()
+    PurchaseStorefront(purchaseOptions: [
+        PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month", savingsPercentage: 0.17),
+        PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year", savingsPercentage: nil),
+        PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time", savingsPercentage: nil)
+    ]) { _ in
+
+    }
 }

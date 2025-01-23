@@ -9,64 +9,26 @@ import Foundation
 import SwiftUI
 import EncameraCore
 
-struct FeatureIcon: View {
-    let image: Image
-
-    var body: some View {
-        ZStack {
-            Rectangle()
-                .foregroundColor(.clear)
-                .frame(width: 42, height: 42)
-                .background(Color.white)
-                .cornerRadius(4)
-                .opacity(0.10)
-            image
-                .renderingMode(.template)
-//                .opacity(0.50)
-                .foregroundColor(.actionYellowGreen)
-        }
-        .frame(width: 42, height: 42)
-    }
-}
-
-struct FeatureText: View {
-    let title: String
-    let subtitle: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: subtitle != nil ? 4 : nil) {
-            Group {
-                Text(title)
-                    .fontType(.pt14, weight: .bold)
-                    .foregroundColor(.white)
-                if let subtitle = subtitle {
-                    Text(subtitle)
-                        .font(Font.custom("Satoshi Variable", size: 14))
-                        .foregroundColor(.white)
-                        .opacity(0.80)
-                }
-            }.frame(maxWidth: .infinity, alignment: .leading)
-
-        }.frame(height: 50)
-            .transition(.move(edge: .bottom))
-    }
-}
-
-
-
-
 typealias PurchaseResultAction = ((PurchaseFinishedAction) -> Void)
+
+class ProductStoreViewViewModel: ObservableObject {
+
+    @Published var purchaseOptions: [any PurchaseOptionComponentProtocol] = [
+        PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month", savingsPercentage: 0.17),
+        PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year", savingsPercentage: nil),
+        PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time", savingsPercentage: nil)
+    ]
+
+}
 
 struct ProductStoreView: View {
 
 
-    @ObservedObject var subscriptionController: StoreSubscriptionController = StoreActor.shared.subscriptionController
-    @ObservedObject var productController: StoreProductController = StoreActor.shared.productController
     @State private var selectedPurchasable: (any Purchasable)?
     @State private var currentActiveSubscription: ServiceSubscription?
     @State private var errorAlertIsPresented = false
     @State private var showPostPurchaseScreen = false
-
+    @StateObject var viewModel: ProductStoreViewViewModel = .init()
     @Environment(\.presentationMode) private var presentationMode
 
 
@@ -95,21 +57,34 @@ struct ProductStoreView: View {
     private var purchaseScreen: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
-                Image(AppConstants.isInPromoMode ? "HalloweenBG" : "Premium-TopHalo")
-                    .resizable()
+                PurchaseStorefront(purchaseOptions: viewModel.purchaseOptions, selectedPurchasable: viewModel.purchaseOptions[1]) { purchasable in
 
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: geo.size.width)
-                    .ignoresSafeArea(.all)
-                ScrollView {
-                    VStack(spacing: 0) {
-                        PurchaseUpgradeHeaderView(purchasedProduct: productController.purchasedProduct)
-                            .frame(maxWidth: .infinity)
-                        if productController.purchasedProduct == nil {
-                            productCellsScrollView
-                        }
-                        Spacer()
-                    }
+
+//                    Task(priority: .userInitiated) { @MainActor in
+//                        var action: PurchaseFinishedAction
+//                        switch action {
+//                        case .purchaseComplete(let price, let currencyCode):
+//                            NotificationManager.cancelNotificationForPremiumReminder()
+//                            showPostPurchaseScreen = true
+//                            EventTracking.trackPurchaseCompleted(
+//                                from: fromView,
+//                                currency: currencyCode,
+//                                amount: price,
+//                                product: purchasable.id)
+//                        case .displayError:
+//                            errorAlertIsPresented = true
+//                            EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
+//                        case .noAction:
+//                            EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
+//                        case .cancelled:
+//                            EventTracking.trackPurchaseCancelled(from: fromView, product: purchasable.id)
+//
+//                        case .pending:
+//                            EventTracking.trackPurcasePending(from: fromView, product: purchasable.id)
+//                        }
+//                        purchaseAction?(action)
+//
+//                    }
                 }
                 .scrollIndicators(.never)
                 .navigationBarTitle(L10n.upgradeToday)
@@ -120,91 +95,22 @@ struct ProductStoreView: View {
                     }
                 }
                 .onAppear {
-                    selectedPurchasable = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
-                    currentActiveSubscription = subscriptionController.entitledSubscription
-                    if subscriptionController.entitledSubscription == nil {
-                        NotificationManager.scheduleNotificationForPremiumReminder()
-                    }
+//                    selectedPurchasable = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
+//                    currentActiveSubscription = subscriptionController.entitledSubscription
+
                 }
-                .alert(
-                    subscriptionController.purchaseError?.errorDescription ?? "",
-                    isPresented: $errorAlertIsPresented,
-                    actions: {}
-                )
+//                .alert(
+//                    subscriptionController.purchaseError?.errorDescription ?? "",
+//                    isPresented: $errorAlertIsPresented,
+//                    actions: {}
+//                )
 
             }.onAppear {
                 EventTracking.trackShowPurchaseScreen(from: fromView)
             }
         }
     }
-
-    private func createFeatureRow(image: Image, title: String, subtitle: String? = nil) -> some View {
-        return HStack(alignment: .center, spacing: 12) {
-            FeatureIcon(image: image)
-            FeatureText(title: title, subtitle: subtitle)
-        }
-    }
-
-    @ViewBuilder
-    var productCellsScrollView: some View {
-
-        VStack {
-            Spacer()
-            let subscriptionOptions = subscriptionController.subscriptions
-            let oneTimePurchaseOptions = productController.products
-            PurchaseUpgradeOptionsListView(
-                subscriptionOptions: subscriptionOptions,
-                oneTimePurchaseOptions: oneTimePurchaseOptions,
-                purchasedProduct: productController.purchasedProduct,
-                selectedOption: $selectedPurchasable,
-                currentActiveSubscription: currentActiveSubscription,
-                onPurchase: {
-                    guard let purchasable = selectedPurchasable else {
-                        return
-                    }
-
-                        Task(priority: .userInitiated) { @MainActor in
-                            var action: PurchaseFinishedAction
-                            if let subscription = purchasable as? ServiceSubscription {
-                                action = await subscriptionController.purchase(option: subscription)
-                            } else if let product = purchasable as? OneTimePurchase {
-                                action = await productController.purchase(product: product)
-                            } else {
-                                print("Unknown purchasable type")
-                                return
-                            }
-                            switch action {
-                            case .purchaseComplete(let price, let currencyCode):
-                                NotificationManager.cancelNotificationForPremiumReminder()
-                                showPostPurchaseScreen = true
-                                EventTracking.trackPurchaseCompleted(
-                                    from: fromView,
-                                    currency: currencyCode,
-                                    amount: price,
-                                    product: purchasable.product.id)
-                            case .displayError: 
-                                errorAlertIsPresented = true
-                                EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.product.id)
-                            case .noAction:
-                                EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.product.id)
-                            case .cancelled:
-                                EventTracking.trackPurchaseCancelled(from: fromView, product: purchasable.product.id)
-
-                            case .pending:
-                                EventTracking.trackPurcasePending(from: fromView, product: purchasable.product.id)
-                            }
-                            purchaseAction?(action)
-
-                    }
-                }
-            )
-
-            .padding(.top)
-        }
-
-    }
-
-
+    
     private func dismiss() {
         presentationMode.wrappedValue.dismiss()
     }
