@@ -45,12 +45,16 @@
 		173846240608B3AE76784429 /* MediaViewingError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A55AE312E788A2CC62124A23 /* MediaViewingError.swift */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		189E8E09C8B2051B80EA5DD7 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 2E3847B535525CD631854FE2 /* SwiftUIIntrospect */; };
-		193DDAA92D411EDC00F3BF9A /* StoreFront.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAA82D411ED300F3BF9A /* StoreFront.swift */; };
-		193DDAAA2D411EDC00F3BF9A /* StoreFront.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAA82D411ED300F3BF9A /* StoreFront.swift */; };
 		193DDAAC2D411F0B00F3BF9A /* PurchaseOptionComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAAB2D411F0B00F3BF9A /* PurchaseOptionComponent.swift */; };
 		193DDAAD2D411F0B00F3BF9A /* PurchaseOptionComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAAB2D411F0B00F3BF9A /* PurchaseOptionComponent.swift */; };
 		193DDAAF2D414CFF00F3BF9A /* MovingGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAAE2D414CFF00F3BF9A /* MovingGradient.swift */; };
 		193DDAB02D414CFF00F3BF9A /* MovingGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAAE2D414CFF00F3BF9A /* MovingGradient.swift */; };
+		193DDAB22D41906100F3BF9A /* PremiumBenefitsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB12D41906100F3BF9A /* PremiumBenefitsScrollView.swift */; };
+		193DDAB32D41906100F3BF9A /* PremiumBenefitsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB12D41906100F3BF9A /* PremiumBenefitsScrollView.swift */; };
+		193DDAB52D4196F800F3BF9A /* PurchaseStorefront.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB42D4196F800F3BF9A /* PurchaseStorefront.swift */; };
+		193DDAB62D4196F800F3BF9A /* PurchaseStorefront.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB42D4196F800F3BF9A /* PurchaseStorefront.swift */; };
+		193DDAB82D419BBD00F3BF9A /* StorePurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */; };
+		193DDAB92D419BBD00F3BF9A /* StorePurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */; };
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A4FD6D71B93F3D4A75F09C8 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541C934E3C2228AEF133A9AE /* Color+Extensions.swift */; };
@@ -169,7 +173,6 @@
 		5BD0411D5F9942B115089F2F /* MediaViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9820DFDC9E5EF8572F77A9B0 /* MediaViewModelProtocol.swift */; };
 		5BDE17D39CBF70B6A5C2857B /* BuyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */; };
 		5C242765482F8F9C8B0BC2DA /* NavigationPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2DD0E7BBBF700CAD24A760 /* NavigationPath.swift */; };
-		5C91E706B46D7747CB493739 /* PurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76DC7343E9ECEFF44132872C /* PurchaseButton.swift */; };
 		5DA96EA4C6729B9FE9CB1F73 /* PhotoLimitReachedModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69B79F24AC07E3DECF54DFA1 /* PhotoLimitReachedModal.swift */; };
 		5E5469AA4901A9796CC88F16 /* markus-winkler-j_C2ZCQZmTI-unsplash.jpg in Resources */ = {isa = PBXBuildFile; fileRef = E65FF016BA5B9FC81DB797D4 /* markus-winkler-j_C2ZCQZmTI-unsplash.jpg */; };
 		5F2F8BA6B70C49A3250E2FA8 /* KeyOperationCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7829FFF879ED20D3A0CA4410 /* KeyOperationCell.swift */; };
@@ -193,7 +196,6 @@
 		6A4CEF749366A7470369E271 /* AlbumGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 240B51AE39DE91B481E0A15B /* AlbumGridItem.swift */; };
 		6A86882C9C6FB74D11AF93EC /* LightboxTransition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DE5CC7F6239EB75226C0D40 /* LightboxTransition.swift */; };
 		6AEFD1CB4116F467EE636058 /* AddAlbumModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A2F950788E2FC2EA20AD77 /* AddAlbumModal.swift */; };
-		6C17DD325876225EA9C2E3DE /* PurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76DC7343E9ECEFF44132872C /* PurchaseButton.swift */; };
 		6C1AA9D5F8D5406ABF8216AB /* LoadingIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E604798E0FC7EC459E6E24D /* LoadingIndicator.swift */; };
 		6CAC80AFBE71ED0F924062BA /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB2C08C3732EFAB967E6227 /* WebView.swift */; };
 		6CBC79B1707FC99188286D26 /* ChooseStorageModalViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C42A5938D4177B4BBACA5FC7 /* ChooseStorageModalViewModifier.swift */; };
@@ -484,9 +486,11 @@
 		1555F94A3CA4AB10FF868C52 /* LivePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoView.swift; sourceTree = "<group>"; };
 		15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewOnboardingView.swift; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		193DDAA82D411ED300F3BF9A /* StoreFront.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreFront.swift; sourceTree = "<group>"; };
 		193DDAAB2D411F0B00F3BF9A /* PurchaseOptionComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseOptionComponent.swift; sourceTree = "<group>"; };
 		193DDAAE2D414CFF00F3BF9A /* MovingGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovingGradient.swift; sourceTree = "<group>"; };
+		193DDAB12D41906100F3BF9A /* PremiumBenefitsScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumBenefitsScrollView.swift; sourceTree = "<group>"; };
+		193DDAB42D4196F800F3BF9A /* PurchaseStorefront.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseStorefront.swift; sourceTree = "<group>"; };
+		193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorePurchaseButton.swift; sourceTree = "<group>"; };
 		198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1B60005D9CB1D186BF8FB5D2 /* 1.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.jpg; sourceTree = "<group>"; };
@@ -575,7 +579,6 @@
 		73B4BC15709B9CBC0340A4CD /* GalleryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryItem.swift; sourceTree = "<group>"; };
 		745A49F606BD48880E22AFEC /* ImageWithBackgroundRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageWithBackgroundRectangle.swift; sourceTree = "<group>"; };
 		7661A4F3701B87A8341BC477 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = de; path = de.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		76DC7343E9ECEFF44132872C /* PurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseButton.swift; sourceTree = "<group>"; };
 		77778B1DAB85906F023A8447 /* brooke-lark-R18ecx07b3c-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "brooke-lark-R18ecx07b3c-unsplash.jpg"; sourceTree = "<group>"; };
 		7829FFF879ED20D3A0CA4410 /* KeyOperationCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyOperationCell.swift; sourceTree = "<group>"; };
 		7A111E639AA2EE3FB1358F2F /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -830,8 +833,10 @@
 		193DDAA72D411EB800F3BF9A /* NewPurchaseView */ = {
 			isa = PBXGroup;
 			children = (
-				193DDAA82D411ED300F3BF9A /* StoreFront.swift */,
 				193DDAAB2D411F0B00F3BF9A /* PurchaseOptionComponent.swift */,
+				193DDAB12D41906100F3BF9A /* PremiumBenefitsScrollView.swift */,
+				193DDAB42D4196F800F3BF9A /* PurchaseStorefront.swift */,
+				193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */,
 			);
 			path = NewPurchaseView;
 			sourceTree = "<group>";
@@ -1177,7 +1182,6 @@
 				193DDAA72D411EB800F3BF9A /* NewPurchaseView */,
 				3D7AAA14CD0E67A1FEEAC9ED /* PostPurchaseView.swift */,
 				B236EF6F41893C40FCD37ECC /* ProductStoreView.swift */,
-				76DC7343E9ECEFF44132872C /* PurchaseButton.swift */,
 				93BD2E6D2DFBF7562EBC70FB /* PurchaseUpgradeHeaderView.swift */,
 				B6160C505578FD25DED491FD /* PurchaseUpgradeOptionsListView.swift */,
 				5AF0490EEC4512041C781765 /* SubscriptionOptionView.swift */,
@@ -1696,6 +1700,7 @@
 				3D6F08338BB7B386864B7074 /* EmptyMediaView.swift in Sources */,
 				F860061EE853A5C21899C1E4 /* EncameraApp.swift in Sources */,
 				D9593E17F428493E19AC0277 /* EncameraState.swift in Sources */,
+				193DDAB92D419BBD00F3BF9A /* StorePurchaseButton.swift in Sources */,
 				D6A68AA78C8F5FD15DA3360C /* EncameraTextField.swift in Sources */,
 				73BA34DFF52BBB8ECB57E964 /* FeedbackView.swift in Sources */,
 				3D2BF98D17D79F3717A6FB97 /* FilePicker.swift in Sources */,
@@ -1739,7 +1744,6 @@
 				D4AD2628394DF3E2399EFFEF /* MediaViewingViewModel.swift in Sources */,
 				EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */,
 				5C242765482F8F9C8B0BC2DA /* NavigationPath.swift in Sources */,
-				193DDAA92D411EDC00F3BF9A /* StoreFront.swift in Sources */,
 				098A77C708BD24A2E5550238 /* NewOnboardingView.swift in Sources */,
 				1B54606C7551FE409A2334E1 /* NotificationBanner.swift in Sources */,
 				5FDDE54340E91E222BE751D7 /* NotificationBell.swift in Sources */,
@@ -1757,6 +1761,7 @@
 				BDA79FBD261093E01B2C31E3 /* PhotoInfoView.swift in Sources */,
 				5DA96EA4C6729B9FE9CB1F73 /* PhotoLimitReachedModal.swift in Sources */,
 				C8AFCA3DD12DE8B123260328 /* PhotoLimitReachedView.swift in Sources */,
+				193DDAB52D4196F800F3BF9A /* PurchaseStorefront.swift in Sources */,
 				E75BDD05BC70E72EA69BAE09 /* PhotoPicker.swift in Sources */,
 				863EAE16111F8EE4F7797EA8 /* PinCodeView.swift in Sources */,
 				480F0490515A750CBC1E7CD7 /* PopoverComponent.swift in Sources */,
@@ -1764,9 +1769,9 @@
 				CDCE7BEBD2E12D0BD8FC3C56 /* ProductStoreView.swift in Sources */,
 				193DDAAC2D411F0B00F3BF9A /* PurchaseOptionComponent.swift in Sources */,
 				8639F6A1FAC2BF6727331A98 /* ProgressViewCircular.swift in Sources */,
+				193DDAB22D41906100F3BF9A /* PremiumBenefitsScrollView.swift in Sources */,
 				F30D4AE8166C0034674E0DBB /* PromptToErase.swift in Sources */,
 				193DDAAF2D414CFF00F3BF9A /* MovingGradient.swift in Sources */,
-				6C17DD325876225EA9C2E3DE /* PurchaseButton.swift in Sources */,
 				8843B3BB8423B03110780E53 /* PurchaseOptionViewModifier.swift in Sources */,
 				F52B09D9AEBF17B9E89E4219 /* PurchaseUpgradeHeaderView.swift in Sources */,
 				003E154D889385DEACD50E3B /* PurchaseUpgradeOptionsListView.swift in Sources */,
@@ -1851,6 +1856,7 @@
 				A7B5102895914C54683C62A6 /* DemoFileEnumerator.swift in Sources */,
 				4B8BB435E73B35DCF19DEBB5 /* DismissButton.swift in Sources */,
 				BC5B8124308165A9C6B44539 /* DualButtonComponent.swift in Sources */,
+				193DDAB62D4196F800F3BF9A /* PurchaseStorefront.swift in Sources */,
 				C0A5B161166A080D6E12019E /* EmptyMediaView.swift in Sources */,
 				1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */,
 				A8FE897989145FD75B54BCC3 /* EncameraTextField.swift in Sources */,
@@ -1882,6 +1888,7 @@
 				6A86882C9C6FB74D11AF93EC /* LightboxTransition.swift in Sources */,
 				EF16FB21DB08966295C0D24E /* List.swift in Sources */,
 				C92EDAFE527F8533B4759FCB /* LivePhotoUIView.swift in Sources */,
+				193DDAB32D41906100F3BF9A /* PremiumBenefitsScrollView.swift in Sources */,
 				0B83DD8474950954462B7D82 /* LivePhotoView.swift in Sources */,
 				0F4D1A2B193734E1C188B494 /* LivePhotoViewing.swift in Sources */,
 				6C1AA9D5F8D5406ABF8216AB /* LoadingIndicator.swift in Sources */,
@@ -1906,7 +1913,6 @@
 				5A304A552BBF9DB3FEE00210 /* NotificationListCell.swift in Sources */,
 				1B98E49FD14319208D12DBA3 /* OnboardingHostingView.swift in Sources */,
 				4F5415ACCF57859ABA2A3145 /* OnboardingImageCarousel.swift in Sources */,
-				193DDAAA2D411EDC00F3BF9A /* StoreFront.swift in Sources */,
 				70939970623DB470B059763D /* OnboardingViewError.swift in Sources */,
 				C38F484E59AC541B2FAACBA3 /* OptionItemView.swift in Sources */,
 				395124D48B96A93644EA2266 /* OptionItemViewModifier.swift in Sources */,
@@ -1922,7 +1928,6 @@
 				61884F15C15233E70017B525 /* ProductStoreView.swift in Sources */,
 				F8389BB9F7A8940CBC656804 /* ProgressViewCircular.swift in Sources */,
 				BFB399E63CA3C82BE2537605 /* PromptToErase.swift in Sources */,
-				5C91E706B46D7747CB493739 /* PurchaseButton.swift in Sources */,
 				7DC2231581A3F368332F048F /* PurchaseOptionViewModifier.swift in Sources */,
 				734D01AB3BEF13BC9EDA09E1 /* PurchaseUpgradeHeaderView.swift in Sources */,
 				3F5542ACA59DF32F6249B89C /* PurchaseUpgradeOptionsListView.swift in Sources */,
@@ -1932,6 +1937,7 @@
 				0196521BACE59EF6F65440EE /* SafeAreaUtils.swift in Sources */,
 				B2FEAD9C2B093C1EAF09378E /* ScreenBlock.swift in Sources */,
 				D3072FF91CA383D53F411115 /* ScreenBlocking.swift in Sources */,
+				193DDAB82D419BBD00F3BF9A /* StorePurchaseButton.swift in Sources */,
 				BD25ADB842FA51360BE028AD /* SettingsView.swift in Sources */,
 				624334C11EFF29BDE9A2B208 /* Spacing.swift in Sources */,
 				044EEE9027A0FC3AFBEAF171 /* StepIndicator.swift in Sources */,

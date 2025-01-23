@@ -1,12 +1,14 @@
 import SwiftUI
 import EncameraCore
 
-protocol PurchaseOptionComponentProtocol {
+protocol PurchaseOptionComponentProtocol: Equatable, Hashable {
     var id: String { get }
     var optionPeriod: String { get }
     var formattedPrice: String { get }
     var billingFrequency: String { get }
-    var savingsPercentage: Double? { get }
+    var savingsPercentage: Decimal? { get }
+    var purchaseActionText: String { get }
+    var isEligibleForIntroOffer: Bool { get }
 }
 
 struct PurchaseOptionComponentModel: PurchaseOptionComponentProtocol, Hashable {
@@ -14,14 +16,19 @@ struct PurchaseOptionComponentModel: PurchaseOptionComponentProtocol, Hashable {
     var optionPeriod: String
     var formattedPrice: String
     var billingFrequency: String
-    var savingsPercentage: Double?
+    var savingsPercentage: Decimal?
+    var purchaseActionText: String = "Purchase"
+    var isEligibleForIntroOffer: Bool = false
 }
 
 class PurchaseOptionComponentViewModel: ObservableObject {
-    @Published var selectedOption: PurchaseOptionComponentModel?
-    var options: [PurchaseOptionComponentModel]
-
-    init(options: [PurchaseOptionComponentModel]) {
+    var options: [any PurchaseOptionComponentProtocol]
+    var savingsString: String? {
+        let firstWithSavings = options.first(where: {$0.savingsPercentage ?? 0 > 0})?.savingsPercentage
+        guard let savings = firstWithSavings else { return nil }
+        return L10n.saveAmount(savings.formatted(Decimal.FormatStyle.Percent(locale: .current)))
+    }
+    init(options: [any PurchaseOptionComponentProtocol]) {
         self.options = options
     }
 }
@@ -38,7 +45,7 @@ struct VerticalDivider: View {
 
 struct PurchaseOptionComponent: View {
     @StateObject var viewModel: PurchaseOptionComponentViewModel
-
+    @Binding var selectedOption: (any PurchaseOptionComponentProtocol)?
     var body: some View {
         ZStack(alignment: .top) {
             HStack(spacing: 0) {
@@ -46,14 +53,14 @@ struct PurchaseOptionComponent: View {
                     ZStack(alignment: .top) {
                         Button {
                             withAnimation {
-                                viewModel.selectedOption = viewModel.options[index]
+                                selectedOption = viewModel.options[index]
                             }
                         } label: {
                             buttonLabel(for: index)
 
                         }
                         .padding()
-                        .background(viewModel.selectedOption == viewModel.options[index] ? Color.white : Color.clear)
+                        .background(selectedOption?.id == viewModel.options[index].id ? Color.white : Color.clear)
                     }
                     if index < viewModel.options.count - 1 {
                         VerticalDivider()
@@ -66,34 +73,36 @@ struct PurchaseOptionComponent: View {
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(
                 Color.disabledButtonBackgroundColor
             ))
-            Text(L10n.saveAmount(10).uppercased())
-                .fontType(.pt10, on: .darkBackground, weight: .bold)
-                .alignmentGuide(VerticalAlignment.top) { d in
-                    d[VerticalAlignment.center]
-                }
-                .padding(.horizontal, 7)
-                .background(
-                    RoundedRectangle(cornerRadius: 40)    .fill(Color.purchasePopularForegroundShapeColor)
+            if let savings = viewModel.savingsString {
+                Text(savings)
+                    .fontType(.pt10, on: .darkBackground, weight: .bold)
+                    .alignmentGuide(VerticalAlignment.top) { d in
+                        d[VerticalAlignment.center]
+                    }
+                    .padding(.horizontal, 7)
+                    .background(
+                        RoundedRectangle(cornerRadius: 40)    .fill(Color.purchasePopularForegroundShapeColor)
 
-                        .frame(height: 22)
+                            .frame(height: 22)
 
-                )
+                    )
+            }
         }
     }
 
     func buttonLabel(for index: Int) -> some View {
         VStack {
             Text(viewModel.options[index].optionPeriod.uppercased())
-                .foregroundStyle(viewModel.selectedOption == viewModel.options[index] ? Color.black : Color.white.opacity(0.6))
+                .foregroundStyle(selectedOption?.id == viewModel.options[index].id ? Color.black : Color.white.opacity(0.6))
                 .fontType(.pt12, on: .darkBackground, weight: .bold)
 
             Spacer()
             Text(viewModel.options[index].formattedPrice)
-                .foregroundStyle(viewModel.selectedOption == viewModel.options[index] ? Color.black : Color.white)
+                .foregroundStyle(selectedOption?.id == viewModel.options[index].id ? Color.black : Color.white)
                 .fontType(.pt20, on: .darkBackground, weight: .bold)
             Spacer()
             Text(viewModel.options[index].billingFrequency)
-                .foregroundStyle(viewModel.selectedOption == viewModel.options[index] ? Color.black : Color.white.opacity(0.6))
+                .foregroundStyle(selectedOption?.id == viewModel.options[index].id ? Color.black : Color.white.opacity(0.6))
                 .fontType(.pt12, on: .darkBackground)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -107,7 +116,7 @@ struct PurchaseOptionComponent: View {
         PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time", savingsPercentage: nil)
     ]
     ZStack {
-        PurchaseOptionComponent(viewModel: .init(options: options))
+        PurchaseOptionComponent(viewModel: .init(options: options), selectedOption: .constant(options[1]))
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(Color.black)
