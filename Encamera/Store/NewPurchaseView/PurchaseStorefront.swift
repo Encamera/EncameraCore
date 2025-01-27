@@ -7,18 +7,26 @@
 
 import SwiftUI
 import EncameraCore
+import RevenueCat
 
 struct PurchaseStorefront: View {
-    var currentSubscription: (any PremiumPurchasable)?
+    @State var currentSubscription: (any PremiumPurchasable)?
     var purchaseOptions: PremiumPurchasableCollection
-    @State var selectedPurchasable: (any PremiumPurchasable)? {
-        didSet {
-            print("Selected didSet", selectedPurchasable)
-        }
-    }
-
+    @State var selectedPurchasable: (any PremiumPurchasable)?
     var onPurchase: ((any PremiumPurchasable) -> Void)
 
+    private func loadEntitlement() async  {
+        do {
+            let customerInfo = try await Purchases.shared.customerInfo()
+
+            currentSubscription = purchaseOptions.options.first { option in
+                customerInfo.activeSubscriptions.contains(option.id)
+            }
+            print("Current sub", currentSubscription)
+        } catch {
+        }
+
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -32,16 +40,15 @@ struct PurchaseStorefront: View {
                 VStack {
                     ScrollView(showsIndicators: false) {
                         PurchaseUpgradeHeaderView()
-                        let _ = print("selected purchasable", selectedPurchasable) // Debugging print
                         PurchaseOptionComponent(
                             viewModel: .init(optionsCollection: purchaseOptions),
                             selectedOption: $selectedPurchasable,
-                            currentOption: selectedPurchasable
+                            defaultOption: selectedPurchasable
                         ).padding()
                         PremiumBenefitsScrollView()
                     }
                     StorePurchaseButton(selectedPurchasable: $selectedPurchasable,
-                                        isSubscribedToSelectedSubscription: .constant(false),
+                                        activePurchase: $currentSubscription,
                                         onPurchase: onPurchase)
                     
                 }
@@ -49,6 +56,9 @@ struct PurchaseStorefront: View {
             .onAppear {
                 let defaultSelection = purchaseOptions.defaultSelection
                 selectedPurchasable = defaultSelection
+            }
+            .task {
+                await loadEntitlement()
             }
         }
     }

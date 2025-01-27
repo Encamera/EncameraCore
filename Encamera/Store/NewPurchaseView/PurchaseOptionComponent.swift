@@ -64,9 +64,9 @@ struct PurchaseOptionComponent: View {
     @ObservedObject var viewModel: PurchaseOptionComponentViewModel
     @Binding var selectedOption: (any PremiumPurchasable)?
 
-    @State var currentOption: (any PremiumPurchasable)? {
+    @State var defaultOption: (any PremiumPurchasable)? {
         didSet {
-            selectedOption = currentOption
+            selectedOption = defaultOption
         }
     }
 
@@ -111,29 +111,29 @@ struct PurchaseOptionComponent: View {
     func button(for index: Int) -> some View {
         Button {
             withAnimation {
-                currentOption = viewModel.optionsCollection.options[index]
+                defaultOption = viewModel.optionsCollection.options[index]
             }
         } label: {
             buttonLabel(for: index)
 
         }
         .padding()
-        .background(currentOption?.id == viewModel.optionsCollection.options[index].id ? Color.white : Color.clear)
+        .background(defaultOption?.id == viewModel.optionsCollection.options[index].id ? Color.white : Color.clear)
     }
 
     func buttonLabel(for index: Int) -> some View {
         VStack {
             let option = viewModel.optionsCollection.options[index]
             Text(option.optionPeriod.uppercased())
-                .foregroundStyle(currentOption?.id == option.id ? Color.black : Color.white.opacity(0.6))
+                .foregroundStyle(defaultOption?.id == option.id ? Color.black : Color.white.opacity(0.6))
                 .fontType(.pt12, on: .darkBackground, weight: .bold)
             Spacer()
             Text(option.formattedPrice)
-                .foregroundStyle(currentOption?.id == option.id ? Color.black : Color.white)
+                .foregroundStyle(defaultOption?.id == option.id ? Color.black : Color.white)
                 .fontType(.pt20, on: .darkBackground, weight: .bold)
             Spacer()
             Text(option.billingFrequency)
-                .foregroundStyle(currentOption?.id == option.id ? Color.black : Color.white.opacity(0.6))
+                .foregroundStyle(defaultOption?.id == option.id ? Color.black : Color.white.opacity(0.6))
                 .fontType(.pt12, on: .darkBackground)
 
         }

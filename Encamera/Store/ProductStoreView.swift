@@ -49,7 +49,11 @@ extension Offering: PremiumPurchasableCollection {
 }
 
 extension Package: PremiumPurchasable {
-    // This should return "Monthly" or "Yearly" or "Lifetime"
+
+    var id: String {
+        return storeProduct.productIdentifier
+    }
+
     var optionPeriod: String {
         return storeProduct.localizedTitle
     }
@@ -136,7 +140,6 @@ struct ProductStoreView: View {
 
 
     @State private var selectedPurchasable: (any Purchasable)?
-    @State private var currentActiveSubscription: ServiceSubscription?
     @State private var errorAlertIsPresented = false
     @State private var showPostPurchaseScreen = false
     @StateObject var viewModel: ProductStoreViewViewModel = .init()
@@ -172,35 +175,36 @@ struct ProductStoreView: View {
 //                let defaultSelection = viewModel.purchaseOptions?.defaultSelection
 //                let _ = print("Default selection", defaultSelection)
                 if let options = viewModel.purchaseOptions {
-                    PurchaseStorefront(purchaseOptions: options, selectedPurchasable: options.defaultSelection
-                    ) { purchasable in
+                    PurchaseStorefront(purchaseOptions: options, selectedPurchasable: options.defaultSelection) { purchasable in
 
 
-                        //                    Task(priority: .userInitiated) { @MainActor in
-                        //                        var action: PurchaseFinishedAction
-                        //                        switch action {
-                        //                        case .purchaseComplete(let price, let currencyCode):
-                        //                            NotificationManager.cancelNotificationForPremiumReminder()
-                        //                            showPostPurchaseScreen = true
-                        //                            EventTracking.trackPurchaseCompleted(
-                        //                                from: fromView,
-                        //                                currency: currencyCode,
-                        //                                amount: price,
-                        //                                product: purchasable.id)
-                        //                        case .displayError:
-                        //                            errorAlertIsPresented = true
-                        //                            EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
-                        //                        case .noAction:
-                        //                            EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
-                        //                        case .cancelled:
-                        //                            EventTracking.trackPurchaseCancelled(from: fromView, product: purchasable.id)
-                        //
-                        //                        case .pending:
-                        //                            EventTracking.trackPurcasePending(from: fromView, product: purchasable.id)
-                        //                        }
-                        //                        purchaseAction?(action)
-                        //
-                        //                    }
+                       Task(priority: .userInitiated) { @MainActor in
+                            print("Selected purchasable", purchasable)
+                            guard let purchasable = purchasable as? Package else {
+                                return
+                            }
+                           do {
+                               let (transaction, customerInfo, userCancelled) = try await Purchases.shared.purchase(package: purchasable)
+
+                               if !customerInfo.entitlements.active.isEmpty {
+                                   showPostPurchaseScreen = true
+                                   purchaseAction?(.purchaseComplete(amount: purchasable.storeProduct.price, currencyCode: purchasable.storeProduct.localizedPriceString))
+                                   
+                               }
+
+                               if userCancelled {
+                                   purchaseAction?(.cancelled)
+                               }
+
+                           } catch {
+                               errorAlertIsPresented = true
+                               EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
+                           }
+//                            print("Purchase result", result)
+
+
+
+                        }
 
                     }
                     .scrollIndicators(.never)

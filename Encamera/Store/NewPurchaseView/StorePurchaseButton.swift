@@ -11,16 +11,16 @@ import EncameraCore
 
 struct StorePurchaseButton: View {
 
-    @Binding var isSubscribedToSelectedSubscription: Bool
+    @Binding var activePurchase: (any PremiumPurchasable)?
     @Binding var selectedPurchasable: (any PremiumPurchasable)?
     let onPurchase: (any PremiumPurchasable) -> Void
 
     init(
         selectedPurchasable: Binding<(any PremiumPurchasable)?>,
-        isSubscribedToSelectedSubscription: Binding<Bool>,
+        activePurchase: Binding<(any PremiumPurchasable)?>,
         onPurchase: @escaping (any PremiumPurchasable) -> Void
     ) {
-        self._isSubscribedToSelectedSubscription = isSubscribedToSelectedSubscription
+        self._activePurchase = activePurchase
         self._selectedPurchasable = selectedPurchasable
         self.onPurchase = onPurchase
     }
@@ -34,14 +34,14 @@ struct StorePurchaseButton: View {
             } label: {
                 Group {
                     if let selectedPurchasable = selectedPurchasable {
-                        if selectedPurchasable.isEligibleForIntroOffer {
+                        if activePurchase?.id == selectedPurchasable.id {
+                            Text(L10n.subscribed)
+                        } else if selectedPurchasable.isEligibleForIntroOffer {
                             VStack {
                                 Text(L10n.startTrialOffer)
                                 Text(AppConstants.isInPromoMode ? L10n.promoFreeTrialTerms(selectedPurchasable.formattedPrice) : L10n.freeTrialTerms(selectedPurchasable.formattedPrice))
                                     .fontType(.pt12, on: .primaryButton)
                             }
-                        } else if isSubscribedToSelectedSubscription {
-                            Text(L10n.subscribed)
                         } else {
                             Text(selectedPurchasable.purchaseActionText)
                         }
@@ -51,8 +51,8 @@ struct StorePurchaseButton: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .primaryButton(enabled: selectedPurchasable != nil && !isSubscribedToSelectedSubscription)
-            .disabled(selectedPurchasable == nil || isSubscribedToSelectedSubscription)
+            .primaryButton(enabled: selectedPurchasable != nil && activePurchase?.id != selectedPurchasable?.id)
+            .disabled(selectedPurchasable == nil || activePurchase?.id == selectedPurchasable?.id)
 
             Spacer().frame(height: 8)
             Text(L10n.noCommitmentCancelAnytime)
