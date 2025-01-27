@@ -37,8 +37,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     @Published var blurImages = false
     @Published var isSelectingMedia = false
     @Published var selectedMedia: Set<InteractableMedia<EncryptedMedia>> = Set()
-    @Published var showPurchaseScreen: Bool = false
-    @Published var showEmptyView: Bool = false
+    @Published var noMediaShown: Bool = false
 
     private var cancellables = Set<AnyCancellable>()
     private var iCloudCancellables = Set<AnyCancellable>()
@@ -124,7 +123,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         let enumerated: [InteractableMedia<EncryptedMedia>] = await fileAccess.enumerateMedia()
         media = enumerated
         enumerateiCloudUndownloaded()
-        showEmptyView = enumerated.isEmpty
+        noMediaShown = enumerated.isEmpty
     }
 
     func blurItemAt(index: Int) -> Bool {
@@ -180,8 +179,9 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
         VStack {
 
             content
-            mainGridView
-
+            if !viewModel.noMediaShown {
+                mainGridView
+            }
         }
 
     }

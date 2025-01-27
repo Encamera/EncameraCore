@@ -202,7 +202,7 @@ struct SettingsView: View {
                             EventTracking.trackSettingsLeaveReviewPressed()
                             AskForReviewUtil.openAppStoreReview()
                         }
-                        Button(L10n.SettingsView.giveInstantFeedback) {
+                        Button(L10n.Settings.giveInstantFeedback) {
                             appModalStateModel.currentModal = .feedbackView
                         }
                         NavigationLink(L10n.roadmap) {

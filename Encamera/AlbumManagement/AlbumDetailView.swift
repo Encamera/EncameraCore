@@ -22,8 +22,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
     var albumManager: AlbumManaging
 
-    @Published var showPhotoAccessAlert: Bool = false
-
 
     @Published var keyViewerError: KeyViewerError?
     @Published var deleteActionError: String = ""
@@ -34,7 +32,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var isSelectingMedia: Bool = false
     @Published var selectedMedia: Set<InteractableMedia<EncryptedMedia>> = Set()
     @Published var isShowingPurchaseSheet = false
-    @Published var alertType: AlertType? = nil
+    @Published var activeAlert: AlertType? = nil
     @Published var lastImportedAssets: [PHPickerResult] = []
     @Published var showPhotoPicker: ImportSource? = nil
     @Published var cancelImport = false
@@ -90,10 +88,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         self.isEditingAlbumName = shouldCreateAlbum
         let gridViewModel = GalleryGridViewModel<D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager ?? D.init())
         self.gridViewModel = gridViewModel
-        gridViewModel.$showPurchaseScreen.sink { [weak self] show in
-            self?.isShowingPurchaseSheet = show
+        gridViewModel.$noMediaShown.sink { show in
+            self.showEmptyView = show
         }.store(in: &cancellables)
-
         self.$isSelectingMedia.sink { isSelecting in
             gridViewModel.isSelectingMedia = isSelecting
         }.store(in: &cancellables)
@@ -130,11 +127,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         let status = PHPhotoLibrary.authorizationStatus()
 
         if status == .notDetermined {
-            withAnimation {
-                showPhotoAccessAlert = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.activeAlert = .photoAccessAlert
             }
-
-
         } else if status == .authorized || status == .limited {
             try await deleteMediaFromPhotoLibrary(result: lastImportedAssets)
         }
@@ -147,7 +142,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
     func requestPhotoLibraryPermission() async {
         if agreedToDeleteWithNoLicense == false && purchasedPermissions.hasEntitlement() == false {
-            alertType = .noLicenseDeletionWarning
+            activeAlert = .noLicenseDeletionWarning
             return
         }
         let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
@@ -487,37 +482,15 @@ struct AlbumDetailView<D: FileAccess>: View {
 
         VStack(spacing: 0) {
             Group {
-                if viewModel.cancelImport == false {
-                    HStack {
-                        if viewModel.importProgress > 0 {
-                            ProgressView(value: viewModel.importProgress, total: 1.0) {
-                                Text("\(L10n.encrypting) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
-                                    .fontType(.pt14)
-                            }                    .pad(.pt8, edge: [.trailing, .leading])
-                            cancelButton
-
-                        } else if viewModel.isImporting {
-                            HStack {
-                                ProgressView(value: 0.5, total: 1.0) {
-                                }.progressViewStyle(.circular)
-                                    .pad(.pt8, edge: [.trailing, .leading])
-                                Text("\(L10n.importingPleaseWait) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
-                                    .fontType(.pt14)
-                                Spacer()
-
-                            }
-                            cancelButton
+                GalleryGridView(viewModel: viewModel.gridViewModel) {
+                    VStack {
+                        horizontalTitleComponents
+                        importProgressIndicator
+                        if viewModel.showEmptyView {
+                            emptyState
                         }
                     }
-                }
-                if viewModel.showEmptyView {
-                    emptyState
-                } else {
-                    GalleryGridView(viewModel: viewModel.gridViewModel) {
-                        ZStack(alignment: .leading) {
-                            horizontalTitleComponents
-                        }
-                    }
+
                 }
             }
             .environmentObject(appModalStateModel)
@@ -554,10 +527,10 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
         }
         .alert(isPresented: Binding<Bool>(
-            get: { viewModel.alertType != nil },
-            set: { if !$0 { viewModel.alertType = nil } }
+            get: { viewModel.activeAlert != nil },
+            set: { if !$0 { viewModel.activeAlert = nil } }
         )) {
-            alert(for: viewModel.alertType)
+            alert(for: viewModel.activeAlert)
         }
         .sheet(isPresented: Binding<Bool>(get: {
             viewModel.showPhotoPicker != nil
@@ -632,6 +605,34 @@ struct AlbumDetailView<D: FileAccess>: View {
         }.padding()
     }
 
+    var importProgressIndicator: some View {
+        Group {
+            if viewModel.cancelImport == false {
+                HStack {
+                    if viewModel.importProgress > 0 {
+                        ProgressView(value: viewModel.importProgress, total: 1.0) {
+                            Text("\(L10n.encrypting) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
+                                .fontType(.pt14)
+                        }
+                        .pad(.pt8, edge: [.trailing, .leading])
+                        cancelButton
+
+                    } else if viewModel.isImporting {
+                        HStack {
+                            ProgressView(value: 0.5, total: 1.0) {
+                            }.progressViewStyle(.circular)
+                                .pad(.pt8, edge: [.trailing, .leading])
+                            Text("\(L10n.importingPleaseWait) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
+                                .fontType(.pt14)
+                            Spacer()
+
+                        }
+                        cancelButton
+                    }
+                }
+            }
+        }
+    }
 
     var horizontalTitleComponents: some View {
         Group {
@@ -705,11 +706,11 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
 
             Button(L10n.importFromPhotos) {
-//                viewModel.gridViewModel.showPhotoPicker = .photoLibrary
+                viewModel.showPhotoPicker = .photoLibrary
             }
 
             Button(L10n.importFromFiles) {
-//                viewModel.gridViewModel.showPhotoPicker = .files
+                viewModel.showPhotoPicker = .files
             }
 
 //            Button {
@@ -734,7 +735,7 @@ struct AlbumDetailView<D: FileAccess>: View {
 //            }
 
             Button(L10n.deleteAlbum, role: .destructive) {
-                viewModel.alertType = .deleteAllAlbumData
+                viewModel.activeAlert = .deleteAllAlbumData
             }
 
         } label: {
@@ -750,7 +751,7 @@ struct AlbumDetailView<D: FileAccess>: View {
         return MediaSelectionTray(shareAction: {
             viewModel.shareSelected()
         }, deleteAction: {
-            viewModel.alertType = .deleteSelectedMedia
+            viewModel.activeAlert = .deleteSelectedMedia
         }, selectedMedia: $viewModel.selectedMedia, showShareOption: .constant(true))
     }
 
