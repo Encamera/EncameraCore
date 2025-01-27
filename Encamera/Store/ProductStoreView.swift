@@ -8,17 +8,128 @@
 import Foundation
 import SwiftUI
 import EncameraCore
+import RevenueCat
+
+extension Offering: PremiumPurchasableCollection {
+    var options: [any PremiumPurchasable] {
+        return availablePackages
+    }
+
+    var defaultSelection: (any PremiumPurchasable)? {
+        let monthlySubscription = availablePackages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .month })
+        return monthlySubscription
+    }
+
+    func yearlySavings() -> SubscriptionSavings? {
+
+        guard let yearlySubscription = availablePackages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .year }) else {
+            return nil
+        }
+        guard let monthlySubscription = availablePackages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .month }) else {
+            return nil
+        }
+
+        let yearlyPriceForMonthlySubscription = 12 * monthlySubscription.storeProduct.price
+        let amountSaved = yearlyPriceForMonthlySubscription - yearlySubscription.storeProduct.price
+
+        guard amountSaved > 0 else {
+            return nil
+        }
+
+        let monthlyPrice = yearlySubscription.storeProduct.price / 12
+        guard let yearlyStorekitProduct = yearlySubscription.storeProduct.sk2Product else {
+            return nil
+        }
+        return SubscriptionSavings(totalSavings: amountSaved,
+                                   granularPrice: monthlyPrice,
+                                   granularPricePeriod: .month,
+                                   priceFormatStyle: yearlyStorekitProduct.priceFormatStyle,
+                                   subscriptionPeriodUnitFormatStyle: yearlyStorekitProduct.subscriptionPeriodUnitFormatStyle)
+    }
+}
+
+extension Package: PremiumPurchasable {
+    // This should return "Monthly" or "Yearly" or "Lifetime"
+    var optionPeriod: String {
+        return storeProduct.localizedTitle
+    }
+
+    // Returns the display price of the product
+    var formattedPrice: String {
+        guard let product = self.storeProduct.sk2Product else {
+            return ""
+        }
+        return product.displayPrice
+    }
+
+    // This should return "per month", "per year", or "one time"
+    var billingFrequency: String {
+        guard let product = self.storeProduct.sk2Product else {
+            return ""
+        }
+
+        if product.type == .autoRenewable {
+            if let subscriptionPeriod = product.subscription?.subscriptionPeriod {
+                switch subscriptionPeriod.unit {
+                case .month:
+                    return "per month"
+                case .year:
+                    return "per year"
+                default:
+                    return ""
+                }
+            }
+        } else if product.type == .nonConsumable {
+            return "one time"
+        }
+
+        return ""
+    }
+
+
+    // Text for purchase action
+    var purchaseActionText: String {
+        return "Purchase"
+    }
+
+    // Eligibility for introductory offers
+    var isEligibleForIntroOffer: Bool {
+        guard let product = self.storeProduct.sk2Product else {
+            return false
+        }
+        return product.subscription?.introductoryOffer != nil
+    }
+}
+
+// Helper extension to round Decimal values
+private extension Decimal {
+    func rounded(_ scale: Int) -> Decimal {
+        var value = self
+        var roundedValue = Decimal()
+        NSDecimalRound(&roundedValue, &value, scale, .plain)
+        return roundedValue
+    }
+}
 
 typealias PurchaseResultAction = ((PurchaseFinishedAction) -> Void)
 
 class ProductStoreViewViewModel: ObservableObject {
 
-    @Published var purchaseOptions: [any PurchaseOptionComponentProtocol] = [
-        PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month", savingsPercentage: 0.17),
-        PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year", savingsPercentage: nil),
-        PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time", savingsPercentage: nil)
-    ]
+    @MainActor
+    @Published var purchaseOptions: PremiumPurchasableCollection?
+//        PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month", savingsPercentage: 0.17),
+//        PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year", savingsPercentage: 0.0),
+//        PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time", savingsPercentage: 0.0)
+//    ]
 
+
+    func loadOffering() async throws {
+        let offerings = try await Purchases.shared.offerings()
+
+        Task { @MainActor in
+            self.purchaseOptions = offerings.current
+        }
+    }
 }
 
 struct ProductStoreView: View {
@@ -57,7 +168,10 @@ struct ProductStoreView: View {
     private var purchaseScreen: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
-                PurchaseStorefront(purchaseOptions: viewModel.purchaseOptions, selectedPurchasable: viewModel.purchaseOptions[1]) { purchasable in
+                let defaultSelection = viewModel.purchaseOptions?.defaultSelection
+                let _ = print("Default selection", defaultSelection)
+                PurchaseStorefront(purchaseOptions: $viewModel.purchaseOptions,
+                                   initialSelectedPurchasable: defaultSelection) { purchasable in
 
 
 //                    Task(priority: .userInitiated) { @MainActor in
@@ -107,6 +221,8 @@ struct ProductStoreView: View {
 
             }.onAppear {
                 EventTracking.trackShowPurchaseScreen(from: fromView)
+            }.task {
+                try? await viewModel.loadOffering()
             }
         }
     }

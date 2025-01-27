@@ -16,14 +16,13 @@ struct StorePresentationViewModifier: ViewModifier {
     func body(content: Content) -> some View {
         ZStack {
             content
-                .fullScreenCover(isPresented: $isPresented) {
-                    ProductStoreView(fromView: fromViewName, purchaseAction: purchaseAction)
-                }
+                .environment(\.appModal, .purchaseView(context: PurchaseViewContext(sourceView: fromViewName, purchaseAction: purchaseAction)))
         }
     }
 }
 
 extension View {
+
     func productStore(isPresented: Binding<Bool>, fromViewName: String, purchaseAction: PurchaseResultAction? = nil) -> some View {
         self.modifier(StorePresentationViewModifier(isPresented: isPresented, fromViewName: fromViewName, purchaseAction: purchaseAction))
     }

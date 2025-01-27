@@ -18,9 +18,10 @@ struct EncameraApp: App {
         @MainActor
         @Published var hasOpenedURL: Bool = false
         @Published var promptToSaveMedia: Bool = false
-        var newMediaFileAccess: D
+        var fileAccess: D
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
+        @Published var currentModal: AppModal?
         @Published var showOnboarding = false
         @Published var isAuthenticated = false
         @Published var hasMediaToImport = false
@@ -34,13 +35,34 @@ struct EncameraApp: App {
         var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
         var settingsManager: SettingsManager
         var cameraService: CameraConfigurationService
+        lazy var cameraModel: CameraModel? = { () -> CameraModel? in
+            guard let albumManager = albumManager else {
+                return nil
+            }
+            return CameraModel(
+                albumManager: albumManager,
+                cameraService: cameraService,
+                fileAccess: fileAccess,
+                purchaseManager: purchasedPermissions
+            )
+        }()
         var keychainMigrationUtil: KeychainMigrationUtil
 
         private(set) var authManager: AuthManager
         private var cancellables = Set<AnyCancellable>()
 
+        var showFullScreenCover: Binding<Bool> {
+            Binding {
+                self.currentModal != nil
+            } set: { newValue in
+                if newValue == false {
+                    self.currentModal = nil
+                }
+            }
+        }
+
         init() {
-            self.newMediaFileAccess = D.init()
+            self.fileAccess = D.init()
             self.settingsManager = SettingsManager()
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
             let keyManager = KeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
@@ -151,7 +173,7 @@ struct EncameraApp: App {
         func moveOpenedFile(media: InteractableMedia<EncryptedMedia>) {
             Task {
                 do {
-                    try await newMediaFileAccess.move(media: media)
+                    try await fileAccess.move(media: media)
                 } catch {
                     print("Could not copy: ", error)
                 }
@@ -168,7 +190,7 @@ struct EncameraApp: App {
                 return
             }
             Task {
-                await self.newMediaFileAccess.configure(
+                await self.fileAccess.configure(
                     for: album,
                     albumManager: albumManager
                 )
@@ -233,7 +255,7 @@ struct EncameraApp: App {
                           viewModel.keyManagerKey != nil,
                           let albumManager = viewModel.albumManager {
                     MainHomeView<FileAccessType>(viewModel: .init(
-                        fileAccess: viewModel.newMediaFileAccess,
+                        fileAccess: viewModel.fileAccess,
                         keyManager: viewModel.keyManager,
                         albumManager: albumManager,
                         purchasedPermissions: viewModel.purchasedPermissions,
@@ -285,11 +307,47 @@ struct EncameraApp: App {
                 }
             }
 
+            .fullScreenCover(isPresented: viewModel.showFullScreenCover, content: {
+
+                switch viewModel.currentModal {
+                case .cameraView(context: let context):
+                    if let cameraModel = viewModel.cameraModel {
+                        CameraView(cameraModel: cameraModel, hasMediaToImport: .constant(false), closeButtonTapped: { _ in
+                            viewModel.currentModal = nil
+                            viewModel.albumManager?.currentAlbum = context.album
+                            context.closeButtonAction()
+                        })
+                    }
+                case .galleryScrollView(context: let context):
+                    GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions, purchaseButtonPressed: {
+                        viewModel.currentModal = .purchaseView(context: .init(sourceView: "GalleryScrollView", purchaseAction: { _ in
+                        }))
+                    }, reviewAlertActionPressed: { selection in
+                        if selection == .no {
+                            viewModel.currentModal = .feedbackView
+                        }
+
+                    }))
+                    .ignoresSafeArea(edges: [.top, .bottom, .leading, .trailing])
+                case .purchaseView(context: let context):
+                    ProductStoreView(fromView: context.sourceView, purchaseAction: context.purchaseAction)
+                case .feedbackView:
+                    FeedbackView()
+                case nil:
+                    AnyView(EmptyView())
+                }
+
+            })
+
             .statusBar(hidden: false)
             .environment(
                 \.isScreenBlockingActive,
                  self.viewModel.showScreenBlocker
             )
+            .environment(
+                \.appModal,
+                 self.viewModel.currentModal
+             )
         }
     }
 }

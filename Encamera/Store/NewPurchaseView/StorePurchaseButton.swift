@@ -11,13 +11,13 @@ import EncameraCore
 struct StorePurchaseButton: View {
 
     @Binding var isSubscribedToSelectedSubscription: Bool
-    let selectedPurchasable: Binding<(any PurchaseOptionComponentProtocol)?>
-    let onPurchase: (any PurchaseOptionComponentProtocol) -> Void
+    let selectedPurchasable: Binding<(any PremiumPurchasable)?>
+    let onPurchase: (any PremiumPurchasable) -> Void
 
     init(
-        selectedPurchasable: Binding<(any PurchaseOptionComponentProtocol)?>,
+        selectedPurchasable: Binding<(any PremiumPurchasable)?>,
         isSubscribedToSelectedSubscription: Binding<Bool>,
-        onPurchase: @escaping (any PurchaseOptionComponentProtocol) -> Void
+        onPurchase: @escaping (any PremiumPurchasable) -> Void
     ) {
         self._isSubscribedToSelectedSubscription = isSubscribedToSelectedSubscription
         self.selectedPurchasable = selectedPurchasable

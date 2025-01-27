@@ -58,6 +58,8 @@
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
 		19C6B2262D4676BB0052B43A /* AppModalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */; };
 		19C6B2272D4676BB0052B43A /* AppModalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */; };
+		19C6B2292D47AC1B0052B43A /* AppModalContexts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2282D47AC1B0052B43A /* AppModalContexts.swift */; };
+		19C6B22A2D47AC1B0052B43A /* AppModalContexts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2282D47AC1B0052B43A /* AppModalContexts.swift */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A4FD6D71B93F3D4A75F09C8 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541C934E3C2228AEF133A9AE /* Color+Extensions.swift */; };
 		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
@@ -495,6 +497,7 @@
 		193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorePurchaseButton.swift; sourceTree = "<group>"; };
 		198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
 		19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalEnvironment.swift; sourceTree = "<group>"; };
+		19C6B2282D47AC1B0052B43A /* AppModalContexts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalContexts.swift; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1B60005D9CB1D186BF8FB5D2 /* 1.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.jpg; sourceTree = "<group>"; };
 		1BDE42B029680FCDC41E48E9 /* BackgroundRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRectangle.swift; sourceTree = "<group>"; };
@@ -1113,6 +1116,7 @@
 			isa = PBXGroup;
 			children = (
 				DD9D21649D1F9B3BDB9F6A8D /* AppNavigationPaths.swift */,
+				19C6B2282D47AC1B0052B43A /* AppModalContexts.swift */,
 			);
 			path = Constants;
 			sourceTree = "<group>";
@@ -1713,6 +1717,7 @@
 				EB9D71FFC09A343782093FAA /* GalleryGridView.swift in Sources */,
 				1EB5A3D3D3A895E6B76BEE49 /* GalleryHorizontalCollectionViewModel.swift in Sources */,
 				F826A6667D5437DE0E06BBF4 /* GalleryItem.swift in Sources */,
+				19C6B2292D47AC1B0052B43A /* AppModalContexts.swift in Sources */,
 				E78B88EA533CC2F49E35AAB9 /* GalleryViewWrapper.swift in Sources */,
 				91D30D64F1B8C14B39B6CB7F /* GenericModal.swift in Sources */,
 				84532170CBC007F8DE0C2CEB /* GradientBackground.swift in Sources */,
@@ -1970,6 +1975,7 @@
 				00A4F18EFBA4C0162BA08D69 /* VideoViewingUIView.swift in Sources */,
 				4BFEB1341F689A7FD794867F /* ViewHeader.swift in Sources */,
 				96D909B54DF9B14CC5F1A085 /* WebView.swift in Sources */,
+				19C6B22A2D47AC1B0052B43A /* AppModalContexts.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
