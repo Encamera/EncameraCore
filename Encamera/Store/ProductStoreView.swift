@@ -16,7 +16,7 @@ extension Offering: PremiumPurchasableCollection {
     }
 
     var defaultSelection: (any PremiumPurchasable)? {
-        let monthlySubscription = availablePackages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .month })
+        let monthlySubscription = availablePackages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .year })
         return monthlySubscription
     }
 
@@ -140,7 +140,8 @@ struct ProductStoreView: View {
     @State private var errorAlertIsPresented = false
     @State private var showPostPurchaseScreen = false
     @StateObject var viewModel: ProductStoreViewViewModel = .init()
-    @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
+
 
 
 
@@ -168,57 +169,50 @@ struct ProductStoreView: View {
     private var purchaseScreen: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
-                let defaultSelection = viewModel.purchaseOptions?.defaultSelection
-                let _ = print("Default selection", defaultSelection)
-                PurchaseStorefront(purchaseOptions: $viewModel.purchaseOptions,
-                                   initialSelectedPurchasable: defaultSelection) { purchasable in
+//                let defaultSelection = viewModel.purchaseOptions?.defaultSelection
+//                let _ = print("Default selection", defaultSelection)
+                if let options = viewModel.purchaseOptions {
+                    PurchaseStorefront(purchaseOptions: options, selectedPurchasable: options.defaultSelection
+                    ) { purchasable in
 
 
-//                    Task(priority: .userInitiated) { @MainActor in
-//                        var action: PurchaseFinishedAction
-//                        switch action {
-//                        case .purchaseComplete(let price, let currencyCode):
-//                            NotificationManager.cancelNotificationForPremiumReminder()
-//                            showPostPurchaseScreen = true
-//                            EventTracking.trackPurchaseCompleted(
-//                                from: fromView,
-//                                currency: currencyCode,
-//                                amount: price,
-//                                product: purchasable.id)
-//                        case .displayError:
-//                            errorAlertIsPresented = true
-//                            EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
-//                        case .noAction:
-//                            EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
-//                        case .cancelled:
-//                            EventTracking.trackPurchaseCancelled(from: fromView, product: purchasable.id)
-//
-//                        case .pending:
-//                            EventTracking.trackPurcasePending(from: fromView, product: purchasable.id)
-//                        }
-//                        purchaseAction?(action)
-//
-//                    }
-                }
-                .scrollIndicators(.never)
-                .navigationBarTitle(L10n.upgradeToday)
-                .overlay(alignment: .topLeading) {
-                    if showDismissButton {
-                        dismissButton
-                            .padding()
+                        //                    Task(priority: .userInitiated) { @MainActor in
+                        //                        var action: PurchaseFinishedAction
+                        //                        switch action {
+                        //                        case .purchaseComplete(let price, let currencyCode):
+                        //                            NotificationManager.cancelNotificationForPremiumReminder()
+                        //                            showPostPurchaseScreen = true
+                        //                            EventTracking.trackPurchaseCompleted(
+                        //                                from: fromView,
+                        //                                currency: currencyCode,
+                        //                                amount: price,
+                        //                                product: purchasable.id)
+                        //                        case .displayError:
+                        //                            errorAlertIsPresented = true
+                        //                            EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
+                        //                        case .noAction:
+                        //                            EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
+                        //                        case .cancelled:
+                        //                            EventTracking.trackPurchaseCancelled(from: fromView, product: purchasable.id)
+                        //
+                        //                        case .pending:
+                        //                            EventTracking.trackPurcasePending(from: fromView, product: purchasable.id)
+                        //                        }
+                        //                        purchaseAction?(action)
+                        //
+                        //                    }
+
+                    }
+                    .scrollIndicators(.never)
+                    .navigationBarTitle(L10n.upgradeToday)
+                    .transition(.opacity)
+                    .overlay(alignment: .topLeading) {
+                        if showDismissButton {
+                            dismissButton
+                                .padding()
+                        }
                     }
                 }
-                .onAppear {
-//                    selectedPurchasable = subscriptionController.entitledSubscription ?? subscriptionController.subscriptions.first
-//                    currentActiveSubscription = subscriptionController.entitledSubscription
-
-                }
-//                .alert(
-//                    subscriptionController.purchaseError?.errorDescription ?? "",
-//                    isPresented: $errorAlertIsPresented,
-//                    actions: {}
-//                )
-
             }.onAppear {
                 EventTracking.trackShowPurchaseScreen(from: fromView)
             }.task {
@@ -226,9 +220,9 @@ struct ProductStoreView: View {
             }
         }
     }
-    
+
     private func dismiss() {
-        presentationMode.wrappedValue.dismiss()
+        appModalStateModel.currentModal = nil
     }
 }
 

@@ -10,8 +10,8 @@ import EncameraCore
 
 struct PurchaseStorefront: View {
     var currentSubscription: (any PremiumPurchasable)?
-    @Binding var purchaseOptions: PremiumPurchasableCollection?
-    @State private var selectedPurchasable: (any PremiumPurchasable)? {
+    var purchaseOptions: PremiumPurchasableCollection
+    @State var selectedPurchasable: (any PremiumPurchasable)? {
         didSet {
             print("Selected didSet", selectedPurchasable)
         }
@@ -19,17 +19,6 @@ struct PurchaseStorefront: View {
 
     var onPurchase: ((any PremiumPurchasable) -> Void)
 
-    init(
-        purchaseOptions: Binding<PremiumPurchasableCollection?>,
-        initialSelectedPurchasable: (any PremiumPurchasable)? = nil,
-        onPurchase: @escaping ((any PremiumPurchasable) -> Void)
-    ) {
-        self._purchaseOptions = purchaseOptions
-        print("initial purchasable", initialSelectedPurchasable)
-        self._selectedPurchasable = State(initialValue: initialSelectedPurchasable) // Initialize the @State variable
-        self.onPurchase = onPurchase
-        
-    }
 
     var body: some View {
         GeometryReader { geo in
@@ -44,19 +33,22 @@ struct PurchaseStorefront: View {
                     ScrollView(showsIndicators: false) {
                         PurchaseUpgradeHeaderView()
                         let _ = print("selected purchasable", selectedPurchasable) // Debugging print
-                        if let purchaseOptions {
-                            PurchaseOptionComponent(
-                                viewModel: .init(optionsCollection: purchaseOptions),
-                                selectedOption: $selectedPurchasable
-                            ).padding()
-                        }
+                        PurchaseOptionComponent(
+                            viewModel: .init(optionsCollection: purchaseOptions),
+                            selectedOption: $selectedPurchasable,
+                            currentOption: selectedPurchasable
+                        ).padding()
                         PremiumBenefitsScrollView()
                     }
                     StorePurchaseButton(selectedPurchasable: $selectedPurchasable,
                                         isSubscribedToSelectedSubscription: .constant(false),
                                         onPurchase: onPurchase)
-
+                    
                 }
+            }
+            .onAppear {
+                let defaultSelection = purchaseOptions.defaultSelection
+                selectedPurchasable = defaultSelection
             }
         }
     }

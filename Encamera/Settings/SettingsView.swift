@@ -144,13 +144,7 @@ class SettingsViewViewModel: ObservableObject {
 struct SettingsView: View {
     
     
-    @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject var appModalStateModel: AppModalStateModel
-
-    func dismiss() {
-        presentationMode.wrappedValue.dismiss()
-    }
-
 
     @StateObject var viewModel: SettingsViewViewModel
     

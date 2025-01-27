@@ -18,9 +18,18 @@ struct StorePresentationViewModifier: ViewModifier {
     func body(content: Content) -> some View {
         ZStack {
             content
+                .onChange(of: appModalStateModel.currentModal, { oldValue, newValue in
+                    if case .purchaseView = newValue {
+                        isPresented = true
+                    } else {
+                        isPresented = false
+                    }
+                })
                 .onChange(of: isPresented, { oldValue, newValue in
                     if newValue == true {
                         appModalStateModel.currentModal = .purchaseView(context: PurchaseViewContext(sourceView: fromViewName, purchaseAction: purchaseAction))
+                    } else {
+                        appModalStateModel.currentModal = nil
                     }
                 })
         }

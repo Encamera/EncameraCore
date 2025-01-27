@@ -303,39 +303,40 @@ struct EncameraApp: App {
 
             .fullScreenCover(isPresented: Binding {
                 self.appModalStateModel.currentModal != nil
-                } set: { newValue in
-                    if newValue == false {
-                        self.appModalStateModel.currentModal = nil
-                    }
-                }, content: {
-
-                switch self.appModalStateModel.currentModal {
-                case .cameraView(context: let context):
-                    if let cameraModel = viewModel.cameraModel {
-                        CameraView(cameraModel: cameraModel, hasMediaToImport: .constant(false), closeButtonTapped: { _ in
-                            self.appModalStateModel.currentModal = nil
-                            viewModel.albumManager?.currentAlbum = context.album
-                            context.closeButtonAction()
-                        })
-                    }
-                case .galleryScrollView(context: let context):
-                    GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions, purchaseButtonPressed: {
-                        self.appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "GalleryScrollView", purchaseAction: { _ in
-                        }))
-                    }, reviewAlertActionPressed: { selection in
-                        if selection == .no {
-                            self.appModalStateModel.currentModal = .feedbackView
-                        }
-
-                    }))
-                    .ignoresSafeArea(edges: [.top, .bottom, .leading, .trailing])
-                case .purchaseView(context: let context):
-                    ProductStoreView(fromView: context.sourceView, purchaseAction: context.purchaseAction)
-                case .feedbackView:
-                    FeedbackView()
-                case nil:
-                    AnyView(EmptyView())
+            } set: { newValue in
+                if newValue == false {
+                    self.appModalStateModel.currentModal = nil
                 }
+            }, content: {
+                Group {
+                    switch self.appModalStateModel.currentModal {
+                    case .cameraView(context: let context):
+                        if let cameraModel = viewModel.cameraModel {
+                            CameraView(cameraModel: cameraModel, hasMediaToImport: .constant(false), closeButtonTapped: { _ in
+                                self.appModalStateModel.currentModal = nil
+                                viewModel.albumManager?.currentAlbum = context.album
+                                context.closeButtonAction()
+                            })
+                        }
+                    case .galleryScrollView(context: let context):
+                        GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions, purchaseButtonPressed: {
+                            self.appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "GalleryScrollView", purchaseAction: { _ in
+                            }))
+                        }, reviewAlertActionPressed: { selection in
+                            if selection == .no {
+                                self.appModalStateModel.currentModal = .feedbackView
+                            }
+
+                        }))
+                        .ignoresSafeArea(edges: [.top, .bottom, .leading, .trailing])
+                    case .purchaseView(context: let context):
+                        ProductStoreView(fromView: context.sourceView, purchaseAction: context.purchaseAction)
+                    case .feedbackView:
+                        FeedbackView()
+                    case nil:
+                        AnyView(EmptyView())
+                    }
+                }.environmentObject(appModalStateModel)
 
             })
 

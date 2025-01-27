@@ -63,6 +63,13 @@ struct VerticalDivider: View {
 struct PurchaseOptionComponent: View {
     @ObservedObject var viewModel: PurchaseOptionComponentViewModel
     @Binding var selectedOption: (any PremiumPurchasable)?
+
+    @State var currentOption: (any PremiumPurchasable)? {
+        didSet {
+            selectedOption = currentOption
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             HStack(spacing: 0) {
@@ -83,6 +90,7 @@ struct PurchaseOptionComponent: View {
                 savingsText(savingsString: savings)
             }
         }
+        
     }
 
     func savingsText(savingsString: String) -> some View {
@@ -103,29 +111,29 @@ struct PurchaseOptionComponent: View {
     func button(for index: Int) -> some View {
         Button {
             withAnimation {
-                selectedOption = viewModel.optionsCollection.options[index]
+                currentOption = viewModel.optionsCollection.options[index]
             }
         } label: {
             buttonLabel(for: index)
 
         }
         .padding()
-        .background(selectedOption?.id == viewModel.optionsCollection.options[index].id ? Color.white : Color.clear)
+        .background(currentOption?.id == viewModel.optionsCollection.options[index].id ? Color.white : Color.clear)
     }
 
     func buttonLabel(for index: Int) -> some View {
         VStack {
             let option = viewModel.optionsCollection.options[index]
             Text(option.optionPeriod.uppercased())
-                .foregroundStyle(selectedOption?.id == option.id ? Color.black : Color.white.opacity(0.6))
+                .foregroundStyle(currentOption?.id == option.id ? Color.black : Color.white.opacity(0.6))
                 .fontType(.pt12, on: .darkBackground, weight: .bold)
             Spacer()
             Text(option.formattedPrice)
-                .foregroundStyle(selectedOption?.id == option.id ? Color.black : Color.white)
+                .foregroundStyle(currentOption?.id == option.id ? Color.black : Color.white)
                 .fontType(.pt20, on: .darkBackground, weight: .bold)
             Spacer()
             Text(option.billingFrequency)
-                .foregroundStyle(selectedOption?.id == option.id ? Color.black : Color.white.opacity(0.6))
+                .foregroundStyle(currentOption?.id == option.id ? Color.black : Color.white.opacity(0.6))
                 .fontType(.pt12, on: .darkBackground)
 
         }

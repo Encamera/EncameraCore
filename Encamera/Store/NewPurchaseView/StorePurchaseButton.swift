@@ -8,10 +8,11 @@
 import SwiftUI
 import EncameraCore
 
+
 struct StorePurchaseButton: View {
 
     @Binding var isSubscribedToSelectedSubscription: Bool
-    let selectedPurchasable: Binding<(any PremiumPurchasable)?>
+    @Binding var selectedPurchasable: (any PremiumPurchasable)?
     let onPurchase: (any PremiumPurchasable) -> Void
 
     init(
@@ -20,19 +21,19 @@ struct StorePurchaseButton: View {
         onPurchase: @escaping (any PremiumPurchasable) -> Void
     ) {
         self._isSubscribedToSelectedSubscription = isSubscribedToSelectedSubscription
-        self.selectedPurchasable = selectedPurchasable
+        self._selectedPurchasable = selectedPurchasable
         self.onPurchase = onPurchase
     }
 
     var body: some View {
         VStack(spacing: 8) {
             Button {
-                if let selectedPurchasable = selectedPurchasable.wrappedValue {
+                if let selectedPurchasable = selectedPurchasable {
                     onPurchase(selectedPurchasable)
                 }
             } label: {
                 Group {
-                    if let selectedPurchasable = selectedPurchasable.wrappedValue {
+                    if let selectedPurchasable = selectedPurchasable {
                         if selectedPurchasable.isEligibleForIntroOffer {
                             VStack {
                                 Text(L10n.startTrialOffer)
@@ -50,8 +51,8 @@ struct StorePurchaseButton: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .primaryButton(enabled: selectedPurchasable.wrappedValue != nil && !isSubscribedToSelectedSubscription)
-            .disabled(selectedPurchasable.wrappedValue == nil || isSubscribedToSelectedSubscription)
+            .primaryButton(enabled: selectedPurchasable != nil && !isSubscribedToSelectedSubscription)
+            .disabled(selectedPurchasable == nil || isSubscribedToSelectedSubscription)
 
             Spacer().frame(height: 8)
             Text(L10n.noCommitmentCancelAnytime)
