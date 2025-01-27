@@ -56,6 +56,8 @@
 		193DDAB82D419BBD00F3BF9A /* StorePurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */; };
 		193DDAB92D419BBD00F3BF9A /* StorePurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */; };
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
+		19C6B2262D4676BB0052B43A /* AppModalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */; };
+		19C6B2272D4676BB0052B43A /* AppModalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A4FD6D71B93F3D4A75F09C8 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541C934E3C2228AEF133A9AE /* Color+Extensions.swift */; };
 		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
@@ -492,6 +494,7 @@
 		193DDAB42D4196F800F3BF9A /* PurchaseStorefront.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseStorefront.swift; sourceTree = "<group>"; };
 		193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorePurchaseButton.swift; sourceTree = "<group>"; };
 		198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
+		19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalEnvironment.swift; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1B60005D9CB1D186BF8FB5D2 /* 1.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.jpg; sourceTree = "<group>"; };
 		1BDE42B029680FCDC41E48E9 /* BackgroundRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRectangle.swift; sourceTree = "<group>"; };
@@ -948,6 +951,7 @@
 			children = (
 				2F2DD0E7BBBF700CAD24A760 /* NavigationPath.swift */,
 				57C54146880DB6F836B1AB7F /* Rotation.swift */,
+				19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */,
 				72935CD1CF7D9FD70DAE47B1 /* ScreenBlock.swift */,
 			);
 			path = EnvironmentKeys;
@@ -1765,6 +1769,7 @@
 				E75BDD05BC70E72EA69BAE09 /* PhotoPicker.swift in Sources */,
 				863EAE16111F8EE4F7797EA8 /* PinCodeView.swift in Sources */,
 				480F0490515A750CBC1E7CD7 /* PopoverComponent.swift in Sources */,
+				19C6B2272D4676BB0052B43A /* AppModalEnvironment.swift in Sources */,
 				453309E9AC4749F0E4C771DA /* PostPurchaseView.swift in Sources */,
 				CDCE7BEBD2E12D0BD8FC3C56 /* ProductStoreView.swift in Sources */,
 				193DDAAC2D411F0B00F3BF9A /* PurchaseOptionComponent.swift in Sources */,
@@ -1952,6 +1957,7 @@
 				544469FC8962611F6F8F615E /* Text.swift in Sources */,
 				D403C8C58814992C59E0CFBB /* TextField.swift in Sources */,
 				ED8125C7127C1919A8CD61FD /* ToastView.swift in Sources */,
+				19C6B2262D4676BB0052B43A /* AppModalEnvironment.swift in Sources */,
 				F754F16FFA685BB1E107941B /* TopCameraControls.swift in Sources */,
 				499935C789F9AA542ABABF4A /* TweetToShareView.swift in Sources */,
 				38B9B3BB67AABD0AB502B0AD /* UIColor.swift in Sources */,
@@ -2273,8 +2279,8 @@
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				TARGETED_DEVICE_FAMILY = 1;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -2301,8 +2307,8 @@
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				TARGETED_DEVICE_FAMILY = 1;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
