@@ -145,6 +145,7 @@ struct SettingsView: View {
     
     
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
 
     func dismiss() {
         presentationMode.wrappedValue.dismiss()
@@ -204,6 +205,9 @@ struct SettingsView: View {
                         NavigationLink(L10n.roadmap) {
                             WebView(url: URL(string: "https://encamera.featurebase.app/")!)
                         }.id(UUID())
+                        Button("Give Instant Feedback") {
+                            appModalStateModel.currentModal = .feedbackView
+                        }
                     }
                     Section {
                         Button {
@@ -258,7 +262,7 @@ struct SettingsView: View {
         }
         .gradientBackground()
         .fontType(.pt14, weight: .bold)
-        .productStore(isPresented: $viewModel.showPurchaseScreen, fromViewName: "Settings")
+        .productStorefront(isPresented: $viewModel.showPurchaseScreen, fromViewName: "Settings")
         .sheet(isPresented: $viewModel.showChangePin, content: {
             ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
                 // tiny hack but we are relying here on the UI to keep the state of the biometrics

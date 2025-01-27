@@ -114,7 +114,7 @@ struct CameraView: View {
             })
 
         }
-        .productStore(isPresented: $cameraModel.showPurchaseSheet, fromViewName: viewTitle) { finishedAction in
+        .productStorefront(isPresented: $cameraModel.showPurchaseSheet, fromViewName: viewTitle) { finishedAction in
             if case .purchaseComplete = finishedAction {
                 cameraModel.showExplanationForUpgrade = false
             }

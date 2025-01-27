@@ -21,6 +21,7 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
     @Published var showImportedMediaScreen = false
     @Published var selectedPath: NavigationPath = .init()
     @Published var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums
+
     var fileAccess: D
     var cameraService: CameraConfigurationService
     var keyManager: KeyManager
@@ -73,6 +74,8 @@ struct MainHomeView<D: FileAccess>: View {
 
     @StateObject var viewModel: MainHomeViewViewModel<D>
     @Binding var showCamera: Bool
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
+
     @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums {
         didSet {
             showCamera = false
@@ -113,6 +116,7 @@ struct MainHomeView<D: FileAccess>: View {
                     BottomNavigationBar(selectedItem: $selectedNavigationItem)
                 }
             }
+            .environmentObject(appModalStateModel)
             .onAppear {
                 if UserDefaultUtils.bool(forKey: .showCurrentAlbumOnLaunch) {
                     guard let album = viewModel.albumManager.currentAlbum else {
@@ -133,16 +137,18 @@ struct MainHomeView<D: FileAccess>: View {
             .gradientBackground()
             .screenBlocked()
             .navigationDestination(for: AppNavigationPaths.self) { destination in
-                switch destination {
-                case .createAlbum:
-                    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: nil, shouldCreateAlbum: true)).onAppear {
-                        EventTracking.trackCreateAlbumButtonPressed()
+                Group {
+                    switch destination {
+                    case .createAlbum:
+                        AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: nil, shouldCreateAlbum: true)).onAppear {
+                            EventTracking.trackCreateAlbumButtonPressed()
+                        }
+                    case .albumDetail(album: let album):
+                        AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
+                            EventTracking.trackAlbumOpened()
+                        }
                     }
-                case .albumDetail(album: let album):
-                    AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
-                        EventTracking.trackAlbumOpened()
-                    }
-                }
+                }.environmentObject(appModalStateModel)
             }
         }
     }

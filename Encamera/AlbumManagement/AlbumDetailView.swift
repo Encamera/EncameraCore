@@ -50,7 +50,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             debugPrint("startedImportCount: \(startedImportCount)")
         }
     }
-    @Published var currentModal: AppModal?
 
     private var currentTask: Task<Void, Error>?
 
@@ -468,6 +467,7 @@ struct AlbumDetailView<D: FileAccess>: View {
 
     @StateObject var viewModel: AlbumDetailViewModel<D>
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
 
     func popLastView() {
         presentationMode.wrappedValue.dismiss()
@@ -520,6 +520,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                     }
                 }
             }
+            .environmentObject(appModalStateModel)
             .screenBlocked()
             .navigationBarHidden(true)
             .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
@@ -537,7 +538,7 @@ struct AlbumDetailView<D: FileAccess>: View {
             }, dismissAction: {
                 isShowingMoveAlbumModal = false
             })
-            .productStore(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
+            .productStorefront(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
                 if case .purchaseComplete = action {
                     isShowingMoveAlbumModal = false
                     viewModel.afterPurchaseAction?()
@@ -621,11 +622,11 @@ struct AlbumDetailView<D: FileAccess>: View {
                                 secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
                                 secondaryButtonAction: {
                 guard let album = viewModel.album else { return }
-//                viewModel.currentModal = .cameraView(context: .init(sourceView: "AlbumDetailView", album: album, closeButtonAction: {
-//                    Task {
-//                        await viewModel.gridViewModel.enumerateMedia()
-//                    }
-//                }))
+                appModalStateModel.currentModal = .cameraView(context: .init(sourceView: "AlbumDetailView", album: album, closeButtonAction: {
+                    Task {
+                        await viewModel.gridViewModel.enumerateMedia()
+                    }
+                }))
             })
             Spacer().frame(height: 8)
         }.padding()

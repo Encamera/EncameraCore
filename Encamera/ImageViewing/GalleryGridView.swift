@@ -27,6 +27,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
     var albumManager: AlbumManaging
     var purchasedPermissions: PurchasedPermissionManaging
 
+
     @MainActor
     @Published var media: [InteractableMedia<EncryptedMedia>] = []
 
@@ -166,7 +167,7 @@ private enum Constants {
 struct GalleryGridView<Content: View, D: FileAccess>: View {
 
     @ObservedObject var viewModel: GalleryGridViewModel<D>
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
 
     var content: Content
 
@@ -175,8 +176,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
         self.content = content()
     }
 
-
-
     var body: some View {
         VStack {
 
@@ -184,6 +183,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             mainGridView
 
         }
+
     }
 
     private var mainGridView: some View {
@@ -220,6 +220,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             .navigationBarTitle("")
         }
     }
+
     private func imageForItem(mediaItem: InteractableMedia<EncryptedMedia>, width: CGFloat, height: CGFloat, index: Int) -> some View {
 
 
@@ -251,12 +252,13 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 .frame(width: width, height: height)
                 .galleryClipped()
                 .transition(.asymmetric(insertion: .scale, removal: .opacity.combined(with: .scale(scale: 0.7))))
-
+                
             }.onTapGesture {
-//                viewModel.currentModal = AppModal.galleryScrollView(
-//                    context: GalleryScrollViewContext(
-//                        media: viewModel.media,
-//                        targetMedia: mediaItem))
+                appModalStateModel.currentModal = .galleryScrollView(
+                    context: GalleryScrollViewContext(
+                        sourceView: "GalleryGridView",
+                        media: viewModel.media,
+                        targetMedia: mediaItem))
             }
 
     }

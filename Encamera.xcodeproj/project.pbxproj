@@ -56,6 +56,8 @@
 		193DDAB82D419BBD00F3BF9A /* StorePurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */; };
 		193DDAB92D419BBD00F3BF9A /* StorePurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */; };
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
+		19524D7A2D47C2380095C0AF /* AppModalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19524D792D47C2380095C0AF /* AppModalModifier.swift */; };
+		19524D7B2D47C2380095C0AF /* AppModalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19524D792D47C2380095C0AF /* AppModalModifier.swift */; };
 		19C6B2262D4676BB0052B43A /* AppModalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */; };
 		19C6B2272D4676BB0052B43A /* AppModalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */; };
 		19C6B2292D47AC1B0052B43A /* AppModalContexts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2282D47AC1B0052B43A /* AppModalContexts.swift */; };
@@ -495,6 +497,7 @@
 		193DDAB12D41906100F3BF9A /* PremiumBenefitsScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumBenefitsScrollView.swift; sourceTree = "<group>"; };
 		193DDAB42D4196F800F3BF9A /* PurchaseStorefront.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseStorefront.swift; sourceTree = "<group>"; };
 		193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorePurchaseButton.swift; sourceTree = "<group>"; };
+		19524D792D47C2380095C0AF /* AppModalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalModifier.swift; sourceTree = "<group>"; };
 		198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
 		19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalEnvironment.swift; sourceTree = "<group>"; };
 		19C6B2282D47AC1B0052B43A /* AppModalContexts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalContexts.swift; sourceTree = "<group>"; };
@@ -955,6 +958,7 @@
 				2F2DD0E7BBBF700CAD24A760 /* NavigationPath.swift */,
 				57C54146880DB6F836B1AB7F /* Rotation.swift */,
 				19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */,
+				19524D792D47C2380095C0AF /* AppModalModifier.swift */,
 				72935CD1CF7D9FD70DAE47B1 /* ScreenBlock.swift */,
 			);
 			path = EnvironmentKeys;
@@ -1679,6 +1683,7 @@
 				9A804ADA33AFDEF150A9F7DF /* AlbumMediaActionComponent.swift in Sources */,
 				9B0990DE913D9544A89BF89D /* AppNavigationPaths.swift in Sources */,
 				640833FAABF03B985D60D67E /* Array+Safe.swift in Sources */,
+				19524D7B2D47C2380095C0AF /* AppModalModifier.swift in Sources */,
 				D95B7B1D8B343D31D783F79B /* AssetManager.swift in Sources */,
 				70AC154CF1FE49A51C0C72A1 /* AsyncEncryptedImage.swift in Sources */,
 				4FBA6006CB8DD4C4453C4717 /* AsyncEncryptedImageCell.swift in Sources */,
@@ -1867,6 +1872,7 @@
 				4B8BB435E73B35DCF19DEBB5 /* DismissButton.swift in Sources */,
 				BC5B8124308165A9C6B44539 /* DualButtonComponent.swift in Sources */,
 				193DDAB62D4196F800F3BF9A /* PurchaseStorefront.swift in Sources */,
+				19524D7A2D47C2380095C0AF /* AppModalModifier.swift in Sources */,
 				C0A5B161166A080D6E12019E /* EmptyMediaView.swift in Sources */,
 				1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */,
 				A8FE897989145FD75B54BCC3 /* EncameraTextField.swift in Sources */,

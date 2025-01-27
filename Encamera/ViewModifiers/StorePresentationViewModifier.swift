@@ -11,19 +11,25 @@ import SwiftUI
 struct StorePresentationViewModifier: ViewModifier {
 
     @Binding var isPresented: Bool
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
+
     var fromViewName: String
     var purchaseAction: PurchaseResultAction?
     func body(content: Content) -> some View {
         ZStack {
             content
-                .environment(\.appModal, .purchaseView(context: PurchaseViewContext(sourceView: fromViewName, purchaseAction: purchaseAction)))
+                .onChange(of: isPresented, { oldValue, newValue in
+                    if newValue == true {
+                        appModalStateModel.currentModal = .purchaseView(context: PurchaseViewContext(sourceView: fromViewName, purchaseAction: purchaseAction))
+                    }
+                })
         }
     }
 }
 
 extension View {
 
-    func productStore(isPresented: Binding<Bool>, fromViewName: String, purchaseAction: PurchaseResultAction? = nil) -> some View {
+    func productStorefront(isPresented: Binding<Bool>, fromViewName: String, purchaseAction: PurchaseResultAction? = nil) -> some View {
         self.modifier(StorePresentationViewModifier(isPresented: isPresented, fromViewName: fromViewName, purchaseAction: purchaseAction))
     }
 }

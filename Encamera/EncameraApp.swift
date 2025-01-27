@@ -8,7 +8,9 @@ import RevenueCat
 typealias AlbumManagerType = AlbumManager
 typealias FileAccessType = InteractableMediaDiskAccess
 
-
+class AppModalStateModel: ObservableObject {
+    @Published var currentModal: AppModal?
+}
 
 @main
 struct EncameraApp: App {
@@ -21,13 +23,11 @@ struct EncameraApp: App {
         var fileAccess: D
         @Published var rotationFromOrientation: CGFloat = 0.0
         @Published var showScreenBlocker: Bool = true
-        @Published var currentModal: AppModal?
         @Published var showOnboarding = false
         @Published var isAuthenticated = false
         @Published var hasMediaToImport = false
         @Published var showImportedMediaScreen = false
         @Published var keyManagerKey: PrivateKey?
-
         var openedUrl: URL?
         var keyManager: KeyManager
         var albumManager: AlbumManaging?
@@ -51,15 +51,6 @@ struct EncameraApp: App {
         private(set) var authManager: AuthManager
         private var cancellables = Set<AnyCancellable>()
 
-        var showFullScreenCover: Binding<Bool> {
-            Binding {
-                self.currentModal != nil
-            } set: { newValue in
-                if newValue == false {
-                    self.currentModal = nil
-                }
-            }
-        }
 
         init() {
             self.fileAccess = D.init()
@@ -241,6 +232,8 @@ struct EncameraApp: App {
 
     @StateObject var viewModel: ViewModel<FileAccessType> = .init()
     @State var showCamera = false
+    @StateObject var appModalStateModel: AppModalStateModel = .init()
+
     var body: some Scene {
 
         WindowGroup {
@@ -263,6 +256,7 @@ struct EncameraApp: App {
                         authManager: viewModel.authManager,
                         cameraService: viewModel.cameraService
                     ), showCamera: $showCamera)
+                    .environmentObject(appModalStateModel)
 
                 } else {
                     EmptyView()
@@ -307,24 +301,30 @@ struct EncameraApp: App {
                 }
             }
 
-            .fullScreenCover(isPresented: viewModel.showFullScreenCover, content: {
+            .fullScreenCover(isPresented: Binding {
+                self.appModalStateModel.currentModal != nil
+                } set: { newValue in
+                    if newValue == false {
+                        self.appModalStateModel.currentModal = nil
+                    }
+                }, content: {
 
-                switch viewModel.currentModal {
+                switch self.appModalStateModel.currentModal {
                 case .cameraView(context: let context):
                     if let cameraModel = viewModel.cameraModel {
                         CameraView(cameraModel: cameraModel, hasMediaToImport: .constant(false), closeButtonTapped: { _ in
-                            viewModel.currentModal = nil
+                            self.appModalStateModel.currentModal = nil
                             viewModel.albumManager?.currentAlbum = context.album
                             context.closeButtonAction()
                         })
                     }
                 case .galleryScrollView(context: let context):
                     GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions, purchaseButtonPressed: {
-                        viewModel.currentModal = .purchaseView(context: .init(sourceView: "GalleryScrollView", purchaseAction: { _ in
+                        self.appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "GalleryScrollView", purchaseAction: { _ in
                         }))
                     }, reviewAlertActionPressed: { selection in
                         if selection == .no {
-                            viewModel.currentModal = .feedbackView
+                            self.appModalStateModel.currentModal = .feedbackView
                         }
 
                     }))
@@ -344,10 +344,6 @@ struct EncameraApp: App {
                 \.isScreenBlockingActive,
                  self.viewModel.showScreenBlocker
             )
-            .environment(
-                \.appModal,
-                 self.viewModel.currentModal
-             )
         }
     }
 }

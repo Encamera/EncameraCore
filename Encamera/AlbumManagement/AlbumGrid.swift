@@ -113,6 +113,7 @@ struct AlbumGrid<D: FileAccess>: View {
     @State var path: NavigationPath = .init()
     @State private var showNotificationSheet: Bool = false
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
 
     var body: some View {
         let spacing = CGFloat(17.0)
@@ -157,7 +158,6 @@ struct AlbumGrid<D: FileAccess>: View {
                 showNotificationSheet = false
             }
         }
-        .productStore(isPresented: $viewModel.isShowingStoreView, fromViewName: "AlbumGrid")
     }
 
 
@@ -171,7 +171,7 @@ struct AlbumGrid<D: FileAccess>: View {
             }
         } else {
             Button {
-                viewModel.isShowingStoreView = true
+                appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "AlbumGrid", purchaseAction: nil))
             } label: {
                 button
             }

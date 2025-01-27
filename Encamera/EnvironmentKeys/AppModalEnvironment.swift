@@ -13,8 +13,5 @@ struct AppModalEnvironmentKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    var appModal: AppModal? {
-        get { self[AppModalEnvironmentKey.self] }
-        set { self[AppModalEnvironmentKey.self] = newValue }
-    }
+    @Entry var appModal: AppModal?
 }
