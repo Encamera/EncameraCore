@@ -10,6 +10,7 @@ struct FeedbackView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var feedbackText: String = ""
     @State private var showAlert: Bool = false
+    @State private var isSubmitting: Bool = false
 
     var body: some View {
         VStack {
@@ -51,9 +52,18 @@ struct FeedbackView: View {
 
             Spacer()
 
-            DualButtonComponent(nextActive: .constant(false), bottomButtonTitle: L10n.FeedbackView.submit, bottomButtonAction: {
-                submitFeedback()
-            })
+            ZStack {
+                if isSubmitting {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                } else if showAlert == false {
+
+                    DualButtonComponent(nextActive: .constant(false), bottomButtonTitle: L10n.FeedbackView.submit, bottomButtonAction: {
+                        submitFeedback()
+                    })
+                }
+            }
+            .padding()
         }
         .gradientBackground()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -65,10 +75,13 @@ struct FeedbackView: View {
     }
 
     private func submitFeedback() {
+        isSubmitting = true
+
         let feedback = Feedback(id: EventTracking.shared.piwikTracker.visitorID, feedback: feedbackText)
 
         guard let postData = try? JSONEncoder().encode(feedback) else {
             print("Failed to encode feedback")
+            isSubmitting = false
             return
         }
 
@@ -78,12 +91,15 @@ struct FeedbackView: View {
         request.httpBody = postData
 
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data else {
-                print(String(describing: error))
-                return
-            }
-            print(String(data: data, encoding: .utf8)!)
             DispatchQueue.main.async {
+                isSubmitting = false
+
+                guard let data = data else {
+                    print(String(describing: error))
+                    return
+                }
+
+                print(String(data: data, encoding: .utf8)!)
                 showAlert = true
             }
         }

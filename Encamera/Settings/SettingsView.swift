@@ -202,12 +202,13 @@ struct SettingsView: View {
                             EventTracking.trackSettingsLeaveReviewPressed()
                             AskForReviewUtil.openAppStoreReview()
                         }
+                        Button(L10n.SettingsView.giveInstantFeedback) {
+                            appModalStateModel.currentModal = .feedbackView
+                        }
                         NavigationLink(L10n.roadmap) {
                             WebView(url: URL(string: "https://encamera.featurebase.app/")!)
                         }.id(UUID())
-                        Button("Give Instant Feedback") {
-                            appModalStateModel.currentModal = .feedbackView
-                        }
+
                     }
                     Section {
                         Button {
