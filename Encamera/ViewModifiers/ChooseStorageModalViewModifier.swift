@@ -21,7 +21,7 @@ struct ChooseStorageModalViewModifier: ViewModifier {
         ZStack {
             content
             if isPresented {
-                let hasEntitlement = purchasedPermissions.hasEntitlement()
+                let hasEntitlement = purchasedPermissions.hasEntitlement
                 ChooseStorageModal(hasEntitlement: hasEntitlement,
                                    selectedStorage: album.storageOption,
                                    storageSelected: { storage in

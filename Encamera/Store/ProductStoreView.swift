@@ -172,14 +172,11 @@ struct ProductStoreView: View {
     private var purchaseScreen: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
-//                let defaultSelection = viewModel.purchaseOptions?.defaultSelection
-//                let _ = print("Default selection", defaultSelection)
                 if let options = viewModel.purchaseOptions {
                     PurchaseStorefront(purchaseOptions: options, selectedPurchasable: options.defaultSelection) { purchasable in
 
 
                        Task(priority: .userInitiated) { @MainActor in
-                            print("Selected purchasable", purchasable)
                             guard let purchasable = purchasable as? Package else {
                                 return
                             }
@@ -200,12 +197,7 @@ struct ProductStoreView: View {
                                errorAlertIsPresented = true
                                EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
                            }
-//                            print("Purchase result", result)
-
-
-
                         }
-
                     }
                     .scrollIndicators(.never)
                     .navigationBarTitle(L10n.upgradeToday)

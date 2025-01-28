@@ -67,7 +67,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     var album: Album? {
         didSet {
             guard let album = album else { return }
-            if purchasedPermissions.hasEntitlement() == false {
+            if purchasedPermissions.hasEntitlement == false {
                 self.isAlbumHidden = false
             } else {
                 self.isAlbumHidden = albumManager.isAlbumHidden(album)
@@ -141,7 +141,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     }
 
     func requestPhotoLibraryPermission() async {
-        if agreedToDeleteWithNoLicense == false && purchasedPermissions.hasEntitlement() == false {
+        if agreedToDeleteWithNoLicense == false && purchasedPermissions.hasEntitlement == false {
             activeAlert = .noLicenseDeletionWarning
             return
         }
@@ -714,7 +714,7 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
 
 //            Button {
-//                if viewModel.purchasedPermissions.hasEntitlement() == false {
+//                if viewModel.purchasedPermissions.hasEntitlement == false {
 //                    viewModel.isShowingPurchaseSheet = true
 //                    viewModel.afterPurchaseAction = {
 //                        viewModel.alertType = .hideAlbum

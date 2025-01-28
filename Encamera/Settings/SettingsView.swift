@@ -54,7 +54,7 @@ class SettingsViewViewModel: ObservableObject {
     var availableBiometric: AuthenticationMethod? {
         return authManager.availableBiometric
     }
-    
+    @MainActor
     init(keyManager: KeyManager,
          authManager: AuthManager,
          fileAccess: FileAccess,
@@ -68,7 +68,7 @@ class SettingsViewViewModel: ObservableObject {
         self.showKeyBackup = ((try? keyManager.retrieveKeyPassphrase()) != nil)
         self.defaultStorageOption = albumManager.defaultStorageForAlbum
         self.purchasedPermissions = purchasedPermissions
-        self.useiCloudKeyBackup = purchasedPermissions.hasEntitlement() && keyManager.areKeysStoredIniCloud
+        self.useiCloudKeyBackup = purchasedPermissions.hasEntitlement && keyManager.areKeysStoredIniCloud
     }
     
     func setupToggleObservers() {
@@ -96,7 +96,7 @@ class SettingsViewViewModel: ObservableObject {
 
         self.$useiCloudKeyBackup.dropFirst().sink { [weak self] value in
             guard let self else { return }
-            if self.purchasedPermissions.hasEntitlement() {
+            if self.purchasedPermissions.hasEntitlement {
                 try? self.keyManager.backupKeychainToiCloud(backupEnabled: value)
             } else {
                 self.showPurchaseScreen = value

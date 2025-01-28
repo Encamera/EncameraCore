@@ -58,6 +58,10 @@
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
 		19524D7A2D47C2380095C0AF /* AppModalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19524D792D47C2380095C0AF /* AppModalModifier.swift */; };
 		19524D7B2D47C2380095C0AF /* AppModalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19524D792D47C2380095C0AF /* AppModalModifier.swift */; };
+		19524D7D2D492C230095C0AF /* AppPurchasedPermissionUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19524D7C2D492C230095C0AF /* AppPurchasedPermissionUtils.swift */; };
+		19524D7E2D492C230095C0AF /* AppPurchasedPermissionUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19524D7C2D492C230095C0AF /* AppPurchasedPermissionUtils.swift */; };
+		19524D802D492C810095C0AF /* DemoPurchasedPermissionManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19524D7F2D492C810095C0AF /* DemoPurchasedPermissionManaging.swift */; };
+		19524D812D492C810095C0AF /* DemoPurchasedPermissionManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19524D7F2D492C810095C0AF /* DemoPurchasedPermissionManaging.swift */; };
 		19C6B2262D4676BB0052B43A /* AppModalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */; };
 		19C6B2272D4676BB0052B43A /* AppModalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */; };
 		19C6B2292D47AC1B0052B43A /* AppModalContexts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C6B2282D47AC1B0052B43A /* AppModalContexts.swift */; };
@@ -498,6 +502,8 @@
 		193DDAB42D4196F800F3BF9A /* PurchaseStorefront.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseStorefront.swift; sourceTree = "<group>"; };
 		193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorePurchaseButton.swift; sourceTree = "<group>"; };
 		19524D792D47C2380095C0AF /* AppModalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalModifier.swift; sourceTree = "<group>"; };
+		19524D7C2D492C230095C0AF /* AppPurchasedPermissionUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPurchasedPermissionUtils.swift; sourceTree = "<group>"; };
+		19524D7F2D492C810095C0AF /* DemoPurchasedPermissionManaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoPurchasedPermissionManaging.swift; sourceTree = "<group>"; };
 		198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
 		19C6B2252D4676BB0052B43A /* AppModalEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalEnvironment.swift; sourceTree = "<group>"; };
 		19C6B2282D47AC1B0052B43A /* AppModalContexts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalContexts.swift; sourceTree = "<group>"; };
@@ -846,6 +852,8 @@
 				193DDAB12D41906100F3BF9A /* PremiumBenefitsScrollView.swift */,
 				193DDAB42D4196F800F3BF9A /* PurchaseStorefront.swift */,
 				193DDAB72D419BBD00F3BF9A /* StorePurchaseButton.swift */,
+				19524D7C2D492C230095C0AF /* AppPurchasedPermissionUtils.swift */,
+				19524D7F2D492C810095C0AF /* DemoPurchasedPermissionManaging.swift */,
 			);
 			path = NewPurchaseView;
 			sourceTree = "<group>";
@@ -1679,6 +1687,7 @@
 				4BA9D4FCA7ACD2B03A62AD7A /* AlbumBaseGridItem.swift in Sources */,
 				E57CD55CDC8051FBB6E47C9D /* AlbumDetailView.swift in Sources */,
 				66EA12F48AB996734FF2D288 /* AlbumGrid.swift in Sources */,
+				19524D7E2D492C230095C0AF /* AppPurchasedPermissionUtils.swift in Sources */,
 				AA47FB62FF6FA9E4F45E5AE8 /* AlbumGridItem.swift in Sources */,
 				9A804ADA33AFDEF150A9F7DF /* AlbumMediaActionComponent.swift in Sources */,
 				9B0990DE913D9544A89BF89D /* AppNavigationPaths.swift in Sources */,
@@ -1708,6 +1717,7 @@
 				8DA5313062B4B0A3BAA23C4A /* DecryptErrorExplanation.swift in Sources */,
 				5A11DC5FE8387F57FE50E7ED /* DefaultEdgeSpacing.swift in Sources */,
 				93ADB6C217419F9ED80A68D1 /* DemoFileEnumerator.swift in Sources */,
+				19524D812D492C810095C0AF /* DemoPurchasedPermissionManaging.swift in Sources */,
 				314C1682F74B89FEB81D801D /* DismissButton.swift in Sources */,
 				C08AB7E95C132673EC89904D /* DualButtonComponent.swift in Sources */,
 				3D6F08338BB7B386864B7074 /* EmptyMediaView.swift in Sources */,
@@ -1913,6 +1923,7 @@
 				D324CD27E75F8808F59B6049 /* MediaImportView.swift in Sources */,
 				8F5DC0EE6D7D40779DD30890 /* MediaSelectionTray.swift in Sources */,
 				5BD0411D5F9942B115089F2F /* MediaViewModelProtocol.swift in Sources */,
+				19524D802D492C810095C0AF /* DemoPurchasedPermissionManaging.swift in Sources */,
 				430FB704E9F7AEA15C11B0E8 /* MediaViewProtocol.swift in Sources */,
 				BCED6B7B1594B7955A529364 /* MediaViewingDelegate.swift in Sources */,
 				193DDAB02D414CFF00F3BF9A /* MovingGradient.swift in Sources */,
@@ -1921,6 +1932,7 @@
 				6D38701EED69816C864AC33F /* MovieViewing.swift in Sources */,
 				90A67C8D7E6A28B34D2729DF /* NavigationPath.swift in Sources */,
 				A2E31E5A67DA982A00908D5E /* NewOnboardingView.swift in Sources */,
+				19524D7D2D492C230095C0AF /* AppPurchasedPermissionUtils.swift in Sources */,
 				D90CFC69F5637068E0C974A1 /* NotificationBanner.swift in Sources */,
 				081557A474000747981691D7 /* NotificationBell.swift in Sources */,
 				468D2687EA06F608B4698069 /* NotificationCarousel.swift in Sources */,
