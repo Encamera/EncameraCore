@@ -146,12 +146,12 @@ struct AlbumGrid<D: FileAccess>: View {
                 }
                 .screenBlocked()
             }
-            .onAppear {
-                viewModel.setAlbums()
-            }
             .padding([.leading, .trailing], Spacing.pt24.value - spacing / 2)
             .padding([.top, .bottom], Spacing.pt16.value)
             .toolbar(.hidden)
+        }
+        .onAppear {
+            viewModel.setAlbums()
         }
         .fullScreenCover(isPresented: $showNotificationSheet) {
             NotificationList {

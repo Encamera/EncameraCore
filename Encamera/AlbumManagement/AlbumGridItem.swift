@@ -17,7 +17,6 @@ class AlbumGridItemModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     @Published var countOfMedia: Int = 0
-    @Published var imageCount: Int?
     @Published var leadingImage: UIImage?
 
     init(album: Album, fileReader: FileReader, albumManager: AlbumManaging) {
@@ -34,9 +33,10 @@ class AlbumGridItemModel: ObservableObject {
         self.countOfMedia = albumManager.albumMediaCount(album: album)
         FileOperationBus.shared
             .operations
-            .receive(on: RunLoop.main)
             .sink { operation in
-            self.countOfMedia = albumManager.albumMediaCount(album: album)
+                Task {
+                    try await self.load()
+                }
         }.store(in: &cancellables)
 
     }
@@ -46,7 +46,7 @@ class AlbumGridItemModel: ObservableObject {
             let thumb = try await fileReader.loadLeadingThumbnail()
             debugPrint("Loaded thumb: \(String(describing: thumb))")
             await MainActor.run {
-                self.imageCount = countOfMedia
+                self.countOfMedia = albumManager.albumMediaCount(album: album)
                 if let thumb {
                     self.leadingImage = thumb
                 }
@@ -72,7 +72,7 @@ struct AlbumGridItem: View {
     var body: some View {
         AlbumBaseGridItem(uiImage: viewModel.leadingImage,
                           title: albumName,
-                          subheading: viewModel.imageCount != nil ? L10n.imageS(viewModel.imageCount!) : nil,
+                          subheading: L10n.imageS(viewModel.countOfMedia),
                           width: width)
             .task {
                 try? await viewModel.load()

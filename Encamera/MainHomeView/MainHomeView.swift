@@ -140,11 +140,12 @@ struct MainHomeView<D: FileAccess>: View {
                 Group {
                     switch destination {
                     case .createAlbum:
-                        AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: nil, shouldCreateAlbum: true)).onAppear {
+                        AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: nil,
+                                                            purchasedPermissions: viewModel.purchasedPermissions, shouldCreateAlbum: true)).onAppear {
                             EventTracking.trackCreateAlbumButtonPressed()
                         }
                     case .albumDetail(album: let album):
-                        AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album)).onAppear {
+                        AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album, purchasedPermissions: viewModel.purchasedPermissions)).onAppear {
                             EventTracking.trackAlbumOpened()
                         }
                     }

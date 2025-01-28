@@ -13,4 +13,8 @@ public class DemoPurchasedPermissionManaging: PurchasedPermissionManaging {
     public func isAllowedAccess(feature: AppFeature) -> Bool {
         return false
     }
+
+    public func refreshEntitlements() {
+        
+    }
 }

@@ -130,6 +130,7 @@ struct EncameraApp: App {
                 .receive(on: RunLoop.main)
                 .sink { _ in
                     self.showScreenBlocker = false
+                    self.purchasedPermissions.refreshEntitlements()
                 }.store(in: &cancellables)
 
             NotificationUtils.orientationDidChangePublisher
@@ -368,8 +369,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 #if DEBUG
         Purchases.logLevel = .debug
 #endif
-        Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT")
-        
+        Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT", appUserID: EventTracking.shared.piwikTracker.userID)
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(.playback, mode: .default, options: [])

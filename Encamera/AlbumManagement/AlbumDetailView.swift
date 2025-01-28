@@ -62,18 +62,11 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     var afterPurchaseAction: (() -> Void)?
     var gridViewModel: GalleryGridViewModel<D>
 
-    var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
-    var fileManager: D?
+    var purchasedPermissions: PurchasedPermissionManaging
+    var fileManager: D
     var album: Album? {
         didSet {
-            guard let album = album else { return }
-            if purchasedPermissions.hasEntitlement == false {
-                self.isAlbumHidden = false
-            } else {
-                self.isAlbumHidden = albumManager.isAlbumHidden(album)
-            }
-            self.albumName = album.name
-            self.gridViewModel.album = album
+            prepareWithAlbum()
         }
     }
 
@@ -81,12 +74,13 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(albumManager: AlbumManaging, fileManager: D? = nil, album: Album?, shouldCreateAlbum: Bool = false) {
+    init(albumManager: AlbumManaging, fileManager: D = D.init(), album: Album?, purchasedPermissions: PurchasedPermissionManaging, shouldCreateAlbum: Bool = false) {
         self.albumManager = albumManager
         self.fileManager = fileManager
+        self.purchasedPermissions = purchasedPermissions
         self.shouldCreateAlbum = shouldCreateAlbum
         self.isEditingAlbumName = shouldCreateAlbum
-        let gridViewModel = GalleryGridViewModel<D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager ?? D.init())
+        let gridViewModel = GalleryGridViewModel<D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager)
         self.gridViewModel = gridViewModel
         gridViewModel.$noMediaShown.sink { show in
             self.showEmptyView = show
@@ -112,10 +106,23 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }.store(in: &cancellables)
         guard let album else { return }
         self.album = album
+
+        prepareWithAlbum()
+
+    }
+
+    func prepareWithAlbum() {
+        guard let album = album else { return }
+        if purchasedPermissions.hasEntitlement == false {
+            self.isAlbumHidden = false
+        } else {
+            self.isAlbumHidden = albumManager.isAlbumHidden(album)
+        }
         self.albumName = album.name
+        self.gridViewModel.album = album
         FileOperationBus.shared.operations.sink { operation in
             Task {
-                await gridViewModel.enumerateMedia()
+                await self.gridViewModel.enumerateMedia()
             }
         }.store(in: &cancellables)
         Task {
@@ -233,12 +240,11 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
     private func saveCleartextMedia(mediaArray: [CleartextMedia]) async throws {
         let media = try InteractableMedia(underlyingMedia: mediaArray)
-        let savedMedia = try await fileManager?.save(media: media) { progress in
+        let savedMedia = try await fileManager.save(media: media) { progress in
             Task { @MainActor in
                 self.importProgress = progress
             }
         }
-        debugPrint("Media saved: \(savedMedia?.photoURL?.absoluteString ?? "nil")")
         await MainActor.run {
             self.importProgress = 0.0
         }
@@ -297,7 +303,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         try await saveCleartextMedia(mediaArray: cleartextMediaArray)
     }
 
-    
+
 
     func handleSelectedMedia(items: [PHPickerResult]) {
         currentTask = Task {
@@ -378,7 +384,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     }
 
     func deleteSelectedMedia() {
-        guard let fileManager = fileManager else { return }
         Task {
             var completedItems: [InteractableMedia<EncryptedMedia>] = []
             for media in selectedMedia {
@@ -433,10 +438,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     }
 
     func shareSelected() {
-        guard let fileManager = fileManager else {
-            printDebug("No file access")
-            return
-        }
         let sharingUtil = ShareMediaUtil(fileAccess: fileManager, targetMedia: Array(selectedMedia))
         Task {
             do {
@@ -551,12 +552,6 @@ struct AlbumDetailView<D: FileAccess>: View {
                 EmptyView()
             }
         })
-//        .onChange(of: $viewModel.currentModal) { oldValue, newValue in
-//            if case .cameraView = newValue {
-//                EventTracking.trackOpenedCameraFromAlbumEmptyState()
-//                viewModel.albumManager.currentAlbum = viewModel.album
-//            }
-//        }
         .gradientBackground()
         .ignoresSafeArea(edges: [.bottom])
     }
@@ -713,26 +708,26 @@ struct AlbumDetailView<D: FileAccess>: View {
                 viewModel.showPhotoPicker = .files
             }
 
-//            Button {
-//                if viewModel.purchasedPermissions.hasEntitlement == false {
-//                    viewModel.isShowingPurchaseSheet = true
-//                    viewModel.afterPurchaseAction = {
-//                        viewModel.alertType = .hideAlbum
-//                    }
-//                } else if viewModel.isAlbumHidden {
-//                    viewModel.isAlbumHidden = false
-//                } else {
-//                    viewModel.alertType = .hideAlbum
-//                }
-//            } label: {
-//                HStack {
-//                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
-//                    Spacer()
-//                    if viewModel.isAlbumHidden {
-//                        Image(systemName: "checkmark")
-//                    }
-//                }
-//            }
+            //            Button {
+            //                if viewModel.purchasedPermissions.hasEntitlement == false {
+            //                    viewModel.isShowingPurchaseSheet = true
+            //                    viewModel.afterPurchaseAction = {
+            //                        viewModel.alertType = .hideAlbum
+            //                    }
+            //                } else if viewModel.isAlbumHidden {
+            //                    viewModel.isAlbumHidden = false
+            //                } else {
+            //                    viewModel.alertType = .hideAlbum
+            //                }
+            //            } label: {
+            //                HStack {
+            //                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
+            //                    Spacer()
+            //                    if viewModel.isAlbumHidden {
+            //                        Image(systemName: "checkmark")
+            //                    }
+            //                }
+            //            }
 
             Button(L10n.deleteAlbum, role: .destructive) {
                 viewModel.activeAlert = .deleteAllAlbumData
@@ -815,5 +810,5 @@ struct AlbumDetailView<D: FileAccess>: View {
 }
 
 #Preview {
-    AlbumDetailView<DemoFileEnumerator>(viewModel: .init(albumManager: DemoAlbumManager(), album: DemoAlbumManager().currentAlbum))
+    AlbumDetailView<DemoFileEnumerator>(viewModel: .init(albumManager: DemoAlbumManager(), fileManager: DemoFileEnumerator(), album: DemoAlbumManager().currentAlbum, purchasedPermissions: DemoPurchasedPermissionManaging()))
 }
