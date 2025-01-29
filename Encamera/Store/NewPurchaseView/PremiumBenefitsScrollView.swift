@@ -5,6 +5,13 @@ import EncameraCore
 struct BenefitModel: Equatable {
     let iconName: String
     let text: String
+    let comingSoon: Bool
+
+    init(iconName: String, text: String, comingSoon: Bool = false) {
+        self.iconName = iconName
+        self.text = text
+        self.comingSoon = comingSoon
+    }
 }
 
 struct PremiumBenefitsScrollView: View {
@@ -12,12 +19,12 @@ struct PremiumBenefitsScrollView: View {
     @Binding var isPremium: Bool
 
     let benefits: [BenefitModel] = [
-        BenefitModel(iconName: "photo", text: "Unlimited storage for photos & videos"),
-        BenefitModel(iconName: "rectangle.stack", text: "Unlimited albums for your memories"),
-        BenefitModel(iconName: "icloud", text: "iCloud storage & backup"),
-        BenefitModel(iconName: "app.gift", text: "Change app icon"),
-        BenefitModel(iconName: "key.icloud", text: "Backup keychain to iCloud"),
-        BenefitModel(iconName: "eye.slash", text: "Hidden albums"),
+        BenefitModel(iconName: "photo", text: L10n.PurchaseView.BenefitModel.unlimitedStorage),
+        BenefitModel(iconName: "rectangle.stack", text: L10n.PurchaseView.BenefitModel.unlimitedAlbums),
+        BenefitModel(iconName: "icloud", text: L10n.PurchaseView.BenefitModel.iCloudStorage),
+        BenefitModel(iconName: "app.gift", text: L10n.PurchaseView.BenefitModel.changeAppIcon, comingSoon: true),
+        BenefitModel(iconName: "key.icloud", text: L10n.PurchaseView.BenefitModel.backupKeychain, comingSoon: true),
+        BenefitModel(iconName: "eye.slash", text: L10n.PurchaseView.BenefitModel.hiddenAlbums, comingSoon: true)
     ]
 
     var body: some View {
@@ -53,6 +60,16 @@ struct BenefitItem: View {
             Text(model.text)
                 .fontType(.pt14, on: .darkBackground)
                 .foregroundColor(.white)
+            Spacer()
+            if model.comingSoon {
+                Text(L10n.PurchaseView.BenefitModel.comingSoon.uppercased())
+                    .fontType(.pt12, weight: .bold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.disabledButtonTextColor)
+                    .cornerRadius(4)
+            }
         }
     }
 }

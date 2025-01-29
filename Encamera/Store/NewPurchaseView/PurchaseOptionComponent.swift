@@ -143,15 +143,15 @@ struct PurchaseOptionComponent: View {
     }
 }
 
-//#Preview {
-//    let options = PurchaseOptionCollectionModel(options: [
-//        PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month"),
-//        PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year"),
-//        PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time")
-//    ])
-//    ZStack {
-//        PurchaseOptionComponent(viewModel: .init(options: options), selectedOption: .constant(options[1]))
-//    }
-//    .frame(maxWidth: .infinity, maxHeight: .infinity)
-//    .background(Color.black)
-//}
+#Preview {
+    let options = PurchaseOptionCollectionModel(options: [
+        PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month"),
+        PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year"),
+        PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time")
+    ])
+    ZStack {
+        PurchaseOptionComponent(viewModel: .init(optionsCollection: options), selectedOption: .constant(options.options[1]))
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Color.black)
+}
