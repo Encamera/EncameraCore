@@ -18,14 +18,21 @@ struct PurchaseStorefront: View {
     private func loadEntitlement() async  {
         do {
             let customerInfo = try await Purchases.shared.customerInfo()
-
-            currentSubscription = purchaseOptions.options.first { option in
-                customerInfo.activeSubscriptions.contains(option.id)
+            let filteredSubs = purchaseOptions.options.filter { option in
+                customerInfo.allPurchasedProductIdentifiers.contains(option.id)
             }
-            print("Current sub", currentSubscription)
+            let sub = filteredSubs.sorted(by: {$0.isLifetime && !$1.isLifetime}).first
+            currentSubscription = sub
         } catch {
         }
 
+    }
+
+    var showPurchaseOptions: Bool {
+        if let currentSubscription {
+            return currentSubscription.isLifetime == false
+        }
+        return true
     }
 
     var body: some View {
@@ -39,18 +46,26 @@ struct PurchaseStorefront: View {
 
                 VStack {
                     ScrollView(showsIndicators: false) {
-                        PurchaseUpgradeHeaderView()
-                        PurchaseOptionComponent(
-                            viewModel: .init(optionsCollection: purchaseOptions),
-                            selectedOption: $selectedPurchasable,
-                            defaultOption: selectedPurchasable
-                        ).padding()
-                        PremiumBenefitsScrollView()
+                        PurchaseUpgradeHeaderView(purchasedProduct: currentSubscription)
+                        if showPurchaseOptions {
+                            PurchaseOptionComponent(
+                                viewModel: .init(optionsCollection: purchaseOptions),
+                                selectedOption: $selectedPurchasable,
+                                defaultOption: selectedPurchasable
+                            ).padding()
+                        }
+                        PremiumBenefitsScrollView(isPremium: Binding<Bool> {
+                            return currentSubscription != nil
+                        } set: { _ in
+                        })
                     }
-                    StorePurchaseButton(selectedPurchasable: $selectedPurchasable,
-                                        activePurchase: $currentSubscription,
-                                        onPurchase: onPurchase)
-                    
+                    if showPurchaseOptions {
+                        StorePurchaseButton(selectedPurchasable: $selectedPurchasable,
+                                            activePurchase: $currentSubscription,
+                                            onPurchase: onPurchase)
+                        .padding()
+                    }
+
                 }
             }
             .onAppear {
@@ -64,12 +79,12 @@ struct PurchaseStorefront: View {
     }
 }
 //
-//#Preview {
-//    PurchaseStorefront(purchaseOptions: [
-//        PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month", savingsPercentage: 0.17),
-//        PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year", savingsPercentage: 0.0),
-//        PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time", savingsPercentage: 0.0)
-//    ]) { _ in
-//
-//    }
-//}
+#Preview {
+    PurchaseStorefront(purchaseOptions: PurchaseOptionCollectionModel(options: [
+        PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month"),
+        PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year"),
+        PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time")
+    ]), onPurchase: { _ in
+
+    })
+}

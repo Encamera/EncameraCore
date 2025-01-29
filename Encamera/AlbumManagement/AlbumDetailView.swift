@@ -590,7 +590,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                                 secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
                                 secondaryButtonAction: {
                 guard let album = viewModel.album else { return }
-                appModalStateModel.currentModal = .cameraView(context: .init(sourceView: "AlbumDetailView", album: album, closeButtonAction: {
+                appModalStateModel.currentModal = .cameraView(context: .init(sourceView: "AlbumDetailView", album: album, closeButtonTapped: { _ in
                     Task {
                         await viewModel.gridViewModel.enumerateMedia()
                     }

@@ -22,8 +22,13 @@ struct CameraViewContext: ModalContext {
         hasher.combine(album)
     }
     let sourceView: String
-    let album: Album
-    let closeButtonAction: () -> Void
+    let album: Album?
+    var closeButtonTapped: (_ targetAlbum: Album?) -> Void
+    init(sourceView: String, album: Album? = nil, closeButtonTapped: @escaping (_: Album?) -> Void) {
+        self.sourceView = sourceView
+        self.closeButtonTapped = closeButtonTapped
+        self.album = album
+    }
 }
 
 struct PurchaseViewContext: ModalContext {

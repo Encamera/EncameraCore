@@ -1,17 +1,16 @@
 import SwiftUI
+import EncameraCore
 
-struct PremiumBenefitsScrollView: View {
-    var body: some View {
-        BenefitsView()
-    }
-}
 
 struct BenefitModel: Equatable {
     let iconName: String
     let text: String
 }
 
-struct BenefitsView: View {
+struct PremiumBenefitsScrollView: View {
+
+    @Binding var isPremium: Bool
+
     let benefits: [BenefitModel] = [
         BenefitModel(iconName: "photo", text: "Unlimited storage for photos & videos"),
         BenefitModel(iconName: "rectangle.stack", text: "Unlimited albums for your memories"),
@@ -23,7 +22,7 @@ struct BenefitsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Unlock all of these benefits:")
+            Text(isPremium ? L10n.PurchaseView.yourBenefits : L10n.PurchaseView.unlockBenefits)
                 .fontType(.pt24, on: .darkBackground, weight: .bold)
                 .foregroundColor(.white)
             Spacer().frame(height: 24)
@@ -37,7 +36,6 @@ struct BenefitsView: View {
             }
         }
         .padding()
-        .background(Color.black)
         .cornerRadius(8)
         .shadow(radius: 4)
     }
@@ -60,7 +58,7 @@ struct BenefitItem: View {
 }
 
 #Preview {
-    PremiumBenefitsScrollView()
+    PremiumBenefitsScrollView(isPremium: .constant(true))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.edgesIgnoringSafeArea(.all))
 }

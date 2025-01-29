@@ -28,6 +28,8 @@ struct EncameraApp: App {
         @Published var hasMediaToImport = false
         @Published var showImportedMediaScreen = false
         @Published var keyManagerKey: PrivateKey?
+        @Published var selectedPath: NavigationPath = .init()
+
         var openedUrl: URL?
         var keyManager: KeyManager
         var albumManager: AlbumManaging?
@@ -232,76 +234,96 @@ struct EncameraApp: App {
     }
 
     @StateObject var viewModel: ViewModel<FileAccessType> = .init()
-    @State var showCamera = false
     @StateObject var appModalStateModel: AppModalStateModel = .init()
 
     var body: some Scene {
 
         WindowGroup {
-            ZStack {
-                if viewModel.showOnboarding {
-                    OnboardingHostingView<AlbumManagerType>(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager, authManager: viewModel.authManager, finishedAction: {
-                        viewModel.showOnboarding = false
-                    }))
-                } else if viewModel.isAuthenticated == false {
-                    AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-                } else if viewModel.isAuthenticated == true,
-                          viewModel.keyManagerKey != nil,
-                          let albumManager = viewModel.albumManager {
-                    MainHomeView<FileAccessType>(viewModel: .init(
-                        fileAccess: viewModel.fileAccess,
-                        keyManager: viewModel.keyManager,
-                        albumManager: albumManager,
-                        purchasedPermissions: viewModel.purchasedPermissions,
-                        settingsManager: viewModel.settingsManager,
-                        authManager: viewModel.authManager,
-                        cameraService: viewModel.cameraService
-                    ), showCamera: $showCamera)
-                    .environmentObject(appModalStateModel)
+            NavigationStack(path: $viewModel.selectedPath) {
 
-                } else {
-                    EmptyView()
+                ZStack {
+                    if viewModel.showOnboarding {
+                        OnboardingHostingView<AlbumManagerType>(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager, authManager: viewModel.authManager, finishedAction: {
+                            viewModel.showOnboarding = false
+                        }))
+                    } else if viewModel.isAuthenticated == false {
+                        AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                    } else if viewModel.isAuthenticated == true,
+                              viewModel.keyManagerKey != nil,
+                              let albumManager = viewModel.albumManager {
+                        MainHomeView<FileAccessType>(viewModel: .init(
+                            fileAccess: viewModel.fileAccess,
+                            keyManager: viewModel.keyManager,
+                            albumManager: albumManager,
+                            purchasedPermissions: viewModel.purchasedPermissions,
+                            settingsManager: viewModel.settingsManager,
+                            authManager: viewModel.authManager,
+                            cameraService: viewModel.cameraService
+                        ))
+                        .environmentObject(appModalStateModel)
+
+                    } else {
+                        EmptyView()
+                    }
                 }
-            }
-            .screenBlocked()
-            .preferredColorScheme(.dark)
-            .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
-            .onOpenURL { url in
-                Task {
-                    await MainActor.run {
-                        self.viewModel.hasOpenedURL = false
-                    }
+                .screenBlocked()
+                .preferredColorScheme(.dark)
+                .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
+                .onOpenURL { url in
+                    Task {
+                        await MainActor.run {
+                            self.viewModel.hasOpenedURL = false
+                        }
 
-                    guard case .authenticated(_) = await self.viewModel.authManager.waitForAuthResponse() else {
-                        return
-                    }
-                    await MainActor.run {
-                        self.viewModel.openedUrl = url
-                        self.viewModel.hasOpenedURL = true
-                        if let url = viewModel.openedUrl,
-                           let urlType = URLType(url: url),
-                           viewModel.authManager.isAuthenticated {
-                            switch urlType {
+                        guard case .authenticated(_) = await self.viewModel.authManager.waitForAuthResponse() else {
+                            return
+                        }
+                        await MainActor.run {
+                            self.viewModel.openedUrl = url
+                            self.viewModel.hasOpenedURL = true
+                            if let url = viewModel.openedUrl,
+                               let urlType = URLType(url: url),
+                               viewModel.authManager.isAuthenticated {
+                                switch urlType {
 
-                            case .featureToggle(let feature):
-                                FeatureToggle.enable(feature: feature)
-                            case .cameraFromWidget:
-                                UserDefaultUtils.increaseInteger(forKey: .widgetOpenCount)
-                                EventTracking.trackOpenedCameraFromWidget()
-                                withAnimation {
-                                    self.showCamera = true
+                                case .featureToggle(let feature):
+                                    FeatureToggle.enable(feature: feature)
+                                case .cameraFromWidget:
+                                    UserDefaultUtils.increaseInteger(forKey: .widgetOpenCount)
+                                    EventTracking.trackOpenedCameraFromWidget()
+                                    withAnimation {
+                                        self.appModalStateModel.currentModal = .cameraView(context: .init(sourceView: "Widget", closeButtonTapped: { targetAlbum in
+//                                            if let targetAlbum {
+//                                                viewModel.selectedPath.append(AppNavigationPaths.albumDetail(album: targetAlbum))
+//                                            }
+                                        }))
+                                    }
+
+                                default:
+                                    break
                                 }
 
-                            default:
-                                break
                             }
-
                         }
-                    }
 
+                    }
                 }
             }
+            .onChange(of: self.appModalStateModel.currentModal, { oldValue, newValue in
+                guard let newValue else { return }
+                switch newValue {
 
+                case .galleryScrollView(context: let context):
+                    break
+                case .cameraView(context: let context):
+                    viewModel.albumManager?.currentAlbum = context.album
+                    break
+                case .feedbackView:
+                    break
+                case .purchaseView(context: let context):
+                    break
+                }
+            })
             .fullScreenCover(isPresented: Binding {
                 self.appModalStateModel.currentModal != nil
             } set: { newValue in
@@ -313,10 +335,10 @@ struct EncameraApp: App {
                     switch self.appModalStateModel.currentModal {
                     case .cameraView(context: let context):
                         if let cameraModel = viewModel.cameraModel {
-                            CameraView(cameraModel: cameraModel, hasMediaToImport: .constant(false), closeButtonTapped: { _ in
+                            CameraView(cameraModel: cameraModel, hasMediaToImport: .constant(false), closeButtonTapped: { album in
                                 self.appModalStateModel.currentModal = nil
-                                viewModel.albumManager?.currentAlbum = context.album
-                                context.closeButtonAction()
+
+                                context.closeButtonTapped(album)
                             })
                         }
                     case .galleryScrollView(context: let context):
@@ -337,8 +359,12 @@ struct EncameraApp: App {
                     case nil:
                         AnyView(EmptyView())
                     }
-                }.environmentObject(appModalStateModel)
-
+                }
+                .environmentObject(appModalStateModel)
+                .onDisappear {
+                    self.appModalStateModel.currentModal = nil
+                }
+                
             })
 
             .statusBar(hidden: false)
@@ -347,6 +373,7 @@ struct EncameraApp: App {
                  self.viewModel.showScreenBlocker
             )
         }
+            
     }
 }
 

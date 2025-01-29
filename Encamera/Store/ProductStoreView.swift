@@ -103,6 +103,12 @@ extension Package: PremiumPurchasable {
         }
         return product.subscription?.introductoryOffer != nil
     }
+    var isLifetime: Bool {
+        guard let product = self.storeProduct.sk2Product else {
+            return false
+        }
+        return product.type == .nonConsumable
+    }
 }
 
 // Helper extension to round Decimal values
@@ -159,7 +165,7 @@ struct ProductStoreView: View {
             } else {
                 purchaseScreen
             }
-        }.transition(.scale)
+        }.transition(.opacity)
     }
 
     var dismissButton: some View {

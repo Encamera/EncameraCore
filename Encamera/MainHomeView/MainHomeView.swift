@@ -64,7 +64,6 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
     }
 
     func navigateToAlbumDetailView(with album: Album) {
-        // Append the album to the navigation path
         selectedPath.append(AppNavigationPaths.albumDetail(album: album))
     }
 }
@@ -73,48 +72,37 @@ class MainHomeViewViewModel<D: FileAccess>: ObservableObject {
 struct MainHomeView<D: FileAccess>: View {
 
     @StateObject var viewModel: MainHomeViewViewModel<D>
-    @Binding var showCamera: Bool
     @EnvironmentObject var appModalStateModel: AppModalStateModel
 
-    @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums {
-        didSet {
-            showCamera = false
-        }
-    }
+    @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums
 
-    init(viewModel: MainHomeViewViewModel<D>, showCamera: Binding<Bool>) {
+    init(viewModel: MainHomeViewViewModel<D>) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        _showCamera = showCamera
     }
 
     var body: some View {
         NavigationStack(path: $viewModel.selectedPath) {
             ZStack(alignment: .bottom) {
-                if selectedNavigationItem == .camera || showCamera {
-                    CameraView(cameraModel: viewModel.cameraModel, hasMediaToImport: $viewModel.hasMediaToImport, closeButtonTapped:{ targetAlbum in
-                        UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
-                        if let targetAlbum {
-                            viewModel.navigateToAlbumDetailView(with: targetAlbum)
-                        }
-                        withAnimation {
-                            selectedNavigationItem = .albums
-                        }
-                    })
-                    .transition(.opacity)
+                if selectedNavigationItem == .settings {
+                    SettingsView(viewModel: .init(
+                        keyManager: viewModel.keyManager,
+                        authManager: viewModel.authManager,
+                        fileAccess: viewModel.fileAccess,
+                        albumManager: viewModel.albumManager,
+                        purchasedPermissions: viewModel.purchasedPermissions
+                    ))
                 } else {
-                    if selectedNavigationItem == .settings {
-                        SettingsView(viewModel: .init(
-                            keyManager: viewModel.keyManager,
-                            authManager: viewModel.authManager,
-                            fileAccess: viewModel.fileAccess,
-                            albumManager: viewModel.albumManager,
-                            purchasedPermissions: viewModel.purchasedPermissions
-                        ))
-                    } else {
-                        AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
-                    }
-                    BottomNavigationBar(selectedItem: $selectedNavigationItem)
+                    AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
                 }
+                BottomNavigationBar(selectedItem: $selectedNavigationItem, cameraCloseButtonTapped: { targetAlbum in
+                    UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
+                    if let targetAlbum {
+                        viewModel.navigateToAlbumDetailView(with: targetAlbum)
+                    }
+                    withAnimation {
+                        selectedNavigationItem = .albums
+                    }
+                })
             }
             .environmentObject(appModalStateModel)
             .onAppear {

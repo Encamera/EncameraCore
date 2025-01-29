@@ -54,10 +54,7 @@ final class CameraModel: NSObject, ObservableObject, DebugPrintable {
 
     // View showing
     @Published var showGalleryView: Bool = false
-    @Published var showingAlbum = false
     @Published var showAlertForMissingAlbum = false
-    @Published var showStoreSheet = false
-    @Published var showSettingsScreen = false
 
     // Tutorial/info sheets
     @Published var showChooseStorageSheet = false
@@ -137,8 +134,7 @@ final class CameraModel: NSObject, ObservableObject, DebugPrintable {
                         !self.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: count)):
                         self.showExplanationForUpgrade = true
                     default:
-                        if let album = self.albumManager.currentAlbum,
-                           self.albumManager.albumMediaCount(album: album) == 1 {
+                        if let album = self.albumManager.currentAlbum, self.albumManager.albumMediaCount(album: album) == 1 {
                             self.showChooseStorageSheet = true
                         } else {
                             self.showChooseStorageSheet = false
@@ -231,7 +227,10 @@ final class CameraModel: NSObject, ObservableObject, DebugPrintable {
         }
     }
 
-    func stopCamera() async {
+    func tearDown() async {
+        showPurchaseSheet = false
+        showSavedToAlbumTooltip = false
+        showExplanationForUpgrade = false
         await service.stop(observeRestart: false)
     }
 

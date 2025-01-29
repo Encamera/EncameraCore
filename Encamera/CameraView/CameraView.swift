@@ -17,6 +17,8 @@ struct CameraView: View {
     @State var cameraModeStateModel = CameraModeStateModel()
     @Binding var hasMediaToImport: Bool
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
+
     var closeButtonTapped: (_ targetAlbum: Album?) -> Void
 
     private var captureButton: some View {
@@ -110,7 +112,6 @@ struct CameraView: View {
         .screenBlocked()
         .alert(isPresented: $cameraModel.showAlertForMissingAlbum) {
             Alert(title: Text(L10n.noAlbum), message: Text(L10n.noAlbumSelected), dismissButton: .default(Text(L10n.ok)) {
-                cameraModel.showingAlbum = true
             })
 
         }
@@ -154,26 +155,38 @@ struct CameraView: View {
             EventTracking.trackPhotoLimitReachedScreenDismissed(from: trackingViewName)
             cameraModel.showExplanationForUpgrade = false
         }
-        .chooseStorageModal(isPresented: $cameraModel.showChooseStorageSheet, album: cameraModel.albumManager.currentAlbum, purchasedPermissions: cameraModel.purchaseManager, didSelectStorage: { selectedStorage, hasEntitlement in
+        .chooseStorageModal(isPresented: $cameraModel.showChooseStorageSheet,
+                            album: cameraModel.albumManager.currentAlbum,
+                            purchasedPermissions: cameraModel.purchaseManager,
+                            didSelectStorage: { selectedStorage, hasEntitlement in
             if hasEntitlement || selectedStorage == .local {
-                afterChooseStorageAction()
-                guard let currentAlbum = cameraModel.albumManager.currentAlbum else {
-                    debugPrint("Current album is not set")
-                    return
-                }
-                EventTracking.trackConfirmStorageTypeSelected(type: selectedStorage)
-                cameraModel.albumManager.defaultStorageForAlbum = selectedStorage
-                cameraModel.albumManager.currentAlbum = try? cameraModel.albumManager.moveAlbum(album: currentAlbum, toStorage: selectedStorage)
-                
+                afterChooseStorageAction(selectedStorage: selectedStorage)
+
             } else if !hasEntitlement && selectedStorage == .icloud {
-                cameraModel.showPurchaseSheet = true
+                appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "CameraView", purchaseAction: { finished in
+                    if case .purchaseComplete = finished {
+                        afterChooseStorageAction(selectedStorage: selectedStorage)
+                    }
+                }))
             }
-        }, dismissAction: afterChooseStorageAction)
+        }, dismissAction: dismissStorageSelectionSheet)
     }
 
-    private func afterChooseStorageAction() {
+    private func dismissStorageSelectionSheet() {
         cameraModel.showChooseStorageSheet = false
         cameraModel.showSavedToAlbumTooltip = true
+    }
+
+    private func afterChooseStorageAction(selectedStorage: StorageType) {
+        dismissStorageSelectionSheet()
+        guard let currentAlbum = cameraModel.albumManager.currentAlbum else {
+            debugPrint("Current album is not set")
+            return
+        }
+        EventTracking.trackConfirmStorageTypeSelected(type: selectedStorage)
+        cameraModel.albumManager.defaultStorageForAlbum = selectedStorage
+        cameraModel.albumManager.currentAlbum = try? cameraModel.albumManager.moveAlbum(album: currentAlbum, toStorage: selectedStorage)
+
     }
     private var tooltip: some View {
         HStack(spacing: 10) {
@@ -253,9 +266,8 @@ struct CameraView: View {
             await cameraModel.initialConfiguration()
         }
         .onDisappear {
-            debugPrint("CameraView disappeared")
             Task {
-                await cameraModel.stopCamera()
+                await cameraModel.tearDown()
             }
         }
         .navigationBarHidden(true)
@@ -264,7 +276,7 @@ struct CameraView: View {
 
     private func closeCamera() {
         Task {
-            await cameraModel.stopCamera()
+            await cameraModel.tearDown()
         }
         EventTracking.trackCameraClosed()
         closeButtonTapped(nil)

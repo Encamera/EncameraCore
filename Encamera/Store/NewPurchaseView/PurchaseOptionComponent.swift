@@ -16,6 +16,7 @@ protocol PremiumPurchasable: Equatable, Hashable {
     var billingFrequency: String { get }
     var purchaseActionText: String { get }
     var isEligibleForIntroOffer: Bool { get }
+    var isLifetime: Bool { get }
 }
 
 struct PurchaseOptionCollectionModel: PremiumPurchasableCollection {
@@ -35,6 +36,7 @@ struct PurchaseOptionComponentModel: PremiumPurchasable, Hashable {
     var billingFrequency: String
     var purchaseActionText: String = "Purchase"
     var isEligibleForIntroOffer: Bool = false
+    var isLifetime: Bool = true
 }
 
 class PurchaseOptionComponentViewModel: ObservableObject {
