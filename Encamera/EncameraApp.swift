@@ -361,10 +361,6 @@ struct EncameraApp: App {
                     }
                 }
                 .environmentObject(appModalStateModel)
-                .onDisappear {
-                    self.appModalStateModel.currentModal = nil
-                }
-                
             })
 
             .statusBar(hidden: false)
