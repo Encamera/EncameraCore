@@ -494,7 +494,6 @@ struct AlbumDetailView<D: FileAccess>: View {
                 }
             }
             .environmentObject(appModalStateModel)
-            .screenBlocked()
             .toolbar(content: {
                 ToolbarItemGroup(placement: .principal, content: {
                     horizontalTitleComponents
@@ -559,6 +558,7 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
         })
         .gradientBackground()
+
         .ignoresSafeArea(edges: [.bottom])
     }
 
@@ -681,6 +681,8 @@ struct AlbumDetailView<D: FileAccess>: View {
                             buttonMenu
                         }
                     }
+                    .frame(height: 44)
+                    .alignmentGuide(VerticalAlignment.center) { $0[VerticalAlignment.center] } // Aligns baseline
                 })
                 .transition(.slide)
             }

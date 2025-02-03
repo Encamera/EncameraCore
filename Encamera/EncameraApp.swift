@@ -230,7 +230,6 @@ struct EncameraApp: App {
         UINavigationBar.appearance().standardAppearance = appear
         UINavigationBar.appearance().compactAppearance = appear
         UINavigationBar.appearance().scrollEdgeAppearance = appear
-
     }
 
     @StateObject var viewModel: ViewModel<FileAccessType> = .init()

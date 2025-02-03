@@ -31,6 +31,9 @@ struct StorePresentationViewModifier: ViewModifier, DebugPrintable {
                         appModalStateModel.currentModal = nil
                     }
                 })
+                .onChange(of: appModalStateModel.currentModal) { oldValue, newValue in
+                    isPresented = newValue != nil
+                }
         }
     }
 }

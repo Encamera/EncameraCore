@@ -46,30 +46,32 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center) {
                 leftContent().frame(width: 20)
-                if hasCenterContent {
-                    Spacer()
-                    centerContent?()
-                    Spacer()
-                }
                 if let title {
                     Text(title)
-                        .fontType(.pt24, weight: .bold)
-                        .frame(alignment: .center)
-                        
+                        .fontType(.pt18, weight: .bold) // Ensure consistent font size
+                        .frame(minHeight: 44, alignment: .center) // Match button height for alignment
+                        .alignmentGuide(VerticalAlignment.center) { $0[VerticalAlignment.center] } // Aligns baseline
+//                        .background(Color.random)
                 }
-                Spacer()
+
+                Spacer(minLength: 0) // Balances right content
+
                 rightContent()
-                    
+                    .frame(minHeight: 44) // Ensures alignment with title text
+//                    .background(Color.random)
+
             }
+            .frame(height: 44) // Set a fixed height for consistent alignment
+
             .if(isToolbar == false) { content in
                 content
                     .padding([.leading, .trailing], Spacing.pt24.value)
                     .padding([.top, .bottom], Spacing.pt8.value)
             }
+
             if isToolbar == false {
                 GradientDivider()
             }
         }
-        
     }
 }
