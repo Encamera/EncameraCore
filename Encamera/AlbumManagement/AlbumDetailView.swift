@@ -485,7 +485,6 @@ struct AlbumDetailView<D: FileAccess>: View {
             Group {
                 GalleryGridView(viewModel: viewModel.gridViewModel) {
                     VStack {
-                        horizontalTitleComponents
                         importProgressIndicator
                         if viewModel.showEmptyView {
                             emptyState
@@ -496,7 +495,14 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
             .environmentObject(appModalStateModel)
             .screenBlocked()
-            .navigationBarHidden(true)
+            .toolbar(content: {
+                ToolbarItemGroup(placement: .principal, content: {
+                    horizontalTitleComponents
+                        .frame(height: 300)
+                    Spacer()
+                })
+            })
+            .toolbarRole(.editor)
             .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
                                 album: viewModel.album,
                                 purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
@@ -632,13 +638,13 @@ struct AlbumDetailView<D: FileAccess>: View {
     var horizontalTitleComponents: some View {
         Group {
             if viewModel.isEditingAlbumName {
-                ViewHeader(centerContent: {
+                ViewHeader(isToolbar: true, centerContent: {
                     TextField(L10n.albumName, text: $viewModel.albumName)
                         .becomeFirstResponder()
                         .fontType(.pt24, weight: .bold)
                         .noAutoModification()
                 }, rightContent: {
-                    HStack {
+                    HStack(alignment: .center) {
                         Button {
                             viewModel.albumName = viewModel.album?.name ?? ""
                             viewModel.isEditingAlbumName = false
@@ -648,45 +654,39 @@ struct AlbumDetailView<D: FileAccess>: View {
                         } label: {
                             Text(L10n.cancel)
                                 .fontType(.pt14, weight: .bold)
-                        }.frostedButton()
+                        }
+
                         Button {
                             viewModel.setAlbumNameFromInput()
                             viewModel.isEditingAlbumName = false
                         } label: {
                             Text(L10n.save)
                                 .fontType(.pt14, weight: .bold)
-                        }.frostedButton()
+                        }
                     }
                 })
             } else  {
 
-                ViewHeader(title: viewModel.albumName, rightContent: {
-
-                    Group {
+                ViewHeader(title: viewModel.albumName, isToolbar: true, rightContent: {
+                    HStack(alignment: .center) {
                         if viewModel.gridViewModel.media.count > 0 {
                             Button {
                                 viewModel.isSelectingMedia.toggle()
                             } label: {
                                 Text(viewModel.isSelectingMedia ? L10n.cancel : L10n.AlbumDetailView.select)
                                     .fontType(.pt14, weight: .bold)
-                            }.frostedButton()
-                        }
-                        if viewModel.isSelectingMedia == false {
-                            VStack(alignment: .center) {
-                                buttonMenu
                             }
                         }
+                        if viewModel.isSelectingMedia == false {
+                            buttonMenu
+                        }
                     }
-                }, leftContent: {
-
-                    Button {
-                        popLastView()
-                    } label: {
-                        Image("Album-BackButton")
-                    }
-                }).transition(.slide)
+                })
+                .transition(.slide)
             }
         }
+        .frame(height: 42)
+        .frame(maxWidth: .infinity)
     }
     var buttonMenu: some View {
         Menu {
@@ -735,8 +735,6 @@ struct AlbumDetailView<D: FileAccess>: View {
 
         } label: {
             Image("Album-OptionsDots")
-                .contentShape(Rectangle())
-                .frostedButton()
         }
     }
 
@@ -810,5 +808,8 @@ struct AlbumDetailView<D: FileAccess>: View {
 }
 
 #Preview {
-    AlbumDetailView<DemoFileEnumerator>(viewModel: .init(albumManager: DemoAlbumManager(), fileManager: DemoFileEnumerator(), album: DemoAlbumManager().currentAlbum, purchasedPermissions: DemoPurchasedPermissionManaging()))
+    NavigationStack {
+        AlbumDetailView<DemoFileEnumerator>(viewModel: .init(albumManager: DemoAlbumManager(), fileManager: DemoFileEnumerator(), album: DemoAlbumManager().currentAlbum, purchasedPermissions: DemoPurchasedPermissionManaging()))
+            .environmentObject(AppModalStateModel())
+    }
 }

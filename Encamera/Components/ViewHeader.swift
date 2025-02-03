@@ -13,8 +13,10 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
     let leftContent: (() -> LeftContent)
     let centerContent: (() -> CenterContent)?
     let hasCenterContent: Bool
+    let isToolbar: Bool
 
     init(title: String? = nil,
+         isToolbar: Bool = false,
          rightContent: @escaping ( () -> RightContent) = EmptyView.init,
          leftContent: @escaping ( () -> LeftContent) = EmptyView.init,
          centerContent: @escaping (() -> CenterContent) = EmptyView.init
@@ -24,9 +26,11 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
         self.leftContent = leftContent
         self.centerContent = nil
         self.hasCenterContent = false
+        self.isToolbar = isToolbar
     }
 
-    init(leftContent: @escaping ( () -> LeftContent) = EmptyView.init,
+    init(isToolbar: Bool = false,
+         leftContent: @escaping ( () -> LeftContent) = EmptyView.init,
          centerContent: @escaping (() -> CenterContent) = EmptyView.init,
          rightContent: @escaping ( () -> RightContent) = EmptyView.init
     ) {
@@ -35,11 +39,12 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
         self.centerContent = centerContent
         self.hasCenterContent = true
         self.title = nil
+        self.isToolbar = isToolbar
     }
 
     var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center) {
                 leftContent().frame(width: 20)
                 if hasCenterContent {
                     Spacer()
@@ -48,15 +53,23 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
                 }
                 if let title {
                     Text(title)
-                        .fontType(.pt20, weight: .bold)
+                        .fontType(.pt24, weight: .bold)
+                        .frame(alignment: .center)
+                        
                 }
                 Spacer()
                 rightContent()
+                    
             }
-            .frame(height: 45)
-            .padding([.leading, .trailing], Spacing.pt24.value)
-            .padding([.top, .bottom], Spacing.pt8.value)
-            GradientDivider()
+            .if(isToolbar == false) { content in
+                content
+                    .padding([.leading, .trailing], Spacing.pt24.value)
+                    .padding([.top, .bottom], Spacing.pt8.value)
+            }
+            if isToolbar == false {
+                GradientDivider()
+            }
         }
+        
     }
 }

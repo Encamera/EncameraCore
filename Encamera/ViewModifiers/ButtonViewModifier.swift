@@ -46,7 +46,7 @@ struct FrostedBackgroundButtonStyle: ViewModifier {
             .background {
                 Rectangle()
                     .fill(.ultraThinMaterial) // Background color and transparency
-                    .frame(height: 36) // Size of the circular button
+                    .frame(height: 30) // Size of the circular button
                     .cornerRadius(44)
             }
 
@@ -73,7 +73,8 @@ extension View {
     }
 
     func frostedButton() -> some View {
-        self.modifier(FrostedBackgroundButtonStyle())
+        self
+            .modifier(FrostedBackgroundButtonStyle())
     }
 }
 
