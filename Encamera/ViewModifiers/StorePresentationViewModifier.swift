@@ -32,7 +32,11 @@ struct StorePresentationViewModifier: ViewModifier, DebugPrintable {
                     }
                 })
                 .onChange(of: appModalStateModel.currentModal) { oldValue, newValue in
-                    isPresented = newValue != nil
+                    if case .purchaseView = newValue {
+                        isPresented = true
+                    } else {
+                        isPresented = false
+                    }
                 }
         }
     }

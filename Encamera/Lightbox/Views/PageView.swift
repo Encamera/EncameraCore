@@ -64,8 +64,6 @@ class PageView: UIScrollView {
         return button
     }()
 
-    lazy var loadingIndicator: UIView = LightboxConfig.makeLoadingIndicator()
-
     var image: LightboxImage?
     weak var pageViewDelegate: (any PageViewDelegate)?
 
@@ -116,8 +114,6 @@ class PageView: UIScrollView {
             addSubview(imageView)
 
             updatePlayButton()
-
-            addSubview(loadingIndicator)
 
             delegate = self
             isMultipleTouchEnabled = true
@@ -201,7 +197,6 @@ class PageView: UIScrollView {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        loadingIndicator.center = imageView.center
         playButton.center = imageView.center
     }
 

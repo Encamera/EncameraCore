@@ -65,8 +65,7 @@ struct PurchaseStorefront: View {
                                             onPurchase: onPurchase)
                         .padding()
                     }
-
-                }
+                }.frame(maxWidth: 600)
             }
             .onAppear {
                 let defaultSelection = purchaseOptions.defaultSelection

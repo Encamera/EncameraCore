@@ -32,7 +32,7 @@ struct PremiumBenefitsScrollView: View {
             Text(isPremium ? L10n.PurchaseView.yourBenefits : L10n.PurchaseView.unlockBenefits)
                 .fontType(.pt24, on: .darkBackground, weight: .bold)
                 .foregroundColor(.white)
-            Spacer().frame(height: 24)
+            Spacer().frame(height: Spacing.pt16.rawValue)
             ForEach(benefits, id: \..text) { benefit in
                 BenefitItem(model: benefit)
 

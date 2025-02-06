@@ -14,9 +14,13 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
     let centerContent: (() -> CenterContent)?
     let hasCenterContent: Bool
     let isToolbar: Bool
+    let textAlignment: Alignment
+    let titleFont: EncameraFont
 
     init(title: String? = nil,
          isToolbar: Bool = false,
+         textAlignment: Alignment = .leading,
+         titleFont: EncameraFont = .pt20,
          rightContent: @escaping ( () -> RightContent) = EmptyView.init,
          leftContent: @escaping ( () -> LeftContent) = EmptyView.init,
          centerContent: @escaping (() -> CenterContent) = EmptyView.init
@@ -27,9 +31,14 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
         self.centerContent = nil
         self.hasCenterContent = false
         self.isToolbar = isToolbar
+        self.textAlignment = textAlignment
+        self.titleFont = titleFont
+
     }
 
     init(isToolbar: Bool = false,
+         textAlignment: Alignment = .leading,
+         titleFont: EncameraFont = .pt20,
          leftContent: @escaping ( () -> LeftContent) = EmptyView.init,
          centerContent: @escaping (() -> CenterContent) = EmptyView.init,
          rightContent: @escaping ( () -> RightContent) = EmptyView.init
@@ -40,6 +49,8 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
         self.hasCenterContent = true
         self.title = nil
         self.isToolbar = isToolbar
+        self.titleFont = titleFont
+        self.textAlignment = textAlignment
     }
 
     var body: some View {
@@ -48,21 +59,16 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
                 leftContent().frame(width: 20)
                 if let title {
                     Text(title)
-                        .fontType(.pt18, weight: .bold) // Ensure consistent font size
-                        .frame(minHeight: 44, alignment: .center) // Match button height for alignment
-                        .alignmentGuide(VerticalAlignment.center) { $0[VerticalAlignment.center] } // Aligns baseline
-//                        .background(Color.random)
+                        .fontType(titleFont, weight: .bold)
+                        .frame(maxWidth: .infinity, alignment: textAlignment)
+                        .multilineTextAlignment(.center)
                 }
 
                 Spacer(minLength: 0) // Balances right content
-
                 rightContent()
-                    .frame(minHeight: 44) // Ensures alignment with title text
-//                    .background(Color.random)
 
             }
-            .frame(height: 44) // Set a fixed height for consistent alignment
-
+            .frame(height: 44)
             .if(isToolbar == false) { content in
                 content
                     .padding([.leading, .trailing], Spacing.pt24.value)

@@ -40,6 +40,8 @@ extension Color {
     static let notificationDividerColor = Color("Notification-DividerColor")
     static let modalBackgroundColor = Color("ModalBackgroundColor")
     static let alertTextColor = Color("AlertTextColor")
+    static let primaryGradientTop = Color("PrimaryGradientTop")
+    static let primaryGradientBottom = Color("PrimaryGradientBottom")
 }
 /*    static let opacity: Double = 0.20
  static let red: Double = 0.21

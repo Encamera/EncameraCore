@@ -494,14 +494,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                 }
             }
             .environmentObject(appModalStateModel)
-            .toolbar(content: {
-                ToolbarItemGroup(placement: .principal, content: {
-                    horizontalTitleComponents
-                        .frame(height: 300)
-                    Spacer()
-                })
-            })
-            .toolbarRole(.editor)
+            .screenBlocked()
             .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
                                 album: viewModel.album,
                                 purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
@@ -532,6 +525,12 @@ struct AlbumDetailView<D: FileAccess>: View {
                 selectionTray
             }
         }
+        .toolbarRole(.editor)
+        .toolbar(content: {
+            ToolbarItemGroup(placement: .principal, content: {
+                horizontalTitleComponents
+            })
+        })
         .alert(isPresented: Binding<Bool>(
             get: { viewModel.activeAlert != nil },
             set: { if !$0 { viewModel.activeAlert = nil } }
@@ -666,32 +665,38 @@ struct AlbumDetailView<D: FileAccess>: View {
                     }
                 })
             } else  {
-
-                ViewHeader(title: viewModel.albumName, isToolbar: true, rightContent: {
+                ViewHeader(title: viewModel.albumName, isToolbar: true,
+                           textAlignment: .center,
+                           titleFont: .pt18,
+                           rightContent: {
                     HStack(alignment: .center) {
-                        if viewModel.gridViewModel.media.count > 0 {
+                        if viewModel.isSelectingMedia {
                             Button {
-                                viewModel.isSelectingMedia.toggle()
+                                viewModel.isSelectingMedia = false
                             } label: {
-                                Text(viewModel.isSelectingMedia ? L10n.cancel : L10n.AlbumDetailView.select)
+                                Text(L10n.cancel)
                                     .fontType(.pt14, weight: .bold)
                             }
-                        }
-                        if viewModel.isSelectingMedia == false {
+                        } else {
                             buttonMenu
                         }
                     }
-                    .frame(height: 44)
-                    .alignmentGuide(VerticalAlignment.center) { $0[VerticalAlignment.center] } // Aligns baseline
                 })
                 .transition(.slide)
             }
         }
-        .frame(height: 42)
         .frame(maxWidth: .infinity)
     }
     var buttonMenu: some View {
         Menu {
+            if viewModel.gridViewModel.media.count > 0 {
+                Button {
+                    viewModel.isSelectingMedia = true
+                } label: {
+                    Text(L10n.AlbumDetailView.select)
+                        .fontType(.pt14, weight: .bold)
+                }
+            }
             Button(L10n.moveAlbumStorage) {
                 isShowingMoveAlbumModal = true
             }

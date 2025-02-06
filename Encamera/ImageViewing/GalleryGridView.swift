@@ -207,7 +207,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
                     .animation(.easeIn, value: viewModel.blurImages)
                 }
-                .contentMargins([.top, .bottom], outerMargin)
+                .contentMargins([.top], outerMargin)
                 .padding([.leading, .trailing], outerMargin)
             }
             .task {
@@ -217,7 +217,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 viewModel.cleanUp()
             }
             .scrollIndicators(.hidden)
-            .navigationBarTitle("")
         }
     }
 

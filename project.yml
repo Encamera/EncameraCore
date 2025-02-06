@@ -100,7 +100,7 @@ targets:
       SUPPORTED_PLATFORMS: "iphoneos iphonesimulator" 
       SUPPORTS_MACCATALYST: NO
       SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
-      TARGETED_DEVICE_FAMILY: "1"
+      TARGETED_DEVICE_FAMILY: "1,2"
       OTHER_LDFLAGS: "-ObjC"
       DEVELOPMENT_ASSET_PATHS:
         "$(SRCROOT)/Encamera/PreviewAssets"
@@ -146,7 +146,7 @@ targets:
       SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
       SUPPORTS_MACCATALYST: NO
       SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
-      TARGETED_DEVICE_FAMILY: "1"
+      TARGETED_DEVICE_FAMILY: "1,2"
       INFOPLIST_KEY_NSPrincipalClass: StoreKitTestingApp
       OTHER_LDFLAGS: "-ObjC"
     dependencies:

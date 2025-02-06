@@ -9,7 +9,11 @@ typealias AlbumManagerType = AlbumManager
 typealias FileAccessType = InteractableMediaDiskAccess
 
 class AppModalStateModel: ObservableObject {
-    @Published var currentModal: AppModal?
+    @Published var currentModal: AppModal? {
+        didSet {
+            print("Setting modal to \(currentModal)")
+        }
+    }
 }
 
 @main

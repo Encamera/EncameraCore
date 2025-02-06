@@ -17,7 +17,8 @@ struct ScreenBlockingModifier: ViewModifier {
             
             content
             if isScreenBlockingActive {
-                Color.black.edgesIgnoringSafeArea(.all)
+                Color.clear.edgesIgnoringSafeArea(.all)
+                    .gradientBackground()
             }
         }
         
