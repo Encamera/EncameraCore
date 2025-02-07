@@ -60,7 +60,6 @@ class LivePhotoViewingViewModel: ObservableObject, MediaViewModelProtocol {
                         self.error = .decryptError(wrapped: error)
                     }
                 }, receiveValue: { livePhoto in
-                    debugPrint("Decrypt and set live photo \(livePhoto)")
                     self.preparedLivePhoto = livePhoto
                     self.decryptedFileRef = result
                     self.delegate.didView(media: self.sourceMedia)

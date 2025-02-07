@@ -9,11 +9,7 @@ typealias AlbumManagerType = AlbumManager
 typealias FileAccessType = InteractableMediaDiskAccess
 
 class AppModalStateModel: ObservableObject {
-    @Published var currentModal: AppModal? {
-        didSet {
-            print("Setting modal to \(currentModal)")
-        }
-    }
+    @Published var currentModal: AppModal?
 }
 
 @main
@@ -316,14 +312,14 @@ struct EncameraApp: App {
                 guard let newValue else { return }
                 switch newValue {
 
-                case .galleryScrollView(context: let context):
+                case .galleryScrollView(context: _):
                     break
                 case .cameraView(context: let context):
                     viewModel.albumManager?.currentAlbum = context.album
                     break
                 case .feedbackView:
                     break
-                case .purchaseView(context: let context):
+                case .purchaseView(context: _):
                     break
                 }
             })
