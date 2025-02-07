@@ -348,7 +348,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                     PHAssetChangeRequest.deleteAssets(assets)
                 })
                 debugPrint("Media successfully deleted from Photo Library")
-
+                EventTracking.trackMediaDeleted(count: assets.count)
             } catch {
                 debugPrint("Failed to delete media: \(error)")
             }
@@ -494,7 +494,6 @@ struct AlbumDetailView<D: FileAccess>: View {
                 }
             }
             .environmentObject(appModalStateModel)
-            .screenBlocked()
             .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
                                 album: viewModel.album,
                                 purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
@@ -557,8 +556,9 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
         })
         .gradientBackground()
-
         .ignoresSafeArea(edges: [.bottom])
+        .screenBlocked()
+
     }
 
 

@@ -57,12 +57,18 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center) {
                 leftContent().frame(width: 20)
+                if hasCenterContent {
+                    Spacer()
+                    centerContent?()
+                    Spacer()
+                }
                 if let title {
                     Text(title)
                         .fontType(titleFont, weight: .bold)
                         .frame(maxWidth: .infinity, alignment: textAlignment)
                         .multilineTextAlignment(.center)
                 }
+
 
                 Spacer(minLength: 0) // Balances right content
                 rightContent()

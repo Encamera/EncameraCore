@@ -111,9 +111,11 @@ struct MainHomeView<D: FileAccess>: View {
                         selectedNavigationItem = .albums
                         return
                     }
-                    withAnimation {
-                        viewModel.selectedPath.append(AppNavigationPaths.albumDetail(album: album))
-                        UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
+                    UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        withAnimation {
+                            viewModel.selectedPath.append(AppNavigationPaths.albumDetail(album: album))
+                        }
                     }
                 }
             }

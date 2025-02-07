@@ -392,10 +392,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
         EventTracking.trackAppLaunched()
         LaunchCountUtils.recordCurrentVersionLaunch()
+
+        Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT", appUserID: EventTracking.shared.piwikTracker.userID)
 #if DEBUG
         Purchases.logLevel = .debug
+        Purchases.shared.invalidateCustomerInfoCache()
 #endif
-        Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT", appUserID: EventTracking.shared.piwikTracker.userID)
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(.playback, mode: .default, options: [])

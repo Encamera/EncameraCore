@@ -275,8 +275,7 @@ struct AuthenticationView: View {
             }
             Spacer()
         }
-        .onAppear {
-            // delay 0.5 seconds
+        .task {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 viewModel.authenticateWithBiometrics()
             }
