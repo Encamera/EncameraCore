@@ -6,10 +6,10 @@
 //
 
 import SwiftUI
-import StoreKit
 import Combine
 import EncameraCore
 import WebKit
+import RevenueCat
 
 fileprivate enum AlertType {
     case none
@@ -54,7 +54,7 @@ class SettingsViewViewModel: ObservableObject {
     var availableBiometric: AuthenticationMethod? {
         return authManager.availableBiometric
     }
-    
+    @MainActor
     init(keyManager: KeyManager,
          authManager: AuthManager,
          fileAccess: FileAccess,
@@ -68,7 +68,7 @@ class SettingsViewViewModel: ObservableObject {
         self.showKeyBackup = ((try? keyManager.retrieveKeyPassphrase()) != nil)
         self.defaultStorageOption = albumManager.defaultStorageForAlbum
         self.purchasedPermissions = purchasedPermissions
-        self.useiCloudKeyBackup = purchasedPermissions.hasEntitlement() && keyManager.areKeysStoredIniCloud
+        self.useiCloudKeyBackup = purchasedPermissions.hasEntitlement && keyManager.areKeysStoredIniCloud
     }
     
     func setupToggleObservers() {
@@ -96,7 +96,7 @@ class SettingsViewViewModel: ObservableObject {
 
         self.$useiCloudKeyBackup.dropFirst().sink { [weak self] value in
             guard let self else { return }
-            if self.purchasedPermissions.hasEntitlement() {
+            if self.purchasedPermissions.hasEntitlement {
                 try? self.keyManager.backupKeychainToiCloud(backupEnabled: value)
             } else {
                 self.showPurchaseScreen = value
@@ -144,12 +144,7 @@ class SettingsViewViewModel: ObservableObject {
 struct SettingsView: View {
     
     
-    @Environment(\.presentationMode) private var presentationMode
-
-    func dismiss() {
-        presentationMode.wrappedValue.dismiss()
-    }
-
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
 
     @StateObject var viewModel: SettingsViewViewModel
     
@@ -169,13 +164,11 @@ struct SettingsView: View {
                         }
                         Button(L10n.restorePurchases) {
                             Task(priority: .userInitiated) {
-                                try await AppStore.sync()
+                                try await Purchases.shared.syncPurchases()
                             }
                         }
                         Button(L10n.enterPromoCode) {
-                            Task {
-                                await StoreActor.shared.presentCodeRedemptionSheet()
-                            }
+                            Purchases.shared.presentCodeRedemptionSheet()
                         }
                     }
                     Section {
@@ -203,9 +196,13 @@ struct SettingsView: View {
                             EventTracking.trackSettingsLeaveReviewPressed()
                             AskForReviewUtil.openAppStoreReview()
                         }
+                        Button(L10n.Settings.giveInstantFeedback) {
+                            appModalStateModel.currentModal = .feedbackView
+                        }
                         NavigationLink(L10n.roadmap) {
                             WebView(url: URL(string: "https://encamera.featurebase.app/")!)
                         }.id(UUID())
+
                     }
                     Section {
                         Button {
@@ -260,7 +257,7 @@ struct SettingsView: View {
         }
         .gradientBackground()
         .fontType(.pt14, weight: .bold)
-        .productStore(isPresented: $viewModel.showPurchaseScreen, fromViewName: "Settings")
+        .productStorefront(isPresented: $viewModel.showPurchaseScreen, fromViewName: "Settings")
         .sheet(isPresented: $viewModel.showChangePin, content: {
             ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
                 // tiny hack but we are relying here on the UI to keep the state of the biometrics

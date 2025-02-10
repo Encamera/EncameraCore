@@ -10,7 +10,8 @@ import UIKit
 import Combine
 import EncameraCore
 
-class ImageViewingUIView: UIView, MediaViewProtocol {    
+class ImageViewingUIView: UIView, MediaViewProtocol {
+    
 
     
 

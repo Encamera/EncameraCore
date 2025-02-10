@@ -2,6 +2,7 @@ import Combine
 import EncameraCore
 import SwiftUI
 import SwiftUIIntrospect
+import PhotosUI
 
 import SwiftUI
 
@@ -15,13 +16,14 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         case deleteAllAlbumData
         case deleteSelectedMedia
         case hideAlbum
+        case noLicenseDeletionWarning
+        case photoAccessAlert
     }
 
     var albumManager: AlbumManaging
 
+
     @Published var keyViewerError: KeyViewerError?
-    @Published var promptToDeleteShown: Bool = false
-    @Published var deleteAlbumConfirmation: String = ""
     @Published var deleteActionError: String = ""
     @Published var isEditingAlbumName = false
     @Published var albumName: String = ""
@@ -30,7 +32,27 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var isSelectingMedia: Bool = false
     @Published var selectedMedia: Set<InteractableMedia<EncryptedMedia>> = Set()
     @Published var isShowingPurchaseSheet = false
-    @Published var alertType: AlertType? = nil
+    @Published var activeAlert: AlertType? = nil
+    @Published var lastImportedAssets: [PHPickerResult] = []
+    @Published var showPhotoPicker: ImportSource? = nil
+    @Published var cancelImport = false
+    @MainActor
+    @Published var isImporting = false
+    @MainActor
+    @Published var importProgress: Double = 0.0
+    @MainActor
+    @Published var totalImportCount: Int = 0
+    @MainActor
+    @Published var startedImportCount: Int = 0 {
+        didSet {
+            debugPrint("startedImportCount: \(startedImportCount)")
+        }
+    }
+
+    private var currentTask: Task<Void, Error>?
+
+    var agreedToDeleteWithNoLicense: Bool = false
+
     @Published var isAlbumHidden = false {
         didSet {
             guard let album = album else { return }
@@ -40,18 +62,11 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     var afterPurchaseAction: (() -> Void)?
     var gridViewModel: GalleryGridViewModel<D>
 
-    var purchasedPermissions: PurchasedPermissionManaging = AppPurchasedPermissionUtils()
-    var fileManager: D?
+    var purchasedPermissions: PurchasedPermissionManaging
+    var fileManager: D
     var album: Album? {
         didSet {
-            guard let album = album else { return }
-            if purchasedPermissions.hasEntitlement() == false {
-                self.isAlbumHidden = false
-            } else {
-                self.isAlbumHidden = albumManager.isAlbumHidden(album)
-            }
-            self.albumName = album.name
-            self.gridViewModel.album = album
+            prepareWithAlbum()
         }
     }
 
@@ -59,17 +74,17 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(albumManager: AlbumManaging, fileManager: D? = nil, album: Album?, shouldCreateAlbum: Bool = false) {
+    init(albumManager: AlbumManaging, fileManager: D = D.init(), album: Album?, purchasedPermissions: PurchasedPermissionManaging, shouldCreateAlbum: Bool = false) {
         self.albumManager = albumManager
         self.fileManager = fileManager
+        self.purchasedPermissions = purchasedPermissions
         self.shouldCreateAlbum = shouldCreateAlbum
         self.isEditingAlbumName = shouldCreateAlbum
-        let gridViewModel = GalleryGridViewModel<D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager ?? D.init())
+        let gridViewModel = GalleryGridViewModel<D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager)
         self.gridViewModel = gridViewModel
-        gridViewModel.$showPurchaseScreen.sink { [weak self] show in
-            self?.isShowingPurchaseSheet = show
+        gridViewModel.$noMediaShown.sink { show in
+            self.showEmptyView = show
         }.store(in: &cancellables)
-
         self.$isSelectingMedia.sink { isSelecting in
             gridViewModel.isSelectingMedia = isSelecting
         }.store(in: &cancellables)
@@ -91,12 +106,254 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }.store(in: &cancellables)
         guard let album else { return }
         self.album = album
+
+        prepareWithAlbum()
+
+    }
+
+    func prepareWithAlbum() {
+        guard let album = album else { return }
+        if purchasedPermissions.hasEntitlement == false {
+            self.isAlbumHidden = false
+        } else {
+            self.isAlbumHidden = albumManager.isAlbumHidden(album)
+        }
         self.albumName = album.name
-        gridViewModel.$showEmptyView.sink { value in
-            self.showEmptyView = value
+        self.gridViewModel.album = album
+        FileOperationBus.shared.operations.sink { operation in
+            Task {
+                await self.gridViewModel.enumerateMedia()
+            }
         }.store(in: &cancellables)
         Task {
             self.fileManager = await D(for: album, albumManager: albumManager)
+        }
+    }
+
+    func checkForLibraryPermissionsAndContinue() async throws {
+        let status = PHPhotoLibrary.authorizationStatus()
+
+        if status == .notDetermined {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.activeAlert = .photoAccessAlert
+            }
+        } else if status == .authorized || status == .limited {
+            try await deleteMediaFromPhotoLibrary(result: lastImportedAssets)
+        }
+    }
+
+    func cancelImporting() {
+        currentTask?.cancel()
+        cancelImport = true
+    }
+
+    func requestPhotoLibraryPermission() async {
+        if agreedToDeleteWithNoLicense == false && purchasedPermissions.hasEntitlement == false {
+            activeAlert = .noLicenseDeletionWarning
+            return
+        }
+        let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        switch status {
+        case .authorized:
+            EventTracking.trackPhotoLibraryPermissionsGranted()
+        case .limited:
+            EventTracking.trackPhotoLibraryPermissionsLimited()
+        default:
+            EventTracking.trackPhotoLibraryPermissionsDenied()
+        }
+        try? await deleteMediaFromPhotoLibrary(result: lastImportedAssets)
+    }
+    func handleSelectedFiles(urls: [URL]) {
+        currentTask = Task {
+            isImporting = true
+            totalImportCount = urls.count
+            for url in urls {
+                if cancelImport {
+                    isImporting = false
+                    cancelImport = false
+                    return
+                }
+                do {
+                    try await saveCleartextMedia(mediaArray: [CleartextMedia(source: .url(url), generateID: true)])
+                } catch {
+                    debugPrint("Error saving media: \(error)")
+                }
+            }
+            EventTracking.trackFilesImported(count: urls.count)
+            isImporting = false
+            await gridViewModel.enumerateMedia()
+        }
+    }
+
+
+    private func loadAndSaveMediaAsync(result: PHPickerResult) async throws {
+        // Identify whether the item is a video or an image
+        let isLivePhoto = result.itemProvider.canLoadObject(ofClass: PHLivePhoto.self)
+        Task { @MainActor in
+            self.startedImportCount += 1
+        }
+        if isLivePhoto {
+            try await handleLivePhoto(result: result)
+        } else {
+            try await handleMedia(result: result)
+        }
+    }
+
+    private func handleMedia(result: PHPickerResult) async throws {
+        let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+        let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
+
+        let url: URL? = try await withCheckedThrowingContinuation { continuation in
+
+
+
+            result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
+                guard let url = url else {
+                    debugPrint("Error loading file representation: \(String(describing: error))")
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Generate a unique file name to prevent overwriting existing files
+                let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
+                let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
+
+                do {
+                    try FileManager.default.copyItem(at: url, to: destinationURL)
+                    debugPrint("File copied to: \(destinationURL)")
+                    continuation.resume(returning: destinationURL)
+                } catch {
+                    debugPrint("Error copying file: \(error)")
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+
+        guard let url = url else {
+            debugPrint("Error loading file representation, url is nil")
+            return
+        }
+
+        try await saveCleartextMedia(mediaArray: [CleartextMedia(source: url, mediaType: isVideo ? .video : .photo, id: UUID().uuidString)])
+    }
+
+
+    private func saveCleartextMedia(mediaArray: [CleartextMedia]) async throws {
+        let media = try InteractableMedia(underlyingMedia: mediaArray)
+        let savedMedia = try await fileManager.save(media: media) { progress in
+            Task { @MainActor in
+                self.importProgress = progress
+            }
+        }
+        await MainActor.run {
+            self.importProgress = 0.0
+        }
+    }
+
+    private func handleLivePhoto(result: PHPickerResult) async throws {
+
+        let assetResources = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[PHAssetResource], Error>) in
+            // Load the PHLivePhoto object from the picker result
+            result.itemProvider.loadObject(ofClass: PHLivePhoto.self) { (object, error) in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let livePhoto = object as? PHLivePhoto else {
+                    continuation.resume(throwing: NSError(domain: "LivePhotoErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not load PHLivePhoto from the result"]))
+                    return
+                }
+
+                continuation.resume(returning: PHAssetResource.assetResources(for: livePhoto))
+            }
+        }
+        var cleartextMediaArray: [CleartextMedia] = []
+        let id = UUID().uuidString
+
+        for resource in assetResources {
+            let options = PHAssetResourceRequestOptions()
+            options.isNetworkAccessAllowed = true
+
+            let documentsDirectory = URL.tempMediaDirectory
+            let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
+            do {
+                var mediaType: MediaType
+                switch resource.type {
+                case .pairedVideo:
+                    mediaType = .video
+                case .photo:
+                    mediaType = .photo
+                default:
+                    debugPrint("Error, could not handle media type \(resource.type)")
+                    throw ImportError.mismatchedType
+                }
+                try await PHAssetResourceManager.default().writeData(for: resource, toFile: fileURL, options: options)
+                let media = CleartextMedia(
+                    source: fileURL,
+                    mediaType: mediaType,
+                    id: id
+                )
+                cleartextMediaArray.append(media)
+            } catch {
+                throw error
+            }
+        }
+
+        try await saveCleartextMedia(mediaArray: cleartextMediaArray)
+    }
+
+
+
+    func handleSelectedMedia(items: [PHPickerResult]) {
+        currentTask = Task {
+            totalImportCount = items.count
+            isImporting = true
+
+            for result in items {
+                if cancelImport {
+                    isImporting = false
+                    cancelImport = false
+                    return
+                }
+
+                let provider = result.itemProvider
+                if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
+                    UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                }
+
+                try await self.loadAndSaveMediaAsync(result: result)
+            }
+            lastImportedAssets = items
+            try await checkForLibraryPermissionsAndContinue()
+
+            EventTracking.trackMediaImported(count: items.count)
+
+            isImporting = false
+            await gridViewModel.enumerateMedia()
+        }
+    }
+
+    private func deleteMediaFromPhotoLibrary(result: [PHPickerResult]) async throws {
+
+        let assetIdentifier = result.compactMap({$0.assetIdentifier})
+
+        let assets = PHAsset.fetchAssets(withLocalIdentifiers: assetIdentifier, options: nil)
+
+        if assets.count > 0 {
+            do {
+                try await PHPhotoLibrary.shared().performChanges({
+                    PHAssetChangeRequest.deleteAssets(assets)
+                })
+                debugPrint("Media successfully deleted from Photo Library")
+                EventTracking.trackMediaDeleted(count: assets.count)
+            } catch {
+                debugPrint("Failed to delete media: \(error)")
+            }
+        } else {
+            debugPrint("No assets found to delete")
         }
     }
 
@@ -127,7 +384,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     }
 
     func deleteSelectedMedia() {
-        guard let fileManager = fileManager else { return }
         Task {
             var completedItems: [InteractableMedia<EncryptedMedia>] = []
             for media in selectedMedia {
@@ -182,10 +438,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     }
 
     func shareSelected() {
-        guard let fileManager = fileManager else {
-            printDebug("No file access")
-            return
-        }
         let sharingUtil = ShareMediaUtil(fileAccess: fileManager, targetMedia: Array(selectedMedia))
         Task {
             do {
@@ -211,28 +463,37 @@ struct AlbumDetailView<D: FileAccess>: View {
 
     @StateObject var viewModel: AlbumDetailViewModel<D>
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
 
     func popLastView() {
         presentationMode.wrappedValue.dismiss()
     }
 
+    private var cancelButton: some View {
+        Button {
+            viewModel.cancelImporting()
+        } label: {
+            Image(systemName: "x.circle.fill")
+        }
+        .pad(.pt8, edge: .trailing)
+    }
 
     var body: some View {
 
+
         VStack(spacing: 0) {
-            GalleryGridView(viewModel: viewModel.gridViewModel) {
-                ZStack(alignment: .leading) {
-                    horizontalTitleComponents
+            Group {
+                GalleryGridView(viewModel: viewModel.gridViewModel) {
+                    VStack {
+                        importProgressIndicator
+                        if viewModel.showEmptyView {
+                            emptyState
+                        }
+                    }
+
                 }
             }
-            .screenBlocked()
-            .alert(isPresented: Binding<Bool>(
-                get: { viewModel.alertType != nil },
-                set: { if !$0 { viewModel.alertType = nil } }
-            )) {
-                alert(for: viewModel.alertType)
-            }
-            .navigationBarHidden(true)
+            .environmentObject(appModalStateModel)
             .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
                                 album: viewModel.album,
                                 purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
@@ -248,7 +509,7 @@ struct AlbumDetailView<D: FileAccess>: View {
             }, dismissAction: {
                 isShowingMoveAlbumModal = false
             })
-            .productStore(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
+            .productStorefront(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
                 if case .purchaseComplete = action {
                     isShowingMoveAlbumModal = false
                     viewModel.afterPurchaseAction?()
@@ -263,20 +524,126 @@ struct AlbumDetailView<D: FileAccess>: View {
                 selectionTray
             }
         }
+        .toolbarRole(.editor)
+        .toolbar(content: {
+            ToolbarItemGroup(placement: .principal, content: {
+                horizontalTitleComponents
+            })
+        })
+        .alert(isPresented: Binding<Bool>(
+            get: { viewModel.activeAlert != nil },
+            set: { if !$0 { viewModel.activeAlert = nil } }
+        )) {
+            alert(for: viewModel.activeAlert)
+        }
+        .sheet(isPresented: Binding<Bool>(get: {
+            viewModel.showPhotoPicker != nil
+        }, set: { newValue in
+            viewModel.showPhotoPicker = nil
+        }), content: {
+            switch viewModel.showPhotoPicker {
+            case .photoLibrary:
+                PhotoPicker(selectedItems: { results in
+                    viewModel.handleSelectedMedia(items: results)
+                }, filter: .any(of: [.images, .videos, .livePhotos]))
+                .ignoresSafeArea(.all)
+            case .files:
+                FilePicker { urls in
+                    viewModel.handleSelectedFiles(urls: urls)
+                }
+            case .none:
+                EmptyView()
+            }
+        })
         .gradientBackground()
         .ignoresSafeArea(edges: [.bottom])
+        .screenBlocked()
+
+    }
+
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 16) {
+
+            VStack(spacing: 24) {
+                VStack(spacing: 12) {
+                    Spacer().frame(height: 65)
+                    ImageWithBackgroundRectangle(imageName: "Album-Camera",
+                                                 rectWidth: 94,
+                                                 rectHeight: 94,
+                                                 rectCornerRadius: 24,
+                                                 rectOpacity: 0.10)
+                    Spacer().frame(height: 28)
+                    Group {
+                        Text(L10n.AlbumDetailView.addFirstImage)
+                            .fontType(.pt24, weight: .bold)
+                        Text(L10n.AlbumDetailView.addFirstImageSubtitle)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2, reservesSpace: true)
+                            .fontType(.pt14)
+                            .opacity(0.60)
+                    }.frame(alignment: .center)
+
+                }
+            }.frame(maxWidth: .infinity)
+            Spacer().frame(maxHeight: .infinity)
+            DualButtonComponent(nextActive: .constant(false),
+                                bottomButtonTitle: L10n.AlbumDetailView.importButton,
+                                bottomButtonAction: {
+                viewModel.showPhotoPicker = .photoLibrary
+            },
+                                secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
+                                secondaryButtonAction: {
+                guard let album = viewModel.album else { return }
+                appModalStateModel.currentModal = .cameraView(context: .init(sourceView: "AlbumDetailView", album: album, closeButtonTapped: { _ in
+                    Task {
+                        await viewModel.gridViewModel.enumerateMedia()
+                    }
+                }))
+            })
+            Spacer().frame(height: 8)
+        }.padding()
+    }
+
+    var importProgressIndicator: some View {
+        Group {
+            if viewModel.cancelImport == false {
+                HStack {
+                    if viewModel.importProgress > 0 {
+                        ProgressView(value: viewModel.importProgress, total: 1.0) {
+                            Text("\(L10n.encrypting) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
+                                .fontType(.pt14)
+                        }
+                        .pad(.pt8, edge: [.trailing, .leading])
+                        cancelButton
+
+                    } else if viewModel.isImporting {
+                        HStack {
+                            ProgressView(value: 0.5, total: 1.0) {
+                            }.progressViewStyle(.circular)
+                                .pad(.pt8, edge: [.trailing, .leading])
+                            Text("\(L10n.importingPleaseWait) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
+                                .fontType(.pt14)
+                            Spacer()
+
+                        }
+                        cancelButton
+                    }
+                }
+            }
+        }
     }
 
     var horizontalTitleComponents: some View {
         Group {
             if viewModel.isEditingAlbumName {
-                ViewHeader(centerContent: {
+                ViewHeader(isToolbar: true, centerContent: {
                     TextField(L10n.albumName, text: $viewModel.albumName)
                         .becomeFirstResponder()
                         .fontType(.pt24, weight: .bold)
                         .noAutoModification()
                 }, rightContent: {
-                    HStack {
+                    HStack(alignment: .center) {
                         Button {
                             viewModel.albumName = viewModel.album?.name ?? ""
                             viewModel.isEditingAlbumName = false
@@ -286,48 +653,50 @@ struct AlbumDetailView<D: FileAccess>: View {
                         } label: {
                             Text(L10n.cancel)
                                 .fontType(.pt14, weight: .bold)
-                        }.frostedButton()
+                        }
+
                         Button {
                             viewModel.setAlbumNameFromInput()
                             viewModel.isEditingAlbumName = false
                         } label: {
                             Text(L10n.save)
                                 .fontType(.pt14, weight: .bold)
-                        }.frostedButton()
+                        }
                     }
                 })
             } else  {
-
-                ViewHeader(title: viewModel.albumName, rightContent: {
-
-                    Group {
-                        if viewModel.gridViewModel.media.count > 0 {
+                ViewHeader(title: viewModel.albumName, isToolbar: true,
+                           textAlignment: .center,
+                           titleFont: .pt18,
+                           rightContent: {
+                    HStack(alignment: .center) {
+                        if viewModel.isSelectingMedia {
                             Button {
-                                viewModel.isSelectingMedia.toggle()
+                                viewModel.isSelectingMedia = false
                             } label: {
-                                Text(viewModel.isSelectingMedia ? L10n.cancel : L10n.AlbumDetailView.select)
+                                Text(L10n.cancel)
                                     .fontType(.pt14, weight: .bold)
-                            }.frostedButton()
-                        }
-                        if viewModel.isSelectingMedia == false {
-                            VStack(alignment: .center) {
-                                buttonMenu
                             }
+                        } else {
+                            buttonMenu
                         }
                     }
-                }, leftContent: {
-
-                    Button {
-                        popLastView()
-                    } label: {
-                        Image("Album-BackButton")
-                    }
-                }).transition(.slide)
+                })
+                .transition(.slide)
             }
         }
+        .frame(maxWidth: .infinity)
     }
     var buttonMenu: some View {
         Menu {
+            if viewModel.gridViewModel.media.count > 0 {
+                Button {
+                    viewModel.isSelectingMedia = true
+                } label: {
+                    Text(L10n.AlbumDetailView.select)
+                        .fontType(.pt14, weight: .bold)
+                }
+            }
             Button(L10n.moveAlbumStorage) {
                 isShowingMoveAlbumModal = true
             }
@@ -339,42 +708,40 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
 
             Button(L10n.importFromPhotos) {
-                viewModel.gridViewModel.showPhotoPicker = .photoLibrary
+                viewModel.showPhotoPicker = .photoLibrary
             }
 
             Button(L10n.importFromFiles) {
-                viewModel.gridViewModel.showPhotoPicker = .files
+                viewModel.showPhotoPicker = .files
             }
 
-//            Button {
-//                if viewModel.purchasedPermissions.hasEntitlement() == false {
-//                    viewModel.isShowingPurchaseSheet = true
-//                    viewModel.afterPurchaseAction = {
-//                        viewModel.alertType = .hideAlbum
-//                    }
-//                } else if viewModel.isAlbumHidden {
-//                    viewModel.isAlbumHidden = false
-//                } else {
-//                    viewModel.alertType = .hideAlbum
-//                }
-//            } label: {
-//                HStack {
-//                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
-//                    Spacer()
-//                    if viewModel.isAlbumHidden {
-//                        Image(systemName: "checkmark")
-//                    }
-//                }
-//            }
+            //            Button {
+            //                if viewModel.purchasedPermissions.hasEntitlement == false {
+            //                    viewModel.isShowingPurchaseSheet = true
+            //                    viewModel.afterPurchaseAction = {
+            //                        viewModel.alertType = .hideAlbum
+            //                    }
+            //                } else if viewModel.isAlbumHidden {
+            //                    viewModel.isAlbumHidden = false
+            //                } else {
+            //                    viewModel.alertType = .hideAlbum
+            //                }
+            //            } label: {
+            //                HStack {
+            //                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
+            //                    Spacer()
+            //                    if viewModel.isAlbumHidden {
+            //                        Image(systemName: "checkmark")
+            //                    }
+            //                }
+            //            }
 
             Button(L10n.deleteAlbum, role: .destructive) {
-                viewModel.alertType = .deleteAllAlbumData
+                viewModel.activeAlert = .deleteAllAlbumData
             }
 
         } label: {
             Image("Album-OptionsDots")
-                .contentShape(Rectangle())
-                .frostedButton()
         }
     }
 
@@ -384,7 +751,7 @@ struct AlbumDetailView<D: FileAccess>: View {
         return MediaSelectionTray(shareAction: {
             viewModel.shareSelected()
         }, deleteAction: {
-            viewModel.alertType = .deleteSelectedMedia
+            viewModel.activeAlert = .deleteSelectedMedia
         }, selectedMedia: $viewModel.selectedMedia, showShareOption: .constant(true))
     }
 
@@ -418,6 +785,29 @@ struct AlbumDetailView<D: FileAccess>: View {
                 },
                 secondaryButton: .cancel(Text(L10n.cancel))
             )
+        case .noLicenseDeletionWarning:
+            return Alert(
+                title: Text(L10n.AlbumDetailView.noLicenseDeletionWarningTitle),
+                message: Text(L10n.AlbumDetailView.noLicenseDeletionWarningMessage),
+                primaryButton: .cancel(Text(L10n.cancel)),
+                secondaryButton: .destructive(Text(L10n.AlbumDetailView.noLicenseDeletionWarningPrimaryButton)) {
+                    viewModel.agreedToDeleteWithNoLicense = true
+                    Task {
+                        await viewModel.requestPhotoLibraryPermission()
+                    }
+                }
+            )
+        case .photoAccessAlert:
+            return Alert(
+                title: Text(L10n.AlbumDetailView.photoAccessAlertTitle),
+                message: Text(L10n.AlbumDetailView.photoAccessAlertMessage),
+                primaryButton: .destructive(Text(L10n.AlbumDetailView.photoAccessAlertPrimaryButton)) {
+                    Task {
+                        await viewModel.requestPhotoLibraryPermission()
+                    }
+                },
+                secondaryButton: .cancel(Text(L10n.AlbumDetailView.photoAccessAlertSecondaryButton))
+            )
         case .none:
             return Alert(title: Text(""))
         }
@@ -425,5 +815,8 @@ struct AlbumDetailView<D: FileAccess>: View {
 }
 
 #Preview {
-    AlbumDetailView<DemoFileEnumerator>(viewModel: .init(albumManager: DemoAlbumManager(), album: DemoAlbumManager().currentAlbum))
+    NavigationStack {
+        AlbumDetailView<DemoFileEnumerator>(viewModel: .init(albumManager: DemoAlbumManager(), fileManager: DemoFileEnumerator(), album: DemoAlbumManager().currentAlbum, purchasedPermissions: DemoPurchasedPermissionManaging()))
+            .environmentObject(AppModalStateModel())
+    }
 }

@@ -9,6 +9,9 @@ import Foundation
 import UIKit
 
 class EmptyMediaView: UIView, MediaViewProtocol {
+
+    var statusLabel: UILabel = .init(frame: .zero)
+    
     var hostingView: UIView = UIView()
     var activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .large)
     var errorLabel: UILabel = UILabel()

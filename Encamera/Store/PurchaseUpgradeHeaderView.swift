@@ -37,13 +37,13 @@ struct TiltEffectModifier: ViewModifier {
 struct PurchaseUpgradeHeaderView: View {
     @State private var isAppearing = false
     var isInPromoMode: Bool = true
-    var purchasedProduct: OneTimePurchase?
+    var purchasedProduct: (any PremiumPurchasable)?
     var body: some View {
         VStack(alignment: .center, spacing: 5) {
             Spacer()
             Image(AppConstants.isInPromoMode ? "Pumpkin" : "Premium-Lock")
             Group {
-                if (purchasedProduct != nil) {
+                if (purchasedProduct?.isLifetime == true) {
                     Text(L10n.thanksForPurchasingLifetime)
                         .fontType(.pt24, on: .darkBackground, weight: .bold)
                     Text(L10n.thanksForPurchasingLifetimeSubtitle)

@@ -21,7 +21,7 @@ struct NotificationBell: View {
                         .fill(Color.notificationBadgeColor)
                         .foregroundColor(.notificationBadgeColor)
                         .frame(width: 10, height: 10)
-                        .offset(x: 5, y: -5)
+                        .offset(x: 15, y: -3)
 
                 }
             })

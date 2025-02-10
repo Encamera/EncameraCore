@@ -1,6 +1,8 @@
 import UIKit
 import EncameraCore
 import Combine
+import AVFoundation
+import AVKit
 
 public typealias LightboxImage = InteractableMedia<EncryptedMedia>
 
@@ -167,6 +169,7 @@ open class LightboxController: UIViewController {
 
     fileprivate var initialImages: [InteractableMedia<EncryptedMedia>]
     fileprivate let initialPage: Int
+    fileprivate weak var videoPlayerReference: AVPlayerViewController?
     private let fileAccess: FileAccess
     private let purchasePermissionsManager: PurchasedPermissionManaging
     private let purchaseButtonPressed: () -> (Void)
@@ -193,18 +196,15 @@ open class LightboxController: UIViewController {
         self.reviewAlertActionPressed = reviewAlertActionPressed
         super.init(nibName: nil, bundle: nil)
         self.pageDelegate = self
-        NotificationUtils.willResignActivePublisher.sink { [weak self] _ in
-            self?.screenBlockingView.alpha = 1.0
-        }.store(in: &cancellable)
+
         NotificationUtils.didEnterBackgroundPublisher.sink { [weak self] _ in
             self?.screenBlockingView.alpha = 1.0
-            guard let viewController = UIApplication.topMostViewController() else {
-                return
-            }
-            viewController.dismiss(animated: false, completion: {})
+            
+            self?.videoPlayerReference?.presentingViewController?.dismiss(animated: false, completion: {})
         }.store(in: &cancellable)
         NotificationUtils.willResignActivePublisher.sink { [weak self] _ in
             self?.screenBlockingView.alpha = 1.0
+            self?.videoPlayerReference?.presentingViewController?.dismiss(animated: false, completion: {})
         }.store(in: &cancellable)
         NotificationUtils.didBecomeActivePublisher.sink { [weak self] _ in
             self?.screenBlockingView.alpha = 0.0
@@ -556,8 +556,12 @@ extension LightboxController: PageViewDelegate {
             return
         }
         EventTracking.trackMovieViewed()
-
-        LightboxConfig.handleVideo(viewController, videoURL)
+        let videoController = AVPlayerViewController()
+        videoController.player = AVPlayer(url: videoURL)
+        self.videoPlayerReference = videoController
+        viewController.present(videoController, animated: true) {
+          videoController.player?.play()
+        }
     }
 
     func pageViewDidTouch(_ pageView: PageView) {

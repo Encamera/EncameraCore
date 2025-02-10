@@ -13,10 +13,12 @@ struct BottomNavigationBar: View {
     enum ButtonItem {
         case albums
         case settings
-        case camera
     }
 
     @Binding var selectedItem: ButtonItem
+    @EnvironmentObject var appModalStateModel: AppModalStateModel
+
+    var cameraCloseButtonTapped: (_ targetAlbum: Album?) -> Void
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -46,8 +48,11 @@ struct BottomNavigationBar: View {
 
             Button {
                 withAnimation {
-                    selectedItem = .camera
+                    appModalStateModel.currentModal = .cameraView(context: .init(sourceView: "MainHomeView", closeButtonTapped: cameraCloseButtonTapped))
+
                 }
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
                 EventTracking.trackOpenedCameraFromBottomBar()
             } label: {
                 ZStack {
@@ -112,7 +117,9 @@ struct BottomNavigationBar: View {
             .gradientBackground()
         VStack {
             Spacer()
-            BottomNavigationBar(selectedItem: .constant(.albums))
+            BottomNavigationBar(selectedItem: .constant(.albums), cameraCloseButtonTapped: { _ in
+
+            })
         }
     }.ignoresSafeArea()
 }

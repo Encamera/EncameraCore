@@ -1,10 +1,3 @@
-//
-//  GradientBackground.swift
-//  Encamera
-//
-//  Created by Alexander Freas on 25.10.23.
-//
-
 import Foundation
 import SwiftUI
 
@@ -12,24 +5,13 @@ private struct GradientBackground: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background {
-            ZStack(alignment: .trailing) {
-                Color.background
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                VStack(alignment: .trailing, spacing: 0) {
-                    Image("Background-Top")
-                        .resizable()
-                        .offset(.init(width: 0, height: 0))
-
-                    Spacer()
-                    Image("Background-Bottom")
-                        .offset(.init(width: 0, height: 40))
-
-                }
-                .frame(maxWidth: .infinity)
+                LinearGradient(
+                    gradient: Gradient(colors: [.primaryGradientTop, .primaryGradientBottom]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
             }
-            .padding(.zero)
-            .ignoresSafeArea()
-        }
     }
 }
 
@@ -38,7 +20,6 @@ extension View {
         self.modifier(GradientBackground())
     }
 }
-
 
 #Preview {
     Color.clear.gradientBackground()

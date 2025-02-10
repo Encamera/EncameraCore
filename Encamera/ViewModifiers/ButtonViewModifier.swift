@@ -73,7 +73,8 @@ extension View {
     }
 
     func frostedButton() -> some View {
-        self.modifier(FrostedBackgroundButtonStyle())
+        self
+            .modifier(FrostedBackgroundButtonStyle())
     }
 }
 
