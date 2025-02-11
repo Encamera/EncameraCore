@@ -49,6 +49,7 @@ struct PurchaseViewContext: ModalContext {
 struct GalleryScrollViewContext: ModalContext {
     let sourceView: String
     let media: [InteractableMedia<EncryptedMedia>]
+    let album: Album?
     let targetMedia: InteractableMedia<EncryptedMedia>
 }
 

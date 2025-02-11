@@ -44,12 +44,9 @@ class AlbumGridItemModel: ObservableObject {
     func load() async throws {
         do {
             let thumb = try await fileReader.loadLeadingThumbnail()
-            debugPrint("Loaded thumb: \(String(describing: thumb))")
             await MainActor.run {
                 self.countOfMedia = albumManager.albumMediaCount(album: album)
-                if let thumb {
-                    self.leadingImage = thumb
-                }
+                self.leadingImage = thumb
             }
         } catch {
             debugPrint("Error in load function: \(error)")

@@ -17,6 +17,8 @@ struct GalleryViewWrapper: UIViewControllerRepresentable {
                                             startIndex: startIndex,
                                             fileAccess: viewModel.fileAccess,
                                             purchasePermissionsManager: viewModel.purchasedPermissions,
+                                            albumManager: viewModel.albumManager,
+                                            album: viewModel.album,
                                             purchaseButtonPressed: viewModel.purchaseButtonPressed,
                                             reviewAlertActionPressed: viewModel.reviewAlertActionPressed)
 

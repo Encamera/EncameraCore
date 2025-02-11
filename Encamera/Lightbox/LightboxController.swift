@@ -72,7 +72,7 @@ open class LightboxController: UIViewController {
     // MARK: - Public views
 
     open fileprivate(set) lazy var footerView: FooterView = { [unowned self] in
-        let view = FooterView()
+        let view = FooterView(purchaseManager: purchasePermissionsManager)
         view.delegate = self
 
         return view
@@ -164,6 +164,7 @@ open class LightboxController: UIViewController {
     open weak var imageDeleteDelegate: (any LightboxControllerDeleteDelegate)?
     open internal(set) var presented = false
     let closeButton = UIButton(type: .system)
+    let menuButton = UIButton(type: .system)
     lazy var transitionManager: LightboxTransition = LightboxTransition()
     var pageViews = [PageView]()
 
@@ -179,6 +180,8 @@ open class LightboxController: UIViewController {
     private var statusBarHidden = false
     private var initialFooterHeight: CGFloat = 98.0
     private var cancellable = Set<AnyCancellable>()
+    private var albumManager: AlbumManaging?
+    private var album: Album?
 
     open override var prefersStatusBarHidden: Bool {
         return statusBarHidden
@@ -186,12 +189,14 @@ open class LightboxController: UIViewController {
 
     // MARK: - Initializers
 
-    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging, purchaseButtonPressed: @escaping () -> (Void), reviewAlertActionPressed: @escaping (AskForReviewUtil.ReviewSelection) -> (Void)) {
+    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging, albumManager: AlbumManaging?, album: Album?, purchaseButtonPressed: @escaping () -> (Void), reviewAlertActionPressed: @escaping (AskForReviewUtil.ReviewSelection) -> (Void)) {
         self.purchaseButtonPressed = purchaseButtonPressed
         self.fileAccess = fileAccess
         self.initialImages = images
         self.initialPage = index
         self.currentPage = index
+        self.albumManager = albumManager
+        self.album = album
         self.purchasePermissionsManager = purchasePermissionsManager
         self.reviewAlertActionPressed = reviewAlertActionPressed
         super.init(nibName: nil, bundle: nil)
@@ -266,18 +271,49 @@ open class LightboxController: UIViewController {
     }
 
     private func addCloseButton() {
-
         closeButton.setImage(UIImage(named: "Album-BackButton"), for: .normal)
         closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
 
-        view.addSubview(closeButton)
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        menuButton.setImage(UIImage(systemName: "ellipsis"), for: .normal)
+        menuButton.showsMenuAsPrimaryAction = true
+        menuButton.menu = createMenu()
+        
+        [closeButton, menuButton].forEach {
+            view.addSubview($0)
+            $0.translatesAutoresizingMaskIntoConstraints = false
+        }
+
         NSLayoutConstraint.activate([
             closeButton.widthAnchor.constraint(equalToConstant: 60),
             closeButton.heightAnchor.constraint(equalToConstant: 44),
             closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 0),
-            closeButton.trailingAnchor.constraint(equalTo: view.leadingAnchor, constant: 60)
+            closeButton.trailingAnchor.constraint(equalTo: view.leadingAnchor, constant: 60),
+            
+            menuButton.widthAnchor.constraint(equalToConstant: 44),
+            menuButton.heightAnchor.constraint(equalToConstant: 44),
+            menuButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 0),
+            menuButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
         ])
+    }
+
+    private func createMenu() -> UIMenu {
+        let makeAlbumCover = UIAction(
+            title: L10n.GalleryView.makeAlbumCover,
+            image: UIImage(systemName: "photo.on.rectangle")
+        ) { [weak self] _ in
+            self?.makeAlbumCover()
+        }
+        
+        return UIMenu(children: [makeAlbumCover])
+    }
+    
+    private func makeAlbumCover() {
+        guard let album else { return }
+        if purchasePermissionsManager.hasEntitlement {
+            albumManager?.setAlbumCoverImage(album: album, image: images[currentPage])
+        } else {
+            purchaseButtonPressed()
+        }
     }
 
     @objc private func closeButtonTapped() {
@@ -414,6 +450,7 @@ open class LightboxController: UIViewController {
     func toggleControls(pageView: PageView?, visible: Bool, duration: TimeInterval = 0.1, delay: TimeInterval = 0) {
         let alpha: CGFloat = visible ? 1.0 : 0.0
         closeButton.alpha = visible ? 1.0 : 0.0
+        menuButton.alpha = visible ? 1.0 : 0.0
         pageView?.playButton.isHidden = !visible
 
         // Update statusBarHidden variable and request the status bar update

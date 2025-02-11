@@ -257,6 +257,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     context: GalleryScrollViewContext(
                         sourceView: "GalleryGridView",
                         media: viewModel.media,
+                        album: viewModel.album,
                         targetMedia: mediaItem))
             }
 

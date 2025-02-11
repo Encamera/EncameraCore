@@ -735,7 +735,19 @@ struct AlbumDetailView<D: FileAccess>: View {
             //                    }
             //                }
             //            }
-
+            Button(L10n.AlbumDetailView.removeCoverImage) {
+                guard let albumName = viewModel.album?.name else { return }
+                if viewModel.purchasedPermissions.hasEntitlement {
+                    UserDefaultUtils.set("none", forKey: .albumCoverImage(albumName: albumName))
+                } else {
+                    self.appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "AlbumDetailView", purchaseAction: { _ in }))
+                }
+            }
+            if let albumName = viewModel.album?.name, UserDefaultUtils.string(forKey: .albumCoverImage(albumName: albumName)) != nil {
+                Button(L10n.AlbumDetailView.resetCoverImage) {
+                    UserDefaultUtils.set(nil, forKey: .albumCoverImage(albumName: albumName))
+                }
+            }
             Button(L10n.deleteAlbum, role: .destructive) {
                 viewModel.activeAlert = .deleteAllAlbumData
             }

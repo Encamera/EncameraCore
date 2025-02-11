@@ -341,7 +341,14 @@ struct EncameraApp: App {
                             })
                         }
                     case .galleryScrollView(context: let context):
-                        GalleryViewWrapper(viewModel: .init(media: context.media, initialMedia: context.targetMedia, fileAccess: viewModel.fileAccess, purchasedPermissions: viewModel.purchasedPermissions, purchaseButtonPressed: {
+                        GalleryViewWrapper(viewModel: .init(
+                            media: context.media,
+                            initialMedia: context.targetMedia,
+                            fileAccess: viewModel.fileAccess,
+                            album: context.album,
+                            albumManager: viewModel.albumManager,
+                            purchasedPermissions: viewModel.purchasedPermissions,
+                            purchaseButtonPressed: {
                             self.appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "GalleryScrollView", purchaseAction: { _ in
                             }))
                         }, reviewAlertActionPressed: { selection in
@@ -390,6 +397,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         LaunchCountUtils.recordCurrentVersionLaunch()
 
         Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT", appUserID: EventTracking.shared.piwikTracker.userID)
+        Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
 #if DEBUG
         Purchases.logLevel = .debug
         Purchases.shared.invalidateCustomerInfoCache()

@@ -73,13 +73,17 @@ open class FooterView: UIView {
         action: #selector(buttonDidPress(_:))
     )
 
-    open fileprivate(set) lazy var shareButton: UIButton = createButton(
-        type: .share,
-        imageName: "square.and.arrow.up",
-        tintColor: .systemBlue,
-        action: #selector(buttonDidPress(_:))
-    )
-
+    open fileprivate(set) lazy var shareButton: UIButton = {
+        let button = createButton(
+            type: .share,
+            imageName: "square.and.arrow.up",
+            tintColor: .systemBlue,
+            action: #selector(buttonDidPress(_:))
+        )
+        button.isEnabled = false
+        return button
+    }()
+    
     open fileprivate(set) lazy var infoButton: UIButton = createButton(
         type: .info,
         imageName: "info.circle",
@@ -104,6 +108,8 @@ open class FooterView: UIView {
         return view
     }()
 
+    private var purchaseManager: PurchasedPermissionManaging?
+
     var media: InteractableMedia<EncryptedMedia>! {
         didSet {
             if let timestamp = media.timestamp {
@@ -111,6 +117,7 @@ open class FooterView: UIView {
             } else {
                 mediaInfoView.configure(with: L10n.noInfoAvailable)
             }
+            configureShareButton()
         }
     }
 
@@ -122,9 +129,10 @@ open class FooterView: UIView {
         super.init(frame: frame)
     }
 
-    convenience init() {
+    convenience init(purchaseManager: PurchasedPermissionManaging) {
         self.init(frame: .zero)
         self.media = media
+        self.purchaseManager = purchaseManager
         backgroundColor = UIColor.clear
         let blurEffect = UIBlurEffect(style: .systemUltraThinMaterial)
         let blurEffectView = UIVisualEffectView(effect: blurEffect)
@@ -218,6 +226,10 @@ open class FooterView: UIView {
             self.mediaInfoView.isHidden = true
         }
     }
+
+    private func configureShareButton() {
+        shareButton.isEnabled = purchaseManager?.hasEntitlement ?? false
+    }
 }
 
 // MARK: - LayoutConfigurable
@@ -249,6 +261,7 @@ extension FooterView: LayoutConfigurable {
             infoButton.widthAnchor.constraint(equalToConstant: buttonSize),
             infoButton.heightAnchor.constraint(equalToConstant: buttonSize)
         ])
+
     }
 
 }
