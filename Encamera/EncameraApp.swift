@@ -396,7 +396,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         EventTracking.trackAppLaunched()
         LaunchCountUtils.recordCurrentVersionLaunch()
 
-        Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT", appUserID: EventTracking.shared.piwikTracker.userID)
+        Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT")
+        Purchases.shared.attribution.setAttributes(["piwik_visitor_id": EventTracking.shared.piwikTracker.visitorID])
         Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
 #if DEBUG
         Purchases.logLevel = .debug

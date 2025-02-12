@@ -188,14 +188,21 @@ struct ProductStoreView: View {
                             }
                            do {
                                let (transaction, customerInfo, userCancelled) = try await Purchases.shared.purchase(package: purchasable)
-
                                if !customerInfo.entitlements.active.isEmpty {
+                                   if let skTransaction = transaction?.sk2Transaction,
+                                       let amount = purchasable.storeProduct.sk2Product?.price,
+                                      let currency = purchasable.storeProduct.sk2Product?.priceFormatStyle.currencyCode {
+                                       let product = skTransaction.productID
+                                       EventTracking.trackPurchaseCompleted(from: fromView, currency: currency, amount: amount, product: product)
+                                   }
+
                                    showPostPurchaseScreen = true
                                    purchaseAction?(.purchaseComplete(amount: purchasable.storeProduct.price, currencyCode: purchasable.storeProduct.localizedPriceString))
                                    
                                }
 
                                if userCancelled {
+                                   EventTracking.trackPurchaseCancelled(from: fromView, product: purchasable.id)
                                    purchaseAction?(.cancelled)
                                }
 
