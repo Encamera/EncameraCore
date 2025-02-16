@@ -29,7 +29,7 @@ struct EncameraApp: App {
         @Published var showImportedMediaScreen = false
         @Published var keyManagerKey: PrivateKey?
         @Published var selectedPath: NavigationPath = .init()
-
+        @Published var showAlbumCoverSetToast: Bool = false
         var openedUrl: URL?
         var keyManager: KeyManager
         var albumManager: AlbumManaging?
@@ -356,7 +356,13 @@ struct EncameraApp: App {
                                 self.appModalStateModel.currentModal = .feedbackView
                             }
 
+                        }, albumCoverSetAction: { media in
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                viewModel.showAlbumCoverSetToast = true
+                            }
                         }))
+                        .toast(isShowing: $viewModel.showAlbumCoverSetToast, message: L10n.GalleryView.albumCoverSetToast, needsAdditionalPadding: true)
+
                         .ignoresSafeArea(edges: [.top, .bottom, .leading, .trailing])
                     case .purchaseView(context: let context):
                         ProductStoreView(fromView: context.sourceView, purchaseAction: context.purchaseAction)
@@ -397,8 +403,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         LaunchCountUtils.recordCurrentVersionLaunch()
 
         Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT")
+        
+#if !DEBUG
         Purchases.shared.attribution.setAttributes(["piwik_visitor_id": EventTracking.shared.piwikTracker.visitorID])
         Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
+#endif
 #if DEBUG
         Purchases.logLevel = .debug
         Purchases.shared.invalidateCustomerInfoCache()

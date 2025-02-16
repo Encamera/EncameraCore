@@ -20,6 +20,20 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         case photoAccessAlert
     }
 
+    enum ToastType {
+        case albumCoverReset
+        case albumCoverRemoved
+
+        var message: String {
+            switch self {
+            case .albumCoverReset:
+                return L10n.AlbumDetailView.coverImageResetToast
+            case .albumCoverRemoved:
+                return L10n.AlbumDetailView.coverImageRemovedToast
+            }
+        }
+    }
+
     var albumManager: AlbumManaging
 
 
@@ -33,6 +47,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var selectedMedia: Set<InteractableMedia<EncryptedMedia>> = Set()
     @Published var isShowingPurchaseSheet = false
     @Published var activeAlert: AlertType? = nil
+    @Published var activeToast: ToastType? = nil
     @Published var lastImportedAssets: [PHPickerResult] = []
     @Published var showPhotoPicker: ImportSource? = nil
     @Published var cancelImport = false
@@ -456,6 +471,14 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }
         }
     }
+
+    func showToast(type: ToastType) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            withAnimation {
+                self.activeToast = type
+            }
+        }
+    }
 }
 
 struct AlbumDetailView<D: FileAccess>: View {
@@ -555,6 +578,14 @@ struct AlbumDetailView<D: FileAccess>: View {
                 EmptyView()
             }
         })
+        .toast(isShowing: Binding<Bool>(get: {
+            let showing = viewModel.activeToast != nil
+            return showing
+        }, set: { value in
+            if value == false {
+                viewModel.activeToast = nil
+            }
+        }), message: viewModel.activeToast?.message ?? "")
         .gradientBackground()
         .ignoresSafeArea(edges: [.bottom])
         .screenBlocked()
@@ -735,17 +766,21 @@ struct AlbumDetailView<D: FileAccess>: View {
             //                    }
             //                }
             //            }
-            Button(L10n.AlbumDetailView.removeCoverImage) {
-                guard let albumName = viewModel.album?.name else { return }
-                if viewModel.purchasedPermissions.hasEntitlement {
-                    UserDefaultUtils.set("none", forKey: .albumCoverImage(albumName: albumName))
-                } else {
-                    self.appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "AlbumDetailView", purchaseAction: { _ in }))
+            Menu(L10n.AlbumDetailView.albumCoverMenuTitle) {
+                Button(L10n.AlbumDetailView.removeCoverImage) {
+                    guard let albumName = viewModel.album?.name else { return }
+                    if viewModel.purchasedPermissions.hasEntitlement {
+                        UserDefaultUtils.set("none", forKey: .albumCoverImage(albumName: albumName))
+                        viewModel.showToast(type: .albumCoverRemoved)
+                    } else {
+                        self.appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "AlbumDetailView", purchaseAction: { _ in }))
+                    }
                 }
-            }
-            if let albumName = viewModel.album?.name, UserDefaultUtils.string(forKey: .albumCoverImage(albumName: albumName)) != nil {
-                Button(L10n.AlbumDetailView.resetCoverImage) {
-                    UserDefaultUtils.set(nil, forKey: .albumCoverImage(albumName: albumName))
+                if let albumName = viewModel.album?.name, UserDefaultUtils.string(forKey: .albumCoverImage(albumName: albumName)) != nil {
+                    Button(L10n.AlbumDetailView.resetCoverImage) {
+                        UserDefaultUtils.set(nil, forKey: .albumCoverImage(albumName: albumName))
+                        viewModel.showToast(type: .albumCoverReset)
+                    }
                 }
             }
             Button(L10n.deleteAlbum, role: .destructive) {

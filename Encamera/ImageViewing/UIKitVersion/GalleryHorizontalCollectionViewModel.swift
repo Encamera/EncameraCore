@@ -42,10 +42,20 @@ class GalleryHorizontalCollectionViewModel: NSObject, ObservableObject, DebugPri
     var currentSharingData: Any?
     var purchaseButtonPressed: () -> (Void)
     var reviewAlertActionPressed: (AskForReviewUtil.ReviewSelection) -> (Void)
+    var albumCoverSetAction: (InteractableMedia<EncryptedMedia>) -> (Void)
     private var cancellables = Set<AnyCancellable>()
 
     @Published var viewOffsets: [UUID: CGFloat] = [:]
-    init(media: [InteractableMedia<EncryptedMedia>], initialMedia: InteractableMedia<EncryptedMedia>, fileAccess: FileAccess, album: Album? = nil, albumManager: AlbumManaging? = nil, showActionBar: Bool = true, purchasedPermissions: PurchasedPermissionManaging, purchaseButtonPressed: @escaping () -> (Void), reviewAlertActionPressed: @escaping (AskForReviewUtil.ReviewSelection) -> (Void)) {
+    init(media: [InteractableMedia<EncryptedMedia>],
+         initialMedia: InteractableMedia<EncryptedMedia>,
+         fileAccess: FileAccess,
+         album: Album? = nil,
+         albumManager: AlbumManaging? = nil,
+         showActionBar: Bool = true,
+         purchasedPermissions: PurchasedPermissionManaging,
+         purchaseButtonPressed: @escaping () -> (Void),
+         reviewAlertActionPressed: @escaping (AskForReviewUtil.ReviewSelection) -> (Void),
+         albumCoverSetAction: @escaping (InteractableMedia<EncryptedMedia>) -> (Void)) {
         self.reviewAlertActionPressed = reviewAlertActionPressed
         self.purchaseButtonPressed = purchaseButtonPressed
         self.media = media
@@ -56,6 +66,7 @@ class GalleryHorizontalCollectionViewModel: NSObject, ObservableObject, DebugPri
         self.showActionBar = showActionBar
         self.purchasedPermissions = purchasedPermissions
         self.selectedMedia = initialMedia
+        self.albumCoverSetAction = albumCoverSetAction
         super.init()
         updateMediaMap()
     }

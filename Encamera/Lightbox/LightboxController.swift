@@ -182,6 +182,7 @@ open class LightboxController: UIViewController {
     private var cancellable = Set<AnyCancellable>()
     private var albumManager: AlbumManaging?
     private var album: Album?
+    private var albumCoverSetAction: (InteractableMedia<EncryptedMedia>) -> (Void)
 
     open override var prefersStatusBarHidden: Bool {
         return statusBarHidden
@@ -189,7 +190,7 @@ open class LightboxController: UIViewController {
 
     // MARK: - Initializers
 
-    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging, albumManager: AlbumManaging?, album: Album?, purchaseButtonPressed: @escaping () -> (Void), reviewAlertActionPressed: @escaping (AskForReviewUtil.ReviewSelection) -> (Void)) {
+    public init(images: [LightboxImage] = [], startIndex index: Int = 0, fileAccess: FileAccess, purchasePermissionsManager: PurchasedPermissionManaging, albumManager: AlbumManaging?, album: Album?, purchaseButtonPressed: @escaping () -> (Void), reviewAlertActionPressed: @escaping (AskForReviewUtil.ReviewSelection) -> (Void), albumCoverSetAction: @escaping (InteractableMedia<EncryptedMedia>) -> (Void)) {
         self.purchaseButtonPressed = purchaseButtonPressed
         self.fileAccess = fileAccess
         self.initialImages = images
@@ -199,6 +200,7 @@ open class LightboxController: UIViewController {
         self.album = album
         self.purchasePermissionsManager = purchasePermissionsManager
         self.reviewAlertActionPressed = reviewAlertActionPressed
+        self.albumCoverSetAction = albumCoverSetAction
         super.init(nibName: nil, bundle: nil)
         self.pageDelegate = self
 
@@ -310,7 +312,9 @@ open class LightboxController: UIViewController {
     private func makeAlbumCover() {
         guard let album else { return }
         if purchasePermissionsManager.hasEntitlement {
-            albumManager?.setAlbumCoverImage(album: album, image: images[currentPage])
+            let coverImage = images[currentPage]
+            albumManager?.setAlbumCoverImage(album: album, image: coverImage)
+            albumCoverSetAction(coverImage)
         } else {
             purchaseButtonPressed()
         }

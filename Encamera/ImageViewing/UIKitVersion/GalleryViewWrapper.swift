@@ -20,7 +20,8 @@ struct GalleryViewWrapper: UIViewControllerRepresentable {
                                             albumManager: viewModel.albumManager,
                                             album: viewModel.album,
                                             purchaseButtonPressed: viewModel.purchaseButtonPressed,
-                                            reviewAlertActionPressed: viewModel.reviewAlertActionPressed)
+                                            reviewAlertActionPressed: viewModel.reviewAlertActionPressed,
+                                            albumCoverSetAction: viewModel.albumCoverSetAction)
 
         controller.dismissalDelegate = context.coordinator
         return controller
