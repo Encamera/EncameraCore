@@ -19,7 +19,7 @@ struct PurchaseStorefront: View {
         do {
             let customerInfo = try await Purchases.shared.customerInfo()
             let filteredSubs = purchaseOptions.options.filter { option in
-                customerInfo.allPurchasedProductIdentifiers.contains(option.id)
+                customerInfo.activeSubscriptions.contains(option.id)
             }
             let sub = filteredSubs.sorted(by: {$0.isLifetime && !$1.isLifetime}).first
             currentSubscription = sub
