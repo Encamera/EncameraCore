@@ -47,7 +47,7 @@ struct ToastModifier: ViewModifier {
                             guard newValue == true else { return }
                             let generator = UIImpactFeedbackGenerator(style: .medium)
                             generator.impactOccurred()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3 ) {
                                 isShowing = false
                             }
                         })

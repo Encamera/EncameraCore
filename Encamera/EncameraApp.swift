@@ -323,6 +323,11 @@ struct EncameraApp: App {
                     break
                 }
             })
+            .onChange(of: appModalStateModel.currentModal, { oldValue, newValue in
+                if newValue == nil {
+                    viewModel.showAlbumCoverSetToast = false
+                }
+            })
             .fullScreenCover(isPresented: Binding {
                 self.appModalStateModel.currentModal != nil
             } set: { newValue in
