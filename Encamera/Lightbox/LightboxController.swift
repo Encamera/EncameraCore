@@ -313,8 +313,6 @@ open class LightboxController: UIViewController {
         guard let album else { return }
         if purchasePermissionsManager.hasEntitlement {
             let coverImage = images[currentPage]
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
             albumManager?.setAlbumCoverImage(album: album, image: coverImage)
             albumCoverSetAction(coverImage)
         } else {
