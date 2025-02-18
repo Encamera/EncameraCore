@@ -49,7 +49,7 @@ targets:
       SKIP_INSTALL: YES
       SWIFT_EMIT_LOC_STRINGS: YES
       SWIFT_VERSION: 5.0
-      TARGETED_DEVICE_FAMILY: "1,2"
+      TARGETED_DEVICE_FAMILY: "1"
     scheme:
       executable: WidgetExtension
  
@@ -80,7 +80,7 @@ targets:
       SKIP_INSTALL: YES
       SWIFT_EMIT_LOC_STRINGS: YES
       SWIFT_VERSION: 5.0
-      TARGETED_DEVICE_FAMILY: "1,2"
+      TARGETED_DEVICE_FAMILY: "1"
     scheme:
       executable: ShareExtension
   Encamera:
@@ -100,7 +100,7 @@ targets:
       SUPPORTED_PLATFORMS: "iphoneos iphonesimulator" 
       SUPPORTS_MACCATALYST: NO
       SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
-      TARGETED_DEVICE_FAMILY: "1,2"
+      TARGETED_DEVICE_FAMILY: "1"
       OTHER_LDFLAGS: "-ObjC"
       DEVELOPMENT_ASSET_PATHS:
         "$(SRCROOT)/Encamera/PreviewAssets"
@@ -146,7 +146,7 @@ targets:
       SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
       SUPPORTS_MACCATALYST: NO
       SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
-      TARGETED_DEVICE_FAMILY: "1,2"
+      TARGETED_DEVICE_FAMILY: "1"
       INFOPLIST_KEY_NSPrincipalClass: StoreKitTestingApp
       OTHER_LDFLAGS: "-ObjC"
     dependencies:

@@ -136,7 +136,8 @@ struct CameraView: View {
                         SystemSettings.openSettings()
                     } label: {
                         Text(L10n.openSystemSettings)
-                    }.textPill(color: .actionYellowGreen)
+                    }
+                    .textPill(color: .actionYellowGreen)
                     .fontType(.pt14, on: .primaryButton)
                 }
             }
