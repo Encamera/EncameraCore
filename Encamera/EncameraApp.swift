@@ -132,7 +132,9 @@ struct EncameraApp: App {
                 .receive(on: RunLoop.main)
                 .sink { _ in
                     self.showScreenBlocker = false
-                    self.purchasedPermissions.refreshEntitlements()
+                    Task {
+                        await self.purchasedPermissions.refreshEntitlements()
+                    }
                 }.store(in: &cancellables)
 
             NotificationUtils.orientationDidChangePublisher
@@ -370,7 +372,7 @@ struct EncameraApp: App {
 
                         .ignoresSafeArea(edges: [.top, .bottom, .leading, .trailing])
                     case .purchaseView(context: let context):
-                        ProductStoreView(fromView: context.sourceView, purchaseAction: context.purchaseAction)
+                        ProductStoreView(fromView: context.sourceView, purchaseAction: context.purchaseAction, viewModel: .init(purchasedPermissionsManaging: viewModel.purchasedPermissions))
                     case .feedbackView:
                         FeedbackView()
                     case nil:

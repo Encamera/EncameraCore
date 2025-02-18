@@ -3,7 +3,6 @@ import RevenueCat
 import EncameraCore
 
 public protocol PurchasedPermissionManaging {
-    func refreshEntitlements()
     func refreshEntitlements() async
     func isAllowedAccess(feature: AppFeature) -> Bool
     var hasEntitlement: Bool { get }

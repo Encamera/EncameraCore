@@ -11,7 +11,7 @@ import SwiftUI
 struct StoreKitTestingApp: App {
     var body: some Scene {
         WindowGroup {
-            ProductStoreView(fromView: "Test")
+            ProductStoreView(fromView: "Test", viewModel: .init(purchasedPermissionsManaging: DemoPurchasedPermissionManaging()))
                 .preferredColorScheme(.dark)
         }
     }

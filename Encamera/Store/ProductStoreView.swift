@@ -127,11 +127,12 @@ class ProductStoreViewViewModel: ObservableObject {
 
     @MainActor
     @Published var purchaseOptions: PremiumPurchasableCollection?
-//        PurchaseOptionComponentModel(optionPeriod: "1 Month", formattedPrice: "$4.99", billingFrequency: "per month", savingsPercentage: 0.17),
-//        PurchaseOptionComponentModel(optionPeriod: "1 Year", formattedPrice: "$49.99", billingFrequency: "per year", savingsPercentage: 0.0),
-//        PurchaseOptionComponentModel(optionPeriod: "Lifetime", formattedPrice: "$99.99", billingFrequency: "one time", savingsPercentage: 0.0)
-//    ]
 
+    var purchasedPermissionsManaging: PurchasedPermissionManaging
+
+    init(purchasedPermissionsManaging: PurchasedPermissionManaging) {
+        self.purchasedPermissionsManaging = purchasedPermissionsManaging
+    }
 
     func loadOffering() async throws {
         let offerings = try await Purchases.shared.offerings()
@@ -148,7 +149,6 @@ struct ProductStoreView: View {
     @State private var selectedPurchasable: (any Purchasable)?
     @State private var errorAlertIsPresented = false
     @State private var showPostPurchaseScreen = false
-    @StateObject var viewModel: ProductStoreViewViewModel = .init()
     @EnvironmentObject var appModalStateModel: AppModalStateModel
 
 
@@ -157,6 +157,8 @@ struct ProductStoreView: View {
     var showDismissButton = true
     var fromView: String
     var purchaseAction: PurchaseResultAction?
+    @StateObject var viewModel: ProductStoreViewViewModel
+
 
     var body: some View {
         Group {
@@ -197,6 +199,9 @@ struct ProductStoreView: View {
                                    }
 
                                    showPostPurchaseScreen = true
+                                   Task{
+                                       await viewModel.purchasedPermissionsManaging.refreshEntitlements()
+                                   }
                                    purchaseAction?(.purchaseComplete(amount: purchasable.storeProduct.price, currencyCode: purchasable.storeProduct.localizedPriceString))
                                    
                                }
@@ -235,12 +240,12 @@ struct ProductStoreView: View {
     }
 }
 
-struct PurchaseUpgradeView_Previews: PreviewProvider {
-
-    static var previews: some View {
-        ProductStoreView(fromView: "Preview")
-            .preferredColorScheme(.dark)
-            .previewDevice(PreviewDevice(rawValue: "iPhone 8"))
-    }
-
-}
+//struct PurchaseUpgradeView_Previews: PreviewProvider {
+//
+//    static var previews: some View {
+//        ProductStoreView(fromView: "Preview", viewModel: .init(purchasedPermissionsManaging: DemoPurchasedPermissionManaging())))
+//            .preferredColorScheme(.dark)
+//            .previewDevice(PreviewDevice(rawValue: "iPhone 8"))
+//    }
+//
+//}
