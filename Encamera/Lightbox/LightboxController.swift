@@ -315,6 +315,7 @@ open class LightboxController: UIViewController {
             let coverImage = images[currentPage]
             albumManager?.setAlbumCoverImage(album: album, image: coverImage)
             albumCoverSetAction(coverImage)
+            EventTracking.trackAlbumCoverSet()
         } else {
             purchaseButtonPressed()
         }

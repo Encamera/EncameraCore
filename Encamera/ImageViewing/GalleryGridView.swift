@@ -49,9 +49,10 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
          blurImages: Bool = false,
          showingCarousel: Bool = false,
          downloadPendingMediaCount: Int = 0,
-         fileAccess: D
+         fileAccess: D,
+         purchasedPermissions: PurchasedPermissionManaging
     ) {
-        self.purchasedPermissions = AppPurchasedPermissionUtils()
+        self.purchasedPermissions = purchasedPermissions
         self.blurImages = blurImages
         self.albumManager = albumManager
         self.album = album

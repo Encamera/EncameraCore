@@ -160,7 +160,8 @@ struct AsyncImage_Previews: PreviewProvider {
                 albumManager: DemoAlbumManager(),
                 blurImages: false,
                 downloadPendingMediaCount: 22,
-                fileAccess: DemoFileEnumerator()
+                fileAccess: DemoFileEnumerator(),
+                purchasedPermissions: DemoPurchasedPermissionManaging()
             ))
         }
     }

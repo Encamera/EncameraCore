@@ -4,6 +4,7 @@ import EncameraCore
 
 public protocol PurchasedPermissionManaging {
     func refreshEntitlements()
+    func refreshEntitlements() async
     func isAllowedAccess(feature: AppFeature) -> Bool
     var hasEntitlement: Bool { get }
 }
@@ -17,19 +18,26 @@ public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, Observabl
         refreshEntitlements()
     }
 
+    public func refreshEntitlements() async {
+        do {
+            let customerInfo = try await Purchases.shared.customerInfo()
+            self.hasEntitlement = !customerInfo.entitlements.active.isEmpty
+        } catch {
+
+        }
+    }
+
     public func refreshEntitlements() {
         Task {
-            do {
-                let customerInfo = try await Purchases.shared.customerInfo()
-                self.hasEntitlement = !customerInfo.entitlements.active.isEmpty
-            } catch {
-
-            }
+            await refreshEntitlements()
         }
     }
 
     public func isAllowedAccess(feature: AppFeature) -> Bool {
         refreshEntitlements()
+        guard hasEntitlement == false else {
+            return true
+        }
         switch feature {
         case .accessPhoto(let count) where count <= AppConstants.maxPhotoCountBeforePurchase && count >= 0,
             .createKey(let count) where count < AppConstants.maxPhotoCountBeforePurchase:

@@ -95,7 +95,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         self.purchasedPermissions = purchasedPermissions
         self.shouldCreateAlbum = shouldCreateAlbum
         self.isEditingAlbumName = shouldCreateAlbum
-        let gridViewModel = GalleryGridViewModel<D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager)
+        let gridViewModel = GalleryGridViewModel<D>(album: album, albumManager: albumManager, blurImages: false, fileAccess: fileManager, purchasedPermissions: purchasedPermissions)
         self.gridViewModel = gridViewModel
         gridViewModel.$noMediaShown.sink { show in
             self.showEmptyView = show
@@ -157,6 +157,22 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
     }
 
+    func removeAlbumCover() {
+        guard let albumName = album?.name else { return }
+        UserDefaultUtils.set("none", forKey: .albumCoverImage(albumName: albumName))
+        showToast(type: .albumCoverRemoved)
+        EventTracking.trackAlbumCoverRemoved()
+
+    }
+
+    func resetAlbumCover() {
+        if let albumName = album?.name {
+            UserDefaultUtils.set(nil, forKey: .albumCoverImage(albumName: albumName))
+            showToast(type: .albumCoverReset)
+            EventTracking.trackAlbumCoverReset()
+        }
+    }
+
     func cancelImporting() {
         currentTask?.cancel()
         cancelImport = true
@@ -199,7 +215,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             await gridViewModel.enumerateMedia()
         }
     }
-
 
     private func loadAndSaveMediaAsync(result: PHPickerResult) async throws {
         // Identify whether the item is a video or an image
@@ -768,18 +783,19 @@ struct AlbumDetailView<D: FileAccess>: View {
             //            }
             Menu(L10n.AlbumDetailView.albumCoverMenuTitle) {
                 Button(L10n.AlbumDetailView.removeCoverImage) {
-                    guard let albumName = viewModel.album?.name else { return }
                     if viewModel.purchasedPermissions.hasEntitlement {
-                        UserDefaultUtils.set("none", forKey: .albumCoverImage(albumName: albumName))
-                        viewModel.showToast(type: .albumCoverRemoved)
+                        viewModel.removeAlbumCover()
                     } else {
-                        self.appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "AlbumDetailView", purchaseAction: { _ in }))
+                        self.appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "AlbumDetailView", purchaseAction: { action in
+                            if case .purchaseComplete = action {
+                                viewModel.removeAlbumCover()
+                            }
+                        }))
                     }
                 }
                 if let albumName = viewModel.album?.name, UserDefaultUtils.string(forKey: .albumCoverImage(albumName: albumName)) != nil {
                     Button(L10n.AlbumDetailView.resetCoverImage) {
-                        UserDefaultUtils.set(nil, forKey: .albumCoverImage(albumName: albumName))
-                        viewModel.showToast(type: .albumCoverReset)
+                        viewModel.resetAlbumCover()
                     }
                 }
             }

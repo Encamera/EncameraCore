@@ -15,6 +15,7 @@ fileprivate enum AlertType {
     case none
     case pinRemembered
     case biometricsDisabledOpenSettings
+    case purchasesRestored
 }
 
 class SettingsViewViewModel: ObservableObject {
@@ -34,7 +35,6 @@ class SettingsViewViewModel: ObservableObject {
     @Published var showChangePin: Bool = false
     @Published var pinRememberedConfirmed: Bool = false
     @Published fileprivate var activeAlert: AlertType = .none
-    @Published var showAlert: Bool = false
     @Published var showKeyBackup: Bool = false
     @Published var useiCloudKeyBackup: Bool = false
     @Published var defaultStorageOption: StorageType = .local {
@@ -74,7 +74,6 @@ class SettingsViewViewModel: ObservableObject {
     func setupToggleObservers() {
         self.$useBiometrics.dropFirst().sink { [weak self] value in
             if self?.authManager.canAuthenticateWithBiometrics == false {
-                self?.showAlert = true
                 self?.activeAlert = .biometricsDisabledOpenSettings
                 return
             }
@@ -88,7 +87,6 @@ class SettingsViewViewModel: ObservableObject {
             }
 
             guard self?.pinRememberedConfirmed ?? false else {
-                self?.showAlert = true
                 self?.activeAlert = .pinRemembered
                 return
             }
@@ -164,7 +162,11 @@ struct SettingsView: View {
                         }
                         Button(L10n.restorePurchases) {
                             Task(priority: .userInitiated) {
-                                try await Purchases.shared.syncPurchases()
+                                try await Purchases.shared.restorePurchases()
+                                await viewModel.purchasedPermissions.refreshEntitlements()
+                                Task { @MainActor in
+                                    self.viewModel.activeAlert = .purchasesRestored
+                                }
                             }
                         }
                         Button(L10n.enterPromoCode) {
@@ -264,7 +266,13 @@ struct SettingsView: View {
                 viewModel.toggleBiometrics(value: viewModel.useBiometrics)
             }))
         })
-        .alert(isPresented: $viewModel.showAlert) {
+        .alert(isPresented: Binding<Bool>(get: {
+            return viewModel.activeAlert != .none
+        }, set: { value in
+            if value == false {
+                viewModel.activeAlert = .none
+            }
+        })) {
 
             switch viewModel.activeAlert {
             case .pinRemembered:
@@ -281,6 +289,8 @@ struct SettingsView: View {
                 }), secondaryButton: .cancel({
                     viewModel.useBiometrics = false
                 }))
+            case .purchasesRestored:
+                Alert(title: Text(L10n.Settings.purchasesRestored), message: Text(L10n.Settings.purchasesRestoredMessage), dismissButton: .default(Text(L10n.ok)))
             case .none:
                 Alert(title: Text("Error"), message: Text("Unknown error"), dismissButton: .default(Text(L10n.ok)))
             }
