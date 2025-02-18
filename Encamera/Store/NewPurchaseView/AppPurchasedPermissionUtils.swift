@@ -22,6 +22,9 @@ public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, Observabl
         do {
             let customerInfo = try await Purchases.shared.customerInfo()
             self.hasEntitlement = !customerInfo.entitlements.active.isEmpty
+            EventTracking.setSubscriptionDimensions(
+                productID: customerInfo.entitlements.active.first?.value.productIdentifier
+            )
         } catch {
 
         }
