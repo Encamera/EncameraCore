@@ -59,7 +59,7 @@ struct CameraView: View {
     }
 
     private var bottomButtonPanel: some View {
-        BottomCameraButtonView(
+        BottomCameraControls(
             cameraModel: cameraModel,
             cameraModeStateModel: cameraModeStateModel,
             closeButtonTapped: closeButtonTapped

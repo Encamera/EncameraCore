@@ -1,5 +1,5 @@
 //
-//  BottomCameraButtonView.swift
+//  BottomCameraControls.swift
 //  Encamera
 //
 //  Created by Alexander Freas on 17.10.23.
@@ -8,7 +8,7 @@
 import SwiftUI
 import EncameraCore
 
-struct BottomCameraButtonView: View {
+struct BottomCameraControls: View {
     private enum Constants {
         static var minCaptureButtonEdge: Double = 66
         static var innerCaptureButtonLineWidth: Double = 2
@@ -29,7 +29,9 @@ struct BottomCameraButtonView: View {
                 HStack {
                     capturedPhotoThumbnail
                     Spacer()
-                    flipCameraButton
+                    if !cameraModel.isRecordingVideo {
+                        flipCameraButton
+                    }
                 }
                 .padding(.leading, Constants.thumbnailSide)
                 .padding(.trailing, Constants.trailing)
@@ -128,7 +130,7 @@ struct BottomCameraButtonView: View {
 //        Image("maria-cappelli")
 //            .resizable()
 //
-//        BottomCameraButtonView(cameraModel: CameraModel(
+//        BottomCameraControls(cameraModel: CameraModel(
 //            keyManager: DemoKeyManager(),
 //            authManager: DemoAuthManager(),
 //            cameraService: CameraConfigurationService(model: .init()),
