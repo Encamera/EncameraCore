@@ -213,6 +213,10 @@ struct SettingsView: View {
                             Text(L10n.changePassword)
                         }
 
+                        NavigationLink("Authentication method") {
+                            AuthenticationMethodView()
+                        }
+
                         biometricsToggle
                         if viewModel.showKeyBackup {
                             NavigationLink(L10n.Settings.backupKeyPhrase) {
