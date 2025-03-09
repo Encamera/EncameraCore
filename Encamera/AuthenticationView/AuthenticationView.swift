@@ -202,10 +202,13 @@ class AuthenticationViewModel: ObservableObject {
     }
 }
 struct AuthenticationView: View {
-    
-    
     @StateObject var viewModel: AuthenticationViewModel
     @State var enteredPassword: String = ""
+    
+    private var authType: String {
+        UserDefaultUtils.string(forKey: .authenticationMethodType) ?? "password"
+    }
+    
     var body: some View {
         VStack(spacing: 8) {
             Image("LogoSquare").frame(height: 100)
@@ -218,12 +221,13 @@ struct AuthenticationView: View {
                     Text("\(L10n.enterPassword)")
                 }
                 Spacer().frame(height: 32)
-                
-                if UserDefaultUtils.bool(forKey: .usesPinPassword) {
-                    if viewModel.isPinCodeInputEnabled {
+                let _ = print("Pin code input enabled", authType)
+                if viewModel.isPinCodeInputEnabled {
+                    
+                    switch authType {
+                    case "pinCode":
                         PinCodeView(pinCode: $enteredPassword, pinLength: AppConstants.pinCodeLength)
                             .onChange(of: enteredPassword) { oldValue, newValue in
-
                                 if PasswordValidator.validate(password: newValue) == .valid {
                                     viewModel.authenticatePassword(password: newValue)
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -231,18 +235,26 @@ struct AuthenticationView: View {
                                     }
                                 }
                             }
-                    } else if let lockoutTime = viewModel.remainingLockoutTime {
-                        Text(L10n.pinCodeLockTryAgainIn(lockoutTime.formatAsHoursMinutesSeconds()))
-                            .fontType(.pt14, weight: .bold)
-                            .opacity(0.5)
-                    }
-                } else {
-                    PasswordEntry(viewModel: .init(
-                        keyManager: viewModel.keyManager, stateUpdate: { update in
-                            if case .valid(let password) = update {
-                                viewModel.authenticatePassword(password: password)
+                    default:
+                        PasswordInputView(password: $enteredPassword) { password in
+                            viewModel.authenticatePassword(password: password)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                enteredPassword = ""
                             }
-                        }))
+                        }
+                    }
+                } else if let lockoutTime = viewModel.remainingLockoutTime {
+                    Text(L10n.pinCodeLockTryAgainIn(lockoutTime.formatAsHoursMinutesSeconds()))
+                        .fontType(.pt14, weight: .bold)
+                        .opacity(0.5)
+                }
+            } else {
+                // No password exists, show password input by default
+                PasswordInputView(password: $enteredPassword) { password in
+                    viewModel.authenticatePassword(password: password)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        enteredPassword = ""
+                    }
                 }
             }
 
@@ -271,7 +283,6 @@ struct AuthenticationView: View {
                             .fontType(.pt14, weight: .bold)
                     }
                 }.padding()
-                
             }
             Spacer()
         }
@@ -285,7 +296,6 @@ struct AuthenticationView: View {
         .gradientBackground()
         .ignoresSafeArea(edges: .bottom)
     }
-
 }
 
 struct AuthenticationView_Previews: PreviewProvider {
