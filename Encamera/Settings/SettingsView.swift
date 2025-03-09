@@ -214,7 +214,7 @@ struct SettingsView: View {
                         }
 
                         NavigationLink("Authentication method") {
-                            AuthenticationMethodView()
+                            AuthenticationMethodView(authManager: viewModel.authManager, keyManager: viewModel.keyManager)
                         }
 
                         biometricsToggle

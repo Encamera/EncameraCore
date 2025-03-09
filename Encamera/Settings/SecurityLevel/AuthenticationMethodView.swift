@@ -1,4 +1,5 @@
 import SwiftUI
+import EncameraCore
 
 enum AuthenticationMethodType: String, CaseIterable {
     case faceID = "Face ID only"
@@ -17,9 +18,59 @@ enum AuthenticationMethodType: String, CaseIterable {
     }
 }
 
+class AuthenticationMethodViewModel: ObservableObject {
+    @Published var selectedMethod: AuthenticationMethodType
+    @Published var showPinModal = false
+    @Published var showPasswordModal = false
+    
+    var authManager: AuthManager
+    var keyManager: KeyManager
+    
+    init(authManager: AuthManager, keyManager: KeyManager) {
+        self.authManager = authManager
+        self.keyManager = keyManager
+        
+        // Initialize with current authentication method from UserDefaults
+        let storedMethod = UserDefaultUtils.string(forKey: .authenticationMethodType)
+        switch storedMethod {
+        case "pinCode":
+            self.selectedMethod = .pinCode
+        case "password":
+            self.selectedMethod = .password
+        default:
+            self.selectedMethod = .faceID
+        }
+    }
+    
+    func selectMethod(_ method: AuthenticationMethodType) {
+        selectedMethod = method
+        
+        switch method {
+        case .pinCode:
+            if !keyManager.passwordExists() {
+                showPinModal = true
+            }
+            UserDefaultUtils.set(true, forKey: .usesPinPassword)
+            UserDefaultUtils.set("pinCode", forKey: .authenticationMethodType)
+            
+        case .password:
+            showPasswordModal = true
+            UserDefaultUtils.set(false, forKey: .usesPinPassword)
+            UserDefaultUtils.set("password", forKey: .authenticationMethodType)
+            
+        case .faceID:
+            UserDefaultUtils.set("faceID", forKey: .authenticationMethodType)
+        }
+    }
+}
+
 struct AuthenticationMethodView: View {
-    @State private var selectedMethod: AuthenticationMethodType = .faceID
+    @StateObject private var viewModel: AuthenticationMethodViewModel
     @Environment(\.presentationMode) private var presentationMode
+    
+    init(authManager: AuthManager, keyManager: KeyManager) {
+        _viewModel = StateObject(wrappedValue: AuthenticationMethodViewModel(authManager: authManager, keyManager: keyManager))
+    }
     
     private func popLastView() {
         presentationMode.wrappedValue.dismiss()
@@ -39,9 +90,9 @@ struct AuthenticationMethodView: View {
                         SecurityLevelOption(
                             title: method.rawValue,
                             securityLevel: method.securityLevel,
-                            isSelected: selectedMethod == method
+                            isSelected: viewModel.selectedMethod == method
                         ) {
-                            selectedMethod = method
+                            viewModel.selectMethod(method)
                         }
                     }
                 }
@@ -49,6 +100,18 @@ struct AuthenticationMethodView: View {
             }
             
             Spacer()
+        }
+        .sheet(isPresented: $viewModel.showPinModal) {
+            ChangePinModal(viewModel: .init(
+                authManager: viewModel.authManager,
+                keyManager: viewModel.keyManager
+            ))
+        }
+        .sheet(isPresented: $viewModel.showPasswordModal) {
+            SetPasswordView(viewModel: .init(
+                authManager: viewModel.authManager,
+                keyManager: viewModel.keyManager
+            ))
         }
         .toolbarRole(.editor)
         .toolbar {
@@ -75,6 +138,6 @@ struct AuthenticationMethodView: View {
 
 #Preview {
     NavigationStack {
-        AuthenticationMethodView()
+        AuthenticationMethodView(authManager: DemoAuthManager(), keyManager: DemoKeyManager())
     }
 } 

@@ -1,0 +1,112 @@
+import SwiftUI
+import EncameraCore
+
+class SetPasswordViewModel: ObservableObject {
+    @Published var password1: String = ""
+    @Published var password2: String = ""
+    @Published var errorMessage: String?
+    @Published var showSuccessAlert = false
+    
+    private var authManager: AuthManager
+    private var keyManager: KeyManager
+    
+    init(authManager: AuthManager, keyManager: KeyManager) {
+        self.authManager = authManager
+        self.keyManager = keyManager
+    }
+    
+    var isPasswordValid: Bool {
+        return password1.count >= 6 && password1 == password2
+    }
+    
+    func validateAndSavePassword() {
+        guard isPasswordValid else {
+            if password1.count < 6 {
+                errorMessage = "Password must be at least 6 characters"
+            } else {
+                errorMessage = "Passwords do not match"
+            }
+            return
+        }
+        
+        do {
+            try keyManager.setOrUpdatePassword(password1)
+            UserDefaultUtils.set("password", forKey: .authenticationMethodType)
+            UserDefaultUtils.set(false, forKey: .usesPinPassword)
+            showSuccessAlert = true
+        } catch {
+            errorMessage = "Failed to save password"
+        }
+    }
+}
+
+struct SetPasswordView: View {
+    @StateObject var viewModel: SetPasswordViewModel
+    @Environment(\.presentationMode) private var presentationMode
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Text("Set Password")
+                .fontType(.pt24, weight: .bold)
+            
+            Text("Create a strong password to protect your data")
+                .fontType(.pt14)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.gray)
+            
+            VStack(spacing: 16) {
+                SecureField("Enter password", text: $viewModel.password1)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.horizontal)
+                
+                SecureField("Confirm password", text: $viewModel.password2)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.horizontal)
+                
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .fontType(.pt14)
+                }
+            }
+            
+            Button(action: {
+                viewModel.validateAndSavePassword()
+            }) {
+                Text("Save Password")
+                    .fontType(.pt16, weight: .bold)
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(viewModel.isPasswordValid ? Color.actionYellowGreen : Color.gray)
+                    .cornerRadius(12)
+            }
+            .disabled(!viewModel.isPasswordValid)
+            .padding(.horizontal)
+            .padding(.top, 24)
+            
+            Spacer()
+        }
+        .padding(.top, 48)
+        .alert(isPresented: $viewModel.showSuccessAlert) {
+            Alert(
+                title: Text("Password Set Successfully"),
+                message: Text("Your new password has been saved"),
+                dismissButton: .default(Text("OK")) {
+                    presentationMode.wrappedValue.dismiss()
+                }
+            )
+        }
+        .overlay(alignment: .topLeading) {
+            DismissButton {
+                presentationMode.wrappedValue.dismiss()
+            }
+            .padding(20)
+        }
+        .gradientBackground()
+    }
+}
+
+#Preview {
+    SetPasswordView(viewModel: .init(authManager: DemoAuthManager(), keyManager: DemoKeyManager()))
+} 
