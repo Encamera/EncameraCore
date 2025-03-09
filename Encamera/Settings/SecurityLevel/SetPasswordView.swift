@@ -31,8 +31,7 @@ class SetPasswordViewModel: ObservableObject {
         
         do {
             try keyManager.setOrUpdatePassword(password1)
-            UserDefaultUtils.set("password", forKey: .authenticationMethodType)
-            UserDefaultUtils.set(false, forKey: .usesPinPassword)
+            UserDefaultUtils.set(AuthenticationMethodType.password.rawValue, forKey: .authenticationMethodType)
             showSuccessAlert = true
         } catch {
             errorMessage = "Failed to save password"

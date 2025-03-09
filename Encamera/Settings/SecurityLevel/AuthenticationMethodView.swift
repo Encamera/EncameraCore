@@ -1,22 +1,7 @@
 import SwiftUI
 import EncameraCore
-
-enum AuthenticationMethodType: String, CaseIterable {
-    case faceID = "Face ID only"
-    case pinCode = "PIN Code"
-    case password = "Password"
-    
-    var securityLevel: String {
-        switch self {
-        case .faceID:
-            return "Low protection"
-        case .pinCode:
-            return "Moderate protection"
-        case .password:
-            return "Strong protection"
-        }
-    }
-}
+import Foundation
+import Security
 
 class AuthenticationMethodViewModel: ObservableObject {
     @Published var selectedMethod: AuthenticationMethodType
@@ -26,19 +11,22 @@ class AuthenticationMethodViewModel: ObservableObject {
     var authManager: AuthManager
     var keyManager: KeyManager
     
+    var isFaceIDAvailable: Bool {
+        return authManager.availableBiometric != nil
+    }
+    
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
         
         // Initialize with current authentication method from UserDefaults
-        let storedMethod = UserDefaultUtils.string(forKey: .authenticationMethodType)
-        switch storedMethod {
-        case "pinCode":
-            self.selectedMethod = .pinCode
-        case "password":
-            self.selectedMethod = .password
-        default:
+        let storedMethod = AuthenticationMethodType(rawValue: UserDefaultUtils.string(forKey: .authenticationMethodType) ?? AuthenticationMethodType.pinCode.rawValue) ?? .pinCode
+        let hasFaceID = authManager.availableBiometric == .faceID && authManager.useBiometricsForAuth
+        
+        if hasFaceID && storedMethod == .faceID {
             self.selectedMethod = .faceID
+        } else {
+            self.selectedMethod = storedMethod
         }
     }
     
@@ -47,19 +35,29 @@ class AuthenticationMethodViewModel: ObservableObject {
         
         switch method {
         case .pinCode:
-            if !keyManager.passwordExists() {
-                showPinModal = true
-            }
-            UserDefaultUtils.set(true, forKey: .usesPinPassword)
-            UserDefaultUtils.set("pinCode", forKey: .authenticationMethodType)
+            // Always show PIN modal when selecting PIN, whether setting new or changing from password
+            showPinModal = true
             
         case .password:
             showPasswordModal = true
-            UserDefaultUtils.set(false, forKey: .usesPinPassword)
-            UserDefaultUtils.set("password", forKey: .authenticationMethodType)
             
         case .faceID:
-            UserDefaultUtils.set("faceID", forKey: .authenticationMethodType)
+            guard isFaceIDAvailable else {
+                return
+            }
+            try? keyManager.clearPassword()
+
+        }
+        UserDefaultUtils.set(method.rawValue, forKey: .authenticationMethodType)
+
+    }
+    
+    func canSelectMethod(_ method: AuthenticationMethodType) -> Bool {
+        switch method {
+        case .faceID:
+            return isFaceIDAvailable
+        case .pinCode, .password:
+            return true
         }
     }
 }
@@ -92,8 +90,11 @@ struct AuthenticationMethodView: View {
                             securityLevel: method.securityLevel,
                             isSelected: viewModel.selectedMethod == method
                         ) {
-                            viewModel.selectMethod(method)
+                            if viewModel.canSelectMethod(method) {
+                                viewModel.selectMethod(method)
+                            }
                         }
+                        .opacity(viewModel.canSelectMethod(method) ? 1.0 : 0.5)
                     }
                 }
                 .padding(.horizontal)
@@ -140,4 +141,5 @@ struct AuthenticationMethodView: View {
     NavigationStack {
         AuthenticationMethodView(authManager: DemoAuthManager(), keyManager: DemoKeyManager())
     }
-} 
+}
+
