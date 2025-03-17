@@ -21,7 +21,7 @@ private enum AuthenticationViewError: ErrorDescribable {
         case .noPasswordGiven:
             return L10n.missingPassword
         case .passwordIncorrect:
-            let authMethod = AuthenticationMethodManager.getCurrentAuthenticationMethod()
+            let authMethod = AuthenticationMethodManager.getUserInputAuthenticationMethod()
             if authMethod == .pinCode {
                 return L10n.incorrectPinCode
             }
@@ -83,7 +83,7 @@ class AuthenticationViewModel: ObservableObject {
         self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)
         setupLockoutTimer()
 
-        let authMethod = AuthenticationMethodManager.getCurrentAuthenticationMethod()
+        let authMethod = AuthenticationMethodManager.getUserInputAuthenticationMethod()
         if authMethod == .pinCode {
             $enteredPassword
                 .dropFirst()
@@ -208,7 +208,11 @@ struct AuthenticationView: View {
     @State var enteredPassword: String = ""
     
     private var authType: AuthenticationMethodType {
-        return AuthenticationMethodManager.getCurrentAuthenticationMethod()
+        return AuthenticationMethodManager.getUserInputAuthenticationMethod()
+    }
+    
+    private var hasFaceID: Bool {
+        return AuthenticationMethodManager.hasBiometricAuthenticationMethod()
     }
     
     var body: some View {

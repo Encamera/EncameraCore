@@ -31,7 +31,7 @@ class ChangePinModalViewModel: ObservableObject {
         self.completedAction = completedAction
     }
 
-    @discardableResult func validatePassword() throws -> PasswordValidation {
+    @discardableResult func validatePinCode() throws -> PasswordValidation {
         let state = PasswordValidator.validatePasswordPair(enteredPinCode, password2: enteredPinCode)
 
         if state != .valid {
@@ -40,11 +40,11 @@ class ChangePinModalViewModel: ObservableObject {
         return state
     }
 
-    @MainActor func savePassword() throws {
-        let validation = try validatePassword()
+    @MainActor func savePinCode() throws {
+        let validation = try validatePinCode()
         if validation == .valid  {
             try keyManager.setOrUpdatePassword(enteredPinCode)
-            AuthenticationMethodManager.setAuthenticationMethod(.pinCode)
+            AuthenticationMethodManager.addAuthenticationMethod(.pinCode)
         } else {
             throw OnboardingViewError.passwordInvalid
         }
@@ -143,7 +143,7 @@ struct ChangePinModal: View {
                             if viewModel.doesPinCodeMatchNew(pinCode: newValue) {
                                 viewModel.pinCodeError = nil
                                 do {
-                                    try viewModel.savePassword()
+                                    try viewModel.savePinCode()
                                     viewModel.showPasswordChangedAlert = true
                                 } catch {
                                     viewModel.pinCodeError = "Error saving password"

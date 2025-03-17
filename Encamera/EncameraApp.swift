@@ -65,6 +65,8 @@ struct EncameraApp: App {
             self.onboardingManager = OnboardingManager(keyManager: keyManager, authManager: authManager, settingsManager: settingsManager)
             self.cameraService = CameraConfigurationService(model: CameraConfigurationServiceModel())
             self.keychainMigrationUtil.completeMigration()
+            
+            
             self.onboardingManager
                 .observables
                 .$shouldShowOnboarding

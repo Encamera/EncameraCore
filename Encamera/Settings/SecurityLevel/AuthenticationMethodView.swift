@@ -4,10 +4,12 @@ import Foundation
 import Security
 
 class AuthenticationMethodViewModel: ObservableObject {
-    @Published var selectedMethod: AuthenticationMethodType
+    @Published var selectedMethods: [AuthenticationMethodType] = []
     @Published var showPinModal = false
     @Published var showPasswordModal = false
     @Published var showFaceIDAlert = false
+    @Published var showIncompatibleMethodAlert = false
+    @Published var incompatibleMethod: AuthenticationMethodType?
     
     var authManager: AuthManager
     var keyManager: KeyManager
@@ -24,52 +26,79 @@ class AuthenticationMethodViewModel: ObservableObject {
         self.authManager = authManager
         self.keyManager = keyManager
         
-        // Initialize with current authentication method from UserDefaults
+        self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
+        
+        // If FaceID is available and enabled in the auth manager but not in our methods, add it
         let hasFaceID = authManager.availableBiometric == .faceID && authManager.useBiometricsForAuth
-        var storedMethod: AuthenticationMethodType? = hasFaceID == true ? .faceID : nil
-        storedMethod = AuthenticationMethodManager.getCurrentAuthenticationMethod()
-
-        if hasFaceID && storedMethod == .faceID {
-            self.selectedMethod = .faceID
-        } else {
-            self.selectedMethod = storedMethod!
+        if hasFaceID && !selectedMethods.contains(.faceID) {
+            _ = AuthenticationMethodManager.addAuthenticationMethod(.faceID)
+            self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
         }
     }
     
-    func selectMethod(_ method: AuthenticationMethodType) {
-        switch method {
-        case .pinCode:
-            // Show PIN modal for setup
-            showPinModal = true
-            
-        case .password:
-            // Show password modal for setup
-            showPasswordModal = true
-            
-        case .faceID:
-            guard isFaceIDAvailable else {
+    func toggleMethod(_ method: AuthenticationMethodType) {
+        if isMethodSelected(method) {
+            // Don't allow removing the last method
+            if selectedMethods.count <= 1 {
                 return
             }
             
-            // If user has a password and is switching to Face ID, show alert
-            if hasPassword {
-                showFaceIDAlert = true
-            } else {
-                applyFaceIDSelection()
+            // Remove the method
+            AuthenticationMethodManager.removeAuthenticationMethod(method)
+            self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
+        } else {
+            // Try to add the method
+            switch method {
+            case .pinCode:
+                // Show PIN modal for setup
+                showPinModal = true
+                
+            case .password:
+                // Show password modal for setup
+                showPasswordModal = true
+                
+            case .faceID:
+                guard isFaceIDAvailable else {
+                    return
+                }
+                
+                // If user has a password and is switching to Face ID, show alert
+                if hasPassword {
+                    showFaceIDAlert = true
+                } else {
+                    applyFaceIDSelection()
+                }
             }
         }
     }
     
     func applyFaceIDSelection() {
-        try? keyManager.clearPassword()
-        // Only update method immediately for FaceID since it doesn't require additional setup
-        selectedMethod = .faceID
-        AuthenticationMethodManager.setAuthenticationMethod(.faceID)
+        // Add FaceID to the authentication methods
+        let success = AuthenticationMethodManager.addAuthenticationMethod(.faceID)
+        if !success {
+            // Handle incompatible methods
+            incompatibleMethod = .faceID
+            showIncompatibleMethodAlert = true
+            return
+        }
+        
+        self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
     }
     
-    func updateSelectedMethod(_ method: AuthenticationMethodType) {
-        selectedMethod = method
-        AuthenticationMethodManager.setAuthenticationMethod(method)
+    func addMethod(_ method: AuthenticationMethodType) {
+        let success = AuthenticationMethodManager.addAuthenticationMethod(method)
+        if !success {
+            // Handle incompatible methods
+            incompatibleMethod = method
+            showIncompatibleMethodAlert = true
+            return
+        }
+        
+        self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
+    }
+    
+    func isMethodSelected(_ method: AuthenticationMethodType) -> Bool {
+        return AuthenticationMethodManager.hasAuthenticationMethod(method)
     }
     
     func canSelectMethod(_ method: AuthenticationMethodType) -> Bool {
@@ -95,14 +124,7 @@ struct AuthenticationMethodView: View {
     }
     
     private func getMethodTitle(_ method: AuthenticationMethodType) -> String {
-        let biometricType = viewModel.authManager.deviceBiometryType
-        let useBiometrics = viewModel.authManager.useBiometricsForAuth
-        
-        if useBiometrics && biometricType != nil && method != .faceID {
-            return "\(method.rawValue) & \(biometricType!.nameForMethod)"
-        } else {
-            return method.rawValue
-        }
+        return method.rawValue
     }
     
     var body: some View {
@@ -114,15 +136,20 @@ struct AuthenticationMethodView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
                 
+                Text("You can select multiple authentication methods")
+                    .fontType(.pt12)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
+                
                 VStack(spacing: 16) {
                     ForEach(AuthenticationMethodType.allCases, id: \.self) { method in
                         SecurityLevelOption(
                             title: getMethodTitle(method),
                             securityLevel: method.securityLevel,
-                            isSelected: viewModel.selectedMethod == method
+                            isSelected: viewModel.isMethodSelected(method)
                         ) {
                             if viewModel.canSelectMethod(method) {
-                                viewModel.selectMethod(method)
+                                viewModel.toggleMethod(method)
                             }
                         }
                         .opacity(viewModel.canSelectMethod(method) ? 1.0 : 0.5)
@@ -158,6 +185,21 @@ struct AuthenticationMethodView: View {
             },
             message: {
                 Text(L10n.FaceIDOnlyAlert.message)
+            }
+        )
+        .alert(
+            "Incompatible Authentication Methods",
+            isPresented: $viewModel.showIncompatibleMethodAlert,
+            actions: {
+                Button("OK", role: .cancel) {
+                }
+            },
+            message: {
+                if let method = viewModel.incompatibleMethod {
+                    Text("\(method.rawValue) cannot be used with the currently selected methods. PIN and Password cannot be used together.")
+                } else {
+                    Text("The selected authentication methods are incompatible.")
+                }
             }
         )
         .toolbarRole(.editor)
