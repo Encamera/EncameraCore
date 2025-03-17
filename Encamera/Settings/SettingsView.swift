@@ -229,14 +229,16 @@ struct SettingsView: View {
 
                     }
                     Section {
-                        Button {
-                            if viewModel.isUsingPinCode {
-                                viewModel.showChangePin = true
-                            } else {
-                                viewModel.showChangePassword = true
+                        if viewModel.keyManager.passwordExists() {
+                            Button {
+                                if viewModel.isUsingPinCode {
+                                    viewModel.showChangePin = true
+                                } else {
+                                    viewModel.showChangePassword = true
+                                }
+                            } label: {
+                                Text(viewModel.isUsingPinCode ? L10n.changePinCode : L10n.changePassword)
                             }
-                        } label: {
-                            Text(viewModel.isUsingPinCode ? L10n.changePinCode : L10n.changePassword)
                         }
 
                         NavigationLink(L10n.authenticationMethod) {
