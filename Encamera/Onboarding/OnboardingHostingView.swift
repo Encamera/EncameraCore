@@ -132,7 +132,7 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
                 } else {
                     fatalError("No password or biometrics")
                 }
-                AuthenticationMethodManager.setAuthenticationMethod(.pinCode)
+                authManager.setAuthenticationMethod(.pinCode)
 
                 let keys = try? keyManager.storedKeys()
                 if keys == nil || keys?.isEmpty ?? false {

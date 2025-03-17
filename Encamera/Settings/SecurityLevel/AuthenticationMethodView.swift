@@ -26,13 +26,13 @@ class AuthenticationMethodViewModel: ObservableObject {
         self.authManager = authManager
         self.keyManager = keyManager
         
-        self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
+        self.selectedMethods = authManager.getAuthenticationMethods()
         
         // If FaceID is available and enabled in the auth manager but not in our methods, add it
         let hasFaceID = authManager.availableBiometric == .faceID && authManager.useBiometricsForAuth
         if hasFaceID && !selectedMethods.contains(.faceID) {
-            _ = AuthenticationMethodManager.addAuthenticationMethod(.faceID)
-            self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
+            _ = authManager.addAuthenticationMethod(.faceID)
+            self.selectedMethods = authManager.getAuthenticationMethods()
         }
     }
     
@@ -44,8 +44,8 @@ class AuthenticationMethodViewModel: ObservableObject {
             }
             
             // Remove the method
-            AuthenticationMethodManager.removeAuthenticationMethod(method)
-            self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
+            authManager.removeAuthenticationMethod(method)
+            self.selectedMethods = authManager.getAuthenticationMethods()
         } else {
             // Try to add the method
             switch method {
@@ -74,7 +74,7 @@ class AuthenticationMethodViewModel: ObservableObject {
     
     func applyFaceIDSelection() {
         // Add FaceID to the authentication methods
-        let success = AuthenticationMethodManager.addAuthenticationMethod(.faceID)
+        let success = authManager.addAuthenticationMethod(.faceID)
         if !success {
             // Handle incompatible methods
             incompatibleMethod = .faceID
@@ -82,11 +82,11 @@ class AuthenticationMethodViewModel: ObservableObject {
             return
         }
         
-        self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
+        self.selectedMethods = authManager.getAuthenticationMethods()
     }
     
     func addMethod(_ method: AuthenticationMethodType) {
-        let success = AuthenticationMethodManager.addAuthenticationMethod(method)
+        let success = authManager.addAuthenticationMethod(method)
         if !success {
             // Handle incompatible methods
             incompatibleMethod = method
@@ -94,11 +94,11 @@ class AuthenticationMethodViewModel: ObservableObject {
             return
         }
         
-        self.selectedMethods = AuthenticationMethodManager.getAuthenticationMethods()
+        self.selectedMethods = authManager.getAuthenticationMethods()
     }
     
     func isMethodSelected(_ method: AuthenticationMethodType) -> Bool {
-        return AuthenticationMethodManager.hasAuthenticationMethod(method)
+        return authManager.hasAuthenticationMethod(method)
     }
     
     func canSelectMethod(_ method: AuthenticationMethodType) -> Bool {

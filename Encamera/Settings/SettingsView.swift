@@ -57,23 +57,23 @@ class SettingsViewViewModel: ObservableObject {
     }
     
     var currentAuthenticationMethod: AuthenticationMethodType {
-        return AuthenticationMethodManager.getUserInputAuthenticationMethod()
+        return authManager.getUserInputAuthenticationMethod()
     }
     
     var authenticationMethods: [AuthenticationMethodType] {
-        return AuthenticationMethodManager.getAuthenticationMethods()
+        return authManager.getAuthenticationMethods()
     }
     
     var isUsingPinCode: Bool {
-        return AuthenticationMethodManager.hasAuthenticationMethod(.pinCode)
+        return authManager.hasAuthenticationMethod(.pinCode)
     }
     
     var isUsingPassword: Bool {
-        return AuthenticationMethodManager.hasAuthenticationMethod(.password)
+        return authManager.hasAuthenticationMethod(.password)
     }
     
     var hasBiometricAuthentication: Bool {
-        return AuthenticationMethodManager.hasBiometricAuthenticationMethod()
+        return authManager.hasBiometricAuthenticationMethod()
     }
     
     @MainActor

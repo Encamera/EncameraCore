@@ -21,7 +21,7 @@ private enum AuthenticationViewError: ErrorDescribable {
         case .noPasswordGiven:
             return L10n.missingPassword
         case .passwordIncorrect:
-            let authMethod = AuthenticationMethodManager.getUserInputAuthenticationMethod()
+            let authMethod = DeviceAuthManager.getUserInputAuthenticationMethod()
             if authMethod == .pinCode {
                 return L10n.incorrectPinCode
             }
@@ -52,7 +52,7 @@ extension TimeInterval {
 
 @MainActor
 class AuthenticationViewModel: ObservableObject {
-    private var authManager: AuthManager
+    var authManager: AuthManager
     var keyManager: KeyManager
     @Published fileprivate var displayedError: AuthenticationViewError?
     @Published var enteredPassword: String = ""
@@ -83,7 +83,7 @@ class AuthenticationViewModel: ObservableObject {
         self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)
         setupLockoutTimer()
 
-        let authMethod = AuthenticationMethodManager.getUserInputAuthenticationMethod()
+        let authMethod = authManager.getUserInputAuthenticationMethod()
         if authMethod == .pinCode {
             $enteredPassword
                 .dropFirst()
@@ -208,11 +208,11 @@ struct AuthenticationView: View {
     @State var enteredPassword: String = ""
     
     private var authType: AuthenticationMethodType {
-        return AuthenticationMethodManager.getUserInputAuthenticationMethod()
+        return viewModel.authManager.getUserInputAuthenticationMethod()
     }
     
     private var hasFaceID: Bool {
-        return AuthenticationMethodManager.hasBiometricAuthenticationMethod()
+        return viewModel.authManager.hasBiometricAuthenticationMethod()
     }
     
     var body: some View {

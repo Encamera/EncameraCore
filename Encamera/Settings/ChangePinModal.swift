@@ -44,7 +44,7 @@ class ChangePinModalViewModel: ObservableObject {
         let validation = try validatePinCode()
         if validation == .valid  {
             try keyManager.setOrUpdatePassword(enteredPinCode)
-            AuthenticationMethodManager.addAuthenticationMethod(.pinCode)
+            authManager.addAuthenticationMethod(.pinCode)
         } else {
             throw OnboardingViewError.passwordInvalid
         }
