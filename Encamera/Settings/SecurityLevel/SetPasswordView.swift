@@ -9,13 +9,11 @@ class SetPasswordViewModel: ObservableObject {
     
     private var authManager: AuthManager
     private var keyManager: KeyManager
-    private var parentViewModel: AuthenticationMethodViewModel?
     var completedAction: (() -> Void)?
     
-    init(authManager: AuthManager, keyManager: KeyManager, parentViewModel: AuthenticationMethodViewModel? = nil, completedAction: (() -> Void)? = nil) {
+    init(authManager: AuthManager, keyManager: KeyManager, completedAction: (() -> Void)? = nil) {
         self.authManager = authManager
         self.keyManager = keyManager
-        self.parentViewModel = parentViewModel
         self.completedAction = completedAction
     }
     
@@ -35,7 +33,7 @@ class SetPasswordViewModel: ObservableObject {
         
         do {
             try keyManager.setOrUpdatePassword(password1)
-            parentViewModel?.updateSelectedMethod(.password)
+            AuthenticationMethodManager.setAuthenticationMethod(.password)
             showSuccessAlert = true
             completedAction?()
         } catch {

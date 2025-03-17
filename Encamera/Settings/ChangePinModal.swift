@@ -19,17 +19,15 @@ class ChangePinModalViewModel: ObservableObject {
     var completedAction: (() -> Void)?
     private var authManager: AuthManager
     private var keyManager: KeyManager
-    private var parentViewModel: AuthenticationMethodViewModel?
     
 
     func doesPinCodeMatchNew(pinCode: String) -> Bool {
         return PasswordValidator.validatePasswordPair(pinCode, password2: enteredPinCode) == .valid
     }
 
-    init(authManager: AuthManager, keyManager: KeyManager, parentViewModel: AuthenticationMethodViewModel? = nil, completedAction: (() -> Void)? = nil) {
+    init(authManager: AuthManager, keyManager: KeyManager, completedAction: (() -> Void)? = nil) {
         self.authManager = authManager
         self.keyManager = keyManager
-        self.parentViewModel = parentViewModel
         self.completedAction = completedAction
     }
 
@@ -46,7 +44,7 @@ class ChangePinModalViewModel: ObservableObject {
         let validation = try validatePassword()
         if validation == .valid  {
             try keyManager.setOrUpdatePassword(enteredPinCode)
-            parentViewModel?.updateSelectedMethod(.pinCode)
+            AuthenticationMethodManager.setAuthenticationMethod(.pinCode)
         } else {
             throw OnboardingViewError.passwordInvalid
         }

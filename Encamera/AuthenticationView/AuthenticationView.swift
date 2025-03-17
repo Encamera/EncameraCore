@@ -21,7 +21,7 @@ private enum AuthenticationViewError: ErrorDescribable {
         case .noPasswordGiven:
             return L10n.missingPassword
         case .passwordIncorrect:
-            let authMethod = AuthenticationMethodType(rawValue: UserDefaultUtils.string(forKey: .authenticationMethodType) ?? AuthenticationMethodType.pinCode.rawValue)
+            let authMethod = AuthenticationMethodManager.getCurrentAuthenticationMethod()
             if authMethod == .pinCode {
                 return L10n.incorrectPinCode
             }
@@ -83,7 +83,7 @@ class AuthenticationViewModel: ObservableObject {
         self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)
         setupLockoutTimer()
 
-        let authMethod = AuthenticationMethodType(rawValue: UserDefaultUtils.string(forKey: .authenticationMethodType) ?? AuthenticationMethodType.pinCode.rawValue)
+        let authMethod = AuthenticationMethodManager.getCurrentAuthenticationMethod()
         if authMethod == .pinCode {
             $enteredPassword
                 .dropFirst()
@@ -208,10 +208,7 @@ struct AuthenticationView: View {
     @State var enteredPassword: String = ""
     
     private var authType: AuthenticationMethodType {
-        guard let method = UserDefaultUtils.string(forKey: .authenticationMethodType) else {
-            return .pinCode
-        }
-        return AuthenticationMethodType(rawValue: method) ?? .pinCode
+        return AuthenticationMethodManager.getCurrentAuthenticationMethod()
     }
     
     var body: some View {

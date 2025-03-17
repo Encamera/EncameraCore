@@ -57,8 +57,7 @@ class SettingsViewViewModel: ObservableObject {
     }
     
     var currentAuthenticationMethod: AuthenticationMethodType {
-        let storedMethod = AuthenticationMethodType(rawValue: UserDefaultUtils.string(forKey: .authenticationMethodType) ?? AuthenticationMethodType.pinCode.rawValue) ?? .pinCode
-        return storedMethod
+        return AuthenticationMethodManager.getCurrentAuthenticationMethod()
     }
     
     var isUsingPinCode: Bool {

@@ -27,14 +27,12 @@ class AuthenticationMethodViewModel: ObservableObject {
         // Initialize with current authentication method from UserDefaults
         let hasFaceID = authManager.availableBiometric == .faceID && authManager.useBiometricsForAuth
         var storedMethod: AuthenticationMethodType? = hasFaceID == true ? .faceID : nil
-        if let authType = UserDefaultUtils.string(forKey: .authenticationMethodType) {
-            storedMethod = AuthenticationMethodType(rawValue: authType)
-        }
+        storedMethod = AuthenticationMethodManager.getCurrentAuthenticationMethod()
 
         if hasFaceID && storedMethod == .faceID {
             self.selectedMethod = .faceID
         } else {
-            self.selectedMethod = storedMethod!
+            self.selectedMethod = storedMethod
         }
     }
     
@@ -66,12 +64,12 @@ class AuthenticationMethodViewModel: ObservableObject {
         try? keyManager.clearPassword()
         // Only update method immediately for FaceID since it doesn't require additional setup
         selectedMethod = .faceID
-        UserDefaultUtils.set(AuthenticationMethodType.faceID.rawValue, forKey: .authenticationMethodType)
+        AuthenticationMethodManager.setAuthenticationMethod(.faceID)
     }
     
     func updateSelectedMethod(_ method: AuthenticationMethodType) {
         selectedMethod = method
-        UserDefaultUtils.set(method.rawValue, forKey: .authenticationMethodType)
+        AuthenticationMethodManager.setAuthenticationMethod(method)
     }
     
     func canSelectMethod(_ method: AuthenticationMethodType) -> Bool {
@@ -138,15 +136,13 @@ struct AuthenticationMethodView: View {
         .sheet(isPresented: $viewModel.showPinModal) {
             ChangePinModal(viewModel: .init(
                 authManager: viewModel.authManager,
-                keyManager: viewModel.keyManager,
-                parentViewModel: viewModel
+                keyManager: viewModel.keyManager
             ))
         }
         .sheet(isPresented: $viewModel.showPasswordModal) {
             SetPasswordView(viewModel: .init(
                 authManager: viewModel.authManager,
-                keyManager: viewModel.keyManager,
-                parentViewModel: viewModel
+                keyManager: viewModel.keyManager
             ))
         }
         .alert(

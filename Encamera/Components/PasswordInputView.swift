@@ -19,16 +19,12 @@ struct PasswordInputView: View {
                             contentType: .password,
                             text: $password,
                             becomeFirstResponder: true)
-                .frame(width: Constants.frameWidth)
+                
             
             Button("Submit") {
                 onSubmit(password)
             }
-            .fontType(.pt16, weight: .bold)
-            .foregroundColor(.black)
-            .frame(width: Constants.frameWidth, height: Constants.frameHeight)
-            .background(!password.isEmpty ? Color.actionYellowGreen : Color.gray)
-            .cornerRadius(Constants.cornerRadius)
+            .primaryButton()
             .disabled(password.isEmpty)
         }
     }
