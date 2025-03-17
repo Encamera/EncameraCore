@@ -467,6 +467,10 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
     }
 
+    func selectAllMedia() {
+        gridViewModel.selectedMedia = Set(gridViewModel.media)
+    }
+
     func shareSelected() {
         let sharingUtil = ShareMediaUtil(fileAccess: fileManager, targetMedia: Array(selectedMedia))
         Task {
@@ -815,6 +819,8 @@ struct AlbumDetailView<D: FileAccess>: View {
             viewModel.shareSelected()
         }, deleteAction: {
             viewModel.activeAlert = .deleteSelectedMedia
+        }, selectAllAction: {
+            viewModel.selectAllMedia()
         }, selectedMedia: $viewModel.selectedMedia, showShareOption: .constant(true))
     }
 

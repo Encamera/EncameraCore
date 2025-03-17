@@ -5,6 +5,7 @@ struct MediaSelectionTray: View {
 
     var shareAction: () -> Void
     var deleteAction: () -> Void
+    var selectAllAction: (() -> Void)? = nil
 
     @Binding var selectedMedia: Set<InteractableMedia<EncryptedMedia>>
     @Binding var showShareOption: Bool
@@ -14,6 +15,14 @@ struct MediaSelectionTray: View {
         VStack {
             ZStack {
                 HStack {
+                    if let selectAllAction = selectAllAction {
+                        Button(action: {
+                            selectAllAction()
+                        }) {
+                            Text(L10n.selectAll)
+                        }
+                        .textButton()
+                    }
                     Spacer()
                     Menu {
                         //                    Button(action: {
@@ -54,6 +63,7 @@ struct MediaSelectionTray: View {
                 }
                 Text(selectedMediaCount == 0 ? L10n.MediaSelectionTray.selectMedia : "\(L10n.imageS(selectedMedia.count)) \(L10n.MediaSelectionTray.itemSelected)")
                     .foregroundColor(.white)
+                    .fontType(.pt14)
             }
             Spacer().frame(height: 18)
         }
