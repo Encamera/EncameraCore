@@ -7,9 +7,10 @@ class AuthenticationMethodViewModel: ObservableObject {
     @Published var selectedMethods: [AuthenticationMethodType] = []
     @Published var showPinModal = false
     @Published var showPasswordModal = false
-    @Published var showFaceIDAlert = false
     @Published var showIncompatibleMethodAlert = false
     @Published var incompatibleMethod: AuthenticationMethodType?
+    @Published var methodToDisable: AuthenticationMethodType?
+    @Published var showDisableConfirmation = false
     
     var authManager: AuthManager
     var keyManager: KeyManager
@@ -43,9 +44,9 @@ class AuthenticationMethodViewModel: ObservableObject {
                 return
             }
             
-            // Remove the method
-            authManager.removeAuthenticationMethod(method)
-            self.selectedMethods = authManager.getAuthenticationMethods()
+            // Show confirmation before disabling
+            methodToDisable = method
+            showDisableConfirmation = true
         } else {
             // Try to add the method
             switch method {
@@ -62,14 +63,15 @@ class AuthenticationMethodViewModel: ObservableObject {
                     return
                 }
                 
-                // If user has a password and is switching to Face ID, show alert
-                if hasPassword {
-                    showFaceIDAlert = true
-                } else {
-                    applyFaceIDSelection()
-                }
+                applyFaceIDSelection()
             }
         }
+    }
+    
+    func disableMethod(_ method: AuthenticationMethodType) {
+        // Remove the method
+        authManager.removeAuthenticationMethod(method)
+        self.selectedMethods = authManager.getAuthenticationMethods()
     }
     
     func applyFaceIDSelection() {
@@ -124,7 +126,7 @@ struct AuthenticationMethodView: View {
     }
     
     private func getMethodTitle(_ method: AuthenticationMethodType) -> String {
-        return method.rawValue
+        return method.textDescription
     }
     
     var body: some View {
@@ -136,10 +138,23 @@ struct AuthenticationMethodView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
                 
-                Text("You can select multiple authentication methods")
+                Text(L10n.AuthenticationMethod.multipleMethodsInfo)
                     .fontType(.pt12)
                     .foregroundColor(.gray)
                     .padding(.horizontal)
+                
+                // Banner for tap to disable
+                if !viewModel.selectedMethods.isEmpty {
+                    Text(L10n.AuthenticationMethod.tapToDisableBanner)
+                        .fontType(.pt12)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                }
                 
                 VStack(spacing: 16) {
                     ForEach(AuthenticationMethodType.allCases, id: \.self) { method in
@@ -149,7 +164,12 @@ struct AuthenticationMethodView: View {
                             isSelected: viewModel.isMethodSelected(method)
                         ) {
                             if viewModel.canSelectMethod(method) {
-                                viewModel.toggleMethod(method)
+                                // Only allow toggling if not the last method when trying to disable
+                                if viewModel.isMethodSelected(method) && viewModel.selectedMethods.count <= 1 {
+                                    // Do nothing - can't disable the last method
+                                } else {
+                                    viewModel.toggleMethod(method)
+                                }
                             }
                         }
                         .opacity(viewModel.canSelectMethod(method) ? 1.0 : 0.5)
@@ -157,7 +177,8 @@ struct AuthenticationMethodView: View {
                 }
                 .padding(.horizontal)
             }
-            
+            .screenBlocked()
+
             Spacer()
         }
         .sheet(isPresented: $viewModel.showPinModal) {
@@ -173,32 +194,40 @@ struct AuthenticationMethodView: View {
             ))
         }
         .alert(
-            L10n.FaceIDOnlyAlert.title,
-            isPresented: $viewModel.showFaceIDAlert,
+            L10n.AuthenticationMethod.disableTitle,
+            isPresented: $viewModel.showDisableConfirmation,
             actions: {
-                Button(L10n.FaceIDOnlyAlert.cancel, role: .cancel) {
+                Button(L10n.AuthenticationMethod.cancel, role: .cancel) {
+                    viewModel.methodToDisable = nil
                 }
                 
-                Button(L10n.FaceIDOnlyAlert.continue) {
-                    viewModel.applyFaceIDSelection()
+                Button(L10n.AuthenticationMethod.disable, role: .destructive) {
+                    if let method = viewModel.methodToDisable {
+                        viewModel.disableMethod(method)
+                    }
+                    viewModel.methodToDisable = nil
                 }
             },
             message: {
-                Text(L10n.FaceIDOnlyAlert.message)
+                if let method = viewModel.methodToDisable {
+                    Text(L10n.AuthenticationMethod.confirmDisable(method.textDescription))
+                } else {
+                    Text(L10n.AuthenticationMethod.confirmDisableGeneric)
+                }
             }
         )
         .alert(
-            "Incompatible Authentication Methods",
+            L10n.AuthenticationMethod.incompatibleTitle,
             isPresented: $viewModel.showIncompatibleMethodAlert,
             actions: {
-                Button("OK", role: .cancel) {
+                Button(L10n.AuthenticationMethod.ok, role: .cancel) {
                 }
             },
             message: {
                 if let method = viewModel.incompatibleMethod {
-                    Text("\(method.rawValue) cannot be used with the currently selected methods. PIN and Password cannot be used together.")
+                    Text(L10n.AuthenticationMethod.incompatibleDetail(method.rawValue))
                 } else {
-                    Text("The selected authentication methods are incompatible.")
+                    Text(L10n.AuthenticationMethod.incompatibleMessage)
                 }
             }
         )
@@ -215,7 +244,6 @@ struct AuthenticationMethodView: View {
             }
         }
         .gradientBackground()
-        .screenBlocked()
     }
 }
 
