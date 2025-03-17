@@ -32,7 +32,7 @@ class AuthenticationMethodViewModel: ObservableObject {
         if hasFaceID && storedMethod == .faceID {
             self.selectedMethod = .faceID
         } else {
-            self.selectedMethod = storedMethod
+            self.selectedMethod = storedMethod!
         }
     }
     
