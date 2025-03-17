@@ -207,8 +207,11 @@ struct AuthenticationView: View {
     @StateObject var viewModel: AuthenticationViewModel
     @State var enteredPassword: String = ""
     
-    private var authType: String {
-        UserDefaultUtils.string(forKey: .authenticationMethodType) ?? "password"
+    private var authType: AuthenticationMethodType {
+        guard let method = UserDefaultUtils.string(forKey: .authenticationMethodType) else {
+            return .pinCode
+        }
+        return AuthenticationMethodType(rawValue: method) ?? .pinCode
     }
     
     var body: some View {
@@ -227,7 +230,7 @@ struct AuthenticationView: View {
                 if viewModel.isPinCodeInputEnabled {
                     
                     switch authType {
-                    case "pinCode":
+                    case .pinCode:
                         PinCodeView(pinCode: $enteredPassword, pinLength: AppConstants.pinCodeLength)
                             .onChange(of: enteredPassword) { oldValue, newValue in
                                 if PasswordValidator.validate(password: newValue) == .valid {
@@ -249,14 +252,6 @@ struct AuthenticationView: View {
                     Text(L10n.pinCodeLockTryAgainIn(lockoutTime.formatAsHoursMinutesSeconds()))
                         .fontType(.pt14, weight: .bold)
                         .opacity(0.5)
-                }
-            } else {
-                // No password exists, show password input by default
-                PasswordInputView(password: $enteredPassword) { password in
-                    viewModel.authenticatePassword(password: password)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        enteredPassword = ""
-                    }
                 }
             }
 

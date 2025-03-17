@@ -40,6 +40,7 @@ struct EncameraTextField: View {
     private var contentType: UITextContentType?
     private var onSubmit: (() -> ())?
     @State private var becomeFirstResponder: Bool
+    @State private var showSecureText: Bool = false
     @Binding var text: String
     @FocusState var isFieldFocused
     
@@ -62,25 +63,34 @@ struct EncameraTextField: View {
     
     var body: some View {
         ZStack(alignment: .leading) {
+            HStack {
                 field
                     .focused($isFieldFocused)
-                    .padding(.leading)
                     .modifier(EncameraInputTextField())
-
-
-                if text.isEmpty {
-                    Text(placeholder)
-                        .fontType(.pt18)
-                        .padding(.leading)
-                        .onTapGesture {
-                            isFieldFocused = true
-                        }
+                
+                if fieldType == .secure {
+                    Button(action: {
+                        showSecureText.toggle()
+                    }) {
+                        Image(systemName: showSecureText ? "eye.slash.fill" : "eye.fill")
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.trailing)
                 }
+            }
+
+            if text.isEmpty {
+                Text(placeholder)
+                    .fontType(.pt18)
+                    .padding(.leading)
+                    .onTapGesture {
+                        isFieldFocused = true
+                    }
+            }
         }
     }
     
     @ViewBuilder private var field: some View {
-        
         switch fieldType {
         case .normal:
             TextField("", text: $text)
@@ -92,13 +102,26 @@ struct EncameraTextField: View {
                 }
                 .textContentType(contentType)
                 .accessibilityIdentifier(self.accessibilityIdentifier ?? "")
+                .padding(.leading)
 
         case .secure:
-            SecureField("", text: $text)
-                .introspectTextField { textField in
-                    handleIntrospectTextField(textField)
+            Group {
+                if showSecureText {
+                    TextField("", text: $text)
+                        .introspectTextField { textField in
+                            handleIntrospectTextField(textField)
+                        }
+                        .textContentType(contentType)
+                        .padding(.leading)
+                } else {
+                    SecureField("", text: $text)
+                        .introspectTextField { textField in
+                            handleIntrospectTextField(textField)
+                        }
+                        .textContentType(contentType)
+                        .padding(.leading)
                 }
-                .textContentType(contentType)
+            }
         }
     }
 

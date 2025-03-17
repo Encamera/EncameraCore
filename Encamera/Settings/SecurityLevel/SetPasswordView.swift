@@ -9,10 +9,14 @@ class SetPasswordViewModel: ObservableObject {
     
     private var authManager: AuthManager
     private var keyManager: KeyManager
+    private var parentViewModel: AuthenticationMethodViewModel?
+    var completedAction: (() -> Void)?
     
-    init(authManager: AuthManager, keyManager: KeyManager) {
+    init(authManager: AuthManager, keyManager: KeyManager, parentViewModel: AuthenticationMethodViewModel? = nil, completedAction: (() -> Void)? = nil) {
         self.authManager = authManager
         self.keyManager = keyManager
+        self.parentViewModel = parentViewModel
+        self.completedAction = completedAction
     }
     
     var isPasswordValid: Bool {
@@ -31,8 +35,9 @@ class SetPasswordViewModel: ObservableObject {
         
         do {
             try keyManager.setOrUpdatePassword(password1)
-            UserDefaultUtils.set(AuthenticationMethodType.password.rawValue, forKey: .authenticationMethodType)
+            parentViewModel?.updateSelectedMethod(.password)
             showSuccessAlert = true
+            completedAction?()
         } catch {
             errorMessage = "Failed to save password"
         }
@@ -54,12 +59,17 @@ struct SetPasswordView: View {
                 .foregroundColor(.gray)
             
             VStack(spacing: 16) {
-                SecureField("Enter password", text: $viewModel.password1)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                EncameraTextField("Enter password",
+                                type: .secure,
+                                contentType: .newPassword,
+                                text: $viewModel.password1,
+                                becomeFirstResponder: true)
                     .padding(.horizontal)
                 
-                SecureField("Confirm password", text: $viewModel.password2)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                EncameraTextField("Confirm password",
+                                type: .secure,
+                                contentType: .newPassword,
+                                text: $viewModel.password2)
                     .padding(.horizontal)
                 
                 if let error = viewModel.errorMessage {
@@ -68,22 +78,17 @@ struct SetPasswordView: View {
                         .fontType(.pt14)
                 }
             }
-            
+
             Button(action: {
                 viewModel.validateAndSavePassword()
             }) {
                 Text("Save Password")
-                    .fontType(.pt16, weight: .bold)
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(viewModel.isPasswordValid ? Color.actionYellowGreen : Color.gray)
-                    .cornerRadius(12)
+
             }
-            .disabled(!viewModel.isPasswordValid)
             .padding(.horizontal)
             .padding(.top, 24)
-            
+            .primaryButton()
+
             Spacer()
         }
         .padding(.top, 48)
@@ -93,6 +98,7 @@ struct SetPasswordView: View {
                 message: Text("Your new password has been saved"),
                 dismissButton: .default(Text("OK")) {
                     presentationMode.wrappedValue.dismiss()
+                    viewModel.completedAction?()
                 }
             )
         }

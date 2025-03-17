@@ -7,6 +7,7 @@ class AuthenticationMethodViewModel: ObservableObject {
     @Published var selectedMethod: AuthenticationMethodType
     @Published var showPinModal = false
     @Published var showPasswordModal = false
+    @Published var showFaceIDAlert = false
     
     var authManager: AuthManager
     var keyManager: KeyManager
@@ -15,41 +16,62 @@ class AuthenticationMethodViewModel: ObservableObject {
         return authManager.availableBiometric != nil
     }
     
+    var hasPassword: Bool {
+        return keyManager.passwordExists()
+    }
+    
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
         
         // Initialize with current authentication method from UserDefaults
-        let storedMethod = AuthenticationMethodType(rawValue: UserDefaultUtils.string(forKey: .authenticationMethodType) ?? AuthenticationMethodType.pinCode.rawValue) ?? .pinCode
         let hasFaceID = authManager.availableBiometric == .faceID && authManager.useBiometricsForAuth
-        
+        var storedMethod: AuthenticationMethodType? = hasFaceID == true ? .faceID : nil
+        if let authType = UserDefaultUtils.string(forKey: .authenticationMethodType) {
+            storedMethod = AuthenticationMethodType(rawValue: authType)
+        }
+
         if hasFaceID && storedMethod == .faceID {
             self.selectedMethod = .faceID
         } else {
-            self.selectedMethod = storedMethod
+            self.selectedMethod = storedMethod!
         }
     }
     
     func selectMethod(_ method: AuthenticationMethodType) {
-        selectedMethod = method
-        
         switch method {
         case .pinCode:
-            // Always show PIN modal when selecting PIN, whether setting new or changing from password
+            // Show PIN modal for setup
             showPinModal = true
             
         case .password:
+            // Show password modal for setup
             showPasswordModal = true
             
         case .faceID:
             guard isFaceIDAvailable else {
                 return
             }
-            try? keyManager.clearPassword()
-
+            
+            // If user has a password and is switching to Face ID, show alert
+            if hasPassword {
+                showFaceIDAlert = true
+            } else {
+                applyFaceIDSelection()
+            }
         }
+    }
+    
+    func applyFaceIDSelection() {
+        try? keyManager.clearPassword()
+        // Only update method immediately for FaceID since it doesn't require additional setup
+        selectedMethod = .faceID
+        UserDefaultUtils.set(AuthenticationMethodType.faceID.rawValue, forKey: .authenticationMethodType)
+    }
+    
+    func updateSelectedMethod(_ method: AuthenticationMethodType) {
+        selectedMethod = method
         UserDefaultUtils.set(method.rawValue, forKey: .authenticationMethodType)
-
     }
     
     func canSelectMethod(_ method: AuthenticationMethodType) -> Bool {
@@ -74,10 +96,21 @@ struct AuthenticationMethodView: View {
         presentationMode.wrappedValue.dismiss()
     }
     
+    private func getMethodTitle(_ method: AuthenticationMethodType) -> String {
+        let biometricType = viewModel.authManager.deviceBiometryType
+        let useBiometrics = viewModel.authManager.useBiometricsForAuth
+        
+        if useBiometrics && biometricType != nil && method != .faceID {
+            return "\(method.rawValue) & \(biometricType!.nameForMethod)"
+        } else {
+            return method.rawValue
+        }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 16) {
-                Text("PLEASE SELECT A METHOD")
+                Text(L10n.selectLoginMethod)
                     .fontType(.pt14, weight: .bold)
                     .foregroundColor(.gray)
                     .padding(.horizontal)
@@ -86,7 +119,7 @@ struct AuthenticationMethodView: View {
                 VStack(spacing: 16) {
                     ForEach(AuthenticationMethodType.allCases, id: \.self) { method in
                         SecurityLevelOption(
-                            title: method.rawValue,
+                            title: getMethodTitle(method),
                             securityLevel: method.securityLevel,
                             isSelected: viewModel.selectedMethod == method
                         ) {
@@ -105,35 +138,46 @@ struct AuthenticationMethodView: View {
         .sheet(isPresented: $viewModel.showPinModal) {
             ChangePinModal(viewModel: .init(
                 authManager: viewModel.authManager,
-                keyManager: viewModel.keyManager
+                keyManager: viewModel.keyManager,
+                parentViewModel: viewModel
             ))
         }
         .sheet(isPresented: $viewModel.showPasswordModal) {
             SetPasswordView(viewModel: .init(
                 authManager: viewModel.authManager,
-                keyManager: viewModel.keyManager
+                keyManager: viewModel.keyManager,
+                parentViewModel: viewModel
             ))
         }
+        .alert(
+            L10n.FaceIDOnlyAlert.title,
+            isPresented: $viewModel.showFaceIDAlert,
+            actions: {
+                Button(L10n.FaceIDOnlyAlert.cancel, role: .cancel) {
+                }
+                
+                Button(L10n.FaceIDOnlyAlert.continue) {
+                    viewModel.applyFaceIDSelection()
+                }
+            },
+            message: {
+                Text(L10n.FaceIDOnlyAlert.message)
+            }
+        )
         .toolbarRole(.editor)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 ViewHeader(
-                    title: "Authentication method",
+                    title: L10n.authenticationMethod,
                     isToolbar: true,
                     textAlignment: .center,
-                    titleFont: .pt18,
-                    leftContent: {
-                        Button(action: popLastView) {
-                            Image(systemName: "chevron.left")
-                                .fontType(.pt18, weight: .bold)
-                        }
-                    }
+                    titleFont: .pt18
                 )
                 .frame(maxWidth: .infinity)
             }
         }
-        .navigationBarBackButtonHidden()
         .gradientBackground()
+        .screenBlocked()
     }
 }
 

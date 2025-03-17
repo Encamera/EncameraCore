@@ -33,6 +33,7 @@ class SettingsViewViewModel: ObservableObject {
     @Published fileprivate var successMessage: String?
     @Published var useBiometrics: Bool = false
     @Published var showChangePin: Bool = false
+    @Published var showChangePassword: Bool = false
     @Published var pinRememberedConfirmed: Bool = false
     @Published fileprivate var activeAlert: AlertType = .none
     @Published var showKeyBackup: Bool = false
@@ -54,6 +55,16 @@ class SettingsViewViewModel: ObservableObject {
     var availableBiometric: AuthenticationMethod? {
         return authManager.availableBiometric
     }
+    
+    var currentAuthenticationMethod: AuthenticationMethodType {
+        let storedMethod = AuthenticationMethodType(rawValue: UserDefaultUtils.string(forKey: .authenticationMethodType) ?? AuthenticationMethodType.pinCode.rawValue) ?? .pinCode
+        return storedMethod
+    }
+    
+    var isUsingPinCode: Bool {
+        return currentAuthenticationMethod == .pinCode
+    }
+    
     @MainActor
     init(keyManager: KeyManager,
          authManager: AuthManager,
@@ -208,12 +219,16 @@ struct SettingsView: View {
                     }
                     Section {
                         Button {
-                            viewModel.showChangePin = true
+                            if viewModel.isUsingPinCode {
+                                viewModel.showChangePin = true
+                            } else {
+                                viewModel.showChangePassword = true
+                            }
                         } label: {
-                            Text(L10n.changePassword)
+                            Text(viewModel.isUsingPinCode ? L10n.changePinCode : L10n.changePassword)
                         }
 
-                        NavigationLink("Authentication method") {
+                        NavigationLink(L10n.authenticationMethod) {
                             AuthenticationMethodView(authManager: viewModel.authManager, keyManager: viewModel.keyManager)
                         }
 
@@ -267,6 +282,12 @@ struct SettingsView: View {
         .sheet(isPresented: $viewModel.showChangePin, content: {
             ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
                 // tiny hack but we are relying here on the UI to keep the state of the biometrics
+                viewModel.toggleBiometrics(value: viewModel.useBiometrics)
+            }))
+        })
+        .sheet(isPresented: $viewModel.showChangePassword, content: {
+            SetPasswordView(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
+                // Same biometrics handling as with PIN
                 viewModel.toggleBiometrics(value: viewModel.useBiometrics)
             }))
         })
