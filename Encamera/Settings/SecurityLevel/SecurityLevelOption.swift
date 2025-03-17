@@ -6,18 +6,6 @@ struct SecurityLevelOption: View {
     let isSelected: Bool
     let action: () -> Void
     
-    private var securityBars: Int {
-        switch securityLevel.lowercased() {
-        case "low protection":
-            return 1
-        case "moderate protection":
-            return 2
-        case "strong protection":
-            return 3
-        default:
-            return 0
-        }
-    }
     
     var body: some View {
         Button(action: action) {
@@ -25,17 +13,6 @@ struct SecurityLevelOption: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(title)
                         .fontType(.pt16, weight: .bold)
-                    HStack(spacing: 2) {
-                        ForEach(0..<3) { index in
-                            Rectangle()
-                                .fill(index < securityBars ? Color.actionYellowGreen : Color.gray.opacity(0.3))
-                                .frame(width: 12, height: 12)
-                        }
-                        Text(securityLevel)
-                            .fontType(.pt14, weight: .regular)
-                            .foregroundColor(.gray)
-                            .padding(.leading, 4)
-                    }
                 }
                 Spacer()
                 if isSelected {

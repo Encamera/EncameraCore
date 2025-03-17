@@ -4,13 +4,19 @@ import Foundation
 import Security
 
 class AuthenticationMethodViewModel: ObservableObject {
+    enum AlertType {
+        case disableConfirmation
+        case incompatibleMethod
+    }
+    
     @Published var selectedMethods: [AuthenticationMethodType] = []
     @Published var showPinModal = false
     @Published var showPasswordModal = false
-    @Published var showIncompatibleMethodAlert = false
     @Published var incompatibleMethod: AuthenticationMethodType?
     @Published var methodToDisable: AuthenticationMethodType?
-    @Published var showDisableConfirmation = false
+    
+    // Replace individual alert state with a single alertType
+    @Published var activeAlert: AlertType? = nil
     
     var authManager: AuthManager
     var keyManager: KeyManager
@@ -46,7 +52,7 @@ class AuthenticationMethodViewModel: ObservableObject {
             
             // Show confirmation before disabling
             methodToDisable = method
-            showDisableConfirmation = true
+            activeAlert = .disableConfirmation
         } else {
             // Try to add the method
             switch method {
@@ -80,7 +86,7 @@ class AuthenticationMethodViewModel: ObservableObject {
         if !success {
             // Handle incompatible methods
             incompatibleMethod = .faceID
-            showIncompatibleMethodAlert = true
+            activeAlert = .incompatibleMethod
             return
         }
         
@@ -92,7 +98,7 @@ class AuthenticationMethodViewModel: ObservableObject {
         if !success {
             // Handle incompatible methods
             incompatibleMethod = method
-            showIncompatibleMethodAlert = true
+            activeAlert = .incompatibleMethod
             return
         }
         
@@ -111,6 +117,20 @@ class AuthenticationMethodViewModel: ObservableObject {
             return true
         }
     }
+    
+    func isToggleDisabled(_ method: AuthenticationMethodType) -> Bool {
+        // If this is the only method selected, disable the toggle
+        if isMethodSelected(method) && selectedMethods.count <= 1 {
+            return true
+        }
+        
+        // If Face ID is not available, disable that toggle
+        if method == .faceID && !isFaceIDAvailable {
+            return true
+        }
+        
+        return false
+    }
 }
 
 struct AuthenticationMethodView: View {
@@ -126,9 +146,16 @@ struct AuthenticationMethodView: View {
     }
     
     private func getMethodTitle(_ method: AuthenticationMethodType) -> String {
-        return method.textDescription
+        let biometricType = viewModel.authManager.deviceBiometryType
+        let useBiometrics = viewModel.authManager.useBiometricsForAuth
+        let methodName = method.textDescription
+        if useBiometrics && biometricType != nil && method != .faceID {
+            return "\(methodName) & \(biometricType!.nameForMethod)"
+        } else {
+            return methodName
+        }
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 16) {
@@ -143,36 +170,35 @@ struct AuthenticationMethodView: View {
                     .foregroundColor(.gray)
                     .padding(.horizontal)
                 
-                // Banner for tap to disable
-                if !viewModel.selectedMethods.isEmpty {
-                    Text(L10n.AuthenticationMethod.tapToDisableBanner)
-                        .fontType(.pt12)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(8)
-                        .padding(.horizontal)
-                }
-                
                 VStack(spacing: 16) {
                     ForEach(AuthenticationMethodType.allCases, id: \.self) { method in
-                        SecurityLevelOption(
-                            title: getMethodTitle(method),
-                            securityLevel: method.securityLevel,
-                            isSelected: viewModel.isMethodSelected(method)
-                        ) {
-                            if viewModel.canSelectMethod(method) {
-                                // Only allow toggling if not the last method when trying to disable
-                                if viewModel.isMethodSelected(method) && viewModel.selectedMethods.count <= 1 {
-                                    // Do nothing - can't disable the last method
-                                } else {
-                                    viewModel.toggleMethod(method)
-                                }
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(getMethodTitle(method))
+                                    .fontType(.pt16, weight: .medium)
+                                
+                                Text(method.securityLevel)
+                                    .fontType(.pt12)
+                                    .foregroundColor(.gray)
                             }
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: Binding(
+                                get: { viewModel.isMethodSelected(method) },
+                                set: { newValue in
+                                    if newValue != viewModel.isMethodSelected(method) {
+                                        viewModel.toggleMethod(method)
+                                    }
+                                }
+                            ))
+                            .disabled(viewModel.isToggleDisabled(method))
+                            .opacity(viewModel.canSelectMethod(method) ? 1.0 : 0.5)
                         }
-                        .opacity(viewModel.canSelectMethod(method) ? 1.0 : 0.5)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(Color.gray.opacity(0.05))
+                        .cornerRadius(8)
                     }
                 }
                 .padding(.horizontal)
@@ -193,44 +219,12 @@ struct AuthenticationMethodView: View {
                 keyManager: viewModel.keyManager
             ))
         }
-        .alert(
-            L10n.AuthenticationMethod.disableTitle,
-            isPresented: $viewModel.showDisableConfirmation,
-            actions: {
-                Button(L10n.AuthenticationMethod.cancel, role: .cancel) {
-                    viewModel.methodToDisable = nil
-                }
-                
-                Button(L10n.AuthenticationMethod.disable, role: .destructive) {
-                    if let method = viewModel.methodToDisable {
-                        viewModel.disableMethod(method)
-                    }
-                    viewModel.methodToDisable = nil
-                }
-            },
-            message: {
-                if let method = viewModel.methodToDisable {
-                    Text(L10n.AuthenticationMethod.confirmDisable(method.textDescription))
-                } else {
-                    Text(L10n.AuthenticationMethod.confirmDisableGeneric)
-                }
-            }
-        )
-        .alert(
-            L10n.AuthenticationMethod.incompatibleTitle,
-            isPresented: $viewModel.showIncompatibleMethodAlert,
-            actions: {
-                Button(L10n.AuthenticationMethod.ok, role: .cancel) {
-                }
-            },
-            message: {
-                if let method = viewModel.incompatibleMethod {
-                    Text(L10n.AuthenticationMethod.incompatibleDetail(method.rawValue))
-                } else {
-                    Text(L10n.AuthenticationMethod.incompatibleMessage)
-                }
-            }
-        )
+        .alert(isPresented: Binding<Bool>(
+            get: { viewModel.activeAlert != nil },
+            set: { if !$0 { viewModel.activeAlert = nil } }
+        )) {
+            alert(for: viewModel.activeAlert)
+        }
         .toolbarRole(.editor)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -244,6 +238,52 @@ struct AuthenticationMethodView: View {
             }
         }
         .gradientBackground()
+    }
+    
+    private func alert(for alertType: AuthenticationMethodViewModel.AlertType?) -> Alert {
+        switch alertType {
+        case .disableConfirmation:
+            return Alert(
+                title: Text(L10n.AuthenticationMethod.disableTitle),
+                message: {
+                    if let method = viewModel.methodToDisable {
+                        switch method {
+                        case .faceID:
+                            return Text(L10n.AuthenticationMethod.confirmDisableFaceID(method.textDescription))
+                        case .pinCode:
+                            return Text(L10n.AuthenticationMethod.confirmDisablePinCode(method.textDescription.lowercased()))
+                        case .password:
+                            return Text(L10n.AuthenticationMethod.confirmDisablePassword(method.textDescription.lowercased()))
+                        }
+                    } else {
+                        return Text(L10n.AuthenticationMethod.confirmDisableGeneric)
+                    }
+                }(),
+                primaryButton: .cancel(Text(L10n.AuthenticationMethod.cancel)) {
+                    viewModel.methodToDisable = nil
+                },
+                secondaryButton: .destructive(Text(L10n.AuthenticationMethod.disable)) {
+                    if let method = viewModel.methodToDisable {
+                        viewModel.disableMethod(method)
+                    }
+                    viewModel.methodToDisable = nil
+                }
+            )
+        case .incompatibleMethod:
+            return Alert(
+                title: Text(L10n.AuthenticationMethod.incompatibleTitle),
+                message: {
+                    if let method = viewModel.incompatibleMethod {
+                        return Text(L10n.AuthenticationMethod.incompatibleDetail(method.rawValue))
+                    } else {
+                        return Text(L10n.AuthenticationMethod.incompatibleMessage)
+                    }
+                }(),
+                dismissButton: .cancel(Text(L10n.AuthenticationMethod.ok))
+            )
+        case .none:
+            return Alert(title: Text(""))
+        }
     }
 }
 
