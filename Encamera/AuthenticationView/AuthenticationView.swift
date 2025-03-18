@@ -21,10 +21,6 @@ private enum AuthenticationViewError: ErrorDescribable {
         case .noPasswordGiven:
             return L10n.missingPassword
         case .passwordIncorrect:
-            let authMethod = DeviceAuthManager.getUserInputAuthenticationMethod()
-            if authMethod == .pinCode {
-                return L10n.incorrectPinCode
-            }
             return L10n.passwordIncorrect
         case .biometricsFailed:
             return L10n.biometricsFailed
@@ -58,7 +54,6 @@ class AuthenticationViewModel: ObservableObject {
     @Published var enteredPassword: String = ""
     @Published var isPinCodeInputEnabled: Bool = true
     @Published var remainingLockoutTime: TimeInterval?
-    var keychainMigrationUtil: KeychainMigrationUtil
 
     private var passwordAttempts = 0
 #if DEBUG
@@ -80,11 +75,11 @@ class AuthenticationViewModel: ObservableObject {
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
-        self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)
         setupLockoutTimer()
 
-        let authMethod = authManager.getUserInputAuthenticationMethod()
-        if authMethod == .pinCode {
+        let authMethod = keyManager.passcodeType
+
+        if case .pinCode = authMethod {
             $enteredPassword
                 .dropFirst()
                 .removeDuplicates()
@@ -202,17 +197,15 @@ class AuthenticationViewModel: ObservableObject {
         }
         displayedError = displayError
     }
+
+
 }
 struct AuthenticationView: View {
     @StateObject var viewModel: AuthenticationViewModel
     @State var enteredPassword: String = ""
     
-    private var authType: AuthenticationMethodType {
-        return viewModel.authManager.getUserInputAuthenticationMethod()
-    }
-    
     private var hasFaceID: Bool {
-        return viewModel.authManager.hasBiometricAuthenticationMethod()
+        return viewModel.authManager.useBiometricsForAuth
     }
     
     var body: some View {
@@ -227,12 +220,11 @@ struct AuthenticationView: View {
                     Text("\(L10n.enterPassword)")
                 }
                 Spacer().frame(height: 32)
-                let _ = print("Pin code input enabled", authType)
                 if viewModel.isPinCodeInputEnabled {
                     
-                    switch authType {
-                    case .pinCode:
-                        PinCodeView(pinCode: $enteredPassword, pinLength: AppConstants.pinCodeLength)
+                    switch viewModel.keyManager.passcodeType {
+                    case .pinCode(let length):
+                        PinCodeView(pinCode: $enteredPassword, pinLength: length)
                             .onChange(of: enteredPassword) { oldValue, newValue in
                                 if PasswordValidator.validate(password: newValue) == .valid {
                                     viewModel.authenticatePassword(password: newValue)
@@ -241,13 +233,15 @@ struct AuthenticationView: View {
                                     }
                                 }
                             }
-                    default:
+                    case .password:
                         PasswordInputView(password: $enteredPassword) { password in
                             viewModel.authenticatePassword(password: password)
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                 enteredPassword = ""
                             }
                         }
+                    default:
+                        EmptyView()
                     }
                 } else if let lockoutTime = viewModel.remainingLockoutTime {
                     Text(L10n.pinCodeLockTryAgainIn(lockoutTime.formatAsHoursMinutesSeconds()))

@@ -102,9 +102,9 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
         do {
             let validation = try validatePassword()
             if validation == .valid && existingPassword.isEmpty == false {
-                try keyManager.changePassword(newPassword: enteredPinCode, existingPassword: existingPassword)
+                try keyManager.changePassword(newPassword: enteredPinCode, existingPassword: existingPassword, type: .pinCode(length: AppConstants.defaultPinCodeLength))
             } else if validation == .valid {
-                try keyManager.setPassword(enteredPinCode)
+                try keyManager.setPassword(enteredPinCode, type: .pinCode(length: AppConstants.defaultPinCodeLength))
             } else {
                 throw OnboardingViewError.passwordInvalid
             }
@@ -132,7 +132,6 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
                 } else {
                     fatalError("No password or biometrics")
                 }
-                authManager.setAuthenticationMethod(.pinCode)
 
                 let keys = try? keyManager.storedKeys()
                 if keys == nil || keys?.isEmpty ?? false {
@@ -184,7 +183,6 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
     @State var path: NavigationPath = .init()
 
     @Environment(\.presentationMode) private var presentationMode
-
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -332,13 +330,12 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .lineLimit(2, reservesSpace: true)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
-                                    PinCodeView(pinCode: $viewModel.pinCode1, pinLength: AppConstants.pinCodeLength)
+                                    PinCodeView(pinCode: $viewModel.pinCode1, pinLength: .four)
                                 }.frame(width: 290)
-
                             )
                         })
             ).onChange(of: viewModel.pinCode1) { oldValue, newValue in
-                if newValue.count == AppConstants.pinCodeLength {
+                if newValue.count == AppConstants.defaultPinCodeLength.rawValue {
                     viewModel.enteredPinCode = newValue
                     path.append(OnboardingFlowScreen.confirmPinCode)
                 }
@@ -385,7 +382,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .multilineTextAlignment(.center)
                                         .lineLimit(2, reservesSpace: true)
                                         .pad(.pt64, edge: .bottom)
-                                    PinCodeView(pinCode: $viewModel.pinCode2, pinLength: AppConstants.pinCodeLength)
+                                    PinCodeView(pinCode: $viewModel.pinCode2, pinLength: AppConstants.defaultPinCodeLength)
                                     if let pinCodeError = viewModel.pinCodeError {
                                         Text(pinCodeError).alertText()
                                     }
@@ -398,7 +395,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                 if viewModel.doesPinCodeMatchNew(pinCode: newValue) {
                     viewModel.pinCodeError = nil
                     path.append(OnboardingFlowScreen.finished)
-                } else if newValue.count == AppConstants.pinCodeLength {
+                } else if newValue.count == AppConstants.defaultPinCodeLength.rawValue {
                     viewModel.pinCodeError = "Pin code does not match"
                     viewModel.pinCode2 = ""
                 }

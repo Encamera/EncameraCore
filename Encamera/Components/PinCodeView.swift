@@ -1,10 +1,11 @@
 import SwiftUI
 import Combine
+import EncameraCore
 
 
 struct PinCodeView: View {
     @Binding var pinCode: String
-    var pinLength: Int
+    var pinLength: PasscodeType.PasscodeLength
 
     @State private var enteredDigitCount: Int = 0
     @FocusState private var isInputFieldFocused: Bool
@@ -12,7 +13,7 @@ struct PinCodeView: View {
     var body: some View {
         VStack {
             HStack(alignment: .top, spacing: 8) {
-                ForEach(0..<pinLength, id: \.self) { index in
+                ForEach(0..<pinLength.rawValue, id: \.self) { index in
                     ZStack {
                         if index == 0 {
                             TextField("", text: $pinCode)
@@ -24,6 +25,7 @@ struct PinCodeView: View {
                                     self.isInputFieldFocused = true // Automatically focus to show keyboard
                                 }
                                 .keyboardType(.numberPad)
+                                .limitInputLength(to: pinLength.rawValue) // Limit input to pinLength
                         }
                         CircleView(isFilled: index < enteredDigitCount)
                     }
@@ -33,7 +35,11 @@ struct PinCodeView: View {
                 self.isInputFieldFocused = true
             }
             .onChange(of: pinCode) { oldValue, newValue in
-                enteredDigitCount = newValue.count
+                // Ensure pinCode doesn't exceed pinLength
+                if newValue.count > pinLength.rawValue {
+                    pinCode = String(newValue.prefix(pinLength.rawValue))
+                }
+                enteredDigitCount = pinCode.count
             }
         }
     }
@@ -79,6 +85,7 @@ struct PinCodeView_Preview: PreviewProvider {
 
     static var previews: some View {
 
-        PinCodeView(pinCode: $pinCode, pinLength: 4)
+        PinCodeView(pinCode: $pinCode, pinLength: .four)
+        PinCodeView(pinCode: $pinCode, pinLength: .six)
     }
 }

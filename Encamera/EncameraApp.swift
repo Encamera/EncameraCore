@@ -59,11 +59,6 @@ struct EncameraApp: App {
             self.settingsManager = SettingsManager()
             self.authManager = DeviceAuthManager(settingsManager: settingsManager)
             let keyManager = KeychainManager(isAuthenticated: self.authManager.isAuthenticatedPublisher)
-            
-            // Set the keyManager on the authManager
-            if let deviceAuthManager = self.authManager as? DeviceAuthManager {
-                deviceAuthManager.setKeyManager(keyManager)
-            }
 
             self.keyManager = keyManager
             self.keychainMigrationUtil = KeychainMigrationUtil(keyManager: keyManager)

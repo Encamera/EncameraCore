@@ -15,6 +15,7 @@ class ChangePinModalViewModel: ObservableObject {
     @Published var enteredPinCode: String = ""
     @Published var pinCodeError: String?
     @Published var showPasswordChangedAlert: Bool = false
+    @Published var pinLength: PasscodeType.PasscodeLength
 
     var completedAction: (() -> Void)?
     private var authManager: AuthManager
@@ -25,10 +26,11 @@ class ChangePinModalViewModel: ObservableObject {
         return PasswordValidator.validatePasswordPair(pinCode, password2: enteredPinCode) == .valid
     }
 
-    init(authManager: AuthManager, keyManager: KeyManager, completedAction: (() -> Void)? = nil) {
+    init(authManager: AuthManager, keyManager: KeyManager, pinLength: PasscodeType.PasscodeLength, completedAction: (() -> Void)? = nil) {
         self.authManager = authManager
         self.keyManager = keyManager
         self.completedAction = completedAction
+        self.pinLength = pinLength
     }
 
     @discardableResult func validatePinCode() throws -> PasswordValidation {
@@ -43,8 +45,7 @@ class ChangePinModalViewModel: ObservableObject {
     @MainActor func savePinCode() throws {
         let validation = try validatePinCode()
         if validation == .valid  {
-            try keyManager.setOrUpdatePassword(enteredPinCode)
-            authManager.addAuthenticationMethod(.pinCode)
+            try keyManager.setOrUpdatePassword(enteredPinCode, type: .pinCode(length: pinLength))
         } else {
             throw OnboardingViewError.passwordInvalid
         }
@@ -80,7 +81,7 @@ struct ChangePinModal: View {
                                         }
                                         Spacer().frame(height: 32)
 
-                                        Text(L10n.setPinCode)
+                                        Text(viewModel.pinLength == .four ? L10n.setPinCode : L10n.set6DigitPIN)
                                             .fontType(.pt24, weight: .bold)
                                         Spacer().frame(height: 12)
 
@@ -89,14 +90,14 @@ struct ChangePinModal: View {
                                             .lineLimit(2, reservesSpace: true)
                                             .multilineTextAlignment(.center)
                                             .pad(.pt64, edge: .bottom)
-                                        PinCodeView(pinCode: $viewModel.pinCode1, pinLength: AppConstants.pinCodeLength)
+                                        PinCodeView(pinCode: $viewModel.pinCode1, pinLength: viewModel.pinLength)
                                     }.frame(width: 290)
 
                                 )
                             }))
 
                 .onChange(of: viewModel.pinCode1) { oldValue, newValue in
-                                if newValue.count == AppConstants.pinCodeLength {
+                    if newValue.count == viewModel.pinLength.rawValue {
                                     viewModel.enteredPinCode = newValue
                                     path.append(OnboardingFlowScreen.confirmPinCode)
                                 }
@@ -122,7 +123,7 @@ struct ChangePinModal: View {
                                                         .cornerRadius(24)
                                                 }
                                                 Spacer().frame(height: 32)
-                                                Text(L10n.confirmPinCode)
+                                                Text(viewModel.pinLength == .four ? L10n.confirmPinCode : L10n.confirm6DigitPIN)
                                                     .fontType(.pt24, weight: .bold)
                                                 Spacer().frame(height: 12)
                                                 Text(L10n.repeatPinCodeSubtitle)
@@ -130,7 +131,7 @@ struct ChangePinModal: View {
                                                     .multilineTextAlignment(.center)
                                                     .lineLimit(2, reservesSpace: true)
                                                     .pad(.pt64, edge: .bottom)
-                                                PinCodeView(pinCode: $viewModel.pinCode2, pinLength: AppConstants.pinCodeLength)
+                                                PinCodeView(pinCode: $viewModel.pinCode2, pinLength: viewModel.pinLength)
                                                 if let pinCodeError = viewModel.pinCodeError {
                                                     Text(pinCodeError).alertText()
                                                 }
@@ -149,7 +150,7 @@ struct ChangePinModal: View {
                                     viewModel.pinCodeError = "Error saving password"
                                 }
 
-                            } else if newValue.count == AppConstants.pinCodeLength {
+                            } else if newValue.count == viewModel.pinLength.rawValue {
                                 viewModel.pinCodeError = L10n.pinCodeMismatch
                                 viewModel.pinCode2 = ""
 
@@ -177,6 +178,6 @@ struct ChangePinModal: View {
 
 #Preview {
     Color.green.sheet(isPresented: .constant(true)) {
-        ChangePinModal(viewModel: .init(authManager: DemoAuthManager(), keyManager: DemoKeyManager()))
+        ChangePinModal(viewModel: .init(authManager: DemoAuthManager(), keyManager: DemoKeyManager(), pinLength: .four))
     }
 }

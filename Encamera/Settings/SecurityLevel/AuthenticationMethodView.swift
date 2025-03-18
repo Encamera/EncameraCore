@@ -5,132 +5,36 @@ import Security
 
 class AuthenticationMethodViewModel: ObservableObject {
     enum AlertType {
-        case disableConfirmation
-        case incompatibleMethod
+        case changeConfirmation
+        case clearPasswordConfirmation
     }
     
-    @Published var selectedMethods: [AuthenticationMethodType] = []
-    @Published var showPinModal = false
+    @Published var selectedOption: PasscodeType? = nil
+    @Published var useFaceID: Bool = false
+    @Published var alertForSelection: PasscodeType?
+    @Published var modalForSelection: PasscodeType?
     @Published var showPasswordModal = false
-    @Published var incompatibleMethod: AuthenticationMethodType?
-    @Published var methodToDisable: AuthenticationMethodType?
-    
-    // Replace individual alert state with a single alertType
+    @Published var pinLength: Int = 4
+    @Published var newOption: PasscodeType?
+
+    // Alert state
     @Published var activeAlert: AlertType? = nil
     
     var authManager: AuthManager
     var keyManager: KeyManager
-    
-    var isFaceIDAvailable: Bool {
-        return authManager.availableBiometric != nil
-    }
-    
-    var hasPassword: Bool {
-        return keyManager.passwordExists()
-    }
-    
+
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
-        
-        self.selectedMethods = authManager.getAuthenticationMethods()
-        
-        // If FaceID is available and enabled in the auth manager but not in our methods, add it
-        let hasFaceID = authManager.availableBiometric == .faceID && authManager.useBiometricsForAuth
-        if hasFaceID && !selectedMethods.contains(.faceID) {
-            _ = authManager.addAuthenticationMethod(.faceID)
-            self.selectedMethods = authManager.getAuthenticationMethods()
-        }
     }
-    
-    func toggleMethod(_ method: AuthenticationMethodType) {
-        if isMethodSelected(method) {
-            // Don't allow removing the last method
-            if selectedMethods.count <= 1 {
-                return
-            }
-            
-            // Show confirmation before disabling
-            methodToDisable = method
-            activeAlert = .disableConfirmation
-        } else {
-            // Try to add the method
-            switch method {
-            case .pinCode:
-                // Show PIN modal for setup
-                showPinModal = true
-                
-            case .password:
-                // Show password modal for setup
-                showPasswordModal = true
-                
-            case .faceID:
-                guard isFaceIDAvailable else {
-                    return
-                }
-                
-                applyFaceIDSelection()
-            }
-        }
-    }
-    
-    func disableMethod(_ method: AuthenticationMethodType) {
-        // Remove the method
-        authManager.removeAuthenticationMethod(method)
-        self.selectedMethods = authManager.getAuthenticationMethods()
-    }
-    
-    func applyFaceIDSelection() {
-        // Add FaceID to the authentication methods
-        let success = authManager.addAuthenticationMethod(.faceID)
-        if !success {
-            // Handle incompatible methods
-            incompatibleMethod = .faceID
-            activeAlert = .incompatibleMethod
+
+    func selectOption(_ option: PasscodeType) {
+        if option == selectedOption {
             return
         }
-        
-        self.selectedMethods = authManager.getAuthenticationMethods()
+        alertForSelection = option
     }
-    
-    func addMethod(_ method: AuthenticationMethodType) {
-        let success = authManager.addAuthenticationMethod(method)
-        if !success {
-            // Handle incompatible methods
-            incompatibleMethod = method
-            activeAlert = .incompatibleMethod
-            return
-        }
-        
-        self.selectedMethods = authManager.getAuthenticationMethods()
-    }
-    
-    func isMethodSelected(_ method: AuthenticationMethodType) -> Bool {
-        return authManager.hasAuthenticationMethod(method)
-    }
-    
-    func canSelectMethod(_ method: AuthenticationMethodType) -> Bool {
-        switch method {
-        case .faceID:
-            return isFaceIDAvailable
-        case .pinCode, .password:
-            return true
-        }
-    }
-    
-    func isToggleDisabled(_ method: AuthenticationMethodType) -> Bool {
-        // If this is the only method selected, disable the toggle
-        if isMethodSelected(method) && selectedMethods.count <= 1 {
-            return true
-        }
-        
-        // If Face ID is not available, disable that toggle
-        if method == .faceID && !isFaceIDAvailable {
-            return true
-        }
-        
-        return false
-    }
+
 }
 
 struct AuthenticationMethodView: View {
@@ -141,21 +45,6 @@ struct AuthenticationMethodView: View {
         _viewModel = StateObject(wrappedValue: AuthenticationMethodViewModel(authManager: authManager, keyManager: keyManager))
     }
     
-    private func popLastView() {
-        presentationMode.wrappedValue.dismiss()
-    }
-    
-    private func getMethodTitle(_ method: AuthenticationMethodType) -> String {
-        let biometricType = viewModel.authManager.deviceBiometryType
-        let useBiometrics = viewModel.authManager.useBiometricsForAuth
-        let methodName = method.textDescription
-        if useBiometrics && biometricType != nil && method != .faceID {
-            return "\(methodName) & \(biometricType!.nameForMethod)"
-        } else {
-            return methodName
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 16) {
@@ -165,40 +54,33 @@ struct AuthenticationMethodView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
                 
-                Text(L10n.AuthenticationMethod.multipleMethodsInfo)
+                Text(L10n.chooseYourLoginMethod)
                     .fontType(.pt12)
                     .foregroundColor(.gray)
                     .padding(.horizontal)
                 
+                // Authentication options as radio buttons
                 VStack(spacing: 16) {
-                    ForEach(AuthenticationMethodType.allCases, id: \.self) { method in
+                    ForEach(PasscodeType.allCases) { option in
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(getMethodTitle(method))
+                                Text(option.textDescription)
                                     .fontType(.pt16, weight: .medium)
-                                
-                                Text(method.securityLevel)
-                                    .fontType(.pt12)
-                                    .foregroundColor(.gray)
                             }
                             
                             Spacer()
                             
-                            Toggle("", isOn: Binding(
-                                get: { viewModel.isMethodSelected(method) },
-                                set: { newValue in
-                                    if newValue != viewModel.isMethodSelected(method) {
-                                        viewModel.toggleMethod(method)
-                                    }
-                                }
-                            ))
-                            .disabled(viewModel.isToggleDisabled(method))
-                            .opacity(viewModel.canSelectMethod(method) ? 1.0 : 0.5)
+                            // Radio button style
+                            Image(systemName: viewModel.selectedOption == option ? "circle.fill" : "circle")
+                                .foregroundColor(viewModel.selectedOption == option ? .blue : .gray)
                         }
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
                         .background(Color.gray.opacity(0.05))
                         .cornerRadius(8)
+                        .onTapGesture {
+                            viewModel.selectOption(option)
+                        }
                     }
                 }
                 .padding(.horizontal)
@@ -210,13 +92,22 @@ struct AuthenticationMethodView: View {
         .sheet(isPresented: $viewModel.showPinModal) {
             ChangePinModal(viewModel: .init(
                 authManager: viewModel.authManager,
-                keyManager: viewModel.keyManager
+                keyManager: viewModel.keyManager,
+                pinLength: viewModel.pinLength,
+                completedAction: {
+                    // If PIN setup is completed, make sure it's selected
+                    viewModel.authManager.addAuthenticationMethod(.pinCode)
+                }
             ))
         }
         .sheet(isPresented: $viewModel.showPasswordModal) {
             SetPasswordView(viewModel: .init(
                 authManager: viewModel.authManager,
-                keyManager: viewModel.keyManager
+                keyManager: viewModel.keyManager,
+                completedAction: {
+                    // If password setup is completed, make sure it's selected
+                    viewModel.authManager.addAuthenticationMethod(.password)
+                }
             ))
         }
         .alert(isPresented: Binding<Bool>(
@@ -240,46 +131,28 @@ struct AuthenticationMethodView: View {
         .gradientBackground()
     }
     
-    private func alert(for alertType: AuthenticationMethodViewModel.AlertType?) -> Alert {
+    private func alert(for alertType: PasscodeType?) -> Alert {
         switch alertType {
-        case .disableConfirmation:
+        case .pinCode(length: let _):
             return Alert(
-                title: Text(L10n.AuthenticationMethod.disableTitle),
-                message: {
-                    if let method = viewModel.methodToDisable {
-                        switch method {
-                        case .faceID:
-                            return Text(L10n.AuthenticationMethod.confirmDisableFaceID(method.textDescription))
-                        case .pinCode:
-                            return Text(L10n.AuthenticationMethod.confirmDisablePinCode(method.textDescription.lowercased()))
-                        case .password:
-                            return Text(L10n.AuthenticationMethod.confirmDisablePassword(method.textDescription.lowercased()))
-                        }
-                    } else {
-                        return Text(L10n.AuthenticationMethod.confirmDisableGeneric)
-                    }
-                }(),
-                primaryButton: .cancel(Text(L10n.AuthenticationMethod.cancel)) {
-                    viewModel.methodToDisable = nil
+                title: Text(L10n.changeAuthenticationMethod),
+                message: Text(L10n.ChangingYourAuthenticationMethodWillRequireSettingUpANewPINOrPassword.wouldYouLikeToContinue),
+                primaryButton: .cancel(Text(L10n.cancel)) {
+                    viewModel.newOption = nil
                 },
-                secondaryButton: .destructive(Text(L10n.AuthenticationMethod.disable)) {
-                    if let method = viewModel.methodToDisable {
-                        viewModel.disableMethod(method)
-                    }
-                    viewModel.methodToDisable = nil
+                secondaryButton: .default(Text(L10n.continue)) {
+                    viewModel.applyOptionChange()
                 }
             )
-        case .incompatibleMethod:
+        case .none:
             return Alert(
-                title: Text(L10n.AuthenticationMethod.incompatibleTitle),
-                message: {
-                    if let method = viewModel.incompatibleMethod {
-                        return Text(L10n.AuthenticationMethod.incompatibleDetail(method.rawValue))
-                    } else {
-                        return Text(L10n.AuthenticationMethod.incompatibleMessage)
-                    }
-                }(),
-                dismissButton: .cancel(Text(L10n.AuthenticationMethod.ok))
+                title: Text(L10n.clearPassword),
+                message: Text(L10n.ThisWillRemoveAllAuthenticationMethods.YourDataWillRemainButYouLlNeedToSetUpANewPINOrPasswordNextTimeYouOpenTheApp.continue),
+                primaryButton: .cancel(Text(L10n.cancel)),
+                secondaryButton: .destructive(Text(L10n.clear)) {
+                    viewModel.authManager.removeAllAuthenticationMethods()
+                    viewModel.selectedOption = nil
+                }
             )
         case .none:
             return Alert(title: Text(""))

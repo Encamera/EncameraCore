@@ -55,25 +55,19 @@ class SettingsViewViewModel: ObservableObject {
     var availableBiometric: AuthenticationMethod? {
         return authManager.availableBiometric
     }
-    
-    var currentAuthenticationMethod: AuthenticationMethodType {
-        return authManager.getUserInputAuthenticationMethod()
-    }
-    
-    var authenticationMethods: [AuthenticationMethodType] {
-        return authManager.getAuthenticationMethods()
-    }
-    
+
     var isUsingPinCode: Bool {
-        return authManager.hasAuthenticationMethod(.pinCode)
+        if case .pinCode = keyManager.passcodeType {
+            return true
+        }
+        return false
     }
     
     var isUsingPassword: Bool {
-        return authManager.hasAuthenticationMethod(.password)
-    }
-    
-    var hasBiometricAuthentication: Bool {
-        return authManager.hasBiometricAuthenticationMethod()
+        if case .password = keyManager.passcodeType {
+            return true
+        }
+        return false
     }
     
     @MainActor
@@ -291,7 +285,8 @@ struct SettingsView: View {
         .fontType(.pt14, weight: .bold)
         .productStorefront(isPresented: $viewModel.showPurchaseScreen, fromViewName: "Settings")
         .sheet(isPresented: $viewModel.showChangePin, content: {
-            ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
+
+            ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, pinLength: viewModel.keyManager.passcodeType, completedAction: {
                 // tiny hack but we are relying here on the UI to keep the state of the biometrics
                 viewModel.toggleBiometrics(value: viewModel.useBiometrics)
             }))

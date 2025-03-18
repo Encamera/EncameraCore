@@ -33,7 +33,6 @@ class SetPasswordViewModel: ObservableObject {
         
         do {
             try keyManager.setOrUpdatePassword(password1)
-            authManager.addAuthenticationMethod(.password)
             showSuccessAlert = true
             completedAction?()
         } catch {
