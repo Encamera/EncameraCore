@@ -17,6 +17,7 @@
 		040E39E6A352E9AF8BA82CC9 /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 389FE1CC4F9A52A1AC3AD6E2 /* EncameraCore */; };
 		04110F65A1D786EEFBD39A56 /* LockScreenKeypad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB904C84E5D90724BD79358 /* LockScreenKeypad.swift */; };
 		044EEE9027A0FC3AFBEAF171 /* StepIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 138280AC97F5CFC2182D9667 /* StepIndicator.swift */; };
+		04BD71832E194901137EDF8A /* ShimmeringLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD4C48312ADA520813858CA /* ShimmeringLogo.swift */; };
 		050F76A58CCF1D22343BF2E1 /* PasswordInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F58191CC8896CE755CF1B0 /* PasswordInputView.swift */; };
 		05BE9E64DF81E360A090F9E5 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7347AE6141886EEF6FABC1 /* Color.swift */; };
 		05D59850735EDC24C105E7F5 /* ImportKeyPhrase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40DE9D924F220F92F648807C /* ImportKeyPhrase.swift */; };
@@ -46,6 +47,7 @@
 		1777BF33B8F478997A05EA53 /* AppPurchasedPermissionUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB0847CA0886096B1D8E1BD /* AppPurchasedPermissionUtils.swift */; };
 		17D8C0F0CD7B6C36382CEAE8 /* EncryptedVideoIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */; };
 		189E8E09C8B2051B80EA5DD7 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 2E3847B535525CD631854FE2 /* SwiftUIIntrospect */; };
+		190D5E6A414AC62E947CF1FC /* ShimmeringLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD4C48312ADA520813858CA /* ShimmeringLogo.swift */; };
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A4FD6D71B93F3D4A75F09C8 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541C934E3C2228AEF133A9AE /* Color+Extensions.swift */; };
@@ -138,6 +140,7 @@
 		49AFF8B3DF0F332275B5D92A /* PremiumBenefitsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D226078E37858D0CE665EAFE /* PremiumBenefitsScrollView.swift */; };
 		4A0642E9B1818B0BAF0489ED /* PasswordEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629711F137AF404054258CDB /* PasswordEntry.swift */; };
 		4ADD6820BB1C42B218968B45 /* WidgetExtensionBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E4B7B84569DC8C3F5B5EAF /* WidgetExtensionBundle.swift */; };
+		4B33096135426284703A1026 /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B2737355044815FBAF3EE96 /* SplashScreen.swift */; };
 		4B8BB435E73B35DCF19DEBB5 /* DismissButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDAE32CBB0CA3BFF5A99A2A /* DismissButton.swift */; };
 		4BA4F7EBDE4E7EDEEB0421C1 /* PageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 932031659479AD8F8D36C599 /* PageView.swift */; };
 		4BA903824A41D33644CAFA96 /* PinCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C549493585B3CFD05224399A /* PinCodeView.swift */; };
@@ -276,6 +279,7 @@
 		A2E31E5A67DA982A00908D5E /* NewOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */; };
 		A4173980D186CB9362120DE8 /* AppModalContexts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 670F1074DE46A86E75516A89 /* AppModalContexts.swift */; };
 		A456B80AC53939E5895E9DFD /* Encamera.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */; };
+		A4B095345B2234C2CB38CA6D /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B2737355044815FBAF3EE96 /* SplashScreen.swift */; };
 		A539A5B02CFB9B8B34A4147C /* UIFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB80F65CF885ED1AD011DE9A /* UIFont.swift */; };
 		A5A01062718775D3B0B818FC /* StoreKitTestCertificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */; };
 		A5DF5722A4CD5CAF67E3F27A /* StorePresentationViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A6CDD867456DB725046BF4 /* StorePresentationViewModifier.swift */; };
@@ -564,6 +568,7 @@
 		5876A43225B15FCEC1E6CF1C /* Satoshi-Light.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Light.otf"; sourceTree = "<group>"; };
 		5899D9E93CFB8F7399D56A2E /* kristina-flour-BcjdbyKWquw-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "kristina-flour-BcjdbyKWquw-unsplash.jpg"; sourceTree = "<group>"; };
 		58E516504CF50C3C3775D1FF /* Satoshi-Italic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Italic.otf"; sourceTree = "<group>"; };
+		5B2737355044815FBAF3EE96 /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
 		5B5BD74DF33D218275BF0976 /* release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = release.xcconfig; sourceTree = "<group>"; };
 		5CB2ADA95A4645C00AB19065 /* StoreKitTestingApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitTestingApp.swift; sourceTree = "<group>"; };
 		5D4D58B61CE717B122E804F5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -714,6 +719,7 @@
 		F6C7B4340F9BA5AC5E1CABBD /* file-icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "file-icon.png"; sourceTree = "<group>"; };
 		F87130057593981EF7E23745 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = StoreKit.framework; sourceTree = "<group>"; };
 		F8C8A1F504CADD09FEAA10B8 /* 4.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 4.jpg; sourceTree = "<group>"; };
+		FAD4C48312ADA520813858CA /* ShimmeringLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmeringLogo.swift; sourceTree = "<group>"; };
 		FB80F65CF885ED1AD011DE9A /* UIFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIFont.swift; sourceTree = "<group>"; };
 		FC9BE7091B43E9BB8D1E0B7B /* EncryptedImageIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = EncryptedImageIcon.png; sourceTree = "<group>"; };
 		FE4BE3A348C71B3A9832A0E3 /* MediaImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaImportView.swift; sourceTree = "<group>"; };
@@ -1249,6 +1255,8 @@
 				C549493585B3CFD05224399A /* PinCodeView.swift */,
 				C8C25496618B6149212F67E6 /* PopoverComponent.swift */,
 				5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */,
+				FAD4C48312ADA520813858CA /* ShimmeringLogo.swift */,
+				5B2737355044815FBAF3EE96 /* SplashScreen.swift */,
 				B659B984967304593F27C554 /* StorageOptionSquare.swift */,
 				ED7483700886A4A305F91EDA /* ToastComponent.swift */,
 				9D61224A5C8959AB6A52E61E /* ToastView.swift */,
@@ -1819,7 +1827,9 @@
 				D8E1FB7A161B7C3518359551 /* SecurityLevelOption.swift in Sources */,
 				C81204C5914D1B1785BB820C /* SetPasswordView.swift in Sources */,
 				864AABB66247E3165F272A54 /* SettingsView.swift in Sources */,
+				190D5E6A414AC62E947CF1FC /* ShimmeringLogo.swift in Sources */,
 				C5A2C1B02914147FB96D2AE3 /* Spacing.swift in Sources */,
+				4B33096135426284703A1026 /* SplashScreen.swift in Sources */,
 				B837693314775C8DFB17B4D6 /* StepIndicator.swift in Sources */,
 				12287BD153FAC8A13BCED5E1 /* StorageOptionItemView.swift in Sources */,
 				EF3CEC2443A9A43E572CECAF /* StorageOptionSquare.swift in Sources */,
@@ -1983,7 +1993,9 @@
 				AB5AF1E88720E666BD4BF62C /* SecurityLevelOption.swift in Sources */,
 				6E07545F3A5B38A35DDEE5B8 /* SetPasswordView.swift in Sources */,
 				BD25ADB842FA51360BE028AD /* SettingsView.swift in Sources */,
+				04BD71832E194901137EDF8A /* ShimmeringLogo.swift in Sources */,
 				624334C11EFF29BDE9A2B208 /* Spacing.swift in Sources */,
+				A4B095345B2234C2CB38CA6D /* SplashScreen.swift in Sources */,
 				044EEE9027A0FC3AFBEAF171 /* StepIndicator.swift in Sources */,
 				60DFBB476930070A4722AD31 /* StorageOptionItemView.swift in Sources */,
 				E5703E34B4B08252B30338CF /* StorageOptionSquare.swift in Sources */,
