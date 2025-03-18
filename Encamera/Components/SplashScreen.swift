@@ -14,14 +14,17 @@ struct SplashScreen<Content: View>: View {
             content()
         } else {
             ZStack {
-                Color("BackgroundColor")
-                    .ignoresSafeArea()
-                
+
                 VStack {
-                    ShimmeringLogo(text: "Encamera", fontSize: 42)
+                    Spacer()
+                    Image("LogoSquare")
+                    ShimmeringLogo(text: "Encamera")
+                        .opacity(opacity)
+                        .frame(maxWidth: .infinity, maxHeight: 55, alignment: .center)
+                    Spacer()
                 }
+
             }
-            .opacity(opacity)
             .onAppear {
                 // Delay for 1.5 seconds, then start fade out
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {

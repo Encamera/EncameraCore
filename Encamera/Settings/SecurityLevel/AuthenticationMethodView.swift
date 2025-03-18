@@ -51,30 +51,30 @@ struct AuthenticationMethodView: View {
                     .padding(.horizontal)
                 
                 // Authentication options as radio buttons
-//                VStack(spacing: 16) {
-//                    ForEach(PasscodeType.allCases) { option in
-//                        HStack {
-//                            VStack(alignment: .leading, spacing: 4) {
-//                                Text(option.textDescription)
-//                                    .fontType(.pt16, weight: .medium)
-//                            }
-//                            
-//                            Spacer()
-//                            
-//                            // Radio button style
-//                            Image(systemName: viewModel.selectedOption == option ? "circle.fill" : "circle")
-//                                .foregroundColor(viewModel.selectedOption == option ? .blue : .gray)
-//                        }
-//                        .padding(.vertical, 8)
-//                        .padding(.horizontal, 16)
-//                        .background(Color.gray.opacity(0.05))
-//                        .cornerRadius(8)
-//                        .onTapGesture {
-//                            viewModel.selectOption(option)
-//                        }
-//                    }
-//                }
-//                .padding(.horizontal)
+                VStack(spacing: 16) {
+                    ForEach(PasscodeType.allCases) { option in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(option.textDescription)
+                                    .fontType(.pt16, weight: .medium)
+                            }
+                            
+                            Spacer()
+                            
+                            // Radio button style
+                            Image(systemName: viewModel.selectedOption == option ? "circle.fill" : "circle")
+                                .foregroundColor(viewModel.selectedOption == option ? .blue : .gray)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(Color.gray.opacity(0.05))
+                        .cornerRadius(8)
+                        .onTapGesture {
+                            viewModel.selectOption(option)
+                        }
+                    }
+                }
+                .padding(.horizontal)
             }
             .screenBlocked()
 
@@ -145,15 +145,24 @@ struct AuthenticationMethodView: View {
                 }
             )
         case PasscodeType.none?:
-            return Alert(
-                title: Text(L10n.clearPassword),
-                message: Text(L10n.ThisWillRemoveAllAuthenticationMethods.YourDataWillRemainButYouLlNeedToSetUpANewPINOrPasswordNextTimeYouOpenTheApp.continue),
-                primaryButton: .cancel(Text(L10n.cancel)),
-                secondaryButton: .destructive(Text(L10n.clear)) {
-                    try? viewModel.keyManager.clearPassword()
-                    viewModel.selectedOption = nil
-                }
-            )
+            if viewModel.authManager.useBiometricsForAuth {
+
+                return Alert(
+                    title: Text(L10n.clearPassword),
+                    message: Text(L10n.removePasscode),
+                    primaryButton: .cancel(Text(L10n.cancel)),
+                    secondaryButton: .destructive(Text(L10n.clear)) {
+                        try? viewModel.keyManager.clearPassword()
+                        viewModel.selectedOption = nil
+                    }
+                )
+            } else {
+                return Alert(
+                    title: Text(L10n.cannotClearTitle),
+                    message: Text(L10n.cannotClearMessage),
+                    dismissButton: .default(Text(L10n.ok))
+                )
+            }
         case nil:
             return Alert(title: Text(""))
         }

@@ -177,7 +177,7 @@ struct SettingsView: View {
                         }
                         Button(L10n.restorePurchases) {
                             Task(priority: .userInitiated) {
-                                try await Purchases.shared.restorePurchases()
+                                let _ = try await Purchases.shared.restorePurchases()
                                 await viewModel.purchasedPermissions.refreshEntitlements()
                                 Task { @MainActor in
                                     self.viewModel.activeAlert = .purchasesRestored

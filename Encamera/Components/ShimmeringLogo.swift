@@ -3,18 +3,16 @@ import SwiftUI
 struct ShimmeringLogo: View {
     @State private var isAnimating = false
     let text: String
-    let fontSize: CGFloat
     let shimmerWidth: CGFloat
     
-    init(text: String = "Encamera", fontSize: CGFloat = 36, shimmerWidth: CGFloat = 500.0) {
+    init(text: String = "Encamera", shimmerWidth: CGFloat = 500.0) {
         self.text = text
-        self.fontSize = fontSize
         self.shimmerWidth = shimmerWidth
     }
     
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
+            ZStack(alignment: .center) {
                 Rectangle()
                     .fill(
                         LinearGradient(
@@ -27,15 +25,13 @@ struct ShimmeringLogo: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: shimmerWidth)
-                    .offset(x: isAnimating ? geometry.size.width + shimmerWidth : -shimmerWidth - geometry.size.width)
+                    .offset(x: isAnimating ? geometry.size.width / 2 + shimmerWidth : -shimmerWidth - geometry.size.width / 2)
                     .mask(
                         Text(text)
-                            .font(.system(size: fontSize, weight: .bold))
+                            .fontType(.pt32, weight: .bold)
                     )
                     .blendMode(.screen)
             }
-            .frame(width: geometry.size.width, height: geometry.size.height)
             .onAppear {
                 withAnimation(
                     Animation.linear(duration: 2.5)
@@ -45,6 +41,8 @@ struct ShimmeringLogo: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .center)
+
     }
 }
 
@@ -53,7 +51,6 @@ struct ShimmeringLogo_Previews: PreviewProvider {
         ZStack {
             Color.blue
             ShimmeringLogo()
-                .frame(width: 300, height: 100)
         }
         .ignoresSafeArea()
     }
