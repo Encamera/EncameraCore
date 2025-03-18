@@ -23,7 +23,7 @@ class ChangePinModalViewModel: ObservableObject {
     
 
     func doesPinCodeMatchNew(pinCode: String) -> Bool {
-        return PasswordValidator.validatePasswordPair(pinCode, password2: enteredPinCode) == .valid
+        return PasswordValidator.validatePasswordPair(pinCode, password2: enteredPinCode, type: .pinCode(length: pinLength)) == .valid
     }
 
     init(authManager: AuthManager, keyManager: KeyManager, pinLength: PasscodeType.PasscodeLength, completedAction: (() -> Void)? = nil) {
@@ -34,7 +34,7 @@ class ChangePinModalViewModel: ObservableObject {
     }
 
     @discardableResult func validatePinCode() throws -> PasswordValidation {
-        let state = PasswordValidator.validatePasswordPair(enteredPinCode, password2: enteredPinCode)
+        let state = PasswordValidator.validatePasswordPair(enteredPinCode, password2: enteredPinCode, type: .pinCode(length: pinLength))
 
         if state != .valid {
             throw OnboardingViewError.passwordInvalid

@@ -138,6 +138,25 @@ struct MainHomeView<D: FileAccess>: View {
                         AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album, purchasedPermissions: viewModel.purchasedPermissions)).onAppear {
                             EventTracking.trackAlbumOpened()
                         }
+                    // Settings navigation destinations
+                    case .authenticationMethod:
+                        AuthenticationMethodView(authManager: viewModel.authManager, keyManager: viewModel.keyManager)
+                    case .backupKeyPhrase:
+                        KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
+                    case .importKeyPhrase:
+                        ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
+                    case .openSource:
+                        WebView(url: URL(string: "https://encamera.app/open-source/")!)
+                    case .privacyPolicy:
+                        WebView(url: URL(string: "https://encamera.app/privacy/")!)
+                    case .termsOfUse:
+                        WebView(url: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                    case .eraseAllData:
+                        PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
+                    case .eraseAppData:
+                        PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
+                    case .roadmap:
+                        WebView(url: URL(string: "https://encamera.featurebase.app/")!)
                     }
                 }.environmentObject(appModalStateModel)
             }

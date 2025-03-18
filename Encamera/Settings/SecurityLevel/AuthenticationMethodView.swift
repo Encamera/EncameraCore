@@ -17,9 +17,14 @@ class AuthenticationMethodViewModel: ObservableObject {
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
+        self.selectedOption = keyManager.passcodeType
     }
 
     func selectOption(_ option: PasscodeType?) {
+        selectedOption = option
+    }
+
+    func startPasscodeChange(_ option: PasscodeType?) {
         if option == selectedOption {
             return
         }
@@ -44,12 +49,6 @@ struct AuthenticationMethodView: View {
                     .foregroundColor(.gray)
                     .padding(.horizontal)
                     .padding(.top, 8)
-                
-                Text(L10n.chooseYourLoginMethod)
-                    .fontType(.pt12)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal)
-                
                 // Authentication options as radio buttons
                 VStack(spacing: 16) {
                     ForEach(PasscodeType.allCases) { option in
@@ -63,14 +62,15 @@ struct AuthenticationMethodView: View {
                             
                             // Radio button style
                             Image(systemName: viewModel.selectedOption == option ? "circle.fill" : "circle")
-                                .foregroundColor(viewModel.selectedOption == option ? .blue : .gray)
+                                .foregroundColor(viewModel.selectedOption == option ? Color.actionYellowGreen : .gray)
                         }
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
+                        .frame(height: 64)
                         .background(Color.gray.opacity(0.05))
                         .cornerRadius(8)
                         .onTapGesture {
-                            viewModel.selectOption(option)
+                            viewModel.alertForSelection = option
                         }
                     }
                 }
@@ -87,14 +87,15 @@ struct AuthenticationMethodView: View {
                 viewModel.modalForSelection = nil
             }
         })) {
-            switch viewModel.modalForSelection {
+            let selection = viewModel.modalForSelection
+            switch selection {
             case .pinCode(let length):
                 ChangePinModal(viewModel: .init(
                     authManager: viewModel.authManager,
                     keyManager: viewModel.keyManager,
                     pinLength: length,
                     completedAction: {
-                        viewModel.selectOption(viewModel.modalForSelection)
+                        viewModel.selectOption(selection)
                     }
                 ))
             case .password:
@@ -102,7 +103,7 @@ struct AuthenticationMethodView: View {
                     authManager: viewModel.authManager,
                     keyManager: viewModel.keyManager,
                     completedAction: {
-                        viewModel.selectOption(viewModel.modalForSelection)
+                        viewModel.selectOption(selection)
                     }
                 ))
 

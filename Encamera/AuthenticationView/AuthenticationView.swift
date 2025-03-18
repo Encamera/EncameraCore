@@ -85,7 +85,7 @@ class AuthenticationViewModel: ObservableObject {
                 .removeDuplicates()
                 .sink { [weak self] password in
                     print("Entered password", password)
-                    guard PasswordValidator.validate(password: password) == .valid else {
+                    guard PasswordValidator.validate(password: password, type: authMethod) == .valid else {
                         return
                     }
                     self?.authenticatePassword(password: password)
@@ -221,12 +221,12 @@ struct AuthenticationView: View {
                 }
                 Spacer().frame(height: 32)
                 if viewModel.isPinCodeInputEnabled {
-                    
-                    switch viewModel.keyManager.passcodeType {
+                    let passcodeType = viewModel.keyManager.passcodeType
+                    switch passcodeType {
                     case .pinCode(let length):
                         PinCodeView(pinCode: $enteredPassword, pinLength: length)
                             .onChange(of: enteredPassword) { oldValue, newValue in
-                                if PasswordValidator.validate(password: newValue) == .valid {
+                                if PasswordValidator.validate(password: newValue, type: passcodeType) == .valid {
                                     viewModel.authenticatePassword(password: newValue)
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                         enteredPassword = ""

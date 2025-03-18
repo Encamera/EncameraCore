@@ -81,7 +81,7 @@ class OnboardingHostingViewModel<GenericAlbumManaging: AlbumManaging>: Observabl
     }
 
     @discardableResult func validatePassword() throws -> PasswordValidation {
-        let state = PasswordValidator.validatePasswordPair(enteredPinCode, password2: enteredPinCode)
+        let state = PasswordValidator.validatePasswordPair(enteredPinCode, password2: enteredPinCode, type: .pinCode(length: AppConstants.defaultPinCodeLength))
         passwordState = state
 
         if state != .valid {

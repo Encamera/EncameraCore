@@ -216,9 +216,7 @@ struct SettingsView: View {
                         Button(L10n.Settings.giveInstantFeedback) {
                             appModalStateModel.currentModal = .feedbackView
                         }
-                        NavigationLink(L10n.roadmap) {
-                            WebView(url: URL(string: "https://encamera.featurebase.app/")!)
-                        }.id(UUID())
+                        NavigationLink(L10n.roadmap, value: AppNavigationPaths.roadmap)
 
                     }
                     Section {
@@ -230,16 +228,10 @@ struct SettingsView: View {
                             }
                         }
 
-                        NavigationLink(L10n.authenticationMethod) {
-                            AuthenticationMethodView(authManager: viewModel.authManager, keyManager: viewModel.keyManager)
-                        }
+                        NavigationLink(L10n.authenticationMethod, value: AppNavigationPaths.authenticationMethod)
                         if viewModel.showKeyBackup {
-                            NavigationLink(L10n.Settings.backupKeyPhrase) {
-                                KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
-                            }
-                            NavigationLink(L10n.Settings.importKeyPhrase) {
-                                ImportKeyPhrase(viewModel: .init(keyManager: viewModel.keyManager))
-                            }
+                            NavigationLink(L10n.Settings.backupKeyPhrase, value: AppNavigationPaths.backupKeyPhrase)
+                            NavigationLink(L10n.Settings.importKeyPhrase, value: AppNavigationPaths.importKeyPhrase)
                         }
                         HStack {
                             Picker(L10n.Settings.defaultStorageOption, selection: $viewModel.defaultStorageOption) {
@@ -253,15 +245,9 @@ struct SettingsView: View {
                     .navigationTitle(L10n.settings)
 
                     Section {
-                        NavigationLink(L10n.openSource) {
-                            WebView(url: URL(string: "https://encamera.app/open-source/")!)
-                        }.id(UUID())
-                        NavigationLink(L10n.privacyPolicy) {
-                            WebView(url: URL(string: "https://encamera.app/privacy/")!)
-                        }.id(UUID())
-                        NavigationLink(L10n.termsOfUse) {
-                            WebView(url: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                        }.id(UUID())
+                        NavigationLink(L10n.openSource, value: AppNavigationPaths.openSource)
+                        NavigationLink(L10n.privacyPolicy, value: AppNavigationPaths.privacyPolicy)
+                        NavigationLink(L10n.termsOfUse, value: AppNavigationPaths.termsOfUse)
                         reset
 
                     }
@@ -334,13 +320,8 @@ struct SettingsView: View {
     
     private var reset: some View {
         Group {
-            NavigationLink(L10n.eraseAllData) {
-                PromptToErase(viewModel: .init(scope: .allData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
-            }
-            NavigationLink(L10n.eraseAppData) {
-                PromptToErase(viewModel: .init(scope: .appData, keyManager: viewModel.keyManager, fileAccess: viewModel.fileAccess))
-            }
-
+            NavigationLink(L10n.eraseAllData, value: AppNavigationPaths.eraseAllData)
+            NavigationLink(L10n.eraseAppData, value: AppNavigationPaths.eraseAppData)
         }
     }
     
