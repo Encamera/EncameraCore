@@ -4,22 +4,13 @@ import Foundation
 import Security
 
 class AuthenticationMethodViewModel: ObservableObject {
-    enum AlertType {
-        case changeConfirmation
-        case clearPasswordConfirmation
-    }
-    
+
     @Published var selectedOption: PasscodeType? = nil
     @Published var useFaceID: Bool = false
     @Published var alertForSelection: PasscodeType?
     @Published var modalForSelection: PasscodeType?
-    @Published var showPasswordModal = false
-    @Published var pinLength: Int = 4
     @Published var newOption: PasscodeType?
 
-    // Alert state
-    @Published var activeAlert: AlertType? = nil
-    
     var authManager: AuthManager
     var keyManager: KeyManager
 
@@ -28,7 +19,7 @@ class AuthenticationMethodViewModel: ObservableObject {
         self.keyManager = keyManager
     }
 
-    func selectOption(_ option: PasscodeType) {
+    func selectOption(_ option: PasscodeType?) {
         if option == selectedOption {
             return
         }
@@ -60,61 +51,70 @@ struct AuthenticationMethodView: View {
                     .padding(.horizontal)
                 
                 // Authentication options as radio buttons
-                VStack(spacing: 16) {
-                    ForEach(PasscodeType.allCases) { option in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(option.textDescription)
-                                    .fontType(.pt16, weight: .medium)
-                            }
-                            
-                            Spacer()
-                            
-                            // Radio button style
-                            Image(systemName: viewModel.selectedOption == option ? "circle.fill" : "circle")
-                                .foregroundColor(viewModel.selectedOption == option ? .blue : .gray)
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 16)
-                        .background(Color.gray.opacity(0.05))
-                        .cornerRadius(8)
-                        .onTapGesture {
-                            viewModel.selectOption(option)
-                        }
-                    }
-                }
-                .padding(.horizontal)
+//                VStack(spacing: 16) {
+//                    ForEach(PasscodeType.allCases) { option in
+//                        HStack {
+//                            VStack(alignment: .leading, spacing: 4) {
+//                                Text(option.textDescription)
+//                                    .fontType(.pt16, weight: .medium)
+//                            }
+//                            
+//                            Spacer()
+//                            
+//                            // Radio button style
+//                            Image(systemName: viewModel.selectedOption == option ? "circle.fill" : "circle")
+//                                .foregroundColor(viewModel.selectedOption == option ? .blue : .gray)
+//                        }
+//                        .padding(.vertical, 8)
+//                        .padding(.horizontal, 16)
+//                        .background(Color.gray.opacity(0.05))
+//                        .cornerRadius(8)
+//                        .onTapGesture {
+//                            viewModel.selectOption(option)
+//                        }
+//                    }
+//                }
+//                .padding(.horizontal)
             }
             .screenBlocked()
 
             Spacer()
         }
-        .sheet(isPresented: $viewModel.showPinModal) {
-            ChangePinModal(viewModel: .init(
-                authManager: viewModel.authManager,
-                keyManager: viewModel.keyManager,
-                pinLength: viewModel.pinLength,
-                completedAction: {
-                    // If PIN setup is completed, make sure it's selected
-                    viewModel.authManager.addAuthenticationMethod(.pinCode)
-                }
-            ))
-        }
-        .sheet(isPresented: $viewModel.showPasswordModal) {
-            SetPasswordView(viewModel: .init(
-                authManager: viewModel.authManager,
-                keyManager: viewModel.keyManager,
-                completedAction: {
-                    // If password setup is completed, make sure it's selected
-                    viewModel.authManager.addAuthenticationMethod(.password)
-                }
-            ))
+        .sheet(isPresented: Binding<Bool>(get: {
+            viewModel.modalForSelection != nil
+        }, set: { type in
+            if type == false {
+                viewModel.modalForSelection = nil
+            }
+        })) {
+            switch viewModel.modalForSelection {
+            case .pinCode(let length):
+                ChangePinModal(viewModel: .init(
+                    authManager: viewModel.authManager,
+                    keyManager: viewModel.keyManager,
+                    pinLength: length,
+                    completedAction: {
+                        viewModel.selectOption(viewModel.modalForSelection)
+                    }
+                ))
+            case .password:
+                SetPasswordView(viewModel: .init(
+                    authManager: viewModel.authManager,
+                    keyManager: viewModel.keyManager,
+                    completedAction: {
+                        viewModel.selectOption(viewModel.modalForSelection)
+                    }
+                ))
+
+            case .some, nil:
+                EmptyView()
+            }
         }
         .alert(isPresented: Binding<Bool>(
-            get: { viewModel.activeAlert != nil },
-            set: { if !$0 { viewModel.activeAlert = nil } }
+            get: { viewModel.alertForSelection != nil },
+            set: { if !$0 { viewModel.alertForSelection = nil } }
         )) {
-            alert(for: viewModel.activeAlert)
+            alert(for: viewModel.alertForSelection)
         }
         .toolbarRole(.editor)
         .toolbar {
@@ -133,7 +133,7 @@ struct AuthenticationMethodView: View {
     
     private func alert(for alertType: PasscodeType?) -> Alert {
         switch alertType {
-        case .pinCode(length: let _):
+        case .pinCode, .password:
             return Alert(
                 title: Text(L10n.changeAuthenticationMethod),
                 message: Text(L10n.ChangingYourAuthenticationMethodWillRequireSettingUpANewPINOrPassword.wouldYouLikeToContinue),
@@ -141,20 +141,20 @@ struct AuthenticationMethodView: View {
                     viewModel.newOption = nil
                 },
                 secondaryButton: .default(Text(L10n.continue)) {
-                    viewModel.applyOptionChange()
+                    viewModel.modalForSelection = alertType
                 }
             )
-        case .none:
+        case PasscodeType.none?:
             return Alert(
                 title: Text(L10n.clearPassword),
                 message: Text(L10n.ThisWillRemoveAllAuthenticationMethods.YourDataWillRemainButYouLlNeedToSetUpANewPINOrPasswordNextTimeYouOpenTheApp.continue),
                 primaryButton: .cancel(Text(L10n.cancel)),
                 secondaryButton: .destructive(Text(L10n.clear)) {
-                    viewModel.authManager.removeAllAuthenticationMethods()
+                    try? viewModel.keyManager.clearPassword()
                     viewModel.selectedOption = nil
                 }
             )
-        case .none:
+        case nil:
             return Alert(title: Text(""))
         }
     }

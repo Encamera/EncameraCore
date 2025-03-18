@@ -32,8 +32,7 @@ class SettingsViewViewModel: ObservableObject {
     @Published var showPurchaseScreen: Bool = false
     @Published fileprivate var successMessage: String?
     @Published var useBiometrics: Bool = false
-    @Published var showChangePin: Bool = false
-    @Published var showChangePassword: Bool = false
+    @Published var activeChangePasscodeModal: PasscodeType?
     @Published var pinRememberedConfirmed: Bool = false
     @Published fileprivate var activeAlert: AlertType = .none
     @Published var showKeyBackup: Bool = false
@@ -98,7 +97,7 @@ class SettingsViewViewModel: ObservableObject {
                 return
             }
             guard self?.keyManager.passwordExists() ?? false else {
-                self?.showChangePin = true
+                self?.activeChangePasscodeModal = .pinCode(length: .four)
                 return
             }
 
@@ -225,11 +224,7 @@ struct SettingsView: View {
                     Section {
                         if viewModel.keyManager.passwordExists() {
                             Button {
-                                if viewModel.isUsingPinCode {
-                                    viewModel.showChangePin = true
-                                } else {
-                                    viewModel.showChangePassword = true
-                                }
+                                viewModel.activeChangePasscodeModal = viewModel.keyManager.passcodeType
                             } label: {
                                 Text(viewModel.isUsingPinCode ? L10n.changePinCode : L10n.changePassword)
                             }
@@ -284,19 +279,27 @@ struct SettingsView: View {
         .gradientBackground()
         .fontType(.pt14, weight: .bold)
         .productStorefront(isPresented: $viewModel.showPurchaseScreen, fromViewName: "Settings")
-        .sheet(isPresented: $viewModel.showChangePin, content: {
-
-            ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, pinLength: viewModel.keyManager.passcodeType, completedAction: {
-                // tiny hack but we are relying here on the UI to keep the state of the biometrics
-                viewModel.toggleBiometrics(value: viewModel.useBiometrics)
-            }))
-        })
-        .sheet(isPresented: $viewModel.showChangePassword, content: {
-            SetPasswordView(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
-                // Same biometrics handling as with PIN
-                viewModel.toggleBiometrics(value: viewModel.useBiometrics)
-            }))
-        })
+        .sheet(isPresented: Binding<Bool>(get: {
+            return viewModel.activeChangePasscodeModal != nil
+        }, set: { value in
+            if value == false {
+                viewModel.activeChangePasscodeModal = nil
+            }
+        })) {
+            if let passcodeType = viewModel.activeChangePasscodeModal {
+                if case .pinCode(let length) = passcodeType {
+                    ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, pinLength: length, completedAction: {
+                        // tiny hack but we are relying here on the UI to keep the state of the biometrics
+                        viewModel.toggleBiometrics(value: viewModel.useBiometrics)
+                    }))
+                } else {
+                    SetPasswordView(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
+                        // Same biometrics handling as with PIN
+                        viewModel.toggleBiometrics(value: viewModel.useBiometrics)
+                    }))
+                }
+            }
+        }
         .alert(isPresented: Binding<Bool>(get: {
             return viewModel.activeAlert != .none
         }, set: { value in
@@ -310,7 +313,7 @@ struct SettingsView: View {
                 Alert(title: Text(L10n.doYouRememberYourPin), message: Text(L10n.doYouRememberYourPinSubtitle), primaryButton: .default(Text(L10n.iRemember)) {
                     viewModel.toggleBiometrics(value: viewModel.useBiometrics)
                 }, secondaryButton: .default(Text(L10n.iForgot)) {
-                    viewModel.showChangePin = true
+                    viewModel.activeChangePasscodeModal = viewModel.keyManager.passcodeType
                 })
             case .biometricsDisabledOpenSettings:
                 Alert(title: Text(L10n.settingsFaceIdDisabled), message: Text(L10n.settingsFaceIdOpenSettings), primaryButton: .default(Text(L10n.openSettings), action: {
