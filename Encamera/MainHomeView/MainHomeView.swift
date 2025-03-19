@@ -125,7 +125,6 @@ struct MainHomeView<D: FileAccess>: View {
             .toolbar(.hidden)
             .ignoresSafeArea(edges: .bottom)
             .gradientBackground()
-            .screenBlocked()
             .navigationDestination(for: AppNavigationPaths.self) { destination in
                 Group {
                     switch destination {
@@ -160,6 +159,7 @@ struct MainHomeView<D: FileAccess>: View {
                     }
                 }.environmentObject(appModalStateModel)
             }
+            .screenBlocked()
         }
     }
 }

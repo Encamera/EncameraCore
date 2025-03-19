@@ -270,7 +270,6 @@ struct EncameraApp: App {
                             EmptyView()
                         }
                     }
-                    .screenBlocked()
                     .preferredColorScheme(.dark)
                     .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
                     .onOpenURL { url in

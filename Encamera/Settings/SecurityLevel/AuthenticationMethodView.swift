@@ -9,7 +9,6 @@ class AuthenticationMethodViewModel: ObservableObject {
     @Published var useFaceID: Bool = false
     @Published var alertForSelection: PasscodeType?
     @Published var modalForSelection: PasscodeType?
-    @Published var newOption: PasscodeType?
 
     var authManager: AuthManager
     var keyManager: KeyManager
@@ -61,7 +60,7 @@ struct AuthenticationMethodView: View {
                             Spacer()
                             
                             // Radio button style
-                            Image(systemName: viewModel.selectedOption == option ? "circle.fill" : "circle")
+                            Image(systemName: viewModel.selectedOption == option ? "checkmark.circle.fill" : "circle")
                                 .foregroundColor(viewModel.selectedOption == option ? Color.actionYellowGreen : .gray)
                         }
                         .padding(.vertical, 8)
@@ -119,19 +118,19 @@ struct AuthenticationMethodView: View {
         }
         .toolbarRole(.editor)
         .toolbar {
-            ToolbarItem(placement: .principal) {
+            ToolbarItemGroup(placement: .principal, content: {
+
                 ViewHeader(
                     title: L10n.authenticationMethod,
                     isToolbar: true,
-                    textAlignment: .center,
+                    textAlignment: .leading,
                     titleFont: .pt18
                 )
-                .frame(maxWidth: .infinity)
-            }
+            })
         }
         .gradientBackground()
     }
-    
+
     private func alert(for alertType: PasscodeType?) -> Alert {
         switch alertType {
         case .pinCode, .password:
@@ -139,7 +138,6 @@ struct AuthenticationMethodView: View {
                 title: Text(L10n.changeAuthenticationMethod),
                 message: Text(L10n.ChangingYourAuthenticationMethodWillRequireSettingUpANewPINOrPassword.wouldYouLikeToContinue),
                 primaryButton: .cancel(Text(L10n.cancel)) {
-                    viewModel.newOption = nil
                 },
                 secondaryButton: .default(Text(L10n.continue)) {
                     viewModel.modalForSelection = alertType
@@ -154,7 +152,7 @@ struct AuthenticationMethodView: View {
                     primaryButton: .cancel(Text(L10n.cancel)),
                     secondaryButton: .destructive(Text(L10n.clear)) {
                         try? viewModel.keyManager.clearPassword()
-                        viewModel.selectedOption = nil
+                        viewModel.selectedOption = PasscodeType.none
                     }
                 )
             } else {

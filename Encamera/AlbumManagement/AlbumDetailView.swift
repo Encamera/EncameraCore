@@ -735,7 +735,6 @@ struct AlbumDetailView<D: FileAccess>: View {
                 .transition(.slide)
             }
         }
-        .frame(maxWidth: .infinity)
     }
     var buttonMenu: some View {
         Menu {

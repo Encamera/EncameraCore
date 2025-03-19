@@ -65,16 +65,14 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
                 if let title {
                     Text(title)
                         .fontType(titleFont, weight: .bold)
-                        .frame(maxWidth: .infinity, alignment: textAlignment)
                         .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, alignment: textAlignment)
                 }
-
-
-                Spacer(minLength: 0) // Balances right content
                 rightContent()
-
             }
+
             .frame(height: 44)
+            .frame(maxWidth: .infinity)
             .if(isToolbar == false) { content in
                 content
                     .padding([.leading, .trailing], Spacing.pt24.value)
@@ -85,5 +83,6 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
                 GradientDivider()
             }
         }
+        .frame(maxWidth: .infinity)
     }
 }
