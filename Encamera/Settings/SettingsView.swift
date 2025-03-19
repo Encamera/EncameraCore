@@ -227,7 +227,7 @@ struct SettingsView: View {
                                 Text(viewModel.isUsingPinCode ? L10n.changePinCode : L10n.changePassword)
                             }
                         }
-
+                        biometricsToggle
                         NavigationLink(L10n.authenticationMethod, value: AppNavigationPaths.authenticationMethod)
                         if viewModel.showKeyBackup {
                             NavigationLink(L10n.Settings.backupKeyPhrase, value: AppNavigationPaths.backupKeyPhrase)
@@ -328,7 +328,18 @@ struct SettingsView: View {
     private var promptToErase: some View {
         return EmptyView()
     }
+    
+    private var biometricsToggle: some View {
+        return Group {
+            let method = viewModel.authManager.deviceBiometryType ?? .faceID
+            Toggle(isOn: $viewModel.useBiometrics) {
+                Text(L10n.use(method.nameForMethod))
+            }.onAppear {
+                viewModel.setupToggleObservers()
+            }.tint(Color.actionYellowGreen)
 
+        }
+    }
 
     private var iCloudKeyBackupToggle: some View {
         return Group {
