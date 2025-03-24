@@ -223,7 +223,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     )
                 }))
         case .enterExistingPassword:
-            let model = PasswordEntryViewModel(keyManager: viewModel.keyManager, passwordBinding: $viewModel.existingPassword, stateUpdate: { state in
+            let model = PasswordEntryViewModel(keyManager: viewModel.keyManager, stateUpdate: { state in
                 guard case .valid(let existingPassword) = state else {
                     return
                 }
@@ -234,7 +234,6 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                 } catch {
                     debugPrint("Error checking existing password")
                 }
-
             })
 
             NewOnboardingView(viewModel: .init(

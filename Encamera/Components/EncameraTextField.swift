@@ -63,21 +63,9 @@ struct EncameraTextField: View {
     
     var body: some View {
         ZStack(alignment: .leading) {
-            HStack {
-                field
-                    .focused($isFieldFocused)
-                    .modifier(EncameraInputTextField())
-                
-                if fieldType == .secure {
-                    Button(action: {
-                        showSecureText.toggle()
-                    }) {
-                        Image(systemName: showSecureText ? "eye.slash.fill" : "eye.fill")
-                            .foregroundColor(.gray)
-                    }
-                    .padding(.trailing)
-                }
-            }
+            field
+                .focused($isFieldFocused)
+                .modifier(EncameraInputTextField())
 
             if text.isEmpty {
                 Text(placeholder)
@@ -105,21 +93,32 @@ struct EncameraTextField: View {
                 .padding(.leading)
 
         case .secure:
-            Group {
-                if showSecureText {
-                    TextField("", text: $text)
-                        .introspectTextField { textField in
-                            handleIntrospectTextField(textField)
-                        }
-                        .textContentType(contentType)
-                        .padding(.leading)
-                } else {
-                    SecureField("", text: $text)
-                        .introspectTextField { textField in
-                            handleIntrospectTextField(textField)
-                        }
-                        .textContentType(contentType)
-                        .padding(.leading)
+            HStack {
+                Group {
+                    if showSecureText {
+                        TextField("", text: $text)
+                            .introspectTextField { textField in
+                                handleIntrospectTextField(textField)
+                            }
+                            .textContentType(contentType)
+                    } else {
+                        SecureField("", text: $text)
+                            .introspectTextField { textField in
+                                handleIntrospectTextField(textField)
+                            }
+                            .textContentType(contentType)
+                    }
+                }
+                .padding(.leading)
+                
+                if fieldType == .secure {
+                    Button(action: {
+                        showSecureText.toggle()
+                    }) {
+                        Image(systemName: showSecureText ? "eye.slash.fill" : "eye.fill")
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.trailing)
                 }
             }
         }
