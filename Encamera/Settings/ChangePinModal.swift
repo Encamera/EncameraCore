@@ -18,16 +18,13 @@ class ChangePinModalViewModel: ObservableObject {
     @Published var pinLength: PasscodeType.PasscodeLength
 
     var completedAction: (() -> Void)?
-    private var authManager: AuthManager
     private var keyManager: KeyManager
-    
 
     func doesPinCodeMatchNew(pinCode: String) -> Bool {
         return PasswordValidator.validatePasswordPair(pinCode, password2: enteredPinCode, type: .pinCode(length: pinLength)) == .valid
     }
 
-    init(authManager: AuthManager, keyManager: KeyManager, pinLength: PasscodeType.PasscodeLength, completedAction: (() -> Void)? = nil) {
-        self.authManager = authManager
+    init(keyManager: KeyManager, pinLength: PasscodeType.PasscodeLength, completedAction: (() -> Void)? = nil) {
         self.keyManager = keyManager
         self.completedAction = completedAction
         self.pinLength = pinLength
@@ -50,7 +47,6 @@ class ChangePinModalViewModel: ObservableObject {
             throw OnboardingViewError.passwordInvalid
         }
     }
-
 }
 
 struct ChangePinModal: View {
@@ -178,6 +174,6 @@ struct ChangePinModal: View {
 
 #Preview {
     Color.green.sheet(isPresented: .constant(true)) {
-        ChangePinModal(viewModel: .init(authManager: DemoAuthManager(), keyManager: DemoKeyManager(), pinLength: .four))
+        ChangePinModal(viewModel: .init(keyManager: DemoKeyManager(), pinLength: .four))
     }
 }

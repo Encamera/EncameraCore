@@ -33,17 +33,21 @@ class PasswordEntryViewModel: ObservableObject {
     @Published var attempts: Int = 0
     @Published var offset: CGSize = .zero
     @Published var passwordState: PasswordEntryState
+    @Published var showSuccessAlert = false
     private var cancellables = Set<AnyCancellable>()
+    var completedAction: (() -> Void)?
 
     init(placeholderText: String = L10n.password, 
          confirmPlaceholderText: String = L10n.repeatPassword,
          keyManager: KeyManager,
-         stateUpdate: @escaping (PasswordEntryState) -> Void) {
+         stateUpdate: @escaping PasswordStateUpdate,
+         completedAction: (() -> Void)? = nil) {
         self.placeholderText = placeholderText
         self.confirmPlaceholderText = confirmPlaceholderText
         self.stateUpdate = stateUpdate
         self.keyManager = keyManager
         self.passwordState = .empty
+        self.completedAction = completedAction
     }
     
     func doesPasswordMatch(password: String) -> Bool {
@@ -52,12 +56,16 @@ class PasswordEntryViewModel: ObservableObject {
     
     func validatePasswordAndNotify() {
         do {
-            let _ = try keyManager.checkPassword(enteredPassword)
+            try keyManager.setOrUpdatePassword(enteredPassword, type: .password)
             passwordState = .valid(enteredPassword)
+
             stateUpdate(passwordState)
+            showSuccessAlert = true
+            completedAction?()
         } catch {
             passwordState = .invalid
             stateUpdate(passwordState)
+            passwordError = L10n.failedToSavePassword
         }
     }
 }
@@ -78,6 +86,7 @@ struct PasswordEntry: View {
     
     @StateObject var viewModel: PasswordEntryViewModel
     @State private var path: NavigationPath = .init()
+    @Environment(\.presentationMode) private var presentationMode
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -109,7 +118,7 @@ struct PasswordEntry: View {
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
                                     
-                                    EncameraTextField(viewModel.placeholderText,
+                                    EncameraTextField(L10n.password,
                                                       type: .secure,
                                                       text: $viewModel.password1,
                                                       accessibilityIdentifier: "password"
@@ -153,7 +162,7 @@ struct PasswordEntry: View {
                                                 .lineLimit(2, reservesSpace: true)
                                                 .pad(.pt64, edge: .bottom)
                                             
-                                            EncameraTextField(viewModel.confirmPlaceholderText,
+                                            EncameraTextField(L10n.repeatPassword,
                                                               type: .secure,
                                                               text: $viewModel.password2,
                                                               accessibilityIdentifier: "confirmPassword"
@@ -184,6 +193,16 @@ struct PasswordEntry: View {
                 }
             }
         }
+        .alert(isPresented: $viewModel.showSuccessAlert) {
+            Alert(
+                title: Text(L10n.passwordSetSuccessfully),
+                message: Text(L10n.passwordSetSuccessMessage),
+                dismissButton: .default(Text(L10n.ok)) {
+                    presentationMode.wrappedValue.dismiss()
+                    viewModel.completedAction?()
+                }
+            )
+        }
     }
 }
 
@@ -193,24 +212,3 @@ struct PasswordEntry: View {
         stateUpdate: { _ in }
     ))
 }
-
-//#Preview("Password Entry - Confirmation") {
-//    let viewModel = PasswordEntryViewModel(
-//        keyManager: DemoKeyManager(),
-//        stateUpdate: { _ in }
-//    )
-//    viewModel.password1 = "test123"
-//    PasswordEntry(viewModel: viewModel)
-//}
-//
-//#Preview("Password Entry - Error") {
-//    let viewModel = PasswordEntryViewModel(
-//        keyManager: DemoKeyManager(),
-//        stateUpdate: { _ in }
-//    )
-//    viewModel.password1 = "test123"
-//    viewModel.password2 = "test456"
-//    viewModel.passwordError = L10n.passwordMismatch
-//    viewModel.attempts = 1
-//    PasswordEntry(viewModel: viewModel)
-//}

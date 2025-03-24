@@ -274,15 +274,19 @@ struct SettingsView: View {
         })) {
             if let passcodeType = viewModel.activeChangePasscodeModal {
                 if case .pinCode(let length) = passcodeType {
-                    ChangePinModal(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, pinLength: length, completedAction: {
+                    ChangePinModal(viewModel: .init(keyManager: viewModel.keyManager, pinLength: length, completedAction: {
                         // tiny hack but we are relying here on the UI to keep the state of the biometrics
                         viewModel.toggleBiometrics(value: viewModel.useBiometrics)
                     }))
                 } else {
-                    SetPasswordView(viewModel: .init(authManager: viewModel.authManager, keyManager: viewModel.keyManager, completedAction: {
-                        // Same biometrics handling as with PIN
-                        viewModel.toggleBiometrics(value: viewModel.useBiometrics)
-                    }))
+                    PasswordEntry(viewModel: .init(
+                        keyManager: viewModel.keyManager,
+                        stateUpdate: { _ in },
+                        completedAction: {
+                            // Same biometrics handling as with PIN
+                            viewModel.toggleBiometrics(value: viewModel.useBiometrics)
+                        }
+                    ))
                 }
             }
         }

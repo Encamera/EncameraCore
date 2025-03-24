@@ -90,7 +90,6 @@ struct AuthenticationMethodView: View {
             switch selection {
             case .pinCode(let length):
                 ChangePinModal(viewModel: .init(
-                    authManager: viewModel.authManager,
                     keyManager: viewModel.keyManager,
                     pinLength: length,
                     completedAction: {
@@ -98,9 +97,9 @@ struct AuthenticationMethodView: View {
                     }
                 ))
             case .password:
-                SetPasswordView(viewModel: .init(
-                    authManager: viewModel.authManager,
+                PasswordEntry(viewModel: .init(
                     keyManager: viewModel.keyManager,
+                    stateUpdate: { _ in },
                     completedAction: {
                         viewModel.selectOption(selection)
                     }
