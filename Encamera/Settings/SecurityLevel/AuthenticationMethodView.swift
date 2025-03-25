@@ -42,14 +42,15 @@ struct AuthenticationMethodView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            GradientDivider().padding()
             VStack(alignment: .leading, spacing: Spacing.pt16.value) {
 
                 VStack(alignment: .leading, spacing: Spacing.pt16.value) {
-                    Text("Please select a method".uppercased())
+
+                    Text(L10n.selectLoginMethod.uppercased())
                         .foregroundColor(Color.white.opacity(0.4))
                         .fontType(.pt14, weight: .bold)
-
-                        .padding(.top, 8)
+                        .padding(.vertical, 8)
                     ForEach(PasscodeType.allCases) { option in
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
