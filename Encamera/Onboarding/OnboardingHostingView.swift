@@ -269,7 +269,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                             try await viewModel.authWithBiometrics()
                             EventTracking.trackOnboardingBiometricsEnabled(newOnboarding: true)
                             path.append(OnboardingFlowScreen.finished)
-                        }, secondaryButtonTitle: L10n.usePINInstead,
+                        }, secondaryButtonTitle: L10n.usePasscodeInstead,
                         secondaryButtonAction: {
                             path.append(OnboardingFlowScreen.setPinCode)
                         },

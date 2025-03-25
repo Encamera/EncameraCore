@@ -224,7 +224,7 @@ struct SettingsView: View {
                             Button {
                                 viewModel.activeChangePasscodeModal = viewModel.keyManager.passcodeType
                             } label: {
-                                Text(viewModel.isUsingPinCode ? L10n.changePinCode : L10n.changePassword)
+                                Text(L10n.changePasscode)
                             }
                         }
                         biometricsToggle

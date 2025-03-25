@@ -84,6 +84,7 @@
 		2DE07F0413BE65FFFA43ABB4 /* CameraZoomControlButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26A38C1E9C740A80200B877 /* CameraZoomControlButtons.swift */; };
 		2DFE701557B36EA968580781 /* FilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ED0BF702F5D1CCA157F149F /* FilePicker.swift */; };
 		2E20C7A5614C49B7B8B8C596 /* ChooseStorageModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 969E04E579A6B499E1EB3B81 /* ChooseStorageModal.swift */; };
+		2F1FDFA258F495A9B48EA591 /* PasswordEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7BD5A58E7143676EFB8D05A /* PasswordEntry.swift */; };
 		2F24514B8BEACEE3B50D390E /* RotationViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0441FC55C7D865110DD929F /* RotationViewModifier.swift */; };
 		2FB1636594FD73886203FADC /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 828FED9F6E1E14EA0BBA982F /* EncameraCore */; };
 		2FCFC8C5F90FE5E93B0F290E /* EncryptedImageIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = FC9BE7091B43E9BB8D1E0B7B /* EncryptedImageIcon.png */; };
@@ -138,7 +139,6 @@
 		48DA97BEB07EBD95A7EB20B7 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE15C5D7EB03BF1BF5D80070 /* Preview Assets.xcassets */; };
 		499935C789F9AA542ABABF4A /* TweetToShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13501C8BD163FDB992526254 /* TweetToShareView.swift */; };
 		49AFF8B3DF0F332275B5D92A /* PremiumBenefitsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D226078E37858D0CE665EAFE /* PremiumBenefitsScrollView.swift */; };
-		4A0642E9B1818B0BAF0489ED /* PasswordEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629711F137AF404054258CDB /* PasswordEntry.swift */; };
 		4ADD6820BB1C42B218968B45 /* WidgetExtensionBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E4B7B84569DC8C3F5B5EAF /* WidgetExtensionBundle.swift */; };
 		4B33096135426284703A1026 /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B2737355044815FBAF3EE96 /* SplashScreen.swift */; };
 		4B8BB435E73B35DCF19DEBB5 /* DismissButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDAE32CBB0CA3BFF5A99A2A /* DismissButton.swift */; };
@@ -207,6 +207,7 @@
 		6EB0039A164AA5BF2325988F /* TweetToShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13501C8BD163FDB992526254 /* TweetToShareView.swift */; };
 		6F25DA8800B9AFE79C610CBC /* ImageStepIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E66AD1C897B9591AE534EAB /* ImageStepIndicator.swift */; };
 		70661EDDF1C6AB200CCB26DD /* AVPlayerViewControllerRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F02011D6358CD65EAA6ED453 /* AVPlayerViewControllerRepresentable.swift */; };
+		70932F6557B54162E2068189 /* SignalBarsComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F4CB8A578E1FA9B21A431C /* SignalBarsComponent.swift */; };
 		70939970623DB470B059763D /* OnboardingViewError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB3AA38D651FF8331C0601C /* OnboardingViewError.swift */; };
 		70AC154CF1FE49A51C0C72A1 /* AsyncEncryptedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAD610E4351444AD4DE851A /* AsyncEncryptedImage.swift */; };
 		70D8B277BC2C42A22907B619 /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57C54146880DB6F836B1AB7F /* Rotation.swift */; };
@@ -225,6 +226,7 @@
 		79F5437571D7EAD49BB20DFA /* AuthenticationMethodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5146BA876BD5ED50B87F252D /* AuthenticationMethodView.swift */; };
 		7ADD1D5E2EBDDA6C8150205D /* 9.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3ED8F164556978451324A891 /* 9.jpg */; };
 		7BCF636563DB94B36DE0487A /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 09BA6D46FE4EA6BAF2AD1E44 /* Sodium */; };
+		7BD4D3822D56BF858F94753E /* SignalBarsComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F4CB8A578E1FA9B21A431C /* SignalBarsComponent.swift */; };
 		7BEC831FD625A169A5F5B2F6 /* AlbumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28AA0A3927C6F6F81BE711CE /* AlbumTests.swift */; };
 		7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 49A2EF989B2F8643105205DF /* Assets.xcassets */; };
 		7ED883ADE80A3CA745BFCE39 /* AppModalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444C602F6CE6897937BAAA12 /* AppModalModifier.swift */; };
@@ -235,7 +237,6 @@
 		8639F6A1FAC2BF6727331A98 /* ProgressViewCircular.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */; };
 		863EAE16111F8EE4F7797EA8 /* PinCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C549493585B3CFD05224399A /* PinCodeView.swift */; };
 		864AABB66247E3165F272A54 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DDF93C2E1725BC42C2CE84 /* SettingsView.swift */; };
-		8697F546722A4F689D237D92 /* PasswordEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629711F137AF404054258CDB /* PasswordEntry.swift */; };
 		8872F9A1A23E04A49F46C1DD /* NotificationList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2217BB78A3D28DD716443AA8 /* NotificationList.swift */; };
 		8890E99BEBDAC4FDE0E50298 /* Satoshi-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = 5876A43225B15FCEC1E6CF1C /* Satoshi-Light.otf */; };
 		88F0ACFA29D5A4C70B405109 /* AppModalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = F36DD8D4F3C220B183F2436F /* AppModalEnvironment.swift */; };
@@ -424,6 +425,7 @@
 		F860061EE853A5C21899C1E4 /* EncameraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB580774C2A1B0E3A6D54F50 /* EncameraApp.swift */; };
 		F8B1B3A0D6B4739F6778BA38 /* PopoverComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C25496618B6149212F67E6 /* PopoverComponent.swift */; };
 		F9133EC7B0495918DB3BF277 /* 4.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F8C8A1F504CADD09FEAA10B8 /* 4.jpg */; };
+		F99B7C98D862511389CC0BFE /* PasswordEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7BD5A58E7143676EFB8D05A /* PasswordEntry.swift */; };
 		F9EBAF979EE440DA84E3FB0B /* 10.jpg in Resources */ = {isa = PBXBuildFile; fileRef = E71EC03AEBFD13A58FDB7125 /* 10.jpg */; };
 		FAF413A67D941EF62969BDD6 /* Satoshi-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 727626CC92C9393321DCE958 /* Satoshi-Medium.otf */; };
 		FF2B67A65C70B3389E49167E /* TextPillModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA40D2C7BE175D1C19C8E136 /* TextPillModifier.swift */; };
@@ -511,6 +513,7 @@
 		2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraTextField.swift; sourceTree = "<group>"; };
 		2129B2CE002C378326BC65B7 /* TextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextField.swift; sourceTree = "<group>"; };
 		2196F3D125A5CB3A99BD0D21 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
+		21F4CB8A578E1FA9B21A431C /* SignalBarsComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalBarsComponent.swift; sourceTree = "<group>"; };
 		2217BB78A3D28DD716443AA8 /* NotificationList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationList.swift; sourceTree = "<group>"; };
 		22632598B02FA85E75C7FE91 /* GalleryGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryGridView.swift; sourceTree = "<group>"; };
 		23A524A39BC14B319F37D1EC /* LightboxController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightboxController.swift; sourceTree = "<group>"; };
@@ -572,7 +575,6 @@
 		5E777101DCE31F95103C50B4 /* Lato-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Bold.ttf"; sourceTree = "<group>"; };
 		5EDAE32CBB0CA3BFF5A99A2A /* DismissButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DismissButton.swift; sourceTree = "<group>"; };
 		5F87936ECB7F2B45E23186B8 /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
-		629711F137AF404054258CDB /* PasswordEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordEntry.swift; sourceTree = "<group>"; };
 		65150FDF4987A45F57627976 /* PushNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotification.swift; sourceTree = "<group>"; };
 		66E2E2187D84C00DD938BE5D /* PhotoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPicker.swift; sourceTree = "<group>"; };
 		670F1074DE46A86E75516A89 /* AppModalContexts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalContexts.swift; sourceTree = "<group>"; };
@@ -684,6 +686,7 @@
 		D4DDF93C2E1725BC42C2CE84 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D50482CE53A5E780FA8F3B38 /* DemoFileEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFileEnumerator.swift; sourceTree = "<group>"; };
 		D6758B0A04FA196EDAF9CA1F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		D7BD5A58E7143676EFB8D05A /* PasswordEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordEntry.swift; sourceTree = "<group>"; };
 		D85AFFF69DE741F555B05A79 /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = debug.xcconfig; sourceTree = "<group>"; };
 		D9E040DE4298869CF563F016 /* DecryptErrorExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptErrorExplanation.swift; sourceTree = "<group>"; };
 		DA40D2C7BE175D1C19C8E136 /* TextPillModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextPillModifier.swift; sourceTree = "<group>"; };
@@ -820,7 +823,6 @@
 			children = (
 				48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */,
 				9EB904C84E5D90724BD79358 /* LockScreenKeypad.swift */,
-				629711F137AF404054258CDB /* PasswordEntry.swift */,
 			);
 			path = AuthenticationView;
 			sourceTree = "<group>";
@@ -1168,6 +1170,7 @@
 				C7085C27CFF6BB271DB91A2D /* ChangePinModal.swift */,
 				40DE9D924F220F92F648807C /* ImportKeyPhrase.swift */,
 				08E7ADEDD8142B9DA265EE15 /* KeyPhraseView.swift */,
+				D7BD5A58E7143676EFB8D05A /* PasswordEntry.swift */,
 				14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */,
 				D4DDF93C2E1725BC42C2CE84 /* SettingsView.swift */,
 				C62A255AEC4E8EC8EB0DC2D3 /* SecurityLevel */,
@@ -1252,6 +1255,7 @@
 				C8C25496618B6149212F67E6 /* PopoverComponent.swift */,
 				5492A28EBE710E0400A08292 /* ProgressViewCircular.swift */,
 				FAD4C48312ADA520813858CA /* ShimmeringLogo.swift */,
+				21F4CB8A578E1FA9B21A431C /* SignalBarsComponent.swift */,
 				5B2737355044815FBAF3EE96 /* SplashScreen.swift */,
 				B659B984967304593F27C554 /* StorageOptionSquare.swift */,
 				ED7483700886A4A305F91EDA /* ToastComponent.swift */,
@@ -1799,7 +1803,7 @@
 				21AB41A327AB666FFDD36DB6 /* OptionItemView.swift in Sources */,
 				70EBBFF6E76A10BC4E296573 /* OptionItemViewModifier.swift in Sources */,
 				3C58D18EBAC7976BE71F653E /* PageView.swift in Sources */,
-				4A0642E9B1818B0BAF0489ED /* PasswordEntry.swift in Sources */,
+				F99B7C98D862511389CC0BFE /* PasswordEntry.swift in Sources */,
 				050F76A58CCF1D22343BF2E1 /* PasswordInputView.swift in Sources */,
 				5DA96EA4C6729B9FE9CB1F73 /* PhotoLimitReachedModal.swift in Sources */,
 				C8AFCA3DD12DE8B123260328 /* PhotoLimitReachedView.swift in Sources */,
@@ -1823,6 +1827,7 @@
 				D8E1FB7A161B7C3518359551 /* SecurityLevelOption.swift in Sources */,
 				864AABB66247E3165F272A54 /* SettingsView.swift in Sources */,
 				190D5E6A414AC62E947CF1FC /* ShimmeringLogo.swift in Sources */,
+				70932F6557B54162E2068189 /* SignalBarsComponent.swift in Sources */,
 				C5A2C1B02914147FB96D2AE3 /* Spacing.swift in Sources */,
 				4B33096135426284703A1026 /* SplashScreen.swift in Sources */,
 				B837693314775C8DFB17B4D6 /* StepIndicator.swift in Sources */,
@@ -1964,7 +1969,7 @@
 				C38F484E59AC541B2FAACBA3 /* OptionItemView.swift in Sources */,
 				395124D48B96A93644EA2266 /* OptionItemViewModifier.swift in Sources */,
 				4BA4F7EBDE4E7EDEEB0421C1 /* PageView.swift in Sources */,
-				8697F546722A4F689D237D92 /* PasswordEntry.swift in Sources */,
+				2F1FDFA258F495A9B48EA591 /* PasswordEntry.swift in Sources */,
 				9B8F9B4CEC6402BBAC0989F0 /* PasswordInputView.swift in Sources */,
 				9617FBFBC89BFF0093920F2B /* PhotoLimitReachedModal.swift in Sources */,
 				CDE4CA6F518564C008779372 /* PhotoLimitReachedView.swift in Sources */,
@@ -1988,6 +1993,7 @@
 				AB5AF1E88720E666BD4BF62C /* SecurityLevelOption.swift in Sources */,
 				BD25ADB842FA51360BE028AD /* SettingsView.swift in Sources */,
 				04BD71832E194901137EDF8A /* ShimmeringLogo.swift in Sources */,
+				7BD4D3822D56BF858F94753E /* SignalBarsComponent.swift in Sources */,
 				624334C11EFF29BDE9A2B208 /* Spacing.swift in Sources */,
 				A4B095345B2234C2CB38CA6D /* SplashScreen.swift in Sources */,
 				044EEE9027A0FC3AFBEAF171 /* StepIndicator.swift in Sources */,

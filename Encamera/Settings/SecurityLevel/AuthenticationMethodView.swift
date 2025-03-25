@@ -55,19 +55,22 @@ struct AuthenticationMethodView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(option.textDescription)
                                     .fontType(.pt16, weight: .medium)
+                                Text("Good protection")
+                                    .fontType(.pt14)
                             }
                             
                             Spacer()
                             
                             // Radio button style
                             Image(systemName: viewModel.selectedOption == option ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(viewModel.selectedOption == option ? Color.actionYellowGreen : .gray)
+                                .foregroundColor(viewModel.selectedOption == option ? Color.actionYellowGreen : Color.disabledButtonBackgroundColor)
                         }
+
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
-                        .frame(height: 64)
-                        .background(Color.gray.opacity(0.05))
-                        .cornerRadius(8)
+                        .frame(height: 102)
+                        .background(viewModel.selectedOption == option ? Color.gray.opacity(0.05) : Color.disabledButtonBackgroundColor)
+                        .cornerRadius(12)
                         .onTapGesture {
                             viewModel.alertForSelection = option
                         }
