@@ -103,31 +103,27 @@ struct PasswordEntry: View {
     private var passwordTextField: some View {
         EncameraTextField(L10n.password,
                          type: .secure,
-                         text: $viewModel.password1,
+                          text: $viewModel.password1,
+                          becomeFirstResponder: true,
                          accessibilityIdentifier: "password"
         )
         .focused($isInputFieldFocused)
         .limitInputLength(to: 100)
         .submitLabel(.done)
         .onSubmit {
-            if viewModel.password1.count >= PasswordValidation.minPasswordLength {
-                viewModel.enteredPassword = viewModel.password1
-                path.append(PasswordEntryScreen.confirmPassword)
-            }
+            advanceToNextScreen()
         }
         .padding([.horizontal], Spacing.pt24.rawValue)
     }
-    
-    private var confirmPasswordTextField: some View {
-        EncameraTextField(L10n.repeatPassword,
-                         type: .secure,
-                         text: $viewModel.password2,
-                         accessibilityIdentifier: "confirmPassword"
-        )
-        .limitInputLength(to: 100)
-        .submitLabel(.done)
-        .onSubmit {
-            if viewModel.password2.count >= PasswordValidation.minPasswordLength {
+
+    private func advanceToNextScreen() {
+        if viewModel.password1.count >= PasswordValidation.minPasswordLength {
+            viewModel.enteredPassword = viewModel.password1
+            path.append(PasswordEntryScreen.confirmPassword)
+        }
+    }
+    private func savePassword() {
+        if viewModel.password2.count >= PasswordValidation.minPasswordLength {
                 if viewModel.doesPasswordMatch(password: viewModel.password2) {
                     viewModel.passwordError = nil
                     viewModel.validatePasswordAndNotify()
@@ -137,8 +133,26 @@ struct PasswordEntry: View {
                     withAnimation {
                         viewModel.attempts += 1
                     }
-                }
             }
+        }
+    }
+    
+    private var confirmPasswordTextField: some View {
+        EncameraTextField(L10n.repeatPassword,
+                         type: .secure,
+                          
+                         text: $viewModel.password2,
+                          becomeFirstResponder: true,
+
+                         accessibilityIdentifier: "confirmPassword"
+        )
+        .if(viewModel.passwordError != nil, transform: { field in
+            field.becomeFirstResponder()
+        })
+        .limitInputLength(to: 100)
+        .submitLabel(.done)
+        .onSubmit {
+            savePassword()
         }
         .padding([.horizontal], Spacing.pt24.rawValue)
     }
@@ -168,7 +182,7 @@ struct PasswordEntry: View {
         VStack(alignment: .center) {
             pinKeyImage
             Spacer().frame(height: 32)
-            
+                
             Text(L10n.repeatPassword)
                 .fontType(.pt24, weight: .bold)
             Spacer().frame(height: 12)
@@ -199,6 +213,21 @@ struct PasswordEntry: View {
                         content: { _ in
                             AnyView(passwordEntryContent)
                         }))
+            .overlay(alignment: .topLeading) {
+                HStack {
+                    DismissButton {
+                        presentationMode.wrappedValue.dismiss()
+                    }.padding(20)
+                    Spacer()
+                    if viewModel.password1.count >= PasswordValidation.minPasswordLength {
+                        Button(L10n.next) {
+                            advanceToNextScreen()
+                        }
+                        .textButton()
+                        .padding(.trailing, Spacing.pt8.value)
+                    }
+                }
+            }
             .navigationDestination(for: PasswordEntryScreen.self) { screen in
                 if screen == .confirmPassword {
                     NewOnboardingView(viewModel:
@@ -209,6 +238,21 @@ struct PasswordEntry: View {
                                     AnyView(confirmPasswordContent)
                                 })
                     )
+                    .overlay(alignment: .topLeading) {
+                        HStack {
+                            DismissButton {
+                                presentationMode.wrappedValue.dismiss()
+                            }.padding(20)
+                            Spacer()
+                            if viewModel.password1.count >= PasswordValidation.minPasswordLength {
+                                Button(L10n.save) {
+                                    savePassword()
+                                }
+                                .textButton()
+                                    .padding(.trailing, Spacing.pt8.value)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -221,11 +265,6 @@ struct PasswordEntry: View {
                     viewModel.completedAction?()
                 }
             )
-        }
-        .overlay(alignment: .topLeading) {
-            DismissButton {
-                presentationMode.wrappedValue.dismiss()
-            }.padding(20)
         }
     }
 }

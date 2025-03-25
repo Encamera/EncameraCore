@@ -73,7 +73,7 @@ struct AuthenticationMethodView: View {
                                 .frame(width: 20, height: 20)
                                 .foregroundColor(viewModel.selectedOption == option ? Color.actionYellowGreen : Color.white.opacity(0.1))
                         }
-
+                        .contentShape(Rectangle())
                         .padding(.vertical, 8)
                         .padding(.horizontal, 20)
                         .frame(height: 102)
@@ -84,7 +84,9 @@ struct AuthenticationMethodView: View {
                                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
                         )
                         .onTapGesture {
-                            viewModel.alertForSelection = option
+                            if option != viewModel.selectedOption {
+                                viewModel.alertForSelection = option
+                            }
                         }
                     }
                 }
