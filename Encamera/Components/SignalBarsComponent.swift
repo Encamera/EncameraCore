@@ -7,7 +7,7 @@ struct SignalBarsComponent: View {
     private let barWidth: CGFloat = 3
     private let barSpacing: CGFloat = 4
     private let cornerRadius: CGFloat = 8
-    private let baseHeight: CGFloat = 4
+    private let baseHeight: CGFloat = 2
     
     init(totalBars: Int, activeBars: Int) {
         self.totalBars = totalBars
@@ -24,12 +24,11 @@ struct SignalBarsComponent: View {
     }
     
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: barSpacing) {
+        HStack(alignment: .bottom, spacing: barSpacing) {
             ForEach(0..<totalBars, id: \.self) { index in
                 VStack {
-                    Spacer()
                     Rectangle()
-                        .fill(index < activeBars ? Color.green : Color.gray)
+                        .fill(index < activeBars ? Color.actionYellowGreen : Color.gray)
                         .frame(width: barWidth, height: barHeight(for: index))
                         .cornerRadius(cornerRadius, corners: [.topLeft, .topRight])
                 }

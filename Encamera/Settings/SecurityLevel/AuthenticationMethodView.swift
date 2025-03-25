@@ -42,35 +42,46 @@ struct AuthenticationMethodView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(L10n.selectLoginMethod)
-                    .fontType(.pt14, weight: .bold)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                // Authentication options as radio buttons
-                VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: Spacing.pt16.value) {
+
+                VStack(alignment: .leading, spacing: Spacing.pt16.value) {
+                    Text("Please select a method".uppercased())
+                        .foregroundColor(Color.white.opacity(0.4))
+                        .fontType(.pt14, weight: .bold)
+
+                        .padding(.top, 8)
                     ForEach(PasscodeType.allCases) { option in
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(option.textDescription)
-                                    .fontType(.pt16, weight: .medium)
-                                Text("Good protection")
-                                    .fontType(.pt14)
+                                    .fontType(.pt16, weight: .bold)
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    SignalBarsComponent(totalBars: PasscodeType.allCases.count, activeBars: option.protectionLevel.bars)
+                                    Text(option.protectionLevel.text)
+                                        .fontType(.pt14)
+                                        .foregroundColor(.gray)
+
+                                }
                             }
                             
                             Spacer()
                             
                             // Radio button style
                             Image(systemName: viewModel.selectedOption == option ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(viewModel.selectedOption == option ? Color.actionYellowGreen : Color.disabledButtonBackgroundColor)
+                                .resizable()
+                                .frame(width: 20, height: 20)
+                                .foregroundColor(viewModel.selectedOption == option ? Color.actionYellowGreen : Color.white.opacity(0.1))
                         }
 
                         .padding(.vertical, 8)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, 20)
                         .frame(height: 102)
-                        .background(viewModel.selectedOption == option ? Color.gray.opacity(0.05) : Color.disabledButtonBackgroundColor)
-                        .cornerRadius(12)
+                        .background(viewModel.selectedOption == option ? Color.white.opacity(0.05) : Color.clear)
+                        .cornerRadius(AppConstants.defaultCornerRadius)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        )
                         .onTapGesture {
                             viewModel.alertForSelection = option
                         }
