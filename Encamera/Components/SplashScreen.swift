@@ -1,4 +1,5 @@
 import SwiftUI
+import EncameraCore
 
 struct SplashScreen<Content: View>: View {
     @State private var isActive = false
@@ -18,7 +19,7 @@ struct SplashScreen<Content: View>: View {
                 VStack {
                     Spacer()
                     Image("LogoSquare")
-                    ShimmeringLogo(text: "Encamera")
+                    ShimmeringLogo(text: "Encamera", subtitle: L10n.SplashScreen.subline)
                         .opacity(opacity)
                         .frame(maxWidth: .infinity, maxHeight: 55, alignment: .center)
                     Spacer()

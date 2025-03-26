@@ -246,28 +246,28 @@ struct EncameraApp: App {
                 NavigationStack(path: $viewModel.selectedPath) {
 
                     ZStack {
+                        
                         if viewModel.showOnboarding {
                             OnboardingHostingView<AlbumManagerType>(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager, authManager: viewModel.authManager, finishedAction: {
                                 viewModel.showOnboarding = false
                             }))
-                        } else if viewModel.isAuthenticated == false {
-                            AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
-                        } else if viewModel.isAuthenticated == true,
-                                  viewModel.keyManagerKey != nil,
-                                  let albumManager = viewModel.albumManager {
-                            MainHomeView<FileAccessType>(viewModel: .init(
-                                fileAccess: viewModel.fileAccess,
-                                keyManager: viewModel.keyManager,
-                                albumManager: albumManager,
-                                purchasedPermissions: viewModel.purchasedPermissions,
-                                settingsManager: viewModel.settingsManager,
-                                authManager: viewModel.authManager,
-                                cameraService: viewModel.cameraService
-                            ))
-                            .environmentObject(appModalStateModel)
-
                         } else {
-                            EmptyView()
+
+                            if let albumManager = viewModel.albumManager {
+                                MainHomeView<FileAccessType>(viewModel: .init(
+                                    fileAccess: viewModel.fileAccess,
+                                    keyManager: viewModel.keyManager,
+                                    albumManager: albumManager,
+                                    purchasedPermissions: viewModel.purchasedPermissions,
+                                    settingsManager: viewModel.settingsManager,
+                                    authManager: viewModel.authManager,
+                                    cameraService: viewModel.cameraService
+                                ))
+                                .environmentObject(appModalStateModel)
+                            }
+                            if viewModel.isAuthenticated == false {
+                                AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                            }
                         }
                     }
                     .preferredColorScheme(.dark)

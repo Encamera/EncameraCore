@@ -111,6 +111,7 @@ struct AuthenticationMethodView: View {
                     pinLength: length,
                     completedAction: {
                         viewModel.selectOption(selection)
+                        EventTracking.trackAuthenticationMethodChanged(to: "pin_\(length)")
                     }
                 ))
             case .password:
@@ -119,6 +120,7 @@ struct AuthenticationMethodView: View {
                     stateUpdate: { _ in },
                     completedAction: {
                         viewModel.selectOption(selection)
+                        EventTracking.trackAuthenticationMethodChanged(to: "password")
                     }
                 ))
 
@@ -169,6 +171,7 @@ struct AuthenticationMethodView: View {
                     secondaryButton: .destructive(Text(L10n.clear)) {
                         try? viewModel.keyManager.clearPassword()
                         viewModel.selectedOption = PasscodeType.none
+                        EventTracking.trackAuthenticationMethodCleared()
                     }
                 )
             } else {

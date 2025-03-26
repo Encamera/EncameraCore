@@ -338,10 +338,12 @@ struct SettingsView: View {
             let method = viewModel.authManager.deviceBiometryType ?? .faceID
             Toggle(isOn: $viewModel.useBiometrics) {
                 Text(L10n.use(method.nameForMethod))
-            }.onAppear {
+            }
+            .disabled(!viewModel.keyManager.passwordExists())
+            .onAppear {
                 viewModel.setupToggleObservers()
-            }.tint(Color.actionYellowGreen)
-
+            }
+            .tint(Color.actionYellowGreen)
         }
     }
 
