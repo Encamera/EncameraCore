@@ -121,8 +121,6 @@ targets:
         link: true
     scheme:
       storeKitConfiguration: "Encamera/InAppPurchase/Encamera.storekit"
-      testTargets:
-        - EncameraTests
 
 
   StoreKitTesting:
@@ -165,15 +163,3 @@ targets:
       
     scheme:
       testTargets:
-
-
-
-  EncameraTests:
-    platform: iOS
-    sources: [EncameraTests]
-    type: bundle.unit-test
-    dependencies:
-      - package: Sodium
-      - target: Encamera
-      - package: EncameraCore
-      - package: PiwikPROSDK

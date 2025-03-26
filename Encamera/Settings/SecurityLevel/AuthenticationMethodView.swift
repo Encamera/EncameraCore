@@ -42,7 +42,7 @@ struct AuthenticationMethodView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            GradientDivider().padding()
+            GradientDivider().padding([.bottom, .leading, .trailing])
             VStack(alignment: .leading, spacing: Spacing.pt16.value) {
 
                 VStack(alignment: .leading, spacing: Spacing.pt16.value) {
@@ -96,6 +96,7 @@ struct AuthenticationMethodView: View {
 
             Spacer()
         }
+        .padding(.top, -44)
         .sheet(isPresented: Binding<Bool>(get: {
             viewModel.modalForSelection != nil
         }, set: { type in
