@@ -214,7 +214,7 @@ struct AuthenticationView: View {
             Text(L10n.welcomeBack)
                 .fontType(.pt20, weight: .bold)
             if viewModel.keyManager.passwordExists() {
-                if let biometric = viewModel.availableBiometric {
+                if viewModel.authManager.useBiometricsForAuth, let biometric = viewModel.availableBiometric {
                     Text("\(L10n.enterPassword) \(L10n.or.lowercased()) \(biometric.nameForMethod)")
                 } else {
                     Text("\(L10n.enterPassword)")
