@@ -63,6 +63,7 @@ class AuthenticationViewModel: ObservableObject {
 #endif
     var cancellables = Set<AnyCancellable>()
     private var lockoutTimer: AnyCancellable?
+    private var biometricsTask: Task<Void, Never>?
 
     var availableBiometric: AuthenticationMethod? {
         if authManager.useBiometricsForAuth {
@@ -112,7 +113,10 @@ class AuthenticationViewModel: ObservableObject {
 
         if password.count > 0 {
             do {
-
+                // Cancel any pending biometrics authentication
+                biometricsTask?.cancel()
+                biometricsTask = nil
+                
                 try authManager.authorize(with: password, using: keyManager)
                 passwordAttempts = 0 // Reset attempts on successful auth
 
@@ -168,16 +172,29 @@ class AuthenticationViewModel: ObservableObject {
             debugPrint("Biometrics not enabled")
             return
         }
-        Task {
+        
+        // Cancel any existing biometrics task
+        biometricsTask?.cancel()
+        
+        biometricsTask = Task {
             do {
                 try await authManager.authorizeWithBiometrics()
                 clearLockoutTimer()
             } catch let authManagerError as AuthManagerError {
-                await MainActor.run {
-                    handleAuthManagerError(authManagerError)
+                if !Task.isCancelled {
+                    await MainActor.run {
+                        handleAuthManagerError(authManagerError)
+                    }
                 }
             } catch {
-                debugPrint("Error handling auth", error)
+                if !Task.isCancelled {
+                    debugPrint("Error handling auth", error)
+                }
+            }
+            
+            // Clear the task reference when complete
+            if self.biometricsTask?.isCancelled == false {
+                self.biometricsTask = nil
             }
         }
     }
