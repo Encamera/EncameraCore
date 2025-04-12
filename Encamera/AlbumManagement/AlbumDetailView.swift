@@ -34,8 +34,8 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
     }
 
+    var appModalStateModel: AppModalStateModel?
     var albumManager: AlbumManaging
-
 
     @Published var keyViewerError: KeyViewerError?
     @Published var deleteActionError: String = ""
@@ -136,6 +136,15 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         self.albumName = album.name
         self.gridViewModel.album = album
         FileOperationBus.shared.operations.sink { operation in
+            if self.purchasedPermissions.hasEntitlement == false {
+                Task { @MainActor in
+                    self.appModalStateModel?.currentModal = .purchaseView(context: .init(sourceView: "AlbumDetailView", purchaseAction: { action in
+                        if case .purchaseComplete = action {
+                            self.appModalStateModel?.currentModal = nil
+                        }
+                    }))
+                }
+            }
             Task {
                 await self.gridViewModel.enumerateMedia()
             }
@@ -543,6 +552,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                     viewModel.moveAlbum(to: storage)
                     isShowingMoveAlbumModal = false
                 } else if !hasEntitlement && storage == .icloud {
+
                     viewModel.isShowingPurchaseSheet = true
                     viewModel.afterPurchaseAction = {
                         viewModel.moveAlbum(to: storage)
@@ -608,6 +618,9 @@ struct AlbumDetailView<D: FileAccess>: View {
         .gradientBackground()
         .ignoresSafeArea(edges: [.bottom])
         .screenBlocked()
+        .onAppear {
+            viewModel.appModalStateModel = appModalStateModel
+        }
 
     }
 
