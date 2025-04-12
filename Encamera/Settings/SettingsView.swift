@@ -108,12 +108,16 @@ class SettingsViewViewModel: ObservableObject {
         }.store(in: &cancellables)
 
         self.$useiCloudKeyBackup.dropFirst().sink { [weak self] value in
-            guard let self else { return }
+            guard let self, value == true else { return }
+
+            
             if self.purchasedPermissions.hasEntitlement {
                 try? self.keyManager.backupKeychainToiCloud(backupEnabled: value)
             } else {
                 self.showPurchaseScreen = value
-                self.useiCloudKeyBackup = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self.useiCloudKeyBackup = false
+                }
             }
         }.store(in: &cancellables)
     }
@@ -233,6 +237,7 @@ struct SettingsView: View {
                             NavigationLink(L10n.Settings.backupKeyPhrase, value: AppNavigationPaths.backupKeyPhrase)
                             NavigationLink(L10n.Settings.importKeyPhrase, value: AppNavigationPaths.importKeyPhrase)
                         }
+                        iCloudKeyBackupToggle
                         HStack {
                             Picker(L10n.Settings.defaultStorageOption, selection: $viewModel.defaultStorageOption) {
                                 ForEach(StorageType.allCases) { storageType in
