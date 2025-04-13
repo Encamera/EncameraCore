@@ -108,10 +108,9 @@ class SettingsViewViewModel: ObservableObject {
         }.store(in: &cancellables)
 
         self.$useiCloudKeyBackup.dropFirst().sink { [weak self] value in
-            guard let self, value == true else { return }
-
+            guard let self else { return }
             
-            if self.purchasedPermissions.hasEntitlement {
+            if self.purchasedPermissions.hasEntitlement || value == false {
                 try? self.keyManager.backupKeychainToiCloud(backupEnabled: value)
             } else {
                 self.showPurchaseScreen = value
