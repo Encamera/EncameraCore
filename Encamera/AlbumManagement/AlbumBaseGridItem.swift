@@ -8,16 +8,16 @@
 import Foundation
 import SwiftUI
 
-struct AlbumBaseGridItem: View {
+struct AlbumBaseGridItem<SubheadingView: View>: View {
 
     var image: Image?
     var title: String
-    var subheading: String?
+    var subheadingView: SubheadingView
     var width: CGFloat
     var strokeStyle: StrokeStyle? = nil
     var shouldResizeImage: Bool = true
 
-    init(image: Image? = nil, uiImage: UIImage? = nil, title: String, subheading: String? = nil, width: CGFloat, strokeStyle: StrokeStyle? = nil, shouldResizeImage: Bool = true) {
+    init(image: Image? = nil, uiImage: UIImage? = nil, title: String, @ViewBuilder subheadingView: () -> SubheadingView, width: CGFloat, strokeStyle: StrokeStyle? = nil, shouldResizeImage: Bool = true) {
         if let image {
             self.image = image
         }
@@ -25,7 +25,7 @@ struct AlbumBaseGridItem: View {
             self.image = Image(uiImage: uiImage)
         }
         self.title = title
-        self.subheading = subheading
+        self.subheadingView = subheadingView()
         self.width = width
         self.strokeStyle = strokeStyle
         self.shouldResizeImage = shouldResizeImage
@@ -59,9 +59,10 @@ struct AlbumBaseGridItem: View {
             Text(title)
                 .fontType(.pt14, weight: .bold) // replace with actual font
 
-            Text(subheading ?? "")
+            subheadingView
                 .lineLimit(1, reservesSpace: true)
                 .fontType(.pt14) // replace with actual font
+                .clipped()
         }
     }
 

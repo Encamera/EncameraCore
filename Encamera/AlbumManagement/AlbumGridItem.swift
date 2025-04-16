@@ -18,6 +18,7 @@ class AlbumGridItemModel: ObservableObject {
 
     @Published var countOfMedia: Int = 0
     @Published var leadingImage: UIImage?
+    @Published var storageIconName: String?
 
     init(album: Album, fileReader: FileReader, albumManager: AlbumManaging) {
         self.album = album
@@ -31,6 +32,14 @@ class AlbumGridItemModel: ObservableObject {
         self.fileReader = fileReader
         self.albumManager = albumManager
         self.countOfMedia = albumManager.albumMediaCount(album: album)
+        // Determine the icon name based on storage option
+        switch album.storageOption {
+        case .icloud:
+            self.storageIconName = "icloud"
+        case .local:
+            self.storageIconName = "iphone"
+        // Add default or handle other cases if necessary
+        }
         FileOperationBus.shared
             .operations
             .sink { operation in
@@ -60,6 +69,18 @@ struct AlbumGridItem: View {
     var albumName: String
     var width: CGFloat
 
+    // Define a computed property for the subheading view
+    @ViewBuilder
+    private var subheadingView: some View {
+        HStack(spacing: 4) { // Use HStack to place items side-by-side
+            Text(L10n.imageS(viewModel.countOfMedia))
+            if let iconName = viewModel.storageIconName {
+                Image(systemName: iconName)
+                    .imageScale(.small) // Adjust scale as needed
+            }
+        }
+    }
+
     init(album: Album, albumManager: AlbumManaging, width: CGFloat, fileReader: FileAccess) {
         albumName = album.name
         _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, fileReader: fileReader, albumManager: albumManager))
@@ -69,7 +90,7 @@ struct AlbumGridItem: View {
     var body: some View {
         AlbumBaseGridItem(uiImage: viewModel.leadingImage,
                           title: albumName,
-                          subheading: L10n.imageS(viewModel.countOfMedia),
+                          subheadingView: { subheadingView }, // Wrap in a closure
                           width: width)
             .task {
                 try? await viewModel.load()
