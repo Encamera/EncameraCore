@@ -199,6 +199,7 @@
 		6AEFD1CB4116F467EE636058 /* AddAlbumModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A2F950788E2FC2EA20AD77 /* AddAlbumModal.swift */; };
 		6BF1415831140E239F19EB00 /* EventTracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 943491F61C66FD12CC2EA6B5 /* EventTracking.swift */; };
 		6C1AA9D5F8D5406ABF8216AB /* LoadingIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E604798E0FC7EC459E6E24D /* LoadingIndicator.swift */; };
+		6C2AAC453A0B50286F5B9891 /* KeychainManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399C8567381DA2CF6933631C /* KeychainManagerTests.swift */; };
 		6C6511FDDCF066F4E8F27DD0 /* StorePurchaseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 425F1BE33BAF48A0B741BFD1 /* StorePurchaseButton.swift */; };
 		6CAC80AFBE71ED0F924062BA /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB2C08C3732EFAB967E6227 /* WebView.swift */; };
 		6CBC79B1707FC99188286D26 /* ChooseStorageModalViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C42A5938D4177B4BBACA5FC7 /* ChooseStorageModalViewModifier.swift */; };
@@ -227,6 +228,7 @@
 		768D8C3BA0A9D638A08D1103 /* brooke-lark-R18ecx07b3c-unsplash.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 77778B1DAB85906F023A8447 /* brooke-lark-R18ecx07b3c-unsplash.jpg */; };
 		79F5437571D7EAD49BB20DFA /* AuthenticationMethodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5146BA876BD5ED50B87F252D /* AuthenticationMethodView.swift */; };
 		7ADD1D5E2EBDDA6C8150205D /* 9.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3ED8F164556978451324A891 /* 9.jpg */; };
+		7BCF636563DB94B36DE0487A /* EncameraCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4E3AE2C8A473E74CE2D40B6F /* EncameraCore */; };
 		7BD4D3822D56BF858F94753E /* SignalBarsComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F4CB8A578E1FA9B21A431C /* SignalBarsComponent.swift */; };
 		7D439F3CEAC72F550D28BE2D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 49A2EF989B2F8643105205DF /* Assets.xcassets */; };
 		7ED883ADE80A3CA745BFCE39 /* AppModalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 444C602F6CE6897937BAAA12 /* AppModalModifier.swift */; };
@@ -432,6 +434,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		4FBD0FFA0D0ABA143F7A822E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A47DB3FD4772EE1BAC336831 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 00569D33CDF0C8B9A50A5F86;
+			remoteInfo = Encamera;
+		};
 		96BCF6414F64ADC73ADA3D8D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A47DB3FD4772EE1BAC336831 /* Project object */;
@@ -521,11 +530,13 @@
 		2F2DD0E7BBBF700CAD24A760 /* NavigationPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationPath.swift; sourceTree = "<group>"; };
 		3162B27F501FF1524351D663 /* MainHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainHomeView.swift; sourceTree = "<group>"; };
 		31AB13EE6FE68BA8614D0253 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		3237449B062E865D537211D4 /* EncameraTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EncameraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		33203CD695C36D3E76E4198F /* WidgetExtension-release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "WidgetExtension-release.xcconfig"; sourceTree = "<group>"; };
 		33EB72741B45000D6270339E /* FirstResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstResponder.swift; sourceTree = "<group>"; };
 		34C358B92EB06894B597ADE0 /* OptionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionItemView.swift; sourceTree = "<group>"; };
 		34D3DEBC046E0462A5EEDD39 /* lauren-mancke-sil2Hx4iupI-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "lauren-mancke-sil2Hx4iupI-unsplash.jpg"; sourceTree = "<group>"; };
 		391EB27CBC7FE5A91E4CA4F3 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/MainInterface.strings; sourceTree = "<group>"; };
+		399C8567381DA2CF6933631C /* KeychainManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManagerTests.swift; sourceTree = "<group>"; };
 		3A5DFF757B2443487FD43C7F /* Lato-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Regular.ttf"; sourceTree = "<group>"; };
 		3AC87A1E6FAC6F4E4C5E385B /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModePicker.swift; sourceTree = "<group>"; };
@@ -749,6 +760,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B63167557D9D5422FDAAEE94 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7BCF636563DB94B36DE0487A /* EncameraCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA2E08E84AD564872FE24D3D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -790,6 +809,7 @@
 				B7831CC31D02501BE75D6B60 /* Packages */,
 				80F08B2823194E0376B38DCB /* ShareExtension */,
 				4499E079B5113876EF0BD9E8 /* StoreKitTesting */,
+				7507BCA7F2BE37CF0B4DA245 /* Tests */,
 				61A3E1603E17C955C64A4ADE /* WidgetExtension */,
 				FEBBDB990AA3D33156B4538C /* xcconfigs */,
 				50150E889AE54E765316DB1B /* Frameworks */,
@@ -978,6 +998,7 @@
 			isa = PBXGroup;
 			children = (
 				AD8594B39C00DCD662DD5B08 /* Encamera.app */,
+				3237449B062E865D537211D4 /* EncameraTests.xctest */,
 				C078E03BCFAAA274C5A52366 /* ShareExtension.appex */,
 				0800C028E300CFA4BA9D586B /* StoreKitTesting.app */,
 				896B90B17849378B16413518 /* WidgetExtension.appex */,
@@ -996,6 +1017,14 @@
 				425F1BE33BAF48A0B741BFD1 /* StorePurchaseButton.swift */,
 			);
 			path = NewPurchaseView;
+			sourceTree = "<group>";
+		};
+		7507BCA7F2BE37CF0B4DA245 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				399C8567381DA2CF6933631C /* KeychainManagerTests.swift */,
+			);
+			path = Tests;
 			sourceTree = "<group>";
 		};
 		76113746610057E30849FE77 /* Storyboards */ = {
@@ -1425,6 +1454,26 @@
 			productReference = C078E03BCFAAA274C5A52366 /* ShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		E2DB70F0EB3A8AE4E6B164DA /* EncameraTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B7E7A1DBA4C3EA979CCE4D2 /* Build configuration list for PBXNativeTarget "EncameraTests" */;
+			buildPhases = (
+				496144A7544A81AD4EC8BE3F /* Sources */,
+				B63167557D9D5422FDAAEE94 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E857B4708FFF396537CCE649 /* PBXTargetDependency */,
+			);
+			name = EncameraTests;
+			packageProductDependencies = (
+				4E3AE2C8A473E74CE2D40B6F /* EncameraCore */,
+			);
+			productName = EncameraTests;
+			productReference = 3237449B062E865D537211D4 /* EncameraTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1447,6 +1496,9 @@
 					C94ABACC9710142683E2AD12 = {
 						DevelopmentTeam = 5UMBL85J64;
 						ProvisioningStyle = Automatic;
+					};
+					E2DB70F0EB3A8AE4E6B164DA = {
+						DevelopmentTeam = 5UMBL85J64;
 					};
 				};
 			};
@@ -1474,6 +1526,7 @@
 			projectRoot = "";
 			targets = (
 				00569D33CDF0C8B9A50A5F86 /* Encamera */,
+				E2DB70F0EB3A8AE4E6B164DA /* EncameraTests */,
 				C94ABACC9710142683E2AD12 /* ShareExtension */,
 				957551F090AA18A5EB652379 /* StoreKitTesting */,
 				4A947C5139ACF4F002A48F27 /* WidgetExtension */,
@@ -1633,6 +1686,14 @@
 			files = (
 				C42D15D2AD7BB5142CC3BCAC /* WidgetExtension.swift in Sources */,
 				4ADD6820BB1C42B218968B45 /* WidgetExtensionBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		496144A7544A81AD4EC8BE3F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6C2AAC453A0B50286F5B9891 /* KeychainManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1978,6 +2039,11 @@
 			target = 4A947C5139ACF4F002A48F27 /* WidgetExtension */;
 			targetProxy = 96BCF6414F64ADC73ADA3D8D /* PBXContainerItemProxy */;
 		};
+		E857B4708FFF396537CCE649 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 00569D33CDF0C8B9A50A5F86 /* Encamera */;
+			targetProxy = 4FBD0FFA0D0ABA143F7A822E /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -2055,6 +2121,25 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		2013426EC1687E6DCA4C4884 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 5UMBL85J64;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.EncameraTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Encamera.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Encamera";
 			};
 			name = Release;
 		};
@@ -2206,6 +2291,25 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A2C7062A52E5F65A5D3637E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 5UMBL85J64;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.freas.EncameraTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Encamera.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Encamera";
 			};
 			name = Debug;
 		};
@@ -2392,6 +2496,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		4B7E7A1DBA4C3EA979CCE4D2 /* Build configuration list for PBXNativeTarget "EncameraTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A2C7062A52E5F65A5D3637E1 /* Debug */,
+				2013426EC1687E6DCA4C4884 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		98627A8796A7CDC7FB3571A4 /* Build configuration list for PBXNativeTarget "WidgetExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -2509,6 +2622,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 724D9B459F7842EA26BA96DC /* XCRemoteSwiftPackageReference "piwik-pro-sdk-framework-ios" */;
 			productName = PiwikPROSDK;
+		};
+		4E3AE2C8A473E74CE2D40B6F /* EncameraCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EncameraCore;
 		};
 		6AC99BD9B3C9B893D814A6BA /* EncameraCore */ = {
 			isa = XCSwiftPackageProductDependency;

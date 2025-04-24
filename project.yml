@@ -121,7 +121,8 @@ targets:
         link: true
     scheme:
       storeKitConfiguration: "Encamera/InAppPurchase/Encamera.storekit"
-
+      testTargets:
+        - EncameraTests
 
   StoreKitTesting:
     type: application
@@ -163,3 +164,19 @@ targets:
       
     scheme:
       testTargets:
+
+# Add the new test target definition below
+  EncameraTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: 18.0
+    sources: [Tests] # Assuming tests will live in Encamera/Tests
+    dependencies:
+      - target: Encamera # Depend on the main app target
+      - package: EncameraCore # Depend on the core package
+    settings:
+      DEVELOPMENT_TEAM: 5UMBL85J64 # Use the same team ID
+      GENERATE_INFOPLIST_FILE: YES
+      # Inherit other necessary settings or add specific ones
+      TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Encamera.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Encamera"
+      BUNDLE_LOADER: "$(TEST_HOST)"
