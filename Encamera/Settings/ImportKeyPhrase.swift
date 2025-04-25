@@ -34,7 +34,7 @@ class ImportKeyPhraseViewModel: ObservableObject {
 
     func importKeyPhrase() throws {
         do {
-            try keyManager.generateKeyFromPasswordComponents(words, name: AppConstants.defaultKeyName)
+            try keyManager.generateKeyFromPasswordComponentsAndSave(words, name: AppConstants.defaultKeyName)
         } catch let error as KeyManagerError {
             importError = .invalidKeyPhrase(error.displayDescription)
             print("Error importing key phrase: \(error)")

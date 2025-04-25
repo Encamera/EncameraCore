@@ -11,8 +11,6 @@ import Combine
 
 class KeyPhraseViewModel: ObservableObject {
 
-    @Published var iCloudBackupEnabled: Bool = false
-
     var keyManager: KeyManager
 
     var phraseArray: KeyPassphrase?
@@ -22,12 +20,6 @@ class KeyPhraseViewModel: ObservableObject {
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
         phraseArray = try? keyManager.retrieveKeyPassphrase()
-        if let phraseArray = phraseArray {
-            iCloudBackupEnabled = phraseArray.iCloudBackupEnabled
-        }
-        $iCloudBackupEnabled.sink { isOn in
-            self.toggleCloudBackup(isOn: isOn)
-        }.store(in: &cancellables)
     }
 
     func toggleCloudBackup(isOn: Bool) {

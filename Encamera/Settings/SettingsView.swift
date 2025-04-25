@@ -83,7 +83,7 @@ class SettingsViewViewModel: ObservableObject {
         self.showKeyBackup = ((try? keyManager.retrieveKeyPassphrase()) != nil)
         self.defaultStorageOption = albumManager.defaultStorageForAlbum
         self.purchasedPermissions = purchasedPermissions
-        self.useiCloudKeyBackup = purchasedPermissions.hasEntitlement && keyManager.areKeysStoredIniCloud
+        self.useiCloudKeyBackup = purchasedPermissions.hasEntitlement && keyManager.isSyncEnabled
     }
     
     func setupToggleObservers() {
