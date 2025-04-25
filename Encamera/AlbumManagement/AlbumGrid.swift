@@ -164,7 +164,7 @@ struct AlbumGrid<D: FileAccess>: View {
 
     @ViewBuilder
     private func createAlbumButton(side: CGFloat) -> some View {
-        let button = AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheadingView: {}, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
+        let button = AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheadingView: { Color.clear }, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
         if !viewModel.shouldShowPurchaseScreenForKeys {
             NavigationLink(value: AppNavigationPaths.createAlbum) {
                 button

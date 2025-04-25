@@ -243,73 +243,77 @@ struct EncameraApp: App {
 
         WindowGroup {
             SplashScreen {
-                NavigationStack(path: $viewModel.selectedPath) {
-
-                    ZStack {
+                ZStack {
+                    NavigationStack(path: $viewModel.selectedPath) {
                         
-                        if viewModel.showOnboarding {
-                            OnboardingHostingView<AlbumManagerType>(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager, authManager: viewModel.authManager, finishedAction: {
-                                viewModel.showOnboarding = false
-                            }))
-                        } else {
-
-                            if let albumManager = viewModel.albumManager {
-                                MainHomeView<FileAccessType>(viewModel: .init(
-                                    fileAccess: viewModel.fileAccess,
-                                    keyManager: viewModel.keyManager,
-                                    albumManager: albumManager,
-                                    purchasedPermissions: viewModel.purchasedPermissions,
-                                    settingsManager: viewModel.settingsManager,
-                                    authManager: viewModel.authManager,
-                                    cameraService: viewModel.cameraService
-                                ))
-                                .environmentObject(appModalStateModel)
+                        ZStack {
+                            
+                            if viewModel.showOnboarding {
+                                OnboardingHostingView<AlbumManagerType>(viewModel: .init(onboardingManager: viewModel.onboardingManager, keyManager: viewModel.keyManager, authManager: viewModel.authManager, finishedAction: {
+                                    viewModel.showOnboarding = false
+                                }))
+                            } else {
+                                
+                                if let albumManager = viewModel.albumManager {
+                                    MainHomeView<FileAccessType>(viewModel: .init(
+                                        fileAccess: viewModel.fileAccess,
+                                        keyManager: viewModel.keyManager,
+                                        albumManager: albumManager,
+                                        purchasedPermissions: viewModel.purchasedPermissions,
+                                        settingsManager: viewModel.settingsManager,
+                                        authManager: viewModel.authManager,
+                                        cameraService: viewModel.cameraService
+                                    ))
+                                    .environmentObject(appModalStateModel)
+                                }
+                                
                             }
-                            if viewModel.isAuthenticated == false {
-                                AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                        }
+                        .preferredColorScheme(.dark)
+                        .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
+                        .onOpenURL { url in
+                            Task {
+                                await MainActor.run {
+                                    self.viewModel.hasOpenedURL = false
+                                }
+                                
+                                guard case .authenticated(_) = await self.viewModel.authManager.waitForAuthResponse() else {
+                                    return
+                                }
+                                await MainActor.run {
+                                    self.viewModel.openedUrl = url
+                                    self.viewModel.hasOpenedURL = true
+                                    if let url = viewModel.openedUrl,
+                                       let urlType = URLType(url: url),
+                                       viewModel.authManager.isAuthenticated {
+                                        switch urlType {
+                                            
+                                        case .featureToggle(let feature):
+                                            FeatureToggle.enable(feature: feature)
+                                        case .cameraFromWidget:
+                                            UserDefaultUtils.increaseInteger(forKey: .widgetOpenCount)
+                                            EventTracking.trackOpenedCameraFromWidget()
+                                            withAnimation {
+                                                self.appModalStateModel.currentModal = .cameraView(context: .init(sourceView: "Widget", closeButtonTapped: { targetAlbum in
+                                                    //                                            if let targetAlbum {
+                                                    //                                                viewModel.selectedPath.append(AppNavigationPaths.albumDetail(album: targetAlbum))
+                                                    //                                            }
+                                                }))
+                                            }
+                                            
+                                        default:
+                                            break
+                                        }
+                                        
+                                    }
+                                }
+                                
                             }
                         }
                     }
-                    .preferredColorScheme(.dark)
-                    .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
-                    .onOpenURL { url in
-                        Task {
-                            await MainActor.run {
-                                self.viewModel.hasOpenedURL = false
-                            }
-
-                            guard case .authenticated(_) = await self.viewModel.authManager.waitForAuthResponse() else {
-                                return
-                            }
-                            await MainActor.run {
-                                self.viewModel.openedUrl = url
-                                self.viewModel.hasOpenedURL = true
-                                if let url = viewModel.openedUrl,
-                                   let urlType = URLType(url: url),
-                                   viewModel.authManager.isAuthenticated {
-                                    switch urlType {
-
-                                    case .featureToggle(let feature):
-                                        FeatureToggle.enable(feature: feature)
-                                    case .cameraFromWidget:
-                                        UserDefaultUtils.increaseInteger(forKey: .widgetOpenCount)
-                                        EventTracking.trackOpenedCameraFromWidget()
-                                        withAnimation {
-                                            self.appModalStateModel.currentModal = .cameraView(context: .init(sourceView: "Widget", closeButtonTapped: { targetAlbum in
-//                                            if let targetAlbum {
-//                                                viewModel.selectedPath.append(AppNavigationPaths.albumDetail(album: targetAlbum))
-//                                            }
-                                            }))
-                                        }
-
-                                    default:
-                                        break
-                                    }
-
-                                }
-                            }
-
-                        }
+                    
+                    if viewModel.isAuthenticated == false {
+                        AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                     }
                 }
             }

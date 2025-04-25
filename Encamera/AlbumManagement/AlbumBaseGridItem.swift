@@ -60,6 +60,7 @@ struct AlbumBaseGridItem<SubheadingView: View>: View {
                 .fontType(.pt14, weight: .bold) // replace with actual font
 
             subheadingView
+                .frame(height: 20)
                 .lineLimit(1, reservesSpace: true)
                 .fontType(.pt14) // replace with actual font
                 .clipped()
