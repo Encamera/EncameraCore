@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -486,11 +486,11 @@
 		040E7A97A59AEF4C2BA2F5FB /* HardwareVolumeButtonCaptureUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareVolumeButtonCaptureUtils.swift; sourceTree = "<group>"; };
 		0592C78B311C02BB13F0DDB3 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
 		06CF76CC61F9473360A8AD5D /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ko; path = ko.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		0800C028E300CFA4BA9D586B /* StoreKitTesting.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StoreKitTesting.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0800C028E300CFA4BA9D586B /* StoreKitTesting.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StoreKitTesting.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		08E7ADEDD8142B9DA265EE15 /* KeyPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyPhraseView.swift; sourceTree = "<group>"; };
 		09C60419DDEEEEB0D96904CA /* odiseo-castrejon-1SPu0KT-Ejg-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "odiseo-castrejon-1SPu0KT-Ejg-unsplash.jpg"; sourceTree = "<group>"; };
 		0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuyButtonStyle.swift; sourceTree = "<group>"; };
-		0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */ = {isa = PBXFileReference; path = Encamera.storekit; sourceTree = "<group>"; };
+		0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Encamera.storekit; sourceTree = "<group>"; };
 		0C09BE63CB580E8A7E3D0C1C /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = es; path = es.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		0D4E617FB35B8C6F46542FB9 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
 		0E7AA4BF658B30B4FDE2F972 /* Array+Safe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+Safe.swift"; sourceTree = "<group>"; };
@@ -530,7 +530,7 @@
 		2F2DD0E7BBBF700CAD24A760 /* NavigationPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationPath.swift; sourceTree = "<group>"; };
 		3162B27F501FF1524351D663 /* MainHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainHomeView.swift; sourceTree = "<group>"; };
 		31AB13EE6FE68BA8614D0253 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		3237449B062E865D537211D4 /* EncameraTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EncameraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3237449B062E865D537211D4 /* EncameraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EncameraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		33203CD695C36D3E76E4198F /* WidgetExtension-release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "WidgetExtension-release.xcconfig"; sourceTree = "<group>"; };
 		33EB72741B45000D6270339E /* FirstResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstResponder.swift; sourceTree = "<group>"; };
 		34C358B92EB06894B597ADE0 /* OptionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionItemView.swift; sourceTree = "<group>"; };
@@ -554,7 +554,7 @@
 		48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		4900B5F3BBE74A9E15B2AFE4 /* PhotoLimitReachedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLimitReachedView.swift; sourceTree = "<group>"; };
 		49A2EF989B2F8643105205DF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
+		49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
 		4A17CCD2D8F3AB1414DE4A03 /* LivePhotoUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoUIView.swift; sourceTree = "<group>"; };
 		4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetailView.swift; sourceTree = "<group>"; };
 		4FD935CBF1B92DA44E5A6196 /* Satoshi-BoldItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-BoldItalic.otf"; sourceTree = "<group>"; };
@@ -611,7 +611,7 @@
 		876BF0A74E1F6A6C44D67613 /* FooterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FooterView.swift; sourceTree = "<group>"; };
 		87B5267708C2781338CA02BF /* Rajdhani-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rajdhani-Bold.ttf"; sourceTree = "<group>"; };
 		893D8189560A37DB00186B86 /* LightboxConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightboxConfig.swift; sourceTree = "<group>"; };
-		896B90B17849378B16413518 /* WidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		896B90B17849378B16413518 /* WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		89D5A3386C8CC7A64F411C24 /* VideoViewingUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoViewingUIView.swift; sourceTree = "<group>"; };
 		8A188D5FF84A453469F8C3EB /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		8A749ADBA6F481389A4AB39B /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
@@ -649,7 +649,7 @@
 		A55AE312E788A2CC62124A23 /* MediaViewingError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaViewingError.swift; sourceTree = "<group>"; };
 		AA797AD9A45EF0B58CD0C147 /* NotificationContentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationContentRepository.swift; sourceTree = "<group>"; };
 		AC5B98AD96CFE3DE6B6DC06F /* WidgetExtension-debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "WidgetExtension-debug.xcconfig"; sourceTree = "<group>"; };
-		AD8594B39C00DCD662DD5B08 /* Encamera.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Encamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD8594B39C00DCD662DD5B08 /* Encamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Encamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFB0847CA0886096B1D8E1BD /* AppPurchasedPermissionUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPurchasedPermissionUtils.swift; sourceTree = "<group>"; };
 		B01BFF65E06F6DE4A78487DE /* AlbumBaseGridItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumBaseGridItem.swift; sourceTree = "<group>"; };
 		B0A47B826711C6A4E4B15E3F /* juan-jose-valencia-antia-TTrJMhrkoeY-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "juan-jose-valencia-antia-TTrJMhrkoeY-unsplash.jpg"; sourceTree = "<group>"; };
@@ -663,12 +663,12 @@
 		BD80B31ED188E0F75FCF32A4 /* Encamera.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Encamera.entitlements; sourceTree = "<group>"; };
 		C0441FC55C7D865110DD929F /* RotationViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationViewModifier.swift; sourceTree = "<group>"; };
 		C06BB62B60E8F868D2A51CB1 /* PurchaseStorefront.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseStorefront.swift; sourceTree = "<group>"; };
-		C078E03BCFAAA274C5A52366 /* ShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C078E03BCFAAA274C5A52366 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C080CE178F9C080D9F3C1AFF /* GalleryViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryViewWrapper.swift; sourceTree = "<group>"; };
 		C1DF70D2CC410A637C7BB925 /* EncameraState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraState.swift; sourceTree = "<group>"; };
 		C20B2422A2989B857C2C7C74 /* 7.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 7.jpg; sourceTree = "<group>"; };
 		C42A5938D4177B4BBACA5FC7 /* ChooseStorageModalViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseStorageModalViewModifier.swift; sourceTree = "<group>"; };
-		C4C6A1AFE725264AC910C7D9 /* de.lproj */ = {isa = PBXFileReference; name = de.lproj; path = de.lproj/de.lproj; sourceTree = "<group>"; };
+		C4C6A1AFE725264AC910C7D9 /* de.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; name = de.lproj; path = de.lproj/de.lproj; sourceTree = "<group>"; };
 		C527DA5AC80243DE0313A911 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
 		C549493585B3CFD05224399A /* PinCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCodeView.swift; sourceTree = "<group>"; };
 		C6D4F6A7A4F99FA1D28BB937 /* Satoshi-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Bold.otf"; sourceTree = "<group>"; };
@@ -2129,6 +2129,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				DEVELOPMENT_TEAM = 5UMBL85J64;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2543,6 +2544,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		BF56B1DCD7C64FC9DDA112CA /* XCLocalSwiftPackageReference "../EncameraCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../EncameraCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		6EC7C8DE9FC9157FEB406727 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -2585,13 +2593,6 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		BF56B1DCD7C64FC9DDA112CA /* XCLocalSwiftPackageReference "../EncameraCore" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../EncameraCore;
-		};
-/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		0390873E19A234F065DD1F80 /* RevenueCat */ = {
