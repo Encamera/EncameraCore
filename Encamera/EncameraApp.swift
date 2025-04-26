@@ -270,7 +270,6 @@ struct EncameraApp: App {
                             }
                         }
                         .preferredColorScheme(.dark)
-                        .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
                         .onOpenURL { url in
                             Task {
                                 await MainActor.run {
@@ -312,7 +311,7 @@ struct EncameraApp: App {
                         }
                     }
                     
-                    if viewModel.isAuthenticated == false {
+                    if viewModel.isAuthenticated == false && !viewModel.showOnboarding {
                         AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
                     }
                 }
@@ -394,6 +393,8 @@ struct EncameraApp: App {
                 \.isScreenBlockingActive,
                  self.viewModel.showScreenBlocker
             )
+            .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
+
         }
             
     }
