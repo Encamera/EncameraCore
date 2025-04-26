@@ -7,16 +7,21 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 
 private struct RotationForOrientation: ViewModifier {
     
     @Environment(\.rotationFromOrientation) var rotationFromOrientation
-    
+    private var isIPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+
     func body(content: Content) -> some View {
-        
-        content
-            .rotationEffect(Angle(degrees: rotationFromOrientation))
-            .animation(.easeOut(duration: 0.2), value: rotationFromOrientation)
+        if isIPad {
+            content
+        } else {
+            content
+                .rotationEffect(Angle(degrees: rotationFromOrientation))
+                .animation(.easeOut(duration: 0.2), value: rotationFromOrientation)
+        }
     }
 }
 

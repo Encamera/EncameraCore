@@ -160,11 +160,10 @@ struct TopCameraControlsView: View {
                 }
             }
             .frame(height: 36)
-
         }
         .padding(EdgeInsets(top: getSafeAreaTop() + 10, leading: 16, bottom: 16, trailing: 16))
-        .background(.ultraThinMaterial)
         .frame(height: 102)
+        .background(.ultraThinMaterial)
     }
 
 
