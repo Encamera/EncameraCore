@@ -73,9 +73,9 @@ struct CameraView: View {
         Color.clear
 //        missingPermissionsView
 #else
-        CameraPreview(modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher(),
-                      capturePublisher: cameraModel.captureActionPublisher,
-            session: cameraModel.session
+        CameraPreviewRepresentable(session: cameraModel.session,
+                                     modePublisher: cameraModeStateModel.$selectedMode.eraseToAnyPublisher(),
+                                     capturePublisher: cameraModel.captureActionPublisher
         )
         .onReceive(cameraModeStateModel.$selectedMode, perform: { value in
             self.cameraModel.currentZoomFactor = .x1
