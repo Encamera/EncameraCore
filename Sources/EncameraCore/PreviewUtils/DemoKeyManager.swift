@@ -144,7 +144,7 @@ public class DemoKeyManager: KeyManager {
         self.storedKeysValue = keys
     }
 
-    public required init(isAuthenticated: AnyPublisher<Bool, Never>) {
+    public required init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol = KeychainWrapper()) {
         self.isAuthenticated = isAuthenticated
         self.currentKey = PrivateKey(name: "secrets", keyBytes: [], creationDate: Date())
         self.keyPublisher = PassthroughSubject<PrivateKey?, Never>().eraseToAnyPublisher()

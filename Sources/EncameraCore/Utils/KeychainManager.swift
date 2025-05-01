@@ -32,6 +32,8 @@ public struct KeyPassphrase: Codable {
 
 
 public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
+     
+    
     
     private enum BackupFlagState {
         case enabled, disabled, notSet
@@ -57,6 +59,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     public var isAuthenticated: AnyPublisher<Bool, Never>
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
+    private let keychainWrapper: KeychainWrapperProtocol
 
     private var passwordValidator = PasswordValidator()
     private(set) public var currentKey: PrivateKey? {
@@ -83,20 +86,25 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
                 kSecAttrSynchronizable as String: kCFBooleanTrue!,
                 kSecMatchLimit as String: kSecMatchLimitOne // We only need to know if at least one exists
             ]
-            let status = SecItemCopyMatching(keyQuery as CFDictionary, nil)
+            let status = keychainWrapper.secItemCopyMatching(keyQuery as CFDictionary, nil)
             return status == errSecSuccess
         }
     }
 
     private var keySubject: PassthroughSubject<PrivateKey?, Never> = .init()
     
-    required public init(isAuthenticated: AnyPublisher<Bool, Never>) {
+    public required init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol = KeychainWrapper()) {
         self.isAuthenticated = isAuthenticated
+        self.keychainWrapper = keychainWrapper
         self.isAuthenticated.sink { [weak self] newValue in
+            guard let self = self, newValue == true else { return }
             do {
-                try self?.getActiveKeyAndSet()
+                // Perform legacy key migration before attempting to load the active key
+                try self.migrateLegacyKeysIfNeeded()
+                try self.getActiveKeyAndSet()
             } catch {
-                self?.printDebug("Error getting/setting active key", error)
+                self.printDebug("Error during initial key setup (migration/load):", error)
+                // Decide how to handle errors - clear keys? inform user?
             }
         }.store(in: &cancellables)
     }
@@ -116,13 +124,13 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
                 kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Match any existing item
             ]
 
-            let status = SecItemDelete(query as CFDictionary)
+            let status = keychainWrapper.secItemDelete(query as CFDictionary)
             if status != errSecSuccess && status != errSecItemNotFound {
                 print("Failed to delete items for class \(keychainClass): \(status)")
             }
         }
 
-        let passphraseStatus = SecItemDelete(queryForPassphrase() as CFDictionary)
+        let passphraseStatus = keychainWrapper.secItemDelete(queryForPassphrase() as CFDictionary)
         if passphraseStatus != errSecSuccess && passphraseStatus != errSecItemNotFound {
             print("Failed to delete passphrase item: \(passphraseStatus)")
         }
@@ -133,7 +141,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Match any existing item
         ]
-        let backupStatusDeleteStatus = SecItemDelete(backupStatusQuery as CFDictionary)
+        let backupStatusDeleteStatus = keychainWrapper.secItemDelete(backupStatusQuery as CFDictionary)
         if backupStatusDeleteStatus != errSecSuccess && backupStatusDeleteStatus != errSecItemNotFound {
             print("Failed to delete backup status flag item: \(backupStatusDeleteStatus)")
         }
@@ -208,7 +216,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         withOptions[kSecReturnData as String] = true
 
         var item: CFTypeRef?
-        let queryResult = SecItemCopyMatching(withOptions as CFDictionary, &item)
+        let queryResult = keychainWrapper.secItemCopyMatching(withOptions as CFDictionary, &item)
 
         switch queryResult {
         case errSecSuccess:
@@ -218,7 +226,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
                 kSecAttrSynchronizable as String: syncValueForWrites // Use helper
             ]
-            let updateStatus = SecItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
+            let updateStatus = keychainWrapper.secItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
 
             // We can ignore ItemNotFound errors here, as the passphrase might not exist
             if updateStatus != errSecItemNotFound {
@@ -231,7 +239,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
                 kSecAttrSynchronizable as String: syncValueForWrites // Use helper
             ])
-            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+            let addStatus = keychainWrapper.secItemAdd(addQuery as CFDictionary, nil)
             try checkStatus(status: addStatus)
         default:
             // Handle other errors
@@ -251,7 +259,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         ])
 
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess else {
             throw KeyManagerError.notFound
         }
@@ -289,12 +297,12 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             ]
             // Use the base query from the existing key for update, but target by label/name
             let baseQuery = try updateKeyQuery(for: existingKey.name)
-            let updateStatus = SecItemUpdate(baseQuery, updateQuery as CFDictionary)
+            let updateStatus = keychainWrapper.secItemUpdate(baseQuery, updateQuery as CFDictionary)
             try checkStatus(status: updateStatus)
 
         } else {
             // Use the modified query with explicit sync status for adding
-            let addStatus = SecItemAdd(query as CFDictionary, nil)
+            let addStatus = keychainWrapper.secItemAdd(query as CFDictionary, nil)
             try checkStatus(status: addStatus)
         }
 
@@ -323,14 +331,14 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         ]
         
         // Try to add the item first
-        var status = SecItemAdd(backupStatusAttributes as CFDictionary, nil)
+        var status = keychainWrapper.secItemAdd(backupStatusAttributes as CFDictionary, nil)
         
         // If it already exists, update it
         if status == errSecDuplicateItem {
             let newAttributes: [String: Any] = [
                 kSecValueData as String: backupEnabled.data, // Store the actual boolean value
             ]
-            status = SecItemUpdate(backupStatusQuery as CFDictionary, newAttributes as CFDictionary)
+            status = keychainWrapper.secItemUpdate(backupStatusQuery as CFDictionary, newAttributes as CFDictionary)
         }
         
         // Check status after add or update attempt
@@ -348,7 +356,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Maintain accessibility
         ] as [String : Any]
-        let updateStatus = SecItemUpdate(queryForPassphrase() as CFDictionary, updateQuery as CFDictionary)
+        let updateStatus = keychainWrapper.secItemUpdate(queryForPassphrase() as CFDictionary, updateQuery as CFDictionary)
         
         // We can ignore ItemNotFound errors here, as the passphrase might not exist
         if updateStatus != errSecItemNotFound {
@@ -365,7 +373,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Keep it accessible
         ]
-        let passcodeTypeUpdateStatus = SecItemUpdate(passcodeTypeUpdateQuery as CFDictionary, passcodeTypeUpdateDict as CFDictionary)
+        let passcodeTypeUpdateStatus = keychainWrapper.secItemUpdate(passcodeTypeUpdateQuery as CFDictionary, passcodeTypeUpdateDict as CFDictionary)
         // We can ignore ItemNotFound errors here, as the passcode type might not exist yet
         if passcodeTypeUpdateStatus != errSecItemNotFound {
             try checkStatus(status: passcodeTypeUpdateStatus)
@@ -381,7 +389,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Keep it accessible
         ]
-        let passwordUpdateStatus = SecItemUpdate(passwordQuery as CFDictionary, passwordUpdateDict as CFDictionary)
+        let passwordUpdateStatus = keychainWrapper.secItemUpdate(passwordQuery as CFDictionary, passwordUpdateDict as CFDictionary)
         // We can ignore ItemNotFound errors here, as the password might not exist yet
         if passwordUpdateStatus != errSecItemNotFound {
             try checkStatus(status: passwordUpdateStatus)
@@ -401,7 +409,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         }
         let query = try updateKeyQuery(for: key.name)
         
-        let status = SecItemUpdate(query, updateDict as CFDictionary)
+        let status = keychainWrapper.secItemUpdate(query, updateDict as CFDictionary)
         try checkStatus(status: status)
         printDebug("Key updated: \(key.name), iCloud: \(backupToiCloud)")
     }
@@ -429,7 +437,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     private func keysFromQuery(query: [String: Any]) throws -> [PrivateKey]  {
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
         
         // If no keys are found, return an empty array instead of throwing
         if status == errSecItemNotFound {
@@ -487,7 +495,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         let query = try getKeyQuery(for: keyName)
         
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
         try checkStatus(status: status)
 
         guard let keychainItem = item as? [String: Any]
@@ -509,7 +517,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrSynchronizable as String: syncQueryValueForReads
         ]
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
         
         // Print details if successful
         if status == errSecSuccess, let existingItem = item as? [String: Any] {
@@ -557,7 +565,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrAccount as String: KeychainConstants.account,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Ensure we find it regardless of sync status
         ]
-        let passwordStatus = SecItemDelete(passwordQuery as CFDictionary)
+        let passwordStatus = keychainWrapper.secItemDelete(passwordQuery as CFDictionary)
         // Ignore item not found, throw on other errors
         if passwordStatus != errSecItemNotFound {
             try checkStatus(status: passwordStatus)
@@ -569,7 +577,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Ensure we find it regardless of sync status
         ]
-        let passcodeTypeStatus = SecItemDelete(passcodeTypeQuery as CFDictionary)
+        let passcodeTypeStatus = keychainWrapper.secItemDelete(passcodeTypeQuery as CFDictionary)
         // Ignore item not found, throw on other errors
         if passcodeTypeStatus != errSecItemNotFound {
             try checkStatus(status: passcodeTypeStatus)
@@ -597,7 +605,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrSynchronizable as String: syncValueForWrites // Use helper
         ]
 
-        let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+        let status = keychainWrapper.secItemUpdate(query as CFDictionary, update as CFDictionary)
 
         if status == errSecItemNotFound {
             // Item doesn't exist, add it using setPassword which now handles sync status correctly
@@ -618,7 +626,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrAccount as String: KeychainConstants.account,
             kSecReturnData as String: true,
         ]
-        let deletePasswordStatus = SecItemDelete(query as CFDictionary)
+        let deletePasswordStatus = keychainWrapper.secItemDelete(query as CFDictionary)
         do {
             try checkStatus(status: deletePasswordStatus)
         } catch {
@@ -636,7 +644,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrSynchronizable as String: syncQueryValueForReads
         ]
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
         do {
             try checkStatus(status: status)
             guard let item = item, let passwordData = item as? Data else {
@@ -660,7 +668,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
             kSecAttrSynchronizable as String: syncValueForWrites // Use helper
         ]
-        let setPasswordStatus = SecItemAdd(query as CFDictionary, nil)
+        let setPasswordStatus = keychainWrapper.secItemAdd(query as CFDictionary, nil)
 
         // Handle potential duplicate item if update logic failed or wasn't called
         if setPasswordStatus == errSecDuplicateItem {
@@ -674,7 +682,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
                 kSecAttrSynchronizable as String: syncValueForWrites // Use helper
             ]
-            let updateStatus = SecItemUpdate(updateQuery as CFDictionary, attributesToUpdate as CFDictionary)
+            let updateStatus = keychainWrapper.secItemUpdate(updateQuery as CFDictionary, attributesToUpdate as CFDictionary)
             try checkStatus(status: updateStatus, defaultError: .keyUpdateFailed) // Throw specific error on update failure
         } else {
             try checkStatus(status: setPasswordStatus)
@@ -691,7 +699,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
         do {
             try checkStatus(status: status)
             let passwordData = try getPasswordHash()
@@ -739,7 +747,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             ]
 
             var items: CFTypeRef?
-            let status = SecItemCopyMatching(query as CFDictionary, &items)
+            let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &items)
 
             printDebug("\n--- Querying Class: \(itemClass) ---")
 
@@ -934,11 +942,11 @@ private extension KeychainManager {
         ]
 
         // Try to update first
-        let updateStatus = SecItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
+        let updateStatus = keychainWrapper.secItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
 
         if updateStatus == errSecItemNotFound {
             // Item doesn't exist, add it
-            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+            let addStatus = keychainWrapper.secItemAdd(addQuery as CFDictionary, nil)
             try checkStatus(status: addStatus)
         } else {
             // Check update status for errors other than not found
@@ -956,7 +964,7 @@ private extension KeychainManager {
         ]
         
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
         try checkStatus(status: status)
         
         guard let data = item as? Data else {
@@ -979,7 +987,7 @@ private extension KeychainManager {
         ]
 
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
 
         switch status {
         case errSecSuccess:
@@ -1015,6 +1023,72 @@ private extension KeychainManager {
     }
 
     // --------------------------------------------------
+
+    // Added private func for legacy migration
+    private func migrateLegacyKeysIfNeeded() throws {
+        printDebug("Checking for legacy keys needing UUID migration (kSecAttrGeneric)...")
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecReturnData as String: false, // Don't need key data, just attributes
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+
+        var item: CFTypeRef?
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
+
+        if status == errSecItemNotFound {
+            printDebug("No keys found, no migration needed.")
+            return // No keys, nothing to migrate
+        }
+        try checkStatus(status: status)
+
+        guard let keychainItems = item as? [[String: Any]] else {
+            printDebug("Could not cast keychain items during migration check.")
+            return // Or throw an error?
+        }
+
+        var migrationCount = 0
+
+        for itemDict in keychainItems {
+            // Check if the generic attribute is MISSING
+            if itemDict[kSecAttrGeneric as String] == nil {
+                 guard let nameData = itemDict[kSecAttrLabel as String] as? Data,
+                       let keyName = String(data: nameData, encoding: .utf8) else {
+                     printDebug("Skipping item during migration check due to missing label for key lacking generic attribute.")
+                     continue
+                 }
+
+                printDebug("Found legacy key '\(keyName)' (missing kSecAttrGeneric), migrating..." )
+                // 1. Generate a new UUID
+                let newUUID = UUID()
+                // 2. Prepare update query (target specific item by label/attributes)
+                let updateQuery = try updateKeyQuery(for: keyName) // Use existing helper to target by name
+                // 3. Prepare attributes dictionary containing ONLY the new attribute
+                let attributesToUpdate: [String: Any] = [
+                    kSecAttrGeneric as String: newUUID.data
+                ]
+
+                // 4. Perform update to add the attribute
+                let updateStatus = keychainWrapper.secItemUpdate(updateQuery, attributesToUpdate as CFDictionary)
+
+                if updateStatus == errSecSuccess {
+                    migrationCount += 1
+                    printDebug("Successfully added UUID attribute to key '\(keyName)': \(newUUID.uuidString)")
+                } else {
+                    printDebug("Error adding UUID attribute to key '\(keyName)': OSStatus \(updateStatus)")
+                    // Decide how to handle partial migration failures - continue? stop? throw?
+                    // Continuing might be best to migrate as many as possible.
+                }
+            }
+        }
+        if migrationCount > 0 {
+            printDebug("Finished legacy key migration. Added UUID attribute to \(migrationCount) key(s)." )
+        } else {
+            printDebug("No legacy keys required migration.")
+        }
+    }
 
 }
 
@@ -1059,5 +1133,12 @@ extension Data {
     var boolValue: Bool? {
         guard count == MemoryLayout<Int>.size else { return nil }
         return withUnsafeBytes { $0.load(as: Int.self) == 1 }
+    }
+}
+
+// Added Helper extension for UUID to Data conversion
+extension UUID {
+    var data: Data {
+        withUnsafeBytes(of: self.uuid) { Data($0) }
     }
 }

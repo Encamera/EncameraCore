@@ -96,7 +96,7 @@ extension KeyManagerError: Equatable {
 
 public protocol KeyManager {
     
-    init(isAuthenticated: AnyPublisher<Bool, Never>)
+    init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol)
     var isSyncEnabled: Bool { get }
     var isAuthenticated: AnyPublisher<Bool, Never> { get }
     var currentKey: PrivateKey? { get }
