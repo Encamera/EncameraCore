@@ -99,8 +99,6 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         self.isAuthenticated.sink { [weak self] newValue in
             guard let self = self, newValue == true else { return }
             do {
-                // Perform legacy key migration before attempting to load the active key
-                try self.migrateLegacyKeysIfNeeded()
                 try self.getActiveKeyAndSet()
             } catch {
                 self.printDebug("Error during initial key setup (migration/load):", error)
@@ -813,7 +811,16 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         }
         printDebug("--- End Keychain Dump ---")
     }
-    
+    // Added private func for legacy migration
+    public func migrateLegacyKeysIfNeeded() throws {
+
+        let keys = try storedKeys()
+
+        for key in keys {
+            let newKey = PrivateKey(name: key.name, keyBytes: key.keyBytes, creationDate: key.creationDate)
+            try save(key: newKey, setNewKeyToCurrent: false)
+        }
+    }
 }
 
 private extension KeychainManager {
@@ -1026,72 +1033,6 @@ private extension KeychainManager {
     }
 
     // --------------------------------------------------
-
-    // Added private func for legacy migration
-    private func migrateLegacyKeysIfNeeded() throws {
-        printDebug("Checking for legacy keys needing UUID migration (kSecAttrGeneric)...")
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecReturnData as String: false, // Don't need key data, just attributes
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-
-        if status == errSecItemNotFound {
-            printDebug("No keys found, no migration needed.")
-            return // No keys, nothing to migrate
-        }
-        try checkStatus(status: status)
-
-        guard let keychainItems = item as? [[String: Any]] else {
-            printDebug("Could not cast keychain items during migration check.")
-            return // Or throw an error?
-        }
-
-        var migrationCount = 0
-
-        for itemDict in keychainItems {
-            // Check if the generic attribute is MISSING
-            if itemDict[kSecAttrGeneric as String] == nil {
-                 guard let nameData = itemDict[kSecAttrLabel as String] as? Data,
-                       let keyName = String(data: nameData, encoding: .utf8) else {
-                     printDebug("Skipping item during migration check due to missing label for key lacking generic attribute.")
-                     continue
-                 }
-
-                printDebug("Found legacy key '\(keyName)' (missing kSecAttrGeneric), migrating..." )
-                // 1. Generate a new UUID
-                let newUUID = UUID()
-                // 2. Prepare update query (target specific item by label/attributes)
-                let updateQuery = try updateKeyQuery(for: keyName) // Use existing helper to target by name
-                // 3. Prepare attributes dictionary containing ONLY the new attribute
-                let attributesToUpdate: [String: Any] = [
-                    kSecAttrGeneric as String: newUUID.data
-                ]
-
-                // 4. Perform update to add the attribute
-                let updateStatus = keychainWrapper.secItemUpdate(updateQuery, attributesToUpdate as CFDictionary)
-
-                if updateStatus == errSecSuccess {
-                    migrationCount += 1
-                    printDebug("Successfully added UUID attribute to key '\(keyName)': \(newUUID.uuidString)")
-                } else {
-                    printDebug("Error adding UUID attribute to key '\(keyName)': OSStatus \(updateStatus)")
-                    // Decide how to handle partial migration failures - continue? stop? throw?
-                    // Continuing might be best to migrate as many as possible.
-                }
-            }
-        }
-        if migrationCount > 0 {
-            printDebug("Finished legacy key migration. Added UUID attribute to \(migrationCount) key(s)." )
-        } else {
-            printDebug("No legacy keys required migration.")
-        }
-    }
 
 }
 
