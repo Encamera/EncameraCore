@@ -296,7 +296,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
         if let existingKey = try? getKey(by: key.name) {
             let updateQuery: [String: Any] = [
-                kSecValueData as String: Data(key.keyBytes),
+                kSecValueData as String: key.keyData,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
                 kSecAttrSynchronizable as String: syncValueForWrites // Use helper
             ]
@@ -1115,7 +1115,7 @@ private extension PrivateKey {
             kSecClass as String: kSecClassKey,
             kSecAttrLabel as String: name.data(using: .utf8)!,
             kSecAttrCreationDate as String: creationDate,
-            kSecValueData as String: Data(keyBytes),
+            kSecValueData as String: keyData,
             kSecAttrApplicationLabel as String: applicationLabel,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,

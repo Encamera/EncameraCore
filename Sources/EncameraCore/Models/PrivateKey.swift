@@ -32,10 +32,29 @@ public struct PrivateKey: Codable, Hashable {
     private struct KeyCore: Codable, Hashable {
         var keyBytes: KeyBytes
         var uuid: UUID
+
+        init(from decoder: any Decoder) throws {
+            let container: KeyedDecodingContainer<PrivateKey.KeyCore.CodingKeys> = try decoder.container(keyedBy: PrivateKey.KeyCore.CodingKeys.self)
+            let keyData = try container.decode(KeyBytes.self, forKey: PrivateKey.KeyCore.CodingKeys.keyBytes)
+            let keyBytes = try keyData.withUnsafeBytes({ (body: UnsafeRawBufferPointer) throws -> [UInt8] in
+                        [UInt8](UnsafeRawBufferPointer(body))
+                    })
+            self.keyBytes = keyBytes
+            self.uuid = try container.decode(UUID.self, forKey: PrivateKey.KeyCore.CodingKeys.uuid)
+        }
+
+        init(keyBytes: KeyBytes, uuid: UUID) {
+            self.keyBytes = keyBytes
+            self.uuid = uuid
+        }
     }
 
     public var keyBytes: KeyBytes {
         return keyCore.keyBytes
+    }
+
+    public var keyData: Data {
+        return try! JSONEncoder().encode(self.keyCore)
     }
 
     public init(name: String, keyData: Data, creationDate: Date) throws {
@@ -65,11 +84,14 @@ public struct PrivateKey: Codable, Hashable {
             throw ImageKeyEncodingError.invalidKeychainItemData
         }
         let name = PrivateKey.keyName(from: nameData)
-
-        let keyBytes = try keyData.withUnsafeBytes({ (body: UnsafeRawBufferPointer) throws -> [UInt8] in
-            [UInt8](UnsafeRawBufferPointer(body))
-        })
-        self.init(name: name, keyBytes: keyBytes, creationDate: creationDate)
+        do {
+            try self.init(name: name, keyData: keyData, creationDate: creationDate)
+        } catch {
+            let keyBytes = try keyData.withUnsafeBytes({ (body: UnsafeRawBufferPointer) throws -> [UInt8] in
+                [UInt8](UnsafeRawBufferPointer(body))
+            })
+            self.init(name: name, keyBytes: keyBytes, creationDate: creationDate)
+        }
         if let synced = keychainItem[kSecAttrSynchronizable as String] as? Bool, synced == true {
             self.savedToiCloud = true
         }
