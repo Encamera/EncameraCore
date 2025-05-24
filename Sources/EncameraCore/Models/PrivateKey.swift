@@ -19,15 +19,23 @@ public typealias KeyBytes = Array<UInt8>
 public struct PrivateKey: Codable, Hashable {
 
     public var name: KeyName
-    public private(set) var keyBytes: KeyBytes
     public private(set) var savedToiCloud: Bool = false
     public var creationDate: Date
     private static let keyPrefix = "com.encamera.key."
 
     private enum CodingKeys: CodingKey {
         case name
-        case keyBytes
         case creationDate
+        case keyCore
+    }
+    private var keyCore: KeyCore
+    private struct KeyCore: Codable, Hashable {
+        var keyBytes: KeyBytes
+        var uuid: UUID
+    }
+
+    public var keyBytes: KeyBytes {
+        return keyCore.keyBytes
     }
 
     public init(name: String, keyBytes: Array<UInt8>, creationDate: Date) {
