@@ -38,9 +38,15 @@ public struct PrivateKey: Codable, Hashable {
         return keyCore.keyBytes
     }
 
+    public init(name: String, keyData: Data, creationDate: Date) throws {
+        self.name = name
+        self.creationDate = creationDate
+        self.keyCore = try JSONDecoder().decode(KeyCore.self, from: keyData)
+    }
+
     public init(name: String, keyBytes: Array<UInt8>, creationDate: Date) {
         self.name = name
-        self.keyBytes = keyBytes
+        self.keyCore = KeyCore(keyBytes: keyBytes, uuid: UUID())
         self.creationDate = creationDate
     }
 

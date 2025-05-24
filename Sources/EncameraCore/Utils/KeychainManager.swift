@@ -205,8 +205,13 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         }
 
         let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
-        
-        try save(key: key, setNewKeyToCurrent: true)
+
+        do {
+            try save(key: key, setNewKeyToCurrent: true)
+        } catch {
+            self.printDebug("Could not save key", error)
+            throw error
+        }
 
         // Save or update the passphrase in the keychain
         let passphraseData = fullPassword.data(using: .utf8)!
@@ -224,7 +229,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             let updateQuery: [String: Any] = [
                 kSecValueData as String: passphraseData,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncValueForWrites // Use helper
+                kSecAttrSynchronizable as String: syncValueForWrites,
             ]
             let updateStatus = keychainWrapper.secItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
 
@@ -428,8 +433,6 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             kSecReturnAttributes as String: true,
             kSecMatchLimit as String: kSecMatchLimitAll,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Match any existing item
-
-//            kSecAttrSynchronizable as String: syncQueryValueForReads
         ]
         
         return try keysFromQuery(query: query)
@@ -1115,7 +1118,7 @@ private extension PrivateKey {
             kSecValueData as String: Data(keyBytes),
             kSecAttrApplicationLabel as String: applicationLabel,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
         ]
     }
 }
