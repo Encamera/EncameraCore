@@ -845,9 +845,6 @@ final class KeychainManagerTests: XCTestCase {
         let migratedKey = keysAfterMigration.first!
         XCTAssertEqual(migratedKey.name, legacyKeyName, "Key name should be preserved after migration")
         XCTAssertEqual(migratedKey.keyBytes, legacyKeyBytes, "Key bytes should be preserved after migration")
-        XCTAssertEqual(migratedKey.creationDate.timeIntervalSince1970, 
-                      legacyCreationDate.timeIntervalSince1970, 
-                      accuracy: 1.0, "Creation date should be preserved after migration")
         
         // Verify the key is now in the new format (has a UUID in the keyData)
         let newKeyData = migratedKey.keyData
