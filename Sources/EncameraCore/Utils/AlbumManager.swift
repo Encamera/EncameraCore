@@ -67,7 +67,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         }
     }
 
-    private var keyManager: KeyManager
+    public private(set) var keyManager: KeyManager
 
     private var albumSet: Set<Album> = [] {
         didSet {

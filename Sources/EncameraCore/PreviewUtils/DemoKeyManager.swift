@@ -38,6 +38,10 @@ public class DemoKeyManager: KeyManager {
     public func keyWith(name: String) -> PrivateKey? {
         return nil
     }
+
+    public func keyWith(uuid: UUID) -> PrivateKey? {
+        return storedKeysValue.first(where: { $0.uuid == uuid })
+    }
     public func getPasswordHash() throws -> Data {
         return Data()
     }

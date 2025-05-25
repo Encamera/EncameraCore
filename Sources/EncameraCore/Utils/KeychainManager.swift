@@ -424,6 +424,11 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         return keys?.first(where: {$0.name == name})
     }
 
+    public func keyWith(uuid: UUID) -> PrivateKey? {
+        let keys = try? storedKeys()
+        return keys?.first(where: {$0.uuid == uuid})
+    }
+
     public func storedKeys() throws -> [PrivateKey] {
         
         let query: [String: Any] = [

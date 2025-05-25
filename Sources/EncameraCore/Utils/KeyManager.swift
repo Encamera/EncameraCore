@@ -104,6 +104,7 @@ public protocol KeyManager {
     var passcodeType: PasscodeType { get }
     func clearKeychainData()
     func keyWith(name: String) -> PrivateKey?
+    func keyWith(uuid: UUID) -> PrivateKey?
     func storedKeys() throws -> [PrivateKey]
     func getPasswordHash() throws -> Data
     func setPasswordHash(hash: Data) throws

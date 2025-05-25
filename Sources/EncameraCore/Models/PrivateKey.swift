@@ -53,6 +53,10 @@ public struct PrivateKey: Codable, Hashable {
         return keyCore.keyBytes
     }
 
+    public var uuid: UUID {
+        return keyCore.uuid
+    }
+
     public var keyData: Data {
         return try! JSONEncoder().encode(self.keyCore)
     }

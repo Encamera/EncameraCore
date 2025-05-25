@@ -2,6 +2,8 @@ import Foundation
 import Combine
 
 public class DemoAlbumManager: AlbumManaging {
+    public var keyManager: any KeyManager
+    
     public func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>) {
         
     }
@@ -62,7 +64,9 @@ public class DemoAlbumManager: AlbumManaging {
             Album(name: "Demo Album 5", storageOption: .local, creationDate: Date(), key: key),
             Album(name: "Demo Album 6", storageOption: .local, creationDate: Date(), key: key),
         ]
+        self.keyManager = DemoKeyManager()
         self.currentAlbum = albums.first
+
     }
 
     public func delete(album: Album) {

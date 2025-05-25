@@ -13,7 +13,7 @@ public protocol AlbumManaging {
 
     init(keyManager: KeyManager)
     var albums: [Album] { get }
-
+    var keyManager: KeyManager { get }
     var albumOperationPublisher: AnyPublisher<AlbumOperation, Never> { get }
     var defaultStorageForAlbum: StorageType { get set }
     var currentAlbum: Album? { get set }
