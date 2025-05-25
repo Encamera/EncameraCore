@@ -296,7 +296,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             let updateQuery: [String: Any] = [
                 kSecValueData as String: key.keyData,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncValueForWrites // Use helper
+                kSecAttrSynchronizable as String: syncValueForWrites, // Use helper
+                kSecAttrCreationDate as String: key.creationDate // Preserve creation date during migration
             ]
             // Use the base query from the existing key for update, but target by label/name
             let baseQuery = try updateKeyQuery(for: existingKey.name)
@@ -815,11 +816,29 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     public func migrateLegacyKeysIfNeeded() throws {
 
         let keys = try storedKeys()
+        
+        guard !keys.isEmpty else {
+            printDebug("No keys found, skipping migration")
+            return
+        }
+        
+        printDebug("Starting migration for \(keys.count) keys")
 
         for key in keys {
-            let newKey = PrivateKey(name: key.name, keyBytes: key.keyBytes, creationDate: key.creationDate)
-            try save(key: newKey, setNewKeyToCurrent: false)
+            do {
+                // Re-save each key to ensure it's in the current format
+                // This is idempotent - if the key is already in new format, this is a no-op
+                // If the key is in legacy format, this will convert it to new format
+                let migratedKey = PrivateKey(name: key.name, keyBytes: key.keyBytes, creationDate: key.creationDate)
+                try save(key: migratedKey, setNewKeyToCurrent: false)
+                printDebug("Successfully processed key: \(key.name)")
+            } catch {
+                printDebug("Failed to migrate key \(key.name): \(error)")
+                throw error
+            }
         }
+        
+        printDebug("Migration completed for \(keys.count) keys")
     }
 }
 
@@ -1013,7 +1032,7 @@ private extension KeychainManager {
             return .notSet
         default:
             // Other error occurred reading the flag
-            print("Error reading backup status flag: \\(determineOSStatus(status: status)). Assuming not set.")
+            print("Error reading backup status flag: \(determineOSStatus(status: status)). Assuming not set.")
             return .notSet
         }
     }
