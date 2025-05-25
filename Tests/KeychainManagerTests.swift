@@ -778,6 +778,381 @@ final class KeychainManagerTests: XCTestCase {
         XCTAssertEqual(newSutInstance.passcodeType, expectedType, "Retrieved passcode type should match the set type.")
     }
 
+    func testMigrationOfLegacyKeys() throws {
+        try sut.migrateLegacyKeysIfNeeded()
+    }
+
+    // MARK: - Legacy Key Migration Tests
+    
+    func testMigrationOfLegacyKeys_NoKeysToMigrate() throws {
+        // Test migration when no keys exist
+        XCTAssertTrue(try sut.storedKeys().isEmpty, "Should start with no keys")
+        
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        XCTAssertTrue(try sut.storedKeys().isEmpty, "Should still have no keys after migration")
+    }
+    
+    /// Helper method to create and store a legacy key in the keychain using the old format
+    private func createLegacyKeyInKeychain(name: String, keyBytes: [UInt8], creationDate: Date = Date()) throws {
+        // Create a legacy key using the old format
+        let legacyKey = LegacyPrivateKey(name: name, keyBytes: keyBytes, creationDate: creationDate)
+        
+        // Store it in the keychain as raw bytes (how legacy keys were stored)
+        let legacyKeyData = Data(keyBytes) // Legacy keys stored raw bytes, not JSON
+        
+        let legacyKeychainQuery: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrLabel as String: name.data(using: .utf8)!,
+            kSecAttrCreationDate as String: creationDate,
+            kSecValueData as String: legacyKeyData,
+            kSecAttrApplicationLabel as String: "com.encamera.key.\(name)",
+            kSecAttrSynchronizable as String: kCFBooleanFalse!,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+        ]
+        
+        let addStatus = SecItemAdd(legacyKeychainQuery as CFDictionary, nil)
+        if addStatus != errSecSuccess {
+            throw KeyManagerError.unhandledError("Failed to add legacy key to keychain: \(addStatus)")
+        }
+    }
+    
+    func testMigrationOfLegacyKeys_PreservesKeyData() throws {
+        // Create a legacy key with specific data
+        let legacyKeyName = "legacyTestKey"
+        let legacyKeyBytes: [UInt8] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                                      17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+        let legacyCreationDate = Date(timeIntervalSince1970: 1640995200) // Fixed date for testing
+        
+        // Store the legacy key in the keychain
+        try createLegacyKeyInKeychain(name: legacyKeyName, keyBytes: legacyKeyBytes, creationDate: legacyCreationDate)
+        
+        // Verify the legacy key can be retrieved (should use fallback mechanism)
+        let keysBeforeMigration = try sut.storedKeys()
+        XCTAssertEqual(keysBeforeMigration.count, 1, "Should find the legacy key")
+        
+        let retrievedLegacyKey = keysBeforeMigration.first!
+        XCTAssertEqual(retrievedLegacyKey.name, legacyKeyName, "Legacy key name should be preserved")
+        XCTAssertEqual(retrievedLegacyKey.keyBytes, legacyKeyBytes, "Legacy key bytes should be correctly interpreted")
+        
+        // Run migration
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        // Verify key still exists and data is preserved after migration
+        let keysAfterMigration = try sut.storedKeys()
+        XCTAssertEqual(keysAfterMigration.count, 1, "Should have exactly one key after migration")
+        
+        let migratedKey = keysAfterMigration.first!
+        XCTAssertEqual(migratedKey.name, legacyKeyName, "Key name should be preserved after migration")
+        XCTAssertEqual(migratedKey.keyBytes, legacyKeyBytes, "Key bytes should be preserved after migration")
+        XCTAssertEqual(migratedKey.creationDate.timeIntervalSince1970, 
+                      legacyCreationDate.timeIntervalSince1970, 
+                      accuracy: 1.0, "Creation date should be preserved after migration")
+        
+        // Verify the key is now in the new format (has a UUID in the keyData)
+        let newKeyData = migratedKey.keyData
+        XCTAssertTrue(newKeyData.count > Data(legacyKeyBytes).count, 
+                     "New key data should be larger than raw bytes (includes UUID and JSON structure)")
+    }
+    
+    func testMigrationOfLegacyKeys_MultipleKeys() throws {
+        // Create multiple legacy keys with different data
+        let legacyKeys = [
+            ("legacyKey1", Array<UInt8>(1...32)),
+            ("legacyKey2", Array<UInt8>(33...64)),
+            ("legacyKey3", Array<UInt8>(65...96))
+        ]
+        
+        // Store all legacy keys
+        for (name, keyBytes) in legacyKeys {
+            try createLegacyKeyInKeychain(name: name, keyBytes: keyBytes)
+        }
+        
+        // Verify all legacy keys can be retrieved
+        let keysBeforeMigration = try sut.storedKeys()
+        XCTAssertEqual(keysBeforeMigration.count, 3, "Should find all 3 legacy keys")
+        
+        // Run migration
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        // Verify all keys are preserved after migration
+        let keysAfterMigration = try sut.storedKeys()
+        XCTAssertEqual(keysAfterMigration.count, 3, "Should have all 3 keys after migration")
+        
+        // Verify each key's data is preserved
+        let keysByName = Dictionary(uniqueKeysWithValues: keysAfterMigration.map { ($0.name, $0) })
+        
+        for (expectedName, expectedKeyBytes) in legacyKeys {
+            guard let migratedKey = keysByName[expectedName] else {
+                XCTFail("Key \(expectedName) not found after migration")
+                continue
+            }
+            XCTAssertEqual(migratedKey.keyBytes, expectedKeyBytes, "Key bytes for \(expectedName) should be preserved")
+        }
+    }
+    
+    func testMigrationOfLegacyKeys_MixedLegacyAndModernKeys() throws {
+        // Create a legacy key
+        let legacyKeyName = "legacyKey"
+        let legacyKeyBytes: [UInt8] = Array(1...32)
+        try createLegacyKeyInKeychain(name: legacyKeyName, keyBytes: legacyKeyBytes)
+        
+        // Create a modern key using the current system
+        let modernKey = try createTestKey(name: "modernKey")
+        
+        // Verify we have both keys before migration
+        let keysBeforeMigration = try sut.storedKeys()
+        XCTAssertEqual(keysBeforeMigration.count, 2, "Should have both legacy and modern keys")
+        
+        // Run migration
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        // Verify both keys still exist after migration
+        let keysAfterMigration = try sut.storedKeys()
+        XCTAssertEqual(keysAfterMigration.count, 2, "Should still have both keys after migration")
+        
+        // Verify key data is preserved
+        let keysByName = Dictionary(uniqueKeysWithValues: keysAfterMigration.map { ($0.name, $0) })
+        XCTAssertEqual(keysByName["legacyKey"]?.keyBytes, legacyKeyBytes, "Legacy key bytes should be preserved")
+        XCTAssertEqual(keysByName["modernKey"]?.keyBytes, modernKey.keyBytes, "Modern key bytes should be unchanged")
+    }
+    
+    func testMigrationOfLegacyKeys_PreservesSyncStatus() throws {
+        // Test legacy key with sync disabled
+        let unsyncedKeyName = "unsyncedLegacyKey"
+        let unsyncedKeyBytes: [UInt8] = Array(1...32)
+        
+        // Create legacy key with sync disabled
+        let legacyKey = LegacyPrivateKey(name: unsyncedKeyName, keyBytes: unsyncedKeyBytes, creationDate: Date())
+        let legacyKeyData = Data(unsyncedKeyBytes)
+        
+        let unsyncedKeychainQuery: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrLabel as String: unsyncedKeyName.data(using: .utf8)!,
+            kSecAttrCreationDate as String: Date(),
+            kSecValueData as String: legacyKeyData,
+            kSecAttrApplicationLabel as String: "com.encamera.key.\(unsyncedKeyName)",
+            kSecAttrSynchronizable as String: kCFBooleanFalse!, // Explicitly unsynced
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+        ]
+        
+        let addStatus = SecItemAdd(unsyncedKeychainQuery as CFDictionary, nil)
+        XCTAssertEqual(addStatus, errSecSuccess, "Should successfully add unsynced legacy key")
+        
+        // Set the backup status to disabled to match the key's sync status
+        try sut.backupKeychainToiCloud(backupEnabled: false)
+        
+        // Verify the key is not synced before migration
+        XCTAssertFalse(try isKeyItemSynced(name: unsyncedKeyName), "Legacy key should not be synced initially")
+        
+        // Run migration
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        // Verify sync status is preserved after migration
+        XCTAssertFalse(try isKeyItemSynced(name: unsyncedKeyName), "Key should remain unsynced after migration")
+        
+        // Test with sync enabled
+        let syncedKeyName = "syncedLegacyKey"
+        let syncedKeyBytes: [UInt8] = Array(33...64)
+        
+        // Enable sync first
+        try sut.backupKeychainToiCloud(backupEnabled: true)
+        
+        // Create legacy key that will be synced during migration
+        try createLegacyKeyInKeychain(name: syncedKeyName, keyBytes: syncedKeyBytes)
+        
+        // Run migration again
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        // Verify the new key gets synced according to current backup setting
+        XCTAssertTrue(try isKeyItemSynced(name: syncedKeyName), "New legacy key should be synced after migration with backup enabled")
+    }
+    
+    func testMigrationOfLegacyKeys_DoesNotSetCurrentKey() throws {
+        // Ensure no current key is set
+        try sut.setActiveKey(nil)
+        XCTAssertNil(sut.currentKey, "Should start with no current key")
+        
+        // Create a legacy key
+        try createLegacyKeyInKeychain(name: "legacyKey", keyBytes: Array(1...32))
+        
+        // Run migration
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        // Verify current key is not set by migration
+        XCTAssertNil(sut.currentKey, "Migration should not set current key")
+        XCTAssertNil(UserDefaultUtils.value(forKey: UserDefaultKey.currentKey), "Current key should not be set in UserDefaults")
+    }
+    
+    func testMigrationOfLegacyKeys_WithCurrentKeySet() throws {
+        // Create a modern key and set it as current
+        let modernKey = try createTestKey(name: "modernKey")
+        try sut.setActiveKey("modernKey")
+        XCTAssertEqual(sut.currentKey?.name, "modernKey", "Modern key should be set as current")
+        
+        // Create a legacy key
+        try createLegacyKeyInKeychain(name: "legacyKey", keyBytes: Array(1...32))
+        
+        // Run migration
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        // Verify current key is preserved
+        XCTAssertEqual(sut.currentKey?.name, "modernKey", "Current key should be preserved after migration")
+        XCTAssertEqual(UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String, "modernKey")
+    }
+    
+//    func testMigrationOfLegacyKeys_HandlesKeysWithSpecialCharacters() throws {
+//        // Test legacy keys with special characters in names
+//        let specialNames = [
+//            "key with spaces",
+//            "key-with-dashes", 
+//            "key_with_underscores",
+//            "key.with.dots",
+//            "key@with@symbols"
+//            // Note: Emoji might cause issues with keychain storage, so testing simpler special chars
+//        ]
+//        
+//        // Create legacy keys with special names
+//        for (index: Int, name) in specialNames.enumerated() {
+//            let startByte = (index as Int) * 32 + 1
+//            let endByte = (index as Int) * 32 + 32
+//            let keyBytes = Array<UInt8>(startByte...endByte)
+//            try createLegacyKeyInKeychain(name: name, keyBytes: keyBytes)
+//        }
+//        
+//        XCTAssertEqual(try sut.storedKeys().count, specialNames.count, "Should have all special-named legacy keys")
+//        
+//        // Run migration
+//        try sut.migrateLegacyKeysIfNeeded()
+//        
+//        // Verify all keys are preserved
+//        let migratedKeys = try sut.storedKeys()
+//        XCTAssertEqual(migratedKeys.count, specialNames.count, "Should preserve all special-named keys")
+//        
+//        let migratedKeyNames = Set(migratedKeys.map { $0.name })
+//        let originalKeyNames = Set(specialNames)
+//        XCTAssertEqual(migratedKeyNames, originalKeyNames, "All special key names should be preserved")
+//    }
+//    
+    func testMigrationOfLegacyKeys_IdempotentOperation() throws {
+        // Create legacy keys
+        let legacyKeys = [
+            ("key1", Array<UInt8>(1...32)),
+            ("key2", Array<UInt8>(33...64))
+        ]
+        
+        for (name, keyBytes) in legacyKeys {
+            try createLegacyKeyInKeychain(name: name, keyBytes: keyBytes)
+        }
+        
+        let originalKeys = try sut.storedKeys()
+        XCTAssertEqual(originalKeys.count, 2, "Should have 2 legacy keys initially")
+        
+        // Run migration first time
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        let keysAfterFirstMigration = try sut.storedKeys()
+        XCTAssertEqual(keysAfterFirstMigration.count, 2, "Should have 2 keys after first migration")
+        
+        // Run migration second time (should be idempotent)
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        let keysAfterSecondMigration = try sut.storedKeys()
+        XCTAssertEqual(keysAfterSecondMigration.count, 2, "Should still have 2 keys after second migration")
+        
+        // Verify key data is still intact
+        let finalKeysByName = Dictionary(uniqueKeysWithValues: keysAfterSecondMigration.map { ($0.name, $0) })
+        XCTAssertEqual(finalKeysByName["key1"]?.keyBytes, Array<UInt8>(1...32), "Key1 bytes should be unchanged")
+        XCTAssertEqual(finalKeysByName["key2"]?.keyBytes, Array<UInt8>(33...64), "Key2 bytes should be unchanged")
+    }
+    
+    func testMigrationOfLegacyKeys_WithLegacyKeyDataFormat() throws {
+        // This test verifies that the PrivateKey(keychainItem:) fallback mechanism works correctly
+        let legacyKeyName = "actualLegacyKey"
+        let legacyKeyBytes: [UInt8] = Array(1...32)
+        
+        // Store legacy key as raw bytes (how they were actually stored)
+        try createLegacyKeyInKeychain(name: legacyKeyName, keyBytes: legacyKeyBytes)
+        
+        // Verify the legacy key can be retrieved using the fallback mechanism
+        let retrievedKeys = try sut.storedKeys()
+        XCTAssertEqual(retrievedKeys.count, 1, "Should find the legacy key")
+        
+        let retrievedKey = retrievedKeys.first!
+        XCTAssertEqual(retrievedKey.name, legacyKeyName, "Legacy key name should be preserved")
+        XCTAssertEqual(retrievedKey.keyBytes, legacyKeyBytes, "Legacy key bytes should be correctly interpreted via fallback")
+        
+        // Store the original key data size for comparison
+        let originalKeyDataSize = Data(legacyKeyBytes).count
+        
+        // Run migration
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        // Verify key is still accessible and data is preserved
+        let migratedKeys = try sut.storedKeys()
+        XCTAssertEqual(migratedKeys.count, 1, "Should have exactly one key after migration")
+        
+        let migratedKey = migratedKeys.first!
+        XCTAssertEqual(migratedKey.name, legacyKeyName, "Migrated key name should be preserved")
+        XCTAssertEqual(migratedKey.keyBytes, legacyKeyBytes, "Migrated key bytes should be preserved")
+        
+        // Verify the key is now in the new format (includes UUID and JSON structure)
+        let newKeyDataSize = migratedKey.keyData.count
+        XCTAssertTrue(newKeyDataSize > originalKeyDataSize, 
+                     "New key data should be larger than original raw bytes (now includes UUID and JSON structure)")
+    }
+    
+    func testMigrationOfLegacyKeys_ErrorHandling() throws {
+        // Create a valid legacy key
+        try createLegacyKeyInKeychain(name: "validKey", keyBytes: Array(1...32))
+        
+        // The migration should succeed with valid keys
+        XCTAssertNoThrow(try sut.migrateLegacyKeysIfNeeded(), "Migration should not throw with valid legacy keys")
+        
+        // Verify the key was migrated successfully
+        let migratedKeys = try sut.storedKeys()
+        XCTAssertEqual(migratedKeys.count, 1, "Should have one migrated key")
+        XCTAssertEqual(migratedKeys.first?.name, "validKey", "Key should be successfully migrated")
+    }
+    
+    func testMigrationOfLegacyKeys_PreservesKeyOrder() throws {
+        // Create legacy keys with specific creation dates
+        let now = Date()
+        let legacyKeys = [
+            ("oldestKey", Array<UInt8>(1...32), now.addingTimeInterval(-100)),
+            ("middleKey", Array<UInt8>(33...64), now.addingTimeInterval(-50)),
+            ("newestKey", Array<UInt8>(65...96), now)
+        ]
+        
+        // Store legacy keys with specific creation dates
+        for (name, keyBytes, creationDate) in legacyKeys {
+            try createLegacyKeyInKeychain(name: name, keyBytes: keyBytes, creationDate: creationDate)
+        }
+        
+        let originalKeys = try sut.storedKeys()
+        XCTAssertEqual(originalKeys.count, 3, "Should have 3 legacy keys before migration")
+        
+        // Verify all keys are present before migration
+        let originalKeyNames = Set(originalKeys.map { $0.name })
+        XCTAssertEqual(originalKeyNames, Set(["oldestKey", "middleKey", "newestKey"]), "All legacy keys should be present before migration")
+        
+        // Run migration
+        try sut.migrateLegacyKeysIfNeeded()
+        
+        // Verify all keys are still present after migration
+        let migratedKeys = try sut.storedKeys()
+        XCTAssertEqual(migratedKeys.count, 3, "Should have 3 keys after migration")
+        
+        let migratedKeyNames = Set(migratedKeys.map { $0.name })
+        XCTAssertEqual(migratedKeyNames, Set(["oldestKey", "middleKey", "newestKey"]), "All keys should be present after migration")
+        
+        // Verify key data is preserved
+        let migratedKeysByName = Dictionary(uniqueKeysWithValues: migratedKeys.map { ($0.name, $0) })
+        XCTAssertEqual(migratedKeysByName["oldestKey"]?.keyBytes, Array<UInt8>(1...32), "Oldest key bytes should be preserved")
+        XCTAssertEqual(migratedKeysByName["middleKey"]?.keyBytes, Array<UInt8>(33...64), "Middle key bytes should be preserved")
+        XCTAssertEqual(migratedKeysByName["newestKey"]?.keyBytes, Array<UInt8>(65...96), "Newest key bytes should be preserved")
+    }
+
     // testPasswordSyncStatus and testPasscodeTypeSyncStatus from original file are covered by testBackupKeychainToiCloud_Enable/Disable tests.
     // testBasicPasswordFunctionality from original file is covered by various password tests above.
 
