@@ -48,12 +48,7 @@ final class KeychainManagerTests: XCTestCase {
 
     /// Creates a dummy PrivateKey for testing.
     private func createTestKey(name: String = "testKey") throws -> PrivateKey {
-        // Use the TestDataGenerator from EncameraCore instead of Sodium directly
-        let keyBytes = TestDataGenerator.generateRandomKeyBytes()
-        let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
-        // Save uses the current isSyncEnabled state internally
-        try sut.save(key: key, setNewKeyToCurrent: false)
-        return key
+        return try TestUtils.createTestKey(name: name, keyManager: sut)
     }
 
     /// Helper function to check the kSecAttrSynchronizable status of a generic password item.
