@@ -475,6 +475,67 @@ extension DiskFileAccess {
             }
         }
     }
+    
+    public func setKeyUUIDForExistingFiles() async throws {
+        guard let currentKey = key else {
+            printDebug("setKeyUUIDForExistingFiles: No current key available")
+            throw FileAccessError.missingPrivateKey
+        }
+        
+        printDebug("setKeyUUIDForExistingFiles: Starting UUID migration for existing files")
+        
+        // Get all encrypted media files
+        let encryptedMedia: [EncryptedMedia] = await enumerateMedia()
+        var processedCount = 0
+        var updatedCount = 0
+        
+        for media in encryptedMedia {
+            guard case .url(let fileURL) = media.source else {
+                continue
+            }
+            
+            processedCount += 1
+            
+            do {
+                // Check if UUID is already set
+                let existingUUID = try? ExtendedAttributesUtil.getKeyUUID(for: fileURL)
+                
+                if existingUUID == nil {
+                    // No UUID set, set it to the current key's UUID
+                    try ExtendedAttributesUtil.setKeyUUID(currentKey.uuid, for: fileURL)
+                    updatedCount += 1
+                    printDebug("setKeyUUIDForExistingFiles: Set UUID for file \(media.id)")
+                } else {
+                    printDebug("setKeyUUIDForExistingFiles: File \(media.id) already has UUID, skipping")
+                }
+            } catch {
+                printDebug("setKeyUUIDForExistingFiles: Failed to process file \(media.id): \(error)")
+            }
+        }
+        
+        // Also process preview files if we have a directory model
+        if let directoryModel = directoryModel {
+            let previewFiles = directoryModel.enumeratePreviewFiles()
+            
+            for previewURL in previewFiles {
+                processedCount += 1
+                
+                do {
+                    let existingUUID = try? ExtendedAttributesUtil.getKeyUUID(for: previewURL)
+                    
+                    if existingUUID == nil {
+                        try ExtendedAttributesUtil.setKeyUUID(currentKey.uuid, for: previewURL)
+                        updatedCount += 1
+                        printDebug("setKeyUUIDForExistingFiles: Set UUID for preview file \(previewURL.lastPathComponent)")
+                    }
+                } catch {
+                    printDebug("setKeyUUIDForExistingFiles: Failed to process preview file \(previewURL.lastPathComponent): \(error)")
+                }
+            }
+        }
+        
+        printDebug("setKeyUUIDForExistingFiles: Completed. Processed \(processedCount) files, updated \(updatedCount) files")
+    }
     public static func deleteThumbnailDirectory() throws {
         try LocalStorageModel.deletePreviewDirectory()
         try iCloudStorageModel.deletePreviewDirectory()

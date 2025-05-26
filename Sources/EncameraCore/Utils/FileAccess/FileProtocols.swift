@@ -47,6 +47,7 @@ public protocol FileWriter: FileEnumerator {
     func delete(media: InteractableMedia<EncryptedMedia>) async throws
     func deleteMediaForKey() async throws
     func deleteAllMedia() async throws
+    func setKeyUUIDForExistingFiles() async throws
     static func deleteThumbnailDirectory() throws
 }
 

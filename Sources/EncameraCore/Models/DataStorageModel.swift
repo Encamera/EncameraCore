@@ -139,6 +139,13 @@ extension DataStorageModel {
     func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
         return Self.enumeratorForStorageDirectory(at: baseURL, resourceKeys: resourceKeys, fileExtensionFilter: fileExtensionFilter)
     }
+    
+    func enumeratePreviewFiles() -> [URL] {
+        return Self.enumeratorForStorageDirectory(
+            at: Self.thumbnailDirectory,
+            fileExtensionFilter: [MediaType.preview.encryptedFileExtension]
+        )
+    }
 
     public func countOfFiles(matchingFileExtension: [String] = [MediaType.photo.encryptedFileExtension]) -> Int {
         let files = enumeratorForStorageDirectory(resourceKeys: Set(), fileExtensionFilter: matchingFileExtension)
