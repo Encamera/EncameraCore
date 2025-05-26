@@ -108,6 +108,11 @@ struct EncameraApp: App {
                             self.setupFileAccess(album: album)
                         }.store(in: &self.cancellables)
                     self.setupFileAccess(album: albumManager.currentAlbum)
+                    
+                    // Run UUID migration for existing files in the background
+                    Task.detached(priority: .background) {
+                        await self.migrateExistingFilesUUIDs()
+                    }
 
                 }.store(in: &cancellables)
 
@@ -216,6 +221,24 @@ struct EncameraApp: App {
                 showImportedMediaScreen = hasMediaToImport
             }
 
+        }
+        
+        func migrateExistingFilesUUIDs() async {
+            // Wait a bit to ensure the app is fully initialized
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            
+            guard keyManager.currentKey != nil else {
+                debugPrint("migrateExistingFilesUUIDs: No current key available, skipping migration")
+                return
+            }
+            
+            do {
+                debugPrint("migrateExistingFilesUUIDs: Starting background UUID migration")
+                try await fileAccess.setKeyUUIDForExistingFiles()
+                debugPrint("migrateExistingFilesUUIDs: UUID migration completed successfully")
+            } catch {
+                debugPrint("migrateExistingFilesUUIDs: Error during UUID migration: \(error)")
+            }
         }
     }
 

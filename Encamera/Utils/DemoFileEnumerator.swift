@@ -48,6 +48,10 @@ public class DemoFileEnumerator: FileAccess {
         // Implementation here
     }
 
+    public func setKeyUUIDForExistingFiles() async throws {
+        // Demo implementation - no-op
+    }
+    
     public static func deleteThumbnailDirectory() throws {
         // Implementation here
     }
