@@ -23,6 +23,7 @@ public actor DiskFileAccess: DebugPrintable {
     private var cancellables = Set<AnyCancellable>()
     private var album: Album?
     public var directoryModel: DataStorageModel?
+    private var keyManager: KeyManager?
 
     public init() {
 
@@ -35,6 +36,7 @@ public actor DiskFileAccess: DebugPrintable {
     public func configure(for album: Album, albumManager: AlbumManaging) async {
         self.key = album.key
         self.album = album
+        self.keyManager = albumManager.keyManager
         let storageModel = albumManager.storageModel(for: album)
         self.directoryModel = storageModel
         try? self.directoryModel?.initializeDirectories()
@@ -224,15 +226,29 @@ extension DiskFileAccess {
 
 
     private func decryptMediaToData(encrypted: EncryptedMedia, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
-        guard let key = key else {
-            throw FileAccessError.missingPrivateKey
+        guard let keyManager else {
+            throw FileAccessError.missingKeyManager
         }
-        guard case .url(_) = encrypted.source else {
+        guard case .url(let sourceURL) = encrypted.source else {
             throw FileAccessError.couldNotLoadMedia
         }
 
+        // Try to get the key UUID from extended attributes
+        let keyToUse: PrivateKey
+        if let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL),
+           let matchingKey = keyManager.keyWith(uuid: storedKeyUUID) {
+            keyToUse = matchingKey
+            printDebug("decryptMediaToData: Using key with UUID \(storedKeyUUID) for file \(encrypted.id)")
+        } else {
+            // Fall back to current key if no UUID found or key not available
+            guard let currentKey = key else {
+                throw FileAccessError.missingPrivateKey
+            }
+            keyToUse = currentKey
+            printDebug("decryptMediaToData: Using current key for file \(encrypted.id)")
+        }
 
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted)
+        let fileHandler = SecretFileHandler(keyBytes: keyToUse.keyBytes, source: encrypted)
 
         let decrypted: CleartextMedia = try await fileHandler.decryptInMemory()
         return decrypted
@@ -260,8 +276,8 @@ extension DiskFileAccess {
         encrypted: EncryptedMedia,
         progress: @escaping (FileLoadingStatus) -> Void
     ) async throws -> CleartextMedia {
-        guard let key = key else {
-            throw FileAccessError.missingPrivateKey
+        guard let keyManager else {
+            throw FileAccessError.missingKeyManager
         }
 
         guard case .url(let sourceURL) = encrypted.source else {
@@ -279,7 +295,22 @@ extension DiskFileAccess {
             return CleartextMedia(source: targetURL)
         }
 
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: encrypted, targetURL: targetURL)
+        // Try to get the key UUID from extended attributes
+        let keyToUse: PrivateKey
+        if let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL),
+           let matchingKey = keyManager.keyWith(uuid: storedKeyUUID) {
+            keyToUse = matchingKey
+            printDebug("decryptMediaToURL: Using key with UUID \(storedKeyUUID) for file \(encrypted.id)")
+        } else {
+            // Fall back to current key if no UUID found or key not available
+            guard let currentKey = key else {
+                throw FileAccessError.missingPrivateKey
+            }
+            keyToUse = currentKey
+            printDebug("decryptMediaToURL: Using current key for file \(encrypted.id)")
+        }
+
+        let fileHandler = SecretFileHandler(keyBytes: keyToUse.keyBytes, source: encrypted, targetURL: targetURL)
 
         fileHandler.progress
             .receive(on: DispatchQueue.main)
@@ -335,7 +366,13 @@ extension DiskFileAccess {
 
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
 
-        try await fileHandler.encrypt()
+        let encrypted = try await fileHandler.encrypt()
+        
+        // Store the key UUID as an extended attribute for preview files too
+        if let encryptedURL = encrypted.url {
+            try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
+        }
+        
         printDebug("Saved preview for \(sourceMedia.id)")
         return cleartextPreview
     }
@@ -344,7 +381,11 @@ extension DiskFileAccess {
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
-        let destinationURL = directoryModel?.driveURLForMedia(media)
+
+        guard let directoryModel else {
+            throw FileAccessError.missingDirectoryModel
+        }
+        let destinationURL = directoryModel.driveURLForMedia(media)
         let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
         fileHandler.progress
             .receive(on: DispatchQueue.main)
@@ -353,6 +394,12 @@ extension DiskFileAccess {
             }.store(in: &cancellables)
 
         let encrypted = try await fileHandler.encrypt()
+        
+        // Store the key UUID as an extended attribute
+        if let encryptedURL = encrypted.url {
+            try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
+        }
+        
         try await createPreview(for: media)
         operationBus.didCreate(encrypted)
         return encrypted
@@ -363,6 +410,12 @@ extension DiskFileAccess {
             throw FileAccessError.missingDirectoryModel
         }
         try FileManager.default.copyItem(at: source, to: destinationURL)
+        
+        // Copy the key UUID extended attribute if it exists
+        if let keyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: source) {
+            try? ExtendedAttributesUtil.setKeyUUID(keyUUID, for: destinationURL)
+        }
+        
         if let newMedia = EncryptedMedia(source: destinationURL) {
             operationBus.didCreate(newMedia)
         }
@@ -373,7 +426,16 @@ extension DiskFileAccess {
             throw FileAccessError.missingDirectoryModel
         }
 
+        // Preserve the key UUID extended attribute during move
+        let keyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: source)
+        
         try FileManager.default.moveItem(at: source, to: destinationURL)
+        
+        // Restore the key UUID extended attribute if it existed
+        if let keyUUID = keyUUID {
+            try? ExtendedAttributesUtil.setKeyUUID(keyUUID, for: destinationURL)
+        }
+        
         if let newMedia = EncryptedMedia(source: destinationURL) {
             operationBus.didCreate(newMedia)
         }

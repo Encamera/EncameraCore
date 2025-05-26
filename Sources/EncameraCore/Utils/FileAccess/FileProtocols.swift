@@ -12,6 +12,7 @@ import UIKit
 public enum FileAccessError: Error {
     case missingDirectoryModel
     case missingPrivateKey
+    case missingKeyManager
     case unhandledMediaType
     case couldNotLoadMedia
 }

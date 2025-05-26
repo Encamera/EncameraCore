@@ -163,9 +163,11 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             debugPrint("Could not create stream with key")
             throw SecretFilesError.encryptError
         }
-        guard let destinationURL = targetURL,
-              let destinationMedia = EncryptedMedia(source: destinationURL, type: .video) else {
-            throw SecretFilesError.sourceFileAccessError("Could not create media")
+        guard let destinationURL = targetURL else {
+            throw SecretFilesError.sourceFileAccessError("No destination URL provided")
+        }
+        guard let destinationMedia = EncryptedMedia(source: destinationURL, type: .video) else {
+            throw SecretFilesError.sourceFileAccessError("Could not create encrypted media at destination")
         }
         do {
             let destinationHandler = try FileLikeHandler(media: destinationMedia, mode: .writing)
