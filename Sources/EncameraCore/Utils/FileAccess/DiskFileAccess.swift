@@ -80,7 +80,7 @@ public actor DiskFileAccess: DebugPrintable {
 
                 // If dates are the same, prioritize photos over videos
                 let isPhoto1 = url1.pathExtension == MediaType.photo.encryptedFileExtension
-                let isPhoto2 = url2.pathExtension == MediaType.photo.encryptedFileExtension
+                let isPhoto2 = url2.pathExtension == MediaType.video.encryptedFileExtension
 
                 if isPhoto1 != isPhoto2 {
                     return isPhoto1 && !isPhoto2
@@ -92,6 +92,87 @@ public actor DiskFileAccess: DebugPrintable {
                 return T(source: .url(itemUrl), generateID: false)
             }
         return imageItems
+    }
+
+    /// Enumerates all encrypted media files across all albums in both local and iCloud storage
+    /// This is like running a `find` command at the base storage directories
+    public func enumerateAllMedia<T: MediaDescribing>() async -> [T] {
+        let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
+        let filter = [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]
+        var allURLs: [URL] = []
+        
+        // Enumerate local storage
+        let localURLs = LocalStorageModel.enumeratorForStorageDirectory(
+            at: LocalStorageModel.rootURL,
+            resourceKeys: resourceKeys,
+            fileExtensionFilter: filter
+        )
+        allURLs.append(contentsOf: localURLs)
+        
+        // Enumerate iCloud storage if available
+        if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
+            let iCloudURLs = iCloudStorageModel.enumeratorForStorageDirectory(
+                at: iCloudStorageModel.rootURL,
+                resourceKeys: resourceKeys,
+                fileExtensionFilter: filter
+            )
+            allURLs.append(contentsOf: iCloudURLs)
+        }
+        
+        print("enumerateAllMedia found URLs:", allURLs.map { $0.path })
+        
+        let mediaItems: [T] = allURLs
+            .sorted { (url1: URL, url2: URL) in
+                guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
+                      let creationDate1 = resourceValues1.creationDate,
+                      let resourceValues2 = try? url2.resourceValues(forKeys: resourceKeys),
+                      let creationDate2 = resourceValues2.creationDate else {
+                    return false
+                }
+
+                // First, sort by creation date
+                let dateComparison = creationDate1.compare(creationDate2)
+                if dateComparison != .orderedSame {
+                    return dateComparison == .orderedDescending
+                }
+
+                // If dates are the same, prioritize photos over videos
+                let isPhoto1 = url1.pathExtension == MediaType.photo.encryptedFileExtension
+                let isPhoto2 = url2.pathExtension == MediaType.video.encryptedFileExtension
+
+                if isPhoto1 != isPhoto2 {
+                    return isPhoto1 && !isPhoto2
+                }
+
+                // If media types are the same, sort by filename
+                return url1.lastPathComponent < url2.lastPathComponent
+            }.compactMap { (itemUrl: URL) in
+                return T(source: .url(itemUrl), generateID: false)
+            }
+        return mediaItems
+    }
+
+    /// Enumerates all preview files across all storage types
+    private func enumerateAllPreviewFiles() -> [URL] {
+        var allPreviewFiles: [URL] = []
+        
+        // Get preview files from local storage
+        let localPreviewFiles = LocalStorageModel.enumeratorForStorageDirectory(
+            at: LocalStorageModel.thumbnailDirectory,
+            fileExtensionFilter: [MediaType.preview.encryptedFileExtension]
+        )
+        allPreviewFiles.append(contentsOf: localPreviewFiles)
+        
+        // Get preview files from iCloud storage if available
+        if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
+            let iCloudPreviewFiles = iCloudStorageModel.enumeratorForStorageDirectory(
+                at: iCloudStorageModel.thumbnailDirectory,
+                fileExtensionFilter: [MediaType.preview.encryptedFileExtension]
+            )
+            allPreviewFiles.append(contentsOf: iCloudPreviewFiles)
+        }
+        
+        return allPreviewFiles
     }
 
 }
@@ -477,19 +558,43 @@ extension DiskFileAccess {
     }
     
     public func setKeyUUIDForExistingFiles() async throws {
-        guard let currentKey = key else {
+        guard let keyManager = keyManager else {
+            printDebug("setKeyUUIDForExistingFiles: No key manager available")
+            throw FileAccessError.missingKeyManager
+        }
+        
+        guard let currentKey = keyManager.currentKey else {
             printDebug("setKeyUUIDForExistingFiles: No current key available")
             throw FileAccessError.missingPrivateKey
         }
         
         printDebug("setKeyUUIDForExistingFiles: Starting UUID migration for existing files")
         
-        // Get all encrypted media files
-        let encryptedMedia: [EncryptedMedia] = await enumerateMedia()
+        // Get all encrypted media files across all albums
+        var allEncryptedMedia: [EncryptedMedia] = await enumerateAllMedia()
+        
+        // Also include files from the current album if we have a directoryModel configured
+        if let directoryModel = directoryModel {
+            let currentAlbumMedia: [EncryptedMedia] = await enumerateMedia()
+            allEncryptedMedia.append(contentsOf: currentAlbumMedia)
+        }
+        
+        // Remove duplicates based on file URL
+        var uniqueMedia: [EncryptedMedia] = []
+        var seenURLs: Set<URL> = []
+        
+        for media in allEncryptedMedia {
+            if case .url(let fileURL) = media.source, !seenURLs.contains(fileURL) {
+                seenURLs.insert(fileURL)
+                uniqueMedia.append(media)
+            }
+        }
+        
         var processedCount = 0
         var updatedCount = 0
-        
-        for media in encryptedMedia {
+        print("encrypted media", uniqueMedia.map({$0.id}))
+
+        for media in uniqueMedia {
             guard case .url(let fileURL) = media.source else {
                 continue
             }
@@ -513,24 +618,31 @@ extension DiskFileAccess {
             }
         }
         
-        // Also process preview files if we have a directory model
+        // Also process preview files across all storage types
+        var allPreviewFiles = enumerateAllPreviewFiles()
+        
+        // Include preview files from current album if we have a directoryModel
         if let directoryModel = directoryModel {
-            let previewFiles = directoryModel.enumeratePreviewFiles()
+            let currentAlbumPreviewFiles = directoryModel.enumeratePreviewFiles()
+            allPreviewFiles.append(contentsOf: currentAlbumPreviewFiles)
+        }
+        
+        // Remove duplicate preview files
+        let uniquePreviewFiles = Array(Set(allPreviewFiles))
+        
+        for previewURL in uniquePreviewFiles {
+            processedCount += 1
             
-            for previewURL in previewFiles {
-                processedCount += 1
+            do {
+                let existingUUID = try? ExtendedAttributesUtil.getKeyUUID(for: previewURL)
                 
-                do {
-                    let existingUUID = try? ExtendedAttributesUtil.getKeyUUID(for: previewURL)
-                    
-                    if existingUUID == nil {
-                        try ExtendedAttributesUtil.setKeyUUID(currentKey.uuid, for: previewURL)
-                        updatedCount += 1
-                        printDebug("setKeyUUIDForExistingFiles: Set UUID for preview file \(previewURL.lastPathComponent)")
-                    }
-                } catch {
-                    printDebug("setKeyUUIDForExistingFiles: Failed to process preview file \(previewURL.lastPathComponent): \(error)")
+                if existingUUID == nil {
+                    try ExtendedAttributesUtil.setKeyUUID(currentKey.uuid, for: previewURL)
+                    updatedCount += 1
+                    printDebug("setKeyUUIDForExistingFiles: Set UUID for preview file \(previewURL.lastPathComponent)")
                 }
+            } catch {
+                printDebug("setKeyUUIDForExistingFiles: Failed to process preview file \(previewURL.lastPathComponent): \(error)")
             }
         }
         
