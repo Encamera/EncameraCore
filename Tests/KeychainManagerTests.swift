@@ -47,8 +47,8 @@ final class KeychainManagerTests: XCTestCase {
     // MARK: - Helper Methods
 
     /// Creates a dummy PrivateKey for testing.
-    private func createTestKey(name: String = "testKey") throws -> PrivateKey {
-        return try TestUtils.createTestKey(name: name, keyManager: sut)
+    private func createTestKey(name: String = "testKey", setAsCurrent: Bool = true) throws -> PrivateKey {
+        return try TestUtils.createTestKey(name: name, keyManager: sut, setAsCurrent: setAsCurrent)
     }
 
     /// Helper function to check the kSecAttrSynchronizable status of a generic password item.
@@ -143,7 +143,7 @@ final class KeychainManagerTests: XCTestCase {
     func testSaveNewKey_NotCurrent_Backup() throws {
         // Ensure sync is enabled first
         try sut.backupKeychainToiCloud(backupEnabled: true)
-        let key = try createTestKey(name: "key2") // Creates key using current sync state (true)
+        let key = try createTestKey(name: "key2", setAsCurrent: false) // Creates key using current sync state (true)
         try sut.save(key: key, setNewKeyToCurrent: false)
 
         // Verify retrieval
@@ -979,7 +979,6 @@ final class KeychainManagerTests: XCTestCase {
     func testMigrationOfLegacyKeys_WithCurrentKeySet() throws {
         // Create a modern key and set it as current
         let modernKey = try createTestKey(name: "modernKey")
-        try sut.setActiveKey("modernKey")
         XCTAssertEqual(sut.currentKey?.name, "modernKey", "Modern key should be set as current")
         
         // Create a legacy key

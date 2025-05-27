@@ -64,7 +64,7 @@ class UUIDMigrationTests: XCTestCase {
     }
     
     private func createEncryptedFileWithoutUUID(_ key: PrivateKey) async throws -> EncryptedMedia {
-        await setupAlbumWithKey(key)
+        // Don't call setupAlbumWithKey here - assume it's already been called once
         
         let media = createTestMedia()
         let encryptedMedia = try await diskFileAccess.save(media: media) { _ in }
@@ -102,11 +102,14 @@ class UUIDMigrationTests: XCTestCase {
     func testSetKeyUUIDForExistingFiles_WithFilesWithoutUUID() async throws {
         let testKey = try TestUtils.createTestKey(name: "migrationKey", keyManager: keyManager)
         
+        // Set up the album once for all files
+        await setupAlbumWithKey(testKey)
+        
         // Create multiple files without UUIDs
         let file1 = try await createEncryptedFileWithoutUUID(testKey)
         let file2 = try await createEncryptedFileWithoutUUID(testKey)
         let file3 = try await createEncryptedFileWithoutUUID(testKey)
-        
+
         // Run the migration
         try await diskFileAccess.setKeyUUIDForExistingFiles()
         
@@ -162,7 +165,19 @@ class UUIDMigrationTests: XCTestCase {
     }
     
     func testSetKeyUUIDForExistingFiles_WithoutCurrentKey() async throws {
-        // Don't set up any key - should throw error
+        // Don't create any key or set up any album - just configure diskFileAccess with a keyManager that has no current key
+        // This simulates the scenario where setKeyUUIDForExistingFiles is called without a current key
+        
+        // Create a dummy album for configuration (but don't create it through albumManager)
+        let dummyKey = try TestUtils.createTestKey(name: "dummyKey", keyManager: keyManager, setAsCurrent: false)
+        let album = TestUtils.createTestAlbum(key: dummyKey)
+        
+        // Configure diskFileAccess directly without going through albumManager.create()
+        await diskFileAccess.configure(for: album, albumManager: albumManager)
+        
+        // Verify that keyManager.currentKey is nil
+        XCTAssertNil(keyManager.currentKey, "KeyManager should have no current key")
+        
         do {
             try await diskFileAccess.setKeyUUIDForExistingFiles()
             XCTFail("Should throw error when no current key is available")
@@ -221,6 +236,9 @@ class UUIDMigrationTests: XCTestCase {
     func testInteractableMediaDiskAccess_SetKeyUUIDForExistingFiles() async throws {
         let testKey = try TestUtils.createTestKey(name: "interactableMigrationKey", keyManager: keyManager)
         
+        // Set up the album once
+        await setupAlbumWithKey(testKey)
+        
         // Create file without UUID using the underlying disk access
         let fileWithoutUUID = try await createEncryptedFileWithoutUUID(testKey)
         
@@ -268,6 +286,7 @@ class UUIDMigrationTests: XCTestCase {
     
     func testSetKeyUUIDForExistingFiles_MultipleCallsIdempotent() async throws {
         let testKey = try TestUtils.createTestKey(name: "migrationKey", keyManager: keyManager)
+        await setupAlbumWithKey(testKey)
         
         // Create file without UUID
         let fileWithoutUUID = try await createEncryptedFileWithoutUUID(testKey)

@@ -16,10 +16,10 @@ import Foundation
 public class TestUtils {
     
     /// Creates a test PrivateKey with random bytes
-    public static func createTestKey(name: String = "testKey", keyManager: KeychainManager) throws -> PrivateKey {
+    public static func createTestKey(name: String = "testKey", keyManager: KeychainManager, setAsCurrent: Bool = true) throws -> PrivateKey {
         let keyBytes = TestDataGenerator.generateRandomKeyBytes()
         let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
-        try keyManager.save(key: key, setNewKeyToCurrent: true)
+        try keyManager.save(key: key, setNewKeyToCurrent: setAsCurrent)
         return key
     }
     
