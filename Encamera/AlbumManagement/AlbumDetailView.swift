@@ -50,21 +50,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var activeToast: ToastType? = nil
     @Published var lastImportedAssets: [PHPickerResult] = []
     @Published var showPhotoPicker: ImportSource? = nil
-    @Published var cancelImport = false
-    @MainActor
-    @Published var isImporting = false
-    @MainActor
-    @Published var importProgress: Double = 0.0
-    @MainActor
-    @Published var totalImportCount: Int = 0
-    @MainActor
-    @Published var startedImportCount: Int = 0 {
-        didSet {
-            debugPrint("startedImportCount: \(startedImportCount)")
-        }
-    }
-
-    private var currentTask: Task<Void, Error>?
 
     var agreedToDeleteWithNoLicense: Bool = false
 
@@ -182,11 +167,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
     }
 
-    func cancelImporting() {
-        currentTask?.cancel()
-        cancelImport = true
-    }
-
     func requestPhotoLibraryPermission() async {
         if agreedToDeleteWithNoLicense == false && purchasedPermissions.hasEntitlement == false {
             activeAlert = .noLicenseDeletionWarning
@@ -204,16 +184,12 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         try? await deleteMediaFromPhotoLibrary(result: lastImportedAssets)
     }
     func handleSelectedFiles(urls: [URL]) {
-        currentTask = Task {
-            isImporting = true
-            totalImportCount = urls.count
-            
+        Task {
             // Convert URLs to CleartextMedia
             let media = urls.map { CleartextMedia(source: .url($0), generateID: true) }
             
             guard let albumId = album?.id else {
                 debugPrint("No album ID available")
-                isImporting = false
                 return
             }
             
@@ -225,7 +201,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 debugPrint("Error starting import: \(error)")
             }
             
-            isImporting = false
             await gridViewModel.enumerateMedia()
         }
     }
@@ -233,9 +208,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     private func loadMediaAsync(result: PHPickerResult) async throws -> [CleartextMedia] {
         // Identify whether the item is a video or an image
         let isLivePhoto = result.itemProvider.canLoadObject(ofClass: PHLivePhoto.self)
-        Task { @MainActor in
-            self.startedImportCount += 1
-        }
         if isLivePhoto {
             return try await loadLivePhoto(result: result)
         } else {
@@ -285,12 +257,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     private func saveCleartextMedia(mediaArray: [CleartextMedia]) async throws {
         let media = try InteractableMedia(underlyingMedia: mediaArray)
         let savedMedia = try await fileManager.save(media: media) { progress in
-            Task { @MainActor in
-                self.importProgress = progress
-            }
-        }
-        await MainActor.run {
-            self.importProgress = 0.0
+            // Progress is now handled by BackgroundMediaImportManager
         }
     }
 
@@ -350,19 +317,10 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
 
     func handleSelectedMedia(items: [PHPickerResult]) {
-        currentTask = Task {
-            totalImportCount = items.count
-            isImporting = true
-            
+        Task {
             var allMedia: [CleartextMedia] = []
 
             for result in items {
-                if cancelImport {
-                    isImporting = false
-                    cancelImport = false
-                    return
-                }
-
                 let provider = result.itemProvider
                 if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
                     UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
@@ -378,7 +336,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             // Use background import manager for all media at once
             guard let albumId = album?.id else {
                 debugPrint("No album ID available")
-                isImporting = false
                 return
             }
             
@@ -392,7 +349,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             lastImportedAssets = items
             try await checkForLibraryPermissionsAndContinue()
 
-            isImporting = false
             await gridViewModel.enumerateMedia()
         }
     }
@@ -542,14 +498,7 @@ struct AlbumDetailView<D: FileAccess>: View {
         presentationMode.wrappedValue.dismiss()
     }
 
-    private var cancelButton: some View {
-        Button {
-            viewModel.cancelImporting()
-        } label: {
-            Image(systemName: "x.circle.fill")
-        }
-        .pad(.pt8, edge: .trailing)
-    }
+
 
     var body: some View {
 
@@ -558,7 +507,6 @@ struct AlbumDetailView<D: FileAccess>: View {
             Group {
                 GalleryGridView(viewModel: viewModel.gridViewModel) {
                     VStack {
-                        importProgressIndicator
                         if viewModel.showEmptyView {
                             emptyState
                         }
@@ -594,6 +542,12 @@ struct AlbumDetailView<D: FileAccess>: View {
                     viewModel.isShowingPurchaseSheet = false
                 }
             }
+            
+            // Global import progress
+            GlobalImportProgressView()
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            
             if viewModel.isSelectingMedia {
                 selectionTray
             }
@@ -690,34 +644,7 @@ struct AlbumDetailView<D: FileAccess>: View {
         }.padding()
     }
 
-    var importProgressIndicator: some View {
-        Group {
-            if viewModel.cancelImport == false {
-                HStack {
-                    if viewModel.importProgress > 0 {
-                        ProgressView(value: viewModel.importProgress, total: 1.0) {
-                            Text("\(L10n.encrypting) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
-                                .fontType(.pt14)
-                        }
-                        .pad(.pt8, edge: [.trailing, .leading])
-                        cancelButton
 
-                    } else if viewModel.isImporting {
-                        HStack {
-                            ProgressView(value: 0.5, total: 1.0) {
-                            }.progressViewStyle(.circular)
-                                .pad(.pt8, edge: [.trailing, .leading])
-                            Text("\(L10n.importingPleaseWait) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
-                                .fontType(.pt14)
-                            Spacer()
-
-                        }
-                        cancelButton
-                    }
-                }
-            }
-        }
-    }
 
     var horizontalTitleComponents: some View {
         Group {
