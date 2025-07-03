@@ -54,6 +54,7 @@ class AuthenticationViewModel: ObservableObject {
     @Published var enteredPassword: String = ""
     @Published var isPinCodeInputEnabled: Bool = true
     @Published var remainingLockoutTime: TimeInterval?
+    @Published var hasCompletedFirstLockout: Bool = false
 
     private var passwordAttempts = 0
 #if DEBUG
@@ -76,6 +77,10 @@ class AuthenticationViewModel: ObservableObject {
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
+        
+        // Check if user has completed a lockout before
+        self.hasCompletedFirstLockout = UserDefaultUtils.value(forKey: .hasCompletedFirstLockout) as? Bool ?? false
+        
         setupLockoutTimer()
 
         let authMethod = keyManager.passcodeType
@@ -156,6 +161,12 @@ class AuthenticationViewModel: ObservableObject {
         remainingLockoutTime = nil
         lockoutTimer?.cancel()
         UserDefaultUtils.removeObject(forKey: .lockoutEnd)
+        
+        // Mark that user has completed their first lockout
+        if !hasCompletedFirstLockout {
+            hasCompletedFirstLockout = true
+            UserDefaultUtils.set(true, forKey: .hasCompletedFirstLockout)
+        }
     }
 
     func checkLockoutStatus() {
@@ -271,6 +282,22 @@ struct AuthenticationView: View {
                 Text("\(error.displayDescription)")
                     .alertText()
             }
+            
+            // Show reset button only during lockout AND after first lockout completed
+            if viewModel.remainingLockoutTime != nil && viewModel.hasCompletedFirstLockout {
+                NavigationLink {
+                    PromptToErase(viewModel: .init(
+                        scope: .appData,
+                        keyManager: viewModel.keyManager,
+                        fileAccess: InteractableMediaDiskAccess()
+                    ))
+                } label: {
+                    Text("Forgot Password? Reset App")
+                }
+                .textButton()
+                .padding(.top, 20)
+            }
+            
             Spacer()
                 .frame(height: 28.0)
             if viewModel.availableBiometric != nil && viewModel.keyManager.passwordExists() {
