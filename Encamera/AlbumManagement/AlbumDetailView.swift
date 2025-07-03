@@ -207,38 +207,43 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         currentTask = Task {
             isImporting = true
             totalImportCount = urls.count
-            for url in urls {
-                if cancelImport {
-                    isImporting = false
-                    cancelImport = false
-                    return
-                }
-                do {
-                    try await saveCleartextMedia(mediaArray: [CleartextMedia(source: .url(url), generateID: true)])
-                } catch {
-                    debugPrint("Error saving media: \(error)")
-                }
+            
+            // Convert URLs to CleartextMedia
+            let media = urls.map { CleartextMedia(source: .url($0), generateID: true) }
+            
+            guard let albumId = album?.id else {
+                debugPrint("No album ID available")
+                isImporting = false
+                return
             }
-            EventTracking.trackFilesImported(count: urls.count)
+            
+            do {
+                // Use the new background import manager
+                try await BackgroundMediaImportManager.shared.startImport(media: media, albumId: albumId)
+                EventTracking.trackFilesImported(count: urls.count)
+            } catch {
+                debugPrint("Error starting import: \(error)")
+            }
+            
             isImporting = false
             await gridViewModel.enumerateMedia()
         }
     }
 
-    private func loadAndSaveMediaAsync(result: PHPickerResult) async throws {
+    private func loadMediaAsync(result: PHPickerResult) async throws -> [CleartextMedia] {
         // Identify whether the item is a video or an image
         let isLivePhoto = result.itemProvider.canLoadObject(ofClass: PHLivePhoto.self)
         Task { @MainActor in
             self.startedImportCount += 1
         }
         if isLivePhoto {
-            try await handleLivePhoto(result: result)
+            return try await loadLivePhoto(result: result)
         } else {
-            try await handleMedia(result: result)
+            return [try await loadMedia(result: result)]
         }
     }
 
-    private func handleMedia(result: PHPickerResult) async throws {
+    private func loadMedia(result: PHPickerResult) async throws -> CleartextMedia {
         let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
         let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
 
@@ -270,10 +275,10 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
         guard let url = url else {
             debugPrint("Error loading file representation, url is nil")
-            return
+            throw ImportError.mismatchedType
         }
 
-        try await saveCleartextMedia(mediaArray: [CleartextMedia(source: url, mediaType: isVideo ? .video : .photo, id: UUID().uuidString)])
+        return CleartextMedia(source: url, mediaType: isVideo ? .video : .photo, id: UUID().uuidString)
     }
 
 
@@ -289,7 +294,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
     }
 
-    private func handleLivePhoto(result: PHPickerResult) async throws {
+    private func loadLivePhoto(result: PHPickerResult) async throws -> [CleartextMedia] {
 
         let assetResources = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[PHAssetResource], Error>) in
             // Load the PHLivePhoto object from the picker result
@@ -339,7 +344,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }
         }
 
-        try await saveCleartextMedia(mediaArray: cleartextMediaArray)
+        return cleartextMediaArray
     }
 
 
@@ -348,6 +353,8 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         currentTask = Task {
             totalImportCount = items.count
             isImporting = true
+            
+            var allMedia: [CleartextMedia] = []
 
             for result in items {
                 if cancelImport {
@@ -363,12 +370,27 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                     UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
                 }
 
-                try await self.loadAndSaveMediaAsync(result: result)
+                // Collect media instead of saving immediately
+                let media = try await self.loadMediaAsync(result: result)
+                allMedia.append(contentsOf: media)
             }
+            
+            // Use background import manager for all media at once
+            guard let albumId = album?.id else {
+                debugPrint("No album ID available")
+                isImporting = false
+                return
+            }
+            
+            do {
+                try await BackgroundMediaImportManager.shared.startImport(media: allMedia, albumId: albumId)
+                EventTracking.trackMediaImported(count: items.count)
+            } catch {
+                debugPrint("Error starting import: \(error)")
+            }
+            
             lastImportedAssets = items
             try await checkForLibraryPermissionsAndContinue()
-
-            EventTracking.trackMediaImported(count: items.count)
 
             isImporting = false
             await gridViewModel.enumerateMedia()

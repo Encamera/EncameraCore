@@ -94,15 +94,23 @@ struct MainHomeView<D: FileAccess>: View {
                 } else {
                     AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
                 }
-                BottomNavigationBar(selectedItem: $selectedNavigationItem, cameraCloseButtonTapped: { targetAlbum in
-                    UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
-                    if let targetAlbum {
-                        viewModel.navigateToAlbumDetailView(with: targetAlbum)
-                    }
-                    withAnimation {
-                        selectedNavigationItem = .albums
-                    }
-                })
+                
+                VStack(spacing: 0) {
+                    // Global progress indicator
+                    GlobalImportProgressView()
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                    
+                    BottomNavigationBar(selectedItem: $selectedNavigationItem, cameraCloseButtonTapped: { targetAlbum in
+                        UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
+                        if let targetAlbum {
+                            viewModel.navigateToAlbumDetailView(with: targetAlbum)
+                        }
+                        withAnimation {
+                            selectedNavigationItem = .albums
+                        }
+                    })
+                }
             }
             .environmentObject(appModalStateModel)
             .onAppear {
