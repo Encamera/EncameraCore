@@ -146,22 +146,37 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
 private enum Constants {
     static let hideButtonWidth = 100.0
-
-    static func numberOfImagesWide(for size: CGSize) -> Int {
-            let device = UIDevice.current
-            let width = size.width
-
-            switch device.userInterfaceIdiom {
-            case .pad:
-                return width > 800 ? 5 : 3  // iPads: 4 columns for wide screens, 3 for narrow screens
-            case .phone:
-                return width > 600 ? 3 : 2  // iPhones: 3 columns for wide screens, 2 for narrow screens
-            default:
-                return 2
-            }
-        }
     static let buttonPadding = 7.0
     static let buttonCornerRadius = 10.0
+    static let minColumns = 2
+    static let maxColumns = 7
+    
+    static let defaultColumnCount: Int = {
+        let device = UIDevice.current
+        switch device.userInterfaceIdiom {
+        case .pad:
+            return 4
+        case .phone:
+            return 3
+        default:
+            return 3
+        }
+    }()
+
+    static func numberOfImagesWide(for size: CGSize, zoomLevel: Int) -> Int {
+        let device = UIDevice.current
+        let width = size.width
+        
+        // Clamp the zoom level to valid range
+        let clampedZoom = max(minColumns, min(maxColumns, zoomLevel))
+        
+        // For very small screens, limit max columns
+        if width < 350 && clampedZoom > 4 {
+            return 4
+        }
+        
+        return clampedZoom
+    }
 }
 
 struct GalleryGridView<Content: View, D: FileAccess>: View {
@@ -169,6 +184,10 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
     @ObservedObject var viewModel: GalleryGridViewModel<D>
     @EnvironmentObject var appModalStateModel: AppModalStateModel
 
+    @State private var zoomLevel: Int = UserDefaultUtils.integer(forKey: .gridZoomLevel) > 0 ? UserDefaultUtils.integer(forKey: .gridZoomLevel) : Constants.defaultColumnCount
+    @State private var currentPinchScale: CGFloat = 1.0
+    @State private var lastZoomLevel: Int = Constants.defaultColumnCount
+    
     var content: Content
 
     init(viewModel: GalleryGridViewModel<D>, @ViewBuilder content: () -> Content = { EmptyView() }) {
@@ -192,7 +211,7 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
             let frame = geo.frame(in: .local)
             let outerMargin = 9.0
             let spacing = 9.0
-            let numberOfImages = Constants.numberOfImagesWide(for: frame.size)
+            let numberOfImages = Constants.numberOfImagesWide(for: frame.size, zoomLevel: zoomLevel)
             let side = ((frame.width - outerMargin) / Double(numberOfImages)) - spacing
 
             let gridItems = Array(repeating: GridItem(.fixed(side), spacing: spacing), count: numberOfImages)
@@ -218,6 +237,47 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                 viewModel.cleanUp()
             }
             .scrollIndicators(.hidden)
+            .gesture(
+                MagnificationGesture()
+                    .onChanged { value in
+                        handlePinchGesture(scale: value)
+                    }
+                    .onEnded { _ in
+                        lastZoomLevel = zoomLevel
+                        currentPinchScale = 1.0
+                        UserDefaultUtils.set(zoomLevel, forKey: .gridZoomLevel)
+                    }
+            )
+            .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: zoomLevel)
+        }
+    }
+    
+    private func handlePinchGesture(scale: CGFloat) {
+        let sensitivity: CGFloat = 0.5
+        let scaleChange = (scale - currentPinchScale) * sensitivity
+        
+        if abs(scaleChange) > 0.1 {
+            var newZoomLevel = lastZoomLevel
+            
+            if scaleChange > 0 {
+                // Pinching out - decrease columns (zoom in)
+                newZoomLevel = lastZoomLevel - 1
+            } else {
+                // Pinching in - increase columns (zoom out)
+                newZoomLevel = lastZoomLevel + 1
+            }
+            
+            let clampedLevel = max(Constants.minColumns, min(Constants.maxColumns, newZoomLevel))
+            
+            if clampedLevel != zoomLevel {
+                zoomLevel = clampedLevel
+                
+                // Haptic feedback when zoom level changes
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.impactOccurred()
+            }
+            
+            currentPinchScale = scale
         }
     }
 
