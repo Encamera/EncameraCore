@@ -192,6 +192,13 @@ struct EncameraApp: App {
                     for: album,
                     albumManager: albumManager
                 )
+                
+                // Configure the background import manager
+                BackgroundMediaImportManager.shared.configure(
+                    fileAccess: fileAccess,
+                    albumManager: albumManager
+                )
+                
                 guard keyManager.currentKey != nil else { return }
                 await showImportScreenIfNeeded()
             }
@@ -222,6 +229,9 @@ struct EncameraApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
+        // Register background tasks early in app lifecycle
+        BackgroundMediaImportManager.registerBackgroundTasks()
+        
         _viewModel = StateObject(wrappedValue: .init())
         let appear = UINavigationBar.appearance().standardAppearance
 
