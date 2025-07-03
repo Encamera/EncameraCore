@@ -450,8 +450,15 @@ extension DiskFileAccess {
         let encrypted = try await fileHandler.encrypt()
         
         // Store the key UUID as an extended attribute for preview files too
-        if let encryptedURL = encrypted.url {
+        if var encryptedURL = encrypted.url {
             try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
+            
+            // Ensure preview files are also included in device backups
+            if directoryModel?.storageType == .local {
+                var resourceValues = URLResourceValues()
+                resourceValues.isExcludedFromBackup = false
+                try? encryptedURL.setResourceValues(resourceValues)
+            }
         }
         
         printDebug("Saved preview for \(sourceMedia.id)")
@@ -477,8 +484,15 @@ extension DiskFileAccess {
         let encrypted = try await fileHandler.encrypt()
         
         // Store the key UUID as an extended attribute
-        if let encryptedURL = encrypted.url {
+        if var encryptedURL = encrypted.url {
             try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
+            
+            // Ensure local files are included in device backups for transfer to new devices
+            if directoryModel.storageType == .local {
+                var resourceValues = URLResourceValues()
+                resourceValues.isExcludedFromBackup = false
+                try? encryptedURL.setResourceValues(resourceValues)
+            }
         }
         
         try await createPreview(for: media)
