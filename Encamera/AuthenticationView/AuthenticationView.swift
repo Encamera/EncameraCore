@@ -287,7 +287,7 @@ struct AuthenticationView: View {
             if viewModel.remainingLockoutTime != nil && viewModel.hasCompletedFirstLockout {
                 NavigationLink {
                     PromptToErase(viewModel: .init(
-                        scope: .appData,
+                        scope: .allData,
                         keyManager: viewModel.keyManager,
                         fileAccess: InteractableMediaDiskAccess()
                     ))

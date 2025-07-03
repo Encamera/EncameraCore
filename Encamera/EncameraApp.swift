@@ -322,7 +322,9 @@ struct EncameraApp: App {
                     }
                     
                     if viewModel.isAuthenticated == false && !viewModel.showOnboarding {
-                        AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                        NavigationStack {
+                            AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                        }
                     }
                 }
             }
