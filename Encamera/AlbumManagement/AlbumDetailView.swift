@@ -3,8 +3,7 @@ import EncameraCore
 import SwiftUI
 import SwiftUIIntrospect
 import PhotosUI
-
-import SwiftUI
+import AVFoundation
 
 @MainActor
 class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
@@ -18,6 +17,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         case hideAlbum
         case noLicenseDeletionWarning
         case photoAccessAlert
+        case photoAccessDenied
     }
 
     enum ToastType {
@@ -50,7 +50,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var activeToast: ToastType? = nil
     @Published var lastImportedAssets: [PHPickerResult] = []
     @Published var showPhotoPicker: ImportSource? = nil
-    @Published var selectedPhotoPickerItems: [PhotosPickerItem] = []
 
     var agreedToDeleteWithNoLicense: Bool = false
 
@@ -183,6 +182,55 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             EventTracking.trackPhotoLibraryPermissionsDenied()
         }
         try? await deleteMediaFromPhotoLibrary(result: lastImportedAssets)
+    }
+    
+    func requestPhotoAccess() {
+        Task {
+            let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+            
+            switch status {
+            case .authorized, .limited:
+                // Already have permission, show picker
+                await MainActor.run {
+                    self.showPhotoPicker = .photoLibrary
+                }
+            case .notDetermined:
+                // Request permission
+                let newStatus = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+                
+                await MainActor.run {
+                    switch newStatus {
+                    case .authorized, .limited:
+                        self.showPhotoPicker = .photoLibrary
+                        
+                        if newStatus == .limited {
+                            // Track limited access
+                            EventTracking.trackPhotoLibraryPermissionsLimited()
+                        } else {
+                            EventTracking.trackPhotoLibraryPermissionsGranted()
+                        }
+                    case .denied, .restricted:
+                        // Show alert to open settings
+                        self.showPhotoAccessDeniedAlert()
+                        EventTracking.trackPhotoLibraryPermissionsDenied()
+                    @unknown default:
+                        break
+                    }
+                }
+            case .denied, .restricted:
+                // Show alert to open settings
+                await MainActor.run {
+                    self.showPhotoAccessDeniedAlert()
+                }
+            @unknown default:
+                break
+            }
+        }
+    }
+    
+    private func showPhotoAccessDeniedAlert() {
+        // We'll add a new alert type for this
+        activeAlert = .photoAccessDenied
     }
     func handleSelectedFiles(urls: [URL]) {
         Task {
@@ -317,21 +365,47 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
 
 
-    func handleSelectedMedia(items: [PHPickerResult]) {
+    func handleSelectedMediaResults(_ results: [MediaSelectionResult]) {
         Task {
             var allMedia: [CleartextMedia] = []
+            var pickerResults: [PHPickerResult] = []
 
-            for result in items {
-                let provider = result.itemProvider
-                if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
-                    UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
-                } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-                    UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+            for result in results {
+                switch result {
+                case .phAsset(let asset):
+                    // Handle PHAsset directly
+                    do {
+                        let media = try await self.loadMediaFromAsset(asset)
+                        allMedia.append(contentsOf: media)
+                        
+                        // Track statistics
+                        if asset.mediaType == .video {
+                            UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                        } else {
+                            UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                        }
+                    } catch {
+                        debugPrint("Error loading asset: \(error)")
+                    }
+                    
+                case .phPickerResult(let pickerResult):
+                    // Handle PHPickerResult
+                    pickerResults.append(pickerResult)
+                    let provider = pickerResult.itemProvider
+                    if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
+                        UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                    } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                        UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                    }
+                    
+                    // Collect media instead of saving immediately
+                    do {
+                        let media = try await self.loadMediaAsync(result: pickerResult)
+                        allMedia.append(contentsOf: media)
+                    } catch {
+                        debugPrint("Error loading picker result: \(error)")
+                    }
                 }
-
-                // Collect media instead of saving immediately
-                let media = try await self.loadMediaAsync(result: result)
-                allMedia.append(contentsOf: media)
             }
             
             // Use background import manager for all media at once
@@ -342,102 +416,130 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             
             do {
                 try await BackgroundMediaImportManager.shared.startImport(media: allMedia, albumId: albumId)
-                EventTracking.trackMediaImported(count: items.count)
+                EventTracking.trackMediaImported(count: results.count)
             } catch {
                 debugPrint("Error starting import: \(error)")
             }
             
-            lastImportedAssets = items
-            try await checkForLibraryPermissionsAndContinue()
+            // Only handle deletion for PHPickerResults
+            if !pickerResults.isEmpty {
+                lastImportedAssets = pickerResults
+                try await checkForLibraryPermissionsAndContinue()
+            }
 
             await gridViewModel.enumerateMedia()
         }
     }
-
-    func handleSelectedPhotosPickerItems(items: [PhotosPickerItem]) async {
-        var allMedia: [CleartextMedia] = []
-        var phPickerResults: [PHPickerResult] = []
+    
+    private func loadMediaFromAsset(_ asset: PHAsset) async throws -> [CleartextMedia] {
+        // Handle live photos
+        if asset.mediaSubtypes.contains(.photoLive) {
+            return try await loadLivePhotoFromAsset(asset)
+        } else {
+            return [try await loadRegularMediaFromAsset(asset)]
+        }
+    }
+    
+    private func loadRegularMediaFromAsset(_ asset: PHAsset) async throws -> CleartextMedia {
+        let isVideo = asset.mediaType == .video
+        let id = UUID().uuidString
         
-        for item in items {
-            // Track statistics - check supported types directly on PhotosPickerItem
-            if item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) }) {
-                UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
-            } else if item.supportedContentTypes.contains(where: { $0.conforms(to: .image) }) {
-                UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
-            }
-            
-            // Convert PhotosPickerItem to media
-            do {
-                // Check if it's a live photo by trying to load it
-                if let livePhoto = try await item.loadTransferable(type: PHLivePhoto.self) {
-                    // Handle live photo
-                    let resources = PHAssetResource.assetResources(for: livePhoto)
-                    var cleartextMediaArray: [CleartextMedia] = []
-                    let id = UUID().uuidString
-                    
-                    for resource in resources {
-                        let options = PHAssetResourceRequestOptions()
-                        options.isNetworkAccessAllowed = true
-                        
-                        let documentsDirectory = URL.tempMediaDirectory
-                        let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
-                        
-                        var mediaType: MediaType
-                        switch resource.type {
-                        case .pairedVideo:
-                            mediaType = .video
-                        case .photo:
-                            mediaType = .photo
-                        default:
-                            debugPrint("Error, could not handle media type \(resource.type)")
-                            continue
-                        }
-                        
-                        try await PHAssetResourceManager.default().writeData(for: resource, toFile: fileURL, options: options)
-                        let media = CleartextMedia(
-                            source: fileURL,
-                            mediaType: mediaType,
-                            id: id
-                        )
-                        cleartextMediaArray.append(media)
+        if isVideo {
+            // Handle video
+            return try await withCheckedThrowingContinuation { continuation in
+                let options = PHVideoRequestOptions()
+                options.isNetworkAccessAllowed = true
+                options.version = .current
+                
+                PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, info in
+                    guard let urlAsset = avAsset as? AVURLAsset else {
+                        continuation.resume(throwing: ImportError.mismatchedType)
+                        return
                     }
-                    allMedia.append(contentsOf: cleartextMediaArray)
-                } else if let data = try await item.loadTransferable(type: Data.self) {
-                    // Handle regular photo or video
-                    let isVideo = item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) })
-                    let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
+                    
+                    let fileName = id + ".mov"
                     let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
                     
-                    try data.write(to: destinationURL)
-                    let media = CleartextMedia(
-                        source: destinationURL,
-                        mediaType: isVideo ? .video : .photo,
-                        id: UUID().uuidString
-                    )
-                    allMedia.append(media)
+                    do {
+                        try FileManager.default.copyItem(at: urlAsset.url, to: destinationURL)
+                        let media = CleartextMedia(source: destinationURL, mediaType: .video, id: id)
+                        continuation.resume(returning: media)
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
                 }
-            } catch {
-                debugPrint("Error processing PhotosPickerItem: \(error)")
+            }
+        } else {
+            // Handle image
+            return try await withCheckedThrowingContinuation { continuation in
+                let options = PHImageRequestOptions()
+                options.isNetworkAccessAllowed = true
+                options.deliveryMode = .highQualityFormat
+                options.version = .current
+                
+                PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
+                    guard let data = data else {
+                        continuation.resume(throwing: ImportError.mismatchedType)
+                        return
+                    }
+                    
+                    let fileName = id + ".jpeg"
+                    let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
+                    
+                    do {
+                        try data.write(to: destinationURL)
+                        let media = CleartextMedia(source: destinationURL, mediaType: .photo, id: id)
+                        continuation.resume(returning: media)
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
             }
         }
-        
-        // Use background import manager for all media at once
-        guard let albumId = album?.id else {
-            debugPrint("No album ID available")
-            return
-        }
-        
-        do {
-            try await BackgroundMediaImportManager.shared.startImport(media: allMedia, albumId: albumId)
-            EventTracking.trackMediaImported(count: items.count)
-        } catch {
-            debugPrint("Error starting import: \(error)")
-        }
-        
-        // For photo library deletion permission check
-        // Note: PhotosPickerItem doesn't provide asset identifiers for deletion
-        await gridViewModel.enumerateMedia()
     }
+    
+    private func loadLivePhotoFromAsset(_ asset: PHAsset) async throws -> [CleartextMedia] {
+        let resources = PHAssetResource.assetResources(for: asset)
+        var cleartextMediaArray: [CleartextMedia] = []
+        let id = UUID().uuidString
+        
+        for resource in resources {
+            let options = PHAssetResourceRequestOptions()
+            options.isNetworkAccessAllowed = true
+            
+            let documentsDirectory = URL.tempMediaDirectory
+            let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
+            
+            var mediaType: MediaType
+            switch resource.type {
+            case .pairedVideo:
+                mediaType = .video
+            case .photo:
+                mediaType = .photo
+            default:
+                debugPrint("Error, could not handle media type \(resource.type)")
+                continue
+            }
+            
+            try await PHAssetResourceManager.default().writeData(for: resource, toFile: fileURL, options: options)
+            let media = CleartextMedia(
+                source: fileURL,
+                mediaType: mediaType,
+                id: id
+            )
+            cleartextMediaArray.append(media)
+        }
+        
+        return cleartextMediaArray
+    }
+
+    func handleSelectedMedia(items: [PHPickerResult]) {
+        // Convert to MediaSelectionResult and call the new method
+        let results = items.map { MediaSelectionResult.phPickerResult($0) }
+        handleSelectedMediaResults(results)
+    }
+
+
 
     private func deleteMediaFromPhotoLibrary(result: [PHPickerResult]) async throws {
 
@@ -657,72 +759,13 @@ struct AlbumDetailView<D: FileAccess>: View {
         }), content: {
             switch viewModel.showPhotoPicker {
             case .photoLibrary:
-                if #available(iOS 17.0, *) {
-                    // Use the modern embedded picker with continuous selection
-                    NavigationStack {
-                        VStack(spacing: 0) {
-                            HStack {
-                                Button("Cancel") {
-                                    viewModel.selectedPhotoPickerItems.removeAll()
-                                    viewModel.showPhotoPicker = nil
-                                }
-                                .padding()
-                                
-                                Spacer()
-                                
-                                VStack(spacing: 4) {
-                                    Text("Select Photos")
-                                        .font(.headline)
-                                    if !viewModel.selectedPhotoPickerItems.isEmpty {
-                                        Text("\(viewModel.selectedPhotoPickerItems.count) selected")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                Button("Add") {
-                                    Task {
-                                        await viewModel.handleSelectedPhotosPickerItems(items: viewModel.selectedPhotoPickerItems)
-                                        viewModel.selectedPhotoPickerItems.removeAll()
-                                        viewModel.showPhotoPicker = nil
-                                    }
-                                }
-                                .disabled(viewModel.selectedPhotoPickerItems.isEmpty)
-                                .fontWeight(.semibold)
-                                .padding()
-                            }
-                            .background(Color(UIColor.systemBackground))
-                            .overlay(
-                                Divider(),
-                                alignment: .bottom
-                            )
-                            
-                            PhotosPicker(
-                                selection: $viewModel.selectedPhotoPickerItems,
-                                maxSelectionCount: nil,
-                                selectionBehavior: .continuousAndOrdered,
-                                matching: .any(of: [.images, .videos, .livePhotos]),
-                                photoLibrary: .shared()
-                            ) {
-                                EmptyView()
-                            }
-                            .photosPickerStyle(.inline)
-                            .photosPickerDisabledCapabilities([.selectionActions])
-                            .photosPickerAccessoryVisibility(.automatic, edges: .bottom)
-                            .ignoresSafeArea(.all, edges: .bottom)
-                        }
-                        .navigationBarHidden(true)
-                    }
-                    .interactiveDismissDisabled(!viewModel.selectedPhotoPickerItems.isEmpty)
-                } else {
-                    // Fallback to PHPickerViewController for older iOS versions
-                    PhotoPicker(selectedItems: { results in
-                        viewModel.handleSelectedMedia(items: results)
-                    }, filter: .any(of: [.images, .videos, .livePhotos]))
-                    .ignoresSafeArea(.all)
-                }
+                // Always use PhotoPickerWrapper which automatically selects the best picker
+                // based on photo library permissions (custom picker with swipe for full access,
+                // standard picker for limited access)
+                PhotoPickerWrapper(selectedItems: { results in
+                    viewModel.handleSelectedMediaResults(results)
+                }, filter: .any(of: [.images, .videos, .livePhotos]))
+                .ignoresSafeArea(.all)
             case .files:
                 FilePicker { urls in
                     viewModel.handleSelectedFiles(urls: urls)
@@ -777,7 +820,7 @@ struct AlbumDetailView<D: FileAccess>: View {
             DualButtonComponent(nextActive: .constant(false),
                                 bottomButtonTitle: L10n.AlbumDetailView.importButton,
                                 bottomButtonAction: {
-                viewModel.showPhotoPicker = .photoLibrary
+                viewModel.requestPhotoAccess()
             },
                                 secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
                                 secondaryButtonAction: {
@@ -867,7 +910,7 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
 
             Button(L10n.importFromPhotos) {
-                viewModel.showPhotoPicker = .photoLibrary
+                viewModel.requestPhotoAccess()
             }
 
             Button(L10n.importFromFiles) {
@@ -985,6 +1028,17 @@ struct AlbumDetailView<D: FileAccess>: View {
                     }
                 },
                 secondaryButton: .cancel(Text(L10n.AlbumDetailView.photoAccessAlertSecondaryButton))
+            )
+        case .photoAccessDenied:
+            return Alert(
+                title: Text("Photo Access Required"),
+                message: Text("Please grant access to your photo library in Settings to import photos."),
+                primaryButton: .default(Text("Open Settings")) {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                },
+                secondaryButton: .cancel(Text("Cancel"))
             )
         case .none:
             return Alert(title: Text(""))
