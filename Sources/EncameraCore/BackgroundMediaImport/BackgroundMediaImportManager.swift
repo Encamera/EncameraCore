@@ -174,6 +174,16 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                 await MainActor.run {
                     if let index = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
                         self.currentTasks[index].state = .completed
+                        self.currentTasks[index].progress = ImportProgressUpdate(
+                            taskId: task.id,
+                            currentFileIndex: task.media.count - 1,
+                            totalFiles: task.media.count,
+                            currentFileProgress: 1.0,
+                            overallProgress: 1.0,
+                            currentFileName: nil,
+                            state: .completed,
+                            estimatedTimeRemaining: 0
+                        )
                         self.publishProgress(for: self.currentTasks[index])
                     }
                     self.updateIsImporting()
