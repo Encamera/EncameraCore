@@ -114,6 +114,25 @@ extension DataStorageModel {
                 try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
             }
         }
+        
+        // Ensure local files are included in device backups for transfer to new devices
+        if storageType == .local {
+            try ensureBackupInclusion()
+        }
+    }
+
+    /// Ensures that files in the storage directory are included in device backups
+    /// This makes local files transfer to new devices via iCloud Backup or iTunes backup
+    public func ensureBackupInclusion() throws {
+        let directories = [baseURL, Self.thumbnailDirectory]
+        
+        for var directory in directories {
+            if FileManager.default.fileExists(atPath: directory.path) {
+                var resourceValues = URLResourceValues()
+                resourceValues.isExcludedFromBackup = false // Explicitly include in backup
+                try directory.setResourceValues(resourceValues)
+            }
+        }
     }
 
     func driveURLForMedia<T: MediaDescribing>(_ media: T) -> URL {
