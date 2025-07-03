@@ -110,6 +110,11 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>background-processing</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.encamera.media-import</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict>
