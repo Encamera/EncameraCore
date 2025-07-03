@@ -489,6 +489,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             guard let firstStoredKey = try storedKeys().first else {
                 throw KeyManagerError.notFound
             }
+            // Only auto-set the first key as current if we're not in a test scenario
+            // where we explicitly don't want any current key set
             try setActiveKey(firstStoredKey.name)
             return firstStoredKey
         }
@@ -819,7 +821,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
     // Added private func for legacy migration
     public func migrateLegacyKeysIfNeeded() throws {
-
+        
         let keys = try storedKeys()
         
         guard !keys.isEmpty else {
@@ -831,11 +833,11 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
         for key in keys {
             do {
-                // Re-save each key to ensure it's in the current format
-                // This is idempotent - if the key is already in new format, this is a no-op
-                // If the key is in legacy format, this will convert it to new format
-                let migratedKey = PrivateKey(name: key.name, keyBytes: key.keyBytes, creationDate: key.creationDate)
-                try save(key: migratedKey, setNewKeyToCurrent: false)
+                // For migration, preserve the original sync status of each key
+                let originalSyncStatus = try isKeyItemSynced(name: key.name)
+                
+                // Re-save the key to ensure it's in the current format while preserving sync status
+                try saveKeyPreservingSync(key: key, syncStatus: originalSyncStatus)
                 printDebug("Successfully processed key: \(key.name)")
             } catch {
                 printDebug("Failed to migrate key \(key.name): \(error)")
@@ -844,6 +846,80 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         }
         
         printDebug("Migration completed for \(keys.count) keys")
+    }
+    
+    private func saveKeyPreservingSync(key: PrivateKey, syncStatus: Bool) throws {
+        var query = key.keychainQueryDictForKeychain
+        query[kSecAttrSynchronizable as String] = syncStatus ? kCFBooleanTrue! : kCFBooleanFalse!
+
+        // Check if key exists using a query that finds it regardless of sync status
+        let checkQuery: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrLabel as String: key.name.data(using: .utf8)!,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+        
+        var item: CFTypeRef?
+        let checkStatus = keychainWrapper.secItemCopyMatching(checkQuery as CFDictionary, &item)
+        
+        if checkStatus == errSecSuccess {
+            // Key exists, update it
+            let updateQuery: [String: Any] = [
+                kSecValueData as String: key.keyData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+                kSecAttrSynchronizable as String: syncStatus ? kCFBooleanTrue! : kCFBooleanFalse!,
+                kSecAttrCreationDate as String: key.creationDate
+            ]
+            let baseQuery = try updateKeyQuery(for: key.name)
+            let updateStatus = keychainWrapper.secItemUpdate(baseQuery, updateQuery as CFDictionary)
+            try self.checkStatus(status: updateStatus)
+        } else if checkStatus == errSecItemNotFound {
+            // Key doesn't exist, add it
+            let addStatus = keychainWrapper.secItemAdd(query as CFDictionary, nil)
+            try self.checkStatus(status: addStatus)
+        } else {
+            // Some other error occurred
+            throw KeyManagerError.unhandledError("Error checking key existence: \(checkStatus)")
+        }
+    }
+    
+    private func isKeyItemSynced(name: String) throws -> Bool {
+        guard let keyData = name.data(using: .utf8) else {
+            throw KeyManagerError.dataError
+        }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrLabel as String: keyData,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnAttributes as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+        
+        var item: CFTypeRef?
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
+        
+        guard status == errSecSuccess else {
+            if status == errSecItemNotFound {
+                return false
+            } else {
+                throw KeyManagerError.unhandledError("Error checking sync status: \(status)")
+            }
+        }
+        
+        guard let attributes = item as? [String: Any] else {
+            return false
+        }
+        
+        let syncAttribute = attributes[kSecAttrSynchronizable as String]
+        
+        if let isSyncedBool = syncAttribute as? Bool {
+            return isSyncedBool
+        } else if let isSyncedNum = syncAttribute as? NSNumber {
+            return isSyncedNum.boolValue
+        }
+        
+        return false
     }
 }
 
