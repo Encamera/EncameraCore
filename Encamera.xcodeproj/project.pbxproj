@@ -82,7 +82,6 @@
 		295E1C586ED20C1AA268B6DF /* AlbumBaseGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01BFF65E06F6DE4A78487DE /* AlbumBaseGridItem.swift */; };
 		29A85EC139C46E618A7F1EFB /* maria-cappelli-26YOSbRw65A-unsplash.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9B3CE8E9D5CB57DCCBD9282D /* maria-cappelli-26YOSbRw65A-unsplash.jpg */; };
 		29EEDCB1A75BB882A663D042 /* GenericModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAA5D1B74670DB2306A814D5 /* GenericModal.swift */; };
-		2A5D0F16BE207DEF8084D68B /* EmbeddedPhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1464DDD149EFAAE47B7342F1 /* EmbeddedPhotoPicker.swift */; };
 		2AB0B8677CCC7D4C61C75F65 /* FirstResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33EB72741B45000D6270339E /* FirstResponder.swift */; };
 		2D2A12C72BABF4CEE85F3A2C /* BuyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */; };
 		2DE07F0413BE65FFFA43ABB4 /* CameraZoomControlButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26A38C1E9C740A80200B877 /* CameraZoomControlButtons.swift */; };
@@ -328,7 +327,6 @@
 		BE64A52B2437A30753282A14 /* AVPlayerViewControllerRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F02011D6358CD65EAA6ED453 /* AVPlayerViewControllerRepresentable.swift */; };
 		BE710701ECF18F6BDA3B4082 /* ImageViewingUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45C75E183A2E61A09FC232B /* ImageViewingUIView.swift */; };
 		BF072D0221F4E57C3BE8AD4F /* AddAlbumModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A2F950788E2FC2EA20AD77 /* AddAlbumModal.swift */; };
-		BF5860D76016607B6AD21DC7 /* EmbeddedPhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1464DDD149EFAAE47B7342F1 /* EmbeddedPhotoPicker.swift */; };
 		BFB399E63CA3C82BE2537605 /* PromptToErase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */; };
 		BFD5BE89C6444B0F1E4D0EEB /* KeyPhraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08E7ADEDD8142B9DA265EE15 /* KeyPhraseView.swift */; };
 		C0655C5EFA34D76331B144D2 /* lauren-mancke-sil2Hx4iupI-unsplash.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 34D3DEBC046E0462A5EEDD39 /* lauren-mancke-sil2Hx4iupI-unsplash.jpg */; };
@@ -509,7 +507,6 @@
 		11C7B29A1513223174BB5CDB /* joanie-simon-2r8BzVYZIeo-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "joanie-simon-2r8BzVYZIeo-unsplash.jpg"; sourceTree = "<group>"; };
 		13501C8BD163FDB992526254 /* TweetToShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TweetToShareView.swift; sourceTree = "<group>"; };
 		138280AC97F5CFC2182D9667 /* StepIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepIndicator.swift; sourceTree = "<group>"; };
-		1464DDD149EFAAE47B7342F1 /* EmbeddedPhotoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedPhotoPicker.swift; sourceTree = "<group>"; };
 		14EBAC00F13467ACB6AB4710 /* PromptToErase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptToErase.swift; sourceTree = "<group>"; };
 		1502C040838F3770BEF5B8E0 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		1555F94A3CA4AB10FF868C52 /* LivePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoView.swift; sourceTree = "<group>"; };
@@ -1259,7 +1256,6 @@
 				A26A38C1E9C740A80200B877 /* CameraZoomControlButtons.swift */,
 				5EDAE32CBB0CA3BFF5A99A2A /* DismissButton.swift */,
 				8761F9FBD1C7297E54D6C0D5 /* DualButtonComponent.swift */,
-				1464DDD149EFAAE47B7342F1 /* EmbeddedPhotoPicker.swift */,
 				2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */,
 				E92944B1ED019B518E9921C6 /* FeedbackView.swift */,
 				6ED0BF702F5D1CCA157F149F /* FilePicker.swift */,
@@ -1776,7 +1772,6 @@
 				31265C22A6169EFB228761F9 /* DemoPurchasedPermissionManaging.swift in Sources */,
 				314C1682F74B89FEB81D801D /* DismissButton.swift in Sources */,
 				C08AB7E95C132673EC89904D /* DualButtonComponent.swift in Sources */,
-				2A5D0F16BE207DEF8084D68B /* EmbeddedPhotoPicker.swift in Sources */,
 				3D6F08338BB7B386864B7074 /* EmptyMediaView.swift in Sources */,
 				F860061EE853A5C21899C1E4 /* EncameraApp.swift in Sources */,
 				D9593E17F428493E19AC0277 /* EncameraState.swift in Sources */,
@@ -1948,7 +1943,6 @@
 				5D1D96193CF8F44672E245E9 /* DemoPurchasedPermissionManaging.swift in Sources */,
 				4B8BB435E73B35DCF19DEBB5 /* DismissButton.swift in Sources */,
 				BC5B8124308165A9C6B44539 /* DualButtonComponent.swift in Sources */,
-				BF5860D76016607B6AD21DC7 /* EmbeddedPhotoPicker.swift in Sources */,
 				C0A5B161166A080D6E12019E /* EmptyMediaView.swift in Sources */,
 				1B4D01E89D3242837DD07C8D /* EncameraState.swift in Sources */,
 				A8FE897989145FD75B54BCC3 /* EncameraTextField.swift in Sources */,

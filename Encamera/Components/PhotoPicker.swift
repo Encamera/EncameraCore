@@ -2,42 +2,6 @@ import SwiftUI
 import PhotosUI
 import UIKit
 
-// MARK: - SwiftUI Native PhotosPicker (iOS 16+)
-// This is the new SwiftUI-native picker that's simpler to use
-// Note: Does NOT support swipe-to-select gesture
-@available(iOS 16.0, *)
-struct ModernPhotoPicker: View {
-    @Binding var selectedItems: [PhotosPickerItem]
-    @Binding var selectedPhotos: [UIImage]
-    var maxSelectionCount: Int? = nil
-    var filter: PHPickerFilter = .images
-    
-    var body: some View {
-        PhotosPicker(
-            selection: $selectedItems,
-            maxSelectionCount: maxSelectionCount,
-            matching: filter,
-            photoLibrary: .shared()
-        ) {
-            Label("Select Photos", systemImage: "photo.on.rectangle.angled")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.blue)
-        }
-        .onChange(of: selectedItems) { _, newItems in
-            Task {
-                selectedPhotos.removeAll()
-                
-                for item in newItems {
-                    if let data = try? await item.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        selectedPhotos.append(image)
-                    }
-                }
-            }
-        }
-    }
-}
-
 // MARK: - PHPickerViewController Wrapper (Compatible with existing code)
 // This maintains compatibility with your existing PHPickerResult-based code
 struct PhotoPicker: UIViewControllerRepresentable {
