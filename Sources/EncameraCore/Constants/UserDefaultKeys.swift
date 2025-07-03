@@ -36,6 +36,7 @@ public enum UserDefaultKey {
     case isAlbumHidden(name: String)
     case albumCoverImage(albumName: String)
     case passcodeType
+    case gridZoomLevel
 
     var rawValue: String {
         switch self {
