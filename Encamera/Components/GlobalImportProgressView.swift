@@ -138,8 +138,14 @@ struct GlobalImportProgressView: View {
             }
         }
         
-        if activeTasks.isEmpty {
+        let completedTasks = importManager.currentTasks.filter { task in
+            task.state == .completed
+        }
+        
+        if !completedTasks.isEmpty && activeTasks.isEmpty {
             return "Import completed"
+        } else if activeTasks.isEmpty {
+            return "No active imports"
         } else if activeTasks.count == 1 {
             let task = activeTasks.first!
             return "Importing \(task.progress.currentFileIndex + 1) of \(task.progress.totalFiles)"
