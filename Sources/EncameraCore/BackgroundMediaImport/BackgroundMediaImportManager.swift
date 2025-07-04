@@ -45,13 +45,15 @@ public struct ImportTask {
     public let createdAt: Date
     public var state: ImportTaskState
     public var progress: ImportProgressUpdate
+    public let assetIdentifiers: [String]
     
-    public init(id: String = UUID().uuidString, media: [CleartextMedia], albumId: String) {
+    public init(id: String = UUID().uuidString, media: [CleartextMedia], albumId: String, assetIdentifiers: [String] = []) {
         self.id = id
         self.media = media
         self.albumId = albumId
         self.createdAt = Date()
         self.state = .idle
+        self.assetIdentifiers = assetIdentifiers
         self.progress = ImportProgressUpdate(
             taskId: id,
             currentFileIndex: 0,
@@ -101,9 +103,9 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         self.albumManager = albumManager
     }
     
-    public func startImport(media: [CleartextMedia], albumId: String) async throws {
-        printDebug("Starting import for \(media.count) media items to album: \(albumId)")
-        let task = ImportTask(media: media, albumId: albumId)
+    public func startImport(media: [CleartextMedia], albumId: String, assetIdentifiers: [String] = []) async throws {
+        printDebug("Starting import for \(media.count) media items to album: \(albumId) with \(assetIdentifiers.count) asset identifiers")
+        let task = ImportTask(media: media, albumId: albumId, assetIdentifiers: assetIdentifiers)
         currentTasks.append(task)
         
         try await executeImportTask(task)
