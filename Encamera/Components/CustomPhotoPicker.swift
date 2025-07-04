@@ -56,6 +56,31 @@ class CustomPhotoPickerViewController: UIViewController {
     private var processedIndexPaths = Set<IndexPath>()
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     
+    // New property to track if we're in selection mode after long press
+    private var isInSelectionMode = false
+    
+    // Selection mode indicator view
+    private lazy var selectionModeIndicator: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.1)
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        
+        let label = UILabel()
+        label.text = "Swipe to select multiple photos"
+        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.textColor = .systemBlue
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+        
+        return view
+    }()
+    
     private enum SwipeSelectionMode {
         case selecting
         case deselecting
@@ -104,12 +129,27 @@ class CustomPhotoPickerViewController: UIViewController {
         collectionView.delegate = self
         collectionView.allowsMultipleSelection = true
         
+        // Add long press gesture recognizer
+        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressGesture(_:)))
+        longPressGesture.minimumPressDuration = 0.3
+        longPressGesture.delegate = self
+        collectionView.addGestureRecognizer(longPressGesture)
+        
         // Add pan gesture for swipe selection
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
         panGesture.delegate = self
         collectionView.addGestureRecognizer(panGesture)
         
         view.addSubview(collectionView)
+        
+        // Add selection mode indicator
+        view.addSubview(selectionModeIndicator)
+        NSLayoutConstraint.activate([
+            selectionModeIndicator.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            selectionModeIndicator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            selectionModeIndicator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            selectionModeIndicator.heightAnchor.constraint(equalToConstant: 36)
+        ])
     }
     
     private func checkPhotoLibraryPermission() {
@@ -237,17 +277,29 @@ class CustomPhotoPickerViewController: UIViewController {
         dismiss(animated: true)
     }
     
-    // MARK: - Pan Gesture Handling
-    @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
+    // MARK: - Gesture Handling
+    @objc private func handleLongPressGesture(_ gesture: UILongPressGestureRecognizer) {
         let location = gesture.location(in: collectionView)
         
         switch gesture.state {
         case .began:
+            // Enter selection mode
+            isInSelectionMode = true
             isSwipeSelecting = true
             processedIndexPaths.removeAll()
             feedbackGenerator.prepare()
             
-            // Disable scrolling during swipe selection
+            // Show selection mode indicator
+            UIView.animate(withDuration: 0.2) {
+                self.selectionModeIndicator.isHidden = false
+                self.selectionModeIndicator.alpha = 1
+            }
+            
+            // Provide strong haptic feedback to indicate selection mode started
+            let strongFeedback = UIImpactFeedbackGenerator(style: .medium)
+            strongFeedback.impactOccurred()
+            
+            // Disable scrolling during selection
             collectionView.isScrollEnabled = false
             
             // Determine selection mode based on initial cell
@@ -255,6 +307,28 @@ class CustomPhotoPickerViewController: UIViewController {
                 swipeSelectionMode = selectedIndexPaths.contains(indexPath) ? .deselecting : .selecting
                 processIndexPath(indexPath)
             }
+            
+        case .ended, .cancelled:
+            // If we end the long press without moving, exit selection mode
+            if isInSelectionMode && !isSwipeSelecting {
+                exitSelectionMode()
+            }
+            
+        default:
+            break
+        }
+    }
+    
+    @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
+        // Only process pan gestures when in selection mode
+        guard isInSelectionMode else { return }
+        
+        let location = gesture.location(in: collectionView)
+        
+        switch gesture.state {
+        case .began:
+            isSwipeSelecting = true
+            // Don't need to do much here since selection mode was already set by long press
             
         case .changed:
             // Process all cells along the gesture path for smoother selection
@@ -272,13 +346,26 @@ class CustomPhotoPickerViewController: UIViewController {
             }
             
         case .ended, .cancelled:
-            isSwipeSelecting = false
-            processedIndexPaths.removeAll()
-            // Re-enable scrolling
-            collectionView.isScrollEnabled = true
+            exitSelectionMode()
             
         default:
             break
+        }
+    }
+    
+    private func exitSelectionMode() {
+        isSwipeSelecting = false
+        isInSelectionMode = false
+        processedIndexPaths.removeAll()
+        
+        // Re-enable scrolling
+        collectionView.isScrollEnabled = true
+        
+        // Hide selection mode indicator
+        UIView.animate(withDuration: 0.2) {
+            self.selectionModeIndicator.alpha = 0
+        } completion: { _ in
+            self.selectionModeIndicator.isHidden = true
         }
     }
     
@@ -396,7 +483,25 @@ extension CustomPhotoPickerViewController: UICollectionViewDataSource, UICollect
 // MARK: - UIGestureRecognizerDelegate
 extension CustomPhotoPickerViewController: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        // Allow pan gesture to work simultaneously with collection view's scroll
+        // Allow long press and pan to work together
+        if (gestureRecognizer is UILongPressGestureRecognizer && otherGestureRecognizer is UIPanGestureRecognizer) ||
+           (gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UILongPressGestureRecognizer) {
+            return true
+        }
+        
+        // Don't interfere with scrolling when not in selection mode
+        if gestureRecognizer is UIPanGestureRecognizer && !isInSelectionMode {
+            return false
+        }
+        
+        return false
+    }
+    
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Pan gesture should only begin if we're in selection mode
+        if gestureRecognizer is UIPanGestureRecognizer {
+            return isInSelectionMode
+        }
         return true
     }
 }

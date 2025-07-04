@@ -436,7 +436,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
 #endif
 #if DEBUG
-        Purchases.logLevel = .debug
+        Purchases.logLevel = .info
         Purchases.shared.invalidateCustomerInfoCache()
 #endif
         let audioSession = AVAudioSession.sharedInstance()
