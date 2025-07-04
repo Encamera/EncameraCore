@@ -96,11 +96,13 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     // MARK: - Public API
     
     public func configure(fileAccess: FileAccess, albumManager: AlbumManaging) {
+        printDebug("Configuring BackgroundMediaImportManager with fileAccess and albumManager")
         self.fileAccess = fileAccess
         self.albumManager = albumManager
     }
     
     public func startImport(media: [CleartextMedia], albumId: String) async throws {
+        printDebug("Starting import for \(media.count) media items to album: \(albumId)")
         let task = ImportTask(media: media, albumId: albumId)
         currentTasks.append(task)
         
@@ -108,7 +110,11 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     public func pauseImport(taskId: String) {
-        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else { return }
+        printDebug("Pausing import task: \(taskId)")
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else { 
+            printDebug("Failed to find task to pause: \(taskId)")
+            return 
+        }
         
         currentTasks[taskIndex].state = .paused
         currentImportTask?.cancel()
@@ -117,14 +123,22 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     public func resumeImport(taskId: String) async throws {
+        printDebug("Resuming import task: \(taskId)")
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }),
-              currentTasks[taskIndex].state == .paused else { return }
+              currentTasks[taskIndex].state == .paused else {
+            printDebug("Failed to find paused task to resume: \(taskId)")
+            return
+        }
         
         try await executeImportTask(currentTasks[taskIndex])
     }
     
     public func cancelImport(taskId: String) {
-        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else { return }
+        printDebug("Cancelling import task: \(taskId)")
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
+            printDebug("Failed to find task to cancel: \(taskId)")
+            return
+        }
         
         currentTasks[taskIndex].state = .cancelled
         currentImportTask?.cancel()
@@ -133,12 +147,23 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         
         // Remove from active tasks after a delay to show cancelled state
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.printDebug("Removing cancelled task: \(taskId)")
             self.currentTasks.removeAll { $0.id == taskId }
             self.updateOverallProgress()
         }
     }
     
     public func removeCompletedTasks() {
+        let tasksToRemove = currentTasks.filter { task in
+            switch task.state {
+            case .completed, .cancelled, .failed:
+                return true
+            default:
+                return false
+            }
+        }
+        
+        printDebug("Removing \(tasksToRemove.count) completed/cancelled/failed tasks")
         currentTasks.removeAll { task in
             switch task.state {
             case .completed, .cancelled, .failed:
@@ -153,9 +178,12 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     // MARK: - Private Implementation
     
     private func executeImportTask(_ task: ImportTask) async throws {
+        printDebug("Executing import task: \(task.id) with \(task.media.count) media items")
+        
         guard let fileAccess = fileAccess,
               let albumManager = albumManager,
               let album = albumManager.albums.first(where: { $0.id == task.albumId }) else {
+            printDebug("Failed to execute import task - missing configuration or album")
             throw ImportError.configurationError
         }
         
@@ -165,6 +193,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         currentTasks[taskIndex].state = .running
         isImporting = true
         
+        printDebug("Starting background task for import: \(task.id)")
         startBackgroundTask()
         
         currentImportTask = Task {
@@ -172,6 +201,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                 try await performImport(task: task, fileAccess: fileAccess)
                 
                 await MainActor.run {
+                    self.printDebug("Import task completed successfully: \(task.id)")
                     if let index = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
                         self.currentTasks[index].state = .completed
                         self.currentTasks[index].progress = ImportProgressUpdate(
@@ -188,15 +218,28 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                     }
                     self.updateIsImporting()
                     self.endBackgroundTask()
+                    
+                    // Clean up temp files if no other imports are running
+                    if !self.isImporting {
+                        self.printDebug("No more active imports - cleaning up temp files")
+                        TempFileAccess.cleanupTemporaryFiles()
+                    }
                 }
             } catch {
                 await MainActor.run {
+                    self.printDebug("Import task failed with error: \(error.localizedDescription) for task: \(task.id)")
                     if let index = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
                         self.currentTasks[index].state = .failed(error)
                         self.publishProgress(for: self.currentTasks[index])
                     }
                     self.updateIsImporting()
                     self.endBackgroundTask()
+                    
+                    // Clean up temp files if no other imports are running
+                    if !self.isImporting {
+                        self.printDebug("No more active imports after failure - cleaning up temp files")
+                        TempFileAccess.cleanupTemporaryFiles()
+                    }
                 }
                 throw error
             }
@@ -206,15 +249,18 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     private func performImport(task: ImportTask, fileAccess: FileAccess) async throws {
+        printDebug("Performing import for task: \(task.id)")
         let startTime = Date()
         var processedFiles = 0
         
         // Process files concurrently in batches to avoid overwhelming the system
         let batchSize = 3
         let batches = task.media.chunked(into: batchSize)
+        printDebug("Processing \(batches.count) batches of size \(batchSize)")
         
         for (batchIndex, batch) in batches.enumerated() {
             try Task.checkCancellation()
+            printDebug("Processing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) files")
             
             // Process batch concurrently
             try await withThrowingTaskGroup(of: Void.self) { group in
@@ -236,7 +282,10 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             }
             
             processedFiles += batch.count
+            printDebug("Completed batch \(batchIndex + 1)/\(batches.count), total processed: \(processedFiles)")
         }
+        
+        printDebug("Import completed for task: \(task.id)")
     }
     
     private func processSingleFile(
@@ -247,44 +296,88 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         startTime: Date,
         processedFiles: Int
     ) async throws {
+        printDebug("Processing file \(fileIndex + 1)/\(task.media.count): \(media.id)")
+        
+        // Log the source URL to track temp file usage
+        if case .url(let sourceURL) = media.source {
+            printDebug("Source file URL: \(sourceURL.path)")
+            if !FileManager.default.fileExists(atPath: sourceURL.path) {
+                printDebug("WARNING: Source file does not exist at path: \(sourceURL.path)")
+            }
+        }
         
         let interactableMedia = try InteractableMedia(underlyingMedia: [media])
-        try await fileAccess.save(media: interactableMedia) { fileProgress in
-            Task { @MainActor in
-                let overallProgress = (Double(processedFiles) + fileProgress) / Double(task.media.count)
-                let estimatedTimeRemaining = self.calculateEstimatedTime(
-                    startTime: startTime,
-                    progress: overallProgress
-                )
-                
-                if let taskIndex = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
-                    self.currentTasks[taskIndex].progress = ImportProgressUpdate(
-                        taskId: task.id,
-                        currentFileIndex: fileIndex,
-                        totalFiles: task.media.count,
-                        currentFileProgress: fileProgress,
-                        overallProgress: overallProgress,
-                        currentFileName: media.id,
-                        state: .running,
-                        estimatedTimeRemaining: estimatedTimeRemaining
+        
+        do {
+            try await fileAccess.save(media: interactableMedia) { fileProgress in
+                Task { @MainActor in
+                    let overallProgress = (Double(processedFiles) + fileProgress) / Double(task.media.count)
+                    let estimatedTimeRemaining = self.calculateEstimatedTime(
+                        startTime: startTime,
+                        progress: overallProgress
                     )
-                    self.publishProgress(for: self.currentTasks[taskIndex])
-                    self.updateOverallProgress()
+                    
+                    if let taskIndex = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
+                        self.currentTasks[taskIndex].progress = ImportProgressUpdate(
+                            taskId: task.id,
+                            currentFileIndex: fileIndex,
+                            totalFiles: task.media.count,
+                            currentFileProgress: fileProgress,
+                            overallProgress: overallProgress,
+                            currentFileName: media.id,
+                            state: .running,
+                            estimatedTimeRemaining: estimatedTimeRemaining
+                        )
+                        self.publishProgress(for: self.currentTasks[taskIndex])
+                        self.updateOverallProgress()
+                    }
                 }
             }
+            
+            printDebug("Successfully saved file \(fileIndex + 1)/\(task.media.count): \(media.id)")
+        } catch {
+            printDebug("Failed to save file \(media.id): \(error)")
+            
+            // Check if it's a file not found error
+            if let nsError = error as NSError?, 
+               nsError.domain == NSCocoaErrorDomain && nsError.code == 4 {
+                printDebug("File not found error - likely temp files were cleaned up")
+            }
+            
+            // Check if it's an authentication error
+            if error.localizedDescription.contains("User interaction required") ||
+               error.localizedDescription.contains("Caller is not running foreground") {
+                printDebug("Authentication error in background - cannot access protected keychain items")
+            }
+            
+            throw error
         }
     }
     
     private func configureFileAccess(for album: Album) async {
-        guard let albumManager = albumManager else { return }
+        printDebug("Configuring file access for album: \(album.name)")
+        guard let albumManager = albumManager else {
+            printDebug("Failed to configure file access - albumManager is nil")
+            return
+        }
+        
+        // Check if we're in background when configuring
+        let appState = UIApplication.shared.applicationState
+        printDebug("App state during configure: \(appState == .background ? "Background" : appState == .active ? "Active" : "Inactive")")
+        
         await fileAccess?.configure(for: album, albumManager: albumManager)
+        
+        printDebug("File access configured successfully")
     }
     
     private func publishProgress(for task: ImportTask) {
+        printDebug("Publishing progress for task \(task.id): \(task.progress.overallProgress * 100)% complete")
         progressSubject.send(task.progress)
     }
     
     private func updateOverallProgress() {
+        let previousProgress = overallProgress
+        
         let activeTasks = currentTasks.filter { task in
             switch task.state {
             case .running, .paused:
@@ -300,11 +393,19 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             let totalProgress = activeTasks.reduce(0.0) { $0 + $1.progress.overallProgress }
             overallProgress = totalProgress / Double(activeTasks.count)
         }
+        
+        if previousProgress != overallProgress {
+            printDebug("Overall progress updated: \(previousProgress * 100)% -> \(overallProgress * 100)%")
+        }
     }
     
     private func updateIsImporting() {
+        let wasImporting = isImporting
         isImporting = currentTasks.contains { task in
             task.state == .running
+        }
+        if wasImporting != isImporting {
+            printDebug("Import status changed: \(wasImporting) -> \(isImporting)")
         }
     }
     
@@ -322,72 +423,113 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     
     /// Must be called during app launch before application finishes launching
     public static func registerBackgroundTasks() {
+        print("Registering background task: com.encamera.media-import")
         BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.encamera.media-import", using: nil) { task in
+            print("Background task handler called for: com.encamera.media-import")
             BackgroundMediaImportManager.shared.handleBackgroundImport(task: task as! BGProcessingTask)
         }
     }
     
     private func scheduleBackgroundImport() {
+        printDebug("Scheduling background import task")
         let request = BGProcessingTaskRequest(identifier: "com.encamera.media-import")
         request.requiresNetworkConnectivity = false
         request.requiresExternalPower = false
         request.earliestBeginDate = Date(timeIntervalSinceNow: 1)
         
-        try? BGTaskScheduler.shared.submit(request)
+        do {
+            try BGTaskScheduler.shared.submit(request)
+            printDebug("Successfully scheduled background import task")
+        } catch {
+            printDebug("Failed to schedule background import task: \(error.localizedDescription)")
+        }
     }
     
     private func handleBackgroundImport(task: BGProcessingTask) {
+        printDebug("Handling background import task")
         let hasActiveTasks = !currentTasks.filter { $0.state == .running || $0.state == .paused }.isEmpty
+        printDebug("Has active tasks: \(hasActiveTasks), total tasks: \(currentTasks.count)")
         
         if hasActiveTasks {
             // Continue processing in background
             task.expirationHandler = {
+                self.printDebug("Background task expiration handler called")
                 task.setTaskCompleted(success: false)
             }
             
             Task {
+                printDebug("Starting background task execution")
                 // Resume or continue any paused/running tasks
                 for importTask in currentTasks where importTask.state == .paused {
+                    printDebug("Resuming paused task in background: \(importTask.id)")
                     try? await resumeImport(taskId: importTask.id)
                 }
                 
+                printDebug("Background task execution completed")
                 task.setTaskCompleted(success: true)
             }
         } else {
+            printDebug("No active tasks to process in background")
             task.setTaskCompleted(success: true)
         }
     }
     
     private func startBackgroundTask() {
+        printDebug("Starting UIBackgroundTask")
         endBackgroundTask() // End any existing task
         
         activeBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "MediaImport") {
+            self.printDebug("UIBackgroundTask expiration handler called - time limit reached")
             self.endBackgroundTask()
+        }
+        
+        if activeBackgroundTask == .invalid {
+            printDebug("Failed to start UIBackgroundTask - got invalid identifier")
+        } else {
+            printDebug("UIBackgroundTask started with identifier: \(activeBackgroundTask.rawValue)")
         }
     }
     
     private func endBackgroundTask() {
         if activeBackgroundTask != .invalid {
+            printDebug("Ending UIBackgroundTask with identifier: \(activeBackgroundTask.rawValue)")
             UIApplication.shared.endBackgroundTask(activeBackgroundTask)
             activeBackgroundTask = .invalid
+        } else {
+            printDebug("No active UIBackgroundTask to end")
         }
     }
     
     // MARK: - Notification Observers
     
     private func setupNotificationObservers() {
+        printDebug("Setting up notification observers for background/foreground transitions")
+        
         NotificationUtils.didEnterBackgroundPublisher
             .sink { [weak self] _ in
+                self?.printDebug("App did enter background - scheduling background import")
+                self?.printDebug("Current active tasks count: \(self?.currentTasks.filter { $0.state == .running }.count ?? 0)")
+                self?.printDebug("Active background task identifier: \(self?.activeBackgroundTask.rawValue ?? 0)")
                 self?.scheduleBackgroundImport()
             }
             .store(in: &cancellables)
         
         NotificationUtils.willEnterForegroundPublisher
             .sink { [weak self] _ in
+                self?.printDebug("App will enter foreground - refreshing task states")
+                self?.printDebug("Current tasks: \(self?.currentTasks.count ?? 0)")
                 // Refresh task states when returning to foreground
                 Task { @MainActor in
                     self?.updateOverallProgress()
                 }
+            }
+            .store(in: &cancellables)
+        
+        // Add observer for when app will resign active
+        NotificationUtils.willResignActivePublisher
+            .sink { [weak self] _ in
+                self?.printDebug("App will resign active - preparing for background")
+                self?.printDebug("WARNING: Temp files may be cleaned up soon!")
             }
             .store(in: &cancellables)
     }

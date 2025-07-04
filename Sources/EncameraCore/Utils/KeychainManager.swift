@@ -530,12 +530,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         
         // Print details if successful
         if status == errSecSuccess, let existingItem = item as? [String: Any] {
-            if let passwordData = existingItem[kSecValueData as String] as? Data,
-               let passwordString = String(data: passwordData, encoding: .utf8) {
-                printDebug("Retrieved Password Hash:", passwordString)
-            } else {
-                printDebug("Could not retrieve or decode password data.")
-            }
+
             
             if let syncStatus = existingItem[kSecAttrSynchronizable as String] as? Bool {
                  printDebug("iCloud Sync Status:", syncStatus ? "Enabled" : "Disabled")

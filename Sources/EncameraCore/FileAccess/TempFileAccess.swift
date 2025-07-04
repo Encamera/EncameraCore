@@ -2,8 +2,10 @@ import Foundation
 
 public class TempFileAccess: DebugPrintable {
 
-    public static func cleanupTemporaryFiles() {
-        deleteDirectory(at: URL.tempMediaDirectory)
+    @MainActor public static func cleanupTemporaryFiles() {
+        if !BackgroundMediaImportManager.shared.isImporting {
+            deleteDirectory(at: URL.tempMediaDirectory)
+        }
     }
 
     public static func cleanupRecordings() {
