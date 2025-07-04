@@ -5,6 +5,35 @@ import XCTest
 @MainActor
 class ImportProgressTests: XCTestCase {
     
+    // Helper class to test status text logic
+    class TestableViewModel {
+        func getStatusText(for tasks: [ImportTask]) -> String {
+            let activeTasks = tasks.filter { task in
+                switch task.state {
+                case .running, .paused:
+                    return true
+                default:
+                    return false
+                }
+            }
+            
+            let completedTasks = tasks.filter { task in
+                task.state == .completed
+            }
+            
+            if !completedTasks.isEmpty && activeTasks.isEmpty {
+                return "Import completed"
+            } else if activeTasks.isEmpty {
+                return "No active imports"
+            } else if activeTasks.count == 1 {
+                let task = activeTasks.first!
+                return "Importing \(task.progress.currentFileIndex + 1) of \(task.progress.totalFiles)"
+            } else {
+                return "Importing \(activeTasks.count) batches"
+            }
+        }
+    }
+    
     var importManager: BackgroundMediaImportManager!
     
     override func setUp() async throws {
@@ -107,79 +136,57 @@ class ImportProgressTests: XCTestCase {
     }
     
     func testStatusTextForDifferentStates() async throws {
-        // Test helper to create GlobalImportProgressView's statusText logic
-        func getStatusText(for tasks: [ImportTask]) -> String {
-            let activeTasks = tasks.filter { task in
-                switch task.state {
-                case .running, .paused:
-                    return true
-                default:
-                    return false
-                }
-            }
-            
-            let completedTasks = tasks.filter { task in
-                task.state == .completed
-            }
-            
-            if !completedTasks.isEmpty && activeTasks.isEmpty {
-                return "Import completed"
-            } else if activeTasks.isEmpty {
-                return "No active imports"
-            } else if activeTasks.count == 1 {
-                let task = activeTasks.first!
-                return "Importing \(task.progress.currentFileIndex + 1) of \(task.progress.totalFiles)"
-            } else {
-                return "Importing \(activeTasks.count) batches"
-            }
-        }
+        let viewModel = TestableViewModel()
         
-        // Test 1: Completed task
-        let completedTask = ImportTask(media: [CleartextMedia(source: .data(Data()), mediaType: .photo, id: "test")], albumId: "test")
-        var tasks = [completedTask]
-        if let index = tasks.firstIndex(where: { $0.id == completedTask.id }) {
-            tasks[index].state = .completed
-            tasks[index].progress = ImportProgressUpdate(
-                taskId: tasks[index].id,
-                currentFileIndex: 0,
-                totalFiles: 1,
-                currentFileProgress: 1.0,
-                overallProgress: 1.0,
-                currentFileName: nil,
-                state: .completed,
-                estimatedTimeRemaining: 0
-            )
-        }
+        // Test for no active imports
+        XCTAssertEqual(viewModel.getStatusText(for: []), "No active imports")
         
-        XCTAssertEqual(getStatusText(for: tasks), "Import completed")
+        // Test for completed tasks only
+        let completedTask = ImportTask(media: [], albumId: "album1")
+        var task = completedTask
+        task.state = .completed
+        XCTAssertEqual(viewModel.getStatusText(for: [task]), "Import completed")
         
-        // Test 2: Running task showing progress
-        let runningTask = ImportTask(media: Array(repeating: CleartextMedia(source: .data(Data()), mediaType: .photo, id: UUID().uuidString), count: 5), albumId: "test")
-        var runningTasks = [runningTask]
-        if let index = runningTasks.firstIndex(where: { $0.id == runningTask.id }) {
-            runningTasks[index].state = .running
-            runningTasks[index].progress = ImportProgressUpdate(
-                taskId: runningTasks[index].id,
-                currentFileIndex: 2,  // Processing 3rd file (0-based index)
-                totalFiles: 5,
-                currentFileProgress: 0.5,
-                overallProgress: 0.5,
-                currentFileName: "file3",
-                state: .running,
-                estimatedTimeRemaining: nil
-            )
-        }
+        // Test for single active task
+        var activeTask = ImportTask(media: Array(repeating: CleartextMedia(source: .data(Data()), generateID: true), count: 10), albumId: "album1")
+        activeTask.state = .running
+        activeTask.progress = ImportProgressUpdate(
+            taskId: activeTask.id,
+            currentFileIndex: 3,
+            totalFiles: 10,
+            currentFileProgress: 0.5,
+            overallProgress: 0.35,
+            currentFileName: "test.jpg",
+            state: .running,
+            estimatedTimeRemaining: nil
+        )
+        XCTAssertEqual(viewModel.getStatusText(for: [activeTask]), "Importing 4 of 10")
         
-        XCTAssertEqual(getStatusText(for: runningTasks), "Importing 3 of 5")
+        // Test for multiple active tasks
+        var activeTask2 = ImportTask(media: Array(repeating: CleartextMedia(source: .data(Data()), generateID: true), count: 5), albumId: "album2")
+        activeTask2.state = .running
+        XCTAssertEqual(viewModel.getStatusText(for: [activeTask, activeTask2]), "Importing 2 batches")
+    }
+    
+    func testImportTaskWithAssetIdentifiers() {
+        // Test creating ImportTask with asset identifiers
+        let assetIds = ["asset1", "asset2", "asset3"]
+        let media = [
+            CleartextMedia(source: .data(Data()), generateID: true),
+            CleartextMedia(source: .data(Data()), generateID: true),
+            CleartextMedia(source: .data(Data()), generateID: true)
+        ]
         
-        // Test 3: Multiple running tasks
-        let runningTask2 = ImportTask(media: Array(repeating: CleartextMedia(source: .data(Data()), mediaType: .photo, id: UUID().uuidString), count: 3), albumId: "test")
-        var multipleTasks = runningTasks
-        multipleTasks.append(runningTask2)
-        if let index = multipleTasks.firstIndex(where: { $0.id == runningTask2.id }) {
-            multipleTasks[index].state = .running
-        }
+        let task = ImportTask(media: media, albumId: "testAlbum", assetIdentifiers: assetIds)
         
-        XCTAssertEqual(getStatusText(for: multipleTasks), "Importing 2 batches")
+        // Verify the task stores asset identifiers correctly
+        XCTAssertEqual(task.assetIdentifiers, assetIds)
+        XCTAssertEqual(task.assetIdentifiers.count, 3)
+        XCTAssertEqual(task.media.count, 3)
+        XCTAssertEqual(task.albumId, "testAlbum")
+        
+        // Test creating ImportTask without asset identifiers (default empty array)
+        let taskWithoutAssets = ImportTask(media: media, albumId: "testAlbum")
+        XCTAssertEqual(taskWithoutAssets.assetIdentifiers, [])
     }
 } 

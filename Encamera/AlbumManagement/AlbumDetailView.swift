@@ -369,6 +369,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         Task {
             var allMedia: [CleartextMedia] = []
             var pickerResults: [PHPickerResult] = []
+            var assetIdentifiers: [String] = []
 
             for result in results {
                 switch result {
@@ -377,6 +378,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                     do {
                         let media = try await self.loadMediaFromAsset(asset)
                         allMedia.append(contentsOf: media)
+                        
+                        // Track the asset identifier
+                        assetIdentifiers.append(asset.localIdentifier)
                         
                         // Track statistics
                         if asset.mediaType == .video {
@@ -391,6 +395,12 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 case .phPickerResult(let pickerResult):
                     // Handle PHPickerResult
                     pickerResults.append(pickerResult)
+                    
+                    // Track the asset identifier if available
+                    if let assetId = pickerResult.assetIdentifier {
+                        assetIdentifiers.append(assetId)
+                    }
+                    
                     let provider = pickerResult.itemProvider
                     if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
                         UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
@@ -415,7 +425,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }
             
             do {
-                try await BackgroundMediaImportManager.shared.startImport(media: allMedia, albumId: albumId)
+                try await BackgroundMediaImportManager.shared.startImport(media: allMedia, albumId: albumId, assetIdentifiers: assetIdentifiers)
                 EventTracking.trackMediaImported(count: results.count)
             } catch {
                 debugPrint("Error starting import: \(error)")
