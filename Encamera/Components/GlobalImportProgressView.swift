@@ -33,10 +33,12 @@ struct GlobalImportProgressView: View {
     private var compactProgressView: some View {
         HStack(spacing: 12) {
             // Progress indicator
-            ProgressView(value: importManager.overallProgress, total: 1.0)
-                .progressViewStyle(LinearProgressViewStyle(tint: .actionYellowGreen))
-                .frame(height: 4)
-            
+            if importManager.isImporting {
+                ProgressView(value: importManager.overallProgress, total: 1.0)
+                    .progressViewStyle(LinearProgressViewStyle(tint: .actionYellowGreen))
+                    .frame(height: 4)
+            }
+
             // Status text
             VStack(alignment: .leading, spacing: 2) {
                 Text(statusText)
@@ -46,7 +48,8 @@ struct GlobalImportProgressView: View {
                 if let eta = estimatedTimeRemaining {
                     Text(eta)
                         .fontType(.pt10)
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen
+)
                 }
             }
             
@@ -57,14 +60,16 @@ struct GlobalImportProgressView: View {
                 if importManager.isImporting {
                     Button(action: pauseCurrentTask) {
                         Image(systemName: "pause.circle.fill")
-                            .foregroundColor(.foregroundSecondary)
+                            .foregroundColor(.actionYellowGreen
+)
                             .font(.system(size: 20))
                     }
                 }
                 
                 Button(action: { showTaskDetails.toggle() }) {
                     Image(systemName: "ellipsis.circle.fill")
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen
+)
                         .font(.system(size: 20))
                 }
             }
@@ -92,7 +97,8 @@ struct GlobalImportProgressView: View {
                     }
                 }) {
                     Image(systemName: "chevron.down")
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen
+)
                         .font(.system(size: 14, weight: .medium))
                 }
             }
@@ -206,9 +212,10 @@ struct TaskProgressRow: View {
                     
                     Text("\(Int(task.progress.overallProgress * 100))%")
                         .fontType(.pt12, weight: .medium)
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen
+)
                 }
-                
+
                 ProgressView(value: task.progress.overallProgress, total: 1.0)
                     .progressViewStyle(LinearProgressViewStyle(tint: progressColor))
                     .frame(height: 3)
@@ -216,7 +223,8 @@ struct TaskProgressRow: View {
                 if let fileName = task.progress.currentFileName {
                     Text("Processing: \(fileName)")
                         .fontType(.pt10)
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen
+)
                         .lineLimit(1)
                 }
             }
@@ -246,7 +254,7 @@ struct TaskProgressRow: View {
                     
                 case .completed:
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+                        .foregroundColor(.actionYellowGreen)
                         .font(.system(size: 18))
                     
                 case .failed:
@@ -262,7 +270,7 @@ struct TaskProgressRow: View {
                     importManager.cancelImport(taskId: task.id)
                 }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen)
                         .font(.system(size: 16))
                 }
             }
@@ -294,11 +302,13 @@ struct TaskProgressRow: View {
                     .font(.system(size: 20))
             case .cancelled:
                 Image(systemName: "xmark.circle")
-                    .foregroundColor(.foregroundSecondary)
+                    .foregroundColor(.actionYellowGreen
+)
                     .font(.system(size: 20))
             case .idle:
                 Image(systemName: "clock")
-                    .foregroundColor(.foregroundSecondary)
+                    .foregroundColor(.actionYellowGreen
+)
                     .font(.system(size: 20))
             }
         }
@@ -316,7 +326,8 @@ struct TaskProgressRow: View {
         case .failed:
             return .red
         default:
-            return .foregroundSecondary
+            return .actionYellowGreen
+
         }
     }
 }
@@ -370,7 +381,7 @@ struct TaskDetailCard: View {
                     
                     Text("Created: \(task.createdAt, formatter: dateFormatter)")
                         .fontType(.pt12)
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen)
                 }
                 
                 Spacer()
@@ -392,7 +403,8 @@ struct TaskDetailCard: View {
                     Spacer()
                     Text("\(task.progress.currentFileIndex + 1) / \(task.progress.totalFiles) files")
                         .fontType(.pt12)
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen
+)
                 }
                 
                 ProgressView(value: task.progress.overallProgress, total: 1.0)
@@ -401,13 +413,15 @@ struct TaskDetailCard: View {
                 if let fileName = task.progress.currentFileName {
                     Text("Current: \(fileName)")
                         .fontType(.pt10)
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen
+)
                 }
                 
                 if let eta = task.progress.estimatedTimeRemaining {
                     Text("Estimated time remaining: \(timeFormatter.string(from: eta) ?? "Unknown")")
                         .fontType(.pt10)
-                        .foregroundColor(.foregroundSecondary)
+                        .foregroundColor(.actionYellowGreen
+)
                 }
             }
             
@@ -458,11 +472,13 @@ struct TaskDetailCard: View {
     
     private var stateColor: Color {
         switch task.state {
-        case .idle: return .foregroundSecondary
+        case .idle: return .actionYellowGreen
+
         case .running: return .actionYellowGreen
         case .paused: return .orange
         case .completed: return .green
-        case .cancelled: return .foregroundSecondary
+        case .cancelled: return .actionYellowGreen
+
         case .failed: return .red
         }
     }

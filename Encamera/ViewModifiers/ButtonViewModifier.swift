@@ -92,7 +92,7 @@ struct EncameraButton_Previews: PreviewProvider {
 
             }
             ZStack {
-                Color.foregroundSecondary.frame(width: 100, height: 100  )
+                Color.actionYellowGreen.frame(width: 100, height: 100  )
                 Button("Share") {
                     
                 }.primaryButton()

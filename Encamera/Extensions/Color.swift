@@ -20,7 +20,6 @@ extension Color {
     static let activeCameraMode = Color("ActiveCameraModeColor")
     static let activeKey = Color("ActiveKeyColor")
     static let foregroundPrimary = Color("ForegroundPrimaryColor")
-    static let foregroundSecondary = Color("ForegroundSecondaryColor")
     static let tutorialViewBackground = Color("TutorialViewBackground")
     static let disabledButtonBackgroundColor = Color("DisabledButtonBackgroundColor")
     static let disabledButtonTextColor = Color("DisabledButtonTextColor")
