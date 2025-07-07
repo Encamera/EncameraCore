@@ -79,7 +79,6 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     @Published public var overallProgress: Double = 0.0
     
     // MARK: - Private Properties
-    private var fileAccess: FileAccess?
     private var albumManager: AlbumManaging?
     private var activeBackgroundTask: UIBackgroundTaskIdentifier = .invalid
     private var cancellables = Set<AnyCancellable>()
@@ -98,7 +97,11 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
 
     // MARK: - Public API
 
-    
+    public func configure(albumManager: AlbumManaging) {
+        printDebug("Configuring BackgroundMediaImportManager with albumManager")
+        self.albumManager = albumManager
+    }
+
     public func startImport(media: [CleartextMedia], albumId: String, assetIdentifiers: [String] = []) async throws {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) with \(assetIdentifiers.count) asset identifiers")
         let task = ImportTask(media: media, albumId: albumId, assetIdentifiers: assetIdentifiers)
@@ -178,14 +181,11 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     private func executeImportTask(_ task: ImportTask) async throws {
         printDebug("Executing import task: \(task.id) with \(task.media.count) media items")
         albumManager?.loadAlbumsFromFilesystem()
-        guard let fileAccess = fileAccess,
-              let albumManager = albumManager,
+        guard let albumManager = albumManager,
               let album = albumManager.albums.first(where: { $0.id == task.albumId }) else {
             printDebug("Failed to execute import task - missing configuration or album", albumManager?.albums)
             throw ImportError.configurationError
         }
-        
-        await configureFileAccess(for: album)
         
         let taskIndex = currentTasks.firstIndex(where: { $0.id == task.id })!
         currentTasks[taskIndex].progress.state = .running
@@ -196,6 +196,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         
         currentImportTask = Task {
             do {
+                let fileAccess = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
                 try await performImport(task: task, fileAccess: fileAccess)
                 
                 await MainActor.run {
@@ -349,22 +350,6 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             
             throw error
         }
-    }
-    
-    private func configureFileAccess(for album: Album) async {
-        printDebug("Configuring file access for album: \(album.name)")
-        guard let albumManager = albumManager else {
-            printDebug("Failed to configure file access - albumManager is nil")
-            return
-        }
-        
-        // Check if we're in background when configuring
-        let appState = UIApplication.shared.applicationState
-        printDebug("App state during configure: \(appState == .background ? "Background" : appState == .active ? "Active" : "Inactive")")
-        
-        await fileAccess?.configure(for: album, albumManager: albumManager)
-        
-        printDebug("File access configured successfully")
     }
     
     private func publishProgress(for task: ImportTask) {
