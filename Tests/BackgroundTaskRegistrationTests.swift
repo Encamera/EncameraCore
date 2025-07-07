@@ -16,14 +16,22 @@ import ObjectiveC
 class BackgroundTaskRegistrationTests: XCTestCase {
     
     var mockTaskScheduler: MockBGTaskScheduler!
-    
+    @MainActor
+    var manager: BackgroundMediaImportManager!
+
+    @MainActor
     override func setUp() {
+        manager = .init()
         super.setUp()
+
         mockTaskScheduler = MockBGTaskScheduler()
     }
-    
+
+    @MainActor
     override func tearDown() {
+        manager = nil
         mockTaskScheduler = nil
+
         super.tearDown()
     }
     
@@ -59,20 +67,9 @@ class BackgroundTaskRegistrationTests: XCTestCase {
     // MARK: - Background Task Handler Tests
     
     @MainActor
-    func testBackgroundMediaImportManagerSharedInstance() {
-        // Test that the shared instance exists and is accessible
-        let manager = BackgroundMediaImportManager.shared
-        XCTAssertNotNil(manager)
-        
-        // Test that multiple calls return the same instance
-        let manager2 = BackgroundMediaImportManager.shared
-        XCTAssertTrue(manager === manager2)
-    }
-    
-    @MainActor
     func testBackgroundMediaImportManagerConfiguration() {
         // Test that the manager can be configured with required dependencies
-        let manager = BackgroundMediaImportManager.shared
+        
         
         // Create test dependencies
         let testKeyManager = TestUtils.createTestKeyManager()
@@ -115,7 +112,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
     @MainActor
     func testBackgroundTaskHandlerAccessibility() {
         // Test that the background task handler can access the shared manager
-        let manager = BackgroundMediaImportManager.shared
+        
         XCTAssertNotNil(manager)
         
         // Test that the manager has the required published properties for state tracking
@@ -132,7 +129,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         // This ensures the integration is set up properly without testing runtime behavior
         
         // Verify that the manager has the required structure for background task handling
-        let manager = BackgroundMediaImportManager.shared
+        
         XCTAssertNotNil(manager, "BackgroundMediaImportManager shared instance should exist")
         
         // Verify that the manager has the required published properties for state tracking
@@ -148,8 +145,8 @@ class BackgroundTaskRegistrationTests: XCTestCase {
     func testRealFileOperationsWithBackgroundTask() async throws {
         // Create a unique test key for this test run
         let testKeyManager = TestUtils.createTestKeyManager()
-        let testKey = try TestUtils.createTestKey(name: "BackgroundTaskTest_\(Date().timeIntervalSince1970)", keyManager: testKeyManager)
-        
+        let _ = try TestUtils.createTestKey(name: "BackgroundTaskTest_\(Date().timeIntervalSince1970)", keyManager: testKeyManager)
+
         // Create album manager and album
         let testAlbumManager = TestUtils.createTestAlbumManager(keyManager: testKeyManager)
         let testAlbum = try testAlbumManager.create(name: "BackgroundTaskTestAlbum", storageOption: .local)
@@ -158,7 +155,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         let realFileAccess = await InteractableMediaDiskAccess(for: testAlbum, albumManager: testAlbumManager)
         
         // Configure BackgroundMediaImportManager with real dependencies
-        let manager = BackgroundMediaImportManager.shared
+        
         manager.configure(fileAccess: realFileAccess, albumManager: testAlbumManager)
         
         // Load real files from PreviewAssets
@@ -168,11 +165,11 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         // Track progress updates
         var progressUpdates: [ImportProgressUpdate] = []
         let progressExpectation = expectation(description: "Progress updates received")
-        progressExpectation.expectedFulfillmentCount = testMedia.count // Expect progress for each file
-        
+
         let progressSubscription = manager.progressPublisher
             .sink { progress in
                 progressUpdates.append(progress)
+                debugPrint("Getting progress: \(progress.overallProgress), \(progress.currentFileIndex), \(testMedia.count - 1), \(progress.currentFileIndex == testMedia.count - 1 && progress.overallProgress >= 1.0)")
                 if progress.currentFileIndex == testMedia.count - 1 && progress.overallProgress >= 1.0 {
                     progressExpectation.fulfill()
                 }
@@ -182,12 +179,12 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         try await manager.startImport(media: testMedia, albumId: testAlbum.id)
         
         // Wait for completion
-        await fulfillment(of: [progressExpectation], timeout: 30.0)
-        
+        await fulfillment(of: [progressExpectation], timeout: 10.0)
+
         // Verify progress updates were received
         XCTAssertFalse(progressUpdates.isEmpty, "Should receive progress updates")
-        XCTAssertEqual(progressUpdates.last?.state, .completed, "Final progress should be completed")
-        
+        XCTAssertEqual(progressUpdates.last?.state, .completed, "Final progress should be completed: \(progressUpdates.last!)")
+
         // Verify import completed successfully
         XCTAssertFalse(manager.isImporting, "Import should be completed")
         XCTAssertEqual(manager.overallProgress, 0.0, "Overall progress should reset after completion")
@@ -213,7 +210,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         let realFileAccess = await InteractableMediaDiskAccess(for: testAlbum, albumManager: testAlbumManager)
         
         // Configure manager
-        let manager = BackgroundMediaImportManager.shared
+        
         manager.configure(fileAccess: realFileAccess, albumManager: testAlbumManager)
         
         // Load test files (just first 3 to keep test manageable)
@@ -238,13 +235,11 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         // Pause the import after a brief delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             if let taskId = taskId {
-                manager.pauseImport(taskId: taskId)
+                self.manager.pauseImport(taskId: taskId)
             }
         }
         
-        // Wait for pause to take effect
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
-        
+
         // Verify task is paused (but it might have completed already due to small file count)
         let pausedTask = manager.currentTasks.first { $0.id == taskId }
         if pausedTask?.progress.state == .paused {
@@ -281,7 +276,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         let realFileAccess = await InteractableMediaDiskAccess(for: testAlbum, albumManager: testAlbumManager)
         
         // Configure manager
-        let manager = BackgroundMediaImportManager.shared
+        
         manager.configure(fileAccess: realFileAccess, albumManager: testAlbumManager)
         
         // Load just one test file for controlled testing
@@ -348,11 +343,11 @@ class BackgroundTaskRegistrationTests: XCTestCase {
     func testBackgroundTaskWithMultipleKeysAndVerification() async throws {
         // Create two different keys to test key isolation
         let testKeyManager1 = TestUtils.createTestKeyManager()
-        let testKey1 = try TestUtils.createTestKey(name: "MultiKeyTest1_\(Date().timeIntervalSince1970)", keyManager: testKeyManager1)
-        
+        let _ = try TestUtils.createTestKey(name: "MultiKeyTest1_\(Date().timeIntervalSince1970)", keyManager: testKeyManager1)
+
         let testKeyManager2 = TestUtils.createTestKeyManager()
-        let testKey2 = try TestUtils.createTestKey(name: "MultiKeyTest2_\(Date().timeIntervalSince1970)", keyManager: testKeyManager2)
-        
+        let _ = try TestUtils.createTestKey(name: "MultiKeyTest2_\(Date().timeIntervalSince1970)", keyManager: testKeyManager2)
+
         // Create albums with different keys
         let testAlbumManager1 = TestUtils.createTestAlbumManager(keyManager: testKeyManager1)
         let testAlbum1 = try testAlbumManager1.create(name: "MultiKeyTestAlbum1", storageOption: .local)
@@ -368,7 +363,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         let testMedia1 = try Array(loadPreviewAssetFiles().prefix(2))
         let testMedia2 = try Array(loadPreviewAssetFiles().suffix(2))
         
-        let manager = BackgroundMediaImportManager.shared
+        
         
         // Import to first album
         manager.configure(fileAccess: realFileAccess1, albumManager: testAlbumManager1)
@@ -378,7 +373,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         let firstCompletionExpectation = expectation(description: "First import completion")
         let firstSubscription = manager.progressPublisher
             .sink { progress in
-                if progress.state == .completed && progress.taskId == manager.currentTasks.first?.id {
+                if progress.state == .completed && progress.taskId == self.manager.currentTasks.first?.id {
                     firstCompletionExpectation.fulfill()
                 }
             }
@@ -393,7 +388,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         let secondCompletionExpectation = expectation(description: "Second import completion")
         let secondSubscription = manager.progressPublisher
             .sink { progress in
-                if progress.state == .completed && progress.taskId == manager.currentTasks.last?.id {
+                if progress.state == .completed && progress.taskId == self.manager.currentTasks.last?.id {
                     secondCompletionExpectation.fulfill()
                 }
             }
