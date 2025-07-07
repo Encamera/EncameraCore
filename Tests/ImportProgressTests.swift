@@ -58,7 +58,6 @@ class ImportProgressTests: XCTestCase {
         // When: Add the task and mark it as completed
         importManager.currentTasks.append(task)
         if let index = importManager.currentTasks.firstIndex(where: { $0.id == task.id }) {
-            importManager.currentTasks[index].state = .completed
             importManager.currentTasks[index].progress = ImportProgressUpdate(
                 taskId: task.id,
                 currentFileIndex: 5,  // Last file index (0-based)
@@ -144,12 +143,10 @@ class ImportProgressTests: XCTestCase {
         // Test for completed tasks only
         let completedTask = ImportTask(media: [], albumId: "album1")
         var task = completedTask
-        task.state = .completed
         XCTAssertEqual(viewModel.getStatusText(for: [task]), "Import completed")
         
         // Test for single active task
         var activeTask = ImportTask(media: Array(repeating: CleartextMedia(source: .data(Data()), generateID: true), count: 10), albumId: "album1")
-        activeTask.state = .running
         activeTask.progress = ImportProgressUpdate(
             taskId: activeTask.id,
             currentFileIndex: 3,
@@ -164,7 +161,7 @@ class ImportProgressTests: XCTestCase {
         
         // Test for multiple active tasks
         var activeTask2 = ImportTask(media: Array(repeating: CleartextMedia(source: .data(Data()), generateID: true), count: 5), albumId: "album2")
-        activeTask2.state = .running
+        activeTask2.progress.state = .running
         XCTAssertEqual(viewModel.getStatusText(for: [activeTask, activeTask2]), "Importing 2 batches")
     }
     
