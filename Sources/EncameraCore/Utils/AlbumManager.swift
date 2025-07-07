@@ -33,7 +33,7 @@ public enum AlbumOperation {
     case albumCreated(album: Album)
 }
 
-public class AlbumManager: AlbumManaging, ObservableObject {
+public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     public var albumOperationPublisher: AnyPublisher<AlbumOperation, Never> {
         albumOperationSubject.eraseToAnyPublisher()
@@ -170,29 +170,29 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         }
 
         let album = Album(name: name, storageOption: storageOption, creationDate: Date(), key: currentKey)
-        debugPrint("Starting album creation process")
+        printDebug("Starting album creation process")
 
         let fileManager = FileManager.default
         let albumURL = album.storageURL
 
-        debugPrint("File manager and album URL are set up")
+        printDebug("File manager and album URL are set up")
 
         defer {
             // Add album to the albums collection
-            debugPrint("Adding album to the collection")
+            printDebug("Adding album to the collection")
             albumSet.insert(album)
             albumOperationSubject.send(.albumCreated(album: album))
         }
 
         // Check if the directory already exists
-        debugPrint("Checking if the directory exists at path: \(albumURL.path)")
+        printDebug("Checking if the directory exists at path: \(albumURL.path)")
         if fileManager.fileExists(atPath: albumURL.path) {
             // If the directory exists, throw the albumExists error
-            debugPrint("Directory already exists, throwing albumExists error")
+            printDebug("Directory already exists, throwing albumExists error")
             throw AlbumError.albumExists
         }
 
-        debugPrint("Directory does not exist, proceeding to create it")
+        printDebug("Directory does not exist, proceeding to create it")
 
         // If the directory does not exist, create it
         try fileManager.createDirectory(
@@ -201,7 +201,7 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             attributes: nil
         )
 
-        debugPrint("Directory created successfully")
+        printDebug("Directory created successfully")
         return album
     }
 
@@ -212,23 +212,23 @@ public class AlbumManager: AlbumManaging, ObservableObject {
         if toStorage == .icloud {
             try? self.keyManager.backupKeychainToiCloud(backupEnabled: true)
         }
-        debugPrint("Starting the move process for album: \(album.name)")
+        printDebug("Starting the move process for album: \(album.name)")
 
         // Determine the new storage URL based on the destination storage type
         let newStorage: DataStorageModel = toStorage == .local ? LocalStorageModel(album: album) : iCloudStorageModel(album: album)
 
-        debugPrint("Current storage URL: \(currentStorage.baseURL)")
-        debugPrint("New storage URL: \(newStorage.baseURL)")
+        printDebug("Current storage URL: \(currentStorage.baseURL)")
+        printDebug("New storage URL: \(newStorage.baseURL)")
 
         // Check if the album exists at the current location
         guard fileManager.fileExists(atPath: currentStorage.baseURL.path) else {
-            debugPrint("Album not found at the source location.")
+            printDebug("Album not found at the source location.")
             throw AlbumError.albumNotFoundAtSourceLocation
         }
 
         // Ensure the destination directory exists
         if !fileManager.fileExists(atPath: newStorage.baseURL.path) {
-            debugPrint("Destination directory does not exist. Creating new directory.")
+            printDebug("Destination directory does not exist. Creating new directory.")
             try fileManager.createDirectory(at: newStorage.baseURL, withIntermediateDirectories: true, attributes: nil)
         }
 
@@ -238,17 +238,17 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             let destinationURL = newStorage.baseURL.appendingPathComponent(sourceURL.lastPathComponent)
 
             if fileManager.fileExists(atPath: destinationURL.path) {
-                debugPrint("File already exists at destination: \(destinationURL.path). Implementing merge logic.")
+                printDebug("File already exists at destination: \(destinationURL.path). Implementing merge logic.")
                 // Implement your logic for handling duplicate files
             } else {
-                debugPrint("Moving file from \(sourceURL.path) to \(destinationURL.path)")
+                printDebug("Moving file from \(sourceURL.path) to \(destinationURL.path)")
                 try fileManager.moveItem(at: sourceURL, to: destinationURL)
             }
         }
 
         // Delete the source directory if it's empty
         if let contents = try? fileManager.contentsOfDirectory(atPath: currentStorage.baseURL.path), contents.isEmpty {
-            debugPrint("Source directory is empty after moving files. Deleting source directory.")
+            printDebug("Source directory is empty after moving files. Deleting source directory.")
             try fileManager.removeItem(at: currentStorage.baseURL)
         }
 
@@ -257,15 +257,15 @@ public class AlbumManager: AlbumManaging, ObservableObject {
             movedAlbum.storageOption = toStorage
             albumSet.insert(movedAlbum)
             albumOperationSubject.send(.albumMoved(album: movedAlbum))
-            debugPrint("Updated album storage option for \(album.name)")
+            printDebug("Updated album storage option for \(album.name)")
             return movedAlbum
             // Update the storageURL if your Album model has this property
         } else {
-            debugPrint("Could not update album, not found in the albums collection.")
+            printDebug("Could not update album, not found in the albums collection.")
         }
 
 
-        debugPrint("Completed the move process for album: \(album.name)")
+        printDebug("Completed the move process for album: \(album.name)")
         return album
     }
 

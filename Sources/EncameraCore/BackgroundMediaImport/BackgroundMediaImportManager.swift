@@ -92,17 +92,12 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         progressSubject.eraseToAnyPublisher()
     }
     
-    private init() {
+    public init() {
         setupNotificationObservers()
     }
-    
+
     // MARK: - Public API
-    
-    public func configure(fileAccess: FileAccess, albumManager: AlbumManaging) {
-        printDebug("Configuring BackgroundMediaImportManager with fileAccess and albumManager")
-        self.fileAccess = fileAccess
-        self.albumManager = albumManager
-    }
+
     
     public func startImport(media: [CleartextMedia], albumId: String, assetIdentifiers: [String] = []) async throws {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) with \(assetIdentifiers.count) asset identifiers")
@@ -182,11 +177,11 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     
     private func executeImportTask(_ task: ImportTask) async throws {
         printDebug("Executing import task: \(task.id) with \(task.media.count) media items")
-        
+        albumManager?.loadAlbumsFromFilesystem()
         guard let fileAccess = fileAccess,
               let albumManager = albumManager,
               let album = albumManager.albums.first(where: { $0.id == task.albumId }) else {
-            printDebug("Failed to execute import task - missing configuration or album")
+            printDebug("Failed to execute import task - missing configuration or album", albumManager?.albums)
             throw ImportError.configurationError
         }
         
@@ -234,6 +229,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                         self.currentTasks[index].progress.state = .failed(error)
                         self.publishProgress(for: self.currentTasks[index])
                     }
+                    self.updateOverallProgress()
                     self.updateIsImporting()
                     self.endBackgroundTask()
                     
@@ -331,7 +327,6 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                             estimatedTimeRemaining: estimatedTimeRemaining
                         )
                         self.publishProgress(for: self.currentTasks[taskIndex])
-                        self.updateOverallProgress()
                     }
                 }
             }
@@ -377,7 +372,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         if floor(task.progress.overallProgress * 100).truncatingRemainder(dividingBy: 10) == 0 {
             printDebug("Publishing progress for task \(task.id): \(task.progress.overallProgress * 100)% complete, \(task.progress.state), \(task.progress.state)")
         }
-
+        self.updateOverallProgress()
         progressSubject.send(task.progress)
     }
     
@@ -401,7 +396,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         }
         
         if previousProgress != overallProgress {
-            printDebug("Overall progress updated: \(previousProgress * 100)% -> \(overallProgress * 100)%")
+            printDebug("Overall progress updated: \(previousProgress * 100)% -> \(overallProgress * 100)%, active tasks: \(activeTasks.map({$0.progress.state}))")
         }
     }
     

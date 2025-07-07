@@ -535,7 +535,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true, // Added to retrieve attributes
             // Use helper computed property for query value
-            kSecAttrSynchronizable as String: syncQueryValueForReads
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         var item: CFTypeRef?
         let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
