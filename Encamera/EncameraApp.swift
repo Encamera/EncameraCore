@@ -192,13 +192,7 @@ struct EncameraApp: App {
                     for: album,
                     albumManager: albumManager
                 )
-                
-                // Configure the background import manager
-                BackgroundMediaImportManager.shared.configure(
-                    fileAccess: fileAccess,
-                    albumManager: albumManager
-                )
-                
+
                 guard keyManager.currentKey != nil else { return }
                 await showImportScreenIfNeeded()
             }
