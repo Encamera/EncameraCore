@@ -77,7 +77,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         let testFileAccess = MockFileAccess()
         
         // Test configuration doesn't throw
-        XCTAssertNoThrow(manager.configure(fileAccess: testFileAccess, albumManager: testAlbumManager))
+                            XCTAssertNoThrow(manager.configure(albumManager: testAlbumManager))
     }
     
     // MARK: - Integration Tests
@@ -156,7 +156,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         
         // Configure BackgroundMediaImportManager with real dependencies
         
-        manager.configure(fileAccess: realFileAccess, albumManager: testAlbumManager)
+        manager.configure(albumManager: testAlbumManager)
         
         // Load real files from PreviewAssets
         let testMedia = try loadPreviewAssetFiles()
@@ -211,7 +211,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         
         // Configure manager
         
-        manager.configure(fileAccess: realFileAccess, albumManager: testAlbumManager)
+        manager.configure(albumManager: testAlbumManager)
         
         // Load test files (just first 3 to keep test manageable)
         let testMedia = try Array(loadPreviewAssetFiles())
@@ -277,7 +277,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         
         // Configure manager
         
-        manager.configure(fileAccess: realFileAccess, albumManager: testAlbumManager)
+        manager.configure(albumManager: testAlbumManager)
         
         // Load just one test file for controlled testing
         let testMedia = try Array(loadPreviewAssetFiles().prefix(1))
@@ -366,7 +366,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         
         
         // Import to first album
-        manager.configure(fileAccess: realFileAccess1, albumManager: testAlbumManager1)
+        manager.configure(albumManager: testAlbumManager1)
         try await manager.startImport(media: testMedia1, albumId: testAlbum1.id)
         
         // Wait for first import to complete
@@ -381,7 +381,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         await fulfillment(of: [firstCompletionExpectation], timeout: 15.0)
         
         // Import to second album with different key
-        manager.configure(fileAccess: realFileAccess2, albumManager: testAlbumManager2)
+        manager.configure(albumManager: testAlbumManager2)
         try await manager.startImport(media: testMedia2, albumId: testAlbum2.id)
         
         // Wait for second import to complete
