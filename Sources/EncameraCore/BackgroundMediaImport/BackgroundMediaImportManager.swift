@@ -34,7 +34,7 @@ public struct ImportProgressUpdate {
     public let currentFileProgress: Double
     public let overallProgress: Double
     public let currentFileName: String?
-    public let state: ImportTaskState
+    public var state: ImportTaskState
     public let estimatedTimeRemaining: TimeInterval?
 }
 
@@ -43,8 +43,10 @@ public struct ImportTask {
     public let media: [CleartextMedia]
     public let albumId: String
     public let createdAt: Date
-    public var state: ImportTaskState
     public var progress: ImportProgressUpdate
+    public var state: ImportTaskState {
+        progress.state
+    }
     public let assetIdentifiers: [String]
     
     public init(id: String = UUID().uuidString, media: [CleartextMedia], albumId: String, assetIdentifiers: [String] = []) {
@@ -52,7 +54,6 @@ public struct ImportTask {
         self.media = media
         self.albumId = albumId
         self.createdAt = Date()
-        self.state = .idle
         self.assetIdentifiers = assetIdentifiers
         self.progress = ImportProgressUpdate(
             taskId: id,
@@ -118,7 +119,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             return 
         }
         
-        currentTasks[taskIndex].state = .paused
+        currentTasks[taskIndex].progress.state = .paused
         currentImportTask?.cancel()
         
         publishProgress(for: currentTasks[taskIndex])
@@ -127,7 +128,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     public func resumeImport(taskId: String) async throws {
         printDebug("Resuming import task: \(taskId)")
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }),
-              currentTasks[taskIndex].state == .paused else {
+              currentTasks[taskIndex].progress.state == .paused else {
             printDebug("Failed to find paused task to resume: \(taskId)")
             return
         }
@@ -142,7 +143,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             return
         }
         
-        currentTasks[taskIndex].state = .cancelled
+        currentTasks[taskIndex].progress.state = .cancelled
         currentImportTask?.cancel()
         
         publishProgress(for: currentTasks[taskIndex])
@@ -157,7 +158,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     
     public func removeCompletedTasks() {
         let tasksToRemove = currentTasks.filter { task in
-            switch task.state {
+            switch task.progress.state {
             case .completed, .cancelled, .failed:
                 return true
             default:
@@ -167,7 +168,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         
         printDebug("Removing \(tasksToRemove.count) completed/cancelled/failed tasks")
         currentTasks.removeAll { task in
-            switch task.state {
+            switch task.progress.state {
             case .completed, .cancelled, .failed:
                 return true
             default:
@@ -192,7 +193,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         await configureFileAccess(for: album)
         
         let taskIndex = currentTasks.firstIndex(where: { $0.id == task.id })!
-        currentTasks[taskIndex].state = .running
+        currentTasks[taskIndex].progress.state = .running
         isImporting = true
         
         printDebug("Starting background task for import: \(task.id)")
@@ -205,7 +206,6 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                 await MainActor.run {
                     self.printDebug("Import task completed successfully: \(task.id)")
                     if let index = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
-                        self.currentTasks[index].state = .completed
                         self.currentTasks[index].progress = ImportProgressUpdate(
                             taskId: task.id,
                             currentFileIndex: task.media.count - 1,
@@ -231,7 +231,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                 await MainActor.run {
                     self.printDebug("Import task failed with error: \(error.localizedDescription) for task: \(task.id)")
                     if let index = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
-                        self.currentTasks[index].state = .failed(error)
+                        self.currentTasks[index].progress.state = .failed(error)
                         self.publishProgress(for: self.currentTasks[index])
                     }
                     self.updateIsImporting()
@@ -373,7 +373,11 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     private func publishProgress(for task: ImportTask) {
-        printDebug("Publishing progress for task \(task.id): \(task.progress.overallProgress * 100)% complete")
+
+        if floor(task.progress.overallProgress * 100).truncatingRemainder(dividingBy: 10) == 0 {
+            printDebug("Publishing progress for task \(task.id): \(task.progress.overallProgress * 100)% complete, \(task.progress.state), \(task.progress.state)")
+        }
+
         progressSubject.send(task.progress)
     }
     
@@ -381,7 +385,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         let previousProgress = overallProgress
         
         let activeTasks = currentTasks.filter { task in
-            switch task.state {
+            switch task.progress.state {
             case .running, .paused:
                 return true
             default:
@@ -404,7 +408,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     private func updateIsImporting() {
         let wasImporting = isImporting
         isImporting = currentTasks.contains { task in
-            task.state == .running
+            task.progress.state == .running
         }
         if wasImporting != isImporting {
             printDebug("Import status changed: \(wasImporting) -> \(isImporting)")
@@ -449,7 +453,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     
     private func handleBackgroundImport(task: BGProcessingTask) {
         printDebug("Handling background import task")
-        let hasActiveTasks = !currentTasks.filter { $0.state == .running || $0.state == .paused }.isEmpty
+        let hasActiveTasks = !currentTasks.filter { $0.progress.state == .running || $0.progress.state == .paused }.isEmpty
         printDebug("Has active tasks: \(hasActiveTasks), total tasks: \(currentTasks.count)")
         
         if hasActiveTasks {
@@ -462,7 +466,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             Task {
                 printDebug("Starting background task execution")
                 // Resume or continue any paused/running tasks
-                for importTask in currentTasks where importTask.state == .paused {
+                for importTask in currentTasks where importTask.progress.state == .paused {
                     printDebug("Resuming paused task in background: \(importTask.id)")
                     try? await resumeImport(taskId: importTask.id)
                 }
@@ -510,7 +514,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         NotificationUtils.didEnterBackgroundPublisher
             .sink { [weak self] _ in
                 self?.printDebug("App did enter background - scheduling background import")
-                self?.printDebug("Current active tasks count: \(self?.currentTasks.filter { $0.state == .running }.count ?? 0)")
+                self?.printDebug("Current active tasks count: \(self?.currentTasks.filter { $0.progress.state == .running }.count ?? 0)")
                 self?.printDebug("Active background task identifier: \(self?.activeBackgroundTask.rawValue ?? 0)")
                 self?.scheduleBackgroundImport()
             }

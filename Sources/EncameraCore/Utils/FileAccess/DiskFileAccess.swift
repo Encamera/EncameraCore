@@ -317,7 +317,7 @@ extension DiskFileAccess {
         // Try to get the key UUID from extended attributes
         let keyToUse: PrivateKey
         if let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL),
-           let matchingKey = keyManager.keyWith(uuid: storedKeyUUID) {
+           let matchingKey = await keyManager.keyWith(uuid: storedKeyUUID) {
             keyToUse = matchingKey
             printDebug("decryptMediaToData: Using key with UUID \(storedKeyUUID) for file \(encrypted.id)")
         } else {
@@ -379,7 +379,7 @@ extension DiskFileAccess {
         // Try to get the key UUID from extended attributes
         let keyToUse: PrivateKey
         if let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL),
-           let matchingKey = keyManager.keyWith(uuid: storedKeyUUID) {
+           let matchingKey = await keyManager.keyWith(uuid: storedKeyUUID) {
             keyToUse = matchingKey
             printDebug("decryptMediaToURL: Using key with UUID \(storedKeyUUID) for file \(encrypted.id)")
         } else {

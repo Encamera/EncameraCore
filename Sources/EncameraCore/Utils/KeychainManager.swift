@@ -32,7 +32,7 @@ public struct KeyPassphrase: Codable {
 }
 
 
-public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
+public class KeychainManager: ObservableObject, @preconcurrency KeyManager, DebugPrintable {
      
     
     
@@ -425,6 +425,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         return keys?.first(where: {$0.name == name})
     }
 
+    @MainActor
     public func keyWith(uuid: UUID) -> PrivateKey? {
         // If we're in background and it's the current key, return it directly
         if UIApplication.shared.applicationState == .background,
@@ -527,13 +528,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
     
     public func passwordExists() -> Bool {
-        // Skip keychain access if we're in background
-        if UIApplication.shared.applicationState == .background {
-            // If we have a current key, we can assume password exists
-            // This avoids authentication errors in background
-            return currentKey != nil
-        }
-        
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -657,12 +652,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func getPasswordHash() throws -> Data  {
-        // Avoid keychain access in background
-        if UIApplication.shared.applicationState == .background {
-            printDebug("Skipping password hash retrieval in background")
-            throw KeyManagerError.notAuthenticatedError
-        }
-        
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -1107,12 +1097,7 @@ private extension KeychainManager {
 
     /// Determines the explicit state of the central backup status flag.
     private func getBackupFlagState() -> BackupFlagState {
-        // Avoid keychain access in background
-        if UIApplication.shared.applicationState == .background {
-            // Return a safe default in background to avoid authentication errors
-            return .notSet
-        }
-        
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
