@@ -14,7 +14,11 @@ struct CustomPhotoPicker: UIViewControllerRepresentable {
     var selectionLimit: Int = 0 // 0 for unlimited
     
     func makeUIViewController(context: Context) -> UINavigationController {
-        let viewController = CustomPhotoPickerViewController()
+        let viewModel = CustomPhotoPickerViewModel()
+        viewModel.filter = filter
+        viewModel.selectionLimit = selectionLimit
+        
+        let viewController = CustomPhotoPickerViewController(viewModel: viewModel)
         viewController.onSelection = { assets in
             // Convert PHAssets to MediaSelectionResult
             let results = assets.map { asset in
@@ -22,8 +26,6 @@ struct CustomPhotoPicker: UIViewControllerRepresentable {
             }
             selectedItems(results)
         }
-        viewController.filter = filter
-        viewController.selectionLimit = selectionLimit
         
         let navController = UINavigationController(rootViewController: viewController)
         navController.navigationBar.prefersLargeTitles = false
@@ -32,6 +34,10 @@ struct CustomPhotoPicker: UIViewControllerRepresentable {
     
     func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
         // Update if needed
+        if let photoPickerVC = uiViewController.topViewController as? CustomPhotoPickerViewController {
+            photoPickerVC.viewModel.updateFilter(filter)
+            photoPickerVC.viewModel.updateSelectionLimit(selectionLimit)
+        }
     }
 }
 
@@ -42,12 +48,9 @@ class CustomPhotoPickerViewController: UIViewController {
     
     // MARK: Properties
     var onSelection: (([PHAsset]) -> ())?
-    var filter: PHPickerFilter = .images
-    var selectionLimit: Int = 0
+    let viewModel: CustomPhotoPickerViewModel
     
     private var collectionView: UICollectionView!
-    private var assets: PHFetchResult<PHAsset>?
-    private var selectedAssets = OrderedSet<PHAsset>()
     private var selectedIndexPaths = Set<IndexPath>()
     private let imageManager = PHCachingImageManager()
     
@@ -56,8 +59,7 @@ class CustomPhotoPickerViewController: UIViewController {
     private var processedIndexPaths = Set<IndexPath>()
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     
-    // New property to track if we're in selection mode after long press
-    private var isInSelectionMode = false
+    private var cancellables = Set<AnyCancellable>()
     
     // Selection mode indicator view
     private lazy var selectionModeIndicator: UIView = {
@@ -86,13 +88,58 @@ class CustomPhotoPickerViewController: UIViewController {
         case deselecting
     }
     
+    // MARK: - Initialization
+    init(viewModel: CustomPhotoPickerViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setupNavigationBar()
         setupCollectionView()
-        checkPhotoLibraryPermission()
+        setupViewModelBindings()
+    }
+    
+    // MARK: - ViewModel Bindings
+    private func setupViewModelBindings() {
+        // Observe assets changes
+        viewModel.$assets
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.collectionView.reloadData()
+            }
+            .store(in: &cancellables)
+        
+        // Observe selection count changes
+        viewModel.$selectionCount
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateNavigationBar()
+            }
+            .store(in: &cancellables)
+        
+        // Observe selection mode changes
+        viewModel.$isInSelectionMode
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isInSelectionMode in
+                self?.updateSelectionModeUI(isInSelectionMode)
+            }
+            .store(in: &cancellables)
+        
+        // Observe authorization status changes
+        viewModel.$authorizationStatus
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                self?.handleAuthorizationStatusChange(status)
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Setup
@@ -152,32 +199,35 @@ class CustomPhotoPickerViewController: UIViewController {
         ])
     }
     
-    private func checkPhotoLibraryPermission() {
-        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        
+    private func handleAuthorizationStatusChange(_ status: PHAuthorizationStatus) {
         switch status {
         case .authorized:
-            loadPhotos()
+            break // ViewModel handles loading
         case .limited:
-            loadPhotos()
             showLimitedAccessBanner()
-        case .notDetermined:
-            PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] status in
-                DispatchQueue.main.async {
-                    if status == .authorized {
-                        self?.loadPhotos()
-                    } else if status == .limited {
-                        self?.loadPhotos()
-                        self?.showLimitedAccessBanner()
-                    } else {
-                        self?.showPermissionDeniedAlert()
-                    }
-                }
-            }
         case .denied, .restricted:
             showPermissionDeniedAlert()
+        case .notDetermined:
+            break // ViewModel handles requesting permission
         @unknown default:
             break
+        }
+    }
+    
+    private func updateSelectionModeUI(_ isInSelectionMode: Bool) {
+        if isInSelectionMode {
+            UIView.animate(withDuration: 0.2) {
+                self.selectionModeIndicator.isHidden = false
+                self.selectionModeIndicator.alpha = 1
+            }
+            collectionView.isScrollEnabled = false
+        } else {
+            UIView.animate(withDuration: 0.2) {
+                self.selectionModeIndicator.alpha = 0
+            } completion: { _ in
+                self.selectionModeIndicator.isHidden = true
+            }
+            collectionView.isScrollEnabled = true
         }
     }
     
@@ -236,32 +286,13 @@ class CustomPhotoPickerViewController: UIViewController {
         PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: self)
     }
     
-    private func loadPhotos() {
-        let fetchOptions = PHFetchOptions()
-        fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        
-        // Apply filter
-        if filter == .images {
-            fetchOptions.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
-        } else if filter == .videos {
-            fetchOptions.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.video.rawValue)
-        } else if filter == .any(of: [.images, .videos]) {
-            fetchOptions.predicate = NSPredicate(format: "mediaType = %d OR mediaType = %d", 
-                                               PHAssetMediaType.image.rawValue,
-                                               PHAssetMediaType.video.rawValue)
-        }
-        
-        assets = PHAsset.fetchAssets(with: fetchOptions)
-        collectionView.reloadData()
-    }
-    
     private func updateNavigationBar() {
-        if selectedAssets.isEmpty {
+        if viewModel.hasSelectedAssets {
+            navigationItem.rightBarButtonItem?.isEnabled = true
+            title = "\(viewModel.selectionCount) Selected"
+        } else {
             navigationItem.rightBarButtonItem?.isEnabled = false
             title = "Select Photos"
-        } else {
-            navigationItem.rightBarButtonItem?.isEnabled = true
-            title = "\(selectedAssets.count) Selected"
         }
     }
     
@@ -272,7 +303,7 @@ class CustomPhotoPickerViewController: UIViewController {
     
     @objc private func addTapped() {
         // Return the selected assets in order
-        let orderedAssets = selectedAssets.array
+        let orderedAssets = viewModel.selectedAssets.array
         onSelection?(orderedAssets)
         dismiss(animated: true)
     }
@@ -284,23 +315,14 @@ class CustomPhotoPickerViewController: UIViewController {
         switch gesture.state {
         case .began:
             // Enter selection mode
-            isInSelectionMode = true
+            viewModel.enterSelectionMode()
             isSwipeSelecting = true
             processedIndexPaths.removeAll()
             feedbackGenerator.prepare()
             
-            // Show selection mode indicator
-            UIView.animate(withDuration: 0.2) {
-                self.selectionModeIndicator.isHidden = false
-                self.selectionModeIndicator.alpha = 1
-            }
-            
             // Provide strong haptic feedback to indicate selection mode started
             let strongFeedback = UIImpactFeedbackGenerator(style: .medium)
             strongFeedback.impactOccurred()
-            
-            // Disable scrolling during selection
-            collectionView.isScrollEnabled = false
             
             // Determine selection mode based on initial cell
             if let indexPath = collectionView.indexPathForItem(at: location) {
@@ -310,7 +332,7 @@ class CustomPhotoPickerViewController: UIViewController {
             
         case .ended, .cancelled:
             // If we end the long press without moving, exit selection mode
-            if isInSelectionMode && !isSwipeSelecting {
+            if viewModel.isInSelectionMode && !isSwipeSelecting {
                 exitSelectionMode()
             }
             
@@ -321,7 +343,7 @@ class CustomPhotoPickerViewController: UIViewController {
     
     @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
         // Only process pan gestures when in selection mode
-        guard isInSelectionMode else { return }
+        guard viewModel.isInSelectionMode else { return }
         
         let location = gesture.location(in: collectionView)
         
@@ -355,18 +377,8 @@ class CustomPhotoPickerViewController: UIViewController {
     
     private func exitSelectionMode() {
         isSwipeSelecting = false
-        isInSelectionMode = false
+        viewModel.exitSelectionMode()
         processedIndexPaths.removeAll()
-        
-        // Re-enable scrolling
-        collectionView.isScrollEnabled = true
-        
-        // Hide selection mode indicator
-        UIView.animate(withDuration: 0.2) {
-            self.selectionModeIndicator.alpha = 0
-        } completion: { _ in
-            self.selectionModeIndicator.isHidden = true
-        }
     }
     
     // Helper method to interpolate points along a line
@@ -382,27 +394,20 @@ class CustomPhotoPickerViewController: UIViewController {
     }
     
     private func processIndexPath(_ indexPath: IndexPath) {
-        guard let asset = assets?[indexPath.item] else { return }
+        guard let asset = viewModel.getAsset(at: indexPath.item) else { return }
         
         processedIndexPaths.insert(indexPath)
-        
-        // Check selection limit
-        if swipeSelectionMode == .selecting && selectionLimit > 0 && selectedAssets.count >= selectionLimit {
-            return
-        }
         
         var selectionChanged = false
         
         if swipeSelectionMode == .selecting {
-            if !selectedAssets.contains(asset) {
-                selectedAssets.append(asset)
+            if viewModel.selectAsset(asset) {
                 selectedIndexPaths.insert(indexPath)
                 collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
                 selectionChanged = true
             }
         } else {
-            if selectedAssets.contains(asset) {
-                selectedAssets.remove(asset)
+            if viewModel.deselectAsset(asset) {
                 selectedIndexPaths.remove(indexPath)
                 collectionView.deselectItem(at: indexPath, animated: false)
                 selectionChanged = true
@@ -414,12 +419,10 @@ class CustomPhotoPickerViewController: UIViewController {
             feedbackGenerator.impactOccurred()
         }
         
-        updateNavigationBar()
-        
         // Update cell
         if let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
-            cell.isSelected = swipeSelectionMode == .selecting
-            cell.selectionNumber = swipeSelectionMode == .selecting ? selectedAssets.firstIndex(of: asset).map { $0 + 1 } : nil
+            cell.isSelected = viewModel.isAssetSelected(asset)
+            cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
         }
     }
 }
@@ -428,53 +431,48 @@ class CustomPhotoPickerViewController: UIViewController {
 extension CustomPhotoPickerViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return assets?.count ?? 0
+        return viewModel.totalAssetCount
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PhotoCell", for: indexPath) as! PhotoCell
         
-        if let asset = assets?[indexPath.item] {
+        if let asset = viewModel.getAsset(at: indexPath.item) {
             cell.configure(with: asset, imageManager: imageManager)
-            cell.isSelected = selectedIndexPaths.contains(indexPath)
-            cell.selectionNumber = selectedAssets.contains(asset) ? selectedAssets.firstIndex(of: asset).map { $0 + 1 } : nil
+            cell.isSelected = viewModel.isAssetSelected(asset)
+            cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
         }
         
         return cell
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard !isSwipeSelecting, let asset = assets?[indexPath.item] else { return }
+        guard !isSwipeSelecting, let asset = viewModel.getAsset(at: indexPath.item) else { return }
         
-        // Check selection limit
-        if selectionLimit > 0 && selectedAssets.count >= selectionLimit && !selectedAssets.contains(asset) {
+        if viewModel.selectAsset(asset) {
+            selectedIndexPaths.insert(indexPath)
+            
+            if let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
+                cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
+            }
+        } else {
+            // Selection failed (probably due to limit), deselect in UI
             collectionView.deselectItem(at: indexPath, animated: false)
-            return
-        }
-        
-        if !selectedAssets.contains(asset) {
-            selectedAssets.append(asset)
-        }
-        selectedIndexPaths.insert(indexPath)
-        updateNavigationBar()
-        
-        if let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
-            cell.selectionNumber = selectedAssets.firstIndex(of: asset).map { $0 + 1 }
         }
     }
     
     func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
-        guard !isSwipeSelecting, let asset = assets?[indexPath.item] else { return }
+        guard !isSwipeSelecting, let asset = viewModel.getAsset(at: indexPath.item) else { return }
         
-        selectedAssets.remove(asset)
-        selectedIndexPaths.remove(indexPath)
-        updateNavigationBar()
-        
-        // Update all cells' selection numbers
-        for (index, remainingAsset) in selectedAssets.array.enumerated() {
-            if let assetIndex = assets?.index(of: remainingAsset),
-               let cell = collectionView.cellForItem(at: IndexPath(item: assetIndex, section: 0)) as? PhotoCell {
-                cell.selectionNumber = index + 1
+        if viewModel.deselectAsset(asset) {
+            selectedIndexPaths.remove(indexPath)
+            
+            // Update all visible cells' selection numbers
+            for visibleIndexPath in collectionView.indexPathsForVisibleItems {
+                if let visibleAsset = viewModel.getAsset(at: visibleIndexPath.item),
+                   let cell = collectionView.cellForItem(at: visibleIndexPath) as? PhotoCell {
+                    cell.selectionNumber = viewModel.getSelectionNumber(for: visibleAsset)
+                }
             }
         }
     }
@@ -490,7 +488,7 @@ extension CustomPhotoPickerViewController: UIGestureRecognizerDelegate {
         }
         
         // Don't interfere with scrolling when not in selection mode
-        if gestureRecognizer is UIPanGestureRecognizer && !isInSelectionMode {
+        if gestureRecognizer is UIPanGestureRecognizer && !viewModel.isInSelectionMode {
             return false
         }
         
@@ -500,43 +498,13 @@ extension CustomPhotoPickerViewController: UIGestureRecognizerDelegate {
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         // Pan gesture should only begin if we're in selection mode
         if gestureRecognizer is UIPanGestureRecognizer {
-            return isInSelectionMode
+            return viewModel.isInSelectionMode
         }
         return true
     }
 }
 
-// MARK: - OrderedSet Helper
-struct OrderedSet<T: Hashable> {
-    private var _array: [T] = []
-    private var set: Set<T> = []
-    
-    var array: [T] { _array }
-    var count: Int { _array.count }
-    var isEmpty: Bool { _array.isEmpty }
-    
-    mutating func append(_ element: T) {
-        if !set.contains(element) {
-            _array.append(element)
-            set.insert(element)
-        }
-    }
-    
-    mutating func remove(_ element: T) {
-        if let index = _array.firstIndex(of: element) {
-            _array.remove(at: index)
-            set.remove(element)
-        }
-    }
-    
-    func contains(_ element: T) -> Bool {
-        return set.contains(element)
-    }
-    
-    func firstIndex(of element: T) -> Int? {
-        return _array.firstIndex(of: element)
-    }
-}
+
 
 // MARK: - Photo Cell
 class PhotoCell: UICollectionViewCell {

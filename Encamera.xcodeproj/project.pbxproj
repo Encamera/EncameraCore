@@ -83,6 +83,7 @@
 		295E1C586ED20C1AA268B6DF /* AlbumBaseGridItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01BFF65E06F6DE4A78487DE /* AlbumBaseGridItem.swift */; };
 		29A85EC139C46E618A7F1EFB /* maria-cappelli-26YOSbRw65A-unsplash.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 9B3CE8E9D5CB57DCCBD9282D /* maria-cappelli-26YOSbRw65A-unsplash.jpg */; };
 		29EEDCB1A75BB882A663D042 /* GenericModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAA5D1B74670DB2306A814D5 /* GenericModal.swift */; };
+		2A3046AC64ED5888A2DFD5A4 /* CustomPhotoPickerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6D637411099060F9F9F5FC4 /* CustomPhotoPickerViewModelTests.swift */; };
 		2AB0B8677CCC7D4C61C75F65 /* FirstResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33EB72741B45000D6270339E /* FirstResponder.swift */; };
 		2D2A12C72BABF4CEE85F3A2C /* BuyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */; };
 		2DE07F0413BE65FFFA43ABB4 /* CameraZoomControlButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26A38C1E9C740A80200B877 /* CameraZoomControlButtons.swift */; };
@@ -307,6 +308,7 @@
 		ABE6008FFC78E28EC31DC030 /* Satoshi-BlackItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8CC3EF584D715B91450BDEA3 /* Satoshi-BlackItalic.otf */; };
 		ACC2F6D0E8C2505DA795A526 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2196F3D125A5CB3A99BD0D21 /* CameraView.swift */; };
 		ACE74CAC56428B30AB1D770F /* Array+Safe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E7AA4BF658B30B4FDE2F972 /* Array+Safe.swift */; };
+		ADDC333EDE77A603D00ABD46 /* CustomPhotoPickerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A9C1D601F34DC031A326FF /* CustomPhotoPickerViewModel.swift */; };
 		AFC011F9D10BE30815613505 /* BottomCameraControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44BB9179B56CCBAE5FFD688 /* BottomCameraControls.swift */; };
 		B03DDD33BFE84771913C7306 /* ImageViewingUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45C75E183A2E61A09FC232B /* ImageViewingUIView.swift */; };
 		B0A033D892BE1DB82330FBD9 /* SurfaceType.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B049D6954401D9414853A9 /* SurfaceType.swift */; };
@@ -393,6 +395,7 @@
 		DAAB9F0469E9D791F54D1EBE /* ImageWithBackgroundRectangle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 745A49F606BD48880E22AFEC /* ImageWithBackgroundRectangle.swift */; };
 		DBA329EE381C197A06342A6F /* BackgroundRectangle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BDE42B029680FCDC41E48E9 /* BackgroundRectangle.swift */; };
 		DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */ = {isa = PBXBuildFile; productRef = 9BDB467AF8E2ABBB52B964F4 /* Sodium */; };
+		DFDFD587195557DC0526BB60 /* CustomPhotoPickerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A9C1D601F34DC031A326FF /* CustomPhotoPickerViewModel.swift */; };
 		DFF2175CBF77A269BBFDEA7D /* ImportProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6897CDF81668F94FDE804A4F /* ImportProgressTests.swift */; };
 		E02CDF136FEA73C34ED68EE1 /* CameraModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B8A55486672F21BAE8F0487 /* CameraModePicker.swift */; };
 		E12E1D28DD4C03A3A9AF68F2 /* NotificationContentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA797AD9A45EF0B58CD0C147 /* NotificationContentRepository.swift */; };
@@ -701,6 +704,7 @@
 		C549493585B3CFD05224399A /* PinCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCodeView.swift; sourceTree = "<group>"; };
 		C6D4F6A7A4F99FA1D28BB937 /* Satoshi-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Bold.otf"; sourceTree = "<group>"; };
 		C7085C27CFF6BB271DB91A2D /* ChangePinModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangePinModal.swift; sourceTree = "<group>"; };
+		C8A9C1D601F34DC031A326FF /* CustomPhotoPickerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomPhotoPickerViewModel.swift; sourceTree = "<group>"; };
 		C8C25496618B6149212F67E6 /* PopoverComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverComponent.swift; sourceTree = "<group>"; };
 		C928D55420DA4790784059AA /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/MainInterface.strings; sourceTree = "<group>"; };
 		CA6EA3006B6C149A02A8AA44 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -715,6 +719,7 @@
 		D4DDF93C2E1725BC42C2CE84 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D50482CE53A5E780FA8F3B38 /* DemoFileEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFileEnumerator.swift; sourceTree = "<group>"; };
 		D6758B0A04FA196EDAF9CA1F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		D6D637411099060F9F9F5FC4 /* CustomPhotoPickerViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomPhotoPickerViewModelTests.swift; sourceTree = "<group>"; };
 		D7BD5A58E7143676EFB8D05A /* PasswordEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordEntry.swift; sourceTree = "<group>"; };
 		D85AFFF69DE741F555B05A79 /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = debug.xcconfig; sourceTree = "<group>"; };
 		D9E040DE4298869CF563F016 /* DecryptErrorExplanation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecryptErrorExplanation.swift; sourceTree = "<group>"; };
@@ -1053,6 +1058,7 @@
 			isa = PBXGroup;
 			children = (
 				AC6ECA646325CCED91BD064B /* BackgroundTaskRegistrationTests.swift */,
+				D6D637411099060F9F9F5FC4 /* CustomPhotoPickerViewModelTests.swift */,
 				6ED699C44F76416181EC313E /* ExtendedAttributesUtilTests.swift */,
 				8EA3B62B701C8B7BC9C62AA3 /* FileHandlerKeyInteractionTests.swift */,
 				6897CDF81668F94FDE804A4F /* ImportProgressTests.swift */,
@@ -1267,6 +1273,7 @@
 				1BDE42B029680FCDC41E48E9 /* BackgroundRectangle.swift */,
 				A26A38C1E9C740A80200B877 /* CameraZoomControlButtons.swift */,
 				C43CCC65F390D15B97884C67 /* CustomPhotoPicker.swift */,
+				C8A9C1D601F34DC031A326FF /* CustomPhotoPickerViewModel.swift */,
 				5EDAE32CBB0CA3BFF5A99A2A /* DismissButton.swift */,
 				8761F9FBD1C7297E54D6C0D5 /* DualButtonComponent.swift */,
 				2015E3ECBE2D018DCAB8602A /* EncameraTextField.swift */,
@@ -1735,6 +1742,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B39BCF10C47E2E6EB3D4A2CA /* BackgroundTaskRegistrationTests.swift in Sources */,
+				2A3046AC64ED5888A2DFD5A4 /* CustomPhotoPickerViewModelTests.swift in Sources */,
 				0B9B23FFCC770524EB3F8753 /* ExtendedAttributesUtilTests.swift in Sources */,
 				5E84884DAD76437F1BD546A3 /* FileHandlerKeyInteractionTests.swift in Sources */,
 				DFF2175CBF77A269BBFDEA7D /* ImportProgressTests.swift in Sources */,
@@ -1785,6 +1793,7 @@
 				1EBA8A3C8C97CFBE9F88BFC2 /* ConditionalModifier.swift in Sources */,
 				E372CBC2D865825DCE3FACA9 /* CreateAlbum.swift in Sources */,
 				9FCC54EEB954A415E97A38B2 /* CustomPhotoPicker.swift in Sources */,
+				DFDFD587195557DC0526BB60 /* CustomPhotoPickerViewModel.swift in Sources */,
 				8DA5313062B4B0A3BAA23C4A /* DecryptErrorExplanation.swift in Sources */,
 				5A11DC5FE8387F57FE50E7ED /* DefaultEdgeSpacing.swift in Sources */,
 				93ADB6C217419F9ED80A68D1 /* DemoFileEnumerator.swift in Sources */,
@@ -1959,6 +1968,7 @@
 				F8466D3C273EF07E56C2AAB0 /* ContentView.swift in Sources */,
 				F4E6DE89AF56549BA339C272 /* CreateAlbum.swift in Sources */,
 				1BF389FAFC283C2C0EB6F46E /* CustomPhotoPicker.swift in Sources */,
+				ADDC333EDE77A603D00ABD46 /* CustomPhotoPickerViewModel.swift in Sources */,
 				4690EAB3D33AB78CC77291CA /* DecryptErrorExplanation.swift in Sources */,
 				3415307FE0C9FE46F9BA5B25 /* DefaultEdgeSpacing.swift in Sources */,
 				A7B5102895914C54683C62A6 /* DemoFileEnumerator.swift in Sources */,
