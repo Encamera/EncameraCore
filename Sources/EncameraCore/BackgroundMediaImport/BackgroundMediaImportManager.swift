@@ -3,70 +3,6 @@ import BackgroundTasks
 import Combine
 import UIKit
 
-public enum ImportTaskState: Equatable {
-    case idle
-    case running
-    case paused
-    case completed
-    case cancelled
-    case failed(Error)
-    
-    public static func == (lhs: ImportTaskState, rhs: ImportTaskState) -> Bool {
-        switch (lhs, rhs) {
-        case (.idle, .idle),
-             (.running, .running),
-             (.paused, .paused),
-             (.completed, .completed),
-             (.cancelled, .cancelled):
-            return true
-        case (.failed(let lError), .failed(let rError)):
-            return lError.localizedDescription == rError.localizedDescription
-        default:
-            return false
-        }
-    }
-}
-
-public struct ImportProgressUpdate {
-    public let taskId: String
-    public let currentFileIndex: Int
-    public let totalFiles: Int
-    public let currentFileProgress: Double
-    public let overallProgress: Double
-    public let currentFileName: String?
-    public var state: ImportTaskState
-    public let estimatedTimeRemaining: TimeInterval?
-}
-
-public struct ImportTask {
-    public let id: String
-    public let media: [CleartextMedia]
-    public let albumId: String
-    public let createdAt: Date
-    public var progress: ImportProgressUpdate
-    public var state: ImportTaskState {
-        progress.state
-    }
-    public let assetIdentifiers: [String]
-    
-    public init(id: String = UUID().uuidString, media: [CleartextMedia], albumId: String, assetIdentifiers: [String] = []) {
-        self.id = id
-        self.media = media
-        self.albumId = albumId
-        self.createdAt = Date()
-        self.assetIdentifiers = assetIdentifiers
-        self.progress = ImportProgressUpdate(
-            taskId: id,
-            currentFileIndex: 0,
-            totalFiles: media.count,
-            currentFileProgress: 0.0,
-            overallProgress: 0.0,
-            currentFileName: nil,
-            state: .idle,
-            estimatedTimeRemaining: nil
-        )
-    }
-}
 
 @MainActor
 public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
@@ -519,14 +455,6 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             }
             .store(in: &cancellables)
     }
-}
-
-// MARK: - Supporting Types
-
-public enum ImportError: Error {
-    case configurationError
-    case taskNotFound
-    case operationCancelled
 }
 
 // MARK: - Array Extension
