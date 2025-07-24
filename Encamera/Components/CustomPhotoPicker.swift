@@ -519,7 +519,6 @@ class PhotoCell: UICollectionViewCell {
     
     private let imageView = UIImageView()
     private let selectedOverlay = UIView()
-    private let selectedCheckmark = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
     private let selectionNumberLabel = UILabel()
     private let videoIndicator = UILabel()
     private var imageRequestID: PHImageRequestID?
@@ -529,10 +528,8 @@ class PhotoCell: UICollectionViewCell {
             if let number = selectionNumber {
                 selectionNumberLabel.text = "\(number)"
                 selectionNumberLabel.isHidden = false
-                selectedCheckmark.isHidden = true
             } else {
                 selectionNumberLabel.isHidden = true
-                selectedCheckmark.isHidden = !isSelected
             }
         }
     }
@@ -569,18 +566,6 @@ class PhotoCell: UICollectionViewCell {
             selectedOverlay.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             selectedOverlay.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             selectedOverlay.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
-        ])
-        
-        // Checkmark
-        selectedCheckmark.tintColor = .systemBlue
-        selectedCheckmark.isHidden = true
-        contentView.addSubview(selectedCheckmark)
-        selectedCheckmark.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            selectedCheckmark.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
-            selectedCheckmark.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
-            selectedCheckmark.widthAnchor.constraint(equalToConstant: 24),
-            selectedCheckmark.heightAnchor.constraint(equalToConstant: 24)
         ])
         
         // Selection number label
@@ -622,9 +607,6 @@ class PhotoCell: UICollectionViewCell {
     override var isSelected: Bool {
         didSet {
             selectedOverlay.isHidden = !isSelected
-            if selectionNumber == nil {
-                selectedCheckmark.isHidden = !isSelected
-            }
         }
     }
     
