@@ -90,7 +90,7 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
     }
 
     @MainActor
-    var shouldShowPurchaseScreenForKeys: Bool {
+    var shouldShowPurchaseScreenForAlbum: Bool {
         if albums.count == 0 {
             return false
         }
@@ -165,7 +165,7 @@ struct AlbumGrid<D: FileAccess>: View {
     @ViewBuilder
     private func createAlbumButton(side: CGFloat) -> some View {
         let button = AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheadingView: { Color.clear }, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
-        if !viewModel.shouldShowPurchaseScreenForKeys {
+        if !viewModel.shouldShowPurchaseScreenForAlbum {
             NavigationLink(value: AppNavigationPaths.createAlbum) {
                 button
             }
@@ -185,7 +185,7 @@ struct AlbumGrid<D: FileAccess>: View {
             NavigationLink(value: AppNavigationPaths.albumDetail(album: album)) {
                 AlbumGridItem(album: album,
                               albumManager: viewModel.albumManager,
-                              width: side, fileReader: D.init())
+                              width: side, fileReader: D.init(), blurEnabled: viewModel.shouldShowPurchaseScreenForAlbum)
             }
         }
     }

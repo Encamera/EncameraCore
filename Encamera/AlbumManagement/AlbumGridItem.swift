@@ -14,13 +14,15 @@ class AlbumGridItemModel: ObservableObject {
     var fileReader: FileReader
     var album: Album
     var albumManager: AlbumManaging
+
     private var cancellables = Set<AnyCancellable>()
 
     @Published var countOfMedia: Int = 0
     @Published var leadingImage: UIImage?
     @Published var storageIconName: String?
+    @Published var blurEnabled: Bool
 
-    init(album: Album, fileReader: FileReader, albumManager: AlbumManaging) {
+    init(album: Album, fileReader: FileReader, albumManager: AlbumManaging, blurEnabled: Bool) {
         self.album = album
         Task {
             await fileReader.configure(
@@ -29,6 +31,7 @@ class AlbumGridItemModel: ObservableObject {
             )
 
         }
+        self.blurEnabled = blurEnabled
         self.fileReader = fileReader
         self.albumManager = albumManager
         self.countOfMedia = albumManager.albumMediaCount(album: album)
@@ -81,9 +84,9 @@ struct AlbumGridItem: View {
         }
     }
 
-    init(album: Album, albumManager: AlbumManaging, width: CGFloat, fileReader: FileAccess) {
+    init(album: Album, albumManager: AlbumManaging, width: CGFloat, fileReader: FileAccess, blurEnabled: Bool) {
         albumName = album.name
-        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, fileReader: fileReader, albumManager: albumManager))
+        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, fileReader: fileReader, albumManager: albumManager, blurEnabled: blurEnabled))
         self.width = width
     }
 
@@ -91,7 +94,8 @@ struct AlbumGridItem: View {
         AlbumBaseGridItem(uiImage: viewModel.leadingImage,
                           title: albumName,
                           subheadingView: { subheadingView }, // Wrap in a closure
-                          width: width)
+                          width: width,
+                          blurEnabled: viewModel.blurEnabled)
             .task {
                 try? await viewModel.load()
             }
