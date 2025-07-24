@@ -64,14 +64,15 @@ class CustomPhotoPickerViewController: UIViewController {
     // Selection mode indicator view
     private lazy var selectionModeIndicator: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.1)
+        let surface = SurfaceType.lightBackground
+        view.backgroundColor = surface.foregroundSecondaryUIColor
         view.isHidden = true
         view.translatesAutoresizingMaskIntoConstraints = false
         
         let label = UILabel()
         label.text = "Swipe to select multiple photos"
-        label.font = .systemFont(ofSize: 14, weight: .medium)
-        label.textColor = .systemBlue
+        label.font = surface.uiFont
+        label.textColor = surface.textUIColor
         label.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(label)
         
@@ -168,8 +169,8 @@ class CustomPhotoPickerViewController: UIViewController {
         layout.minimumInteritemSpacing = spacing
         layout.minimumLineSpacing = spacing
         
-        collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
-        collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.backgroundColor = .systemBackground
         collectionView.register(PhotoCell.self, forCellWithReuseIdentifier: "PhotoCell")
         collectionView.dataSource = self
@@ -187,15 +188,22 @@ class CustomPhotoPickerViewController: UIViewController {
         panGesture.delegate = self
         collectionView.addGestureRecognizer(panGesture)
         
+        // Add selection mode indicator first
+        view.addSubview(selectionModeIndicator)
         view.addSubview(collectionView)
         
-        // Add selection mode indicator
-        view.addSubview(selectionModeIndicator)
         NSLayoutConstraint.activate([
+            // Selection mode indicator constraints
             selectionModeIndicator.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             selectionModeIndicator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             selectionModeIndicator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            selectionModeIndicator.heightAnchor.constraint(equalToConstant: 36)
+            selectionModeIndicator.heightAnchor.constraint(equalToConstant: 36),
+            
+            // Collection view constraints - positioned below the selection indicator
+            collectionView.topAnchor.constraint(equalTo: selectionModeIndicator.bottomAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
     }
     
