@@ -99,7 +99,7 @@ struct MainHomeView<D: FileAccess>: View {
                     // Global progress indicator
                     GlobalImportProgressView()
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
+                        .padding(.bottom, 16)
                     
                     BottomNavigationBar(selectedItem: $selectedNavigationItem, cameraCloseButtonTapped: { targetAlbum in
                         UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
