@@ -5,7 +5,6 @@ import Photos
 
 struct GlobalImportProgressView: View {
     @StateObject private var importManager = BackgroundMediaImportManager.shared
-    @State private var isExpanded = false
     @State private var showTaskDetails = false
     @State private var showPhotoAccessAlert = false
     @State private var taskIdForDeletion: String? = nil
@@ -13,24 +12,14 @@ struct GlobalImportProgressView: View {
     
     var body: some View {
         if (importManager.isImporting || !importManager.currentTasks.isEmpty) && !hideAfterCompletion {
-            VStack(spacing: 0) {
-                // Compact progress bar
-                if !isExpanded {
-                    compactProgressView
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                isExpanded = true
-                            }
-                        }
-                } else {
-                    // Expanded view with task details
-                    expandedProgressView
+            compactProgressView
+                .onTapGesture {
+                    showTaskDetails = true
                 }
-            }
-            .background(Color.modalBackgroundColor)
-            .cornerRadius(12)
-            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+                .background(Color.modalBackgroundColor)
+                .cornerRadius(12)
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             .alert("Photo Library Access Required", isPresented: $showPhotoAccessAlert) {
                 Button("Open Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -120,58 +109,7 @@ struct GlobalImportProgressView: View {
         }
     }
     
-    private var expandedProgressView: some View {
-        VStack(spacing: 12) {
-            // Header with collapse button
-            HStack {
-                Text("Import Progress")
-                    .fontType(.pt16, weight: .semibold)
-                    .foregroundColor(.foregroundPrimary)
-                
-                Spacer()
-                
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        isExpanded = false
-                    }
-                }) {
-                    Image(systemName: "chevron.down")
-                        .foregroundColor(.actionYellowGreen
-)
-                        .font(.system(size: 14, weight: .medium))
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            
-            // Progress details
-            VStack(spacing: 8) {
-                ForEach(importManager.currentTasks, id: \.id) { task in
-                    TaskProgressRow(task: task)
-                }
-            }
-            .padding(.horizontal, 16)
-            
-            // Action buttons
-            HStack(spacing: 12) {
-                if importManager.isImporting {
-                    Button("Pause All") {
-                        pauseAllTasks()
-                    }
-                    .primaryButton()
-                    .frame(maxWidth: .infinity)
-                }
-                
-                Button("Clear Completed") {
-                    importManager.removeCompletedTasks()
-                }
-                .secondaryButton()
-                .frame(maxWidth: .infinity)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 12)
-        }
-    }
+
     
     private var statusText: String {
         let activeTasks = importManager.currentTasks.filter { task in
@@ -222,11 +160,5 @@ struct GlobalImportProgressView: View {
         }
     }
     
-    private func pauseAllTasks() {
-        for task in importManager.currentTasks {
-            if task.state == .running {
-                importManager.pauseImport(taskId: task.id)
-            }
-        }
-    }
+
 }
