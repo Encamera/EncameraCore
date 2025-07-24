@@ -320,6 +320,7 @@ struct CameraView_Previews: PreviewProvider {
         CameraView(cameraModel: model, hasMediaToImport: .constant(false)) { _ in
         }
         .preferredColorScheme(.dark)
+        .environmentObject(AppModalStateModel())
     }
 }
 

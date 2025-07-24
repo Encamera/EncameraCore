@@ -8,7 +8,6 @@
 import SwiftUI
 import Combine
 import EncameraCore
-import WebKit
 import RevenueCat
 
 fileprivate enum AlertType {
@@ -366,6 +365,7 @@ struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
 
         SettingsView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), fileAccess: DemoFileEnumerator(), albumManager: DemoAlbumManager(), purchasedPermissions: DemoPurchasedPermissionManaging()))
+            .environmentObject(AppModalStateModel())
 
     }
 }

@@ -241,3 +241,182 @@ struct TaskDetailCard: View {
         return formatter
     }
 } 
+
+#Preview("Multiple States") {
+    ScrollView {
+        VStack(spacing: 16) {
+            // Running state
+            TaskDetailCard(task: MockImportTask.running)
+            
+            // Paused state
+            TaskDetailCard(task: MockImportTask.paused)
+            
+            // Completed state
+            TaskDetailCard(task: MockImportTask.completed)
+            
+            // Failed state
+            TaskDetailCard(task: MockImportTask.failed)
+            
+            // Idle state
+            TaskDetailCard(task: MockImportTask.idle)
+            
+            // Cancelled state
+            TaskDetailCard(task: MockImportTask.cancelled)
+        }
+        .padding()
+    }
+    .background(Color.background)
+}
+
+#Preview("Single Running State") {
+    TaskDetailCard(task: MockImportTask.running)
+        .padding()
+        .background(Color.background)
+}
+
+#Preview("Single Completed State") {
+    TaskDetailCard(task: MockImportTask.completed)
+        .padding()
+        .background(Color.background)
+}
+
+
+struct MockImportTask {
+    static let running: ImportTask = {
+        let mockMedia = (0..<50).map { index in
+            CleartextMedia(source: .data(Data()), mediaType: .photo, id: "IMG_123\(index).HEIC")
+        }
+        var task = ImportTask(
+            id: "12345678-1234-1234-1234-123456789abc",
+            media: mockMedia,
+            albumId: "test-album",
+            assetIdentifiers: Array(repeating: "asset-id", count: 50)
+        )
+        task.progress = ImportProgressUpdate(
+            taskId: task.id,
+            currentFileIndex: 15,
+            totalFiles: 50,
+            currentFileProgress: 0.6,
+            overallProgress: 0.3,
+            currentFileName: "IMG_1234.HEIC",
+            state: .running,
+            estimatedTimeRemaining: TimeInterval(420) // 7 minutes
+        )
+        return task
+    }()
+    
+    static let paused: ImportTask = {
+        let mockMedia = (0..<25).map { index in
+            CleartextMedia(source: .data(Data()), mediaType: .photo, id: "IMG_567\(index).jpeg")
+        }
+        var task = ImportTask(
+            id: "87654321-4321-4321-4321-cba987654321",
+            media: mockMedia,
+            albumId: "test-album",
+            assetIdentifiers: Array(repeating: "asset-id", count: 25)
+        )
+        task.progress = ImportProgressUpdate(
+            taskId: task.id,
+            currentFileIndex: 8,
+            totalFiles: 25,
+            currentFileProgress: 0.5,
+            overallProgress: 0.32,
+            currentFileName: "IMG_5678.jpeg",
+            state: .paused,
+            estimatedTimeRemaining: TimeInterval(300) // 5 minutes
+        )
+        return task
+    }()
+    
+    static let completed: ImportTask = {
+        let mockMedia = (0..<100).map { index in
+            CleartextMedia(source: .data(Data()), mediaType: .video, id: "IMG_999\(index).mov")
+        }
+        var task = ImportTask(
+            id: "abcdef12-3456-7890-abcd-ef1234567890",
+            media: mockMedia,
+            albumId: "test-album",
+            assetIdentifiers: Array(repeating: "asset-id", count: 100)
+        )
+        task.progress = ImportProgressUpdate(
+            taskId: task.id,
+            currentFileIndex: 99,
+            totalFiles: 100,
+            currentFileProgress: 1.0,
+            overallProgress: 1.0,
+            currentFileName: "IMG_9999.mov",
+            state: .completed,
+            estimatedTimeRemaining: nil
+        )
+        return task
+    }()
+    
+    static let failed: ImportTask = {
+        let mockMedia = (0..<75).map { index in
+            CleartextMedia(source: .data(Data()), mediaType: .photo, id: "IMG_000\(index).raw")
+        }
+        var task = ImportTask(
+            id: "fedcba09-8765-4321-fedc-ba0987654321",
+            media: mockMedia,
+            albumId: "test-album",
+            assetIdentifiers: Array(repeating: "asset-id", count: 75)
+        )
+        task.progress = ImportProgressUpdate(
+            taskId: task.id,
+            currentFileIndex: 5,
+            totalFiles: 75,
+            currentFileProgress: 0.1,
+            overallProgress: 0.067,
+            currentFileName: "IMG_0001.raw",
+            state: .failed(ImportError.taskNotFound),
+            estimatedTimeRemaining: nil
+        )
+        return task
+    }()
+    
+    static let idle: ImportTask = {
+        let mockMedia = (0..<30).map { index in
+            CleartextMedia(source: .data(Data()), mediaType: .photo, id: "IMG_111\(index).jpg")
+        }
+        var task = ImportTask(
+            id: "11111111-2222-3333-4444-555555555555",
+            media: mockMedia,
+            albumId: "test-album",
+            assetIdentifiers: Array(repeating: "asset-id", count: 30)
+        )
+        task.progress = ImportProgressUpdate(
+            taskId: task.id,
+            currentFileIndex: 0,
+            totalFiles: 30,
+            currentFileProgress: 0.0,
+            overallProgress: 0.0,
+            currentFileName: nil,
+            state: .idle,
+            estimatedTimeRemaining: nil
+        )
+        return task
+    }()
+    
+    static let cancelled: ImportTask = {
+        let mockMedia = (0..<40).map { index in
+            CleartextMedia(source: .data(Data()), mediaType: .photo, id: "IMG_246\(index).png")
+        }
+        var task = ImportTask(
+            id: "99999999-8888-7777-6666-555555555555",
+            media: mockMedia,
+            albumId: "test-album",
+            assetIdentifiers: Array(repeating: "asset-id", count: 40)
+        )
+        task.progress = ImportProgressUpdate(
+            taskId: task.id,
+            currentFileIndex: 12,
+            totalFiles: 40,
+            currentFileProgress: 0.3,
+            overallProgress: 0.3,
+            currentFileName: "IMG_2468.png",
+            state: .cancelled,
+            estimatedTimeRemaining: nil
+        )
+        return task
+    }()
+} 

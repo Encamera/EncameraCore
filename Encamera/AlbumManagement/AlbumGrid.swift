@@ -199,4 +199,5 @@ struct AlbumGrid<D: FileAccess>: View {
                                    albumManger: DemoAlbumManager()))
         .gradientBackground()
     }
+    .environmentObject(AppModalStateModel())
 }

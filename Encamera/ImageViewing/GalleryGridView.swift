@@ -328,5 +328,6 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
 }
 
 //#Preview {
-//    GalleryGridView<EmptyView, InteractableMedia<EncryptedMedia>, DemoFileEnumerator>(viewModel: .init(album: Album(name: "Chee", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), fileAccess: DemoFileEnumerator()))
+//    GalleryGridView<EmptyView, DemoFileEnumerator>(viewModel: .init(album: Album(name: "Chee", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey()), albumManager: DemoAlbumManager(), fileAccess: DemoFileEnumerator(), purchasedPermissions: DemoPurchasedPermissionManaging()))
+//        .environmentObject(AppModalStateModel())
 //}
