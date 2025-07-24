@@ -75,7 +75,7 @@ struct TaskDetailCard: View {
             }
             
             // Action buttons
-            HStack(spacing: 12) {
+            HStack(spacing: 0.0) {
                 switch task.state {
                 case .running:
                     Button("Pause") {
@@ -92,10 +92,10 @@ struct TaskDetailCard: View {
                     .primaryButton()
                     
                 case .completed:
-                    Button("Delete from Photos") {
+                    Button("Delete Media From Camera Roll") {
                         showDeleteConfirmation = true
                     }
-                    .secondaryButton()
+                    .primaryButton()
                     .disabled(isDeletingPhotos)
                     
                 default:
@@ -107,7 +107,7 @@ struct TaskDetailCard: View {
                     Button("Cancel") {
                         importManager.cancelImport(taskId: task.id)
                     }
-                    .secondaryButton()
+                    .primaryButton()
                 }
                 
                 Spacer()
