@@ -15,9 +15,6 @@ import Photos
 struct TaskProgressRow: View {
     let task: ImportTask
     @StateObject private var importManager = BackgroundMediaImportManager.shared
-    @State private var showDeleteConfirmation = false
-    @State private var showPhotoAccessAlert = false
-    @State private var isDeletingPhotos = false
     
     var body: some View {
         HStack(spacing: 12) {
@@ -50,26 +47,8 @@ struct TaskProgressRow: View {
 )
                         .lineLimit(1)
                 }
-                
-                // Show delete from photos button if we have asset identifiers
-                if !task.assetIdentifiers.isEmpty && (task.state == .completed || task.state == .paused) {
-                    Button(action: {
-                        showDeleteConfirmation = true
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "photo.on.rectangle.angled")
-                                .font(.system(size: 10))
-                            Text("Delete from Photos")
-                                .fontType(.pt10, weight: .medium)
-                        }
-                        .foregroundColor(.red)
-                        .padding(.vertical, 2)
-                        .padding(.horizontal, 8)
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(4)
-                    }
-                    .disabled(isDeletingPhotos)
-                }
+
+
             }
             
             // Control buttons
@@ -122,92 +101,8 @@ struct TaskProgressRow: View {
         .padding(.horizontal, 12)
         .background(Color.inputFieldBackgroundColor)
         .cornerRadius(8)
-        .alert("Delete from Photo Library?", isPresented: $showDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
-                Task {
-                    await checkPermissionsAndDelete()
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will delete \(task.assetIdentifiers.count) photo(s) from your Photo Library that were imported into Encamera.")
-        }
-        .alert("Photo Library Access Required", isPresented: $showPhotoAccessAlert) {
-            Button("Open Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Please grant full access to your photo library in Settings to delete imported photos.")
-        }
     }
-    
-    private func checkPermissionsAndDelete() async {
-        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        
-        switch status {
-        case .authorized:
-            // Full access - can delete
-            await deletePhotosFromLibrary()
-        case .limited:
-            // Limited access - can't delete
-            await MainActor.run {
-                showPhotoAccessAlert = true
-            }
-        case .notDetermined:
-            // Request permission
-            let newStatus = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
-            if newStatus == .authorized {
-                await deletePhotosFromLibrary()
-            } else {
-                await MainActor.run {
-                    showPhotoAccessAlert = true
-                }
-            }
-        case .denied, .restricted:
-            // No access
-            await MainActor.run {
-                showPhotoAccessAlert = true
-            }
-        @unknown default:
-            break
-        }
-    }
-    
-    private func deletePhotosFromLibrary() async {
-        await MainActor.run {
-            isDeletingPhotos = true
-        }
-        
-        let assets = PHAsset.fetchAssets(withLocalIdentifiers: task.assetIdentifiers, options: nil)
-        
-        if assets.count > 0 {
-            do {
-                try await PHPhotoLibrary.shared().performChanges {
-                    PHAssetChangeRequest.deleteAssets(assets)
-                }
-                debugPrint("Successfully deleted \(assets.count) photos from Photo Library")
-                
-                // Track the deletion
-                EventTracking.trackMediaDeleted(count: assets.count)
-                
-                // Remove the task after successful deletion
-                await MainActor.run {
-                    importManager.cancelImport(taskId: task.id)
-                }
-            } catch {
-                debugPrint("Failed to delete photos: \(error)")
-            }
-        } else {
-            debugPrint("No assets found to delete")
-        }
-        
-        await MainActor.run {
-            isDeletingPhotos = false
-        }
-    }
+
     
     private var stateIcon: some View {
         Group {
