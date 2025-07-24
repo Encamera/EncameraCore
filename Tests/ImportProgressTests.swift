@@ -141,9 +141,9 @@ class ImportProgressTests: XCTestCase {
         XCTAssertEqual(viewModel.getStatusText(for: []), "No active imports")
         
         // Test for completed tasks only
-        let completedTask = ImportTask(media: [], albumId: "album1")
-        var task = completedTask
-        XCTAssertEqual(viewModel.getStatusText(for: [task]), "Import completed")
+        var completedTask = ImportTask(media: [], albumId: "album1")
+        completedTask.progress.state = .completed
+        XCTAssertEqual(viewModel.getStatusText(for: [completedTask]), "Import completed")
         
         // Test for single active task
         var activeTask = ImportTask(media: Array(repeating: CleartextMedia(source: .data(Data()), generateID: true), count: 10), albumId: "album1")
