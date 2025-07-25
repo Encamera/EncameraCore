@@ -14,7 +14,7 @@ import UIKit
 
 // MARK: - Supporting Types
 
-public enum ImportError: Error {
+public enum BackgroundImportError: Error {
     case configurationError
     case taskNotFound
     case operationCancelled

@@ -120,7 +120,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         guard let albumManager = albumManager,
               let album = albumManager.albums.first(where: { $0.id == task.albumId }) else {
             printDebug("Failed to execute import task - missing configuration or album", albumManager?.albums)
-            throw ImportError.configurationError
+            throw BackgroundImportError.configurationError
         }
         
         let taskIndex = currentTasks.firstIndex(where: { $0.id == task.id })!
