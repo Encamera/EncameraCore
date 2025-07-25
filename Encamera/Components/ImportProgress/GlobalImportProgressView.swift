@@ -5,113 +5,150 @@ import Photos
 
 struct GlobalImportProgressView: View {
     @StateObject private var importManager = BackgroundMediaImportManager.shared
+    @StateObject private var deletionManager = PhotoDeletionManager()
     @State private var showTaskDetails = false
-    @State private var showPhotoAccessAlert = false
-    @State private var taskIdForDeletion: String? = nil
+    @State private var showDeleteConfirmation = false
     @State private var hideAfterCompletion = false
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDismissed = false
     
     var body: some View {
         Group {
-            if (importManager.isImporting || !importManager.currentTasks.isEmpty) && !hideAfterCompletion {
-                compactProgressView
+            if shouldShowProgressView && !isDismissed {
+                progressCard
+                    .offset(y: dragOffset)
                     .onTapGesture {
                         showTaskDetails = true
                     }
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                if value.translation.height > 0 {
+                                    dragOffset = value.translation.height
+                                }
+                            }
+                            .onEnded { value in
+                                if value.translation.height > 50 {
+                                    // Dismiss if dragged down enough
+                                    withAnimation(.easeOut(duration: 0.3)) {
+                                        isDismissed = true
+                                    }
+                                } else {
+                                    // Snap back
+                                    withAnimation(.spring()) {
+                                        dragOffset = 0
+                                    }
+                                }
+                            }
+                    )
                     .background(Color.modalBackgroundColor)
                     .cornerRadius(12)
                     .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .alert("Photo Library Access Required", isPresented: $showPhotoAccessAlert) {
-                        Button("Open Settings") {
-                            if let url = URL(string: UIApplication.openSettingsURLString) {
-                                UIApplication.shared.open(url)
+                    .alert("Delete from Photo Library?", isPresented: $showDeleteConfirmation) {
+                        Button("Delete", role: .destructive) {
+                            Task {
+                                await deleteAllCompletedTaskPhotos()
                             }
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This will delete all imported photos from your Photo Library.")
+                    }
+                    .alert("Photo Library Access Required", isPresented: $deletionManager.showPhotoAccessAlert) {
+                        Button("Open Settings") {
+                            deletionManager.openSettings()
                         }
                         Button("Cancel", role: .cancel) {}
                     } message: {
                         Text("Please grant full access to your photo library in Settings to delete imported photos.")
                     }
                     .onChange(of: importManager.isImporting) { _, isImporting in
-                        // When importing stops, check if we should hide after completion
-                        if !isImporting {
-                            let completedTasks = importManager.currentTasks.filter { task in
-                                task.state == .completed
-                            }
-
-                            // If we have completed tasks, start the hide timer
-                            if !completedTasks.isEmpty && !hideAfterCompletion {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                    withAnimation(.easeOut(duration: 0.5)) {
-                                        hideAfterCompletion = true
-                                    }
-
-                                    // Reset after hiding so it can show again for future imports
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        hideAfterCompletion = false
-                                    }
-                                }
-                            }
-                        } else {
-                            // Reset hide flag if importing starts again
-                            hideAfterCompletion = false
-                        }
+                        handleImportStateChange(isImporting: isImporting)
+                    }
+                    .onAppear {
+                        resetDismissalState()
                     }
             }
         }
     }
     
-    private var compactProgressView: some View {
-        HStack(spacing: 12) {
-            // Progress indicator
-            if importManager.isImporting {
-                ProgressView(value: importManager.overallProgress, total: 1.0)
-                    .progressViewStyle(LinearProgressViewStyle(tint: .actionYellowGreen))
-                    .frame(height: 4)
+    private var progressCard: some View {
+        VStack(spacing: 0) {
+            // Dismissal knob (only show when completed)
+            if isCompleted {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.secondaryElementColor.opacity(0.3))
+                    .frame(width: 36, height: 4)
+                    .padding(.top, 8)
             }
-
-            // Status text
-            VStack(alignment: .leading, spacing: 2) {
-                Text(statusText)
-                    .fontType(.pt12, weight: .medium)
-                    .foregroundColor(.foregroundPrimary)
+            
+            HStack(spacing: 16) {
+                // Circular progress indicator
+                CircularProgressView(
+                    progress: importManager.overallProgress,
+                    lineWidth: 4,
+                    size: 60
+                )
                 
-                if let eta = estimatedTimeRemaining {
-                    Text(eta)
-                        .fontType(.pt10)
-                        .foregroundColor(.actionYellowGreen
-)
-                }
-            }
-            
-            Spacer()
-            
-            // Control buttons
-            HStack(spacing: 8) {
-                if importManager.isImporting {
-                    Button(action: pauseCurrentTask) {
-                        Image(systemName: "pause.circle.fill")
-                            .foregroundColor(.actionYellowGreen
-)
-                            .font(.system(size: 20))
+                // Status text and details
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(statusText)
+                        .fontType(.pt14, weight: .semibold)
+                        .foregroundColor(.foregroundPrimary)
+                    
+                    if let eta = estimatedTimeRemaining {
+                        Text(eta)
+                            .fontType(.pt12)
+                            .foregroundColor(.actionYellowGreen)
                     }
                 }
                 
-                Button(action: { showTaskDetails.toggle() }) {
-                    Image(systemName: "ellipsis.circle.fill")
-                        .foregroundColor(.actionYellowGreen
-)
-                        .font(.system(size: 20))
+                Spacer()
+                
+                // Action button
+                Button(action: handleActionButtonTap) {
+                    Image(actionButtonImageName)
+                        .renderingMode(.template)
+                        .foregroundColor(.actionYellowGreen)
+                        .font(.system(size: 24))
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
         .sheet(isPresented: $showTaskDetails) {
             ImportTaskDetailsView()
         }
     }
     
-
+    // MARK: - Computed Properties
+    
+    private var shouldShowProgressView: Bool {
+        (importManager.isImporting || !importManager.currentTasks.isEmpty) && !hideAfterCompletion
+    }
+    
+    private var isCompleted: Bool {
+        !importManager.isImporting && !importManager.currentTasks.filter { 
+            $0.state == .completed 
+        }.isEmpty
+    }
+    
+    private var isPaused: Bool {
+        !importManager.currentTasks.filter { 
+            $0.state == .paused 
+        }.isEmpty
+    }
+    
+    private var actionButtonImageName: String {
+        if isCompleted {
+            return "Trash"
+        } else if isPaused {
+            return "play.fill"
+        } else {
+            return "Pause"
+        }
+    }
     
     private var statusText: String {
         let activeTasks = importManager.currentTasks.filter { task in
@@ -162,5 +199,65 @@ struct GlobalImportProgressView: View {
         }
     }
     
+    // MARK: - Action Functions
+    
+    private func handleActionButtonTap() {
+        if isCompleted {
+            showDeleteConfirmation = true
+        } else if isPaused {
+            resumePausedTasks()
+        } else {
+            pauseCurrentTask()
+        }
+    }
+    
+    private func resumePausedTasks() {
+        let pausedTasks = importManager.currentTasks.filter { $0.state == .paused }
+        for task in pausedTasks {
+            Task {
+                try? await importManager.resumeImport(taskId: task.id)
+            }
+        }
+    }
+    
+    private func deleteAllCompletedTaskPhotos() async {
+        let completedTasks = importManager.currentTasks.filter { $0.state == .completed }
+        let allAssetIdentifiers = completedTasks.flatMap { $0.assetIdentifiers }
+        
+        await deletionManager.deletePhotos(assetIdentifiers: allAssetIdentifiers)
+        
+        // Remove completed tasks after successful deletion
+        for task in completedTasks {
+            importManager.cancelImport(taskId: task.id)
+        }
+    }
+    
+    private func handleImportStateChange(isImporting: Bool) {
+        if !isImporting {
+            let completedTasks = importManager.currentTasks.filter { $0.state == .completed }
+            
+            // Auto-dismiss after 5 seconds when tasks complete
+            if !completedTasks.isEmpty && !hideAfterCompletion {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        hideAfterCompletion = true
+                    }
+                    
+                    // Reset after hiding so it can show again for future imports
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        hideAfterCompletion = false
+                    }
+                }
+            }
+        } else {
+            // Reset hide flag if importing starts again
+            hideAfterCompletion = false
+        }
+    }
+    
+    private func resetDismissalState() {
+        isDismissed = false
+        dragOffset = 0
+    }
 
 }
