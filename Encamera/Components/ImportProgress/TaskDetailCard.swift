@@ -75,7 +75,7 @@ struct TaskDetailCard: View {
             }
             
             // Action buttons
-            HStack(spacing: 0.0) {
+            HStack(spacing: 10.0) {
                 switch task.state {
                 case .running:
                     Button("Pause") {
@@ -92,7 +92,7 @@ struct TaskDetailCard: View {
                     .primaryButton()
                     
                 case .completed:
-                    Button("Delete Media From Camera Roll") {
+                    Button("Delete From Camera Roll") {
                         showDeleteConfirmation = true
                     }
                     .primaryButton()
@@ -109,8 +109,6 @@ struct TaskDetailCard: View {
                     }
                     .primaryButton()
                 }
-                
-                Spacer()
             }
         }
         .padding()
@@ -368,7 +366,7 @@ struct MockImportTask {
             currentFileProgress: 0.1,
             overallProgress: 0.067,
             currentFileName: "IMG_0001.raw",
-            state: .failed(ImportError.taskNotFound),
+            state: .failed(BackgroundImportError.taskNotFound),
             estimatedTimeRemaining: nil
         )
         return task

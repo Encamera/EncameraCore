@@ -11,49 +11,51 @@ struct GlobalImportProgressView: View {
     @State private var hideAfterCompletion = false
     
     var body: some View {
-        if (importManager.isImporting || !importManager.currentTasks.isEmpty) && !hideAfterCompletion {
-            compactProgressView
-                .onTapGesture {
-                    showTaskDetails = true
-                }
-                .background(Color.modalBackgroundColor)
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            .alert("Photo Library Access Required", isPresented: $showPhotoAccessAlert) {
-                Button("Open Settings") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
+        Group {
+            if (importManager.isImporting || !importManager.currentTasks.isEmpty) && !hideAfterCompletion {
+                compactProgressView
+                    .onTapGesture {
+                        showTaskDetails = true
                     }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Please grant full access to your photo library in Settings to delete imported photos.")
-            }
-            .onChange(of: importManager.isImporting) { _, isImporting in
-                // When importing stops, check if we should hide after completion
-                if !isImporting {
-                    let completedTasks = importManager.currentTasks.filter { task in
-                        task.state == .completed
-                    }
-                    
-                    // If we have completed tasks, start the hide timer
-                    if !completedTasks.isEmpty && !hideAfterCompletion {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            withAnimation(.easeOut(duration: 0.5)) {
-                                hideAfterCompletion = true
-                            }
-                            
-                            // Reset after hiding so it can show again for future imports
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                hideAfterCompletion = false
+                    .background(Color.modalBackgroundColor)
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .alert("Photo Library Access Required", isPresented: $showPhotoAccessAlert) {
+                        Button("Open Settings") {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
                             }
                         }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("Please grant full access to your photo library in Settings to delete imported photos.")
                     }
-                } else {
-                    // Reset hide flag if importing starts again
-                    hideAfterCompletion = false
-                }
+                    .onChange(of: importManager.isImporting) { _, isImporting in
+                        // When importing stops, check if we should hide after completion
+                        if !isImporting {
+                            let completedTasks = importManager.currentTasks.filter { task in
+                                task.state == .completed
+                            }
+
+                            // If we have completed tasks, start the hide timer
+                            if !completedTasks.isEmpty && !hideAfterCompletion {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        hideAfterCompletion = true
+                                    }
+
+                                    // Reset after hiding so it can show again for future imports
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        hideAfterCompletion = false
+                                    }
+                                }
+                            }
+                        } else {
+                            // Reset hide flag if importing starts again
+                            hideAfterCompletion = false
+                        }
+                    }
             }
         }
     }

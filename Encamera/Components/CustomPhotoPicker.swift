@@ -64,14 +64,14 @@ class CustomPhotoPickerViewController: UIViewController {
     // Selection mode indicator view
     private lazy var selectionModeIndicator: UIView = {
         let view = UIView()
-        let surface = SurfaceType.lightBackground
-        view.backgroundColor = surface.foregroundSecondaryUIColor
-        view.isHidden = true
+        let surface = SurfaceType.darkBackground
+        view.backgroundColor = .black
         view.translatesAutoresizingMaskIntoConstraints = false
         
         let label = UILabel()
-        label.text = "Swipe to select multiple photos"
-        label.font = surface.uiFont
+        label.backgroundColor = .clear
+        label.text = "Long press & swipe to select multiple photos"
+        label.font = EncameraFont.pt14.uiFont
         label.textColor = surface.textUIColor
         label.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(label)
@@ -103,6 +103,7 @@ class CustomPhotoPickerViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        view.backgroundColor = .black
         setupNavigationBar()
         setupCollectionView()
         setupViewModelBindings()
@@ -171,7 +172,7 @@ class CustomPhotoPickerViewController: UIViewController {
         
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.backgroundColor = .systemBackground
+        collectionView.backgroundColor = .black
         collectionView.register(PhotoCell.self, forCellWithReuseIdentifier: "PhotoCell")
         collectionView.dataSource = self
         collectionView.delegate = self
@@ -224,17 +225,8 @@ class CustomPhotoPickerViewController: UIViewController {
     
     private func updateSelectionModeUI(_ isInSelectionMode: Bool) {
         if isInSelectionMode {
-            UIView.animate(withDuration: 0.2) {
-                self.selectionModeIndicator.isHidden = false
-                self.selectionModeIndicator.alpha = 1
-            }
             collectionView.isScrollEnabled = false
         } else {
-            UIView.animate(withDuration: 0.2) {
-                self.selectionModeIndicator.alpha = 0
-            } completion: { _ in
-                self.selectionModeIndicator.isHidden = true
-            }
             collectionView.isScrollEnabled = true
         }
     }

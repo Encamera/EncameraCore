@@ -239,10 +239,21 @@ struct AuthenticationView: View {
     var body: some View {
         VStack(spacing: 8) {
             Image("LogoSquare").frame(height: 100)
-            Text(L10n.welcomeBack)
-                .fontType(.pt20, weight: .bold)
+            
+            // Show different text based on lockout status
+            if let lockoutTime = viewModel.remainingLockoutTime {
+                Text("Too many attempts")
+                    .fontType(.pt20, weight: .bold)
+            } else {
+                Text(L10n.welcomeBack)
+                    .fontType(.pt20, weight: .bold)
+            }
+            
             if viewModel.keyManager.passwordExists() {
-                if viewModel.authManager.useBiometricsForAuth, let biometric = viewModel.availableBiometric {
+                if let lockoutTime = viewModel.remainingLockoutTime {
+                    Text("You can retry your password in \(lockoutTime.formatAsHoursMinutesSeconds())")
+                        .fontType(.pt14, weight: .regular)
+                } else if viewModel.authManager.useBiometricsForAuth, let biometric = viewModel.availableBiometric {
                     Text("\(L10n.enterPassword) \(L10n.or.lowercased()) \(biometric.nameForMethod)")
                 } else {
                     Text("\(L10n.enterPassword)")
@@ -271,10 +282,6 @@ struct AuthenticationView: View {
                     default:
                         EmptyView()
                     }
-                } else if let lockoutTime = viewModel.remainingLockoutTime {
-                    Text(L10n.pinCodeLockTryAgainIn(lockoutTime.formatAsHoursMinutesSeconds()))
-                        .fontType(.pt14, weight: .bold)
-                        .opacity(0.5)
                 }
             }
 

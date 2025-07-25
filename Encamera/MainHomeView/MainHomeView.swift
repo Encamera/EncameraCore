@@ -95,11 +95,7 @@ struct MainHomeView<D: FileAccess>: View {
                     AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
                 }
                 
-                VStack(spacing: 0) {
-                    // Global progress indicator
-                    GlobalImportProgressView()
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 16)
+                VStack(spacing: 0) {                        
                     
                     BottomNavigationBar(selectedItem: $selectedNavigationItem, cameraCloseButtonTapped: { targetAlbum in
                         UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)

@@ -741,15 +741,11 @@ struct AlbumDetailView<D: FileAccess>: View {
                 }
             }
             
-            // Global import progress
-            GlobalImportProgressView()
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-            
             if viewModel.isSelectingMedia {
                 selectionTray
             }
         }
+        .globalImportProgress()
         .toolbarRole(.editor)
         .toolbar(content: {
             ToolbarItemGroup(placement: .principal, content: {
