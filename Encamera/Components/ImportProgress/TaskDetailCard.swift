@@ -15,9 +15,8 @@ import Photos
 struct TaskDetailCard: View {
     let task: ImportTask
     @StateObject private var importManager = BackgroundMediaImportManager.shared
+    @StateObject private var deletionManager = PhotoDeletionManager()
     @State private var showDeleteConfirmation = false
-    @State private var showPhotoAccessAlert = false
-    @State private var isDeletingPhotos = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -96,7 +95,7 @@ struct TaskDetailCard: View {
                         showDeleteConfirmation = true
                     }
                     .primaryButton()
-                    .disabled(isDeletingPhotos)
+                    .disabled(deletionManager.isDeletingPhotos)
                     
                 default:
                     EmptyView()
@@ -117,87 +116,22 @@ struct TaskDetailCard: View {
         .alert("Delete from Photo Library?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive) {
                 Task {
-                    await checkPermissionsAndDelete()
+                    await deletionManager.deletePhotos(assetIdentifiers: task.assetIdentifiers)
+                    // Remove the task after successful deletion
+                    importManager.cancelImport(taskId: task.id)
                 }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will delete \(task.assetIdentifiers.count) photo(s) from your Photo Library that were imported into Encamera.")
         }
-        .alert("Photo Library Access Required", isPresented: $showPhotoAccessAlert) {
+        .alert("Photo Library Access Required", isPresented: $deletionManager.showPhotoAccessAlert) {
             Button("Open Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
+                deletionManager.openSettings()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Please grant full access to your photo library in Settings to delete imported photos.")
-        }
-    }
-    
-    private func checkPermissionsAndDelete() async {
-        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        
-        switch status {
-        case .authorized:
-            // Full access - can delete
-            await deletePhotosFromLibrary()
-        case .limited:
-            // Limited access - can't delete
-            await MainActor.run {
-                showPhotoAccessAlert = true
-            }
-        case .notDetermined:
-            // Request permission
-            let newStatus = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
-            if newStatus == .authorized {
-                await deletePhotosFromLibrary()
-            } else {
-                await MainActor.run {
-                    showPhotoAccessAlert = true
-                }
-            }
-        case .denied, .restricted:
-            // No access
-            await MainActor.run {
-                showPhotoAccessAlert = true
-            }
-        @unknown default:
-            break
-        }
-    }
-    
-    private func deletePhotosFromLibrary() async {
-        await MainActor.run {
-            isDeletingPhotos = true
-        }
-        
-        let assets = PHAsset.fetchAssets(withLocalIdentifiers: task.assetIdentifiers, options: nil)
-        
-        if assets.count > 0 {
-            do {
-                try await PHPhotoLibrary.shared().performChanges {
-                    PHAssetChangeRequest.deleteAssets(assets)
-                }
-                debugPrint("Successfully deleted \(assets.count) photos from Photo Library")
-                
-                // Track the deletion
-                EventTracking.trackMediaDeleted(count: assets.count)
-                
-                // Remove the task after successful deletion
-                await MainActor.run {
-                    importManager.cancelImport(taskId: task.id)
-                }
-            } catch {
-                debugPrint("Failed to delete photos: \(error)")
-            }
-        } else {
-            debugPrint("No assets found to delete")
-        }
-        
-        await MainActor.run {
-            isDeletingPhotos = false
         }
     }
     
