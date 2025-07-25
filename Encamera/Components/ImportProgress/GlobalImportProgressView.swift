@@ -86,7 +86,7 @@ struct GlobalImportProgressView: View {
             HStack(spacing: 16) {
                 // Circular progress indicator
                 CircularProgressView(
-                    progress: importManager.overallProgress,
+                    progress: displayProgress,
                     lineWidth: 4,
                     size: 60
                 )
@@ -147,6 +147,14 @@ struct GlobalImportProgressView: View {
             return "play.fill"
         } else {
             return "Pause"
+        }
+    }
+    
+    private var displayProgress: Double {
+        if isCompleted {
+            return 1.0 // Show 100% when completed
+        } else {
+            return importManager.overallProgress
         }
     }
     
