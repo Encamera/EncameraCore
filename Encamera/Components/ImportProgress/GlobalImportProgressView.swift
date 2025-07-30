@@ -11,6 +11,7 @@ struct GlobalImportProgressView: View {
     @State private var hideAfterCompletion = false
     @State private var dragOffset: CGFloat = 0
     @State private var isDismissed = false
+    @State private var lastActiveImportSession: String? = nil
     
     var body: some View {
         Group {
@@ -66,8 +67,14 @@ struct GlobalImportProgressView: View {
                     .onChange(of: importManager.isImporting) { _, isImporting in
                         handleImportStateChange(isImporting: isImporting)
                     }
+                    .onChange(of: importManager.currentTasks) { _, tasks in
+                        handleTasksChange(tasks: tasks)
+                    }
                     .onAppear {
-                        resetDismissalState()
+                        // Only reset dismissal if there's no active session tracked
+                        if lastActiveImportSession == nil {
+                            resetDismissalState()
+                        }
                     }
             }
         }
@@ -238,27 +245,52 @@ struct GlobalImportProgressView: View {
         for task in completedTasks {
             importManager.cancelImport(taskId: task.id)
         }
+        
+        // If no tasks remain after deletion, clear session tracking and hide
+        if importManager.currentTasks.filter({ $0.state != .completed }).isEmpty {
+            lastActiveImportSession = nil
+            withAnimation(.easeOut(duration: 0.3)) {
+                hideAfterCompletion = true
+            }
+        }
     }
     
     private func handleImportStateChange(isImporting: Bool) {
         if !isImporting {
             let completedTasks = importManager.currentTasks.filter { $0.state == .completed }
             
-            // Auto-dismiss after 5 seconds when tasks complete
-            if !completedTasks.isEmpty && !hideAfterCompletion {
+            // Auto-dismiss after 5 seconds when tasks complete (only if not manually dismissed)
+            if !completedTasks.isEmpty && !hideAfterCompletion && !isDismissed {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                     withAnimation(.easeOut(duration: 0.5)) {
                         hideAfterCompletion = true
-                    }
-                    
-                    // Reset after hiding so it can show again for future imports
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        hideAfterCompletion = false
                     }
                 }
             }
         } else {
             // Reset hide flag if importing starts again
+            hideAfterCompletion = false
+        }
+    }
+    
+    private func handleTasksChange(tasks: [ImportTask]) {
+        // Check if this is a new import session by looking for running tasks
+        let runningTasks = tasks.filter { $0.state == .running }
+        
+        if !runningTasks.isEmpty {
+            let currentSessionId = runningTasks.first?.id
+            
+            // If this is a new session, reset dismissal state
+            if lastActiveImportSession != currentSessionId {
+                lastActiveImportSession = currentSessionId
+                resetDismissalState()
+                hideAfterCompletion = false
+            }
+        }
+        
+        // If no tasks remain, clear the session tracking
+        if tasks.isEmpty {
+            lastActiveImportSession = nil
             hideAfterCompletion = false
         }
     }
