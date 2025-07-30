@@ -115,10 +115,6 @@ class CustomPhotoPickerViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.collectionView.reloadData()
-                // Update all visible cells after reload
-                DispatchQueue.main.async {
-                    self?.updateAllVisibleCells()
-                }
             }
             .store(in: &cancellables)
         
@@ -232,11 +228,7 @@ class CustomPhotoPickerViewController: UIViewController {
     }
     
     private func updateSelectionModeUI(_ isInSelectionMode: Bool) {
-        if isInSelectionMode {
-            collectionView.isScrollEnabled = false
-        } else {
-            collectionView.isScrollEnabled = true
-        }
+        collectionView.isScrollEnabled = !isInSelectionMode
     }
     
     private func showLimitedAccessBanner() {
@@ -295,22 +287,17 @@ class CustomPhotoPickerViewController: UIViewController {
     }
     
     private func updateNavigationBar() {
-        if viewModel.hasSelectedAssets {
-            navigationItem.rightBarButtonItem?.isEnabled = true
-            title = "\(viewModel.selectionCount) Selected"
-        } else {
-            navigationItem.rightBarButtonItem?.isEnabled = false
-            title = "Select Photos"
-        }
+        let hasSelection = viewModel.hasSelectedAssets
+        navigationItem.rightBarButtonItem?.isEnabled = hasSelection
+        title = hasSelection ? "\(viewModel.selectionCount) Selected" : "Select Photos"
     }
     
     // MARK: - Cell Update Helpers
-    private func updateAllVisibleCells() {
-        // Update all visible cells with current view model state
+    private func updateVisibleSelectionNumbers() {
+        // Only update selection numbers for visible cells when order changes
         for indexPath in collectionView.indexPathsForVisibleItems {
             if let asset = viewModel.getAsset(at: indexPath.item),
                let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
-                cell.isSelected = viewModel.isAssetSelected(asset)
                 cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
             }
         }
@@ -334,12 +321,10 @@ class CustomPhotoPickerViewController: UIViewController {
         guard let indexPath = collectionView.indexPathForItem(at: location),
               let asset = viewModel.getAsset(at: indexPath.item) else { return }
         
-        // Toggle selection through view model only
-        if viewModel.isAssetSelected(asset) {
-            _ = viewModel.deselectAsset(asset)
-        } else {
-            _ = viewModel.selectAsset(asset)
-        }
+        let wasSelected = viewModel.isAssetSelected(asset)
+        let selectionChanged = viewModel.toggleAssetSelection(asset)
+        
+        guard selectionChanged else { return }
         
         // Update the specific cell that was tapped
         if let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
@@ -347,40 +332,38 @@ class CustomPhotoPickerViewController: UIViewController {
             cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
         }
         
-        // Update all visible cells' selection numbers since order might have changed
-        updateAllVisibleCells()
+        // Only update selection numbers if we removed an item (which affects ordering)
+        if wasSelected {
+            updateVisibleSelectionNumbers()
+        }
     }
     
     @objc private func handleLongPressGesture(_ gesture: UILongPressGestureRecognizer) {
-        let location = gesture.location(in: collectionView)
-        
-        switch gesture.state {
-        case .began:
-            // Enter selection mode
-            viewModel.enterSelectionMode()
-            isSwipeSelecting = true
-            processedIndexPaths.removeAll()
-            feedbackGenerator.prepare()
-            
-            // Provide strong haptic feedback to indicate selection mode started
-            let strongFeedback = UIImpactFeedbackGenerator(style: .medium)
-            strongFeedback.impactOccurred()
-            
-            // Determine selection mode based on initial cell
-            if let indexPath = collectionView.indexPathForItem(at: location),
-               let asset = viewModel.getAsset(at: indexPath.item) {
-                swipeSelectionMode = viewModel.isAssetSelected(asset) ? .deselecting : .selecting
-                processIndexPath(indexPath)
-            }
-            
-        case .ended, .cancelled:
+        guard gesture.state == .began else {
             // If we end the long press without moving, exit selection mode
-            if viewModel.isInSelectionMode && !isSwipeSelecting {
+            if gesture.state == .ended || gesture.state == .cancelled,
+               viewModel.isInSelectionMode && !isSwipeSelecting {
                 exitSelectionMode()
             }
-            
-        default:
-            break
+            return
+        }
+        
+        let location = gesture.location(in: collectionView)
+        
+        // Enter selection mode
+        viewModel.enterSelectionMode()
+        isSwipeSelecting = true
+        processedIndexPaths.removeAll()
+        feedbackGenerator.prepare()
+        
+        // Provide strong haptic feedback to indicate selection mode started
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        
+        // Determine selection mode based on initial cell
+        if let indexPath = collectionView.indexPathForItem(at: location),
+           let asset = viewModel.getAsset(at: indexPath.item) {
+            swipeSelectionMode = viewModel.isAssetSelected(asset) ? .deselecting : .selecting
+            processIndexPath(indexPath)
         }
     }
     
@@ -388,27 +371,21 @@ class CustomPhotoPickerViewController: UIViewController {
         // Only process pan gestures when in selection mode
         guard viewModel.isInSelectionMode else { return }
         
-        let location = gesture.location(in: collectionView)
-        
         switch gesture.state {
         case .began:
             isSwipeSelecting = true
-            // Don't need to do much here since selection mode was already set by long press
             
         case .changed:
             // Process all cells along the gesture path for smoother selection
+            let location = gesture.location(in: collectionView)
             let translation = gesture.translation(in: collectionView)
             let startPoint = CGPoint(x: location.x - translation.x, y: location.y - translation.y)
             
-            // Get all points along the line
-            let points = interpolatePoints(from: startPoint, to: location, count: 10)
-            
-            for point in points {
-                if let indexPath = collectionView.indexPathForItem(at: point),
-                   !processedIndexPaths.contains(indexPath) {
-                    processIndexPath(indexPath)
-                }
-            }
+            // Get all points along the line and process them
+            interpolatePoints(from: startPoint, to: location, count: 10)
+                .compactMap { collectionView.indexPathForItem(at: $0) }
+                .filter { !processedIndexPaths.contains($0) }
+                .forEach { processIndexPath($0) }
             
         case .ended, .cancelled:
             exitSelectionMode()
@@ -426,14 +403,13 @@ class CustomPhotoPickerViewController: UIViewController {
     
     // Helper method to interpolate points along a line
     private func interpolatePoints(from start: CGPoint, to end: CGPoint, count: Int) -> [CGPoint] {
-        var points: [CGPoint] = []
-        for i in 0...count {
+        return (0...count).map { i in
             let t = CGFloat(i) / CGFloat(count)
-            let x = start.x + (end.x - start.x) * t
-            let y = start.y + (end.y - start.y) * t
-            points.append(CGPoint(x: x, y: y))
+            return CGPoint(
+                x: start.x + (end.x - start.x) * t,
+                y: start.y + (end.y - start.y) * t
+            )
         }
-        return points
     }
     
     private func processIndexPath(_ indexPath: IndexPath) {
@@ -456,10 +432,18 @@ class CustomPhotoPickerViewController: UIViewController {
         // Provide haptic feedback when selection changes
         if selectionChanged {
             feedbackGenerator.impactOccurred()
+            
+            // Update the specific cell
+            if let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
+                cell.isSelected = viewModel.isAssetSelected(asset)
+                cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
+            }
+            
+            // Only update selection numbers if we removed an item (affects ordering)
+            if swipeSelectionMode == .deselecting {
+                updateVisibleSelectionNumbers()
+            }
         }
-        
-        // Update all visible cells since selection numbers might have changed
-        updateAllVisibleCells()
     }
 }
 
@@ -473,13 +457,13 @@ extension CustomPhotoPickerViewController: UICollectionViewDataSource, UICollect
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PhotoCell", for: indexPath) as! PhotoCell
         
-        if let asset = viewModel.getAsset(at: indexPath.item) {
-            cell.configure(with: asset, imageManager: imageManager)
-            
-            // Always use view model as source of truth for selection state
-            cell.isSelected = viewModel.isAssetSelected(asset)
-            cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
-        }
+        guard let asset = viewModel.getAsset(at: indexPath.item) else { return cell }
+        
+        cell.configure(with: asset, imageManager: imageManager)
+        
+        // Configure selection state
+        cell.isSelected = viewModel.isAssetSelected(asset)
+        cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
         
         return cell
     }
@@ -491,25 +475,13 @@ extension CustomPhotoPickerViewController: UICollectionViewDataSource, UICollect
 extension CustomPhotoPickerViewController: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         // Allow long press and pan to work together
-        if (gestureRecognizer is UILongPressGestureRecognizer && otherGestureRecognizer is UIPanGestureRecognizer) ||
-           (gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UILongPressGestureRecognizer) {
-            return true
-        }
-        
-        // Don't interfere with scrolling when not in selection mode
-        if gestureRecognizer is UIPanGestureRecognizer && !viewModel.isInSelectionMode {
-            return false
-        }
-        
-        return false
+        return (gestureRecognizer is UILongPressGestureRecognizer && otherGestureRecognizer is UIPanGestureRecognizer) ||
+               (gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UILongPressGestureRecognizer)
     }
     
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         // Pan gesture should only begin if we're in selection mode
-        if gestureRecognizer is UIPanGestureRecognizer {
-            return viewModel.isInSelectionMode
-        }
-        return true
+        return !(gestureRecognizer is UIPanGestureRecognizer) || viewModel.isInSelectionMode
     }
 }
 
@@ -587,7 +559,6 @@ class PhotoCell: UICollectionViewCell {
         ])
         
         // Video indicator
-        videoIndicator.text = "Video"
         videoIndicator.font = .systemFont(ofSize: 12, weight: .medium)
         videoIndicator.textColor = .white
         videoIndicator.backgroundColor = UIColor.black.withAlphaComponent(0.6)
@@ -624,6 +595,7 @@ class PhotoCell: UICollectionViewCell {
     }
     
     func configure(with asset: PHAsset, imageManager: PHImageManager) {
+        // Configure image
         let options = PHImageRequestOptions()
         options.deliveryMode = .opportunistic
         options.isNetworkAccessAllowed = true
@@ -640,23 +612,23 @@ class PhotoCell: UICollectionViewCell {
             self?.imageView.image = image
         }
         
-        // Show video indicator
-        if asset.mediaType == .video {
-            videoIndicator.isHidden = false
-            
-            // Show duration if available
-            let duration = asset.duration
-            let minutes = Int(duration) / 60
-            let seconds = Int(duration) % 60
-            videoIndicator.text = String(format: "%d:%02d", minutes, seconds)
-            
-            // Adjust width to fit content
-            videoIndicator.sizeToFit()
-            videoIndicator.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                videoIndicator.widthAnchor.constraint(equalToConstant: max(44, videoIndicator.frame.width + 8))
-            ])
+        // Configure video indicator
+        configureVideoIndicator(for: asset)
+    }
+    
+    private func configureVideoIndicator(for asset: PHAsset) {
+        guard asset.mediaType == .video else {
+            videoIndicator.isHidden = true
+            return
         }
+        
+        videoIndicator.isHidden = false
+        
+        // Format duration
+        let duration = asset.duration
+        let minutes = Int(duration) / 60
+        let seconds = Int(duration) % 60
+        videoIndicator.text = String(format: "%d:%02d", minutes, seconds)
     }
 }
 
