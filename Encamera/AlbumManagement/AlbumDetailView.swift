@@ -768,6 +768,7 @@ struct AlbumDetailView<D: FileAccess>: View {
     @StateObject var viewModel: AlbumDetailViewModel<D>
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject var appModalStateModel: AppModalStateModel
+    @FocusState private var isAlbumNameFocused: Bool
 
     func popLastView() {
         presentationMode.wrappedValue.dismiss()
@@ -870,6 +871,21 @@ struct AlbumDetailView<D: FileAccess>: View {
         .screenBlocked()
         .onAppear {
             viewModel.appModalStateModel = appModalStateModel
+            // Focus the text field if we're creating a new album
+            if viewModel.shouldCreateAlbum {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isAlbumNameFocused = true
+                }
+            }
+        }
+        .onChange(of: viewModel.isEditingAlbumName) { oldValue, newValue in
+            if newValue {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isAlbumNameFocused = true
+                }
+            } else {
+                isAlbumNameFocused = false
+            }
         }
 
     }
@@ -925,7 +941,7 @@ struct AlbumDetailView<D: FileAccess>: View {
             if viewModel.isEditingAlbumName {
                 ViewHeader(isToolbar: true, centerContent: {
                     TextField(L10n.albumName, text: $viewModel.albumName)
-                        .becomeFirstResponder()
+                        .focused($isAlbumNameFocused)
                         .fontType(.pt24, weight: .bold)
                         .noAutoModification()
                 }, rightContent: {
