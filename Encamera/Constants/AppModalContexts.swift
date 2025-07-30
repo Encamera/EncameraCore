@@ -53,9 +53,28 @@ struct GalleryScrollViewContext: ModalContext {
     let targetMedia: InteractableMedia<EncryptedMedia>
 }
 
+struct AlbumSelectionContext: ModalContext {
+    let sourceView: String
+    let availableAlbums: [Album]
+    let currentAlbum: Album
+    let selectedMedia: Set<InteractableMedia<EncryptedMedia>>
+    let onAlbumSelected: (Album) -> Void
+    let onDismiss: () -> Void
+    
+    static func == (lhs: AlbumSelectionContext, rhs: AlbumSelectionContext) -> Bool {
+        return lhs.currentAlbum.id == rhs.currentAlbum.id && lhs.selectedMedia == rhs.selectedMedia
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(currentAlbum.id)
+        hasher.combine(selectedMedia)
+    }
+}
+
 enum AppModal: Hashable {
     case galleryScrollView(context: GalleryScrollViewContext)
     case cameraView(context: CameraViewContext)
     case feedbackView
     case purchaseView(context: PurchaseViewContext)
+    case albumSelection(context: AlbumSelectionContext)
 }

@@ -5,6 +5,7 @@ struct MediaSelectionTray: View {
 
     var shareAction: () -> Void
     var deleteAction: () -> Void
+    var moveAction: () -> Void
     var selectAllAction: (() -> Void)? = nil
 
     @Binding var selectedMedia: Set<InteractableMedia<EncryptedMedia>>
@@ -25,11 +26,11 @@ struct MediaSelectionTray: View {
                     }
                     Spacer()
                     Menu {
-                        //                    Button(action: {
-                        //
-                        //                    }) {
-                        //                        Label(L10n.MediaSelectionTray.moveMedia, systemImage: "folder")
-                        //                    }
+                        Button(action: {
+                            moveAction()
+                        }) {
+                            Label("Move to Album", systemImage: "folder")
+                        }
                         if showShareOption {
                             Button(action: {
                                 shareAction()
@@ -84,10 +85,14 @@ struct MediaSelectionTray: View {
 
         }, deleteAction: {
 
+        }, moveAction: {
+
         }, selectedMedia: .constant(Set<InteractableMedia<EncryptedMedia>>()), showShareOption: .constant(false))
         MediaSelectionTray(shareAction: {
 
         }, deleteAction: {
+
+        }, moveAction: {
 
         }, selectedMedia: .constant(Set<InteractableMedia<EncryptedMedia>>([
             InteractableMedia(emptyWithType: .livePhoto, id: "234")

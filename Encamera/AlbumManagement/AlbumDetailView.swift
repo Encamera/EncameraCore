@@ -14,6 +14,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     enum AlertType {
         case deleteAllAlbumData
         case deleteSelectedMedia
+        case moveSelectedMedia(targetAlbum: Album)
         case hideAlbum
         case noLicenseDeletionWarning
         case photoAccessAlert
@@ -23,6 +24,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     enum ToastType {
         case albumCoverReset
         case albumCoverRemoved
+        case mediaMovedSuccess(count: Int, albumName: String)
 
         var message: String {
             switch self {
@@ -30,6 +32,8 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 return L10n.AlbumDetailView.coverImageResetToast
             case .albumCoverRemoved:
                 return L10n.AlbumDetailView.coverImageRemovedToast
+            case .mediaMovedSuccess(let count, let albumName):
+                return "Moved \(count) item\(count == 1 ? "" : "s") to \(albumName)"
             }
         }
     }
@@ -213,6 +217,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                         // Show alert to open settings
                         self.showPhotoAccessDeniedAlert()
                         EventTracking.trackPhotoLibraryPermissionsDenied()
+                    case .notDetermined:
+                        // This shouldn't happen since we just requested permission, but handle it gracefully
+                        break
                     @unknown default:
                         break
                     }
@@ -683,6 +690,76 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }
         }
     }
+    
+    func showMoveAlbumModal() {
+        guard let currentAlbum = album else { return }
+        let availableAlbums = Array(albumManager.albums).filter { $0.id != currentAlbum.id }
+        
+        let context = AlbumSelectionContext(
+            sourceView: "AlbumDetailView",
+            availableAlbums: availableAlbums,
+            currentAlbum: currentAlbum,
+            selectedMedia: selectedMedia,
+            onAlbumSelected: { selectedAlbum in
+                self.confirmMoveToAlbum(selectedAlbum)
+            },
+            onDismiss: {
+                self.appModalStateModel?.currentModal = nil
+            }
+        )
+        
+        appModalStateModel?.currentModal = .albumSelection(context: context)
+    }
+    
+    private func confirmMoveToAlbum(_ targetAlbum: Album) {
+        // Close the modal first
+        appModalStateModel?.currentModal = nil
+        // Show confirmation alert
+        activeAlert = .moveSelectedMedia(targetAlbum: targetAlbum)
+    }
+    
+    func moveSelectedMedia(to targetAlbum: Album) {
+        Task {
+            var completedItems: [InteractableMedia<EncryptedMedia>] = []
+            var failedItems: [InteractableMedia<EncryptedMedia>] = []
+            
+            // Create a new file manager configured for the target album
+            let targetFileManager = await D(for: targetAlbum, albumManager: albumManager)
+            
+            for media in selectedMedia {
+                do {
+                    // Move the media to the target album
+                    try await targetFileManager.move(media: media)
+                    completedItems.append(media)
+                } catch {
+                    printDebug("Error moving media: \(error)")
+                    failedItems.append(media)
+                }
+            }
+            
+            await MainActor.run {
+                // Clear selection
+                selectedMedia.removeAll()
+                
+                // Remove successfully moved items from current grid
+                gridViewModel.removeMedia(items: completedItems)
+                
+                // End selection mode
+                isSelectingMedia = false
+                
+                // Show toast for successful moves
+                if completedItems.count > 0 {
+                    showToast(type: .mediaMovedSuccess(count: completedItems.count, albumName: targetAlbum.name))
+                }
+                
+                // Show error if some failed
+                if failedItems.count > 0 {
+                    // Could add an error toast type here in the future
+                    printDebug("Failed to move \(failedItems.count) items")
+                }
+            }
+        }
+    }
 }
 
 struct AlbumDetailView<D: FileAccess>: View {
@@ -977,6 +1054,8 @@ struct AlbumDetailView<D: FileAccess>: View {
             viewModel.shareSelected()
         }, deleteAction: {
             viewModel.activeAlert = .deleteSelectedMedia
+        }, moveAction: {
+            viewModel.showMoveAlbumModal()
         }, selectAllAction: {
             viewModel.selectAllMedia()
         }, selectedMedia: $viewModel.selectedMedia, showShareOption: .constant(true))
@@ -1002,6 +1081,15 @@ struct AlbumDetailView<D: FileAccess>: View {
                     viewModel.deleteSelectedMedia()
                 },
                 secondaryButton: .cancel(Text(L10n.cancel))
+            )
+        case .moveSelectedMedia(let targetAlbum):
+            return Alert(
+                title: Text("Move Media"),
+                message: Text("Move \(viewModel.selectedMedia.count) item\(viewModel.selectedMedia.count == 1 ? "" : "s") to \(targetAlbum.name)?"),
+                primaryButton: .default(Text("Move")) {
+                    viewModel.moveSelectedMedia(to: targetAlbum)
+                },
+                secondaryButton: .cancel(Text("Cancel"))
             )
         case .hideAlbum:
             return Alert(

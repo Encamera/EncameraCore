@@ -340,6 +340,8 @@ struct EncameraApp: App {
                     break
                 case .purchaseView(context: _):
                     break
+                case .albumSelection(context: _):
+                    break
                 }
             })
             .onChange(of: appModalStateModel.currentModal, { oldValue, newValue in
@@ -356,6 +358,8 @@ struct EncameraApp: App {
             }, content: {
                 Group {
                     switch self.appModalStateModel.currentModal {
+                    case .albumSelection(context: let context):
+                        AlbumSelectionModal(context: context)
                     case .cameraView(context: let context):
                         if let cameraModel = viewModel.cameraModel {
                             CameraView(cameraModel: cameraModel, hasMediaToImport: .constant(false), closeButtonTapped: { album in
