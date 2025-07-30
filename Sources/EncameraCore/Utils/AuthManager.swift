@@ -112,7 +112,8 @@ public class DeviceAuthManager: AuthManager {
     }
 
     public var deviceBiometryType: AuthenticationMethod? {
-        AuthenticationMethod.methodFrom(biometryType: context.biometryType)
+        context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        return AuthenticationMethod.methodFrom(biometryType: context.biometryType)
     }
 
     var _useBiometricsForAuth: Bool?
