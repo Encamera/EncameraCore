@@ -51,7 +51,6 @@ class CustomPhotoPickerViewController: UIViewController {
     let viewModel: CustomPhotoPickerViewModel
     
     private var collectionView: UICollectionView!
-    private var selectedIndexPaths = Set<IndexPath>()
     private let imageManager = PHCachingImageManager()
     
     private var isSwipeSelecting = false
@@ -116,6 +115,10 @@ class CustomPhotoPickerViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.collectionView.reloadData()
+                // Update all visible cells after reload
+                DispatchQueue.main.async {
+                    self?.updateAllVisibleCells()
+                }
             }
             .store(in: &cancellables)
         
@@ -176,7 +179,12 @@ class CustomPhotoPickerViewController: UIViewController {
         collectionView.register(PhotoCell.self, forCellWithReuseIdentifier: "PhotoCell")
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.allowsMultipleSelection = true
+        collectionView.allowsSelection = false // Disable built-in selection completely
+        
+        // Add tap gesture recognizer for single taps
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapGesture(_:)))
+        tapGesture.delegate = self
+        collectionView.addGestureRecognizer(tapGesture)
         
         // Add long press gesture recognizer
         let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressGesture(_:)))
@@ -296,6 +304,18 @@ class CustomPhotoPickerViewController: UIViewController {
         }
     }
     
+    // MARK: - Cell Update Helpers
+    private func updateAllVisibleCells() {
+        // Update all visible cells with current view model state
+        for indexPath in collectionView.indexPathsForVisibleItems {
+            if let asset = viewModel.getAsset(at: indexPath.item),
+               let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
+                cell.isSelected = viewModel.isAssetSelected(asset)
+                cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
+            }
+        }
+    }
+    
     // MARK: - Actions
     @objc private func cancelTapped() {
         dismiss(animated: true)
@@ -309,6 +329,28 @@ class CustomPhotoPickerViewController: UIViewController {
     }
     
     // MARK: - Gesture Handling
+    @objc private func handleTapGesture(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: collectionView)
+        guard let indexPath = collectionView.indexPathForItem(at: location),
+              let asset = viewModel.getAsset(at: indexPath.item) else { return }
+        
+        // Toggle selection through view model only
+        if viewModel.isAssetSelected(asset) {
+            _ = viewModel.deselectAsset(asset)
+        } else {
+            _ = viewModel.selectAsset(asset)
+        }
+        
+        // Update the specific cell that was tapped
+        if let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
+            cell.isSelected = viewModel.isAssetSelected(asset)
+            cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
+        }
+        
+        // Update all visible cells' selection numbers since order might have changed
+        updateAllVisibleCells()
+    }
+    
     @objc private func handleLongPressGesture(_ gesture: UILongPressGestureRecognizer) {
         let location = gesture.location(in: collectionView)
         
@@ -325,8 +367,9 @@ class CustomPhotoPickerViewController: UIViewController {
             strongFeedback.impactOccurred()
             
             // Determine selection mode based on initial cell
-            if let indexPath = collectionView.indexPathForItem(at: location) {
-                swipeSelectionMode = selectedIndexPaths.contains(indexPath) ? .deselecting : .selecting
+            if let indexPath = collectionView.indexPathForItem(at: location),
+               let asset = viewModel.getAsset(at: indexPath.item) {
+                swipeSelectionMode = viewModel.isAssetSelected(asset) ? .deselecting : .selecting
                 processIndexPath(indexPath)
             }
             
@@ -402,14 +445,10 @@ class CustomPhotoPickerViewController: UIViewController {
         
         if swipeSelectionMode == .selecting {
             if viewModel.selectAsset(asset) {
-                selectedIndexPaths.insert(indexPath)
-                collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
                 selectionChanged = true
             }
         } else {
             if viewModel.deselectAsset(asset) {
-                selectedIndexPaths.remove(indexPath)
-                collectionView.deselectItem(at: indexPath, animated: false)
                 selectionChanged = true
             }
         }
@@ -419,11 +458,8 @@ class CustomPhotoPickerViewController: UIViewController {
             feedbackGenerator.impactOccurred()
         }
         
-        // Update cell
-        if let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
-            cell.isSelected = viewModel.isAssetSelected(asset)
-            cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
-        }
+        // Update all visible cells since selection numbers might have changed
+        updateAllVisibleCells()
     }
 }
 
@@ -439,6 +475,8 @@ extension CustomPhotoPickerViewController: UICollectionViewDataSource, UICollect
         
         if let asset = viewModel.getAsset(at: indexPath.item) {
             cell.configure(with: asset, imageManager: imageManager)
+            
+            // Always use view model as source of truth for selection state
             cell.isSelected = viewModel.isAssetSelected(asset)
             cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
         }
@@ -446,36 +484,7 @@ extension CustomPhotoPickerViewController: UICollectionViewDataSource, UICollect
         return cell
     }
     
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard !isSwipeSelecting, let asset = viewModel.getAsset(at: indexPath.item) else { return }
-        
-        if viewModel.selectAsset(asset) {
-            selectedIndexPaths.insert(indexPath)
-            
-            if let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
-                cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
-            }
-        } else {
-            // Selection failed (probably due to limit), deselect in UI
-            collectionView.deselectItem(at: indexPath, animated: false)
-        }
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
-        guard !isSwipeSelecting, let asset = viewModel.getAsset(at: indexPath.item) else { return }
-        
-        if viewModel.deselectAsset(asset) {
-            selectedIndexPaths.remove(indexPath)
-            
-            // Update all visible cells' selection numbers
-            for visibleIndexPath in collectionView.indexPathsForVisibleItems {
-                if let visibleAsset = viewModel.getAsset(at: visibleIndexPath.item),
-                   let cell = collectionView.cellForItem(at: visibleIndexPath) as? PhotoCell {
-                    cell.selectionNumber = viewModel.getSelectionNumber(for: visibleAsset)
-                }
-            }
-        }
-    }
+
 }
 
 // MARK: - UIGestureRecognizerDelegate
