@@ -16,68 +16,80 @@ struct GlobalImportProgressView: View {
     var body: some View {
         Group {
             if shouldShowProgressView && !isDismissed {
-                progressCard
-                    .offset(y: dragOffset)
-                    .onTapGesture {
-                        showTaskDetails = true
-                    }
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                if value.translation.height > 0 {
-                                    dragOffset = value.translation.height
-                                }
-                            }
-                            .onEnded { value in
-                                if value.translation.height > 50 {
-                                    // Dismiss if dragged down enough
-                                    withAnimation(.easeOut(duration: 0.3)) {
-                                        isDismissed = true
-                                    }
-                                } else {
-                                    // Snap back
-                                    withAnimation(.spring()) {
-                                        dragOffset = 0
-                                    }
-                                }
-                            }
-                    )
-                    .background(Color.modalBackgroundColor)
-                    .cornerRadius(12)
-                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .alert("Delete from Photo Library?", isPresented: $showDeleteConfirmation) {
-                        Button("Delete", role: .destructive) {
-                            Task {
-                                await deleteAllCompletedTaskPhotos()
-                            }
-                        }
-                        Button("Cancel", role: .cancel) {}
-                    } message: {
-                        Text("This will delete all imported photos from your Photo Library.")
-                    }
-                    .alert("Photo Library Access Required", isPresented: $deletionManager.showPhotoAccessAlert) {
-                        Button("Open Settings") {
-                            deletionManager.openSettings()
-                        }
-                        Button("Cancel", role: .cancel) {}
-                    } message: {
-                        Text("Please grant full access to your photo library in Settings to delete imported photos.")
-                    }
-                    .onChange(of: importManager.isImporting) { _, isImporting in
-                        handleImportStateChange(isImporting: isImporting)
-                    }
-                    .onChange(of: importManager.currentTasks) { _, tasks in
-                        handleTasksChange(tasks: tasks)
-                    }
-                    .onAppear {
-                        // Only reset dismissal if there's no active session tracked
-                        if lastActiveImportSession == nil {
-                            resetDismissalState()
-                        }
-                    }
+                mainContent
             }
         }
+    }
+    
+    // MARK: - Body Subcomponents
+    
+    private var mainContent: some View {
+        progressCardWithInteractions
+            .background(Color.modalBackgroundColor)
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .alert("Delete from Photo Library?", isPresented: $showDeleteConfirmation) {
+                Button("Delete", role: .destructive) {
+                    Task {
+                        await deleteAllCompletedTaskPhotos()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will delete all imported photos from your Photo Library.")
+            }
+            .alert("Photo Library Access Required", isPresented: $deletionManager.showPhotoAccessAlert) {
+                Button("Open Settings") {
+                    deletionManager.openSettings()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Please grant full access to your photo library in Settings to delete imported photos.")
+            }
+            .onChange(of: importManager.isImporting) { _, isImporting in
+                handleImportStateChange(isImporting: isImporting)
+            }
+            .onChange(of: importManager.currentTasks) { _, tasks in
+                handleTasksChange(tasks: tasks)
+            }
+            .onAppear {
+                // Only reset dismissal if there's no active session tracked
+                if lastActiveImportSession == nil {
+                    resetDismissalState()
+                }
+            }
+    }
+    
+    private var progressCardWithInteractions: some View {
+        progressCard
+            .offset(y: dragOffset)
+            .onTapGesture {
+                showTaskDetails = true
+            }
+            .gesture(dragGesture)
+    }
+    
+    private var dragGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if value.translation.height > 0 {
+                    dragOffset = value.translation.height
+                }
+            }
+            .onEnded { value in
+                if value.translation.height > 50 {
+                    // Dismiss if dragged down enough
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        isDismissed = true
+                    }
+                } else {
+                    // Snap back
+                    withAnimation(.spring()) {
+                        dragOffset = 0
+                    }
+                }
+            }
     }
     
     private var progressCard: some View {
