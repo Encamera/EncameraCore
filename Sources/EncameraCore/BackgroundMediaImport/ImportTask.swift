@@ -11,7 +11,7 @@ import UIKit
 
 
 
-public struct ImportTask {
+public struct ImportTask: Equatable {
     public let id: String
     public let media: [CleartextMedia]
     public let albumId: String
@@ -38,5 +38,9 @@ public struct ImportTask {
             state: .idle,
             estimatedTimeRemaining: nil
         )
+    }
+
+    public static func ==(lhs: ImportTask, rhs: ImportTask) -> Bool {
+        return lhs.id == rhs.id
     }
 }
