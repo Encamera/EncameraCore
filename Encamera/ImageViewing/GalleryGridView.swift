@@ -226,18 +226,18 @@ struct GalleryGridView<Content: View, D: FileAccess>: View {
                     }
                     .blur(radius: viewModel.blurImages ? Constants.buttonCornerRadius : 0.0)
                     .animation(.easeIn, value: viewModel.blurImages)
-                    .gesture(
-                MagnificationGesture()
-                    .onChanged { value in
-                        handlePinchGesture(scale: value)
-                    }
-                    .onEnded { _ in
-                        lastZoomLevel = zoomLevel
-                        currentPinchScale = 1.0
-                        UserDefaultUtils.set(zoomLevel, forKey: .gridZoomLevel)
-                    }
-            )
                 }
+                .simultaneousGesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            handlePinchGesture(scale: value)
+                        }
+                        .onEnded { _ in
+                            lastZoomLevel = zoomLevel
+                            currentPinchScale = 1.0
+                            UserDefaultUtils.set(zoomLevel, forKey: .gridZoomLevel)
+                        }
+                )
                 .contentMargins([.top, .bottom], outerMargin)
                 .padding([.leading, .trailing], outerMargin)
             }
