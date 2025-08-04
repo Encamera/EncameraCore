@@ -92,7 +92,10 @@ struct MainHomeView<D: FileAccess>: View {
                         purchasedPermissions: viewModel.purchasedPermissions
                     ))
                 } else {
-                    AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
+                    AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager),
+                              navigateToPath: { path in
+                                  viewModel.selectedPath.append(path)
+                              })
                 }
                 
                 VStack(spacing: 0) {                        
