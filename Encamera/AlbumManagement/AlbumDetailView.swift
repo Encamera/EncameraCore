@@ -609,14 +609,11 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         Task {
             // Store the selected items before clearing selection
             let itemsToDelete = Array(selectedMedia)
-            printDebug("deleteSelectedMedia: Starting deletion of \(itemsToDelete.count) items")
             
             // First, exit selection mode so FileOperationBus will work
             await MainActor.run {
-                printDebug("deleteSelectedMedia: Clearing selection state, isSelectingMedia was: \(gridViewModel.isSelectingMedia)")
                 gridViewModel.selectedMedia.removeAll()
                 gridViewModel.isSelectingMedia = false
-                printDebug("deleteSelectedMedia: isSelectingMedia now: \(gridViewModel.isSelectingMedia)")
             }
             
             // Add a small delay to ensure the binding has updated
@@ -625,15 +622,11 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             // Now delete the files - this will trigger FileOperationBus to update the grid
             for media in itemsToDelete {
                 do {
-                    printDebug("deleteSelectedMedia: Deleting media: \(media.id)")
                     try await fileManager.delete(media: media)
-                    printDebug("deleteSelectedMedia: Successfully deleted media: \(media.id)")
                 } catch {
                     printDebug("Error deleting media: \(error)")
                 }
             }
-            
-            printDebug("deleteSelectedMedia: Completed deletion process")
         }
     }
 
@@ -733,16 +726,13 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         Task {
             // Store the selected items before clearing selection
             let itemsToMove = Array(selectedMedia)
-            printDebug("moveSelectedMedia: Starting move of \(itemsToMove.count) items to \(targetAlbum.name)")
             var completedItems: [InteractableMedia<EncryptedMedia>] = []
             var failedItems: [InteractableMedia<EncryptedMedia>] = []
             
             // First, exit selection mode so FileOperationBus will work
             await MainActor.run {
-                printDebug("moveSelectedMedia: Clearing selection state, isSelectingMedia was: \(gridViewModel.isSelectingMedia)")
                 gridViewModel.selectedMedia.removeAll()
                 gridViewModel.isSelectingMedia = false
-                printDebug("moveSelectedMedia: isSelectingMedia now: \(gridViewModel.isSelectingMedia)")
             }
             
             // Add a small delay to ensure the binding has updated
@@ -753,13 +743,11 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             
             for media in itemsToMove {
                 do {
-                    printDebug("moveSelectedMedia: Moving media: \(media.id)")
                     // Copy the media to the target album first
                     try await targetFileManager.copy(media: media)
                     // Then delete from source album - this will trigger FileOperationBus
                     try await fileManager.delete(media: media)
                     completedItems.append(media)
-                    printDebug("moveSelectedMedia: Successfully moved media: \(media.id)")
                 } catch {
                     printDebug("Error moving media: \(error)")
                     failedItems.append(media)
@@ -778,8 +766,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                     printDebug("Failed to move \(failedItems.count) items")
                 }
             }
-            
-            printDebug("moveSelectedMedia: Completed move process. Moved: \(completedItems.count), Failed: \(failedItems.count)")
         }
     }
 }
