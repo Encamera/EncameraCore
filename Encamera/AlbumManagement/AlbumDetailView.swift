@@ -607,21 +607,22 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
     func deleteSelectedMedia() {
         Task {
-            var completedItems: [InteractableMedia<EncryptedMedia>] = []
-            for media in selectedMedia {
+            // Store the selected items before clearing selection
+            let itemsToDelete = Array(selectedMedia)
+            
+            // First, exit selection mode so FileOperationBus will work
+            await MainActor.run {
+                gridViewModel.selectedMedia.removeAll()
+                gridViewModel.isSelectingMedia = false
+            }
+            
+            // Now delete the files - this will trigger FileOperationBus to update the grid
+            for media in itemsToDelete {
                 do {
                     try await fileManager.delete(media: media)
-                    completedItems.append(media)
                 } catch {
                     printDebug("Error deleting media: \(error)")
                 }
-
-            }
-            selectedMedia.removeAll()
-
-            await MainActor.run {
-                gridViewModel.removeMedia(items: completedItems)
-                isSelectingMedia = false
             }
         }
     }
@@ -720,16 +721,26 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     
     func moveSelectedMedia(to targetAlbum: Album) {
         Task {
+            // Store the selected items before clearing selection
+            let itemsToMove = Array(selectedMedia)
             var completedItems: [InteractableMedia<EncryptedMedia>] = []
             var failedItems: [InteractableMedia<EncryptedMedia>] = []
+            
+            // First, exit selection mode so FileOperationBus will work
+            await MainActor.run {
+                gridViewModel.selectedMedia.removeAll()
+                gridViewModel.isSelectingMedia = false
+            }
             
             // Create a new file manager configured for the target album
             let targetFileManager = await D.init(for: targetAlbum, albumManager: albumManager)
             
-            for media in selectedMedia {
+            for media in itemsToMove {
                 do {
-                    // Move the media to the target album
-                    try await targetFileManager.move(media: media)
+                    // Copy the media to the target album first
+                    try await targetFileManager.copy(media: media)
+                    // Then delete from source album
+                    try await fileManager.delete(media: media)
                     completedItems.append(media)
                 } catch {
                     printDebug("Error moving media: \(error)")
@@ -738,15 +749,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }
             
             await MainActor.run {
-                // Clear selection
-                selectedMedia.removeAll()
-                
-                // Remove successfully moved items from current grid
-                gridViewModel.removeMedia(items: completedItems)
-                
-                // End selection mode
-                isSelectingMedia = false
-                
                 // Show toast for successful moves
                 if completedItems.count > 0 {
                     showToast(type: .mediaMovedSuccess(count: completedItems.count, albumName: targetAlbum.name))

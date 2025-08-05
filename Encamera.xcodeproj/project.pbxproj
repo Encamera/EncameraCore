@@ -227,6 +227,7 @@
 		6EAA5B98F0F53E8171F54E1D /* LivePhotoViewing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E32FD7F27B195845AF9C0F2A /* LivePhotoViewing.swift */; };
 		6EB0039A164AA5BF2325988F /* TweetToShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13501C8BD163FDB992526254 /* TweetToShareView.swift */; };
 		6F25DA8800B9AFE79C610CBC /* ImageStepIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E66AD1C897B9591AE534EAB /* ImageStepIndicator.swift */; };
+		6FA254E6F7BA88395443E92F /* MediaOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 769B68A3895D5757B351E88F /* MediaOperationsTests.swift */; };
 		70661EDDF1C6AB200CCB26DD /* AVPlayerViewControllerRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F02011D6358CD65EAA6ED453 /* AVPlayerViewControllerRepresentable.swift */; };
 		70932F6557B54162E2068189 /* SignalBarsComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F4CB8A578E1FA9B21A431C /* SignalBarsComponent.swift */; };
 		70939970623DB470B059763D /* OnboardingViewError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB3AA38D651FF8331C0601C /* OnboardingViewError.swift */; };
@@ -637,6 +638,7 @@
 		73B4BC15709B9CBC0340A4CD /* GalleryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryItem.swift; sourceTree = "<group>"; };
 		745A49F606BD48880E22AFEC /* ImageWithBackgroundRectangle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageWithBackgroundRectangle.swift; sourceTree = "<group>"; };
 		7661A4F3701B87A8341BC477 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = de; path = de.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		769B68A3895D5757B351E88F /* MediaOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaOperationsTests.swift; sourceTree = "<group>"; };
 		77778B1DAB85906F023A8447 /* brooke-lark-R18ecx07b3c-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "brooke-lark-R18ecx07b3c-unsplash.jpg"; sourceTree = "<group>"; };
 		7829FFF879ED20D3A0CA4410 /* KeyOperationCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyOperationCell.swift; sourceTree = "<group>"; };
 		7A111E639AA2EE3FB1358F2F /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -1085,6 +1087,7 @@
 				8EA3B62B701C8B7BC9C62AA3 /* FileHandlerKeyInteractionTests.swift */,
 				6897CDF81668F94FDE804A4F /* ImportProgressTests.swift */,
 				399C8567381DA2CF6933631C /* KeychainManagerTests.swift */,
+				769B68A3895D5757B351E88F /* MediaOperationsTests.swift */,
 				00297DED53A78CD41A6F378F /* TestUtils.swift */,
 			);
 			path = Tests;
@@ -1783,6 +1786,7 @@
 				5E84884DAD76437F1BD546A3 /* FileHandlerKeyInteractionTests.swift in Sources */,
 				DFF2175CBF77A269BBFDEA7D /* ImportProgressTests.swift in Sources */,
 				6C2AAC453A0B50286F5B9891 /* KeychainManagerTests.swift in Sources */,
+				6FA254E6F7BA88395443E92F /* MediaOperationsTests.swift in Sources */,
 				18E5DFB37BAF46A377987174 /* TestUtils.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
