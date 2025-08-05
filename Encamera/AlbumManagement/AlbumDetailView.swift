@@ -139,7 +139,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }
         }.store(in: &cancellables)
         Task {
-            self.fileManager = await D(for: album, albumManager: albumManager)
+            self.fileManager = await D.init(for: album, albumManager: albumManager)
         }
     }
 
@@ -724,7 +724,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             var failedItems: [InteractableMedia<EncryptedMedia>] = []
             
             // Create a new file manager configured for the target album
-            let targetFileManager = await D(for: targetAlbum, albumManager: albumManager)
+            let targetFileManager = await D.init(for: targetAlbum, albumManager: albumManager)
             
             for media in selectedMedia {
                 do {
