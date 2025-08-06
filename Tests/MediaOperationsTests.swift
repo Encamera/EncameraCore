@@ -77,7 +77,7 @@ class MediaOperationsTests: XCTestCase {
         XCTAssertEqual(mediaBeforeDelete.count, 1, "Should have one media item")
         
         // Delete the media
-        try await sourceDiskAccess.delete(media: encryptedMedia!)
+        try await sourceDiskAccess.delete(media: [encryptedMedia!])
         
         // Verify file is deleted
         let mediaAfterDelete: [InteractableMedia<EncryptedMedia>] = await sourceDiskAccess.enumerateMedia()
@@ -103,9 +103,7 @@ class MediaOperationsTests: XCTestCase {
         XCTAssertEqual(mediaBeforeDelete.count, 3, "Should have 3 media items")
         
         // Delete all media
-        for media in savedMedia {
-            try await sourceDiskAccess.delete(media: media)
-        }
+        try await sourceDiskAccess.delete(media: savedMedia)
         
         // Verify all files are deleted
         let mediaAfterDelete: [InteractableMedia<EncryptedMedia>] = await sourceDiskAccess.enumerateMedia()
@@ -197,7 +195,7 @@ class MediaOperationsTests: XCTestCase {
         try await targetDiskAccess.copy(media: encryptedMedia!)
         
         // Step 2: Delete from source album
-        try await sourceDiskAccess.delete(media: encryptedMedia!)
+        try await sourceDiskAccess.delete(media: [encryptedMedia!])
         
         // Verify media only exists in target album
         let sourceMedia: [InteractableMedia<EncryptedMedia>] = await sourceDiskAccess.enumerateMedia()

@@ -93,7 +93,7 @@ public class DemoFileEnumerator: FileAccess {
         return retVal
     }
 
-    public func delete(media: InteractableMedia<EncryptedMedia>) async throws {
+    public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
         // Implementation here
     }
 

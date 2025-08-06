@@ -525,7 +525,7 @@ class MockFileAccess: FileAccess {
         // Mock implementation
     }
     
-    func delete(media: InteractableMedia<EncryptedMedia>) async throws {
+    func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
         // Mock implementation
     }
     

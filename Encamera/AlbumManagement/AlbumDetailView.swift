@@ -134,7 +134,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                     }))
                 }
             }
-            Task {
+            Task { @MainActor in
                 await self.gridViewModel.enumerateMedia()
             }
         }.store(in: &cancellables)
@@ -614,18 +614,17 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             await MainActor.run {
                 gridViewModel.selectedMedia.removeAll()
                 gridViewModel.isSelectingMedia = false
+                isSelectingMedia = false
             }
             
             // Add a small delay to ensure the binding has updated
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             
             // Now delete the files - this will trigger FileOperationBus to update the grid
-            for media in itemsToDelete {
-                do {
-                    try await fileManager.delete(media: media)
-                } catch {
-                    printDebug("Error deleting media: \(error)")
-                }
+            do {
+                try await fileManager.delete(media: itemsToDelete)
+            } catch {
+                printDebug("Error deleting media: \(error)")
             }
         }
     }
@@ -733,6 +732,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             await MainActor.run {
                 gridViewModel.selectedMedia.removeAll()
                 gridViewModel.isSelectingMedia = false
+                isSelectingMedia = false
             }
             
             // Add a small delay to ensure the binding has updated
@@ -741,16 +741,23 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             // Create a new file manager configured for the target album
             let targetFileManager = await D.init(for: targetAlbum, albumManager: albumManager)
             
+            // First, copy all media to target album
             for media in itemsToMove {
                 do {
-                    // Copy the media to the target album first
                     try await targetFileManager.copy(media: media)
-                    // Then delete from source album - this will trigger FileOperationBus
-                    try await fileManager.delete(media: media)
                     completedItems.append(media)
                 } catch {
-                    printDebug("Error moving media: \(error)")
+                    printDebug("Error copying media: \(error)")
                     failedItems.append(media)
+                }
+            }
+            
+            // Then, batch delete successfully copied items from source album
+            if !completedItems.isEmpty {
+                do {
+                    try await fileManager.delete(media: completedItems)
+                } catch {
+                    printDebug("Error deleting media after move: \(error)")
                 }
             }
             

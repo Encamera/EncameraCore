@@ -66,13 +66,10 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
 
         FileOperationBus.shared.operations.sink { operation in
             #warning("This is a temporary fix, make it more graceful and refactor FileOperationBus")
-            debugPrint("FileOperationBus: Received operation: \(operation), isSelectingMedia: \(self.isSelectingMedia)")
             guard self.isSelectingMedia == false else {
-                debugPrint("FileOperationBus: Ignoring operation because isSelectingMedia is true")
                 return
             }
 
-            debugPrint("FileOperationBus: Processing operation, will enumerate media")
             Task {
                 await self.enumerateMedia()
             }
@@ -118,6 +115,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         downloadInProgress = false
     }
 
+    @MainActor
     func enumerateMedia() async {
         guard let album = album else {
             debugPrint("No album")
