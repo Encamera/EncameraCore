@@ -44,7 +44,7 @@ public protocol FileWriter: FileEnumerator {
     @discardableResult func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel
     func copy(media: InteractableMedia<EncryptedMedia>) async throws
     func move(media: InteractableMedia<EncryptedMedia>) async throws
-    func delete(media: InteractableMedia<EncryptedMedia>) async throws
+    func delete(media: [InteractableMedia<EncryptedMedia>]) async throws
     func deleteMediaForKey() async throws
     func deleteAllMedia() async throws
     func setKeyUUIDForExistingFiles() async throws

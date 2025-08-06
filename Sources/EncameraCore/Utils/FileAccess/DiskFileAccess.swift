@@ -536,18 +536,23 @@ extension DiskFileAccess {
         }
     }
 
-    public func delete(media: EncryptedMedia) async throws {
-        guard case .url(let source) = media.source else {
-            printDebug("Error deleting media: \(media)")
-            throw FileAccessError.missingDirectoryModel
+    public func delete(media: [EncryptedMedia]) async throws {
+        var deletedMedia: [EncryptedMedia] = []
+        
+        for mediaItem in media {
+            guard case .url(let source) = mediaItem.source else {
+                printDebug("Error deleting media: \(mediaItem)")
+                throw FileAccessError.missingDirectoryModel
+            }
+            
+            try FileManager.default.removeItem(at: source)
+            if let previewURL = directoryModel?.previewURLForMedia(mediaItem) {
+                try? FileManager.default.removeItem(at: previewURL)
+            }
+            deletedMedia.append(mediaItem)
         }
         
-        try FileManager.default.removeItem(at: source)
-        if let previewURL = directoryModel?.previewURLForMedia(media) {
-            try? FileManager.default.removeItem(at: previewURL)
-        }
-        operationBus.didDelete(media)
-
+        operationBus.didDelete(deletedMedia)
     }
 
     public func deleteMediaForKey() async throws {

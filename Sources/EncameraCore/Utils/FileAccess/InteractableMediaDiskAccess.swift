@@ -126,10 +126,9 @@ public actor InteractableMediaDiskAccess: FileAccess {
         }
     }
     
-    public func delete(media: InteractableMedia<EncryptedMedia>) async throws {
-        for mediaItem in media.underlyingMedia {
-            try await fileAccess.delete(media: mediaItem)
-        }
+    public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
+        let allMediaItems = media.flatMap { $0.underlyingMedia }
+        try await fileAccess.delete(media: allMediaItems)
     }
     
     public func deleteMediaForKey() async throws {
