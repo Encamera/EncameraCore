@@ -108,6 +108,14 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 default: break
                 }
             }.store(in: &cancellables)
+        
+        // Dismiss photo picker when app goes to background
+        NotificationUtils.didEnterBackgroundPublisher
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.showPhotoPicker = nil
+            }
+            .store(in: &cancellables)
         guard let album else { return }
         self.album = album
 
@@ -980,7 +988,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                 ViewHeader(isToolbar: true, centerContent: {
                     TextField(L10n.albumName, text: $viewModel.albumName)
                         .focused($isAlbumNameFocused)
-                        .fontType(.pt24, weight: .bold)
+                        .fontType(.pt18, weight: .bold)
                         .noAutoModification()
                 }, rightContent: {
                     HStack(alignment: .center) {

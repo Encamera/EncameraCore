@@ -9,7 +9,6 @@ struct GlobalImportProgressView: View {
     @State private var showTaskDetails = false
     @State private var showDeleteConfirmation = false
     @State private var hideAfterCompletion = false
-    @State private var dragOffset: CGFloat = 0
     @State private var isDismissed = false
     @State private var lastActiveImportSession: String? = nil
     
@@ -63,45 +62,15 @@ struct GlobalImportProgressView: View {
     
     private var progressCardWithInteractions: some View {
         progressCard
-            .offset(y: dragOffset)
             .onTapGesture {
                 showTaskDetails = true
             }
-            .gesture(dragGesture)
     }
     
-    private var dragGesture: some Gesture {
-        DragGesture()
-            .onChanged { value in
-                if value.translation.height > 0 {
-                    dragOffset = value.translation.height
-                }
-            }
-            .onEnded { value in
-                if value.translation.height > 50 {
-                    // Dismiss if dragged down enough
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        isDismissed = true
-                    }
-                } else {
-                    // Snap back
-                    withAnimation(.spring()) {
-                        dragOffset = 0
-                    }
-                }
-            }
-    }
+
     
     private var progressCard: some View {
         VStack(spacing: 0) {
-            // Dismissal knob (only show when completed)
-            if isCompleted {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.secondaryElementColor.opacity(0.3))
-                    .frame(width: 36, height: 4)
-                    .padding(.top, 8)
-            }
-            
             HStack(spacing: 16) {
                 // Circular progress indicator
                 CircularProgressView(
@@ -309,7 +278,6 @@ struct GlobalImportProgressView: View {
     
     private func resetDismissalState() {
         isDismissed = false
-        dragOffset = 0
     }
 
 }
