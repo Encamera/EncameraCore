@@ -65,12 +65,26 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         //#endif
 
         FileOperationBus.shared.operations.sink { operation in
-            #warning("This is a temporary fix, make it more graceful and refactor FileOperationBus")
-            guard self.isSelectingMedia == false else {
-                return
-            }
-
+            // Debounce to avoid conflicts with ongoing operations
             Task {
+                // Add a small delay to ensure UI state has settled
+                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                
+                // Only skip refresh if actively selecting and operation is not delete
+                // For delete operations, always refresh to ensure UI consistency
+                if self.isSelectingMedia {
+                    if case .delete = operation {
+                        // For delete operations, clear selection and refresh
+                        await MainActor.run {
+                            self.isSelectingMedia = false
+                            self.selectedMedia = []
+                        }
+                    } else {
+                        // Skip refresh for other operations during selection
+                        return
+                    }
+                }
+                
                 await self.enumerateMedia()
             }
         }.store(in: &cancellables)
