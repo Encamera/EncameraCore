@@ -604,6 +604,21 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         guard let album else { return }
         albumManager.delete(album: album)
     }
+    
+    /// Clears selection mode and selected media, then refreshes the grid
+    @MainActor
+    private func clearSelectionAndRefreshGrid() {
+        // Clear selection state
+        gridViewModel.isSelectingMedia = false
+        gridViewModel.selectedMedia.removeAll()
+        isSelectingMedia = false
+        selectedMedia.removeAll()
+        
+        // Refresh grid view
+        Task {
+            await gridViewModel.enumerateMedia()
+        }
+    }
 
     func deleteSelectedMedia() {
         Task {
@@ -625,6 +640,11 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 try await fileManager.delete(media: itemsToDelete)
             } catch {
                 printDebug("Error deleting media: \(error)")
+            }
+            
+            // Force refresh after delete completes
+            await MainActor.run {
+                clearSelectionAndRefreshGrid()
             }
         }
     }
@@ -761,7 +781,10 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 }
             }
             
+            // Force refresh the grid after move completes
             await MainActor.run {
+                clearSelectionAndRefreshGrid()
+                
                 // Show toast for successful moves
                 if completedItems.count > 0 {
                     showToast(type: .mediaMovedSuccess(count: completedItems.count, albumName: targetAlbum.name))
