@@ -65,27 +65,40 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         //#endif
 
         FileOperationBus.shared.operations.sink { operation in
-            // Debounce to avoid conflicts with ongoing operations
             Task {
-                // Add a small delay to ensure UI state has settled
-                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
-                
-                // Only skip refresh if actively selecting and operation is not delete
-                // For delete operations, always refresh to ensure UI consistency
-                if self.isSelectingMedia {
-                    if case .delete = operation {
-                        // For delete operations, clear selection and refresh
-                        await MainActor.run {
+                await MainActor.run {
+                    switch operation {
+                    case .delete(let deletedMedia):
+                        // Handle animated deletion
+                        self.handleDeletedMedia(deletedMedia)
+                        
+                        // Clear selection if we're in selection mode
+                        if self.isSelectingMedia {
                             self.isSelectingMedia = false
                             self.selectedMedia = []
                         }
-                    } else {
-                        // Skip refresh for other operations during selection
-                        return
+                        
+                    case .move(let movedMedia, let targetAlbum):
+                        // Handle animated move (only if it's moving FROM current album)
+                        if let currentAlbum = self.album, currentAlbum.id != targetAlbum.id {
+                            self.handleMovedMedia(movedMedia)
+                        }
+                        
+                        // Clear selection if we're in selection mode
+                        if self.isSelectingMedia {
+                            self.isSelectingMedia = false
+                            self.selectedMedia = []
+                        }
+                        
+                    case .create:
+                        // For create operations, refresh the full list
+                        Task {
+                            // Add a small delay to ensure file operations have completed
+                            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                            await self.enumerateMedia()
+                        }
                     }
                 }
-                
-                await self.enumerateMedia()
             }
         }.store(in: &cancellables)
         self.$isSelectingMedia.sink { value in
@@ -139,7 +152,7 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
         let enumerated: [InteractableMedia<EncryptedMedia>] = await fileAccess.enumerateMedia()
         media = enumerated
         enumerateiCloudUndownloaded()
-        noMediaShown = enumerated.isEmpty
+        updateNoMediaState()
     }
 
     func blurItemAt(index: Int) -> Bool {
@@ -154,7 +167,39 @@ class GalleryGridViewModel<D: FileAccess>: ObservableObject {
                     media.remove(at: index)
                 }
             }
+            updateNoMediaState()
         }
+    }
+    
+    /// Handle animated deletion of specific media items based on EncryptedMedia
+    @MainActor
+    private func handleDeletedMedia(_ deletedEncryptedMedia: [EncryptedMedia]) {
+        // Convert EncryptedMedia to InteractableMedia for comparison
+        let itemsToRemove = media.filter { interactableMedia in
+            deletedEncryptedMedia.contains { deletedEncrypted in
+                // Compare by checking if any underlying media matches
+                interactableMedia.underlyingMedia.contains { underlying in
+                    underlying.id == deletedEncrypted.id
+                }
+            }
+        }
+        
+        if !itemsToRemove.isEmpty {
+            removeMedia(items: itemsToRemove)
+        }
+    }
+    
+    /// Handle animated move of specific media items based on EncryptedMedia  
+    @MainActor
+    private func handleMovedMedia(_ movedEncryptedMedia: [EncryptedMedia]) {
+        // For moves, we treat it the same as deletion from the current album
+        handleDeletedMedia(movedEncryptedMedia)
+    }
+    
+    /// Update the noMediaShown state
+    @MainActor
+    private func updateNoMediaState() {
+        noMediaShown = media.isEmpty
     }
 
 }

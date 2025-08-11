@@ -622,7 +622,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         isSelectingMedia = false
         selectedMedia.removeAll()
         
-        // Refresh grid view
+        // Refresh grid view (only use this method for cases where FileOperationBus won't handle it)
         Task {
             await gridViewModel.enumerateMedia()
         }
@@ -633,26 +633,25 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             // Store the selected items before clearing selection
             let itemsToDelete = Array(selectedMedia)
             
-            // First, exit selection mode so FileOperationBus will work
+            // First, exit selection mode
             await MainActor.run {
                 gridViewModel.selectedMedia.removeAll()
                 gridViewModel.isSelectingMedia = false
                 isSelectingMedia = false
             }
             
-            // Add a small delay to ensure the binding has updated
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-            
-            // Now delete the files - this will trigger FileOperationBus to update the grid
+            // Delete the files - this will trigger FileOperationBus with animated removal
             do {
                 try await fileManager.delete(media: itemsToDelete)
+                // No need to manually refresh - FileOperationBus will handle the animation
             } catch {
                 printDebug("Error deleting media: \(error)")
-            }
-            
-            // Force refresh after delete completes
-            await MainActor.run {
-                clearSelectionAndRefreshGrid()
+                // On error, refresh to ensure consistency
+                await MainActor.run {
+                    Task {
+                        await gridViewModel.enumerateMedia()
+                    }
+                }
             }
         }
     }
@@ -756,15 +755,12 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             var completedItems: [InteractableMedia<EncryptedMedia>] = []
             var failedItems: [InteractableMedia<EncryptedMedia>] = []
             
-            // First, exit selection mode so FileOperationBus will work
+            // First, exit selection mode
             await MainActor.run {
                 gridViewModel.selectedMedia.removeAll()
                 gridViewModel.isSelectingMedia = false
                 isSelectingMedia = false
             }
-            
-            // Add a small delay to ensure the binding has updated
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             
             // Create a new file manager configured for the target album
             let targetFileManager = await D.init(for: targetAlbum, albumManager: albumManager)
@@ -780,20 +776,30 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 }
             }
             
-            // Then, batch delete successfully copied items from source album
+            // Then, batch delete successfully copied items from source album and send move notification
             if !completedItems.isEmpty {
                 do {
+                    // Extract the underlying encrypted media for the notification
+                    let movedEncryptedMedia = completedItems.flatMap { $0.underlyingMedia }
+                    
+                    // Send move notification BEFORE deletion to ensure proper animation
+                    FileOperationBus.shared.didMove(movedEncryptedMedia, to: targetAlbum)
+                    
+                    // Then delete from source (this won't trigger additional animation since we already notified about move)
                     try await fileManager.delete(media: completedItems)
                 } catch {
                     printDebug("Error deleting media after move: \(error)")
+                    // On error, refresh to ensure consistency
+                    await MainActor.run {
+                        Task {
+                            await gridViewModel.enumerateMedia()
+                        }
+                    }
                 }
             }
             
-            // Force refresh the grid after move completes
+            // Show toast for successful moves
             await MainActor.run {
-                clearSelectionAndRefreshGrid()
-                
-                // Show toast for successful moves
                 if completedItems.count > 0 {
                     showToast(type: .mediaMovedSuccess(count: completedItems.count, albumName: targetAlbum.name))
                 }
