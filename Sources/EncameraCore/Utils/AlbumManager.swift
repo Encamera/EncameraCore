@@ -149,7 +149,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         albumSet.remove(album)
         albumOperationSubject.send(.albumDeleted(album: album))
         if albumSet.count == 0 {
-            currentAlbum = try? create(name: AppConstants.defaultAlbumName, storageOption: .local)
+            currentAlbum = nil
         } else {
             currentAlbum = albumSet.first
         }

@@ -12,6 +12,7 @@ import Combine
 public enum FileOperation {
     case create(EncryptedMedia)
     case delete([EncryptedMedia])
+    case move(from: [EncryptedMedia], to: Album)
 }
 
 
@@ -25,11 +26,15 @@ public struct FileOperationBus {
     
     private var operationSubject: PassthroughSubject<FileOperation, Never> = PassthroughSubject()
 
-    func didCreate(_ media: EncryptedMedia) {
+    public func didCreate(_ media: EncryptedMedia) {
         operationSubject.send(.create(media))
     }
     
-    func didDelete(_ media: [EncryptedMedia]) {
+    public func didDelete(_ media: [EncryptedMedia]) {
         operationSubject.send(.delete(media))
+    }
+    
+    public func didMove(_ media: [EncryptedMedia], to album: Album) {
+        operationSubject.send(.move(from: media, to: album))
     }
 }
