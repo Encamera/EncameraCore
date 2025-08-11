@@ -53,10 +53,14 @@ struct GlobalImportProgressView: View {
                 handleTasksChange(tasks: tasks)
             }
             .onAppear {
-                // Only reset dismissal if there's no active session tracked
-                if lastActiveImportSession == nil {
-                    resetDismissalState()
-                }
+                // Always reset UI dismissal state when view appears
+                // This ensures the progress view shows properly when navigating back to the view
+                resetUIState()
+            }
+            .onDisappear {
+                // When leaving the view, mark as dismissed to prevent reappearing
+                // until there's a new import session
+                handleViewDisappear()
             }
     }
     
@@ -261,7 +265,7 @@ struct GlobalImportProgressView: View {
         if !runningTasks.isEmpty {
             let currentSessionId = runningTasks.first?.id
             
-            // If this is a new session, reset dismissal state
+            // If this is a new session, reset all dismissal state to ensure visibility
             if lastActiveImportSession != currentSessionId {
                 lastActiveImportSession = currentSessionId
                 resetDismissalState()
@@ -269,7 +273,7 @@ struct GlobalImportProgressView: View {
             }
         }
         
-        // If no tasks remain, clear the session tracking
+        // If no tasks remain, clear the session tracking and allow auto-hide
         if tasks.isEmpty {
             lastActiveImportSession = nil
             hideAfterCompletion = false
@@ -278,6 +282,35 @@ struct GlobalImportProgressView: View {
     
     private func resetDismissalState() {
         isDismissed = false
+    }
+    
+    private func resetUIState() {
+        // Reset UI-specific dismissal state when view appears
+        // This allows the progress view to show again if there are active/completed tasks
+        isDismissed = false
+        
+        // If there are no active imports and only completed tasks, don't auto-hide
+        // Let the user see the completed state until they manually dismiss or navigate away
+        if !importManager.isImporting && !importManager.currentTasks.isEmpty {
+            let hasActiveOrCompletedTasks = importManager.currentTasks.contains { task in
+                task.state == .running || task.state == .paused || task.state == .completed
+            }
+            if hasActiveOrCompletedTasks {
+                hideAfterCompletion = false
+            }
+        }
+    }
+    
+    private func handleViewDisappear() {
+        // When navigating away from the view, mark as dismissed only if imports are completed
+        // This prevents the progress view from reappearing when navigating back
+        if !importManager.isImporting {
+            let completedTasks = importManager.currentTasks.filter { $0.state == .completed }
+            if !completedTasks.isEmpty && importManager.currentTasks.allSatisfy({ $0.state == .completed }) {
+                // All tasks are completed, mark as dismissed to prevent showing on next view appearance
+                isDismissed = true
+            }
+        }
     }
 
 }
