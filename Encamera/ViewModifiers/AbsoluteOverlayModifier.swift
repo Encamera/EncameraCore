@@ -1,67 +1,68 @@
 import SwiftUI
+import EncameraCore
+import Combine
 
-struct AbsoluteOverlayModifier<Overlay: View>: ViewModifier {
-    let overlay: Overlay
+fileprivate struct ImportManagerOverlayModifier: ViewModifier {
     let alignment: Alignment
     let ignoresSafeArea: Bool
     let edges: Edge.Set
-    
+    @StateObject private var importManager = BackgroundMediaImportManager.shared
+    @State private var showProgressView: Bool = false {
+        didSet {
+            print("ImportManagerOverlayModifier setting showProgressView \(showProgressView)")
+        }
+    }
+    @State private var cancellables = Set<AnyCancellable>()
+
     init(
-        @ViewBuilder overlay: () -> Overlay,
         alignment: Alignment = .topTrailing,
         ignoresSafeArea: Bool = true,
         edges: Edge.Set = .top
     ) {
-        self.overlay = overlay()
         self.alignment = alignment
         self.ignoresSafeArea = ignoresSafeArea
         self.edges = edges
     }
-    
+
+
+
     func body(content: Content) -> some View {
         ZStack(alignment: alignment) {
             content
-            
-            overlay
+            if showProgressView {
+                VStack {
+                    Spacer()
+                    GlobalImportProgressView(showProgressView: $showProgressView)
+                        .padding(.horizontal, 16)
+                    Spacer().frame(height: 26)
+                }
                 .if(ignoresSafeArea) { view in
                     view.ignoresSafeArea(edges: edges)
                 }
+            }
+        }.onAppear {
+            importManager.$isImporting.sink { value in
+                if self.showProgressView == false {
+                    self.showProgressView = value
+                }
+            }.store(in: &cancellables)
+
         }
     }
 }
 
 extension View {
-    func absoluteOverlay<Overlay: View>(
-        alignment: Alignment = .topTrailing,
-        ignoresSafeArea: Bool = true,
-        edges: Edge.Set = .top,
-        @ViewBuilder overlay: () -> Overlay
-    ) -> some View {
-        modifier(AbsoluteOverlayModifier(
-            overlay: overlay,
-            alignment: alignment,
-            ignoresSafeArea: ignoresSafeArea,
-            edges: edges
-        ))
-    }
-    
+
     func globalImportProgress(
         alignment: Alignment = .bottom,
         ignoresSafeArea: Bool = true,
         edges: Edge.Set = .top
     ) -> some View {
-        absoluteOverlay(
+        modifier(ImportManagerOverlayModifier(
             alignment: alignment,
             ignoresSafeArea: ignoresSafeArea,
             edges: edges
-        ) {
-            VStack {
-                Spacer()
-                GlobalImportProgressView()
-                    .padding(.horizontal, 16)
-                Spacer().frame(height: 26)
-            }
-        }
+        ))
     }
 }
 

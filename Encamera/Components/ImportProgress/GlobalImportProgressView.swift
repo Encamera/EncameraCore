@@ -8,20 +8,17 @@ struct GlobalImportProgressView: View {
     @StateObject private var deletionManager = PhotoDeletionManager()
     @State private var showTaskDetails = false
     @State private var showDeleteConfirmation = false
-    @State private var hideAfterCompletion = false
-    @State private var isDismissed = false
+    @Binding var showProgressView: Bool
     @State private var lastActiveImportSession: String? = nil
-    
+
     var body: some View {
         Group {
-            if shouldShowProgressView && !isDismissed {
-                mainContent
-            }
+            mainContent
         }
     }
-    
+
     // MARK: - Body Subcomponents
-    
+
     private var mainContent: some View {
         progressCardWithInteractions
             .background(Color.modalBackgroundColor)
@@ -63,16 +60,16 @@ struct GlobalImportProgressView: View {
                 handleViewDisappear()
             }
     }
-    
+
     private var progressCardWithInteractions: some View {
         progressCard
             .onTapGesture {
                 showTaskDetails = true
             }
     }
-    
 
-    
+
+
     private var progressCard: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
@@ -82,22 +79,22 @@ struct GlobalImportProgressView: View {
                     lineWidth: 4,
                     size: 60
                 )
-                
+
                 // Status text and details
                 VStack(alignment: .leading, spacing: 4) {
                     Text(statusText)
                         .fontType(.pt14, weight: .semibold)
                         .foregroundColor(.foregroundPrimary)
-                    
+
                     if let eta = estimatedTimeRemaining {
                         Text(eta)
                             .fontType(.pt12)
                             .foregroundColor(.actionYellowGreen)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // Action button
                 Button(action: handleActionButtonTap) {
                     Image(actionButtonImageName)
@@ -113,25 +110,37 @@ struct GlobalImportProgressView: View {
             ImportTaskDetailsView()
         }
     }
-    
+
     // MARK: - Computed Properties
-    
-    private var shouldShowProgressView: Bool {
-        (importManager.isImporting || !importManager.currentTasks.isEmpty) && !hideAfterCompletion
+
+    // Task filtering helpers
+    private var activeTasks: [ImportTask] {
+        importManager.currentTasks.filter { task in
+            task.state == .running || task.state == .paused
+        }
     }
-    
+
+    private var runningTasks: [ImportTask] {
+        importManager.currentTasks.filter { $0.state == .running }
+    }
+
+    private var pausedTasks: [ImportTask] {
+        importManager.currentTasks.filter { $0.state == .paused }
+    }
+
+    private var completedTasks: [ImportTask] {
+        importManager.currentTasks.filter { $0.state == .completed }
+    }
+
+    // State helpers
     private var isCompleted: Bool {
-        !importManager.isImporting && !importManager.currentTasks.filter { 
-            $0.state == .completed 
-        }.isEmpty
+        !importManager.isImporting && !completedTasks.isEmpty
     }
-    
+
     private var isPaused: Bool {
-        !importManager.currentTasks.filter { 
-            $0.state == .paused 
-        }.isEmpty
+        !pausedTasks.isEmpty
     }
-    
+
     private var actionButtonImageName: String {
         if isCompleted {
             return "Trash"
@@ -141,7 +150,7 @@ struct GlobalImportProgressView: View {
             return "Pause"
         }
     }
-    
+
     private var displayProgress: Double {
         if isCompleted {
             return 1.0 // Show 100% when completed
@@ -149,21 +158,8 @@ struct GlobalImportProgressView: View {
             return importManager.overallProgress
         }
     }
-    
+
     private var statusText: String {
-        let activeTasks = importManager.currentTasks.filter { task in
-            switch task.state {
-            case .running, .paused:
-                return true
-            default:
-                return false
-            }
-        }
-        
-        let completedTasks = importManager.currentTasks.filter { task in
-            task.state == .completed
-        }
-        
         if !completedTasks.isEmpty && activeTasks.isEmpty {
             return "Import completed"
         } else if activeTasks.isEmpty {
@@ -175,14 +171,13 @@ struct GlobalImportProgressView: View {
             return "Importing \(activeTasks.count) batches"
         }
     }
-    
+
     private var estimatedTimeRemaining: String? {
-        let runningTasks = importManager.currentTasks.filter { $0.state == .running }
         guard let task = runningTasks.first,
               let eta = task.progress.estimatedTimeRemaining else {
             return nil
         }
-        
+
         if eta < 60 {
             return "\(Int(eta))s remaining"
         } else if eta < 3600 {
@@ -191,16 +186,15 @@ struct GlobalImportProgressView: View {
             return "\(Int(eta / 3600))h remaining"
         }
     }
-    
+
     private func pauseCurrentTask() {
-        let runningTasks = importManager.currentTasks.filter { $0.state == .running }
         for task in runningTasks {
             importManager.pauseImport(taskId: task.id)
         }
     }
-    
+
     // MARK: - Action Functions
-    
+
     private func handleActionButtonTap() {
         if isCompleted {
             showDeleteConfirmation = true
@@ -210,106 +204,72 @@ struct GlobalImportProgressView: View {
             pauseCurrentTask()
         }
     }
-    
+
     private func resumePausedTasks() {
-        let pausedTasks = importManager.currentTasks.filter { $0.state == .paused }
         for task in pausedTasks {
             Task {
                 try? await importManager.resumeImport(taskId: task.id)
             }
         }
     }
-    
+
     private func deleteAllCompletedTaskPhotos() async {
-        let completedTasks = importManager.currentTasks.filter { $0.state == .completed }
         let allAssetIdentifiers = completedTasks.flatMap { $0.assetIdentifiers }
-        
+
         await deletionManager.deletePhotos(assetIdentifiers: allAssetIdentifiers)
-        
+
         // Remove completed tasks after successful deletion
         for task in completedTasks {
             importManager.cancelImport(taskId: task.id)
         }
-        
-        // If no tasks remain after deletion, clear session tracking and hide
+
+        // If no tasks remain after deletion, clear session tracking
         if importManager.currentTasks.filter({ $0.state != .completed }).isEmpty {
             lastActiveImportSession = nil
-            withAnimation(.easeOut(duration: 0.3)) {
-                hideAfterCompletion = true
-            }
         }
     }
-    
+
     private func handleImportStateChange(isImporting: Bool) {
-        if !isImporting {
-            let completedTasks = importManager.currentTasks.filter { $0.state == .completed }
-            
-            // Auto-dismiss after 5 seconds when tasks complete (only if not manually dismissed)
-            if !completedTasks.isEmpty && !hideAfterCompletion && !isDismissed {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                    withAnimation(.easeOut(duration: 0.5)) {
-                        hideAfterCompletion = true
-                    }
+        if !isImporting && !completedTasks.isEmpty && !showProgressView {
+            // Auto-dismiss after 5 seconds when tasks complete
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    showProgressView = true
                 }
             }
-        } else {
-            // Reset hide flag if importing starts again
-            hideAfterCompletion = false
         }
     }
-    
+
     private func handleTasksChange(tasks: [ImportTask]) {
-        // Check if this is a new import session by looking for running tasks
-        let runningTasks = tasks.filter { $0.state == .running }
-        
-        if !runningTasks.isEmpty {
-            let currentSessionId = runningTasks.first?.id
-            
-            // If this is a new session, reset all dismissal state to ensure visibility
+        let currentRunningTasks = tasks.filter { $0.state == .running }
+
+        if !currentRunningTasks.isEmpty {
+            let currentSessionId = currentRunningTasks.first?.id
+
+            // If this is a new session, reset dismissal state to ensure visibility
             if lastActiveImportSession != currentSessionId {
                 lastActiveImportSession = currentSessionId
-                resetDismissalState()
-                hideAfterCompletion = false
+                showProgressView = false
             }
         }
-        
-        // If no tasks remain, clear the session tracking and allow auto-hide
+
+        // If no tasks remain, clear the session tracking
         if tasks.isEmpty {
             lastActiveImportSession = nil
-            hideAfterCompletion = false
         }
     }
-    
-    private func resetDismissalState() {
-        isDismissed = false
-    }
-    
+
     private func resetUIState() {
-        // Reset UI-specific dismissal state when view appears
-        // This allows the progress view to show again if there are active/completed tasks
-        isDismissed = false
-        
-        // If there are no active imports and only completed tasks, don't auto-hide
-        // Let the user see the completed state until they manually dismiss or navigate away
-        if !importManager.isImporting && !importManager.currentTasks.isEmpty {
-            let hasActiveOrCompletedTasks = importManager.currentTasks.contains { task in
-                task.state == .running || task.state == .paused || task.state == .completed
-            }
-            if hasActiveOrCompletedTasks {
-                hideAfterCompletion = false
-            }
-        }
+        // Reset dismissal state when view appears to show progress for active/completed tasks
+        showProgressView = false
     }
-    
+
     private func handleViewDisappear() {
-        // When navigating away from the view, mark as dismissed only if imports are completed
-        // This prevents the progress view from reappearing when navigating back
-        if !importManager.isImporting {
-            let completedTasks = importManager.currentTasks.filter { $0.state == .completed }
-            if !completedTasks.isEmpty && importManager.currentTasks.allSatisfy({ $0.state == .completed }) {
-                // All tasks are completed, mark as dismissed to prevent showing on next view appearance
-                isDismissed = true
-            }
+        // When navigating away and all tasks are completed, mark as dismissed
+        if !importManager.isImporting &&
+            !completedTasks.isEmpty &&
+            importManager.currentTasks.allSatisfy({ $0.state == .completed }) {
+            showProgressView = true
         }
     }
 

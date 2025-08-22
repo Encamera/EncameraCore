@@ -248,6 +248,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         activeAlert = .photoAccessDenied
     }
     func handleSelectedFiles(urls: [URL]) {
+        guard urls.count > 0 else {
+            return
+        }
         Task {
             // Convert URLs to CleartextMedia
             let media = urls.map { CleartextMedia(source: .url($0), generateID: true) }
@@ -1067,27 +1070,26 @@ struct AlbumDetailView<D: FileAccess>: View {
             Button(L10n.importFromFiles) {
                 viewModel.showPhotoPicker = .files
             }
-
-            //            Button {
-            //                if viewModel.purchasedPermissions.hasEntitlement == false {
-            //                    viewModel.isShowingPurchaseSheet = true
-            //                    viewModel.afterPurchaseAction = {
-            //                        viewModel.alertType = .hideAlbum
-            //                    }
-            //                } else if viewModel.isAlbumHidden {
-            //                    viewModel.isAlbumHidden = false
-            //                } else {
-            //                    viewModel.alertType = .hideAlbum
-            //                }
-            //            } label: {
-            //                HStack {
-            //                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
-            //                    Spacer()
-            //                    if viewModel.isAlbumHidden {
-            //                        Image(systemName: "checkmark")
-            //                    }
-            //                }
-            //            }
+            Button {
+                if viewModel.purchasedPermissions.hasEntitlement == false {
+                    viewModel.isShowingPurchaseSheet = true
+                    viewModel.afterPurchaseAction = {
+                        viewModel.activeAlert = .hideAlbum
+                    }
+                } else if viewModel.isAlbumHidden {
+                    viewModel.isAlbumHidden = false
+                } else {
+                    viewModel.activeAlert = .hideAlbum
+                }
+            } label: {
+                HStack {
+                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
+                    Spacer()
+                    if viewModel.isAlbumHidden {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
             Menu(L10n.AlbumDetailView.albumCoverMenuTitle) {
                 Button(L10n.AlbumDetailView.removeCoverImage) {
                     if viewModel.purchasedPermissions.hasEntitlement {
