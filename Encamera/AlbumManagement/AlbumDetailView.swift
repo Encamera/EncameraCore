@@ -129,7 +129,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             .receive(on: RunLoop.main)
             .sink { [weak self] isImporting in
                 if isImporting && self?.showImportProgressView == false {
-                    self?.showImportProgressView = true
+                    withAnimation(.easeIn(duration: 0.3)) {
+                        self?.showImportProgressView = true
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -905,6 +907,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                     Spacer().frame(height: 26)
                 }
                 .ignoresSafeArea(edges: .top)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .toolbarRole(.editor)

@@ -228,7 +228,7 @@ struct GlobalImportProgressView: View {
         if !isImporting && !completedTasks.isEmpty && showProgressView {
             // Auto-dismiss after 5 seconds when tasks complete
             DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                withAnimation(.easeOut(duration: 0.5)) {
+                withAnimation(.easeOut(duration: 0.8)) {
                     showProgressView = false
                 }
             }
@@ -259,7 +259,9 @@ struct GlobalImportProgressView: View {
         if !importManager.isImporting &&
             !completedTasks.isEmpty &&
             importManager.currentTasks.allSatisfy({ $0.state == .completed }) {
-            showProgressView = false
+            withAnimation(.easeOut(duration: 0.5)) {
+                showProgressView = false
+            }
         }
     }
 
