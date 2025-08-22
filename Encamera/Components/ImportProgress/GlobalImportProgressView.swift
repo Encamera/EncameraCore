@@ -10,6 +10,8 @@ struct GlobalImportProgressView: View {
     @State private var showDeleteConfirmation = false
     @Binding var showProgressView: Bool
     @State private var lastActiveImportSession: String? = nil
+    @State private var dismissalSecondsRemaining: Int? = nil
+    @State private var dismissalTimer: Timer? = nil
 
     var body: some View {
         Group {
@@ -59,6 +61,8 @@ struct GlobalImportProgressView: View {
     private var progressCardWithInteractions: some View {
         progressCard
             .onTapGesture {
+                // Cancel countdown if user taps to view details
+                cancelDismissalCountdown()
                 showTaskDetails = true
             }
     }
@@ -147,7 +151,10 @@ struct GlobalImportProgressView: View {
     }
 
     private var displayProgress: Double {
-        if isCompleted {
+        if let remainingSeconds = dismissalSecondsRemaining {
+            // Show countdown progress (5 seconds total, so progress = remaining/5)
+            return Double(5 - remainingSeconds) / 5.0
+        } else if isCompleted {
             return 1.0 // Show 100% when completed
         } else {
             return importManager.overallProgress
@@ -155,7 +162,9 @@ struct GlobalImportProgressView: View {
     }
 
     private var statusText: String {
-        if !completedTasks.isEmpty && activeTasks.isEmpty {
+        if let remainingSeconds = dismissalSecondsRemaining {
+            return "Dismissing in \(remainingSeconds) second\(remainingSeconds == 1 ? "" : "s")"
+        } else if !completedTasks.isEmpty && activeTasks.isEmpty {
             return "Import completed"
         } else if activeTasks.isEmpty {
             return "No active imports"
@@ -191,6 +200,9 @@ struct GlobalImportProgressView: View {
     // MARK: - Action Functions
 
     private func handleActionButtonTap() {
+        // Cancel countdown if user interacts with the action button
+        cancelDismissalCountdown()
+        
         if isCompleted {
             showDeleteConfirmation = true
         } else if isPaused {
@@ -226,12 +238,11 @@ struct GlobalImportProgressView: View {
 
     private func handleImportStateChange(isImporting: Bool) {
         if !isImporting && !completedTasks.isEmpty && showProgressView {
-            // Auto-dismiss after 5 seconds when tasks complete
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                withAnimation(.easeOut(duration: 0.8)) {
-                    showProgressView = false
-                }
-            }
+            // Start countdown timer for auto-dismiss
+            startDismissalCountdown()
+        } else if isImporting {
+            // Cancel any ongoing dismissal countdown if import starts again
+            cancelDismissalCountdown()
         }
     }
 
@@ -259,10 +270,41 @@ struct GlobalImportProgressView: View {
         if !importManager.isImporting &&
             !completedTasks.isEmpty &&
             importManager.currentTasks.allSatisfy({ $0.state == .completed }) {
+            cancelDismissalCountdown()
             withAnimation(.easeOut(duration: 0.5)) {
                 showProgressView = false
             }
         }
+    }
+    
+    // MARK: - Dismissal Countdown Functions
+    
+    private func startDismissalCountdown() {
+        cancelDismissalCountdown() // Cancel any existing timer
+        dismissalSecondsRemaining = 5
+        
+        dismissalTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+            DispatchQueue.main.async {
+                if let remaining = self.dismissalSecondsRemaining, remaining > 0 {
+                    self.dismissalSecondsRemaining = remaining - 1
+                } else {
+                    // Countdown finished, dismiss the view
+                    timer.invalidate()
+                    self.dismissalTimer = nil
+                    self.dismissalSecondsRemaining = nil
+                    
+                    withAnimation(.easeOut(duration: 0.8)) {
+                        self.showProgressView = false
+                    }
+                }
+            }
+        }
+    }
+    
+    private func cancelDismissalCountdown() {
+        dismissalTimer?.invalidate()
+        dismissalTimer = nil
+        dismissalSecondsRemaining = nil
     }
 
 }
