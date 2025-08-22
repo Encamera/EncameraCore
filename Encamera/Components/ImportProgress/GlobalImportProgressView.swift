@@ -49,11 +49,6 @@ struct GlobalImportProgressView: View {
             .onChange(of: importManager.currentTasks) { _, tasks in
                 handleTasksChange(tasks: tasks)
             }
-            .onAppear {
-                // Always reset UI dismissal state when view appears
-                // This ensures the progress view shows properly when navigating back to the view
-                resetUIState()
-            }
             .onDisappear {
                 // When leaving the view, mark as dismissed to prevent reappearing
                 // until there's a new import session
@@ -230,11 +225,11 @@ struct GlobalImportProgressView: View {
     }
 
     private func handleImportStateChange(isImporting: Bool) {
-        if !isImporting && !completedTasks.isEmpty && !showProgressView {
+        if !isImporting && !completedTasks.isEmpty && showProgressView {
             // Auto-dismiss after 5 seconds when tasks complete
             DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                 withAnimation(.easeOut(duration: 0.5)) {
-                    showProgressView = true
+                    showProgressView = false
                 }
             }
         }
@@ -259,17 +254,12 @@ struct GlobalImportProgressView: View {
         }
     }
 
-    private func resetUIState() {
-        // Reset dismissal state when view appears to show progress for active/completed tasks
-        showProgressView = false
-    }
-
     private func handleViewDisappear() {
         // When navigating away and all tasks are completed, mark as dismissed
         if !importManager.isImporting &&
             !completedTasks.isEmpty &&
             importManager.currentTasks.allSatisfy({ $0.state == .completed }) {
-            showProgressView = true
+            showProgressView = false
         }
     }
 

@@ -54,6 +54,12 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var activeToast: ToastType? = nil
     @Published var lastImportedAssets: [PHPickerResult] = []
     @Published var showPhotoPicker: ImportSource? = nil
+    @Published var showImportProgressView: Bool = false {
+        didSet {
+            print("AlbumDetailView setting showProgressView \(showImportProgressView)")
+
+        }
+    }
 
     var agreedToDeleteWithNoLicense: Bool = false
 
@@ -68,6 +74,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
     var purchasedPermissions: PurchasedPermissionManaging
     var fileManager: D
+    private var importManager = BackgroundMediaImportManager.shared
     var album: Album? {
         didSet {
             prepareWithAlbum()
@@ -114,6 +121,16 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.showPhotoPicker = nil
+            }
+            .store(in: &cancellables)
+        
+        // Monitor import manager state for progress overlay
+        importManager.$isImporting
+            .receive(on: RunLoop.main)
+            .sink { [weak self] isImporting in
+                if isImporting && self?.showImportProgressView == false {
+                    self?.showImportProgressView = true
+                }
             }
             .store(in: &cancellables)
         guard let album else { return }
@@ -833,52 +850,63 @@ struct AlbumDetailView<D: FileAccess>: View {
 
     var body: some View {
 
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                Group {
+                    GalleryGridView(viewModel: viewModel.gridViewModel) {
+                        VStack {
+                            if viewModel.showEmptyView {
+                                emptyState
+                            }
+                        }
 
-        VStack(spacing: 0) {
-            Group {
-                GalleryGridView(viewModel: viewModel.gridViewModel) {
-                    VStack {
-                        if viewModel.showEmptyView {
-                            emptyState
+                    }
+                }
+                .environmentObject(appModalStateModel)
+                .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
+                                    album: viewModel.album,
+                                    purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
+                    if hasEntitlement || storage == .local {
+                        viewModel.moveAlbum(to: storage)
+                        isShowingMoveAlbumModal = false
+                    } else if !hasEntitlement && storage == .icloud {
+
+                        viewModel.isShowingPurchaseSheet = true
+                        viewModel.afterPurchaseAction = {
+                            viewModel.moveAlbum(to: storage)
                         }
                     }
-
-                }
-            }
-            .environmentObject(appModalStateModel)
-            .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
-                                album: viewModel.album,
-                                purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
-                if hasEntitlement || storage == .local {
-                    viewModel.moveAlbum(to: storage)
+                }, dismissAction: {
                     isShowingMoveAlbumModal = false
-                } else if !hasEntitlement && storage == .icloud {
-
-                    viewModel.isShowingPurchaseSheet = true
-                    viewModel.afterPurchaseAction = {
-                        viewModel.moveAlbum(to: storage)
+                })
+                .productStorefront(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
+                    if case .purchaseComplete = action {
+                        isShowingMoveAlbumModal = false
+                        viewModel.afterPurchaseAction?()
+                        Task {
+                            await viewModel.gridViewModel.enumerateMedia()
+                        }
+                    } else {
+                        viewModel.isShowingPurchaseSheet = false
                     }
                 }
-            }, dismissAction: {
-                isShowingMoveAlbumModal = false
-            })
-            .productStorefront(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
-                if case .purchaseComplete = action {
-                    isShowingMoveAlbumModal = false
-                    viewModel.afterPurchaseAction?()
-                    Task {
-                        await viewModel.gridViewModel.enumerateMedia()
-                    }
-                } else {
-                    viewModel.isShowingPurchaseSheet = false
+                
+                if viewModel.isSelectingMedia {
+                    selectionTray
                 }
             }
             
-            if viewModel.isSelectingMedia {
-                selectionTray
+            // Import progress overlay
+            if viewModel.showImportProgressView {
+                VStack {
+                    Spacer()
+                    GlobalImportProgressView(showProgressView: $viewModel.showImportProgressView)
+                        .padding(.horizontal, 16)
+                    Spacer().frame(height: 26)
+                }
+                .ignoresSafeArea(edges: .top)
             }
         }
-        .globalImportProgress()
         .toolbarRole(.editor)
         .toolbar(content: {
             ToolbarItemGroup(placement: .principal, content: {
