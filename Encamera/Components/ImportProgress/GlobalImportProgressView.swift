@@ -76,7 +76,8 @@ struct GlobalImportProgressView: View {
                 CircularProgressView(
                     progress: displayProgress,
                     lineWidth: 4,
-                    size: 60
+                    size: 60,
+                    displayMode: circularProgressDisplayMode
                 )
 
                 // Status text and details
@@ -160,10 +161,18 @@ struct GlobalImportProgressView: View {
             return importManager.overallProgress
         }
     }
+    
+    private var circularProgressDisplayMode: CircularProgressDisplayMode {
+        if let remainingSeconds = dismissalSecondsRemaining {
+            return .countdown(seconds: remainingSeconds)
+        } else {
+            return .percentage
+        }
+    }
 
     private var statusText: String {
-        if let remainingSeconds = dismissalSecondsRemaining {
-            return "Dismissing in \(remainingSeconds) second\(remainingSeconds == 1 ? "" : "s")"
+        if dismissalSecondsRemaining != nil {
+            return "Import completed"
         } else if !completedTasks.isEmpty && activeTasks.isEmpty {
             return "Import completed"
         } else if activeTasks.isEmpty {
