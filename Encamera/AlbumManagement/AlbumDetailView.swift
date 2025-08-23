@@ -151,20 +151,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
         self.albumName = album.name
         self.gridViewModel.album = album
-        FileOperationBus.shared.operations.sink { operation in
-            if self.purchasedPermissions.hasEntitlement == false {
-                Task { @MainActor in
-                    self.appModalStateModel?.currentModal = .purchaseView(context: .init(sourceView: "AlbumDetailView", purchaseAction: { action in
-                        if case .purchaseComplete = action {
-                            self.appModalStateModel?.currentModal = nil
-                        }
-                    }))
-                }
-            }
-            Task { @MainActor in
-                await self.gridViewModel.enumerateMedia()
-            }
-        }.store(in: &cancellables)
         Task {
             self.fileManager = await D.init(for: album, albumManager: albumManager)
         }
