@@ -3,15 +3,241 @@ import EncameraCore
 import Combine
 import Photos
 
+// MARK: - View Model
+
+@MainActor
+class GlobalImportProgressViewModel: ObservableObject {
+    @Published var showTaskDetails = false
+    @Published var showDeleteConfirmation = false
+    @Published var displayedProgress: CircularProgressDisplayMode
+    private let countdown: Int = 5
+
+    private let importManager = BackgroundMediaImportManager.shared
+    let deletionManager = PhotoDeletionManager()
+    private var dismissalTimer: Timer? = nil
+    private var lastActiveImportSession: String? = nil
+    private var cancellables = Set<AnyCancellable>()
+
+    init() {
+        self.displayedProgress = .percentage(value: 0.0)
+
+        self.importManager.$overallProgress.dropFirst().sink { [weak self] value in
+            self?.displayedProgress = .percentage(value: value)
+
+        }.store(in: &cancellables)
+    }
+    
+    // MARK: - Computed Properties
+    
+    var activeTasks: [ImportTask] {
+        importManager.currentTasks.filter { task in
+            task.state == .running || task.state == .paused
+        }
+    }
+    
+    var runningTasks: [ImportTask] {
+        importManager.currentTasks.filter { $0.state == .running }
+    }
+    
+    var pausedTasks: [ImportTask] {
+        importManager.currentTasks.filter { $0.state == .paused }
+    }
+    
+    var completedTasks: [ImportTask] {
+        importManager.currentTasks.filter { $0.state == .completed }
+    }
+    
+    var isCompleted: Bool {
+        !importManager.isImporting && !completedTasks.isEmpty
+    }
+    
+    var isPaused: Bool {
+        !pausedTasks.isEmpty
+    }
+    
+    var actionButtonImageName: String {
+        if isCompleted {
+            return "Trash"
+        } else if isPaused {
+            return "play.fill"
+        } else {
+            return "Pause"
+        }
+    }
+    
+
+    var statusText: String {
+        if !completedTasks.isEmpty && activeTasks.isEmpty {
+            return "Import completed"
+        } else if activeTasks.isEmpty {
+            return "No active imports"
+        } else if activeTasks.count == 1 {
+            let task = activeTasks.first!
+            return "Importing \(task.progress.currentFileIndex + 1) of \(task.progress.totalFiles)"
+        } else {
+            return "Importing \(activeTasks.count) batches"
+        }
+    }
+    
+    var estimatedTimeRemaining: String? {
+        guard let task = runningTasks.first,
+              let eta = task.progress.estimatedTimeRemaining else {
+            return nil
+        }
+
+        if eta < 60 {
+            return "\(Int(eta))s remaining"
+        } else if eta < 3600 {
+            return "\(Int(eta / 60))m remaining"
+        } else {
+            return "\(Int(eta / 3600))h remaining"
+        }
+    }
+    
+    // MARK: - Methods
+    
+    func calculateActualProgress() -> Double {
+        guard !activeTasks.isEmpty else { return 0.0 }
+        
+        let totalProgress = activeTasks.reduce(into: 0.0) { sum, task in
+            sum += task.progress.overallProgress
+        }
+        
+        return totalProgress / Double(activeTasks.count)
+    }
+    
+    func pauseCurrentTask() {
+        for task in runningTasks {
+            importManager.pauseImport(taskId: task.id)
+        }
+    }
+    
+    func handleActionButtonTap() {
+        // Cancel countdown if user interacts with the action button
+        cancelDismissalCountdown()
+        
+        if isCompleted {
+            showDeleteConfirmation = true
+        } else if isPaused {
+            resumePausedTasks()
+        } else {
+            pauseCurrentTask()
+        }
+    }
+    
+    func resumePausedTasks() {
+        for task in pausedTasks {
+            Task {
+                try? await importManager.resumeImport(taskId: task.id)
+            }
+        }
+    }
+    
+    func deleteAllCompletedTaskPhotos() async {
+        let allAssetIdentifiers = completedTasks.flatMap { $0.assetIdentifiers }
+
+        await deletionManager.deletePhotos(assetIdentifiers: allAssetIdentifiers)
+
+        // Remove completed tasks after successful deletion
+        for task in completedTasks {
+            importManager.cancelImport(taskId: task.id)
+        }
+
+        // If no tasks remain after deletion, clear session tracking
+        if importManager.currentTasks.filter({ $0.state != .completed }).isEmpty {
+            lastActiveImportSession = nil
+        }
+    }
+    
+    func handleImportStateChange(isImporting: Bool, showProgressView: Binding<Bool>) {
+        if !isImporting && !completedTasks.isEmpty && showProgressView.wrappedValue {
+            // Start countdown timer for auto-dismiss
+            startDismissalCountdown(showProgressView: showProgressView)
+        } else if isImporting {
+            // Cancel any ongoing dismissal countdown if import starts again
+            cancelDismissalCountdown()
+        }
+    }
+
+    func handleTasksChange(tasks: [ImportTask], showProgressView: Binding<Bool>) {
+        let currentRunningTasks = tasks.filter { $0.state == .running }
+
+        if !currentRunningTasks.isEmpty {
+            let currentSessionId = currentRunningTasks.first?.id
+
+            // If this is a new session, reset dismissal state to ensure visibility
+            if lastActiveImportSession != currentSessionId {
+                lastActiveImportSession = currentSessionId
+                showProgressView.wrappedValue = false
+            }
+        }
+        // If no tasks remain, clear the session tracking
+        if tasks.isEmpty {
+            lastActiveImportSession = nil
+        }
+    }
+    
+    func handleViewDisappear(showProgressView: Binding<Bool>) {
+        // When navigating away and all tasks are completed, mark as dismissed
+        if !importManager.isImporting &&
+            !completedTasks.isEmpty &&
+            importManager.currentTasks.allSatisfy({ $0.state == .completed }) {
+            cancelDismissalCountdown()
+            withAnimation(.easeOut(duration: 0.5)) {
+                showProgressView.wrappedValue = false
+            }
+        }
+    }
+    
+    func startDismissalCountdown(showProgressView: Binding<Bool>) {
+        cancelDismissalCountdown() // Cancel any existing timer
+        displayedProgress = .countdown(initial: countdown, value: countdown)
+
+        dismissalTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+            DispatchQueue.main.async {
+                guard case .countdown(_, let value) = self.displayedProgress else {
+                    return
+                }
+                if value <= self.countdown && value > 0 {
+                    self.displayedProgress = .countdown(initial: self.countdown, value: value - 1)
+                } else if value <= 0 {
+                    // Countdown finished, dismiss the view
+                    timer.invalidate()
+                    self.dismissalTimer = nil
+                    self.displayedProgress = .countdown(initial: self.countdown, value: 0)
+
+                    withAnimation(.easeOut(duration: 0.8)) {
+                        showProgressView.wrappedValue = false
+                    }
+                }
+            }
+        }
+    }
+    
+    func cancelDismissalCountdown() {
+        dismissalTimer?.invalidate()
+        dismissalTimer = nil
+        displayedProgress = .countdown(initial: countdown, value: 0)
+    }
+    
+    func cancelDismissalCountdownOnly() {
+        dismissalTimer?.invalidate()
+        dismissalTimer = nil
+    }
+    
+    // MARK: - Deinitializer
+    
+//    deinit {
+//        cancelDismissalCountdown()
+//    }
+}
+
+// MARK: - View
+
 struct GlobalImportProgressView: View {
+    @StateObject private var viewModel = GlobalImportProgressViewModel()
     @StateObject private var importManager = BackgroundMediaImportManager.shared
-    @StateObject private var deletionManager = PhotoDeletionManager()
-    @State private var showTaskDetails = false
-    @State private var showDeleteConfirmation = false
     @Binding var showProgressView: Bool
-    @State private var lastActiveImportSession: String? = nil
-    @State private var dismissalSecondsRemaining: Int? = nil
-    @State private var dismissalTimer: Timer? = nil
 
     var body: some View {
         Group {
@@ -27,34 +253,34 @@ struct GlobalImportProgressView: View {
             .cornerRadius(12)
             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             .transition(.move(edge: .bottom).combined(with: .opacity))
-            .alert("Delete from Photo Library?", isPresented: $showDeleteConfirmation) {
+            .alert("Delete from Photo Library?", isPresented: $viewModel.showDeleteConfirmation) {
                 Button("Delete", role: .destructive) {
                     Task {
-                        await deleteAllCompletedTaskPhotos()
+                        await viewModel.deleteAllCompletedTaskPhotos()
                     }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This will delete all imported photos from your Photo Library.")
             }
-            .alert("Photo Library Access Required", isPresented: $deletionManager.showPhotoAccessAlert) {
-                Button("Open Settings") {
-                    deletionManager.openSettings()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Please grant full access to your photo library in Settings to delete imported photos.")
-            }
+//            .alert("Photo Library Access Required", isPresented: $viewModel.showPhotoAccessAlert) {
+//                Button("Open Settings") {
+//                    viewModel.deletionManager.openSettings()
+//                }
+//                Button("Cancel", role: .cancel) {}
+//            } message: {
+//                Text("Please grant full access to your photo library in Settings to delete imported photos.")
+//            }
             .onChange(of: importManager.isImporting) { _, isImporting in
-                handleImportStateChange(isImporting: isImporting)
+                viewModel.handleImportStateChange(isImporting: isImporting, showProgressView: $showProgressView)
             }
             .onChange(of: importManager.currentTasks) { _, tasks in
-                handleTasksChange(tasks: tasks)
+                viewModel.handleTasksChange(tasks: tasks, showProgressView: $showProgressView)
             }
             .onDisappear {
                 // When leaving the view, mark as dismissed to prevent reappearing
                 // until there's a new import session
-                handleViewDisappear()
+                viewModel.handleViewDisappear(showProgressView: $showProgressView)
             }
     }
 
@@ -62,8 +288,8 @@ struct GlobalImportProgressView: View {
         progressCard
             .onTapGesture {
                 // Cancel countdown if user taps to view details
-                cancelDismissalCountdown()
-                showTaskDetails = true
+                viewModel.cancelDismissalCountdownOnly()
+                viewModel.showTaskDetails = true
             }
     }
 
@@ -74,19 +300,19 @@ struct GlobalImportProgressView: View {
             HStack(spacing: 16) {
                 // Circular progress indicator
                 CircularProgressView(
-                    progress: displayProgress,
                     lineWidth: 4,
                     size: 60,
-                    displayMode: circularProgressDisplayMode
+                    displayMode: viewModel.displayedProgress,
+
                 )
 
                 // Status text and details
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(statusText)
+                    Text(viewModel.statusText)
                         .fontType(.pt14, weight: .semibold)
                         .foregroundColor(.foregroundPrimary)
 
-                    if let eta = estimatedTimeRemaining {
+                    if let eta = viewModel.estimatedTimeRemaining {
                         Text(eta)
                             .fontType(.pt12)
                             .foregroundColor(.actionYellowGreen)
@@ -96,8 +322,8 @@ struct GlobalImportProgressView: View {
                 Spacer()
 
                 // Action button
-                Button(action: handleActionButtonTap) {
-                    Image(actionButtonImageName)
+                Button(action: viewModel.handleActionButtonTap) {
+                    Image(viewModel.actionButtonImageName)
                         .renderingMode(.template)
                         .foregroundColor(.actionYellowGreen)
                         .font(.system(size: 24))
@@ -106,214 +332,9 @@ struct GlobalImportProgressView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .sheet(isPresented: $showTaskDetails) {
+        .sheet(isPresented: $viewModel.showTaskDetails) {
             ImportTaskDetailsView()
         }
-    }
-
-    // MARK: - Computed Properties
-
-    // Task filtering helpers
-    private var activeTasks: [ImportTask] {
-        importManager.currentTasks.filter { task in
-            task.state == .running || task.state == .paused
-        }
-    }
-
-    private var runningTasks: [ImportTask] {
-        importManager.currentTasks.filter { $0.state == .running }
-    }
-
-    private var pausedTasks: [ImportTask] {
-        importManager.currentTasks.filter { $0.state == .paused }
-    }
-
-    private var completedTasks: [ImportTask] {
-        importManager.currentTasks.filter { $0.state == .completed }
-    }
-
-    // State helpers
-    private var isCompleted: Bool {
-        !importManager.isImporting && !completedTasks.isEmpty
-    }
-
-    private var isPaused: Bool {
-        !pausedTasks.isEmpty
-    }
-
-    private var actionButtonImageName: String {
-        if isCompleted {
-            return "Trash"
-        } else if isPaused {
-            return "play.fill"
-        } else {
-            return "Pause"
-        }
-    }
-
-    private var displayProgress: Double {
-        if let remainingSeconds = dismissalSecondsRemaining {
-            // Show countdown progress (5 seconds total, so progress = remaining/5)
-            return Double(5 - remainingSeconds) / 5.0
-        } else if isCompleted {
-            return 1.0 // Show 100% when completed
-        } else {
-            return importManager.overallProgress
-        }
-    }
-    
-    private var circularProgressDisplayMode: CircularProgressDisplayMode {
-        if let remainingSeconds = dismissalSecondsRemaining {
-            return .countdown(seconds: remainingSeconds)
-        } else {
-            return .percentage
-        }
-    }
-
-    private var statusText: String {
-        if dismissalSecondsRemaining != nil {
-            return "Import completed"
-        } else if !completedTasks.isEmpty && activeTasks.isEmpty {
-            return "Import completed"
-        } else if activeTasks.isEmpty {
-            return "No active imports"
-        } else if activeTasks.count == 1 {
-            let task = activeTasks.first!
-            return "Importing \(task.progress.currentFileIndex + 1) of \(task.progress.totalFiles)"
-        } else {
-            return "Importing \(activeTasks.count) batches"
-        }
-    }
-
-    private var estimatedTimeRemaining: String? {
-        guard let task = runningTasks.first,
-              let eta = task.progress.estimatedTimeRemaining else {
-            return nil
-        }
-
-        if eta < 60 {
-            return "\(Int(eta))s remaining"
-        } else if eta < 3600 {
-            return "\(Int(eta / 60))m remaining"
-        } else {
-            return "\(Int(eta / 3600))h remaining"
-        }
-    }
-
-    private func pauseCurrentTask() {
-        for task in runningTasks {
-            importManager.pauseImport(taskId: task.id)
-        }
-    }
-
-    // MARK: - Action Functions
-
-    private func handleActionButtonTap() {
-        // Cancel countdown if user interacts with the action button
-        cancelDismissalCountdown()
-        
-        if isCompleted {
-            showDeleteConfirmation = true
-        } else if isPaused {
-            resumePausedTasks()
-        } else {
-            pauseCurrentTask()
-        }
-    }
-
-    private func resumePausedTasks() {
-        for task in pausedTasks {
-            Task {
-                try? await importManager.resumeImport(taskId: task.id)
-            }
-        }
-    }
-
-    private func deleteAllCompletedTaskPhotos() async {
-        let allAssetIdentifiers = completedTasks.flatMap { $0.assetIdentifiers }
-
-        await deletionManager.deletePhotos(assetIdentifiers: allAssetIdentifiers)
-
-        // Remove completed tasks after successful deletion
-        for task in completedTasks {
-            importManager.cancelImport(taskId: task.id)
-        }
-
-        // If no tasks remain after deletion, clear session tracking
-        if importManager.currentTasks.filter({ $0.state != .completed }).isEmpty {
-            lastActiveImportSession = nil
-        }
-    }
-
-    private func handleImportStateChange(isImporting: Bool) {
-        if !isImporting && !completedTasks.isEmpty && showProgressView {
-            // Start countdown timer for auto-dismiss
-            startDismissalCountdown()
-        } else if isImporting {
-            // Cancel any ongoing dismissal countdown if import starts again
-            cancelDismissalCountdown()
-        }
-    }
-
-    private func handleTasksChange(tasks: [ImportTask]) {
-        let currentRunningTasks = tasks.filter { $0.state == .running }
-
-        if !currentRunningTasks.isEmpty {
-            let currentSessionId = currentRunningTasks.first?.id
-
-            // If this is a new session, reset dismissal state to ensure visibility
-            if lastActiveImportSession != currentSessionId {
-                lastActiveImportSession = currentSessionId
-                showProgressView = false
-            }
-        }
-
-        // If no tasks remain, clear the session tracking
-        if tasks.isEmpty {
-            lastActiveImportSession = nil
-        }
-    }
-
-    private func handleViewDisappear() {
-        // When navigating away and all tasks are completed, mark as dismissed
-        if !importManager.isImporting &&
-            !completedTasks.isEmpty &&
-            importManager.currentTasks.allSatisfy({ $0.state == .completed }) {
-            cancelDismissalCountdown()
-            withAnimation(.easeOut(duration: 0.5)) {
-                showProgressView = false
-            }
-        }
-    }
-    
-    // MARK: - Dismissal Countdown Functions
-    
-    private func startDismissalCountdown() {
-        cancelDismissalCountdown() // Cancel any existing timer
-        dismissalSecondsRemaining = 5
-        
-        dismissalTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            DispatchQueue.main.async {
-                if let remaining = self.dismissalSecondsRemaining, remaining > 0 {
-                    self.dismissalSecondsRemaining = remaining - 1
-                } else {
-                    // Countdown finished, dismiss the view
-                    timer.invalidate()
-                    self.dismissalTimer = nil
-                    self.dismissalSecondsRemaining = nil
-                    
-                    withAnimation(.easeOut(duration: 0.8)) {
-                        self.showProgressView = false
-                    }
-                }
-            }
-        }
-    }
-    
-    private func cancelDismissalCountdown() {
-        dismissalTimer?.invalidate()
-        dismissalTimer = nil
-        dismissalSecondsRemaining = nil
     }
 
 }
