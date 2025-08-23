@@ -31,16 +31,12 @@ class GlobalImportProgressViewModel: ObservableObject {
     
     var activeTasks: [ImportTask] {
         importManager.currentTasks.filter { task in
-            task.state == .running || task.state == .paused
+            task.state == .running
         }
     }
     
     var runningTasks: [ImportTask] {
         importManager.currentTasks.filter { $0.state == .running }
-    }
-    
-    var pausedTasks: [ImportTask] {
-        importManager.currentTasks.filter { $0.state == .paused }
     }
     
     var completedTasks: [ImportTask] {
@@ -51,17 +47,11 @@ class GlobalImportProgressViewModel: ObservableObject {
         !importManager.isImporting && !completedTasks.isEmpty
     }
     
-    var isPaused: Bool {
-        !pausedTasks.isEmpty
-    }
-    
     var actionButtonImageName: String {
         if isCompleted {
-            return "Trash"
-        } else if isPaused {
-            return "play.fill"
+            return "trash.fill"
         } else {
-            return "Pause"
+            return "stop.fill"
         }
     }
     
@@ -69,6 +59,10 @@ class GlobalImportProgressViewModel: ObservableObject {
     var statusText: String {
         if !completedTasks.isEmpty && activeTasks.isEmpty {
             return "Import completed"
+        } else if !importManager.isImporting && activeTasks.isEmpty && !completedTasks.isEmpty {
+            return "Import completed"
+        } else if !importManager.isImporting && activeTasks.isEmpty {
+            return "Import stopped"
         } else if activeTasks.isEmpty {
             return "No active imports"
         } else if activeTasks.count == 1 {
@@ -106,9 +100,9 @@ class GlobalImportProgressViewModel: ObservableObject {
         return totalProgress / Double(activeTasks.count)
     }
     
-    func pauseCurrentTask() {
+    func stopCurrentTask() {
         for task in runningTasks {
-            importManager.pauseImport(taskId: task.id)
+            importManager.cancelImport(taskId: task.id)
         }
     }
     
@@ -118,20 +112,12 @@ class GlobalImportProgressViewModel: ObservableObject {
         
         if isCompleted {
             showDeleteConfirmation = true
-        } else if isPaused {
-            resumePausedTasks()
         } else {
-            pauseCurrentTask()
+            stopCurrentTask()
         }
     }
     
-    func resumePausedTasks() {
-        for task in pausedTasks {
-            Task {
-                try? await importManager.resumeImport(taskId: task.id)
-            }
-        }
-    }
+
     
     func deleteAllCompletedTaskPhotos() async {
         let allAssetIdentifiers = completedTasks.flatMap { $0.assetIdentifiers }
@@ -150,8 +136,8 @@ class GlobalImportProgressViewModel: ObservableObject {
     }
     
     func handleImportStateChange(isImporting: Bool, showProgressView: Binding<Bool>) {
-        if !isImporting && !completedTasks.isEmpty && showProgressView.wrappedValue {
-            // Start countdown timer for auto-dismiss
+        if !isImporting && showProgressView.wrappedValue {
+            // Start countdown timer for auto-dismiss when import stops (completed or cancelled)
             startDismissalCountdown(showProgressView: showProgressView)
         } else if isImporting {
             // Cancel any ongoing dismissal countdown if import starts again
@@ -178,10 +164,8 @@ class GlobalImportProgressViewModel: ObservableObject {
     }
     
     func handleViewDisappear(showProgressView: Binding<Bool>) {
-        // When navigating away and all tasks are completed, mark as dismissed
-        if !importManager.isImporting &&
-            !completedTasks.isEmpty &&
-            importManager.currentTasks.allSatisfy({ $0.state == .completed }) {
+        // When navigating away and import is not running, mark as dismissed
+        if !importManager.isImporting {
             cancelDismissalCountdown()
             withAnimation(.easeOut(duration: 0.5)) {
                 showProgressView.wrappedValue = false
@@ -323,7 +307,7 @@ struct GlobalImportProgressView: View {
 
                 // Action button
                 Button(action: viewModel.handleActionButtonTap) {
-                    Image(viewModel.actionButtonImageName)
+                    Image(systemName: viewModel.actionButtonImageName)
                         .renderingMode(.template)
                         .foregroundColor(.actionYellowGreen)
                         .font(.system(size: 24))
@@ -338,3 +322,15 @@ struct GlobalImportProgressView: View {
     }
 
 }
+
+// MARK: - Previews
+
+#Preview("Active Import") {
+    @State var showProgressView = true
+    
+    return GlobalImportProgressView(showProgressView: $showProgressView)
+        .padding()
+        .background(Color.gray.opacity(0.1))
+}
+
+
