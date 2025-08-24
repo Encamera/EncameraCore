@@ -112,6 +112,32 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         updateOverallProgress()
     }
     
+    public func clearAllTasks() {
+        printDebug("Clearing all tasks and resetting state")
+        
+        // Cancel any running import tasks
+        currentImportTask?.cancel()
+        currentImportTask = nil
+        
+        // End any active background task
+        endBackgroundTask()
+        
+        // Clear all tasks regardless of state
+        let taskCount = currentTasks.count
+        currentTasks.removeAll()
+        printDebug("Cleared \(taskCount) tasks")
+        
+        // Reset all progress tracking
+        isImporting = false
+        overallProgress = 0.0
+        
+        // Clean up temp files since no imports are active
+        printDebug("Cleaning up temporary files")
+        TempFileAccess.cleanupTemporaryFiles()
+        
+        printDebug("All tasks cleared and state reset")
+    }
+    
     // MARK: - Private Implementation
     
     private func executeImportTask(_ task: ImportTask) async throws {

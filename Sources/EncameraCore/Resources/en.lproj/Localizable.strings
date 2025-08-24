@@ -166,6 +166,12 @@
 "AlbumDetailView.ResetCoverImage" = "Default to Latest Image";
 "AlbumDetailView.CoverImageRemovedToast" = "Cover image disabled";
 "AlbumDetailView.CoverImageResetToast" = "Cover image defaults to latest image";
+"AlbumDetailView.MoveMedia" = "Move Media";
+"AlbumDetailView.MoveMediaConfirm" = "Move %@ item%@ to %@?";
+"AlbumDetailView.MovedToast" = "Moved %@ item%@ to %@";
+"AlbumDetailView.PhotoAccessRequired" = "Photo Access Required";
+"AlbumDetailView.PhotoAccessSettings" = "Please grant access to your photo library in Settings to import photos.";
+"AlbumDetailView.OpenSettings" = "Open Settings";
 "OK" = "OK";
 /* ./Encamera/KeyManagement/AlbumCell.swift */
 "Active" = "Active";
@@ -629,3 +635,82 @@
 "ProtectionLevel.Strongest" = "Strongest protection";
 
 "SplashScreen.Subline" = "Secure Your Memories";
+
+/* ./Encamera/AlbumManagement/AlbumSelectionModal.swift */
+"AlbumSelectionModal.Title" = "Move to Album";
+"AlbumSelectionModal.Description" = "Select an album to move %@ items to";
+"AlbumSelectionModal.Move" = "Move";
+
+/* ./Encamera/AlbumManagement/MediaSelectionTray.swift */
+"MediaSelectionTray.MoveToAlbum" = "Move to Album";
+
+/* ./Encamera/Components/ImportProgress/GlobalImportProgressView.swift */
+"GlobalImportProgress.ImportCompleted" = "Import completed";
+"GlobalImportProgress.ImportStopped" = "Import stopped";
+"GlobalImportProgress.NoActiveImports" = "No active imports";
+"GlobalImportProgress.ImportingProgress" = "Importing %@ of %@";
+"GlobalImportProgress.ImportingBatches" = "Importing %@ batches";
+"GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "Delete from Photo Library?";
+"GlobalImportProgress.DeleteFromPhotoLibraryMessage" = "This will delete all imported photos from your Photo Library.";
+
+/* ./Encamera/Components/ImportProgress/TaskDetailCard.swift */
+"TaskDetailCard.TaskID" = "Task ID: %@";
+"TaskDetailCard.Created" = "Created: %@";
+"TaskDetailCard.Progress" = "Progress:";
+"TaskDetailCard.Current" = "Current: %@";
+"TaskDetailCard.EstimatedTime" = "Estimated time remaining: %@";
+"TaskDetailCard.Unknown" = "Unknown";
+"TaskDetailCard.Pause" = "Pause";
+"TaskDetailCard.Resume" = "Resume";
+"TaskDetailCard.DeleteFromCameraRoll" = "Delete From Camera Roll";
+"TaskDetailCard.DeleteMessage" = "This will delete %@ photo(s) from your Photo Library that were imported into Encamera.";
+"TaskDetailCard.PhotoLibraryAccessRequired" = "Photo Library Access Required";
+"TaskDetailCard.GrantAccessMessage" = "Please grant full access to your photo library in Settings to delete imported photos.";
+"TaskDetailCard.StatusWaiting" = "Waiting";
+"TaskDetailCard.StatusRunning" = "Running";
+"TaskDetailCard.StatusPaused" = "Paused";
+"TaskDetailCard.StatusCompleted" = "Completed";
+"TaskDetailCard.StatusCancelled" = "Cancelled";
+"TaskDetailCard.StatusFailed" = "Failed";
+
+/* ./Encamera/Components/ImportProgress/ImportTaskDetailsView.swift */
+"ImportTaskDetailsView.Title" = "Import Tasks";
+"ImportTaskDetailsView.Done" = "Done";
+"ImportTaskDetailsView.ClearAll" = "Clear All";
+
+/* ./Encamera/Components/ImportProgress/TaskProgressRow.swift */
+"TaskProgressRow.Processing" = "Processing: %@";
+
+/* ./Encamera/Components/CustomPhotoPicker.swift */
+"CustomPhotoPicker.SwipeInstruction" = "Long press & swipe to select multiple photos";
+"CustomPhotoPicker.SelectPhotos" = "Select Photos";
+"CustomPhotoPicker.Add" = "Add";
+"CustomPhotoPicker.LimitedAccess" = "Limited access. Tap here to select more photos or grant full access.";
+"CustomPhotoPicker.PhotoAccessRequired" = "Photo Access Required";
+"CustomPhotoPicker.GrantAccessMessage" = "Please grant full access to your photo library to use swipe selection. You can change this in Settings.";
+"CustomPhotoPicker.Selected" = "%@ Selected";
+
+/* ./Encamera/Components/PhotoPickerWrapper.swift */
+"PhotoPickerWrapper.UpgradeTitle" = "Upgrade to Full Photo Access";
+"PhotoPickerWrapper.ContinueLimited" = "Continue with Limited Access";
+"PhotoPickerWrapper.GrantFullAccess" = "Grant Full Access";
+"PhotoPickerWrapper.UpgradeMessage" = "You currently have limited photo access. Grant full access to enable swipe-to-select multiple photos at once, making importing much faster!";
+"PhotoPickerWrapper.EnableSwipeSelection" = "Enable Swipe Selection";
+"PhotoPickerWrapper.GrantAccessDescription" = "Grant full access to your photos to enable swipe-to-select multiple photos at once!";
+"PhotoPickerWrapper.SwipeToSelect" = "Swipe to Select";
+"PhotoPickerWrapper.SwipeDescription" = "Select multiple photos with a single swipe";
+"PhotoPickerWrapper.FasterImport" = "Faster Import";
+"PhotoPickerWrapper.FasterImportDescription" = "Import photos much more quickly";
+"PhotoPickerWrapper.PrivacyFirst" = "Privacy First";
+"PhotoPickerWrapper.PrivacyDescription" = "Your photos stay encrypted and private";
+"PhotoPickerWrapper.UpgradeToFullAccess" = "Upgrade to Full Access";
+"PhotoPickerWrapper.GrantAccess" = "Grant Access";
+"PhotoPickerWrapper.NotNow" = "Not Now";
+
+/* ./Encamera/AuthenticationView/AuthenticationView.swift */
+"AuthenticationView.TooManyAttempts" = "Too many attempts";
+"AuthenticationView.RetryIn" = "You can retry your password in %@";
+"AuthenticationView.ForgotPassword" = "Forgot Password? Reset App";
+
+/* ./Encamera/Settings/SettingsView.swift */
+"SettingsView.UnknownError" = "Unknown error";

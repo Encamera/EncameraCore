@@ -36,7 +36,11 @@ class DiskBlockReader: FileLikeBlockReader {
     }
     
     func read(upToCount count: Int) throws -> Data? {
-        return try fileHandle?.read(upToCount: count)
+        do {
+            return try fileHandle?.read(upToCount: count)
+        } catch {
+            return nil
+        }
     }
     
     func closeReader() throws {

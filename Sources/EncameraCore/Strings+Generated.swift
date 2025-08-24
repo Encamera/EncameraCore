@@ -835,6 +835,16 @@ public enum L10n {
     public static let hideAlbumMenuItem = L10n.tr("Localizable", "AlbumDetailView.HideAlbumMenuItem", fallback: "Hide Album")
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
+    /// Moved %@ item%@ to %@
+    public static func movedToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MovedToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Moved %@ item%@ to %@")
+    }
+    /// Move Media
+    public static let moveMedia = L10n.tr("Localizable", "AlbumDetailView.MoveMedia", fallback: "Move Media")
+    /// Move %@ item%@ to %@?
+    public static func moveMediaConfirm(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveMediaConfirm", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Move %@ item%@ to %@?")
+    }
     /// Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.
     public static let noLicenseDeletionWarningMessage = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningMessage", fallback: "Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.")
     /// I Understand
@@ -843,6 +853,8 @@ public enum L10n {
     public static let noLicenseDeletionWarningTitle = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningTitle", fallback: "⚠️ Important ⚠️")
     /// Take a New Picture
     public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Take a New Picture")
+    /// Open Settings
+    public static let openSettings = L10n.tr("Localizable", "AlbumDetailView.OpenSettings", fallback: "Open Settings")
     /// Do you want to delete the images from your photo library after importing them? Encamera requires permission to your photo library to do this.
     public static let photoAccessAlertMessage = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertMessage", fallback: "Do you want to delete the images from your photo library after importing them? Encamera requires permission to your photo library to do this.")
     /// Delete
@@ -851,6 +863,10 @@ public enum L10n {
     public static let photoAccessAlertSecondaryButton = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertSecondaryButton", fallback: "Not Now")
     /// Delete After Import?
     public static let photoAccessAlertTitle = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertTitle", fallback: "Delete After Import?")
+    /// Photo Access Required
+    public static let photoAccessRequired = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessRequired", fallback: "Photo Access Required")
+    /// Please grant access to your photo library in Settings to import photos.
+    public static let photoAccessSettings = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessSettings", fallback: "Please grant access to your photo library in Settings to import photos.")
     /// Disable Album Cover
     public static let removeCoverImage = L10n.tr("Localizable", "AlbumDetailView.RemoveCoverImage", fallback: "Disable Album Cover")
     /// Rename Album
@@ -859,6 +875,16 @@ public enum L10n {
     public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to Latest Image")
     /// Select Media
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
+  }
+  public enum AlbumSelectionModal {
+    /// Select an album to move %@ items to
+    public static func description(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumSelectionModal.Description", String(describing: p1), fallback: "Select an album to move %@ items to")
+    }
+    /// Move
+    public static let move = L10n.tr("Localizable", "AlbumSelectionModal.Move", fallback: "Move")
+    /// ./Encamera/AlbumManagement/AlbumSelectionModal.swift
+    public static let title = L10n.tr("Localizable", "AlbumSelectionModal.Title", fallback: "Move to Album")
   }
   public enum Alert {
     public enum LoadingFile {
@@ -934,9 +960,37 @@ public enum L10n {
       public static let pinCode6Digit = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.pinCode6Digit", fallback: "6-digit PIN")
     }
   }
+  public enum AuthenticationView {
+    /// Forgot Password? Reset App
+    public static let forgotPassword = L10n.tr("Localizable", "AuthenticationView.ForgotPassword", fallback: "Forgot Password? Reset App")
+    /// You can retry your password in %@
+    public static func retryIn(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AuthenticationView.RetryIn", String(describing: p1), fallback: "You can retry your password in %@")
+    }
+    /// ./Encamera/AuthenticationView/AuthenticationView.swift
+    public static let tooManyAttempts = L10n.tr("Localizable", "AuthenticationView.TooManyAttempts", fallback: "Too many attempts")
+  }
   public enum ChangingYourAuthenticationMethodWillRequireSettingUpANewPINOrPassword {
     /// Changing your authentication method will require setting up a new PIN or password. Would you like to continue?
     public static let wouldYouLikeToContinue = L10n.tr("Localizable", "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?", fallback: "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?")
+  }
+  public enum CustomPhotoPicker {
+    /// Add
+    public static let add = L10n.tr("Localizable", "CustomPhotoPicker.Add", fallback: "Add")
+    /// Please grant full access to your photo library to use swipe selection. You can change this in Settings.
+    public static let grantAccessMessage = L10n.tr("Localizable", "CustomPhotoPicker.GrantAccessMessage", fallback: "Please grant full access to your photo library to use swipe selection. You can change this in Settings.")
+    /// Limited access. Tap here to select more photos or grant full access.
+    public static let limitedAccess = L10n.tr("Localizable", "CustomPhotoPicker.LimitedAccess", fallback: "Limited access. Tap here to select more photos or grant full access.")
+    /// Photo Access Required
+    public static let photoAccessRequired = L10n.tr("Localizable", "CustomPhotoPicker.PhotoAccessRequired", fallback: "Photo Access Required")
+    /// %@ Selected
+    public static func selected(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CustomPhotoPicker.Selected", String(describing: p1), fallback: "%@ Selected")
+    }
+    /// Select Photos
+    public static let selectPhotos = L10n.tr("Localizable", "CustomPhotoPicker.SelectPhotos", fallback: "Select Photos")
+    /// ./Encamera/Components/CustomPhotoPicker.swift
+    public static let swipeInstruction = L10n.tr("Localizable", "CustomPhotoPicker.SwipeInstruction", fallback: "Long press & swipe to select multiple photos")
   }
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
@@ -996,6 +1050,26 @@ public enum L10n {
     /// Live Photo - Hold to View
     public static let playLivePhoto = L10n.tr("Localizable", "GalleryView.PlayLivePhoto", fallback: "Live Photo - Hold to View")
   }
+  public enum GlobalImportProgress {
+    /// Delete from Photo Library?
+    public static let deleteFromPhotoLibraryAlert = L10n.tr("Localizable", "GlobalImportProgress.DeleteFromPhotoLibraryAlert", fallback: "Delete from Photo Library?")
+    /// This will delete all imported photos from your Photo Library.
+    public static let deleteFromPhotoLibraryMessage = L10n.tr("Localizable", "GlobalImportProgress.DeleteFromPhotoLibraryMessage", fallback: "This will delete all imported photos from your Photo Library.")
+    /// ./Encamera/Components/ImportProgress/GlobalImportProgressView.swift
+    public static let importCompleted = L10n.tr("Localizable", "GlobalImportProgress.ImportCompleted", fallback: "Import completed")
+    /// Importing %@ batches
+    public static func importingBatches(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "GlobalImportProgress.ImportingBatches", String(describing: p1), fallback: "Importing %@ batches")
+    }
+    /// Importing %@ of %@
+    public static func importingProgress(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "GlobalImportProgress.ImportingProgress", String(describing: p1), String(describing: p2), fallback: "Importing %@ of %@")
+    }
+    /// Import stopped
+    public static let importStopped = L10n.tr("Localizable", "GlobalImportProgress.ImportStopped", fallback: "Import stopped")
+    /// No active imports
+    public static let noActiveImports = L10n.tr("Localizable", "GlobalImportProgress.NoActiveImports", fallback: "No active imports")
+  }
   public enum HideAlbumsTutorial {
     /// Keep your albums private
     public static let heading1 = L10n.tr("Localizable", "HideAlbumsTutorial.Heading1", fallback: "Keep your albums private")
@@ -1016,6 +1090,14 @@ public enum L10n {
     /// Hide Albums Tutorial
     public static let title = L10n.tr("Localizable", "HideAlbumsTutorial.Title", fallback: "Hide Albums")
   }
+  public enum ImportTaskDetailsView {
+    /// Clear All
+    public static let clearAll = L10n.tr("Localizable", "ImportTaskDetailsView.ClearAll", fallback: "Clear All")
+    /// Done
+    public static let done = L10n.tr("Localizable", "ImportTaskDetailsView.Done", fallback: "Done")
+    /// ./Encamera/Components/ImportProgress/ImportTaskDetailsView.swift
+    public static let title = L10n.tr("Localizable", "ImportTaskDetailsView.Title", fallback: "Import Tasks")
+  }
   public enum KeyCopiedToClipboard {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
@@ -1025,6 +1107,8 @@ public enum L10n {
     public static let itemSelected = L10n.tr("Localizable", "MediaSelectionTray.ItemSelected", fallback: "Selected")
     /// Move
     public static let moveMedia = L10n.tr("Localizable", "MediaSelectionTray.MoveMedia", fallback: "Move")
+    /// ./Encamera/AlbumManagement/MediaSelectionTray.swift
+    public static let moveToAlbum = L10n.tr("Localizable", "MediaSelectionTray.MoveToAlbum", fallback: "Move to Album")
     /// Select Media
     public static let selectMedia = L10n.tr("Localizable", "MediaSelectionTray.SelectMedia", fallback: "Select Media")
   }
@@ -1116,6 +1200,38 @@ public enum L10n {
       public static let title = L10n.tr("Localizable", "NotificationBanner.Reddit.Title", fallback: "Are you on Reddit?")
     }
   }
+  public enum PhotoPickerWrapper {
+    /// Continue with Limited Access
+    public static let continueLimited = L10n.tr("Localizable", "PhotoPickerWrapper.ContinueLimited", fallback: "Continue with Limited Access")
+    /// Enable Swipe Selection
+    public static let enableSwipeSelection = L10n.tr("Localizable", "PhotoPickerWrapper.EnableSwipeSelection", fallback: "Enable Swipe Selection")
+    /// Faster Import
+    public static let fasterImport = L10n.tr("Localizable", "PhotoPickerWrapper.FasterImport", fallback: "Faster Import")
+    /// Import photos much more quickly
+    public static let fasterImportDescription = L10n.tr("Localizable", "PhotoPickerWrapper.FasterImportDescription", fallback: "Import photos much more quickly")
+    /// Grant Access
+    public static let grantAccess = L10n.tr("Localizable", "PhotoPickerWrapper.GrantAccess", fallback: "Grant Access")
+    /// Grant full access to your photos to enable swipe-to-select multiple photos at once!
+    public static let grantAccessDescription = L10n.tr("Localizable", "PhotoPickerWrapper.GrantAccessDescription", fallback: "Grant full access to your photos to enable swipe-to-select multiple photos at once!")
+    /// Grant Full Access
+    public static let grantFullAccess = L10n.tr("Localizable", "PhotoPickerWrapper.GrantFullAccess", fallback: "Grant Full Access")
+    /// Not Now
+    public static let notNow = L10n.tr("Localizable", "PhotoPickerWrapper.NotNow", fallback: "Not Now")
+    /// Your photos stay encrypted and private
+    public static let privacyDescription = L10n.tr("Localizable", "PhotoPickerWrapper.PrivacyDescription", fallback: "Your photos stay encrypted and private")
+    /// Privacy First
+    public static let privacyFirst = L10n.tr("Localizable", "PhotoPickerWrapper.PrivacyFirst", fallback: "Privacy First")
+    /// Select multiple photos with a single swipe
+    public static let swipeDescription = L10n.tr("Localizable", "PhotoPickerWrapper.SwipeDescription", fallback: "Select multiple photos with a single swipe")
+    /// Swipe to Select
+    public static let swipeToSelect = L10n.tr("Localizable", "PhotoPickerWrapper.SwipeToSelect", fallback: "Swipe to Select")
+    /// You currently have limited photo access. Grant full access to enable swipe-to-select multiple photos at once, making importing much faster!
+    public static let upgradeMessage = L10n.tr("Localizable", "PhotoPickerWrapper.UpgradeMessage", fallback: "You currently have limited photo access. Grant full access to enable swipe-to-select multiple photos at once, making importing much faster!")
+    /// ./Encamera/Components/PhotoPickerWrapper.swift
+    public static let upgradeTitle = L10n.tr("Localizable", "PhotoPickerWrapper.UpgradeTitle", fallback: "Upgrade to Full Photo Access")
+    /// Upgrade to Full Access
+    public static let upgradeToFullAccess = L10n.tr("Localizable", "PhotoPickerWrapper.UpgradeToFullAccess", fallback: "Upgrade to Full Access")
+  }
   public enum PostPurchaseView {
     /// Maybe Later
     public static let maybeLater = L10n.tr("Localizable", "PostPurchaseView.MaybeLater", fallback: "Maybe Later")
@@ -1194,9 +1310,67 @@ public enum L10n {
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
   }
+  public enum SettingsView {
+    /// ./Encamera/Settings/SettingsView.swift
+    public static let unknownError = L10n.tr("Localizable", "SettingsView.UnknownError", fallback: "Unknown error")
+  }
   public enum SplashScreen {
     /// Secure Your Memories
     public static let subline = L10n.tr("Localizable", "SplashScreen.Subline", fallback: "Secure Your Memories")
+  }
+  public enum TaskDetailCard {
+    /// Created: %@
+    public static func created(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "TaskDetailCard.Created", String(describing: p1), fallback: "Created: %@")
+    }
+    /// Current: %@
+    public static func current(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "TaskDetailCard.Current", String(describing: p1), fallback: "Current: %@")
+    }
+    /// Delete From Camera Roll
+    public static let deleteFromCameraRoll = L10n.tr("Localizable", "TaskDetailCard.DeleteFromCameraRoll", fallback: "Delete From Camera Roll")
+    /// This will delete %@ photo(s) from your Photo Library that were imported into Encamera.
+    public static func deleteMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "TaskDetailCard.DeleteMessage", String(describing: p1), fallback: "This will delete %@ photo(s) from your Photo Library that were imported into Encamera.")
+    }
+    /// Estimated time remaining: %@
+    public static func estimatedTime(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "TaskDetailCard.EstimatedTime", String(describing: p1), fallback: "Estimated time remaining: %@")
+    }
+    /// Please grant full access to your photo library in Settings to delete imported photos.
+    public static let grantAccessMessage = L10n.tr("Localizable", "TaskDetailCard.GrantAccessMessage", fallback: "Please grant full access to your photo library in Settings to delete imported photos.")
+    /// Pause
+    public static let pause = L10n.tr("Localizable", "TaskDetailCard.Pause", fallback: "Pause")
+    /// Photo Library Access Required
+    public static let photoLibraryAccessRequired = L10n.tr("Localizable", "TaskDetailCard.PhotoLibraryAccessRequired", fallback: "Photo Library Access Required")
+    /// Progress:
+    public static let progress = L10n.tr("Localizable", "TaskDetailCard.Progress", fallback: "Progress:")
+    /// Resume
+    public static let resume = L10n.tr("Localizable", "TaskDetailCard.Resume", fallback: "Resume")
+    /// Cancelled
+    public static let statusCancelled = L10n.tr("Localizable", "TaskDetailCard.StatusCancelled", fallback: "Cancelled")
+    /// Completed
+    public static let statusCompleted = L10n.tr("Localizable", "TaskDetailCard.StatusCompleted", fallback: "Completed")
+    /// Failed
+    public static let statusFailed = L10n.tr("Localizable", "TaskDetailCard.StatusFailed", fallback: "Failed")
+    /// Paused
+    public static let statusPaused = L10n.tr("Localizable", "TaskDetailCard.StatusPaused", fallback: "Paused")
+    /// Running
+    public static let statusRunning = L10n.tr("Localizable", "TaskDetailCard.StatusRunning", fallback: "Running")
+    /// Waiting
+    public static let statusWaiting = L10n.tr("Localizable", "TaskDetailCard.StatusWaiting", fallback: "Waiting")
+    /// ./Encamera/Components/ImportProgress/TaskDetailCard.swift
+    public static func taskID(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "TaskDetailCard.TaskID", String(describing: p1), fallback: "Task ID: %@")
+    }
+    /// Unknown
+    public static let unknown = L10n.tr("Localizable", "TaskDetailCard.Unknown", fallback: "Unknown")
+  }
+  public enum TaskProgressRow {
+    /// ./Encamera/Components/ImportProgress/TaskProgressRow.swift
+    public static func processing(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "TaskProgressRow.Processing", String(describing: p1), fallback: "Processing: %@")
+    }
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length
