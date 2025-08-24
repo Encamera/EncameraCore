@@ -27,10 +27,10 @@ struct AlbumSelectionModal: View {
                                 .frame(width: 60, height: 60)
                                 .foregroundColor(.white)
                             
-                            Text("Move to Album")
+                            Text(L10n.AlbumSelectionModal.title)
                                 .fontType(.pt24, weight: .bold)
                             
-                            Text("Select an album to move \(context.selectedMedia.count) items to")
+                            Text(L10n.AlbumSelectionModal.description(context.selectedMedia.count))
                                 .lineLimit(2, reservesSpace: true)
                                 .fontType(.pt16)
                                 .multilineTextAlignment(.center)
@@ -52,12 +52,12 @@ struct AlbumSelectionModal: View {
                             .frame(maxHeight: 300)
                             
                             HStack(spacing: 16) {
-                                Button("Cancel") {
+                                Button(L10n.cancel) {
                                     context.onDismiss()
                                 }
                                 .secondaryButton()
                                 
-                                Button("Move") {
+                                Button(L10n.AlbumSelectionModal.move) {
                                     guard let selectedAlbum = selectedAlbum else { return }
                                     context.onAlbumSelected(selectedAlbum)
                                 }

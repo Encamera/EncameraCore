@@ -242,7 +242,7 @@ struct AuthenticationView: View {
             
             // Show different text based on lockout status
             if let lockoutTime = viewModel.remainingLockoutTime {
-                Text("Too many attempts")
+                Text(L10n.AuthenticationView.tooManyAttempts)
                     .fontType(.pt20, weight: .bold)
             } else {
                 Text(L10n.welcomeBack)
@@ -251,7 +251,7 @@ struct AuthenticationView: View {
             
             if viewModel.keyManager.passwordExists() {
                 if let lockoutTime = viewModel.remainingLockoutTime {
-                    Text("You can retry your password in \(lockoutTime.formatAsHoursMinutesSeconds())")
+                    Text(L10n.AuthenticationView.retryIn(lockoutTime.formatAsHoursMinutesSeconds()))
                         .fontType(.pt14, weight: .regular)
                 } else if viewModel.authManager.useBiometricsForAuth, let biometric = viewModel.availableBiometric {
                     Text("\(L10n.enterPassword) \(L10n.or.lowercased()) \(biometric.nameForMethod)")
@@ -299,7 +299,7 @@ struct AuthenticationView: View {
                         fileAccess: InteractableMediaDiskAccess()
                     ))
                 } label: {
-                    Text("Forgot Password? Reset App")
+                    Text(L10n.AuthenticationView.forgotPassword)
                 }
                 .textButton()
                 .padding(.top, 20)

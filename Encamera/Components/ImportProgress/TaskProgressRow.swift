@@ -15,42 +15,42 @@ import Photos
 struct TaskProgressRow: View {
     let task: ImportTask
     @StateObject private var importManager = BackgroundMediaImportManager.shared
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // State indicator
             stateIcon
-            
+
             // Progress info
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("\(task.progress.currentFileIndex + 1) of \(task.progress.totalFiles) files")
                         .fontType(.pt12, weight: .medium)
                         .foregroundColor(.foregroundPrimary)
-                    
+
                     Spacer()
-                    
+
                     Text("\(Int(task.progress.overallProgress * 100))%")
                         .fontType(.pt12, weight: .medium)
                         .foregroundColor(.actionYellowGreen
-)
+                        )
                 }
 
                 ProgressView(value: task.progress.overallProgress, total: 1.0)
                     .progressViewStyle(LinearProgressViewStyle(tint: progressColor))
                     .frame(height: 3)
-                
+
                 if let fileName = task.progress.currentFileName {
-                    Text("Processing: \(fileName)")
+                    Text(L10n.TaskProgressRow.processing(fileName))
                         .fontType(.pt10)
                         .foregroundColor(.actionYellowGreen
-)
+                        )
                         .lineLimit(1)
                 }
 
 
             }
-            
+
             // Control buttons
             HStack(spacing: 8) {
                 switch task.state {
@@ -62,7 +62,7 @@ struct TaskProgressRow: View {
                             .foregroundColor(.actionYellowGreen)
                             .font(.system(size: 18))
                     }
-                    
+
                 case .paused:
                     Button(action: {
                         Task {
@@ -73,21 +73,21 @@ struct TaskProgressRow: View {
                             .foregroundColor(.actionYellowGreen)
                             .font(.system(size: 18))
                     }
-                    
+
                 case .completed:
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.actionYellowGreen)
                         .font(.system(size: 18))
-                    
+
                 case .failed:
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.red)
                         .font(.system(size: 18))
-                    
+
                 default:
                     EmptyView()
                 }
-                
+
                 Button(action: {
                     importManager.cancelImport(taskId: task.id)
                 }) {
@@ -103,7 +103,7 @@ struct TaskProgressRow: View {
         .cornerRadius(8)
     }
 
-    
+
     private var stateIcon: some View {
         Group {
             switch task.state {
@@ -126,18 +126,18 @@ struct TaskProgressRow: View {
             case .cancelled:
                 Image(systemName: "xmark.circle")
                     .foregroundColor(.actionYellowGreen
-)
+                    )
                     .font(.system(size: 20))
             case .idle:
                 Image(systemName: "clock")
                     .foregroundColor(.actionYellowGreen
-)
+                    )
                     .font(.system(size: 20))
             }
         }
         .frame(width: 24, height: 24)
     }
-    
+
     private var progressColor: Color {
         switch task.state {
         case .running:

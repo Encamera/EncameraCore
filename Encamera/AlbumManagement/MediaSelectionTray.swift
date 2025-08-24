@@ -29,7 +29,7 @@ struct MediaSelectionTray: View {
                         Button(action: {
                             moveAction()
                         }) {
-                            Label("Move to Album", systemImage: "folder")
+                            Label(L10n.MediaSelectionTray.moveToAlbum, systemImage: "folder")
                         }
                         if showShareOption {
                             Button(action: {

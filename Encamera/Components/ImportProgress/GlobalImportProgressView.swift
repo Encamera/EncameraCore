@@ -62,18 +62,18 @@ class GlobalImportProgressViewModel: ObservableObject {
 
     var statusText: String {
         if !completedTasks.isEmpty && activeTasks.isEmpty {
-            return "Import completed"
+            return L10n.GlobalImportProgress.importCompleted
         } else if !importManager.isImporting && activeTasks.isEmpty && !completedTasks.isEmpty {
-            return "Import completed"
+            return L10n.GlobalImportProgress.importCompleted
         } else if !importManager.isImporting && activeTasks.isEmpty {
-            return "Import stopped"
+            return L10n.GlobalImportProgress.importStopped
         } else if activeTasks.isEmpty {
-            return "No active imports"
+            return L10n.GlobalImportProgress.noActiveImports
         } else if activeTasks.count == 1 {
             let task = activeTasks.first!
-            return "Importing \(task.progress.currentFileIndex + 1) of \(task.progress.totalFiles)"
+            return L10n.GlobalImportProgress.importingProgress(task.progress.currentFileIndex + 1, task.progress.totalFiles)
         } else {
-            return "Importing \(activeTasks.count) batches"
+            return L10n.GlobalImportProgress.importingBatches(activeTasks.count)
         }
     }
     
@@ -243,15 +243,15 @@ struct GlobalImportProgressView: View {
             .cornerRadius(12)
             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             .transition(.move(edge: .bottom).combined(with: .opacity))
-            .alert("Delete from Photo Library?", isPresented: $viewModel.showDeleteConfirmation) {
-                Button("Delete", role: .destructive) {
+            .alert(L10n.GlobalImportProgress.deleteFromPhotoLibraryAlert, isPresented: $viewModel.showDeleteConfirmation) {
+                Button(L10n.delete, role: .destructive) {
                     Task {
                         await viewModel.deleteAllCompletedTaskPhotos()
                     }
                 }
-                Button("Cancel", role: .cancel) {}
+                Button(L10n.cancel, role: .cancel) {}
             } message: {
-                Text("This will delete all imported photos from your Photo Library.")
+                Text(L10n.GlobalImportProgress.deleteFromPhotoLibraryMessage)
             }
             .onChange(of: importManager.isImporting) { _, isImporting in
                 viewModel.handleImportStateChange(isImporting: isImporting, showProgressView: $showProgressView)

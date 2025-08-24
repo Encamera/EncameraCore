@@ -26,17 +26,17 @@ struct ImportTaskDetailsView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Import Tasks")
+            .navigationTitle(L10n.ImportTaskDetailsView.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(L10n.ImportTaskDetailsView.done) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Clear All") {
+                    Button(L10n.ImportTaskDetailsView.clearAll) {
                         importManager.removeCompletedTasks()
                     }
                     .disabled(importManager.currentTasks.isEmpty)

@@ -23,11 +23,11 @@ struct TaskDetailCard: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Task ID: \(String(task.id.prefix(8)))")
+                    Text(L10n.TaskDetailCard.taskID(String(task.id.prefix(8))))
                         .fontType(.pt14, weight: .semibold)
                         .foregroundColor(.foregroundPrimary)
                     
-                    Text("Created: \(task.createdAt, formatter: dateFormatter)")
+                    Text(L10n.TaskDetailCard.created(dateFormatter.string(from: task.createdAt)))
                         .fontType(.pt12)
                         .foregroundColor(.actionYellowGreen)
                 }
@@ -46,7 +46,7 @@ struct TaskDetailCard: View {
             // Progress details
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Progress:")
+                    Text(L10n.TaskDetailCard.progress)
                         .fontType(.pt12, weight: .medium)
                     Spacer()
                     Text("\(task.progress.currentFileIndex + 1) / \(task.progress.totalFiles) files")
@@ -59,17 +59,17 @@ struct TaskDetailCard: View {
                     .progressViewStyle(LinearProgressViewStyle(tint: .actionYellowGreen))
                 
                 if let fileName = task.progress.currentFileName {
-                    Text("Current: \(fileName)")
+                    Text(L10n.TaskDetailCard.current(fileName))
                         .fontType(.pt10)
                         .foregroundColor(.actionYellowGreen
 )
                 }
-                
+
                 if let eta = task.progress.estimatedTimeRemaining {
-                    Text("Estimated time remaining: \(timeFormatter.string(from: eta) ?? "Unknown")")
+                    Text(L10n.TaskDetailCard.estimatedTime(timeFormatter.string(from: eta) ?? L10n.TaskDetailCard.unknown))
                         .fontType(.pt10)
                         .foregroundColor(.actionYellowGreen
-)
+                        )
                 }
             }
             
@@ -77,13 +77,13 @@ struct TaskDetailCard: View {
             HStack(spacing: 10.0) {
                 switch task.state {
                 case .running:
-                    Button("Pause") {
+                    Button(L10n.TaskDetailCard.pause) {
                         importManager.pauseImport(taskId: task.id)
                     }
                     .primaryButton()
                     
                 case .paused:
-                    Button("Resume") {
+                    Button(L10n.TaskDetailCard.resume) {
                         Task {
                             try? await importManager.resumeImport(taskId: task.id)
                         }
@@ -91,7 +91,7 @@ struct TaskDetailCard: View {
                     .primaryButton()
                     
                 case .completed:
-                    Button("Delete From Camera Roll") {
+                    Button(L10n.TaskDetailCard.deleteFromCameraRoll) {
                         showDeleteConfirmation = true
                     }
                     .primaryButton()
@@ -103,7 +103,7 @@ struct TaskDetailCard: View {
                 
                 // Show cancel button for non-completed tasks
                 if task.state != .completed {
-                    Button("Cancel") {
+                    Button(L10n.cancel) {
                         importManager.cancelImport(taskId: task.id)
                     }
                     .primaryButton()
@@ -113,36 +113,36 @@ struct TaskDetailCard: View {
         .padding()
         .background(Color.inputFieldBackgroundColor)
         .cornerRadius(12)
-        .alert("Delete from Photo Library?", isPresented: $showDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
+        .alert(L10n.GlobalImportProgress.deleteFromPhotoLibraryAlert, isPresented: $showDeleteConfirmation) {
+            Button(L10n.delete, role: .destructive) {
                 Task {
                     await deletionManager.deletePhotos(assetIdentifiers: task.assetIdentifiers)
                     // Remove the task after successful deletion
                     importManager.cancelImport(taskId: task.id)
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L10n.cancel, role: .cancel) {}
         } message: {
-            Text("This will delete \(task.assetIdentifiers.count) photo(s) from your Photo Library that were imported into Encamera.")
+            Text(L10n.TaskDetailCard.deleteMessage("\(task.assetIdentifiers.count)"))
         }
-        .alert("Photo Library Access Required", isPresented: $deletionManager.showPhotoAccessAlert) {
-            Button("Open Settings") {
+        .alert(L10n.TaskDetailCard.photoLibraryAccessRequired, isPresented: $deletionManager.showPhotoAccessAlert) {
+            Button(L10n.openSettings) {
                 deletionManager.openSettings()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L10n.cancel, role: .cancel) {}
         } message: {
-            Text("Please grant full access to your photo library in Settings to delete imported photos.")
+            Text(L10n.TaskDetailCard.grantAccessMessage)
         }
     }
     
     private var stateText: String {
         switch task.state {
-        case .idle: return "Waiting"
-        case .running: return "Running"
-        case .paused: return "Paused"
-        case .completed: return "Completed"
-        case .cancelled: return "Cancelled"
-        case .failed: return "Failed"
+        case .idle: return L10n.TaskDetailCard.statusWaiting
+        case .running: return L10n.TaskDetailCard.statusRunning
+        case .paused: return L10n.TaskDetailCard.statusPaused
+        case .completed: return L10n.TaskDetailCard.statusCompleted
+        case .cancelled: return L10n.TaskDetailCard.statusCancelled
+        case .failed: return L10n.TaskDetailCard.statusFailed
         }
     }
     

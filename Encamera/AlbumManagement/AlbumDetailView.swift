@@ -33,7 +33,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             case .albumCoverRemoved:
                 return L10n.AlbumDetailView.coverImageRemovedToast
             case .mediaMovedSuccess(let count, let albumName):
-                return "Moved \(count) item\(count == 1 ? "" : "s") to \(albumName)"
+                return L10n.AlbumDetailView.movedToast("", "", "")
             }
         }
     }
@@ -1171,12 +1171,12 @@ struct AlbumDetailView<D: FileAccess>: View {
             )
         case .moveSelectedMedia(let targetAlbum):
             return Alert(
-                title: Text("Move Media"),
-                message: Text("Move \(viewModel.selectedMedia.count) item\(viewModel.selectedMedia.count == 1 ? "" : "s") to \(targetAlbum.name)?"),
-                primaryButton: .default(Text("Move")) {
+                title: Text(L10n.AlbumDetailView.moveMedia),
+                message: Text(L10n.AlbumDetailView.moveMediaConfirm("", "", "")),
+                primaryButton: .default(Text(L10n.AlbumDetailView.moveMedia)) {
                     viewModel.moveSelectedMedia(to: targetAlbum)
                 },
-                secondaryButton: .cancel(Text("Cancel"))
+                secondaryButton: .cancel(Text(L10n.cancel))
             )
         case .hideAlbum:
             return Alert(
@@ -1212,14 +1212,14 @@ struct AlbumDetailView<D: FileAccess>: View {
             )
         case .photoAccessDenied:
             return Alert(
-                title: Text("Photo Access Required"),
-                message: Text("Please grant access to your photo library in Settings to import photos."),
-                primaryButton: .default(Text("Open Settings")) {
+                title: Text(L10n.AlbumDetailView.photoAccessRequired),
+                message: Text(L10n.AlbumDetailView.photoAccessSettings),
+                primaryButton: .default(Text(L10n.AlbumDetailView.openSettings)) {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
                     }
                 },
-                secondaryButton: .cancel(Text("Cancel"))
+                secondaryButton: .cancel(Text(L10n.cancel))
             )
         case .none:
             return Alert(title: Text(""))

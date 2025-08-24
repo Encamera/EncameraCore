@@ -69,7 +69,7 @@ class CustomPhotoPickerViewController: UIViewController {
         
         let label = UILabel()
         label.backgroundColor = .clear
-        label.text = "Long press & swipe to select multiple photos"
+        label.text = NSLocalizedString("CustomPhotoPicker.SwipeInstruction", comment: "")
         label.font = EncameraFont.pt14.uiFont
         label.textColor = surface.textUIColor
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -145,14 +145,14 @@ class CustomPhotoPickerViewController: UIViewController {
     
     // MARK: - Setup
     private func setupNavigationBar() {
-        title = "Select Photos"
+        title = NSLocalizedString("CustomPhotoPicker.SelectPhotos", comment: "")
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .cancel,
             target: self,
             action: #selector(cancelTapped)
         )
         navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Add",
+            title: NSLocalizedString("CustomPhotoPicker.Add", comment: ""),
             style: .done,
             target: self,
             action: #selector(addTapped)
@@ -237,7 +237,7 @@ class CustomPhotoPickerViewController: UIViewController {
         banner.translatesAutoresizingMaskIntoConstraints = false
         
         let label = UILabel()
-        label.text = "Limited access. Tap here to select more photos or grant full access."
+        label.text = NSLocalizedString("CustomPhotoPicker.LimitedAccess", comment: "")
         label.font = .preferredFont(forTextStyle: .footnote)
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -267,14 +267,14 @@ class CustomPhotoPickerViewController: UIViewController {
     
     private func showPermissionDeniedAlert() {
         let alert = UIAlertController(
-            title: "Photo Access Required",
-            message: "Please grant full access to your photo library to use swipe selection. You can change this in Settings.",
+            title: NSLocalizedString("CustomPhotoPicker.PhotoAccessRequired", comment: ""),
+            message: NSLocalizedString("CustomPhotoPicker.GrantAccessMessage", comment: ""),
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: ""), style: .cancel) { [weak self] _ in
             self?.dismiss(animated: true)
         })
-        alert.addAction(UIAlertAction(title: "Open Settings", style: .default) { _ in
+        alert.addAction(UIAlertAction(title: NSLocalizedString("OpenSettings", comment: ""), style: .default) { _ in
             if let url = URL(string: UIApplication.openSettingsURLString) {
                 UIApplication.shared.open(url)
             }
@@ -289,7 +289,7 @@ class CustomPhotoPickerViewController: UIViewController {
     private func updateNavigationBar() {
         let hasSelection = viewModel.hasSelectedAssets
         navigationItem.rightBarButtonItem?.isEnabled = hasSelection
-        title = hasSelection ? "\(viewModel.selectionCount) Selected" : "Select Photos"
+        title = hasSelection ? String(format: NSLocalizedString("CustomPhotoPicker.Selected", comment: ""), viewModel.selectionCount) : NSLocalizedString("CustomPhotoPicker.SelectPhotos", comment: "")
     }
     
     // MARK: - Cell Update Helpers

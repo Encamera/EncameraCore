@@ -1,6 +1,7 @@
 import SwiftUI
 import Photos
 import PhotosUI
+import EncameraCore
 
 /// A wrapper that automatically selects the appropriate photo picker based on permissions
 /// Uses CustomPhotoPicker with swipe selection when full access is granted,
@@ -35,17 +36,17 @@ struct PhotoPickerWrapper: View {
         .onAppear {
             checkPhotoPermissions()
         }
-        .alert("Upgrade to Full Photo Access", isPresented: $showPermissionAlert) {
-            Button("Continue with Limited Access") {
+        .alert(L10n.PhotoPickerWrapper.upgradeTitle, isPresented: $showPermissionAlert) {
+            Button(L10n.PhotoPickerWrapper.continueLimited) {
                 // User chose to continue with limited access
             }
-            Button("Grant Full Access") {
+            Button(L10n.PhotoPickerWrapper.grantFullAccess) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
         } message: {
-            Text("You currently have limited photo access. Grant full access to enable swipe-to-select multiple photos at once, making importing much faster!")
+            Text(L10n.PhotoPickerWrapper.upgradeMessage)
         }
     }
     
@@ -109,11 +110,11 @@ struct PhotoAccessPromptView: View {
                     .padding(.top, 40)
                 
                 VStack(spacing: 16) {
-                    Text("Enable Swipe Selection")
+                    Text(L10n.PhotoPickerWrapper.enableSwipeSelection)
                         .font(.title)
                         .fontWeight(.bold)
                     
-                    Text("Grant full access to your photos to enable swipe-to-select multiple photos at once!")
+                    Text(L10n.PhotoPickerWrapper.grantAccessDescription)
                         .font(.body)
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
@@ -124,20 +125,20 @@ struct PhotoAccessPromptView: View {
                     // Features list
                     FeatureRow(
                         icon: "hand.draw",
-                        title: "Swipe to Select",
-                        description: "Select multiple photos with a single swipe"
+                        title: L10n.PhotoPickerWrapper.swipeToSelect,
+                        description: L10n.PhotoPickerWrapper.swipeDescription
                     )
                     
                     FeatureRow(
                         icon: "speedometer",
-                        title: "Faster Import",
-                        description: "Import photos much more quickly"
+                        title: L10n.PhotoPickerWrapper.fasterImport,
+                        description: L10n.PhotoPickerWrapper.fasterImportDescription
                     )
                     
                     FeatureRow(
                         icon: "checkmark.shield",
-                        title: "Privacy First",
-                        description: "Your photos stay encrypted and private"
+                        title: L10n.PhotoPickerWrapper.privacyFirst,
+                        description: L10n.PhotoPickerWrapper.privacyDescription
                     )
                 }
                 .padding(.horizontal)
@@ -146,7 +147,7 @@ struct PhotoAccessPromptView: View {
                 
                 VStack(spacing: 12) {
                     Button(action: requestFullAccess) {
-                        Text(currentStatus == .limited ? "Upgrade to Full Access" : "Grant Access")
+                        Text(currentStatus == .limited ? L10n.PhotoPickerWrapper.upgradeToFullAccess : L10n.PhotoPickerWrapper.grantAccess)
                             .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -158,7 +159,7 @@ struct PhotoAccessPromptView: View {
                     Button(action: {
                         isPresented = false
                     }) {
-                        Text(currentStatus == .limited ? "Continue with Limited Access" : "Not Now")
+                        Text(currentStatus == .limited ? L10n.PhotoPickerWrapper.continueLimited : L10n.PhotoPickerWrapper.notNow)
                             .font(.body)
                             .foregroundColor(.secondary)
                     }
@@ -169,7 +170,7 @@ struct PhotoAccessPromptView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(L10n.done) {
                         isPresented = false
                     }
                 }
