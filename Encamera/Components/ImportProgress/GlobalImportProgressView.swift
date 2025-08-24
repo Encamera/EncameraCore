@@ -7,7 +7,6 @@ import Photos
 
 @MainActor
 class GlobalImportProgressViewModel: ObservableObject {
-    @Published var showTaskDetails = false
     @Published var showDeleteConfirmation = false
     @Published var displayedProgress: CircularProgressDisplayMode
     private let countdown: Int = 5
@@ -17,7 +16,12 @@ class GlobalImportProgressViewModel: ObservableObject {
     private var dismissalTimer: Timer? = nil
     private var lastActiveImportSession: String? = nil
     private var cancellables = Set<AnyCancellable>()
-
+    var isCountingDown: Bool {
+        guard let dismissalTimer else {
+            return false
+        }
+        return dismissalTimer.isValid
+    }
     init() {
         self.displayedProgress = .percentage(value: 0.0)
 
@@ -170,6 +174,8 @@ class GlobalImportProgressViewModel: ObservableObject {
             withAnimation(.easeOut(duration: 0.5)) {
                 showProgressView.wrappedValue = false
             }
+            // Clear all tasks and reset state when view is dismissed
+            importManager.clearAllTasks()
         }
     }
     
@@ -247,14 +253,6 @@ struct GlobalImportProgressView: View {
             } message: {
                 Text("This will delete all imported photos from your Photo Library.")
             }
-//            .alert("Photo Library Access Required", isPresented: $viewModel.showPhotoAccessAlert) {
-//                Button("Open Settings") {
-//                    viewModel.deletionManager.openSettings()
-//                }
-//                Button("Cancel", role: .cancel) {}
-//            } message: {
-//                Text("Please grant full access to your photo library in Settings to delete imported photos.")
-//            }
             .onChange(of: importManager.isImporting) { _, isImporting in
                 viewModel.handleImportStateChange(isImporting: isImporting, showProgressView: $showProgressView)
             }
@@ -272,8 +270,11 @@ struct GlobalImportProgressView: View {
         progressCard
             .onTapGesture {
                 // Cancel countdown if user taps to view details
-                viewModel.cancelDismissalCountdownOnly()
-                viewModel.showTaskDetails = true
+                if viewModel.isCountingDown {
+                    viewModel.cancelDismissalCountdownOnly()
+                } else {
+                    showProgressView = false
+                }
             }
     }
 
@@ -315,9 +316,6 @@ struct GlobalImportProgressView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-        }
-        .sheet(isPresented: $viewModel.showTaskDetails) {
-            ImportTaskDetailsView()
         }
     }
 
