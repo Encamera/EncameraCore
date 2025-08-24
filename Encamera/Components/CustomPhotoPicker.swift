@@ -56,6 +56,7 @@ class CustomPhotoPickerViewController: UIViewController {
     private var isSwipeSelecting = false
     private var swipeSelectionMode: SwipeSelectionMode = .selecting
     private var processedIndexPaths = Set<IndexPath>()
+    private var lastProcessedIndexPath: IndexPath?
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     
     private var cancellables = Set<AnyCancellable>()
@@ -354,6 +355,7 @@ class CustomPhotoPickerViewController: UIViewController {
         viewModel.enterSelectionMode()
         isSwipeSelecting = true
         processedIndexPaths.removeAll()
+        lastProcessedIndexPath = nil
         feedbackGenerator.prepare()
         
         // Provide strong haptic feedback to indicate selection mode started
@@ -364,6 +366,7 @@ class CustomPhotoPickerViewController: UIViewController {
            let asset = viewModel.getAsset(at: indexPath.item) {
             swipeSelectionMode = viewModel.isAssetSelected(asset) ? .deselecting : .selecting
             processIndexPath(indexPath)
+            lastProcessedIndexPath = indexPath
         }
     }
     
@@ -374,18 +377,39 @@ class CustomPhotoPickerViewController: UIViewController {
         switch gesture.state {
         case .began:
             isSwipeSelecting = true
+            // Process the initial touch location
+            let location = gesture.location(in: collectionView)
+            if let indexPath = collectionView.indexPathForItem(at: location),
+               !processedIndexPaths.contains(indexPath) {
+                processIndexPath(indexPath)
+                lastProcessedIndexPath = indexPath
+            }
             
         case .changed:
-            // Process all cells along the gesture path for smoother selection
             let location = gesture.location(in: collectionView)
-            let translation = gesture.translation(in: collectionView)
-            let startPoint = CGPoint(x: location.x - translation.x, y: location.y - translation.y)
             
-            // Get all points along the line and process them
-            interpolatePoints(from: startPoint, to: location, count: 10)
-                .compactMap { collectionView.indexPathForItem(at: $0) }
-                .filter { !processedIndexPaths.contains($0) }
-                .forEach { processIndexPath($0) }
+            // Get the current index path under the finger
+            guard let currentIndexPath = collectionView.indexPathForItem(at: location) else { return }
+            
+            // If we have a last processed index path, select all items between them
+            if let lastIndexPath = lastProcessedIndexPath {
+                let indexPaths = getIndexPathsBetween(from: lastIndexPath, to: currentIndexPath)
+                
+                // Process all index paths in the range that haven't been processed yet
+                for indexPath in indexPaths {
+                    if !processedIndexPaths.contains(indexPath) {
+                        processIndexPath(indexPath)
+                    }
+                }
+            } else {
+                // No last index path, just process the current one
+                if !processedIndexPaths.contains(currentIndexPath) {
+                    processIndexPath(currentIndexPath)
+                }
+            }
+            
+            // Update the last processed index path
+            lastProcessedIndexPath = currentIndexPath
             
         case .ended, .cancelled:
             exitSelectionMode()
@@ -399,17 +423,27 @@ class CustomPhotoPickerViewController: UIViewController {
         isSwipeSelecting = false
         viewModel.exitSelectionMode()
         processedIndexPaths.removeAll()
+        lastProcessedIndexPath = nil
     }
     
-    // Helper method to interpolate points along a line
-    private func interpolatePoints(from start: CGPoint, to end: CGPoint, count: Int) -> [CGPoint] {
-        return (0...count).map { i in
-            let t = CGFloat(i) / CGFloat(count)
-            return CGPoint(
-                x: start.x + (end.x - start.x) * t,
-                y: start.y + (end.y - start.y) * t
-            )
+    // Helper method to get all index paths between two index paths in collection view order
+    private func getIndexPathsBetween(from startIndexPath: IndexPath, to endIndexPath: IndexPath) -> [IndexPath] {
+        var indexPaths: [IndexPath] = []
+        
+        let startIndex = startIndexPath.item
+        let endIndex = endIndexPath.item
+        
+        // Determine the range
+        let minIndex = min(startIndex, endIndex)
+        let maxIndex = max(startIndex, endIndex)
+        
+        // Add all index paths in the range
+        for index in minIndex...maxIndex {
+            let indexPath = IndexPath(item: index, section: 0)
+            indexPaths.append(indexPath)
         }
+        
+        return indexPaths
     }
     
     private func processIndexPath(_ indexPath: IndexPath) {
