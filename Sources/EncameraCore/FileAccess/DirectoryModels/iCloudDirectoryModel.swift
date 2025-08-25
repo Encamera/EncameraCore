@@ -32,6 +32,8 @@ public class iCloudStorageModel: DataStorageModel {
     private var downloadStatusSubjects = [URL: PassthroughSubject<iCloudDownloadStatus, Never>]()
     @MainActor
     private var downloadTasks = [URL: AnyCancellable]()
+    @MainActor
+    private var activeQueries = [URL: (NSMetadataQuery, NSObjectProtocol)]() // Track active queries for cleanup
 
     public var baseURL: URL {
         return iCloudStorageModel.rootURL.appendingPathComponent(album.encryptedPathComponent)
@@ -103,6 +105,7 @@ public class iCloudStorageModel: DataStorageModel {
                 }
                 Task { @MainActor in
                     self?.downloadStatusSubjects.removeValue(forKey: fileURL)
+                    self?.activeQueries.removeValue(forKey: fileURL)
                 }
             }
 
@@ -126,6 +129,11 @@ public class iCloudStorageModel: DataStorageModel {
                 }
             }
         }
+        
+        // Store the query and observer for cleanup on cancellation
+        if let observer = observer {
+            activeQueries[fileURL] = (query, observer)
+        }
 
         query.start()
     }
@@ -138,71 +146,131 @@ public class iCloudStorageModel: DataStorageModel {
         }
 
         try FileManager.default.startDownloadingUbiquitousItem(at: source)
-        let lock = NSLock()
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                // Flag to ensure we resume only once.
-                var resumed = false
-
-                // Helper function to safely resume the continuation.
-                func safeResume(with result: Result<T, Error>) {
-                    lock.lock()
-                    defer { lock.unlock() }
-                    guard !resumed else { return }
-                    resumed = true
-                    switch result {
-                    case .success(let value):
-                        continuation.resume(returning: value)
-                    case .failure(let error):
-                        continuation.resume(throwing: error)
-                    }
-                }
-
-                Task { @MainActor in
-                    let cancellable = self.checkDownloadStatus(ofFile: media)
-                        .receive(on: RunLoop.main)
-                        .sink(receiveValue: { [weak self] status in
-                            guard let self = self else { return }
-                            switch status {
-                            case .notDownloaded:
-                                progress(0)
-                            case .downloading(let progressValue):
-                                progress(progressValue)
-                            case .downloaded:
-                                do {
-                                    if let resolved = try self.resolveDownloadedMedia(media: media) {
-                                        progress(1)
-                                        safeResume(with: .success(resolved))
-                                    } else {
-                                        progress(1)
-                                        safeResume(with: .failure(DataStorageModelError.couldNotCreateMedia))
-                                    }
-                                } catch {
-                                    safeResume(with: .failure(error))
-                                }
-                                self.cleanUpCancellables()
-                            case .cancelled:
-                                safeResume(with: .failure(CancellationError()))
-                                self.cleanUpCancellables()
+        
+        // Use AsyncThrowingStream to properly handle the callback-based NSMetadataQuery
+        let stream = AsyncThrowingStream<iCloudDownloadStatus, Error> { continuation in
+            let task = Task { @MainActor in
+                let cancellable = self.checkDownloadStatus(ofFile: media)
+                    .receive(on: RunLoop.main)
+                    .sink(
+                        receiveCompletion: { completion in
+                            switch completion {
+                            case .finished:
+                                continuation.finish()
+                            case .failure:
+                                continuation.finish()
                             }
-                        })
-                    self.localCancellables.insert(cancellable)
+                        },
+                        receiveValue: { status in
+                            continuation.yield(status)
+                        }
+                    )
+                self.localCancellables.insert(cancellable)
+            }
+            
+            continuation.onTermination = { @Sendable termination in
+                switch termination {
+                case .cancelled:
+                    task.cancel()
+                    Task { @MainActor in
+                        // Properly clean up both cancellables AND the NSMetadataQuery
+                        self.cleanUpCancellables()
+                        if case .url(let sourceURL) = media.source {
+                            self.cleanUpQuery(for: sourceURL)
+                        }
+                    }
+                default:
+                    break
                 }
             }
-        } onCancel: {
-            // When the task is cancelled, make sure to resume if needed.
-            Task { @MainActor in
-                self.cleanUpCancellables()
-                // Optionally, if you have stored a reference to the continuation,
-                // you would resume it here. (You might need to restructure your code to do so.)
+        }
+        
+        // Process the stream until we get a final result
+        do {
+            for try await status in stream {
+                try Task.checkCancellation() // Proper cancellation checking
+                
+                switch status {
+                case .notDownloaded:
+                    progress(0)
+                case .downloading(let progressValue):
+                    progress(progressValue)
+                case .downloaded:
+                    do {
+                        if let resolved = try self.resolveDownloadedMedia(media: media) {
+                            progress(1)
+                            await MainActor.run {
+                                self.cleanUpCancellables()
+                                if case .url(let sourceURL) = media.source {
+                                    self.cleanUpQuery(for: sourceURL)
+                                }
+                            }
+                            return resolved
+                        } else {
+                            progress(1)
+                            await MainActor.run {
+                                self.cleanUpCancellables()
+                                if case .url(let sourceURL) = media.source {
+                                    self.cleanUpQuery(for: sourceURL)
+                                }
+                            }
+                            throw DataStorageModelError.couldNotCreateMedia
+                        }
+                    } catch {
+                        await MainActor.run {
+                            self.cleanUpCancellables()
+                            if case .url(let sourceURL) = media.source {
+                                self.cleanUpQuery(for: sourceURL)
+                            }
+                        }
+                        throw error
+                    }
+                case .cancelled:
+                    await MainActor.run {
+                        self.cleanUpCancellables()
+                        if case .url(let sourceURL) = media.source {
+                            self.cleanUpQuery(for: sourceURL)
+                        }
+                    }
+                    throw CancellationError()
+                }
             }
+            
+            // If we get here, the stream ended without a final status
+            await MainActor.run {
+                self.cleanUpCancellables()
+                if case .url(let sourceURL) = media.source {
+                    self.cleanUpQuery(for: sourceURL)
+                }
+            }
+            throw DataStorageModelError.couldNotCreateMedia
+        } catch {
+            // Ensure cleanup happens even if an error is thrown
+            await MainActor.run {
+                self.cleanUpCancellables() 
+                if case .url(let sourceURL) = media.source {
+                    self.cleanUpQuery(for: sourceURL)
+                }
+            }
+            throw error
         }
     }
 
 
+    @MainActor
     private func cleanUpCancellables() {
         self.localCancellables.forEach { $0.cancel() }
         self.localCancellables.removeAll()
+    }
+    
+    @MainActor
+    private func cleanUpQuery(for url: URL) {
+        if let (query, observer) = activeQueries[url] {
+            query.stop()
+            NotificationCenter.default.removeObserver(observer)
+            activeQueries.removeValue(forKey: url)
+        }
+        downloadStatusSubjects.removeValue(forKey: url)
     }
     @MainActor
     public func cancelDownload(for url: URL) {
@@ -210,5 +278,6 @@ public class iCloudStorageModel: DataStorageModel {
         downloadTasks.removeValue(forKey: url)
         downloadStatusSubjects[url]?.send(.cancelled)
         downloadStatusSubjects[url]?.send(completion: .finished)
+        cleanUpQuery(for: url)
     }
 }
