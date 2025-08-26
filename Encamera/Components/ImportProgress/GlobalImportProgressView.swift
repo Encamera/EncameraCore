@@ -11,7 +11,7 @@ class GlobalImportProgressViewModel: ObservableObject {
     @Published var displayedProgress: CircularProgressDisplayMode
     private let countdown: Int = 5
 
-    private let importManager = BackgroundMediaImportManager.shared
+    var importManager = BackgroundMediaImportManager.shared
     let deletionManager = PhotoDeletionManager()
     private var dismissalTimer: Timer? = nil
     private var lastActiveImportSession: String? = nil
@@ -226,7 +226,6 @@ class GlobalImportProgressViewModel: ObservableObject {
 
 struct GlobalImportProgressView: View {
     @StateObject private var viewModel = GlobalImportProgressViewModel()
-    @StateObject private var importManager = BackgroundMediaImportManager.shared
     @Binding var showProgressView: Bool
 
     var body: some View {
@@ -253,10 +252,10 @@ struct GlobalImportProgressView: View {
             } message: {
                 Text(L10n.GlobalImportProgress.deleteFromPhotoLibraryMessage)
             }
-            .onChange(of: importManager.isImporting) { _, isImporting in
+            .onChange(of: viewModel.importManager.isImporting) { _, isImporting in
                 viewModel.handleImportStateChange(isImporting: isImporting, showProgressView: $showProgressView)
             }
-            .onChange(of: importManager.currentTasks) { _, tasks in
+            .onChange(of: viewModel.importManager.currentTasks) { _, tasks in
                 viewModel.handleTasksChange(tasks: tasks, showProgressView: $showProgressView)
             }
             .onDisappear {
