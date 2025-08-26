@@ -4,6 +4,7 @@ import PhotosUI
 import UIKit
 import Combine
 import AVFoundation
+import EncameraCore
 
 // MARK: - Custom Photo Picker with Swipe Selection
 /// A custom photo picker that supports swipe-to-select gesture
@@ -70,7 +71,7 @@ class CustomPhotoPickerViewController: UIViewController {
         
         let label = UILabel()
         label.backgroundColor = .clear
-        label.text = NSLocalizedString("CustomPhotoPicker.SwipeInstruction", comment: "")
+        label.text = L10n.CustomPhotoPicker.swipeInstruction
         label.font = EncameraFont.pt14.uiFont
         label.textColor = surface.textUIColor
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -146,14 +147,14 @@ class CustomPhotoPickerViewController: UIViewController {
     
     // MARK: - Setup
     private func setupNavigationBar() {
-        title = NSLocalizedString("CustomPhotoPicker.SelectPhotos", comment: "")
+        title = L10n.CustomPhotoPicker.selectPhotos
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .cancel,
             target: self,
             action: #selector(cancelTapped)
         )
         navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: NSLocalizedString("CustomPhotoPicker.Add", comment: ""),
+            title: L10n.CustomPhotoPicker.add,
             style: .done,
             target: self,
             action: #selector(addTapped)
@@ -238,7 +239,7 @@ class CustomPhotoPickerViewController: UIViewController {
         banner.translatesAutoresizingMaskIntoConstraints = false
         
         let label = UILabel()
-        label.text = NSLocalizedString("CustomPhotoPicker.LimitedAccess", comment: "")
+        label.text = L10n.CustomPhotoPicker.limitedAccess
         label.font = .preferredFont(forTextStyle: .footnote)
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -268,14 +269,14 @@ class CustomPhotoPickerViewController: UIViewController {
     
     private func showPermissionDeniedAlert() {
         let alert = UIAlertController(
-            title: NSLocalizedString("CustomPhotoPicker.PhotoAccessRequired", comment: ""),
-            message: NSLocalizedString("CustomPhotoPicker.GrantAccessMessage", comment: ""),
+            title: L10n.CustomPhotoPicker.photoAccessRequired,
+            message: L10n.CustomPhotoPicker.grantAccessMessage,
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: ""), style: .cancel) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel) { [weak self] _ in
             self?.dismiss(animated: true)
         })
-        alert.addAction(UIAlertAction(title: NSLocalizedString("OpenSettings", comment: ""), style: .default) { _ in
+        alert.addAction(UIAlertAction(title: L10n.openSettings, style: .default) { _ in
             if let url = URL(string: UIApplication.openSettingsURLString) {
                 UIApplication.shared.open(url)
             }
@@ -290,7 +291,7 @@ class CustomPhotoPickerViewController: UIViewController {
     private func updateNavigationBar() {
         let hasSelection = viewModel.hasSelectedAssets
         navigationItem.rightBarButtonItem?.isEnabled = hasSelection
-        title = hasSelection ? String(format: NSLocalizedString("CustomPhotoPicker.Selected", comment: ""), viewModel.selectionCount) : NSLocalizedString("CustomPhotoPicker.SelectPhotos", comment: "")
+        title = hasSelection ?  L10n.CustomPhotoPicker.selected(viewModel.selectionCount) : L10n.CustomPhotoPicker.selectPhotos
     }
     
     // MARK: - Cell Update Helpers
