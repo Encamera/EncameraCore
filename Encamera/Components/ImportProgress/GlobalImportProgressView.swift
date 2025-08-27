@@ -12,46 +12,49 @@ class GlobalImportProgressViewModel: ObservableObject {
     private let countdown: Int = 5
 
     var importManager = BackgroundMediaImportManager.shared
+    var completedTasks: [ImportTask]
+    var isCompleted: Bool
+    var deleteEnabled: Bool
+    var activeTasks: [ImportTask]
+
     let deletionManager = PhotoDeletionManager()
     private var dismissalTimer: Timer? = nil
     private var lastActiveImportSession: String? = nil
     private var cancellables = Set<AnyCancellable>()
-    private var deleteEnabled: Bool
-    var isCountingDown: Bool {
-        guard let dismissalTimer else {
-            return false
-        }
-        return dismissalTimer.isValid
-    }
-    init(deleteEnabled: Bool) {
-        self.displayedProgress = .percentage(value: 0.0)
+
+
+    init(deleteEnabled: Bool,
+         displayedProgress: CircularProgressDisplayMode = .percentage(value: 0.0),
+         isCompleted: Bool = false,
+         completedTasks: [ImportTask] = [],
+         activeTasks: [ImportTask] = []
+    ) {
+        self.completedTasks = completedTasks
+        self.activeTasks = activeTasks
+        self.isCompleted = isCompleted
+        self.displayedProgress = displayedProgress
         self.deleteEnabled = deleteEnabled
+
         self.importManager.$overallProgress.dropFirst().sink { [weak self] value in
             self?.displayedProgress = .percentage(value: value)
 
+        }.store(in: &cancellables)
+
+        self.importManager.$isImporting.dropFirst().sink { [weak self] isImporting in
+            self?.isCompleted = !isImporting
+        }.store(in: &cancellables)
+
+        self.importManager.$currentTasks.dropFirst().sink { [weak self] tasks in
+            self?.completedTasks = tasks.filter { $0.state == .completed }
+            self?.activeTasks = tasks.filter { $0.state == .running }
         }.store(in: &cancellables)
     }
     
     // MARK: - Computed Properties
     
-    var activeTasks: [ImportTask] {
-        importManager.currentTasks.filter { task in
-            task.state == .running
-        }
-    }
-    
-    var runningTasks: [ImportTask] {
-        importManager.currentTasks.filter { $0.state == .running }
-    }
-    
-    var completedTasks: [ImportTask] {
-        importManager.currentTasks.filter { $0.state == .completed }
-    }
-    
-    var isCompleted: Bool {
-        !importManager.isImporting && !completedTasks.isEmpty
-    }
-    
+
+
+
     var actionButtonImageName: String {
         if isCompleted {
             return "trash.fill"
@@ -64,9 +67,9 @@ class GlobalImportProgressViewModel: ObservableObject {
     var statusText: String {
         if !completedTasks.isEmpty && activeTasks.isEmpty {
             return L10n.GlobalImportProgress.importCompleted
-        } else if !importManager.isImporting && activeTasks.isEmpty && !completedTasks.isEmpty {
+        } else if isCompleted && activeTasks.isEmpty && !completedTasks.isEmpty {
             return L10n.GlobalImportProgress.importCompleted
-        } else if !importManager.isImporting && activeTasks.isEmpty {
+        } else if isCompleted && activeTasks.isEmpty {
             return L10n.GlobalImportProgress.importStopped
         } else if activeTasks.isEmpty {
             return L10n.GlobalImportProgress.noActiveImports
@@ -79,7 +82,7 @@ class GlobalImportProgressViewModel: ObservableObject {
     }
     
     var estimatedTimeRemaining: String? {
-        guard let task = runningTasks.first,
+        guard let task = activeTasks.first,
               let eta = task.progress.estimatedTimeRemaining else {
             return nil
         }
@@ -106,7 +109,7 @@ class GlobalImportProgressViewModel: ObservableObject {
     }
     
     func stopCurrentTask() {
-        for task in runningTasks {
+        for task in activeTasks {
             importManager.cancelImport(taskId: task.id)
         }
     }
@@ -293,6 +296,8 @@ struct GlobalImportProgressView: View {
                         .renderingMode(.template)
                         .foregroundColor(.actionYellowGreen)
                         .font(.system(size: 24))
+                }.if(!viewModel.deleteEnabled) { view in
+                    view.hidden()
                 }
             }
             .padding(.horizontal, 16)
@@ -304,12 +309,132 @@ struct GlobalImportProgressView: View {
 
 // MARK: - Previews
 
-#Preview("Active Import") {
+#Preview("All States") {
     @Previewable @State var showProgressView = true
     
-    GlobalImportProgressView(viewModel: .init(deleteEnabled: true), showProgressView: $showProgressView)
+    ScrollView {
+        VStack(spacing: 20) {
+            // Active Import - Single Task (simulated with 1 active task)
+            VStack(alignment: .leading) {
+                Text("Active Import - Single Task")
+                    .font(.headline)
+                GlobalImportProgressView(
+                    viewModel: .init(
+                        deleteEnabled: true,
+                        displayedProgress: .percentage(value: 0.65),
+                        isCompleted: false,
+                        completedTasks: [],
+                        activeTasks: [MockImportTask.singleRunning]
+                    ),
+                    showProgressView: $showProgressView
+                )
+            }
+            
+            // Active Import - Multiple Tasks
+            VStack(alignment: .leading) {
+                Text("Active Import - Multiple Tasks")
+                    .font(.headline)
+                GlobalImportProgressView(
+                    viewModel: .init(
+                        deleteEnabled: true,
+                        displayedProgress: .percentage(value: 0.28),
+                        isCompleted: false,
+                        completedTasks: [],
+                        activeTasks: [MockImportTask.multipleRunning1, MockImportTask.multipleRunning2]
+                    ),
+                    showProgressView: $showProgressView
+                )
+            }
+            
+            // Import Completed - With Delete Option
+            VStack(alignment: .leading) {
+                Text("Import Completed - With Delete Option")
+                    .font(.headline)
+                GlobalImportProgressView(
+                    viewModel: .init(
+                        deleteEnabled: true,
+                        displayedProgress: .percentage(value: 1.0),
+                        isCompleted: true,
+                        completedTasks: [MockImportTask.completed],
+                        activeTasks: []
+                    ),
+                    showProgressView: $showProgressView
+                )
+            }
+            
+            // Import Completed - Delete Disabled
+            VStack(alignment: .leading) {
+                Text("Import Completed - Delete Disabled")
+                    .font(.headline)
+                GlobalImportProgressView(
+                    viewModel: .init(
+                        deleteEnabled: false,
+                        displayedProgress: .percentage(value: 1.0),
+                        isCompleted: true,
+                        completedTasks: [MockImportTask.completed],
+                        activeTasks: []
+                    ),
+                    showProgressView: $showProgressView
+                )
+            }
+            
+            // Countdown State
+            VStack(alignment: .leading) {
+                Text("Countdown State (Auto-dismiss)")
+                    .font(.headline)
+                GlobalImportProgressView(
+                    viewModel: .init(
+                        deleteEnabled: true,
+                        displayedProgress: .countdown(initial: 5, value: 3),
+                        isCompleted: true,
+                        completedTasks: [MockImportTask.completed],
+                        activeTasks: []
+                    ),
+                    showProgressView: $showProgressView
+                )
+            }
+            
+            // No Active Tasks
+            VStack(alignment: .leading) {
+                Text("No Active Imports")
+                    .font(.headline)
+                GlobalImportProgressView(
+                    viewModel: .init(
+                        deleteEnabled: true,
+                        displayedProgress: .percentage(value: 0.0),
+                        isCompleted: false,
+                        completedTasks: [],
+                        activeTasks: []
+                    ),
+                    showProgressView: $showProgressView
+                )
+            }
+            
+            // Import Stopped
+            VStack(alignment: .leading) {
+                Text("Import Stopped")
+                    .font(.headline)
+                GlobalImportProgressView(
+                    viewModel: .init(
+                        deleteEnabled: true,
+                        displayedProgress: .percentage(value: 0.4),
+                        isCompleted: false,
+                        completedTasks: [],
+                        activeTasks: []
+                    ),
+                    showProgressView: $showProgressView
+                )
+            }
+        }
         .padding()
-        .background(Color.gray.opacity(0.1))
+    }
+//    .background(Color.gray.opacity(0.1))
 }
 
+// MARK: - Mock Data
 
+extension ImportTask {
+    static var mockMedia: CleartextMedia {
+        CleartextMedia(source: URL(fileURLWithPath: "/tmp/test.jpg"))
+    }
+}

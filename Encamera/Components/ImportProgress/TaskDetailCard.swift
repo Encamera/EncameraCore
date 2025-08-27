@@ -237,7 +237,69 @@ struct MockImportTask {
         )
         return task
     }()
+
+    static var singleRunning: ImportTask {
+        var task = ImportTask(
+            id: "task1",
+            media: Array(repeating: ImportTask.mockMedia, count: 10),
+            albumId: "album1",
+            source: .photos,
+            assetIdentifiers: ["asset1", "asset2"]
+        )
+        task.progress = ImportProgressUpdate(
+            taskId: "task1",
+            currentFileIndex: 6,
+            totalFiles: 10,
+            currentFileProgress: 0.5,
+            overallProgress: 0.65,
+            currentFileName: "IMG_0006.jpg",
+            state: .running,
+            estimatedTimeRemaining: 45
+        )
+        return task
+    }
+
+    static var multipleRunning1: ImportTask {
+        var task = ImportTask(
+            id: "task2",
+            media: Array(repeating: ImportTask.mockMedia, count: 20),
+            albumId: "album1",
+            source: .photos
+        )
+        task.progress = ImportProgressUpdate(
+            taskId: "task2",
+            currentFileIndex: 7,
+            totalFiles: 20,
+            currentFileProgress: 0.75,
+            overallProgress: 0.35,
+            currentFileName: "IMG_0007.jpg",
+            state: .running,
+            estimatedTimeRemaining: 120
+        )
+        return task
+    }
+
+    static var multipleRunning2: ImportTask {
+        var task = ImportTask(
+            id: "task3",
+            media: Array(repeating: ImportTask.mockMedia, count: 15),
+            albumId: "album2",
+            source: .files
+        )
+        task.progress = ImportProgressUpdate(
+            taskId: "task3",
+            currentFileIndex: 3,
+            totalFiles: 15,
+            currentFileProgress: 0.2,
+            overallProgress: 0.20,
+            currentFileName: "Document_003.pdf",
+            state: .running,
+            estimatedTimeRemaining: 90
+        )
+        return task
+    }
     
+
     static let paused: ImportTask = {
         let mockMedia = (0..<25).map { index in
             CleartextMedia(source: .data(Data()), mediaType: .photo, id: "IMG_567\(index).jpeg")
