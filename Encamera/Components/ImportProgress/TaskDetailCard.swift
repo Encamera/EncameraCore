@@ -222,6 +222,7 @@ struct MockImportTask {
             id: "12345678-1234-1234-1234-123456789abc",
             media: mockMedia,
             albumId: "test-album",
+            source: .photos,
             assetIdentifiers: Array(repeating: "asset-id", count: 50)
         )
         task.progress = ImportProgressUpdate(
@@ -245,6 +246,7 @@ struct MockImportTask {
             id: "87654321-4321-4321-4321-cba987654321",
             media: mockMedia,
             albumId: "test-album",
+            source: .photos,
             assetIdentifiers: Array(repeating: "asset-id", count: 25)
         )
         task.progress = ImportProgressUpdate(
@@ -268,6 +270,7 @@ struct MockImportTask {
             id: "abcdef12-3456-7890-abcd-ef1234567890",
             media: mockMedia,
             albumId: "test-album",
+            source: .files,
             assetIdentifiers: Array(repeating: "asset-id", count: 100)
         )
         task.progress = ImportProgressUpdate(
@@ -291,6 +294,7 @@ struct MockImportTask {
             id: "fedcba09-8765-4321-fedc-ba0987654321",
             media: mockMedia,
             albumId: "test-album",
+            source: .photos,
             assetIdentifiers: Array(repeating: "asset-id", count: 75)
         )
         task.progress = ImportProgressUpdate(
@@ -314,6 +318,7 @@ struct MockImportTask {
             id: "11111111-2222-3333-4444-555555555555",
             media: mockMedia,
             albumId: "test-album",
+            source: .files,
             assetIdentifiers: Array(repeating: "asset-id", count: 30)
         )
         task.progress = ImportProgressUpdate(
@@ -337,6 +342,7 @@ struct MockImportTask {
             id: "99999999-8888-7777-6666-555555555555",
             media: mockMedia,
             albumId: "test-album",
+            source: .photos,
             assetIdentifiers: Array(repeating: "asset-id", count: 40)
         )
         task.progress = ImportProgressUpdate(
