@@ -38,9 +38,9 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         self.albumManager = albumManager
     }
 
-    public func startImport(media: [CleartextMedia], albumId: String, assetIdentifiers: [String] = []) async throws {
-        printDebug("Starting import for \(media.count) media items to album: \(albumId) with \(assetIdentifiers.count) asset identifiers")
-        let task = ImportTask(media: media, albumId: albumId, assetIdentifiers: assetIdentifiers)
+    public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = []) async throws {
+        printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
+        let task = ImportTask(media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers)
         currentTasks.append(task)
         
         try await executeImportTask(task)
@@ -132,8 +132,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         overallProgress = 0.0
         
         // Clean up temp files since no imports are active
-        printDebug("Cleaning up temporary files")
-        TempFileAccess.cleanupTemporaryFiles()
+        cleanupTempFilesIfSafe()
         
         printDebug("All tasks cleared and state reset")
     }
@@ -179,11 +178,8 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                     self.updateIsImporting()
                     self.endBackgroundTask()
                     
-                    // Clean up temp files if no other imports are running
-                    if !self.isImporting {
-                        self.printDebug("No more active imports - cleaning up temp files")
-                        TempFileAccess.cleanupTemporaryFiles()
-                    }
+                    // Clean up temp files only if no other photo imports are running
+                    self.cleanupTempFilesIfSafe()
                 }
             } catch {
                 await MainActor.run {
@@ -196,11 +192,8 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                     self.updateIsImporting()
                     self.endBackgroundTask()
                     
-                    // Clean up temp files if no other imports are running
-                    if !self.isImporting {
-                        self.printDebug("No more active imports after failure - cleaning up temp files")
-                        TempFileAccess.cleanupTemporaryFiles()
-                    }
+                    // Clean up temp files only if no other photo imports are running
+                    self.cleanupTempFilesIfSafe()
                 }
                 throw error
             }
@@ -365,6 +358,20 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         let remaining = totalEstimate - elapsed
         
         return max(0, remaining)
+    }
+    
+    private func cleanupTempFilesIfSafe() {
+        // Check if there are any active photo imports (which use temp files)
+        let hasActivePhotoImports = currentTasks.contains { task in
+            task.source == .photos && task.progress.state == .running
+        }
+        
+        if !hasActivePhotoImports {
+            printDebug("No active photo imports - cleaning up temporary files")
+            TempFileAccess.cleanupTemporaryFiles()
+        } else {
+            printDebug("Active photo imports detected - keeping temp files")
+        }
     }
     
     // MARK: - Background Task Management
