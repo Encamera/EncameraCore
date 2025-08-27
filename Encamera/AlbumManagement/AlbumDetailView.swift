@@ -267,7 +267,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             
             do {
                 // Use the new background import manager
-                try await BackgroundMediaImportManager.shared.startImport(media: media, albumId: albumId)
+                try await BackgroundMediaImportManager.shared.startImport(media: media, albumId: albumId, source: .files)
                 EventTracking.trackFilesImported(count: urls.count)
             } catch {
                 debugPrint("Error starting import: \(error)")
@@ -448,7 +448,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }
             
             do {
-                try await BackgroundMediaImportManager.shared.startImport(media: allMedia, albumId: albumId, assetIdentifiers: assetIdentifiers)
+                try await BackgroundMediaImportManager.shared.startImport(media: allMedia, albumId: albumId, source: .photos, assetIdentifiers: assetIdentifiers)
                 EventTracking.trackMediaImported(count: results.count)
             } catch {
                 debugPrint("Error starting import: \(error)")
