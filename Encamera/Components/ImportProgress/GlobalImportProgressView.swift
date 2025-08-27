@@ -16,15 +16,16 @@ class GlobalImportProgressViewModel: ObservableObject {
     private var dismissalTimer: Timer? = nil
     private var lastActiveImportSession: String? = nil
     private var cancellables = Set<AnyCancellable>()
+    private var deleteEnabled: Bool
     var isCountingDown: Bool {
         guard let dismissalTimer else {
             return false
         }
         return dismissalTimer.isValid
     }
-    init() {
+    init(deleteEnabled: Bool) {
         self.displayedProgress = .percentage(value: 0.0)
-
+        self.deleteEnabled = deleteEnabled
         self.importManager.$overallProgress.dropFirst().sink { [weak self] value in
             self?.displayedProgress = .percentage(value: value)
 
@@ -84,11 +85,11 @@ class GlobalImportProgressViewModel: ObservableObject {
         }
 
         if eta < 60 {
-            return "\(Int(eta))s remaining"
+            return "\(Int(eta))s \(L10n.GlobalImportProgress.remaining)"
         } else if eta < 3600 {
-            return "\(Int(eta / 60))m remaining"
+            return "\(Int(eta / 60))m \(L10n.GlobalImportProgress.remaining)"
         } else {
-            return "\(Int(eta / 3600))h remaining"
+            return "\(Int(eta / 3600))h \(L10n.GlobalImportProgress.remaining)"
         }
     }
     
@@ -111,9 +112,7 @@ class GlobalImportProgressViewModel: ObservableObject {
     }
     
     func handleActionButtonTap() {
-        // Cancel countdown if user interacts with the action button
-        cancelDismissalCountdown()
-        
+
         if isCompleted {
             showDeleteConfirmation = true
         } else {
@@ -143,9 +142,6 @@ class GlobalImportProgressViewModel: ObservableObject {
         if !isImporting && showProgressView.wrappedValue {
             // Start countdown timer for auto-dismiss when import stops (completed or cancelled)
             startDismissalCountdown(showProgressView: showProgressView)
-        } else if isImporting {
-            // Cancel any ongoing dismissal countdown if import starts again
-            cancelDismissalCountdown()
         }
     }
 
@@ -170,7 +166,6 @@ class GlobalImportProgressViewModel: ObservableObject {
     func handleViewDisappear(showProgressView: Binding<Bool>) {
         // When navigating away and import is not running, mark as dismissed
         if !importManager.isImporting {
-            cancelDismissalCountdown()
             withAnimation(.easeOut(duration: 0.5)) {
                 showProgressView.wrappedValue = false
             }
@@ -180,21 +175,17 @@ class GlobalImportProgressViewModel: ObservableObject {
     }
     
     func startDismissalCountdown(showProgressView: Binding<Bool>) {
-        cancelDismissalCountdown() // Cancel any existing timer
         displayedProgress = .countdown(initial: countdown, value: countdown)
-
+        
         dismissalTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
             DispatchQueue.main.async {
                 guard case .countdown(_, let value) = self.displayedProgress else {
                     return
                 }
-                if value <= self.countdown && value > 0 {
-                    self.displayedProgress = .countdown(initial: self.countdown, value: value - 1)
-                } else if value <= 0 {
+                if value <= 0 {
                     // Countdown finished, dismiss the view
                     timer.invalidate()
                     self.dismissalTimer = nil
-                    self.displayedProgress = .countdown(initial: self.countdown, value: 0)
 
                     withAnimation(.easeOut(duration: 0.8)) {
                         showProgressView.wrappedValue = false
@@ -202,17 +193,6 @@ class GlobalImportProgressViewModel: ObservableObject {
                 }
             }
         }
-    }
-    
-    func cancelDismissalCountdown() {
-        dismissalTimer?.invalidate()
-        dismissalTimer = nil
-        displayedProgress = .countdown(initial: countdown, value: 0)
-    }
-    
-    func cancelDismissalCountdownOnly() {
-        dismissalTimer?.invalidate()
-        dismissalTimer = nil
     }
     
     // MARK: - Deinitializer
@@ -225,7 +205,7 @@ class GlobalImportProgressViewModel: ObservableObject {
 // MARK: - View
 
 struct GlobalImportProgressView: View {
-    @StateObject private var viewModel = GlobalImportProgressViewModel()
+    @StateObject private var viewModel: GlobalImportProgressViewModel
     @Binding var showProgressView: Bool
 
     var body: some View {
@@ -234,12 +214,17 @@ struct GlobalImportProgressView: View {
         }
     }
 
+    init(viewModel: GlobalImportProgressViewModel, showProgressView: Binding<Bool>) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+        _showProgressView = showProgressView
+    }
+
     // MARK: - Body Subcomponents
 
     private var mainContent: some View {
         progressCardWithInteractions
             .background(Color.modalBackgroundColor)
-            .cornerRadius(12)
+            .cornerRadius(88)
             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .alert(L10n.GlobalImportProgress.deleteFromPhotoLibraryAlert, isPresented: $viewModel.showDeleteConfirmation) {
@@ -268,10 +253,7 @@ struct GlobalImportProgressView: View {
     private var progressCardWithInteractions: some View {
         progressCard
             .onTapGesture {
-                // Cancel countdown if user taps to view details
-                if viewModel.isCountingDown {
-                    viewModel.cancelDismissalCountdownOnly()
-                } else {
+                if viewModel.isCompleted {
                     showProgressView = false
                 }
             }
@@ -323,9 +305,9 @@ struct GlobalImportProgressView: View {
 // MARK: - Previews
 
 #Preview("Active Import") {
-    @State var showProgressView = true
+    @Previewable @State var showProgressView = true
     
-    return GlobalImportProgressView(showProgressView: $showProgressView)
+    GlobalImportProgressView(viewModel: .init(deleteEnabled: true), showProgressView: $showProgressView)
         .padding()
         .background(Color.gray.opacity(0.1))
 }
