@@ -888,7 +888,7 @@ struct AlbumDetailView<D: FileAccess>: View {
             if viewModel.showImportProgressView {
                 VStack {
                     Spacer()
-                    GlobalImportProgressView(viewModel: .init(deleteEnabled: true), showProgressView: $viewModel.showImportProgressView)
+                    GlobalImportProgressView(viewModel: .init(deleteEnabled: BackgroundMediaImportManager.shared.currentTasks.contains(where: {$0.source == .files})), showProgressView: $viewModel.showImportProgressView)
                         .padding(.horizontal, 16)
                     Spacer().frame(height: 26)
                 }
