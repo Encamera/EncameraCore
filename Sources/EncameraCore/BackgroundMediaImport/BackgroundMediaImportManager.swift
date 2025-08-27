@@ -363,7 +363,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     private func cleanupTempFilesIfSafe() {
         // Check if there are any active photo imports (which use temp files)
         let hasActivePhotoImports = currentTasks.contains { task in
-            task.source == .photos && task.progress.state == .running
+            task.progress.state == .running
         }
         
         if !hasActivePhotoImports {
