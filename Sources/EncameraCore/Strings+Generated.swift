@@ -1069,6 +1069,8 @@ public enum L10n {
     public static let importStopped = L10n.tr("Localizable", "GlobalImportProgress.ImportStopped", fallback: "Import stopped")
     /// No active imports
     public static let noActiveImports = L10n.tr("Localizable", "GlobalImportProgress.NoActiveImports", fallback: "No active imports")
+    /// Remaining
+    public static let remaining = L10n.tr("Localizable", "GlobalImportProgress.Remaining", fallback: "Remaining")
   }
   public enum HideAlbumsTutorial {
     /// Keep your albums private
