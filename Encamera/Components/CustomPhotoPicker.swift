@@ -56,8 +56,10 @@ class CustomPhotoPickerViewController: UIViewController {
     
     private var isSwipeSelecting = false
     private var swipeSelectionMode: SwipeSelectionMode = .selecting
-    private var processedIndexPaths = Set<IndexPath>()
-    private var lastProcessedIndexPath: IndexPath?
+    private var swipeStartIndexPath: IndexPath?
+    private var currentSwipeIndexPath: IndexPath?
+    private var initialSwipeSelection = Set<PHAsset>() // Track what was selected before swipe
+    private var swipeSessionSelections = Set<PHAsset>() // Track what we've selected during this swipe
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     
     private var cancellables = Set<AnyCancellable>()
@@ -355,8 +357,6 @@ class CustomPhotoPickerViewController: UIViewController {
         // Enter selection mode
         viewModel.enterSelectionMode()
         isSwipeSelecting = true
-        processedIndexPaths.removeAll()
-        lastProcessedIndexPath = nil
         feedbackGenerator.prepare()
         
         // Provide strong haptic feedback to indicate selection mode started
@@ -366,8 +366,15 @@ class CustomPhotoPickerViewController: UIViewController {
         if let indexPath = collectionView.indexPathForItem(at: location),
            let asset = viewModel.getAsset(at: indexPath.item) {
             swipeSelectionMode = viewModel.isAssetSelected(asset) ? .deselecting : .selecting
-            processIndexPath(indexPath)
-            lastProcessedIndexPath = indexPath
+            swipeStartIndexPath = indexPath
+            currentSwipeIndexPath = indexPath
+            
+            // Store the initial selection state
+            initialSwipeSelection = Set(viewModel.selectedAssets.array)
+            swipeSessionSelections.removeAll()
+            
+            // Process the initial touch
+            processSwipeSelection()
         }
     }
     
@@ -380,10 +387,15 @@ class CustomPhotoPickerViewController: UIViewController {
             isSwipeSelecting = true
             // Process the initial touch location
             let location = gesture.location(in: collectionView)
-            if let indexPath = collectionView.indexPathForItem(at: location),
-               !processedIndexPaths.contains(indexPath) {
-                processIndexPath(indexPath)
-                lastProcessedIndexPath = indexPath
+            if let indexPath = collectionView.indexPathForItem(at: location) {
+                // If we don't have a start index path (shouldn't happen), set it now
+                if swipeStartIndexPath == nil {
+                    swipeStartIndexPath = indexPath
+                    currentSwipeIndexPath = indexPath
+                    initialSwipeSelection = Set(viewModel.selectedAssets.array)
+                    swipeSessionSelections.removeAll()
+                }
+                processSwipeSelection()
             }
             
         case .changed:
@@ -392,25 +404,9 @@ class CustomPhotoPickerViewController: UIViewController {
             // Get the current index path under the finger
             guard let currentIndexPath = collectionView.indexPathForItem(at: location) else { return }
             
-            // If we have a last processed index path, select all items between them
-            if let lastIndexPath = lastProcessedIndexPath {
-                let indexPaths = getIndexPathsBetween(from: lastIndexPath, to: currentIndexPath)
-                
-                // Process all index paths in the range that haven't been processed yet
-                for indexPath in indexPaths {
-                    if !processedIndexPaths.contains(indexPath) {
-                        processIndexPath(indexPath)
-                    }
-                }
-            } else {
-                // No last index path, just process the current one
-                if !processedIndexPaths.contains(currentIndexPath) {
-                    processIndexPath(currentIndexPath)
-                }
-            }
-            
-            // Update the last processed index path
-            lastProcessedIndexPath = currentIndexPath
+            // Update current position and reprocess selection
+            currentSwipeIndexPath = currentIndexPath
+            processSwipeSelection()
             
         case .ended, .cancelled:
             exitSelectionMode()
@@ -423,8 +419,10 @@ class CustomPhotoPickerViewController: UIViewController {
     private func exitSelectionMode() {
         isSwipeSelecting = false
         viewModel.exitSelectionMode()
-        processedIndexPaths.removeAll()
-        lastProcessedIndexPath = nil
+        swipeStartIndexPath = nil
+        currentSwipeIndexPath = nil
+        initialSwipeSelection.removeAll()
+        swipeSessionSelections.removeAll()
     }
     
     // Helper method to get all index paths between two index paths in collection view order
@@ -447,37 +445,65 @@ class CustomPhotoPickerViewController: UIViewController {
         return indexPaths
     }
     
-    private func processIndexPath(_ indexPath: IndexPath) {
-        guard let asset = viewModel.getAsset(at: indexPath.item) else { return }
+    // Process the current swipe selection state
+    private func processSwipeSelection() {
+        guard let startIndexPath = swipeStartIndexPath,
+              let currentIndexPath = currentSwipeIndexPath else { return }
         
-        processedIndexPaths.insert(indexPath)
+        // Get all index paths in the selection range
+        let rangeIndexPaths = getIndexPathsBetween(from: startIndexPath, to: currentIndexPath)
+        let rangeAssets = rangeIndexPaths.compactMap { viewModel.getAsset(at: $0.item) }
+        let rangeAssetsSet = Set(rangeAssets)
         
-        var selectionChanged = false
-        
-        if swipeSelectionMode == .selecting {
-            if viewModel.selectAsset(asset) {
-                selectionChanged = true
-            }
-        } else {
-            if viewModel.deselectAsset(asset) {
-                selectionChanged = true
+        // First, restore initial state for assets that are no longer in range
+        for asset in swipeSessionSelections {
+            if !rangeAssetsSet.contains(asset) {
+                // This asset was selected/deselected during swipe but is no longer in range
+                // Restore its initial state
+                if initialSwipeSelection.contains(asset) {
+                    viewModel.selectAsset(asset)
+                } else {
+                    viewModel.deselectAsset(asset)
+                }
             }
         }
         
-        // Provide haptic feedback when selection changes
-        if selectionChanged {
-            feedbackGenerator.impactOccurred()
+        // Now process all assets in the current range
+        var changesMade = false
+        for (index, asset) in rangeAssets.enumerated() {
+            let indexPath = rangeIndexPaths[index]
+            let wasInitiallySelected = initialSwipeSelection.contains(asset)
+            let isCurrentlySelected = viewModel.isAssetSelected(asset)
             
-            // Update the specific cell
+            if swipeSelectionMode == .selecting {
+                // In selecting mode, select if not already selected
+                if !isCurrentlySelected && viewModel.selectAsset(asset) {
+                    changesMade = true
+                    swipeSessionSelections.insert(asset)
+                }
+            } else {
+                // In deselecting mode, deselect if currently selected
+                if isCurrentlySelected && viewModel.deselectAsset(asset) {
+                    changesMade = true
+                    swipeSessionSelections.insert(asset)
+                }
+            }
+            
+            // Update the cell UI
             if let cell = collectionView.cellForItem(at: indexPath) as? PhotoCell {
                 cell.isSelected = viewModel.isAssetSelected(asset)
                 cell.selectionNumber = viewModel.getSelectionNumber(for: asset)
             }
-            
-            // Only update selection numbers if we removed an item (affects ordering)
-            if swipeSelectionMode == .deselecting {
-                updateVisibleSelectionNumbers()
-            }
+        }
+        
+        // Provide haptic feedback when selection changes
+        if changesMade {
+            feedbackGenerator.impactOccurred()
+        }
+        
+        // Update selection numbers for all visible cells if we're deselecting
+        if swipeSelectionMode == .deselecting {
+            updateVisibleSelectionNumbers()
         }
     }
 }

@@ -190,7 +190,7 @@ class GlobalImportProgressViewModel: ObservableObject {
                     timer.invalidate()
                     self.dismissalTimer = nil
 
-                    withAnimation(.easeOut(duration: 0.8)) {
+                    withAnimation(.easeOut(duration: 0.5)) {
                         showProgressView.wrappedValue = false
                     }
                 }
@@ -210,6 +210,9 @@ class GlobalImportProgressViewModel: ObservableObject {
 struct GlobalImportProgressView: View {
     @StateObject private var viewModel: GlobalImportProgressViewModel
     @Binding var showProgressView: Bool
+    @State private var dragOffset: CGFloat = 0
+    
+    private let swipeThreshold: CGFloat = 100
 
     var body: some View {
         Group {
@@ -229,7 +232,10 @@ struct GlobalImportProgressView: View {
             .background(Color.modalBackgroundColor)
             .cornerRadius(88)
             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .transition(.asymmetric(
+                insertion: .move(edge: .bottom).combined(with: .opacity),
+                removal: .move(edge: .bottom).combined(with: .opacity)
+            ))
             .alert(L10n.GlobalImportProgress.deleteFromPhotoLibraryAlert, isPresented: $viewModel.showDeleteConfirmation) {
                 Button(L10n.delete, role: .destructive) {
                     Task {
@@ -246,6 +252,12 @@ struct GlobalImportProgressView: View {
             .onChange(of: viewModel.importManager.currentTasks) { _, tasks in
                 viewModel.handleTasksChange(tasks: tasks, showProgressView: $showProgressView)
             }
+            .onChange(of: showProgressView) { _, isShowing in
+                if !isShowing {
+                    // Reset drag offset when view is dismissed
+                    dragOffset = 0
+                }
+            }
             .onDisappear {
                 // When leaving the view, mark as dismissed to prevent reappearing
                 // until there's a new import session
@@ -255,9 +267,34 @@ struct GlobalImportProgressView: View {
 
     private var progressCardWithInteractions: some View {
         progressCard
+            .offset(y: max(0, dragOffset)) // Only allow downward movement
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        // Only track downward drags
+                        if value.translation.height > 0 {
+                            dragOffset = value.translation.height
+                        }
+                    }
+                    .onEnded { value in
+                        if value.translation.height > swipeThreshold {
+                            // Swipe down threshold reached, dismiss the view
+                            withAnimation(.easeOut(duration: 0.5)) {
+                                showProgressView = false
+                            }
+                        } else {
+                            // Snap back to original position
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                dragOffset = 0
+                            }
+                        }
+                    }
+            )
             .onTapGesture {
                 if viewModel.isCompleted {
-                    showProgressView = false
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        showProgressView = false
+                    }
                 }
             }
     }
