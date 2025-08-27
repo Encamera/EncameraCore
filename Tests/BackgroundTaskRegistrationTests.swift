@@ -176,7 +176,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
             }
         
         // Start the import
-        try await manager.startImport(media: testMedia, albumId: testAlbum.id)
+        try await manager.startImport(media: testMedia, albumId: testAlbum.id, source: .files)
         
         // Wait for completion
         await fulfillment(of: [progressExpectation], timeout: 10.0)
@@ -226,7 +226,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
             }
         
         // Start import
-        try await manager.startImport(media: testMedia, albumId: testAlbum.id)
+        try await manager.startImport(media: testMedia, albumId: testAlbum.id, source: .files)
         
         // Get the task ID
         let taskId = manager.currentTasks.first?.id
@@ -290,7 +290,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
             }
         
         // Start import
-        try await manager.startImport(media: testMedia, albumId: testAlbum.id)
+        try await manager.startImport(media: testMedia, albumId: testAlbum.id, source: .files)
         
         // Get the task ID
         let taskId = manager.currentTasks.first?.id
@@ -367,7 +367,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         
         // Import to first album
         manager.configure(albumManager: testAlbumManager1)
-        try await manager.startImport(media: testMedia1, albumId: testAlbum1.id)
+        try await manager.startImport(media: testMedia1, albumId: testAlbum1.id, source: .files)
         
         // Wait for first import to complete
         let firstCompletionExpectation = expectation(description: "First import completion")
@@ -382,7 +382,7 @@ class BackgroundTaskRegistrationTests: XCTestCase {
         
         // Import to second album with different key
         manager.configure(albumManager: testAlbumManager2)
-        try await manager.startImport(media: testMedia2, albumId: testAlbum2.id)
+        try await manager.startImport(media: testMedia2, albumId: testAlbum2.id, source: .files)
         
         // Wait for second import to complete
         let secondCompletionExpectation = expectation(description: "Second import completion")
