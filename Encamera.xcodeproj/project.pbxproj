@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -56,6 +56,8 @@
 		18E5DFB37BAF46A377987174 /* TestUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00297DED53A78CD41A6F378F /* TestUtils.swift */; };
 		190D5E6A414AC62E947CF1FC /* ShimmeringLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD4C48312ADA520813858CA /* ShimmeringLogo.swift */; };
 		1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */; };
+		196BE3892E61F2A700720828 /* PiwikPROSDK.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 196BE3882E61F2A700720828 /* PiwikPROSDK.xcframework */; };
+		196BE38A2E61F2A700720828 /* PiwikPROSDK.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 196BE3882E61F2A700720828 /* PiwikPROSDK.xcframework */; };
 		19F11A9B5E19ACF7D67AF6E2 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F87936ECB7F2B45E23186B8 /* CameraModel.swift */; };
 		1A4FD6D71B93F3D4A75F09C8 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541C934E3C2228AEF133A9AE /* Color+Extensions.swift */; };
 		1A77259D4774A2494EF976A9 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */; };
@@ -140,7 +142,6 @@
 		453309E9AC4749F0E4C771DA /* PostPurchaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D7AAA14CD0E67A1FEEAC9ED /* PostPurchaseView.swift */; };
 		45C03E20279AC81BCFAD26D6 /* 5.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 8EE9D87EA11CA144425382FC /* 5.jpg */; };
 		4627AC454475104A8EDB08D9 /* odiseo-castrejon-1SPu0KT-Ejg-unsplash.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 09C60419DDEEEEB0D96904CA /* odiseo-castrejon-1SPu0KT-Ejg-unsplash.jpg */; };
-		466D6A3494BF6822C09DFB1E /* PiwikPROSDK in Frameworks */ = {isa = PBXBuildFile; productRef = EA40970C40A1B9E355F1A2F8 /* PiwikPROSDK */; };
 		467B7DA5811D03B5FB5856FB /* ButtonViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E78CFA4F3A670FDED42E2D3 /* ButtonViewModifier.swift */; };
 		4684252F12E8D4520790B84A /* TextPillModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA40D2C7BE175D1C19C8E136 /* TextPillModifier.swift */; };
 		468D2687EA06F608B4698069 /* NotificationCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD0F708E55FC007B119B855 /* NotificationCarousel.swift */; };
@@ -368,7 +369,6 @@
 		C662E276CD00A447DF41EA79 /* BottomNavigationBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978DFBA064D16EA0AE814467 /* BottomNavigationBar.swift */; };
 		C8AFCA3DD12DE8B123260328 /* PhotoLimitReachedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4900B5F3BBE74A9E15B2AFE4 /* PhotoLimitReachedView.swift */; };
 		C92EDAFE527F8533B4759FCB /* LivePhotoUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A17CCD2D8F3AB1414DE4A03 /* LivePhotoUIView.swift */; };
-		C9F8453D895180F1E9813D2A /* PiwikPROSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 4CCD757806714279705AE19F /* PiwikPROSDK */; };
 		CA61DBCFAAFB8F7AE29C4D0B /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = D51A93C7E90C89B4D1831EE5 /* InfoPlist.strings */; };
 		CB1F26E22DD814985504E9E4 /* PremiumBenefitsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D226078E37858D0CE665EAFE /* PremiumBenefitsScrollView.swift */; };
 		CBCEFE097E391E593ED22AFF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 19C7747E8920172ADE32329F /* Assets.xcassets */; };
@@ -520,11 +520,11 @@
 		01C1BF136C629C9633C4D73D /* MediaSelectionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSelectionResult.swift; sourceTree = "<group>"; };
 		040E7A97A59AEF4C2BA2F5FB /* HardwareVolumeButtonCaptureUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareVolumeButtonCaptureUtils.swift; sourceTree = "<group>"; };
 		06CF76CC61F9473360A8AD5D /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ko; path = ko.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		0800C028E300CFA4BA9D586B /* StoreKitTesting.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StoreKitTesting.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0800C028E300CFA4BA9D586B /* StoreKitTesting.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StoreKitTesting.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		08E7ADEDD8142B9DA265EE15 /* KeyPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyPhraseView.swift; sourceTree = "<group>"; };
 		09C60419DDEEEEB0D96904CA /* odiseo-castrejon-1SPu0KT-Ejg-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "odiseo-castrejon-1SPu0KT-Ejg-unsplash.jpg"; sourceTree = "<group>"; };
 		0A154BF472323D5EEA960931 /* BuyButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuyButtonStyle.swift; sourceTree = "<group>"; };
-		0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */ = {isa = PBXFileReference; path = Encamera.storekit; sourceTree = "<group>"; };
+		0A1CFE93D0CDAEF28B19906E /* Encamera.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Encamera.storekit; sourceTree = "<group>"; };
 		0AC05118A5B835064F0D61D4 /* PhotoPickerArchitecture.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PhotoPickerArchitecture.md; sourceTree = "<group>"; };
 		0C09BE63CB580E8A7E3D0C1C /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = es; path = es.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		0D4E617FB35B8C6F46542FB9 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
@@ -539,6 +539,7 @@
 		1555F94A3CA4AB10FF868C52 /* LivePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoView.swift; sourceTree = "<group>"; };
 		15F66BF120CAC4E90BF07A40 /* NewOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewOnboardingView.swift; sourceTree = "<group>"; };
 		17013E390B68CD4CCB918341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		196BE3882E61F2A700720828 /* PiwikPROSDK.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:9SH2C7V8ZD:Piwik PRO sp z o o"; lastKnownFileType = wrapper.xcframework; path = PiwikPROSDK.xcframework; sourceTree = "<group>"; };
 		198C972E69B6A6E4102CE5F8 /* OnboardingHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingHostingView.swift; sourceTree = "<group>"; };
 		19C7747E8920172ADE32329F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1B60005D9CB1D186BF8FB5D2 /* 1.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 1.jpg; sourceTree = "<group>"; };
@@ -592,7 +593,7 @@
 		48BB6093F3DF8FD72070D013 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		4900B5F3BBE74A9E15B2AFE4 /* PhotoLimitReachedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLimitReachedView.swift; sourceTree = "<group>"; };
 		49A2EF989B2F8643105205DF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
+		49B1CFADD3644D8B7AD4192B /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
 		4A17CCD2D8F3AB1414DE4A03 /* LivePhotoUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoUIView.swift; sourceTree = "<group>"; };
 		4E4C9F644CC756B6A529716A /* AlbumDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetailView.swift; sourceTree = "<group>"; };
 		4FD935CBF1B92DA44E5A6196 /* Satoshi-BoldItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-BoldItalic.otf"; sourceTree = "<group>"; };
@@ -655,7 +656,7 @@
 		876BF0A74E1F6A6C44D67613 /* FooterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FooterView.swift; sourceTree = "<group>"; };
 		87B5267708C2781338CA02BF /* Rajdhani-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rajdhani-Bold.ttf"; sourceTree = "<group>"; };
 		893D8189560A37DB00186B86 /* LightboxConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightboxConfig.swift; sourceTree = "<group>"; };
-		896B90B17849378B16413518 /* WidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		896B90B17849378B16413518 /* WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		89D5A3386C8CC7A64F411C24 /* VideoViewingUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoViewingUIView.swift; sourceTree = "<group>"; };
 		8A188D5FF84A453469F8C3EB /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		8A749ADBA6F481389A4AB39B /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
@@ -695,7 +696,7 @@
 		AA797AD9A45EF0B58CD0C147 /* NotificationContentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationContentRepository.swift; sourceTree = "<group>"; };
 		AC5B98AD96CFE3DE6B6DC06F /* WidgetExtension-debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "WidgetExtension-debug.xcconfig"; sourceTree = "<group>"; };
 		AC6ECA646325CCED91BD064B /* BackgroundTaskRegistrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskRegistrationTests.swift; sourceTree = "<group>"; };
-		AD8594B39C00DCD662DD5B08 /* Encamera.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Encamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD8594B39C00DCD662DD5B08 /* Encamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Encamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFB0847CA0886096B1D8E1BD /* AppPurchasedPermissionUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPurchasedPermissionUtils.swift; sourceTree = "<group>"; };
 		B01BFF65E06F6DE4A78487DE /* AlbumBaseGridItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumBaseGridItem.swift; sourceTree = "<group>"; };
 		B0A47B826711C6A4E4B15E3F /* juan-jose-valencia-antia-TTrJMhrkoeY-unsplash.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "juan-jose-valencia-antia-TTrJMhrkoeY-unsplash.jpg"; sourceTree = "<group>"; };
@@ -712,13 +713,13 @@
 		BFC7F5DF3034E1CB8628BCCF /* PhotoDeletionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoDeletionManager.swift; sourceTree = "<group>"; };
 		C0441FC55C7D865110DD929F /* RotationViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationViewModifier.swift; sourceTree = "<group>"; };
 		C06BB62B60E8F868D2A51CB1 /* PurchaseStorefront.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseStorefront.swift; sourceTree = "<group>"; };
-		C078E03BCFAAA274C5A52366 /* ShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C078E03BCFAAA274C5A52366 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C080CE178F9C080D9F3C1AFF /* GalleryViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryViewWrapper.swift; sourceTree = "<group>"; };
 		C1DF70D2CC410A637C7BB925 /* EncameraState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncameraState.swift; sourceTree = "<group>"; };
 		C20B2422A2989B857C2C7C74 /* 7.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 7.jpg; sourceTree = "<group>"; };
 		C42A5938D4177B4BBACA5FC7 /* ChooseStorageModalViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseStorageModalViewModifier.swift; sourceTree = "<group>"; };
 		C43CCC65F390D15B97884C67 /* CustomPhotoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomPhotoPicker.swift; sourceTree = "<group>"; };
-		C4C6A1AFE725264AC910C7D9 /* de.lproj */ = {isa = PBXFileReference; name = de.lproj; path = de.lproj/de.lproj; sourceTree = "<group>"; };
+		C4C6A1AFE725264AC910C7D9 /* de.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; name = de.lproj; path = de.lproj/de.lproj; sourceTree = "<group>"; };
 		C527DA5AC80243DE0313A911 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
 		C549493585B3CFD05224399A /* PinCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCodeView.swift; sourceTree = "<group>"; };
 		C6D4F6A7A4F99FA1D28BB937 /* Satoshi-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Satoshi-Bold.otf"; sourceTree = "<group>"; };
@@ -796,9 +797,9 @@
 			files = (
 				DE2D9B24C6C5FD12D884D2EB /* Sodium in Frameworks */,
 				040E39E6A352E9AF8BA82CC9 /* EncameraCore in Frameworks */,
-				466D6A3494BF6822C09DFB1E /* PiwikPROSDK in Frameworks */,
 				1943C19C8F45262DECE0F516 /* SwiftUIIntrospect in Frameworks */,
 				112CE54F53B1EE09771F0D6F /* StoreKit.framework in Frameworks */,
+				196BE38A2E61F2A700720828 /* PiwikPROSDK.xcframework in Frameworks */,
 				BD326044D69C13B38CBD8AC5 /* TagCloud in Frameworks */,
 				CC4D507EDE569AFF213217A2 /* RevenueCat in Frameworks */,
 			);
@@ -827,7 +828,7 @@
 			files = (
 				4BB5503CC172A0BB27A304F4 /* Sodium in Frameworks */,
 				74A3E77FBDB1C3E8FE1E25C8 /* EncameraCore in Frameworks */,
-				C9F8453D895180F1E9813D2A /* PiwikPROSDK in Frameworks */,
+				196BE3892E61F2A700720828 /* PiwikPROSDK.xcframework in Frameworks */,
 				189E8E09C8B2051B80EA5DD7 /* SwiftUIIntrospect in Frameworks */,
 				0A7A4563AEAF1E418AD247CA /* StoreKit.framework in Frameworks */,
 				ED8363CE5773E3210C2DD02A /* TagCloud in Frameworks */,
@@ -993,6 +994,7 @@
 		50150E889AE54E765316DB1B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				196BE3882E61F2A700720828 /* PiwikPROSDK.xcframework */,
 				F87130057593981EF7E23745 /* StoreKit.framework */,
 			);
 			name = Frameworks;
@@ -1458,7 +1460,6 @@
 			packageProductDependencies = (
 				9BDB467AF8E2ABBB52B964F4 /* Sodium */,
 				389FE1CC4F9A52A1AC3AD6E2 /* EncameraCore */,
-				EA40970C40A1B9E355F1A2F8 /* PiwikPROSDK */,
 				1784A25DC196E638CACA3DB4 /* SwiftUIIntrospect */,
 				93B2D0953B930CCDC6E9CF82 /* TagCloud */,
 				0390873E19A234F065DD1F80 /* RevenueCat */,
@@ -1506,7 +1507,6 @@
 			packageProductDependencies = (
 				6EE898D1A5DD25D3CBEFB4BA /* Sodium */,
 				6AC99BD9B3C9B893D814A6BA /* EncameraCore */,
-				4CCD757806714279705AE19F /* PiwikPROSDK */,
 				2E3847B535525CD631854FE2 /* SwiftUIIntrospect */,
 				9987036AAE571F4113B0A87E /* TagCloud */,
 			);
@@ -1596,7 +1596,6 @@
 			);
 			mainGroup = 084849976FB83985DA6F2C09;
 			packageReferences = (
-				724D9B459F7842EA26BA96DC /* XCRemoteSwiftPackageReference "piwik-pro-sdk-framework-ios" */,
 				6EC7C8DE9FC9157FEB406727 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 				C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */,
 				94FF732FCC3C65A0D0AF1690 /* XCRemoteSwiftPackageReference "SwiftUI-Introspect" */,
@@ -2657,6 +2656,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		BF56B1DCD7C64FC9DDA112CA /* XCLocalSwiftPackageReference "../EncameraCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../EncameraCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		6EC7C8DE9FC9157FEB406727 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -2664,14 +2670,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 5.0.0;
-			};
-		};
-		724D9B459F7842EA26BA96DC /* XCRemoteSwiftPackageReference "piwik-pro-sdk-framework-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/PiwikPRO/piwik-pro-sdk-framework-ios";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.1;
 			};
 		};
 		8C583ABB81E381629A331056 /* XCRemoteSwiftPackageReference "TagCloud" */ = {
@@ -2700,13 +2698,6 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		BF56B1DCD7C64FC9DDA112CA /* XCLocalSwiftPackageReference "../EncameraCore" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../EncameraCore;
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
 		0390873E19A234F065DD1F80 /* RevenueCat */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -2731,11 +2722,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C99192A81B3F7A5985B2A2E9 /* XCRemoteSwiftPackageReference "swift-sodium" */;
 			productName = Sodium;
-		};
-		4CCD757806714279705AE19F /* PiwikPROSDK */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 724D9B459F7842EA26BA96DC /* XCRemoteSwiftPackageReference "piwik-pro-sdk-framework-ios" */;
-			productName = PiwikPROSDK;
 		};
 		4E3AE2C8A473E74CE2D40B6F /* EncameraCore */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -2777,11 +2763,6 @@
 		D3DE825F6B01C343316B8034 /* EncameraCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EncameraCore;
-		};
-		EA40970C40A1B9E355F1A2F8 /* PiwikPROSDK */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 724D9B459F7842EA26BA96DC /* XCRemoteSwiftPackageReference "piwik-pro-sdk-framework-ios" */;
-			productName = PiwikPROSDK;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
