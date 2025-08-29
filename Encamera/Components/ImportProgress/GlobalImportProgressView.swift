@@ -45,12 +45,10 @@ class GlobalImportProgressViewModel: ObservableObject {
         self.importManager.$overallProgress
             .dropFirst()
             .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
+            .filter({$0 > 0.0})
             .sink { [weak self] value in
                 guard let self = self else { return }
-                // Only update if not in countdown mode
-                if case .countdown(_, _) = self.displayedProgress {
-                    return
-                }
+
                 self.displayedProgress = .percentage(value: value)
             }.store(in: &cancellables)
 
@@ -232,8 +230,7 @@ class GlobalImportProgressViewModel: ObservableObject {
     
     func startDismissalCountdown(showProgressView: Binding<Bool>) {
         var currentCountdown = countdown
-        displayedProgress = .countdown(initial: countdown, value: currentCountdown)
-        
+
         dismissalTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self = self else { 
                 timer.invalidate()
@@ -248,12 +245,11 @@ class GlobalImportProgressViewModel: ObservableObject {
                     timer.invalidate()
                     self.dismissalTimer = nil
                     
-                    withAnimation(.easeOut(duration: 0.5)) {
+                    withAnimation(.easeOut(duration: 1.0)) {
                         showProgressView.wrappedValue = false
                     }
                 } else {
                     // Update countdown display
-                    self.displayedProgress = .countdown(initial: self.countdown, value: currentCountdown)
                 }
             }
         }
@@ -279,6 +275,10 @@ struct GlobalImportProgressView: View {
         Group {
             mainContent
         }
+        .transition(.asymmetric(
+            insertion: .move(edge: .bottom).combined(with: .opacity),
+            removal: .move(edge: .bottom).combined(with: .opacity)
+        ))
     }
 
     init(viewModel: GlobalImportProgressViewModel, showProgressView: Binding<Bool>) {
@@ -293,10 +293,7 @@ struct GlobalImportProgressView: View {
             .background(Color.modalBackgroundColor)
             .cornerRadius(88)
             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-            .transition(.asymmetric(
-                insertion: .move(edge: .bottom).combined(with: .opacity),
-                removal: .move(edge: .bottom).combined(with: .opacity)
-            ))
+
             .alert(L10n.GlobalImportProgress.deleteFromPhotoLibraryAlert, isPresented: $viewModel.showDeleteConfirmation) {
                 Button(L10n.delete, role: .destructive) {
                     Task {
