@@ -130,6 +130,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         // Reset all progress tracking
         isImporting = false
         overallProgress = 0.0
+        updateOverallProgress() // Ensure progress is properly recalculated and published
         
         // Clean up temp files since no imports are active
         cleanupTempFilesIfSafe()
