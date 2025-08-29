@@ -9,18 +9,21 @@ import Photos
 class GlobalImportProgressViewModel: ObservableObject {
     @Published var showDeleteConfirmation = false
     @Published var displayedProgress: CircularProgressDisplayMode
+    @Published var statusText: String = L10n.GlobalImportProgress.noActiveImports
+    @Published var estimatedTimeRemaining: String? = nil
     private let countdown: Int = 5
 
     var importManager = BackgroundMediaImportManager.shared
-    var completedTasks: [ImportTask]
-    var isCompleted: Bool
+    @Published var completedTasks: [ImportTask] = []
+    @Published var isCompleted: Bool = false
     var deleteEnabled: Bool
-    var activeTasks: [ImportTask]
+    @Published var activeTasks: [ImportTask] = []
 
     let deletionManager = PhotoDeletionManager()
     private var dismissalTimer: Timer? = nil
     private var lastActiveImportSession: String? = nil
     private var cancellables = Set<AnyCancellable>()
+    private var lastKnownETA: String? = nil
 
 
     init(deleteEnabled: Bool,
@@ -34,27 +37,39 @@ class GlobalImportProgressViewModel: ObservableObject {
         self.isCompleted = isCompleted
         self.displayedProgress = displayedProgress
         self.deleteEnabled = deleteEnabled
+        
+        // Initialize status text
+        updateStatusText()
 
-        self.importManager.$overallProgress.dropFirst().sink { [weak self] value in
-            self?.displayedProgress = .percentage(value: value)
-
-        }.store(in: &cancellables)
+        // Smooth progress updates with debouncing
+        self.importManager.$overallProgress
+            .dropFirst()
+            .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
+            .sink { [weak self] value in
+                guard let self = self else { return }
+                // Only update if not in countdown mode
+                if case .countdown(_, _) = self.displayedProgress {
+                    return
+                }
+                self.displayedProgress = .percentage(value: value)
+            }.store(in: &cancellables)
 
         self.importManager.$isImporting.dropFirst().sink { [weak self] isImporting in
             self?.isCompleted = !isImporting
+            self?.updateStatusText()
         }.store(in: &cancellables)
 
         self.importManager.$currentTasks.dropFirst().sink { [weak self] tasks in
-            self?.completedTasks = tasks.filter { $0.state == .completed }
-            self?.activeTasks = tasks.filter { $0.state == .running }
+            guard let self = self else { return }
+            self.completedTasks = tasks.filter { $0.state == .completed }
+            self.activeTasks = tasks.filter { $0.state == .running }
+            self.updateStatusText()
+            self.updateEstimatedTimeRemaining()
         }.store(in: &cancellables)
     }
     
     // MARK: - Computed Properties
     
-
-
-
     var actionButtonImageName: String {
         if isCompleted {
             return "trash.fill"
@@ -63,37 +78,47 @@ class GlobalImportProgressViewModel: ObservableObject {
         }
     }
     
-
-    var statusText: String {
+    // MARK: - Update Methods
+    
+    private func updateStatusText() {
         if !completedTasks.isEmpty && activeTasks.isEmpty {
-            return L10n.GlobalImportProgress.importCompleted
+            statusText = L10n.GlobalImportProgress.importCompleted
         } else if isCompleted && activeTasks.isEmpty && !completedTasks.isEmpty {
-            return L10n.GlobalImportProgress.importCompleted
+            statusText = L10n.GlobalImportProgress.importCompleted
         } else if isCompleted && activeTasks.isEmpty {
-            return L10n.GlobalImportProgress.importStopped
+            statusText = L10n.GlobalImportProgress.importStopped
         } else if activeTasks.isEmpty {
-            return L10n.GlobalImportProgress.noActiveImports
+            statusText = L10n.GlobalImportProgress.noActiveImports
         } else if activeTasks.count == 1 {
             let task = activeTasks.first!
-            return L10n.GlobalImportProgress.importingProgress(task.progress.currentFileIndex + 1, task.progress.totalFiles)
+            statusText = L10n.GlobalImportProgress.importingProgress(task.progress.currentFileIndex + 1, task.progress.totalFiles)
         } else {
-            return L10n.GlobalImportProgress.importingBatches(activeTasks.count)
+            statusText = L10n.GlobalImportProgress.importingBatches(activeTasks.count)
         }
     }
     
-    var estimatedTimeRemaining: String? {
+    private func updateEstimatedTimeRemaining() {
         guard let task = activeTasks.first,
               let eta = task.progress.estimatedTimeRemaining else {
-            return nil
+            // Keep last known ETA if no new value is available
+            if activeTasks.isEmpty {
+                estimatedTimeRemaining = nil
+                lastKnownETA = nil
+            }
+            return
         }
 
+        let newETA: String
         if eta < 60 {
-            return "\(Int(eta))s \(L10n.GlobalImportProgress.remaining)"
+            newETA = "\(Int(eta))s \(L10n.GlobalImportProgress.remaining)"
         } else if eta < 3600 {
-            return "\(Int(eta / 60))m \(L10n.GlobalImportProgress.remaining)"
+            newETA = "\(Int(eta / 60))m \(L10n.GlobalImportProgress.remaining)"
         } else {
-            return "\(Int(eta / 3600))h \(L10n.GlobalImportProgress.remaining)"
+            newETA = "\(Int(eta / 3600))h \(L10n.GlobalImportProgress.remaining)"
         }
+        
+        estimatedTimeRemaining = newETA
+        lastKnownETA = newETA
     }
     
     // MARK: - Methods
@@ -143,8 +168,17 @@ class GlobalImportProgressViewModel: ObservableObject {
     
     func handleImportStateChange(isImporting: Bool, showProgressView: Binding<Bool>) {
         if !isImporting && showProgressView.wrappedValue {
-            // Start countdown timer for auto-dismiss when import stops (completed or cancelled)
-            startDismissalCountdown(showProgressView: showProgressView)
+            // If we have completed tasks, show 100% before starting countdown
+            if !completedTasks.isEmpty {
+                displayedProgress = .percentage(value: 1.0)
+                // Delay countdown start to show completion state
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.startDismissalCountdown(showProgressView: showProgressView)
+                }
+            } else {
+                // Start countdown timer for auto-dismiss when import stops (cancelled)
+                startDismissalCountdown(showProgressView: showProgressView)
+            }
         }
     }
 
@@ -173,26 +207,53 @@ class GlobalImportProgressViewModel: ObservableObject {
                 showProgressView.wrappedValue = false
             }
             // Clear all tasks and reset state when view is dismissed
-            importManager.clearAllTasks()
+            resetAllState()
         }
     }
     
-    func startDismissalCountdown(showProgressView: Binding<Bool>) {
-        displayedProgress = .countdown(initial: countdown, value: countdown)
+    func resetAllState() {
+        // Cancel any dismissal timer
+        dismissalTimer?.invalidate()
+        dismissalTimer = nil
         
-        dismissalTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+        // Clear the import manager
+        importManager.clearAllTasks()
+        
+        // Reset all local state
+        completedTasks.removeAll()
+        activeTasks.removeAll()
+        isCompleted = false
+        displayedProgress = .percentage(value: 0.0)
+        statusText = L10n.GlobalImportProgress.noActiveImports
+        estimatedTimeRemaining = nil
+        lastKnownETA = nil
+        lastActiveImportSession = nil
+    }
+    
+    func startDismissalCountdown(showProgressView: Binding<Bool>) {
+        var currentCountdown = countdown
+        displayedProgress = .countdown(initial: countdown, value: currentCountdown)
+        
+        dismissalTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else { 
+                timer.invalidate()
+                return 
+            }
+            
             DispatchQueue.main.async {
-                guard case .countdown(_, let value) = self.displayedProgress else {
-                    return
-                }
-                if value <= 0 {
+                currentCountdown -= 1
+                
+                if currentCountdown <= 0 {
                     // Countdown finished, dismiss the view
                     timer.invalidate()
                     self.dismissalTimer = nil
-
+                    
                     withAnimation(.easeOut(duration: 0.5)) {
                         showProgressView.wrappedValue = false
                     }
+                } else {
+                    // Update countdown display
+                    self.displayedProgress = .countdown(initial: self.countdown, value: currentCountdown)
                 }
             }
         }
@@ -256,6 +317,8 @@ struct GlobalImportProgressView: View {
                 if !isShowing {
                     // Reset drag offset when view is dismissed
                     dragOffset = 0
+                    // Reset all state when view is hidden
+                    viewModel.resetAllState()
                 }
             }
             .onDisappear {
@@ -322,6 +385,7 @@ struct GlobalImportProgressView: View {
                         Text(eta)
                             .fontType(.pt12)
                             .foregroundColor(.actionYellowGreen)
+                            .lineLimit(1, reservesSpace: true)
                     }
                 }
 
