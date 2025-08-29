@@ -234,8 +234,8 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                             EventTracking.trackPhotoLibraryPermissionsGranted()
                         }
                     case .denied, .restricted:
-                        // Show alert to open settings
-                        self.showPhotoAccessDeniedAlert()
+                        // Show picker anyway - it will use standard PhotoPicker that works without permissions
+                        self.showPhotoPicker = .photoLibrary
                         EventTracking.trackPhotoLibraryPermissionsDenied()
                     case .notDetermined:
                         // This shouldn't happen since we just requested permission, but handle it gracefully
@@ -245,9 +245,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                     }
                 }
             case .denied, .restricted:
-                // Show alert to open settings
+                // Show picker anyway - it will use standard PhotoPicker that works without permissions
                 await MainActor.run {
-                    self.showPhotoAccessDeniedAlert()
+                    self.showPhotoPicker = .photoLibrary
                 }
             @unknown default:
                 break
