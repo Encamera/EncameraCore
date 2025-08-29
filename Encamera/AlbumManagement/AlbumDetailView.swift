@@ -54,6 +54,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var activeToast: ToastType? = nil
     @Published var lastImportedAssets: [PHPickerResult] = []
     @Published var showPhotoPicker: ImportSource? = nil
+    @Published var photoLibraryPermissionStatus: PHAuthorizationStatus = .notDetermined
     @Published var showImportProgressView: Bool = false {
         didSet {
             print("AlbumDetailView setting showProgressView \(showImportProgressView)")
@@ -205,6 +206,10 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         Task {
             let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
             
+            await MainActor.run {
+                self.photoLibraryPermissionStatus = status
+            }
+            
             switch status {
             case .authorized, .limited:
                 // Already have permission, show picker
@@ -216,6 +221,8 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 let newStatus = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
                 
                 await MainActor.run {
+                    self.photoLibraryPermissionStatus = newStatus
+                    
                     switch newStatus {
                     case .authorized, .limited:
                         self.showPhotoPicker = .photoLibrary
@@ -915,13 +922,24 @@ struct AlbumDetailView<D: FileAccess>: View {
         }), content: {
             switch viewModel.showPhotoPicker {
             case .photoLibrary:
-                // Always use PhotoPickerWrapper which automatically selects the best picker
-                // based on photo library permissions (custom picker with swipe for full access,
-                // standard picker for limited access)
-                PhotoPickerWrapper(selectedItems: { results in
-                    viewModel.handleSelectedMediaResults(results)
-                }, filter: .any(of: [.images, .videos, .livePhotos]))
-                .ignoresSafeArea(.all)
+                // Switch picker based on photo library permissions
+                if viewModel.photoLibraryPermissionStatus == .denied || 
+                   viewModel.photoLibraryPermissionStatus == .restricted ||
+                   viewModel.photoLibraryPermissionStatus == .notDetermined {
+                    // Use standard PhotoPicker for denied/restricted/undetermined permissions
+                    PhotoPicker(selectedItems: { results in
+                        viewModel.handleSelectedMediaResults(results)
+                    }, filter: .any(of: [.images, .videos, .livePhotos]))
+                    .ignoresSafeArea(.all)
+                } else {
+                    // Use PhotoPickerWrapper for authorized/limited permissions
+                    // PhotoPickerWrapper internally switches between CustomPhotoPicker (full access)
+                    // and PhotoPicker (limited access) automatically
+                    PhotoPickerWrapper(selectedItems: { results in
+                        viewModel.handleSelectedMediaResults(results)
+                    }, filter: .any(of: [.images, .videos, .livePhotos]))
+                    .ignoresSafeArea(.all)
+                }
             case .files:
                 FilePicker { urls in
                     viewModel.handleSelectedFiles(urls: urls)
