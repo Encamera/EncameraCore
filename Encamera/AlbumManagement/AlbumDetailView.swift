@@ -298,6 +298,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
         let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
 
+        // Ensure temp directory exists
+        try await ensureTempDirectoryExists()
+
         let url: URL? = try await withCheckedThrowingContinuation { continuation in
 
 
@@ -340,7 +343,22 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
     }
 
+    private func ensureTempDirectoryExists() async throws {
+        let tempDir = URL.tempMediaDirectory
+        var isDirectory: ObjCBool = false
+        
+        if !FileManager.default.fileExists(atPath: tempDir.path, isDirectory: &isDirectory) || !isDirectory.boolValue {
+            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true, attributes: nil)
+            debugPrint("🗂️ Created temp directory: \(tempDir.path)")
+        } else {
+            debugPrint("🗂️ Temp directory already exists: \(tempDir.path)")
+        }
+    }
+    
     private func loadLivePhoto(result: PHPickerResult) async throws -> [CleartextMedia] {
+        
+        // Ensure temp directory exists
+        try await ensureTempDirectoryExists()
 
         let assetResources = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[PHAssetResource], Error>) in
             // Load the PHLivePhoto object from the picker result
@@ -366,7 +384,10 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             options.isNetworkAccessAllowed = true
 
             let documentsDirectory = URL.tempMediaDirectory
-            let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
+            // Use a unique filename to avoid conflicts between imports  
+            let fileExtension = (resource.originalFilename as NSString).pathExtension
+            let uniqueFileName = "\(UUID().uuidString).\(fileExtension.isEmpty ? "data" : fileExtension)"
+            let fileURL = documentsDirectory.appendingPathComponent(uniqueFileName)
             do {
                 var mediaType: MediaType
                 switch resource.type {
@@ -396,78 +417,156 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
 
     func handleSelectedMediaResults(_ results: [MediaSelectionResult]) {
+        debugPrint("🎯 handleSelectedMediaResults: Starting with \(results.count) results")
+        
         Task {
+            // Ensure temp directory exists before processing any media
+            try? await ensureTempDirectoryExists()
+            
             var allMedia: [CleartextMedia] = []
             var pickerResults: [PHPickerResult] = []
             var assetIdentifiers: [String] = []
+            var phAssetCount = 0
+            var pickerResultCount = 0
+            var successfulLoads = 0
+            var failedLoads = 0
 
-            for result in results {
+            debugPrint("🔄 handleSelectedMediaResults: Beginning result processing loop")
+            
+            for (index, result) in results.enumerated() {
+                debugPrint("📄 handleSelectedMediaResults: Processing result \(index + 1)/\(results.count)")
+                
                 switch result {
                 case .phAsset(let asset):
-                    // Handle PHAsset directly
+                    phAssetCount += 1
+                    debugPrint("📸 handleSelectedMediaResults: Processing PHAsset - ID: \(asset.localIdentifier), Type: \(asset.mediaType.rawValue), Subtypes: \(asset.mediaSubtypes.rawValue)")
+                    
                     do {
+                        let startTime = Date()
                         let media = try await self.loadMediaFromAsset(asset)
+                        let loadTime = Date().timeIntervalSince(startTime)
+                        
                         allMedia.append(contentsOf: media)
+                        successfulLoads += 1
+                        
+                        debugPrint("✅ handleSelectedMediaResults: Successfully loaded PHAsset (\(media.count) media items) in \(String(format: "%.2f", loadTime))s")
                         
                         // Track the asset identifier
                         assetIdentifiers.append(asset.localIdentifier)
+                        debugPrint("🏷️ handleSelectedMediaResults: Added asset identifier: \(asset.localIdentifier)")
                         
                         // Track statistics
                         if asset.mediaType == .video {
                             UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                            debugPrint("📊 handleSelectedMediaResults: Tracked video addition to photoAddedCount")
                         } else {
                             UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                            debugPrint("📊 handleSelectedMediaResults: Tracked photo addition to photoAddedCount")
                         }
                     } catch {
-                        debugPrint("Error loading asset: \(error)")
+                        failedLoads += 1
+                        debugPrint("❌ handleSelectedMediaResults: Error loading PHAsset \(asset.localIdentifier): \(error)")
+                        if let nsError = error as NSError? {
+                            debugPrint("❌ Error domain: \(nsError.domain), code: \(nsError.code)")
+                            debugPrint("❌ Error userInfo: \(nsError.userInfo)")
+                        }
                     }
                     
                 case .phPickerResult(let pickerResult):
-                    // Handle PHPickerResult
+                    pickerResultCount += 1
+                    debugPrint("🎭 handleSelectedMediaResults: Processing PHPickerResult - Asset ID: \(pickerResult.assetIdentifier ?? "none")")
+                    
                     pickerResults.append(pickerResult)
                     
                     // Track the asset identifier if available
                     if let assetId = pickerResult.assetIdentifier {
                         assetIdentifiers.append(assetId)
+                        debugPrint("🏷️ handleSelectedMediaResults: Added picker result asset identifier: \(assetId)")
+                    } else {
+                        debugPrint("⚠️ handleSelectedMediaResults: PHPickerResult has no asset identifier")
                     }
                     
                     let provider = pickerResult.itemProvider
-                    if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
+                    let hasMovie = provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+                    let hasImage = provider.hasItemConformingToTypeIdentifier(UTType.image.identifier)
+                    
+                    debugPrint("🔍 handleSelectedMediaResults: PHPickerResult provider - hasMovie: \(hasMovie), hasImage: \(hasImage)")
+                    
+                    if hasMovie {
                         UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
-                    } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                        debugPrint("📊 handleSelectedMediaResults: Tracked video from picker to photoAddedCount")
+                    } else if hasImage {
                         UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                        debugPrint("📊 handleSelectedMediaResults: Tracked image from picker to photoAddedCount")
                     }
                     
                     // Collect media instead of saving immediately
                     do {
+                        let startTime = Date()
                         let media = try await self.loadMediaAsync(result: pickerResult)
+                        let loadTime = Date().timeIntervalSince(startTime)
+                        
                         allMedia.append(contentsOf: media)
+                        successfulLoads += 1
+                        
+                        debugPrint("✅ handleSelectedMediaResults: Successfully loaded PHPickerResult (\(media.count) media items) in \(String(format: "%.2f", loadTime))s")
                     } catch {
-                        debugPrint("Error loading picker result: \(error)")
+                        failedLoads += 1
+                        debugPrint("❌ handleSelectedMediaResults: Error loading PHPickerResult: \(error)")
+                        if let nsError = error as NSError? {
+                            debugPrint("❌ Error domain: \(nsError.domain), code: \(nsError.code)")
+                            debugPrint("❌ Error userInfo: \(nsError.userInfo)")
+                        }
                     }
                 }
             }
             
+            debugPrint("📈 handleSelectedMediaResults: Processing summary - PHAssets: \(phAssetCount), PickerResults: \(pickerResultCount), Successful loads: \(successfulLoads), Failed loads: \(failedLoads)")
+            debugPrint("📦 handleSelectedMediaResults: Total media collected: \(allMedia.count), Asset identifiers: \(assetIdentifiers.count)")
+            
             // Use background import manager for all media at once
             guard let albumId = album?.id else {
-                debugPrint("No album ID available")
+                debugPrint("❌ handleSelectedMediaResults: No album ID available - aborting import")
                 return
             }
             
+            debugPrint("💾 handleSelectedMediaResults: Starting import to album \(albumId) with \(allMedia.count) media items")
+            
             do {
+                let importStartTime = Date()
                 try await BackgroundMediaImportManager.shared.startImport(media: allMedia, albumId: albumId, source: .photos, assetIdentifiers: assetIdentifiers)
+                let importSetupTime = Date().timeIntervalSince(importStartTime)
+                
+                debugPrint("✅ handleSelectedMediaResults: Successfully initiated import in \(String(format: "%.2f", importSetupTime))s")
+                
                 EventTracking.trackMediaImported(count: results.count)
+                debugPrint("📊 handleSelectedMediaResults: Tracked media import event for \(results.count) items")
             } catch {
-                debugPrint("Error starting import: \(error)")
+                debugPrint("❌ handleSelectedMediaResults: Error starting import: \(error)")
             }
             
             // Only handle deletion for PHPickerResults
             if !pickerResults.isEmpty {
+                debugPrint("🗑️ handleSelectedMediaResults: Setting up deletion for \(pickerResults.count) PHPickerResults")
                 lastImportedAssets = pickerResults
-                try await checkForLibraryPermissionsAndContinue()
+                
+                do {
+                    try await checkForLibraryPermissionsAndContinue()
+                    debugPrint("✅ handleSelectedMediaResults: Successfully checked library permissions")
+                } catch {
+                    debugPrint("❌ handleSelectedMediaResults: Error checking library permissions: \(error)")
+                }
+            } else {
+                debugPrint("ℹ️ handleSelectedMediaResults: No PHPickerResults to delete from library")
             }
 
+            debugPrint("🔄 handleSelectedMediaResults: Starting grid refresh")
+            let refreshStartTime = Date()
             await gridViewModel.enumerateMedia()
+            let refreshTime = Date().timeIntervalSince(refreshStartTime)
+            
+            debugPrint("✅ handleSelectedMediaResults: Completed grid refresh in \(String(format: "%.2f", refreshTime))s")
+            debugPrint("🏁 handleSelectedMediaResults: Function completed successfully")
         }
     }
     
@@ -483,6 +582,9 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     private func loadRegularMediaFromAsset(_ asset: PHAsset) async throws -> CleartextMedia {
         let isVideo = asset.mediaType == .video
         let id = UUID().uuidString
+        
+        // Ensure temp directory exists
+        try await ensureTempDirectoryExists()
         
         if isVideo {
             // Handle video
@@ -543,12 +645,18 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         var cleartextMediaArray: [CleartextMedia] = []
         let id = UUID().uuidString
         
+        // Ensure temp directory exists
+        try await ensureTempDirectoryExists()
+        
         for resource in resources {
             let options = PHAssetResourceRequestOptions()
             options.isNetworkAccessAllowed = true
             
             let documentsDirectory = URL.tempMediaDirectory
-            let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
+            // Use a unique filename to avoid conflicts between imports
+            let fileExtension = (resource.originalFilename as NSString).pathExtension
+            let uniqueFileName = "\(UUID().uuidString).\(fileExtension.isEmpty ? "data" : fileExtension)"
+            let fileURL = documentsDirectory.appendingPathComponent(uniqueFileName)
             
             var mediaType: MediaType
             switch resource.type {
