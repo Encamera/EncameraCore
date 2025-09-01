@@ -40,8 +40,25 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
 
     public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = []) async throws {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
+        
+        // Log details about each media item
+        for (index, mediaItem) in media.prefix(5).enumerated() { // Log first 5 items
+            printDebug("Media item \(index): id=\(mediaItem.id)")
+            if case .url(let url) = mediaItem.source {
+                printDebug("  - URL: \(url.path)")
+                printDebug("  - File exists: \(FileManager.default.fileExists(atPath: url.path))")
+                printDebug("  - Is temp file: \(url.path.contains("/tmp/"))")
+            }
+        }
+        if media.count > 5 {
+            printDebug("... and \(media.count - 5) more media items")
+        }
+        
         let task = ImportTask(media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers)
         currentTasks.append(task)
+        
+        printDebug("Created import task with ID: \(task.id)")
+        printDebug("Total current tasks: \(currentTasks.count)")
         
         try await executeImportTask(task)
     }
@@ -253,17 +270,66 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     ) async throws {
         printDebug("Processing file \(fileIndex + 1)/\(task.media.count): \(media.id)")
         
-        // Log the source URL to track temp file usage
+        // Enhanced logging for temp file tracking
         if case .url(let sourceURL) = media.source {
             printDebug("Source file URL: \(sourceURL.path)")
-            if !FileManager.default.fileExists(atPath: sourceURL.path) {
+            printDebug("Source file absolute path: \(sourceURL.absoluteString)")
+            
+            // Check file existence and attributes
+            let fileManager = FileManager.default
+            let exists = fileManager.fileExists(atPath: sourceURL.path)
+            printDebug("File exists check: \(exists)")
+            
+            if exists {
+                do {
+                    let attributes = try fileManager.attributesOfItem(atPath: sourceURL.path)
+                    let fileSize = attributes[.size] as? Int64 ?? 0
+                    let modificationDate = attributes[.modificationDate] as? Date
+                    let creationDate = attributes[.creationDate] as? Date
+                    printDebug("File attributes - Size: \(fileSize) bytes, Modified: \(modificationDate?.description ?? "unknown"), Created: \(creationDate?.description ?? "unknown")")
+                    
+                    // Check if file is in temp directory
+                    if sourceURL.path.contains("/tmp/") {
+                        printDebug("WARNING: File is in temp directory and may be cleaned up by the system")
+                        printDebug("Temp directory path component: \(sourceURL.pathComponents.filter { $0.contains("tmp") }.joined(separator: "/"))")
+                    }
+                } catch {
+                    printDebug("ERROR: Failed to get file attributes: \(error)")
+                }
+            } else {
                 printDebug("WARNING: Source file does not exist at path: \(sourceURL.path)")
+                
+                // Check parent directory
+                let parentDir = sourceURL.deletingLastPathComponent()
+                printDebug("Parent directory: \(parentDir.path)")
+                printDebug("Parent directory exists: \(fileManager.fileExists(atPath: parentDir.path))")
+                
+                // List contents of parent directory if it exists
+                if fileManager.fileExists(atPath: parentDir.path) {
+                    do {
+                        let contents = try fileManager.contentsOfDirectory(atPath: parentDir.path)
+                        printDebug("Parent directory contains \(contents.count) items")
+                        if contents.count < 20 {
+                            printDebug("Directory contents: \(contents)")
+                        }
+                    } catch {
+                        printDebug("ERROR: Failed to list directory contents: \(error)")
+                    }
+                }
             }
         }
         
         let interactableMedia = try InteractableMedia(underlyingMedia: [media])
         
+        // Check file existence right before save
+        if case .url(let sourceURL) = media.source {
+            printDebug("Pre-save file check for \(sourceURL.lastPathComponent)")
+            printDebug("File exists immediately before save: \(FileManager.default.fileExists(atPath: sourceURL.path))")
+        }
+        
         do {
+            var lastProgressCheck: TimeInterval = 0
+            
             try await fileAccess.save(media: interactableMedia) { fileProgress in
                 Task { @MainActor in
                     let overallProgress = (Double(processedFiles) + fileProgress) / Double(task.media.count)
@@ -271,6 +337,19 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                         startTime: startTime,
                         progress: overallProgress
                     )
+                    
+                    // Log file existence during save progress
+                    let currentTime = Date().timeIntervalSince1970
+                    if currentTime - lastProgressCheck > 1.0 { // Check every second
+                        lastProgressCheck = currentTime
+                        if case .url(let sourceURL) = media.source {
+                            let exists = FileManager.default.fileExists(atPath: sourceURL.path)
+                            self.printDebug("During save - Progress: \(fileProgress * 100)%, File exists: \(exists)")
+                            if !exists {
+                                self.printDebug("CRITICAL: File disappeared during save operation!")
+                            }
+                        }
+                    }
                     
                     if let taskIndex = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
                         self.currentTasks[taskIndex].progress = ImportProgressUpdate(
@@ -291,11 +370,24 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             printDebug("Successfully saved file \(fileIndex + 1)/\(task.media.count): \(media.id)")
         } catch {
             printDebug("Failed to save file \(media.id): \(error)")
+            printDebug("Error type: \(type(of: error))")
+            printDebug("Full error description: \(error)")
             
-            // Check if it's a file not found error
-            if let nsError = error as NSError?, 
-               nsError.domain == NSCocoaErrorDomain && nsError.code == 4 {
-                printDebug("File not found error - likely temp files were cleaned up")
+            // Enhanced error analysis
+            if let nsError = error as NSError? {
+                printDebug("NSError domain: \(nsError.domain), code: \(nsError.code)")
+                printDebug("NSError userInfo: \(nsError.userInfo)")
+                
+                if nsError.domain == NSCocoaErrorDomain && nsError.code == 4 {
+                    printDebug("File not found error - likely temp files were cleaned up")
+                    
+                    // Check if file still exists after error
+                    if case .url(let sourceURL) = media.source {
+                        printDebug("Post-error file check: \(FileManager.default.fileExists(atPath: sourceURL.path))")
+                    }
+                } else if nsError.domain == "PHPhotosErrorDomain" && nsError.code == -1 {
+                    printDebug("Photos framework error - generic error code -1")
+                }
             }
             
             // Check if it's an authentication error
@@ -362,16 +454,28 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     private func cleanupTempFilesIfSafe() {
+        printDebug("cleanupTempFilesIfSafe() called")
+        
         // Check if there are any active photo imports (which use temp files)
         let hasActivePhotoImports = currentTasks.contains { task in
             task.progress.state == .running
         }
         
+        // Log current task states
+        printDebug("Current tasks count: \(currentTasks.count)")
+        for (index, task) in currentTasks.enumerated() {
+            printDebug("Task \(index): id=\(task.id), state=\(task.progress.state), source=\(task.source.rawValue)")
+        }
+        
         if !hasActivePhotoImports {
             printDebug("No active photo imports - cleaning up temporary files")
+            printDebug("About to call TempFileAccess.cleanupTemporaryFiles()")
             TempFileAccess.cleanupTemporaryFiles()
+            printDebug("TempFileAccess.cleanupTemporaryFiles() completed")
         } else {
             printDebug("Active photo imports detected - keeping temp files")
+            let activeCount = currentTasks.filter { $0.progress.state == .running }.count
+            printDebug("Number of active imports: \(activeCount)")
         }
     }
     
