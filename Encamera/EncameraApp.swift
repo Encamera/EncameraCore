@@ -119,6 +119,9 @@ struct EncameraApp: App {
                 .sink { _ in
 
                     self.showScreenBlocker = true
+                    print("EncameraApp: Calling TempFileAccess.cleanupTemporaryFiles() on entering background")
+                    print("EncameraApp: BackgroundMediaImportManager.isImporting = \(BackgroundMediaImportManager.shared.isImporting)")
+                    print("EncameraApp: BackgroundMediaImportManager.currentTasks.count = \(BackgroundMediaImportManager.shared.currentTasks.count)")
                     TempFileAccess.cleanupTemporaryFiles()
 
                 }.store(in: &cancellables)
@@ -163,6 +166,9 @@ struct EncameraApp: App {
                         self.rotationFromOrientation = rotation
                     }
                 }.store(in: &cancellables)
+            print("EncameraApp: Calling TempFileAccess.cleanupTemporaryFiles() during app initialization")
+            print("EncameraApp: BackgroundMediaImportManager.isImporting = \(BackgroundMediaImportManager.shared.isImporting)")
+            print("EncameraApp: BackgroundMediaImportManager.currentTasks.count = \(BackgroundMediaImportManager.shared.currentTasks.count)")
             TempFileAccess.cleanupTemporaryFiles()
         }
 
