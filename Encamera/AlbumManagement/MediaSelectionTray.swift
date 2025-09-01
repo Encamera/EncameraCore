@@ -26,11 +26,11 @@ struct MediaSelectionTray: View {
                     }
                     Spacer()
                     Menu {
-                        Button(action: {
-                            moveAction()
-                        }) {
-                            Label(L10n.MediaSelectionTray.moveToAlbum, systemImage: "folder")
-                        }
+//                        Button(action: {
+//                            moveAction()
+//                        }) {
+//                            Label(L10n.MediaSelectionTray.moveToAlbum, systemImage: "folder")
+//                        }
                         if showShareOption {
                             Button(action: {
                                 shareAction()

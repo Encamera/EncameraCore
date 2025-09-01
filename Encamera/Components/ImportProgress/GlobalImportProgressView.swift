@@ -59,8 +59,10 @@ class GlobalImportProgressViewModel: ObservableObject {
 
         self.importManager.$currentTasks.dropFirst().sink { [weak self] tasks in
             guard let self = self else { return }
-            self.completedTasks = tasks.filter { $0.state == .completed }
-            self.activeTasks = tasks.filter { $0.state == .running }
+            let completed = tasks.filter { $0.state == .completed }
+            let active = tasks.filter { $0.state == .running }
+            self.completedTasks = completed
+            self.activeTasks = active
             self.updateStatusText()
             self.updateEstimatedTimeRemaining()
         }.store(in: &cancellables)
@@ -79,22 +81,25 @@ class GlobalImportProgressViewModel: ObservableObject {
     // MARK: - Update Methods
     
     private func updateStatusText() {
+        var retVal: String
+
         if !completedTasks.isEmpty && activeTasks.isEmpty {
-            statusText = L10n.GlobalImportProgress.importCompleted
+            retVal = L10n.GlobalImportProgress.importCompleted
         } else if isCompleted && activeTasks.isEmpty && !completedTasks.isEmpty {
-            statusText = L10n.GlobalImportProgress.importCompleted
+            retVal = L10n.GlobalImportProgress.importCompleted
         } else if isCompleted && activeTasks.isEmpty {
-            statusText = L10n.GlobalImportProgress.importStopped
+            retVal = L10n.GlobalImportProgress.importStopped
         } else if activeTasks.isEmpty {
-            statusText = L10n.GlobalImportProgress.noActiveImports
+            retVal = L10n.GlobalImportProgress.noActiveImports
         } else if activeTasks.count == 1 {
             let task = activeTasks.first!
-            statusText = L10n.GlobalImportProgress.importingProgress(task.progress.currentFileIndex + 1, task.progress.totalFiles)
+            retVal = L10n.GlobalImportProgress.importingProgress(task.progress.currentFileIndex + 1, task.progress.totalFiles)
         } else {
-            statusText = L10n.GlobalImportProgress.importingBatches(activeTasks.count)
+            retVal = L10n.GlobalImportProgress.importingBatches(activeTasks.count)
         }
+
+        statusText = retVal
     }
-    
     private func updateEstimatedTimeRemaining() {
         guard let task = activeTasks.first,
               let eta = task.progress.estimatedTimeRemaining else {
