@@ -942,6 +942,7 @@ struct AlbumDetailView<D: FileAccess>: View {
 
     @StateObject var viewModel: AlbumDetailViewModel<D>
     @Environment(\.presentationMode) private var presentationMode
+    @Environment(\.isScreenBlockingActive) private var isScreenBlockingActive
     @EnvironmentObject var appModalStateModel: AppModalStateModel
     @FocusState private var isAlbumNameFocused: Bool
 
@@ -1165,7 +1166,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                     }
                 })
             } else  {
-                ViewHeader(title: viewModel.albumName, isToolbar: true,
+                ViewHeader(title: isScreenBlockingActive ? "" : viewModel.albumName, isToolbar: true,
                            textAlignment: .center,
                            titleFont: .pt18,
                            rightContent: {
