@@ -42,16 +42,16 @@ struct PhotoPickerWrapper: View {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
 
         switch status {
-        case .limited:
-            // Only show upgrade prompt once per session
-            let hasSeenPrompt = UserDefaults.standard.bool(forKey: "HasSeenPhotoAccessUpgradePrompt")
+            
+        case .denied:
+        let hasSeenPrompt = UserDefaults.standard.bool(forKey: "HasSeenPhotoAccessUpgradePrompt")
             if !hasSeenPrompt {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     showPermissionAlert = true
                     UserDefaults.standard.set(true, forKey: "HasSeenPhotoAccessUpgradePrompt")
                 }
             }
-        case .authorized, .denied, .restricted, .notDetermined:
+        case .authorized, .restricted, .notDetermined, .limited:
             // No need to show upgrade prompt for these statuses
             break
         @unknown default:
