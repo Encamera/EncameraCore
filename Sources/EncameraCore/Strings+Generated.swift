@@ -1339,8 +1339,12 @@ public enum L10n {
     public static func estimatedTime(_ p1: Any) -> String {
       return L10n.tr("Localizable", "TaskDetailCard.EstimatedTime", String(describing: p1), fallback: "Estimated time remaining: %@")
     }
-    /// Please grant full access to your photo library in Settings to delete imported photos.
-    public static let grantAccessMessage = L10n.tr("Localizable", "TaskDetailCard.GrantAccessMessage", fallback: "Please grant full access to your photo library in Settings to delete imported photos.")
+    /// Please grant access to your photo library in Settings to delete imported photos.
+    public static let grantAccessMessage = L10n.tr("Localizable", "TaskDetailCard.GrantAccessMessage", fallback: "Please grant access to your photo library in Settings to delete imported photos.")
+    /// Limited Photo Access
+    public static let limitedAccessInfo = L10n.tr("Localizable", "TaskDetailCard.LimitedAccessInfo", fallback: "Limited Photo Access")
+    /// With limited photo access, only photos you've selected can be deleted. To delete all imported photos, please grant full photo library access in Settings.
+    public static let limitedAccessMessage = L10n.tr("Localizable", "TaskDetailCard.LimitedAccessMessage", fallback: "With limited photo access, only photos you've selected can be deleted. To delete all imported photos, please grant full photo library access in Settings.")
     /// Pause
     public static let pause = L10n.tr("Localizable", "TaskDetailCard.Pause", fallback: "Pause")
     /// Photo Library Access Required
