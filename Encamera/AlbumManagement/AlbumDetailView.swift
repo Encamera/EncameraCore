@@ -33,7 +33,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             case .albumCoverRemoved:
                 return L10n.AlbumDetailView.coverImageRemovedToast
             case .mediaMovedSuccess(let count, let albumName):
-                return L10n.AlbumDetailView.movedToast("", "", "")
+                return L10n.AlbumDetailView.movedToast(String(count), albumName, L10n.imageS(count))
             }
         }
     }
@@ -1033,7 +1033,6 @@ struct AlbumDetailView<D: FileAccess>: View {
             case .photoLibrary:
                 // Switch picker based on photo library permissions
                 if viewModel.photoLibraryPermissionStatus == .denied || 
-                   viewModel.photoLibraryPermissionStatus == .restricted ||
                    viewModel.photoLibraryPermissionStatus == .notDetermined {
                     // Use standard PhotoPicker for denied/restricted/undetermined permissions
                     PhotoPicker(selectedItems: { results in
@@ -1077,7 +1076,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                 }
             }
         }
-        .onChange(of: viewModel.isEditingAlbumName) { oldValue, newValue in
+        .onChange(of: viewModel.isEditingAlbumName) { _, newValue in
             if newValue {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     isAlbumNameFocused = true
@@ -1299,7 +1298,7 @@ struct AlbumDetailView<D: FileAccess>: View {
         case .moveSelectedMedia(let targetAlbum):
             return Alert(
                 title: Text(L10n.AlbumDetailView.moveMedia),
-                message: Text(L10n.AlbumDetailView.moveMediaConfirm("", "", "")),
+                message: Text(L10n.AlbumDetailView.moveMediaConfirm(String(viewModel.selectedMedia.count), targetAlbum.name, L10n.imageS(viewModel.selectedMedia.count))),
                 primaryButton: .default(Text(L10n.AlbumDetailView.moveMedia)) {
                     viewModel.moveSelectedMedia(to: targetAlbum)
                 },
