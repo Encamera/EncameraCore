@@ -108,7 +108,6 @@ struct PasswordEntry: View {
                          accessibilityIdentifier: "password"
         )
         .focused($isInputFieldFocused)
-        .limitInputLength(to: 100)
         .submitLabel(.done)
         .onSubmit {
             advanceToNextScreen()
@@ -149,7 +148,6 @@ struct PasswordEntry: View {
         .if(viewModel.passwordError != nil, transform: { field in
             field.becomeFirstResponder()
         })
-        .limitInputLength(to: 100)
         .submitLabel(.done)
         .onSubmit {
             savePassword()
