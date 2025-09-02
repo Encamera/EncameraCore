@@ -454,8 +454,8 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     }
                 }
             })
-        case .intro, .enterExistingPassword, .biometricsWithPin, .setPinCode, .confirmPinCode, .finished:
-            // All cases handled above
+        default:
+            fatalError("Not implemented")
         }
     }
 
