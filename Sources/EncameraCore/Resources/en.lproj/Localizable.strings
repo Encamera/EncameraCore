@@ -666,13 +666,15 @@
 "TaskDetailCard.DeleteFromCameraRoll" = "Delete From Camera Roll";
 "TaskDetailCard.DeleteMessage" = "This will delete %@ photo(s) from your Photo Library that were imported into Encamera.";
 "TaskDetailCard.PhotoLibraryAccessRequired" = "Photo Library Access Required";
-"TaskDetailCard.GrantAccessMessage" = "Please grant full access to your photo library in Settings to delete imported photos.";
+"TaskDetailCard.GrantAccessMessage" = "Please grant access to your photo library in Settings to delete imported photos.";
 "TaskDetailCard.StatusWaiting" = "Waiting";
 "TaskDetailCard.StatusRunning" = "Running";
 "TaskDetailCard.StatusPaused" = "Paused";
 "TaskDetailCard.StatusCompleted" = "Completed";
 "TaskDetailCard.StatusCancelled" = "Cancelled";
 "TaskDetailCard.StatusFailed" = "Failed";
+"TaskDetailCard.LimitedAccessInfo" = "Limited Photo Access";
+"TaskDetailCard.LimitedAccessMessage" = "With limited photo access, only photos you've selected can be deleted. To delete all imported photos, please grant full photo library access in Settings.";
 
 /* ./Encamera/Components/ImportProgress/ImportTaskDetailsView.swift */
 "ImportTaskDetailsView.Title" = "Import Tasks";
