@@ -145,10 +145,17 @@ class GlobalImportProgressViewModel: ObservableObject {
     func handleActionButtonTap() {
 
         if isCompleted {
+            // Cancel dismissal timer when showing delete confirmation
+            cancelDismissalTimer()
             showDeleteConfirmation = true
         } else {
             stopCurrentTask()
         }
+    }
+    
+    private func cancelDismissalTimer() {
+        dismissalTimer?.invalidate()
+        dismissalTimer = nil
     }
     
 
@@ -216,8 +223,7 @@ class GlobalImportProgressViewModel: ObservableObject {
     
     func resetAllState() {
         // Cancel any dismissal timer
-        dismissalTimer?.invalidate()
-        dismissalTimer = nil
+        cancelDismissalTimer()
         
         // Clear the import manager
         importManager.clearAllTasks()
@@ -234,6 +240,9 @@ class GlobalImportProgressViewModel: ObservableObject {
     }
     
     func startDismissalCountdown(showProgressView: Binding<Bool>) {
+        // Don't start countdown if delete confirmation is showing
+        guard !showDeleteConfirmation else { return }
+        
         var currentCountdown = countdown
 
         dismissalTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
@@ -247,8 +256,7 @@ class GlobalImportProgressViewModel: ObservableObject {
                 
                 if currentCountdown <= 0 {
                     // Countdown finished, dismiss the view
-                    timer.invalidate()
-                    self.dismissalTimer = nil
+                    self.cancelDismissalTimer()
                     
                     withAnimation(.easeOut(duration: 1.0)) {
                         showProgressView.wrappedValue = false
