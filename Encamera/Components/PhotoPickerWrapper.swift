@@ -12,26 +12,14 @@ struct PhotoPickerWrapper: View {
     var selectionLimit: Int = 0 // 0 for unlimited
     
     @State private var showPermissionAlert = false
-    @State private var hasFullAccess = false
-    @State private var permissionStatus: PHAuthorizationStatus = .notDetermined
     
     var body: some View {
         Group {
-            if hasFullAccess {
-                // Use custom picker with swipe selection
-                CustomPhotoPicker(
-                    selectedItems: selectedItems,
-                    filter: filter,
-                    selectionLimit: selectionLimit
-                )
-            } else {
-                // Use standard picker
-                PhotoPicker(
-                    selectedItems: selectedItems,
-                    filter: filter,
-                    selectionLimit: selectionLimit
-                )
-            }
+            CustomPhotoPicker(
+                selectedItems: selectedItems,
+                filter: filter,
+                selectionLimit: selectionLimit
+            )
         }
         .onAppear {
             checkPhotoPermissions()
@@ -52,13 +40,9 @@ struct PhotoPickerWrapper: View {
     
     private func checkPhotoPermissions() {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        permissionStatus = status
-        
+
         switch status {
-        case .authorized:
-            hasFullAccess = true
         case .limited:
-            hasFullAccess = false
             // Only show upgrade prompt once per session
             let hasSeenPrompt = UserDefaults.standard.bool(forKey: "HasSeenPhotoAccessUpgradePrompt")
             if !hasSeenPrompt {
@@ -67,14 +51,12 @@ struct PhotoPickerWrapper: View {
                     UserDefaults.standard.set(true, forKey: "HasSeenPhotoAccessUpgradePrompt")
                 }
             }
-        case .notDetermined:
-            // This shouldn't happen as we now request permission before showing the picker
-            hasFullAccess = false
-        case .denied, .restricted:
-            // This also shouldn't happen as we check before showing
-            hasFullAccess = false
+        case .authorized, .denied, .restricted, .notDetermined:
+            // No need to show upgrade prompt for these statuses
+            break
         @unknown default:
-            hasFullAccess = false
+            // Handle any future status cases
+            break
         }
     }
 }
