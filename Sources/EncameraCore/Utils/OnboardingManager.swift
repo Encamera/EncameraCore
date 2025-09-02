@@ -60,8 +60,13 @@ public enum OnboardingManagerError: Error, Equatable {
             return true
         case (.settingsManagerError(let error1), .settingsManagerError(let error2)):
             return error1 == error2
-        default:
-            return false            
+        case (.couldNotSerialize, _), (_, .couldNotSerialize),
+             (.couldNotDeserialize, _), (_, .couldNotDeserialize),
+             (.couldNotGetFromUserDefaults, _), (_, .couldNotGetFromUserDefaults),
+             (.incorrectStateForOperation, _), (_, .incorrectStateForOperation),
+             (.unknownError, _), (_, .unknownError),
+             (.settingsManagerError, _), (_, .settingsManagerError):
+            return false
         }
     }
     
