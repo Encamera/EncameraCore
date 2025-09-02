@@ -6,32 +6,42 @@ import UIKit
 class PhotoDeletionManager: ObservableObject {
     @Published var isDeletingPhotos = false
     @Published var showPhotoAccessAlert = false
+    @Published var showLimitedAccessInfo = false
     
     func deletePhotos(assetIdentifiers: [String]) async {
-        guard await checkPermissions() else {
-            showPhotoAccessAlert = true
-            return
-        }
-        
-        await performDeletion(assetIdentifiers: assetIdentifiers)
-    }
-    
-    private func checkPermissions() async -> Bool {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         
         switch status {
         case .authorized:
-            return true
-        case .limited, .denied, .restricted:
-            return false
+            // Full access - proceed with deletion
+            await performDeletion(assetIdentifiers: assetIdentifiers)
+            
+        case .limited:
+            // Limited access - show info alert but still proceed with deletion
+            showLimitedAccessInfo = true
+            await performDeletion(assetIdentifiers: assetIdentifiers)
+            
+        case .denied, .restricted:
+            // No access - show access alert and don't proceed
+            showPhotoAccessAlert = true
+            return
+            
         case .notDetermined:
+            // Request permission first
             let newStatus = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
-            return newStatus == .authorized
+            if newStatus == .authorized || newStatus == .limited {
+                await deletePhotos(assetIdentifiers: assetIdentifiers) // Recursive call with new status
+            } else {
+                showPhotoAccessAlert = true
+            }
+            
         @unknown default:
-            return false
+            showPhotoAccessAlert = true
+            return
         }
     }
     
+
     private func performDeletion(assetIdentifiers: [String]) async {
         isDeletingPhotos = true
         defer { isDeletingPhotos = false }
