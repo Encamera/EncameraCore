@@ -133,6 +133,14 @@ struct TaskDetailCard: View {
         } message: {
             Text(L10n.TaskDetailCard.grantAccessMessage)
         }
+        .alert(L10n.TaskDetailCard.limitedAccessInfo, isPresented: $deletionManager.showLimitedAccessInfo) {
+            Button(L10n.openSettings) {
+                deletionManager.openSettings()
+            }
+            Button(L10n.ok, role: .cancel) {}
+        } message: {
+            Text(L10n.TaskDetailCard.limitedAccessMessage)
+        }
     }
     
     private var stateText: String {
