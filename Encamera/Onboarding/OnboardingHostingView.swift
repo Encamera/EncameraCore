@@ -329,7 +329,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .lineLimit(2, reservesSpace: true)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
-                                    PinCodeView(pinCode: $viewModel.pinCode1, pinLength: .four)
+                                    PinCodeView(pinCode: $viewModel.pinCode1, pinLength: AppConstants.defaultPinCodeLength)
                                 }.frame(width: 290)
                             )
                         })
@@ -390,7 +390,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                             )
                         })
             )
-            .onChange(of: viewModel.pinCode2) { oldValue, newValue in
+            .onChange(of: viewModel.pinCode2) { _, newValue in
                 if viewModel.doesPinCodeMatchNew(pinCode: newValue) {
                     viewModel.pinCodeError = nil
                     path.append(OnboardingFlowScreen.finished)
@@ -454,8 +454,8 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     }
                 }
             })
-        default:
-            fatalError("Not implemented")
+        case .intro, .enterExistingPassword, .biometricsWithPin, .setPinCode, .confirmPinCode, .finished:
+            // All cases handled above
         }
     }
 
