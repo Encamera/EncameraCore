@@ -264,7 +264,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     .init(
                         screen: destination,
                         showTopBar: false,
-                        bottomButtonTitle: L10n.enableFaceID,
+                        bottomButtonTitle: viewModel.areBiometricsAvailable ? L10n.enableFaceID : L10n.openSettings,
                         bottomButtonAction: {
                             try await viewModel.authWithBiometrics()
                             EventTracking.trackOnboardingBiometricsEnabled(newOnboarding: true)
