@@ -64,6 +64,9 @@ class CustomPhotoPickerViewController: UIViewController {
     
     private var cancellables = Set<AnyCancellable>()
     
+    // Store reference to the top constraint for the selection mode indicator
+    private var selectionModeIndicatorTopConstraint: NSLayoutConstraint?
+    
     // Selection mode indicator view
     private lazy var selectionModeIndicator: UIView = {
         let view = UIView()
@@ -201,9 +204,12 @@ class CustomPhotoPickerViewController: UIViewController {
         view.addSubview(selectionModeIndicator)
         view.addSubview(collectionView)
         
+        // Store reference to the top constraint
+        selectionModeIndicatorTopConstraint = selectionModeIndicator.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
+        
         NSLayoutConstraint.activate([
             // Selection mode indicator constraints
-            selectionModeIndicator.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            selectionModeIndicatorTopConstraint!,
             selectionModeIndicator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             selectionModeIndicator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             selectionModeIndicator.heightAnchor.constraint(equalToConstant: 36),
@@ -237,25 +243,35 @@ class CustomPhotoPickerViewController: UIViewController {
     
     private func showLimitedAccessBanner() {
         let banner = UIView()
-        banner.backgroundColor = .systemYellow.withAlphaComponent(0.2)
+        banner.backgroundColor = .disabledButtonTextColor
         banner.translatesAutoresizingMaskIntoConstraints = false
         
         let label = UILabel()
         label.text = L10n.CustomPhotoPicker.limitedAccess
-        label.font = .preferredFont(forTextStyle: .footnote)
+        label.font = EncameraFont.pt12.uiFont
+        label.textColor = SurfaceType.darkBackground.textUIColor
         label.textAlignment = .center
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         
         banner.addSubview(label)
-        view.addSubview(banner)
+        view.insertSubview(banner, belowSubview: selectionModeIndicator)
+        
+        // Deactivate the existing top constraint and create a new one
+        selectionModeIndicatorTopConstraint?.isActive = false
+        selectionModeIndicatorTopConstraint = selectionModeIndicator.topAnchor.constraint(equalTo: banner.bottomAnchor)
         
         NSLayoutConstraint.activate([
+            // Position banner at the top
             banner.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             banner.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             banner.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             banner.heightAnchor.constraint(equalToConstant: 60),
             
+            // Position selection mode indicator below the banner
+            selectionModeIndicatorTopConstraint!,
+            
+            // Label constraints within banner
             label.leadingAnchor.constraint(equalTo: banner.leadingAnchor, constant: 16),
             label.trailingAnchor.constraint(equalTo: banner.trailingAnchor, constant: -16),
             label.centerYAnchor.constraint(equalTo: banner.centerYAnchor)
@@ -263,10 +279,6 @@ class CustomPhotoPickerViewController: UIViewController {
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(openPhotoSettings))
         banner.addGestureRecognizer(tapGesture)
-        
-        // Adjust collection view
-        collectionView.contentInset.top = 60
-        collectionView.verticalScrollIndicatorInsets.top = 60
     }
     
     private func showPermissionDeniedAlert() {
@@ -461,9 +473,9 @@ class CustomPhotoPickerViewController: UIViewController {
                 // This asset was selected/deselected during swipe but is no longer in range
                 // Restore its initial state
                 if initialSwipeSelection.contains(asset) {
-                    viewModel.selectAsset(asset)
+                    _ = viewModel.selectAsset(asset)
                 } else {
-                    viewModel.deselectAsset(asset)
+                    _ = viewModel.deselectAsset(asset)
                 }
             }
         }
@@ -472,7 +484,6 @@ class CustomPhotoPickerViewController: UIViewController {
         var changesMade = false
         for (index, asset) in rangeAssets.enumerated() {
             let indexPath = rangeIndexPaths[index]
-            let wasInitiallySelected = initialSwipeSelection.contains(asset)
             let isCurrentlySelected = viewModel.isAssetSelected(asset)
             
             if swipeSelectionMode == .selecting {
