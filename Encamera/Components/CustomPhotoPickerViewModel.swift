@@ -6,7 +6,7 @@ import AVFoundation
 
 // MARK: - Photo Picker ViewModel
 @MainActor
-class CustomPhotoPickerViewModel: ObservableObject {
+class CustomPhotoPickerViewModel: NSObject, ObservableObject {
     
     // MARK: - Published Properties
     @Published var assets: PHFetchResult<PHAsset>?
@@ -23,14 +23,24 @@ class CustomPhotoPickerViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
-    init() {
+    override init() {
+        super.init()
+        
         // Update selection count when selectedAssets changes
         $selectedAssets
             .map { $0.count }
             .assign(to: \.selectionCount, on: self)
             .store(in: &cancellables)
         
+        // Register as photo library observer
+        PHPhotoLibrary.shared().register(self)
+        
         checkPhotoLibraryPermission()
+    }
+    
+    deinit {
+        // Unregister from photo library observations
+        PHPhotoLibrary.shared().unregisterChangeObserver(self)
     }
     
     // MARK: - Photo Library Authorization
@@ -205,6 +215,35 @@ class CustomPhotoPickerViewModel: ObservableObject {
             let assetsToRemove = Array(selectedAssets.array.suffix(selectedAssets.count - newLimit))
             for asset in assetsToRemove {
                 selectedAssets.remove(asset)
+            }
+        }
+    }
+}
+
+// MARK: - PHPhotoLibraryChangeObserver
+extension CustomPhotoPickerViewModel: PHPhotoLibraryChangeObserver {
+    nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
+        Task { @MainActor in
+            guard let assets = self.assets else { return }
+            
+            // Check if our fetch result has changes
+            if let changeDetails = changeInstance.changeDetails(for: assets) {
+                // Update the fetch result
+                self.assets = changeDetails.fetchResultAfterChanges
+                
+                // Update selected assets to remove any that are no longer available
+                let removedAssets = changeDetails.removedObjects
+                for removedAsset in removedAssets {
+                    self.selectedAssets.remove(removedAsset)
+                }
+                
+                // If we have insertions, the user added photos to the limited library
+                // If we have removals, the user removed photos from the limited library
+                // In both cases, the UI will automatically update due to @Published property
+            } else {
+                // If no specific changes, reload all photos to catch any permission changes
+                // This is especially important for limited library access changes
+                self.loadPhotos()
             }
         }
     }
