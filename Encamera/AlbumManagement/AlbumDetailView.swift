@@ -1106,7 +1106,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                             .fontType(.pt24, weight: .bold)
                         Text(L10n.AlbumDetailView.addFirstImageSubtitle)
                             .multilineTextAlignment(.center)
-                            .lineLimit(2, reservesSpace: true)
+                            .lineLimit(3, reservesSpace: true)
                             .fontType(.pt14)
                             .opacity(0.60)
                     }.frame(alignment: .center)
