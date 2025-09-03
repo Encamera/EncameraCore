@@ -209,7 +209,7 @@ private enum Constants {
     static let buttonPadding = 7.0
     static let buttonCornerRadius = 10.0
     static let minColumns = 2
-    static let maxColumns = 7
+    static let maxColumns = 4
     
     static let defaultColumnCount: Int = {
         let device = UIDevice.current
