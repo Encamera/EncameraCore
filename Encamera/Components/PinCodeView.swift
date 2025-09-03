@@ -25,7 +25,6 @@ struct PinCodeView: View {
                                     self.isInputFieldFocused = true // Automatically focus to show keyboard
                                 }
                                 .keyboardType(.numberPad)
-                                .limitInputLength(to: pinLength.rawValue) // Limit input to pinLength
                         }
                         CircleView(isFilled: index < enteredDigitCount)
                     }
@@ -54,26 +53,6 @@ struct CircleView: View {
             .foregroundColor(isFilled ? .white : .gray) // Change color based on filled state
             .background(Color(red: 0.09, green: 0.09, blue: 0.09))
             .cornerRadius(4)
-    }
-}
-
-// Use the same extension to limit TextField input length as before
-extension View {
-    func limitInputLength(to maxLength: Int) -> some View {
-        self.modifier(LimitInputLengthModifier(maxLength: maxLength))
-    }
-}
-
-struct LimitInputLengthModifier: ViewModifier {
-    let maxLength: Int
-
-    func body(content: Content) -> some View {
-        content
-            .onReceive(NotificationCenter.default.publisher(for: UITextField.textDidChangeNotification)) { obj in
-                if let textField = obj.object as? UITextField, let text = textField.text, text.count > maxLength {
-                    textField.text = String(text.prefix(maxLength))
-                }
-            }
     }
 }
 

@@ -3,6 +3,10 @@ import UIKit
 import EncameraCore
 
 public class DemoFileEnumerator: FileAccess {
+    public func setKeyUUIDForExistingFiles() async throws {
+        
+    }
+    
     public var directoryModel: DataStorageModel? = DemoDirectoryModel()
 
     private var mediaList: [InteractableMedia<EncryptedMedia>] = []
@@ -93,7 +97,7 @@ public class DemoFileEnumerator: FileAccess {
         return retVal
     }
 
-    public func delete(media: InteractableMedia<EncryptedMedia>) async throws {
+    public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
         // Implementation here
     }
 

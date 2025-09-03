@@ -7,7 +7,9 @@
 
 import Foundation
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 
 enum SurfaceType {
     case background
@@ -36,6 +38,7 @@ extension SurfaceType {
         }
     }
 
+#if canImport(UIKit)
     var textUIColor: UIColor {
         switch self {
         case .background, .darkBackground:
@@ -50,6 +53,7 @@ extension SurfaceType {
             return .disabledButtonTextColor
         }
     }
+#endif
 
     var foregroundSecondary: Color {
         switch self {
@@ -70,6 +74,7 @@ extension SurfaceType {
         }
     }
 
+#if canImport(UIKit)
     var foregroundSecondaryUIColor: UIColor {
         switch self {
         case .background:
@@ -93,6 +98,7 @@ extension SurfaceType {
     var uiFont: UIFont {
         return font.toUIFont()
     }
+#endif
 
     // Keeping the original SwiftUI font property
     var font: Font {
@@ -107,6 +113,7 @@ extension SurfaceType {
     }
 }
 
+#if canImport(UIKit)
 // Extension to convert SwiftUI Font to UIFont
 extension Font {
     func toUIFont() -> UIFont {
@@ -138,3 +145,4 @@ extension Font {
         }
     }
 }
+#endif

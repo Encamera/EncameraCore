@@ -121,5 +121,7 @@ struct BottomNavigationBar: View {
 
             })
         }
-    }.ignoresSafeArea()
+    }
+    .ignoresSafeArea()
+    .environmentObject(AppModalStateModel())
 }

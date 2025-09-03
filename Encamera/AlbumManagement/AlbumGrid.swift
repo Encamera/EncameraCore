@@ -90,7 +90,7 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
     }
 
     @MainActor
-    var shouldShowPurchaseScreenForKeys: Bool {
+    var shouldShowPurchaseScreenForAlbum: Bool {
         if albums.count == 0 {
             return false
         }
@@ -110,10 +110,12 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
 
 struct AlbumGrid<D: FileAccess>: View {
     @StateObject var viewModel: AlbumGridViewModel<D>
-    @State var path: NavigationPath = .init()
     @State private var showNotificationSheet: Bool = false
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @EnvironmentObject var appModalStateModel: AppModalStateModel
+    
+    // Navigation function to avoid NavigationLink freezing bug in iOS 16.4
+    let navigateToPath: (AppNavigationPaths) -> Void
 
     var body: some View {
         let spacing = CGFloat(17.0)
@@ -165,27 +167,29 @@ struct AlbumGrid<D: FileAccess>: View {
     @ViewBuilder
     private func createAlbumButton(side: CGFloat) -> some View {
         let button = AlbumBaseGridItem(image: Image("Albums-Add"), title: L10n.createNewAlbum, subheadingView: { Color.clear }, width: side, strokeStyle: StrokeStyle(lineWidth: 2, dash: [6], dashPhase: 0.0), shouldResizeImage: false)
-        if !viewModel.shouldShowPurchaseScreenForKeys {
-            NavigationLink(value: AppNavigationPaths.createAlbum) {
-                button
-            }
-        } else {
-            Button {
+        
+        Button {
+            if !viewModel.shouldShowPurchaseScreenForAlbum {
+                // Use programmatic navigation instead of NavigationLink to avoid iOS 16.4 freezing bug
+                navigateToPath(.createAlbum)
+            } else {
                 appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "AlbumGrid", purchaseAction: nil))
-            } label: {
-                button
             }
-
+        } label: {
+            button
         }
     }
 
     @ViewBuilder
     private func albums(side: CGFloat) -> some View {
         ForEach(Array(viewModel.albums), id: \.id) { album in
-            NavigationLink(value: AppNavigationPaths.albumDetail(album: album)) {
+            Button {
+                // Use programmatic navigation instead of NavigationLink to avoid iOS 16.4 freezing bug
+                navigateToPath(.albumDetail(album: album))
+            } label: {
                 AlbumGridItem(album: album,
                               albumManager: viewModel.albumManager,
-                              width: side, fileReader: D.init())
+                              width: side, fileReader: D.init(), blurEnabled: !viewModel.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: Double(viewModel.albumManager.albumMediaCount(album: album)))))
             }
         }
     }
@@ -196,7 +200,9 @@ struct AlbumGrid<D: FileAccess>: View {
     NavigationStack {
         AlbumGrid(viewModel: .init(purchaseManager: DemoPurchasedPermissionManaging(),
                                    fileManager: DemoFileEnumerator(),
-                                   albumManger: DemoAlbumManager()))
+                                   albumManger: DemoAlbumManager()),
+                  navigateToPath: { _ in })
         .gradientBackground()
     }
+    .environmentObject(AppModalStateModel())
 }

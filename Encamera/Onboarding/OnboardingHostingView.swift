@@ -264,7 +264,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                     .init(
                         screen: destination,
                         showTopBar: false,
-                        bottomButtonTitle: L10n.enableFaceID,
+                        bottomButtonTitle: viewModel.areBiometricsAvailable ? L10n.enableFaceID : L10n.openSettings,
                         bottomButtonAction: {
                             try await viewModel.authWithBiometrics()
                             EventTracking.trackOnboardingBiometricsEnabled(newOnboarding: true)
@@ -329,7 +329,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                                         .lineLimit(2, reservesSpace: true)
                                         .multilineTextAlignment(.center)
                                         .pad(.pt64, edge: .bottom)
-                                    PinCodeView(pinCode: $viewModel.pinCode1, pinLength: .four)
+                                    PinCodeView(pinCode: $viewModel.pinCode1, pinLength: AppConstants.defaultPinCodeLength)
                                 }.frame(width: 290)
                             )
                         })
@@ -390,7 +390,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                             )
                         })
             )
-            .onChange(of: viewModel.pinCode2) { oldValue, newValue in
+            .onChange(of: viewModel.pinCode2) { _, newValue in
                 if viewModel.doesPinCodeMatchNew(pinCode: newValue) {
                     viewModel.pinCodeError = nil
                     path.append(OnboardingFlowScreen.finished)

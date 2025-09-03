@@ -8,7 +8,6 @@
 import SwiftUI
 import Combine
 import EncameraCore
-import WebKit
 import RevenueCat
 
 fileprivate enum AlertType {
@@ -320,7 +319,7 @@ struct SettingsView: View {
             case .purchasesRestored:
                 Alert(title: Text(L10n.Settings.purchasesRestored), message: Text(L10n.Settings.purchasesRestoredMessage), dismissButton: .default(Text(L10n.ok)))
             case .none:
-                Alert(title: Text("Error"), message: Text("Unknown error"), dismissButton: .default(Text(L10n.ok)))
+                Alert(title: Text(L10n.Error.Alert.title), message: Text(L10n.SettingsView.unknownError), dismissButton: .default(Text(L10n.ok)))
             }
         }
         .padding(.bottom, 90)
@@ -366,6 +365,7 @@ struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
 
         SettingsView(viewModel: .init(keyManager: DemoKeyManager(), authManager: DemoAuthManager(), fileAccess: DemoFileEnumerator(), albumManager: DemoAlbumManager(), purchasedPermissions: DemoPurchasedPermissionManaging()))
+            .environmentObject(AppModalStateModel())
 
     }
 }

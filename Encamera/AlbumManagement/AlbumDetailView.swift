@@ -3,8 +3,7 @@ import EncameraCore
 import SwiftUI
 import SwiftUIIntrospect
 import PhotosUI
-
-import SwiftUI
+import AVFoundation
 
 @MainActor
 class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
@@ -15,14 +14,17 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     enum AlertType {
         case deleteAllAlbumData
         case deleteSelectedMedia
+        case moveSelectedMedia(targetAlbum: Album)
         case hideAlbum
         case noLicenseDeletionWarning
         case photoAccessAlert
+        case photoAccessDenied
     }
 
     enum ToastType {
         case albumCoverReset
         case albumCoverRemoved
+        case mediaMovedSuccess(count: Int, albumName: String)
 
         var message: String {
             switch self {
@@ -30,6 +32,8 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 return L10n.AlbumDetailView.coverImageResetToast
             case .albumCoverRemoved:
                 return L10n.AlbumDetailView.coverImageRemovedToast
+            case .mediaMovedSuccess(let count, let albumName):
+                return L10n.AlbumDetailView.movedToast(String(count), albumName, L10n.imageS(count))
             }
         }
     }
@@ -50,21 +54,13 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var activeToast: ToastType? = nil
     @Published var lastImportedAssets: [PHPickerResult] = []
     @Published var showPhotoPicker: ImportSource? = nil
-    @Published var cancelImport = false
-    @MainActor
-    @Published var isImporting = false
-    @MainActor
-    @Published var importProgress: Double = 0.0
-    @MainActor
-    @Published var totalImportCount: Int = 0
-    @MainActor
-    @Published var startedImportCount: Int = 0 {
+    @Published var photoLibraryPermissionStatus: PHAuthorizationStatus = .notDetermined
+    @Published var showImportProgressView: Bool = false {
         didSet {
-            debugPrint("startedImportCount: \(startedImportCount)")
+            print("AlbumDetailView setting showProgressView \(showImportProgressView)")
+
         }
     }
-
-    private var currentTask: Task<Void, Error>?
 
     var agreedToDeleteWithNoLicense: Bool = false
 
@@ -79,6 +75,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
     var purchasedPermissions: PurchasedPermissionManaging
     var fileManager: D
+    private var importManager = BackgroundMediaImportManager.shared
     var album: Album? {
         didSet {
             prepareWithAlbum()
@@ -119,6 +116,26 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
                 default: break
                 }
             }.store(in: &cancellables)
+        
+        // Dismiss photo picker when app goes to background
+        NotificationUtils.didEnterBackgroundPublisher
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.showPhotoPicker = nil
+            }
+            .store(in: &cancellables)
+        
+        // Monitor import manager state for progress overlay
+        importManager.$isImporting
+            .receive(on: RunLoop.main)
+            .sink { [weak self] isImporting in
+                if isImporting && self?.showImportProgressView == false {
+                    withAnimation(.easeIn(duration: 0.3)) {
+                        self?.showImportProgressView = true
+                    }
+                }
+            }
+            .store(in: &cancellables)
         guard let album else { return }
         self.album = album
 
@@ -135,22 +152,8 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
         self.albumName = album.name
         self.gridViewModel.album = album
-        FileOperationBus.shared.operations.sink { operation in
-            if self.purchasedPermissions.hasEntitlement == false {
-                Task { @MainActor in
-                    self.appModalStateModel?.currentModal = .purchaseView(context: .init(sourceView: "AlbumDetailView", purchaseAction: { action in
-                        if case .purchaseComplete = action {
-                            self.appModalStateModel?.currentModal = nil
-                        }
-                    }))
-                }
-            }
-            Task {
-                await self.gridViewModel.enumerateMedia()
-            }
-        }.store(in: &cancellables)
         Task {
-            self.fileManager = await D(for: album, albumManager: albumManager)
+            self.fileManager = await D.init(for: album, albumManager: albumManager)
         }
     }
 
@@ -182,11 +185,6 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
     }
 
-    func cancelImporting() {
-        currentTask?.cancel()
-        cancelImport = true
-    }
-
     func requestPhotoLibraryPermission() async {
         if agreedToDeleteWithNoLicense == false && purchasedPermissions.hasEntitlement == false {
             activeAlert = .noLicenseDeletionWarning
@@ -203,44 +201,105 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         }
         try? await deleteMediaFromPhotoLibrary(result: lastImportedAssets)
     }
-    func handleSelectedFiles(urls: [URL]) {
-        currentTask = Task {
-            isImporting = true
-            totalImportCount = urls.count
-            for url in urls {
-                if cancelImport {
-                    isImporting = false
-                    cancelImport = false
-                    return
-                }
-                do {
-                    try await saveCleartextMedia(mediaArray: [CleartextMedia(source: .url(url), generateID: true)])
-                } catch {
-                    debugPrint("Error saving media: \(error)")
-                }
+    
+    func requestPhotoAccess() {
+        Task {
+            let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+            
+            await MainActor.run {
+                self.photoLibraryPermissionStatus = status
             }
-            EventTracking.trackFilesImported(count: urls.count)
-            isImporting = false
+            
+            switch status {
+            case .authorized, .limited:
+                // Already have permission, show picker
+                await MainActor.run {
+                    self.showPhotoPicker = .photoLibrary
+                }
+            case .notDetermined:
+                // Request permission
+                let newStatus = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+                
+                await MainActor.run {
+                    self.photoLibraryPermissionStatus = newStatus
+                    
+                    switch newStatus {
+                    case .authorized, .limited:
+                        self.showPhotoPicker = .photoLibrary
+                        
+                        if newStatus == .limited {
+                            // Track limited access
+                            EventTracking.trackPhotoLibraryPermissionsLimited()
+                        } else {
+                            EventTracking.trackPhotoLibraryPermissionsGranted()
+                        }
+                    case .denied, .restricted:
+                        // Show picker anyway - it will use standard PhotoPicker that works without permissions
+                        self.showPhotoPicker = .photoLibrary
+                        EventTracking.trackPhotoLibraryPermissionsDenied()
+                    case .notDetermined:
+                        // This shouldn't happen since we just requested permission, but handle it gracefully
+                        break
+                    @unknown default:
+                        break
+                    }
+                }
+            case .denied, .restricted:
+                // Show picker anyway - it will use standard PhotoPicker that works without permissions
+                await MainActor.run {
+                    self.showPhotoPicker = .photoLibrary
+                }
+            @unknown default:
+                break
+            }
+        }
+    }
+    
+    private func showPhotoAccessDeniedAlert() {
+        // We'll add a new alert type for this
+        activeAlert = .photoAccessDenied
+    }
+    func handleSelectedFiles(urls: [URL]) {
+        guard urls.count > 0 else {
+            return
+        }
+        Task {
+            // Convert URLs to CleartextMedia
+            let media = urls.map { CleartextMedia(source: .url($0), generateID: true) }
+            
+            guard let albumId = album?.id else {
+                debugPrint("No album ID available")
+                return
+            }
+            
+            do {
+                // Use the new background import manager
+                try await BackgroundMediaImportManager.shared.startImport(media: media, albumId: albumId, source: .files)
+                EventTracking.trackFilesImported(count: urls.count)
+            } catch {
+                debugPrint("Error starting import: \(error)")
+            }
+            
             await gridViewModel.enumerateMedia()
         }
     }
 
-    private func loadAndSaveMediaAsync(result: PHPickerResult) async throws {
+    private func loadMediaAsync(result: PHPickerResult) async throws -> [CleartextMedia] {
         // Identify whether the item is a video or an image
         let isLivePhoto = result.itemProvider.canLoadObject(ofClass: PHLivePhoto.self)
-        Task { @MainActor in
-            self.startedImportCount += 1
-        }
         if isLivePhoto {
-            try await handleLivePhoto(result: result)
+            return try await loadLivePhoto(result: result)
         } else {
-            try await handleMedia(result: result)
+            return [try await loadMedia(result: result)]
         }
     }
 
-    private func handleMedia(result: PHPickerResult) async throws {
+    private func loadMedia(result: PHPickerResult) async throws -> CleartextMedia {
         let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
         let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
+
+        // Ensure temp directory exists
+        try await ensureTempDirectoryExists()
 
         let url: URL? = try await withCheckedThrowingContinuation { continuation in
 
@@ -270,26 +329,36 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
 
         guard let url = url else {
             debugPrint("Error loading file representation, url is nil")
-            return
+            throw ImportError.mismatchedType
         }
 
-        try await saveCleartextMedia(mediaArray: [CleartextMedia(source: url, mediaType: isVideo ? .video : .photo, id: UUID().uuidString)])
+        return CleartextMedia(source: url, mediaType: isVideo ? .video : .photo, id: UUID().uuidString)
     }
 
 
     private func saveCleartextMedia(mediaArray: [CleartextMedia]) async throws {
         let media = try InteractableMedia(underlyingMedia: mediaArray)
-        let savedMedia = try await fileManager.save(media: media) { progress in
-            Task { @MainActor in
-                self.importProgress = progress
-            }
-        }
-        await MainActor.run {
-            self.importProgress = 0.0
+        _ = try await fileManager.save(media: media) { progress in
+            // Progress is now handled by BackgroundMediaImportManager
         }
     }
 
-    private func handleLivePhoto(result: PHPickerResult) async throws {
+    private func ensureTempDirectoryExists() async throws {
+        let tempDir = URL.tempMediaDirectory
+        var isDirectory: ObjCBool = false
+        
+        if !FileManager.default.fileExists(atPath: tempDir.path, isDirectory: &isDirectory) || !isDirectory.boolValue {
+            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true, attributes: nil)
+            debugPrint("🗂️ Created temp directory: \(tempDir.path)")
+        } else {
+            debugPrint("🗂️ Temp directory already exists: \(tempDir.path)")
+        }
+    }
+    
+    private func loadLivePhoto(result: PHPickerResult) async throws -> [CleartextMedia] {
+        
+        // Ensure temp directory exists
+        try await ensureTempDirectoryExists()
 
         let assetResources = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[PHAssetResource], Error>) in
             // Load the PHLivePhoto object from the picker result
@@ -315,7 +384,10 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             options.isNetworkAccessAllowed = true
 
             let documentsDirectory = URL.tempMediaDirectory
-            let fileURL = documentsDirectory.appendingPathComponent(resource.originalFilename)
+            // Use a unique filename to avoid conflicts between imports  
+            let fileExtension = (resource.originalFilename as NSString).pathExtension
+            let uniqueFileName = "\(UUID().uuidString).\(fileExtension.isEmpty ? "data" : fileExtension)"
+            let fileURL = documentsDirectory.appendingPathComponent(uniqueFileName)
             do {
                 var mediaType: MediaType
                 switch resource.type {
@@ -339,41 +411,283 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }
         }
 
-        try await saveCleartextMedia(mediaArray: cleartextMediaArray)
+        return cleartextMediaArray
     }
 
 
 
-    func handleSelectedMedia(items: [PHPickerResult]) {
-        currentTask = Task {
-            totalImportCount = items.count
-            isImporting = true
+    func handleSelectedMediaResults(_ results: [MediaSelectionResult]) {
+        debugPrint("🎯 handleSelectedMediaResults: Starting with \(results.count) results")
+        
+        Task {
+            // Ensure temp directory exists before processing any media
+            try? await ensureTempDirectoryExists()
+            
+            var allMedia: [CleartextMedia] = []
+            var pickerResults: [PHPickerResult] = []
+            var assetIdentifiers: [String] = []
+            var phAssetCount = 0
+            var pickerResultCount = 0
+            var successfulLoads = 0
+            var failedLoads = 0
 
-            for result in items {
-                if cancelImport {
-                    isImporting = false
-                    cancelImport = false
-                    return
+            debugPrint("🔄 handleSelectedMediaResults: Beginning result processing loop")
+            
+            for (index, result) in results.enumerated() {
+                debugPrint("📄 handleSelectedMediaResults: Processing result \(index + 1)/\(results.count)")
+                
+                switch result {
+                case .phAsset(let asset):
+                    phAssetCount += 1
+                    debugPrint("📸 handleSelectedMediaResults: Processing PHAsset - ID: \(asset.localIdentifier), Type: \(asset.mediaType.rawValue), Subtypes: \(asset.mediaSubtypes.rawValue)")
+                    
+                    do {
+                        let startTime = Date()
+                        let media = try await self.loadMediaFromAsset(asset)
+                        let loadTime = Date().timeIntervalSince(startTime)
+                        
+                        allMedia.append(contentsOf: media)
+                        successfulLoads += 1
+                        
+                        debugPrint("✅ handleSelectedMediaResults: Successfully loaded PHAsset (\(media.count) media items) in \(String(format: "%.2f", loadTime))s")
+                        
+                        // Track the asset identifier
+                        assetIdentifiers.append(asset.localIdentifier)
+                        debugPrint("🏷️ handleSelectedMediaResults: Added asset identifier: \(asset.localIdentifier)")
+                        
+                        // Track statistics
+                        if asset.mediaType == .video {
+                            UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                            debugPrint("📊 handleSelectedMediaResults: Tracked video addition to photoAddedCount")
+                        } else {
+                            UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                            debugPrint("📊 handleSelectedMediaResults: Tracked photo addition to photoAddedCount")
+                        }
+                    } catch {
+                        failedLoads += 1
+                        debugPrint("❌ handleSelectedMediaResults: Error loading PHAsset \(asset.localIdentifier): \(error)")
+                        if let nsError = error as NSError? {
+                            debugPrint("❌ Error domain: \(nsError.domain), code: \(nsError.code)")
+                            debugPrint("❌ Error userInfo: \(nsError.userInfo)")
+                        }
+                    }
+                    
+                case .phPickerResult(let pickerResult):
+                    pickerResultCount += 1
+                    debugPrint("🎭 handleSelectedMediaResults: Processing PHPickerResult - Asset ID: \(pickerResult.assetIdentifier ?? "none")")
+                    
+                    pickerResults.append(pickerResult)
+                    
+                    // Track the asset identifier if available
+                    if let assetId = pickerResult.assetIdentifier {
+                        assetIdentifiers.append(assetId)
+                        debugPrint("🏷️ handleSelectedMediaResults: Added picker result asset identifier: \(assetId)")
+                    } else {
+                        debugPrint("⚠️ handleSelectedMediaResults: PHPickerResult has no asset identifier")
+                    }
+                    
+                    let provider = pickerResult.itemProvider
+                    let hasMovie = provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+                    let hasImage = provider.hasItemConformingToTypeIdentifier(UTType.image.identifier)
+                    
+                    debugPrint("🔍 handleSelectedMediaResults: PHPickerResult provider - hasMovie: \(hasMovie), hasImage: \(hasImage)")
+                    
+                    if hasMovie {
+                        UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                        debugPrint("📊 handleSelectedMediaResults: Tracked video from picker to photoAddedCount")
+                    } else if hasImage {
+                        UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
+                        debugPrint("📊 handleSelectedMediaResults: Tracked image from picker to photoAddedCount")
+                    }
+                    
+                    // Collect media instead of saving immediately
+                    do {
+                        let startTime = Date()
+                        let media = try await self.loadMediaAsync(result: pickerResult)
+                        let loadTime = Date().timeIntervalSince(startTime)
+                        
+                        allMedia.append(contentsOf: media)
+                        successfulLoads += 1
+                        
+                        debugPrint("✅ handleSelectedMediaResults: Successfully loaded PHPickerResult (\(media.count) media items) in \(String(format: "%.2f", loadTime))s")
+                    } catch {
+                        failedLoads += 1
+                        debugPrint("❌ handleSelectedMediaResults: Error loading PHPickerResult: \(error)")
+                        if let nsError = error as NSError? {
+                            debugPrint("❌ Error domain: \(nsError.domain), code: \(nsError.code)")
+                            debugPrint("❌ Error userInfo: \(nsError.userInfo)")
+                        }
+                    }
                 }
-
-                let provider = result.itemProvider
-                if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
-                    UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
-                } else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-                    UserDefaultUtils.increaseInteger(forKey: .photoAddedCount)
-                }
-
-                try await self.loadAndSaveMediaAsync(result: result)
             }
-            lastImportedAssets = items
-            try await checkForLibraryPermissionsAndContinue()
+            
+            debugPrint("📈 handleSelectedMediaResults: Processing summary - PHAssets: \(phAssetCount), PickerResults: \(pickerResultCount), Successful loads: \(successfulLoads), Failed loads: \(failedLoads)")
+            debugPrint("📦 handleSelectedMediaResults: Total media collected: \(allMedia.count), Asset identifiers: \(assetIdentifiers.count)")
+            
+            // Use background import manager for all media at once
+            guard let albumId = album?.id else {
+                debugPrint("❌ handleSelectedMediaResults: No album ID available - aborting import")
+                return
+            }
+            
+            debugPrint("💾 handleSelectedMediaResults: Starting import to album \(albumId) with \(allMedia.count) media items")
+            
+            do {
+                let importStartTime = Date()
+                try await BackgroundMediaImportManager.shared.startImport(media: allMedia, albumId: albumId, source: .photos, assetIdentifiers: assetIdentifiers)
+                let importSetupTime = Date().timeIntervalSince(importStartTime)
+                
+                debugPrint("✅ handleSelectedMediaResults: Successfully initiated import in \(String(format: "%.2f", importSetupTime))s")
+                
+                EventTracking.trackMediaImported(count: results.count)
+                debugPrint("📊 handleSelectedMediaResults: Tracked media import event for \(results.count) items")
+            } catch {
+                debugPrint("❌ handleSelectedMediaResults: Error starting import: \(error)")
+            }
+            
+            // Only handle deletion for PHPickerResults
+            if !pickerResults.isEmpty {
+                debugPrint("🗑️ handleSelectedMediaResults: Setting up deletion for \(pickerResults.count) PHPickerResults")
+                lastImportedAssets = pickerResults
+                
+                do {
+                    try await checkForLibraryPermissionsAndContinue()
+                    debugPrint("✅ handleSelectedMediaResults: Successfully checked library permissions")
+                } catch {
+                    debugPrint("❌ handleSelectedMediaResults: Error checking library permissions: \(error)")
+                }
+            } else {
+                debugPrint("ℹ️ handleSelectedMediaResults: No PHPickerResults to delete from library")
+            }
 
-            EventTracking.trackMediaImported(count: items.count)
-
-            isImporting = false
+            debugPrint("🔄 handleSelectedMediaResults: Starting grid refresh")
+            let refreshStartTime = Date()
             await gridViewModel.enumerateMedia()
+            let refreshTime = Date().timeIntervalSince(refreshStartTime)
+            
+            debugPrint("✅ handleSelectedMediaResults: Completed grid refresh in \(String(format: "%.2f", refreshTime))s")
+            debugPrint("🏁 handleSelectedMediaResults: Function completed successfully")
         }
     }
+    
+    private func loadMediaFromAsset(_ asset: PHAsset) async throws -> [CleartextMedia] {
+        // Handle live photos
+        if asset.mediaSubtypes.contains(.photoLive) {
+            return try await loadLivePhotoFromAsset(asset)
+        } else {
+            return [try await loadRegularMediaFromAsset(asset)]
+        }
+    }
+    
+    private func loadRegularMediaFromAsset(_ asset: PHAsset) async throws -> CleartextMedia {
+        let isVideo = asset.mediaType == .video
+        let id = UUID().uuidString
+        
+        // Ensure temp directory exists
+        try await ensureTempDirectoryExists()
+        
+        if isVideo {
+            // Handle video
+            return try await withCheckedThrowingContinuation { continuation in
+                let options = PHVideoRequestOptions()
+                options.isNetworkAccessAllowed = true
+                options.version = .current
+                
+                PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, info in
+                    guard let urlAsset = avAsset as? AVURLAsset else {
+                        continuation.resume(throwing: ImportError.mismatchedType)
+                        return
+                    }
+                    
+                    let fileName = id + ".mov"
+                    let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
+                    
+                    do {
+                        try FileManager.default.copyItem(at: urlAsset.url, to: destinationURL)
+                        let media = CleartextMedia(source: destinationURL, mediaType: .video, id: id)
+                        continuation.resume(returning: media)
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+        } else {
+            // Handle image
+            return try await withCheckedThrowingContinuation { continuation in
+                let options = PHImageRequestOptions()
+                options.isNetworkAccessAllowed = true
+                options.deliveryMode = .highQualityFormat
+                options.version = .current
+                
+                PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
+                    guard let data = data else {
+                        continuation.resume(throwing: ImportError.mismatchedType)
+                        return
+                    }
+                    
+                    let fileName = id + ".jpeg"
+                    let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
+                    
+                    do {
+                        try data.write(to: destinationURL)
+                        let media = CleartextMedia(source: destinationURL, mediaType: .photo, id: id)
+                        continuation.resume(returning: media)
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func loadLivePhotoFromAsset(_ asset: PHAsset) async throws -> [CleartextMedia] {
+        let resources = PHAssetResource.assetResources(for: asset)
+        var cleartextMediaArray: [CleartextMedia] = []
+        let id = UUID().uuidString
+        
+        // Ensure temp directory exists
+        try await ensureTempDirectoryExists()
+        
+        for resource in resources {
+            let options = PHAssetResourceRequestOptions()
+            options.isNetworkAccessAllowed = true
+            
+            let documentsDirectory = URL.tempMediaDirectory
+            // Use a unique filename to avoid conflicts between imports
+            let fileExtension = (resource.originalFilename as NSString).pathExtension
+            let uniqueFileName = "\(UUID().uuidString).\(fileExtension.isEmpty ? "data" : fileExtension)"
+            let fileURL = documentsDirectory.appendingPathComponent(uniqueFileName)
+            
+            var mediaType: MediaType
+            switch resource.type {
+            case .pairedVideo:
+                mediaType = .video
+            case .photo:
+                mediaType = .photo
+            default:
+                debugPrint("Error, could not handle media type \(resource.type)")
+                continue
+            }
+            
+            try await PHAssetResourceManager.default().writeData(for: resource, toFile: fileURL, options: options)
+            let media = CleartextMedia(
+                source: fileURL,
+                mediaType: mediaType,
+                id: id
+            )
+            cleartextMediaArray.append(media)
+        }
+        
+        return cleartextMediaArray
+    }
+
+    func handleSelectedMedia(items: [PHPickerResult]) {
+        // Convert to MediaSelectionResult and call the new method
+        let results = items.map { MediaSelectionResult.phPickerResult($0) }
+        handleSelectedMediaResults(results)
+    }
+
+
 
     private func deleteMediaFromPhotoLibrary(result: [PHPickerResult]) async throws {
 
@@ -421,24 +735,46 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
         guard let album else { return }
         albumManager.delete(album: album)
     }
+    
+    /// Clears selection mode and selected media, then refreshes the grid
+    @MainActor
+    private func clearSelectionAndRefreshGrid() {
+        // Clear selection state
+        gridViewModel.isSelectingMedia = false
+        gridViewModel.selectedMedia.removeAll()
+        isSelectingMedia = false
+        selectedMedia.removeAll()
+        
+        // Refresh grid view (only use this method for cases where FileOperationBus won't handle it)
+        Task {
+            await gridViewModel.enumerateMedia()
+        }
+    }
 
     func deleteSelectedMedia() {
         Task {
-            var completedItems: [InteractableMedia<EncryptedMedia>] = []
-            for media in selectedMedia {
-                do {
-                    try await fileManager.delete(media: media)
-                    completedItems.append(media)
-                } catch {
-                    printDebug("Error deleting media: \(error)")
-                }
-
-            }
-            selectedMedia.removeAll()
-
+            // Store the selected items before clearing selection
+            let itemsToDelete = Array(selectedMedia)
+            
+            // First, exit selection mode
             await MainActor.run {
-                gridViewModel.removeMedia(items: completedItems)
+                gridViewModel.selectedMedia.removeAll()
+                gridViewModel.isSelectingMedia = false
                 isSelectingMedia = false
+            }
+            
+            // Delete the files - this will trigger FileOperationBus with animated removal
+            do {
+                try await fileManager.delete(media: itemsToDelete)
+                // No need to manually refresh - FileOperationBus will handle the animation
+            } catch {
+                printDebug("Error deleting media: \(error)")
+                // On error, refresh to ensure consistency
+                await MainActor.run {
+                    Task {
+                        await gridViewModel.enumerateMedia()
+                    }
+                }
             }
         }
     }
@@ -507,6 +843,98 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
             }
         }
     }
+    
+    func showMoveAlbumModal() {
+        guard let currentAlbum = album else { return }
+        let availableAlbums = Array(albumManager.albums).filter { $0.id != currentAlbum.id }
+        
+        let context = AlbumSelectionContext(
+            sourceView: "AlbumDetailView",
+            availableAlbums: availableAlbums,
+            currentAlbum: currentAlbum,
+            selectedMedia: selectedMedia,
+            onAlbumSelected: { selectedAlbum in
+                self.confirmMoveToAlbum(selectedAlbum)
+            },
+            onDismiss: {
+                self.appModalStateModel?.currentModal = nil
+            }
+        )
+        
+        appModalStateModel?.currentModal = .albumSelection(context: context)
+    }
+    
+    private func confirmMoveToAlbum(_ targetAlbum: Album) {
+        // Close the modal first
+        appModalStateModel?.currentModal = nil
+        // Show confirmation alert
+        activeAlert = .moveSelectedMedia(targetAlbum: targetAlbum)
+    }
+    
+    func moveSelectedMedia(to targetAlbum: Album) {
+        Task {
+            // Store the selected items before clearing selection
+            let itemsToMove = Array(selectedMedia)
+            var completedItems: [InteractableMedia<EncryptedMedia>] = []
+            var failedItems: [InteractableMedia<EncryptedMedia>] = []
+            
+            // First, exit selection mode
+            await MainActor.run {
+                gridViewModel.selectedMedia.removeAll()
+                gridViewModel.isSelectingMedia = false
+                isSelectingMedia = false
+            }
+            
+            // Create a new file manager configured for the target album
+            let targetFileManager = await D.init(for: targetAlbum, albumManager: albumManager)
+            
+            // First, copy all media to target album
+            for media in itemsToMove {
+                do {
+                    try await targetFileManager.copy(media: media)
+                    completedItems.append(media)
+                } catch {
+                    printDebug("Error copying media: \(error)")
+                    failedItems.append(media)
+                }
+            }
+            
+            // Then, batch delete successfully copied items from source album and send move notification
+            if !completedItems.isEmpty {
+                do {
+                    // Extract the underlying encrypted media for the notification
+                    let movedEncryptedMedia = completedItems.flatMap { $0.underlyingMedia }
+                    
+                    // Send move notification BEFORE deletion to ensure proper animation
+                    FileOperationBus.shared.didMove(movedEncryptedMedia, to: targetAlbum)
+                    
+                    // Then delete from source (this won't trigger additional animation since we already notified about move)
+                    try await fileManager.delete(media: completedItems)
+                } catch {
+                    printDebug("Error deleting media after move: \(error)")
+                    // On error, refresh to ensure consistency
+                    await MainActor.run {
+                        Task {
+                            await gridViewModel.enumerateMedia()
+                        }
+                    }
+                }
+            }
+            
+            // Show toast for successful moves
+            await MainActor.run {
+                if completedItems.count > 0 {
+                    showToast(type: .mediaMovedSuccess(count: completedItems.count, albumName: targetAlbum.name))
+                }
+                
+                // Show error if some failed
+                if failedItems.count > 0 {
+                    // Could add an error toast type here in the future
+                    printDebug("Failed to move \(failedItems.count) items")
+                }
+            }
+        }
+    }
 }
 
 struct AlbumDetailView<D: FileAccess>: View {
@@ -514,66 +942,74 @@ struct AlbumDetailView<D: FileAccess>: View {
 
     @StateObject var viewModel: AlbumDetailViewModel<D>
     @Environment(\.presentationMode) private var presentationMode
+    @Environment(\.isScreenBlockingActive) private var isScreenBlockingActive
     @EnvironmentObject var appModalStateModel: AppModalStateModel
+    @FocusState private var isAlbumNameFocused: Bool
 
     func popLastView() {
         presentationMode.wrappedValue.dismiss()
     }
 
-    private var cancelButton: some View {
-        Button {
-            viewModel.cancelImporting()
-        } label: {
-            Image(systemName: "x.circle.fill")
-        }
-        .pad(.pt8, edge: .trailing)
-    }
+
 
     var body: some View {
 
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                Group {
+                    GalleryGridView(viewModel: viewModel.gridViewModel) {
+                        VStack {
+                            if viewModel.showEmptyView {
+                                emptyState
+                            }
+                        }
 
-        VStack(spacing: 0) {
-            Group {
-                GalleryGridView(viewModel: viewModel.gridViewModel) {
-                    VStack {
-                        importProgressIndicator
-                        if viewModel.showEmptyView {
-                            emptyState
+                    }
+                }
+                .environmentObject(appModalStateModel)
+                .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
+                                    album: viewModel.album,
+                                    purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
+                    if hasEntitlement || storage == .local {
+                        viewModel.moveAlbum(to: storage)
+                        isShowingMoveAlbumModal = false
+                    } else if !hasEntitlement && storage == .icloud {
+
+                        viewModel.isShowingPurchaseSheet = true
+                        viewModel.afterPurchaseAction = {
+                            viewModel.moveAlbum(to: storage)
                         }
                     }
-
-                }
-            }
-            .environmentObject(appModalStateModel)
-            .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
-                                album: viewModel.album,
-                                purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
-                if hasEntitlement || storage == .local {
-                    viewModel.moveAlbum(to: storage)
+                }, dismissAction: {
                     isShowingMoveAlbumModal = false
-                } else if !hasEntitlement && storage == .icloud {
-
-                    viewModel.isShowingPurchaseSheet = true
-                    viewModel.afterPurchaseAction = {
-                        viewModel.moveAlbum(to: storage)
+                })
+                .productStorefront(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
+                    if case .purchaseComplete = action {
+                        isShowingMoveAlbumModal = false
+                        viewModel.afterPurchaseAction?()
+                        Task {
+                            await viewModel.gridViewModel.enumerateMedia()
+                        }
+                    } else {
+                        viewModel.isShowingPurchaseSheet = false
                     }
                 }
-            }, dismissAction: {
-                isShowingMoveAlbumModal = false
-            })
-            .productStorefront(isPresented: $viewModel.isShowingPurchaseSheet, fromViewName: "AlbumDetailView") { action in
-                if case .purchaseComplete = action {
-                    isShowingMoveAlbumModal = false
-                    viewModel.afterPurchaseAction?()
-                    Task {
-                        await viewModel.gridViewModel.enumerateMedia()
-                    }
-                } else {
-                    viewModel.isShowingPurchaseSheet = false
+                
+                if viewModel.isSelectingMedia {
+                    selectionTray
                 }
             }
-            if viewModel.isSelectingMedia {
-                selectionTray
+            
+            // Import progress overlay
+            if viewModel.showImportProgressView {
+                VStack {
+                    Spacer()
+                    GlobalImportProgressView(viewModel: .init(deleteEnabled: !BackgroundMediaImportManager.shared.currentTasks.contains(where: {$0.source == .files})), showProgressView: $viewModel.showImportProgressView)
+                        .padding(.horizontal, 16)
+                    Spacer().frame(height: 26)
+                }
+                .ignoresSafeArea(edges: .top)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .toolbarRole(.editor)
@@ -595,10 +1031,23 @@ struct AlbumDetailView<D: FileAccess>: View {
         }), content: {
             switch viewModel.showPhotoPicker {
             case .photoLibrary:
-                PhotoPicker(selectedItems: { results in
-                    viewModel.handleSelectedMedia(items: results)
-                }, filter: .any(of: [.images, .videos, .livePhotos]))
-                .ignoresSafeArea(.all)
+                // Switch picker based on photo library permissions
+                if viewModel.photoLibraryPermissionStatus == .denied || 
+                   viewModel.photoLibraryPermissionStatus == .notDetermined {
+                    // Use standard PhotoPicker for denied/restricted/undetermined permissions
+                    PhotoPicker(selectedItems: { results in
+                        viewModel.handleSelectedMediaResults(results)
+                    }, filter: .any(of: [.images, .videos, .livePhotos]))
+                    .ignoresSafeArea(.all)
+                } else {
+                    // Use PhotoPickerWrapper for authorized/limited permissions
+                    // PhotoPickerWrapper internally switches between CustomPhotoPicker (full access)
+                    // and PhotoPicker (limited access) automatically
+                    PhotoPickerWrapper(selectedItems: { results in
+                        viewModel.handleSelectedMediaResults(results)
+                    }, filter: .any(of: [.images, .videos, .livePhotos]))
+                    .ignoresSafeArea(.all)
+                }
             case .files:
                 FilePicker { urls in
                     viewModel.handleSelectedFiles(urls: urls)
@@ -620,6 +1069,21 @@ struct AlbumDetailView<D: FileAccess>: View {
         .screenBlocked()
         .onAppear {
             viewModel.appModalStateModel = appModalStateModel
+            // Focus the text field if we're creating a new album
+            if viewModel.shouldCreateAlbum {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isAlbumNameFocused = true
+                }
+            }
+        }
+        .onChange(of: viewModel.isEditingAlbumName) { _, newValue in
+            if newValue {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isAlbumNameFocused = true
+                }
+            } else {
+                isAlbumNameFocused = false
+            }
         }
 
     }
@@ -642,7 +1106,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                             .fontType(.pt24, weight: .bold)
                         Text(L10n.AlbumDetailView.addFirstImageSubtitle)
                             .multilineTextAlignment(.center)
-                            .lineLimit(2, reservesSpace: true)
+                            .lineLimit(3, reservesSpace: true)
                             .fontType(.pt14)
                             .opacity(0.60)
                     }.frame(alignment: .center)
@@ -653,7 +1117,7 @@ struct AlbumDetailView<D: FileAccess>: View {
             DualButtonComponent(nextActive: .constant(false),
                                 bottomButtonTitle: L10n.AlbumDetailView.importButton,
                                 bottomButtonAction: {
-                viewModel.showPhotoPicker = .photoLibrary
+                viewModel.requestPhotoAccess()
             },
                                 secondaryButtonTitle: L10n.AlbumDetailView.openCamera,
                                 secondaryButtonAction: {
@@ -668,42 +1132,15 @@ struct AlbumDetailView<D: FileAccess>: View {
         }.padding()
     }
 
-    var importProgressIndicator: some View {
-        Group {
-            if viewModel.cancelImport == false {
-                HStack {
-                    if viewModel.importProgress > 0 {
-                        ProgressView(value: viewModel.importProgress, total: 1.0) {
-                            Text("\(L10n.encrypting) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
-                                .fontType(.pt14)
-                        }
-                        .pad(.pt8, edge: [.trailing, .leading])
-                        cancelButton
 
-                    } else if viewModel.isImporting {
-                        HStack {
-                            ProgressView(value: 0.5, total: 1.0) {
-                            }.progressViewStyle(.circular)
-                                .pad(.pt8, edge: [.trailing, .leading])
-                            Text("\(L10n.importingPleaseWait) \(viewModel.startedImportCount)/\(viewModel.totalImportCount)")
-                                .fontType(.pt14)
-                            Spacer()
-
-                        }
-                        cancelButton
-                    }
-                }
-            }
-        }
-    }
 
     var horizontalTitleComponents: some View {
         Group {
             if viewModel.isEditingAlbumName {
                 ViewHeader(isToolbar: true, centerContent: {
                     TextField(L10n.albumName, text: $viewModel.albumName)
-                        .becomeFirstResponder()
-                        .fontType(.pt24, weight: .bold)
+                        .focused($isAlbumNameFocused)
+                        .fontType(.pt18, weight: .bold)
                         .noAutoModification()
                 }, rightContent: {
                     HStack(alignment: .center) {
@@ -728,7 +1165,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                     }
                 })
             } else  {
-                ViewHeader(title: viewModel.albumName, isToolbar: true,
+                ViewHeader(title: isScreenBlockingActive ? "" : viewModel.albumName, isToolbar: true,
                            textAlignment: .center,
                            titleFont: .pt18,
                            rightContent: {
@@ -770,33 +1207,32 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
 
             Button(L10n.importFromPhotos) {
-                viewModel.showPhotoPicker = .photoLibrary
+                viewModel.requestPhotoAccess()
             }
 
             Button(L10n.importFromFiles) {
                 viewModel.showPhotoPicker = .files
             }
-
-            //            Button {
-            //                if viewModel.purchasedPermissions.hasEntitlement == false {
-            //                    viewModel.isShowingPurchaseSheet = true
-            //                    viewModel.afterPurchaseAction = {
-            //                        viewModel.alertType = .hideAlbum
-            //                    }
-            //                } else if viewModel.isAlbumHidden {
-            //                    viewModel.isAlbumHidden = false
-            //                } else {
-            //                    viewModel.alertType = .hideAlbum
-            //                }
-            //            } label: {
-            //                HStack {
-            //                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
-            //                    Spacer()
-            //                    if viewModel.isAlbumHidden {
-            //                        Image(systemName: "checkmark")
-            //                    }
-            //                }
-            //            }
+            Button {
+                if viewModel.purchasedPermissions.hasEntitlement == false {
+                    viewModel.isShowingPurchaseSheet = true
+                    viewModel.afterPurchaseAction = {
+                        viewModel.activeAlert = .hideAlbum
+                    }
+                } else if viewModel.isAlbumHidden {
+                    viewModel.isAlbumHidden = false
+                } else {
+                    viewModel.activeAlert = .hideAlbum
+                }
+            } label: {
+                HStack {
+                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
+                    Spacer()
+                    if viewModel.isAlbumHidden {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
             Menu(L10n.AlbumDetailView.albumCoverMenuTitle) {
                 Button(L10n.AlbumDetailView.removeCoverImage) {
                     if viewModel.purchasedPermissions.hasEntitlement {
@@ -831,6 +1267,8 @@ struct AlbumDetailView<D: FileAccess>: View {
             viewModel.shareSelected()
         }, deleteAction: {
             viewModel.activeAlert = .deleteSelectedMedia
+        }, moveAction: {
+            viewModel.showMoveAlbumModal()
         }, selectAllAction: {
             viewModel.selectAllMedia()
         }, selectedMedia: $viewModel.selectedMedia, showShareOption: .constant(true))
@@ -854,6 +1292,15 @@ struct AlbumDetailView<D: FileAccess>: View {
                 message: Text(L10n.AlbumDetailView.deleteSelectedMedia(L10n.imageS(viewModel.selectedMedia.count))),
                 primaryButton: .destructive(Text(L10n.delete)) {
                     viewModel.deleteSelectedMedia()
+                },
+                secondaryButton: .cancel(Text(L10n.cancel))
+            )
+        case .moveSelectedMedia(let targetAlbum):
+            return Alert(
+                title: Text(L10n.AlbumDetailView.moveMedia),
+                message: Text(L10n.AlbumDetailView.moveMediaConfirm(String(viewModel.selectedMedia.count), targetAlbum.name, L10n.imageS(viewModel.selectedMedia.count))),
+                primaryButton: .default(Text(L10n.AlbumDetailView.moveMedia)) {
+                    viewModel.moveSelectedMedia(to: targetAlbum)
                 },
                 secondaryButton: .cancel(Text(L10n.cancel))
             )
@@ -888,6 +1335,17 @@ struct AlbumDetailView<D: FileAccess>: View {
                     }
                 },
                 secondaryButton: .cancel(Text(L10n.AlbumDetailView.photoAccessAlertSecondaryButton))
+            )
+        case .photoAccessDenied:
+            return Alert(
+                title: Text(L10n.AlbumDetailView.photoAccessRequired),
+                message: Text(L10n.AlbumDetailView.photoAccessSettings),
+                primaryButton: .default(Text(L10n.AlbumDetailView.openSettings)) {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                },
+                secondaryButton: .cancel(Text(L10n.cancel))
             )
         case .none:
             return Alert(title: Text(""))

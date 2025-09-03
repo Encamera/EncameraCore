@@ -515,7 +515,7 @@ open class LightboxController: UIViewController {
         let targetMedia = initialImages[currentPage]
         Task {
             do {
-                try await fileAccess.delete(media: targetMedia)
+                try await fileAccess.delete(media: [targetMedia])
                 Task { @MainActor in
                     guard numberOfPages != 1 else {
                         pageViews.removeAll()

@@ -54,6 +54,7 @@ class AuthenticationViewModel: ObservableObject {
     @Published var enteredPassword: String = ""
     @Published var isPinCodeInputEnabled: Bool = true
     @Published var remainingLockoutTime: TimeInterval?
+    @Published var hasCompletedFirstLockout: Bool = false
 
     private var passwordAttempts = 0
 #if DEBUG
@@ -76,6 +77,10 @@ class AuthenticationViewModel: ObservableObject {
     init(authManager: AuthManager, keyManager: KeyManager) {
         self.authManager = authManager
         self.keyManager = keyManager
+        
+        // Check if user has completed a lockout before
+        self.hasCompletedFirstLockout = UserDefaultUtils.value(forKey: .hasCompletedFirstLockout) as? Bool ?? false
+        
         setupLockoutTimer()
 
         let authMethod = keyManager.passcodeType
@@ -156,6 +161,12 @@ class AuthenticationViewModel: ObservableObject {
         remainingLockoutTime = nil
         lockoutTimer?.cancel()
         UserDefaultUtils.removeObject(forKey: .lockoutEnd)
+        
+        // Mark that user has completed their first lockout
+        if !hasCompletedFirstLockout {
+            hasCompletedFirstLockout = true
+            UserDefaultUtils.set(true, forKey: .hasCompletedFirstLockout)
+        }
     }
 
     func checkLockoutStatus() {
@@ -228,10 +239,21 @@ struct AuthenticationView: View {
     var body: some View {
         VStack(spacing: 8) {
             Image("LogoSquare").frame(height: 100)
-            Text(L10n.welcomeBack)
-                .fontType(.pt20, weight: .bold)
+            
+            // Show different text based on lockout status
+            if let lockoutTime = viewModel.remainingLockoutTime {
+                Text(L10n.AuthenticationView.tooManyAttempts)
+                    .fontType(.pt20, weight: .bold)
+            } else {
+                Text(L10n.welcomeBack)
+                    .fontType(.pt20, weight: .bold)
+            }
+            
             if viewModel.keyManager.passwordExists() {
-                if viewModel.authManager.useBiometricsForAuth, let biometric = viewModel.availableBiometric {
+                if let lockoutTime = viewModel.remainingLockoutTime {
+                    Text(L10n.AuthenticationView.retryIn(lockoutTime.formatAsHoursMinutesSeconds()))
+                        .fontType(.pt14, weight: .regular)
+                } else if viewModel.authManager.useBiometricsForAuth, let biometric = viewModel.availableBiometric {
                     Text("\(L10n.enterPassword) \(L10n.or.lowercased()) \(biometric.nameForMethod)")
                 } else {
                     Text("\(L10n.enterPassword)")
@@ -260,10 +282,6 @@ struct AuthenticationView: View {
                     default:
                         EmptyView()
                     }
-                } else if let lockoutTime = viewModel.remainingLockoutTime {
-                    Text(L10n.pinCodeLockTryAgainIn(lockoutTime.formatAsHoursMinutesSeconds()))
-                        .fontType(.pt14, weight: .bold)
-                        .opacity(0.5)
                 }
             }
 
@@ -271,6 +289,22 @@ struct AuthenticationView: View {
                 Text("\(error.displayDescription)")
                     .alertText()
             }
+            
+            // Show reset button only during lockout AND after first lockout completed
+            if viewModel.remainingLockoutTime != nil && viewModel.hasCompletedFirstLockout {
+                NavigationLink {
+                    PromptToErase(viewModel: .init(
+                        scope: .allData,
+                        keyManager: viewModel.keyManager,
+                        fileAccess: InteractableMediaDiskAccess()
+                    ))
+                } label: {
+                    Text(L10n.AuthenticationView.forgotPassword)
+                }
+                .textButton()
+                .padding(.top, 20)
+            }
+            
             Spacer()
                 .frame(height: 28.0)
             if viewModel.availableBiometric != nil && viewModel.keyManager.passwordExists() {

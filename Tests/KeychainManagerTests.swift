@@ -47,8 +47,8 @@ final class KeychainManagerTests: XCTestCase {
     // MARK: - Helper Methods
 
     /// Creates a dummy PrivateKey for testing.
-    private func createTestKey(name: String = "testKey", setAsCurrent: Bool = true) throws -> PrivateKey {
-        return try TestUtils.createTestKey(name: name, keyManager: sut, setAsCurrent: setAsCurrent)
+    private func createTestKey(name: String = "testKey") throws -> PrivateKey {
+        return try TestUtils.createTestKey(name: name, keyManager: sut)
     }
 
     /// Helper function to check the kSecAttrSynchronizable status of a generic password item.
@@ -143,7 +143,11 @@ final class KeychainManagerTests: XCTestCase {
     func testSaveNewKey_NotCurrent_Backup() throws {
         // Ensure sync is enabled first
         try sut.backupKeychainToiCloud(backupEnabled: true)
-        let key = try createTestKey(name: "key2", setAsCurrent: false) // Creates key using current sync state (true)
+        let key = try createTestKey(name: "key2") // Creates key using current sync state (true)
+        
+        // Clear any automatically set current key before saving
+        try sut.setActiveKey(nil)
+        
         try sut.save(key: key, setNewKeyToCurrent: false)
 
         // Verify retrieval
@@ -951,7 +955,20 @@ final class KeychainManagerTests: XCTestCase {
         try sut.backupKeychainToiCloud(backupEnabled: true)
         
         // Create legacy key that will be synced during migration
-        try createLegacyKeyInKeychain(name: syncedKeyName, keyBytes: syncedKeyBytes)
+        let syncedLegacyKeyData = Data(syncedKeyBytes)
+        
+        let syncedKeychainQuery: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrLabel as String: syncedKeyName.data(using: .utf8)!,
+            kSecAttrCreationDate as String: Date(),
+            kSecValueData as String: syncedLegacyKeyData,
+            kSecAttrApplicationLabel as String: "com.encamera.key.\(syncedKeyName)",
+            kSecAttrSynchronizable as String: kCFBooleanTrue!, // Should be synced
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+        ]
+        
+        let syncedAddStatus = SecItemAdd(syncedKeychainQuery as CFDictionary, nil)
+        XCTAssertEqual(syncedAddStatus, errSecSuccess, "Should successfully add synced legacy key")
         
         // Run migration again
         try sut.migrateLegacyKeysIfNeeded()
@@ -979,6 +996,7 @@ final class KeychainManagerTests: XCTestCase {
     func testMigrationOfLegacyKeys_WithCurrentKeySet() throws {
         // Create a modern key and set it as current
         let modernKey = try createTestKey(name: "modernKey")
+        try sut.setActiveKey("modernKey")
         XCTAssertEqual(sut.currentKey?.name, "modernKey", "Modern key should be set as current")
         
         // Create a legacy key

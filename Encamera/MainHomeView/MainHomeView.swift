@@ -92,17 +92,24 @@ struct MainHomeView<D: FileAccess>: View {
                         purchasedPermissions: viewModel.purchasedPermissions
                     ))
                 } else {
-                    AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager))
+                    AlbumGrid(viewModel: .init(purchaseManager: viewModel.purchasedPermissions, fileManager: viewModel.fileAccess, albumManger: viewModel.albumManager),
+                              navigateToPath: { path in
+                                  viewModel.selectedPath.append(path)
+                              })
                 }
-                BottomNavigationBar(selectedItem: $selectedNavigationItem, cameraCloseButtonTapped: { targetAlbum in
-                    UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
-                    if let targetAlbum {
-                        viewModel.navigateToAlbumDetailView(with: targetAlbum)
-                    }
-                    withAnimation {
-                        selectedNavigationItem = .albums
-                    }
-                })
+                
+                VStack(spacing: 0) {                        
+                    
+                    BottomNavigationBar(selectedItem: $selectedNavigationItem, cameraCloseButtonTapped: { targetAlbum in
+                        UserDefaultUtils.set(false, forKey: .showCurrentAlbumOnLaunch)
+                        if let targetAlbum {
+                            viewModel.navigateToAlbumDetailView(with: targetAlbum)
+                        }
+                        withAnimation {
+                            selectedNavigationItem = .albums
+                        }
+                    })
+                }
             }
             .environmentObject(appModalStateModel)
             .onAppear {

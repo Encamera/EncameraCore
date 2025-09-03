@@ -124,6 +124,9 @@ struct EncameraApp: App {
                 .sink { _ in
 
                     self.showScreenBlocker = true
+                    print("EncameraApp: Calling TempFileAccess.cleanupTemporaryFiles() on entering background")
+                    print("EncameraApp: BackgroundMediaImportManager.isImporting = \(BackgroundMediaImportManager.shared.isImporting)")
+                    print("EncameraApp: BackgroundMediaImportManager.currentTasks.count = \(BackgroundMediaImportManager.shared.currentTasks.count)")
                     TempFileAccess.cleanupTemporaryFiles()
 
                 }.store(in: &cancellables)
@@ -168,6 +171,9 @@ struct EncameraApp: App {
                         self.rotationFromOrientation = rotation
                     }
                 }.store(in: &cancellables)
+            print("EncameraApp: Calling TempFileAccess.cleanupTemporaryFiles() during app initialization")
+            print("EncameraApp: BackgroundMediaImportManager.isImporting = \(BackgroundMediaImportManager.shared.isImporting)")
+            print("EncameraApp: BackgroundMediaImportManager.currentTasks.count = \(BackgroundMediaImportManager.shared.currentTasks.count)")
             TempFileAccess.cleanupTemporaryFiles()
         }
 
@@ -197,6 +203,12 @@ struct EncameraApp: App {
                     for: album,
                     albumManager: albumManager
                 )
+                
+                // Configure the background import manager
+                BackgroundMediaImportManager.shared.configure(
+                    albumManager: albumManager
+                )
+                
                 guard keyManager.currentKey != nil else { return }
                 await showImportScreenIfNeeded()
             }
@@ -245,6 +257,9 @@ struct EncameraApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
+        // Register background tasks early in app lifecycle
+        BackgroundMediaImportManager.registerBackgroundTasks()
+        
         _viewModel = StateObject(wrappedValue: .init())
         let appear = UINavigationBar.appearance().standardAppearance
 
@@ -335,7 +350,9 @@ struct EncameraApp: App {
                     }
                     
                     if viewModel.isAuthenticated == false && !viewModel.showOnboarding {
-                        AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                        NavigationStack {
+                            AuthenticationView(viewModel: .init(authManager: self.viewModel.authManager, keyManager: self.viewModel.keyManager))
+                        }
                     }
                 }
             }
@@ -351,6 +368,8 @@ struct EncameraApp: App {
                 case .feedbackView:
                     break
                 case .purchaseView(context: _):
+                    break
+                case .albumSelection(context: _):
                     break
                 }
             })
@@ -368,6 +387,8 @@ struct EncameraApp: App {
             }, content: {
                 Group {
                     switch self.appModalStateModel.currentModal {
+                    case .albumSelection(context: let context):
+                        AlbumSelectionModal(context: context)
                     case .cameraView(context: let context):
                         if let cameraModel = viewModel.cameraModel {
                             CameraView(cameraModel: cameraModel, hasMediaToImport: .constant(false), closeButtonTapped: { album in
@@ -417,6 +438,14 @@ struct EncameraApp: App {
                  self.viewModel.showScreenBlocker
             )
             .environment(\.rotationFromOrientation, viewModel.rotationFromOrientation)
+            .onReceive(NotificationUtils.didEnterBackgroundPublisher) { _ in
+                // Dismiss any open modal when app enters background
+                appModalStateModel.currentModal = nil
+            }
+            .onReceive(NotificationUtils.willResignActivePublisher) { _ in
+                // Also dismiss modal when app becomes inactive (e.g., when control center is opened)
+                appModalStateModel.currentModal = nil
+            }
 
         }
             
@@ -447,7 +476,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
 #endif
 #if DEBUG
-        Purchases.logLevel = .debug
+        Purchases.logLevel = .info
         Purchases.shared.invalidateCustomerInfoCache()
 #endif
         let audioSession = AVAudioSession.sharedInstance()

@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import EncameraCore
 
 struct AlbumBaseGridItem<SubheadingView: View>: View {
 
@@ -16,8 +17,9 @@ struct AlbumBaseGridItem<SubheadingView: View>: View {
     var width: CGFloat
     var strokeStyle: StrokeStyle? = nil
     var shouldResizeImage: Bool = true
+    var blurEnabled: Bool = false
 
-    init(image: Image? = nil, uiImage: UIImage? = nil, title: String, @ViewBuilder subheadingView: () -> SubheadingView, width: CGFloat, strokeStyle: StrokeStyle? = nil, shouldResizeImage: Bool = true) {
+    init(image: Image? = nil, uiImage: UIImage? = nil, title: String, @ViewBuilder subheadingView: () -> SubheadingView, width: CGFloat, strokeStyle: StrokeStyle? = nil, shouldResizeImage: Bool = true, blurEnabled: Bool = false) {
         if let image {
             self.image = image
         }
@@ -29,6 +31,7 @@ struct AlbumBaseGridItem<SubheadingView: View>: View {
         self.width = width
         self.strokeStyle = strokeStyle
         self.shouldResizeImage = shouldResizeImage
+        self.blurEnabled = blurEnabled
     }
 
     var body: some View {
@@ -37,14 +40,15 @@ struct AlbumBaseGridItem<SubheadingView: View>: View {
                 .stroke(Color.white.opacity(0.3), style: strokeStyle ?? StrokeStyle(lineWidth: 0))
                 .background {
                     if let image = image {
-                        if shouldResizeImage {
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } else {
-                            image
-                        }
-
+                        Group {
+                            if shouldResizeImage {
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } else {
+                                image
+                            }
+                        }.blur(radius: blurEnabled ? AppConstants.blockingBlurRadius : 0.0)
                     } else {
                         ZStack {
                             Color.inputFieldBackgroundColor

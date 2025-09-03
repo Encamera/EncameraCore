@@ -49,7 +49,7 @@ struct CameraView: View {
             cameraModel.flipCamera()
         }, label: {
             Circle()
-                .foregroundColor(Color.foregroundSecondary)
+                .foregroundColor(Color.actionYellowGreen)
                 .frame(width: 60, height: 60, alignment: .center)
                 .overlay(
                     Image(systemName: "camera.rotate.fill")
@@ -320,6 +320,7 @@ struct CameraView_Previews: PreviewProvider {
         CameraView(cameraModel: model, hasMediaToImport: .constant(false)) { _ in
         }
         .preferredColorScheme(.dark)
+        .environmentObject(AppModalStateModel())
     }
 }
 
