@@ -99,7 +99,7 @@ public class DemoFileEnumerator: FileAccess {
         // Implementation here
     }
 
-    public func loadLeadingThumbnail() async throws -> UIImage? {
+    public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)? = nil) async throws -> UIImage? {
         guard let last = mediaList.popLast(), case .url(let source) = last.thumbnailSource.source else {
             return nil
         }
