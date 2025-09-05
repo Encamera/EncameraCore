@@ -487,7 +487,7 @@ class MockFileAccess: FileAccess {
     }
     
     // MARK: - FileReader
-    func loadLeadingThumbnail() async throws -> UIImage? {
+    func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)? = nil) async throws -> UIImage? {
         return nil
     }
     
