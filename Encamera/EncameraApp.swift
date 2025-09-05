@@ -143,7 +143,9 @@ struct EncameraApp: App {
                 .sink { _ in
                     self.showScreenBlocker = false
                     Task {
-                        await self.purchasedPermissions.refreshEntitlements()
+                        if let appPermissions = self.purchasedPermissions as? AppPurchasedPermissionUtils {
+                            await appPermissions.refreshEntitlements()
+                        }
                     }
                 }.store(in: &cancellables)
 
