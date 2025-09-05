@@ -3,9 +3,7 @@ import UIKit
 import EncameraCore
 
 public class DemoFileEnumerator: FileAccess {
-    public func setKeyUUIDForExistingFiles() async throws {
-        
-    }
+  
     
     public var directoryModel: DataStorageModel? = DemoDirectoryModel()
 

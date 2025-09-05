@@ -13,7 +13,7 @@ extension View {
     func becomeFirstResponder() -> some View {
         self.introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17, .v18)) { (textField: UITextField) in
             // Delay to avoid NavigationStack conflicts in iOS 16.4+
-            DispatchQueue.main.async {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 textField.becomeFirstResponder()
             }
         }

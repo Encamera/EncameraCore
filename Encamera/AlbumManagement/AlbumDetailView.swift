@@ -1142,6 +1142,12 @@ struct AlbumDetailView<D: FileAccess>: View {
                         .focused($isAlbumNameFocused)
                         .fontType(.pt18, weight: .bold)
                         .noAutoModification()
+                        .onChange(of: viewModel.albumName) { oldValue, newValue in
+                            if newValue.count > AppConstants.maxCharacterAlbumName {
+                                viewModel.albumName = oldValue
+                            }
+                        }
+                        .becomeFirstResponder()
                 }, rightContent: {
                     HStack(alignment: .center) {
                         Button {
