@@ -198,7 +198,7 @@ struct AlbumGrid<D: FileAccess>: View {
             } label: {
                 AlbumGridItem(album: album,
                               albumManager: viewModel.albumManager,
-                              width: side, fileReader: D.init(), blurEnabled: !viewModel.purchaseManager.isAllowedAccess(feature: .accessPhoto(count: Double(viewModel.albumManager.albumMediaCount(album: album)))))
+                              width: side, fileReader: D.init(), blurEnabled: false, purchasedPermissions: viewModel.purchaseManager)
             }
         }
     }

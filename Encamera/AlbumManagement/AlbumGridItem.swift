@@ -14,6 +14,7 @@ class AlbumGridItemModel: ObservableObject {
     var fileReader: FileReader
     var album: Album
     var albumManager: AlbumManaging
+    var purchasedPermissions: PurchasedPermissionManaging?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -22,7 +23,7 @@ class AlbumGridItemModel: ObservableObject {
     @Published var storageIconName: String?
     @Published var blurEnabled: Bool
 
-    init(album: Album, fileReader: FileReader, albumManager: AlbumManaging, blurEnabled: Bool) {
+    init(album: Album, fileReader: FileReader, albumManager: AlbumManaging, blurEnabled: Bool, purchasedPermissions: PurchasedPermissionManaging? = nil) {
         self.album = album
         Task {
             await fileReader.configure(
@@ -34,6 +35,7 @@ class AlbumGridItemModel: ObservableObject {
         self.blurEnabled = blurEnabled
         self.fileReader = fileReader
         self.albumManager = albumManager
+        self.purchasedPermissions = purchasedPermissions
         self.countOfMedia = albumManager.albumMediaCount(album: album)
         // Determine the icon name based on storage option
         switch album.storageOption {
@@ -55,7 +57,7 @@ class AlbumGridItemModel: ObservableObject {
 
     func load() async throws {
         do {
-            let thumb = try await fileReader.loadLeadingThumbnail()
+            let thumb = try await fileReader.loadLeadingThumbnail(purchasedPermissions: purchasedPermissions)
             await MainActor.run {
                 self.countOfMedia = albumManager.albumMediaCount(album: album)
                 self.leadingImage = thumb
@@ -84,9 +86,9 @@ struct AlbumGridItem: View {
         }
     }
 
-    init(album: Album, albumManager: AlbumManaging, width: CGFloat, fileReader: FileAccess, blurEnabled: Bool) {
+    init(album: Album, albumManager: AlbumManaging, width: CGFloat, fileReader: FileAccess, blurEnabled: Bool, purchasedPermissions: PurchasedPermissionManaging? = nil) {
         albumName = album.name
-        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, fileReader: fileReader, albumManager: albumManager, blurEnabled: blurEnabled))
+        _viewModel = StateObject(wrappedValue: AlbumGridItemModel(album: album, fileReader: fileReader, albumManager: albumManager, blurEnabled: blurEnabled, purchasedPermissions: purchasedPermissions))
         self.width = width
     }
 
