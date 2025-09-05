@@ -18,6 +18,7 @@ class GlobalImportProgressViewModel: ObservableObject {
     @Published var isCompleted: Bool = false
     var deleteEnabled: Bool
     @Published var activeTasks: [ImportTask] = []
+    @Published var photosDeleted: Bool = false
 
     let deletionManager = PhotoDeletionManager()
     private var dismissalTimer: Timer? = nil
@@ -30,13 +31,15 @@ class GlobalImportProgressViewModel: ObservableObject {
          displayedProgress: CircularProgressDisplayMode = .percentage(value: 0.0),
          isCompleted: Bool = false,
          completedTasks: [ImportTask] = [],
-         activeTasks: [ImportTask] = []
+         activeTasks: [ImportTask] = [],
+         photosDeleted: Bool = false
     ) {
         self.completedTasks = completedTasks
         self.activeTasks = activeTasks
         self.isCompleted = isCompleted
         self.displayedProgress = displayedProgress
         self.deleteEnabled = deleteEnabled
+        self.photosDeleted = photosDeleted
         
         // Initialize status text
         updateStatusText()
@@ -97,7 +100,9 @@ class GlobalImportProgressViewModel: ObservableObject {
     private func updateStatusText() {
         var retVal: String
 
-        if !completedTasks.isEmpty && activeTasks.isEmpty {
+        if photosDeleted {
+            retVal = L10n.GlobalImportProgress.photosDeleted
+        } else if !completedTasks.isEmpty && activeTasks.isEmpty {
             retVal = L10n.GlobalImportProgress.importCompleted
         } else if isCompleted && activeTasks.isEmpty && !completedTasks.isEmpty {
             retVal = L10n.GlobalImportProgress.importCompleted
@@ -185,6 +190,10 @@ class GlobalImportProgressViewModel: ObservableObject {
             importManager.cancelImport(taskId: task.id)
         }
 
+        // Set photos deleted state and update status text
+        photosDeleted = true
+        updateStatusText()
+
         // If no tasks remain after deletion, clear session tracking
         if importManager.currentTasks.filter({ $0.state != .completed }).isEmpty {
             lastActiveImportSession = nil
@@ -250,6 +259,7 @@ class GlobalImportProgressViewModel: ObservableObject {
         completedTasks.removeAll()
         activeTasks.removeAll()
         isCompleted = false
+        photosDeleted = false
         displayedProgress = .percentage(value: 0.0)
         statusText = L10n.GlobalImportProgress.noActiveImports
         estimatedTimeRemaining = nil
@@ -548,6 +558,23 @@ struct GlobalImportProgressView: View {
                         isCompleted: false,
                         completedTasks: [],
                         activeTasks: []
+                    ),
+                    showProgressView: $showProgressView
+                )
+            }
+            
+            // Photos Deleted State
+            VStack(alignment: .leading) {
+                Text("Photos Deleted")
+                    .font(.headline)
+                GlobalImportProgressView(
+                    viewModel: .init(
+                        deleteEnabled: true,
+                        displayedProgress: .percentage(value: 1.0),
+                        isCompleted: true,
+                        completedTasks: [],
+                        activeTasks: [],
+                        photosDeleted: true
                     ),
                     showProgressView: $showProgressView
                 )
