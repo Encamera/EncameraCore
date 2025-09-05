@@ -173,14 +173,16 @@ struct SettingsView: View {
             ViewHeader(title: L10n.settings)
             List {
                 Group {
-                    Section {
+                    Section(header: Text("")) {
                         Button(L10n.getPremium) {
                             viewModel.showPurchaseScreen = true
                         }
                         Button(L10n.restorePurchases) {
                             Task(priority: .userInitiated) {
                                 let _ = try await Purchases.shared.restorePurchases()
-                                await viewModel.purchasedPermissions.refreshEntitlements()
+                                if let appPermissions = viewModel.purchasedPermissions as? AppPurchasedPermissionUtils {
+                                    await appPermissions.refreshEntitlements()
+                                }
                                 Task { @MainActor in
                                     self.viewModel.activeAlert = .purchasesRestored
                                 }

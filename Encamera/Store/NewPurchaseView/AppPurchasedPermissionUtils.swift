@@ -2,17 +2,11 @@ import Foundation
 import RevenueCat
 import EncameraCore
 
-public protocol PurchasedPermissionManaging {
-    func refreshEntitlements() async
-    func isAllowedAccess(feature: AppFeature) -> Bool
-    var hasEntitlement: Bool { get }
-}
-
 @MainActor
-public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject {
-
+public class AppPurchasedPermissionUtils: @preconcurrency PurchasedPermissionManaging, ObservableObject {
 
     @Published public var hasEntitlement: Bool = false
+    
     public init() {
         refreshEntitlements()
     }
