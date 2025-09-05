@@ -200,7 +200,9 @@ struct ProductStoreView: View {
 
                                    showPostPurchaseScreen = true
                                    Task{
-                                       await viewModel.purchasedPermissionsManaging.refreshEntitlements()
+                                       if let appPermissions = viewModel.purchasedPermissionsManaging as? AppPurchasedPermissionUtils {
+                                           await appPermissions.refreshEntitlements()
+                                       }
                                    }
                                    purchaseAction?(.purchaseComplete(amount: purchasable.storeProduct.price, currencyCode: purchasable.storeProduct.localizedPriceString))
                                    
