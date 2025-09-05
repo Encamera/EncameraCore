@@ -61,6 +61,15 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
         self.albumManager = albumManger
         setAlbums()
         self.isKeyTutorialClosed = UserDefaultUtils.bool(forKey: .keyTutorialClosed)
+        
+        // Listen for purchase state changes to trigger UI updates
+        if let observablePurchaseManager = purchaseManager as? AppPurchasedPermissionUtils {
+            observablePurchaseManager.objectWillChange.sink { [weak self] in
+                // Force a UI update when purchase state changes
+                self?.objectWillChange.send()
+            }.store(in: &cancellables)
+        }
+        
         albumManger.albumOperationPublisher
             .receive(on: RunLoop.main)
             .sink { _ in
