@@ -21,6 +21,13 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     private var taskQueue = DispatchQueue(label: "media.import.queue", qos: .userInitiated)
     private var currentImportTask: Task<Void, Error>?
     
+    // Time estimation smoothing
+    private var smoothedTimeEstimate: TimeInterval?
+    private var lastTimeEstimateUpdate: Date?
+    private var progressHistory: [(date: Date, progress: Double)] = []
+    private let timeEstimateUpdateInterval: TimeInterval = 2.0 // Update estimate every 2 seconds
+    private let smoothingFactor: Double = 0.3 // Exponential smoothing factor (0.0 = no smoothing, 1.0 = no history)
+    
     // Progress tracking
     private var progressSubject = PassthroughSubject<ImportProgressUpdate, Never>()
     public var progressPublisher: AnyPublisher<ImportProgressUpdate, Never> {
@@ -40,6 +47,9 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
 
     public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = []) async throws {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
+        
+        // Reset time estimation for new import
+        resetTimeEstimationState()
         
         // Log details about each media item
         for (index, mediaItem) in media.prefix(5).enumerated() { // Log first 5 items
@@ -148,6 +158,9 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         isImporting = false
         overallProgress = 0.0
         updateOverallProgress() // Ensure progress is properly recalculated and published
+        
+        // Reset time estimation smoothing state
+        resetTimeEstimationState()
         
         // Clean up temp files since no imports are active
         cleanupTempFilesIfSafe()
@@ -444,13 +457,83 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     private func calculateEstimatedTime(startTime: Date, progress: Double) -> TimeInterval? {
-        guard progress > 0.05 else { return nil } // Wait for meaningful progress
+        guard progress > 0.05 else { 
+            // Reset smoothing state for new imports
+            smoothedTimeEstimate = nil
+            lastTimeEstimateUpdate = nil
+            progressHistory.removeAll()
+            return nil 
+        }
         
-        let elapsed = Date().timeIntervalSince(startTime)
+        let now = Date()
+        let elapsed = now.timeIntervalSince(startTime)
+        
+        // Add current progress to history
+        progressHistory.append((date: now, progress: progress))
+        
+        // Clean up old progress history (keep last 30 seconds of data)
+        let cutoffTime = now.addingTimeInterval(-30)
+        progressHistory.removeAll { $0.date < cutoffTime }
+        
+        // Check if enough time has passed since last estimate update (debouncing)
+        if let lastUpdate = lastTimeEstimateUpdate,
+           now.timeIntervalSince(lastUpdate) < timeEstimateUpdateInterval,
+           smoothedTimeEstimate != nil {
+            // Return cached estimate if we're within debounce interval
+            return smoothedTimeEstimate
+        }
+        
+        // Calculate new estimate using progress history for more stability
+        let newEstimate = calculateSmoothedEstimate(startTime: startTime, progress: progress, currentTime: now)
+        
+        // Apply exponential smoothing if we have a previous estimate
+        if let previousEstimate = smoothedTimeEstimate {
+            smoothedTimeEstimate = smoothingFactor * newEstimate + (1 - smoothingFactor) * previousEstimate
+        } else {
+            smoothedTimeEstimate = newEstimate
+        }
+        
+        lastTimeEstimateUpdate = now
+        
+        return smoothedTimeEstimate.map { max(0, $0) }
+    }
+    
+    private func calculateSmoothedEstimate(startTime: Date, progress: Double, currentTime: Date) -> TimeInterval {
+        let elapsed = currentTime.timeIntervalSince(startTime)
+        
+        // If we have enough progress history, use rate-based calculation for more stability
+        if progressHistory.count >= 3 {
+            // Calculate average progress rate over recent history
+            let recentHistory = Array(progressHistory.suffix(min(10, progressHistory.count)))
+            
+            if recentHistory.count >= 2 {
+                let timeSpan = recentHistory.last!.date.timeIntervalSince(recentHistory.first!.date)
+                let progressSpan = recentHistory.last!.progress - recentHistory.first!.progress
+                
+                if timeSpan > 0 && progressSpan > 0 {
+                    let progressRate = progressSpan / timeSpan
+                    let remainingProgress = 1.0 - progress
+                    let rateBasedEstimate = remainingProgress / progressRate
+                    
+                    // Blend rate-based estimate with simple calculation for stability
+                    let simpleEstimate = elapsed / progress - elapsed
+                    let blendFactor = min(1.0, timeSpan / 10.0) // Give more weight to rate-based as we have more data
+                    
+                    return blendFactor * rateBasedEstimate + (1 - blendFactor) * simpleEstimate
+                }
+            }
+        }
+        
+        // Fallback to simple calculation
         let totalEstimate = elapsed / progress
-        let remaining = totalEstimate - elapsed
-        
-        return max(0, remaining)
+        return totalEstimate - elapsed
+    }
+    
+    private func resetTimeEstimationState() {
+        printDebug("Resetting time estimation smoothing state")
+        smoothedTimeEstimate = nil
+        lastTimeEstimateUpdate = nil
+        progressHistory.removeAll()
     }
     
     private func cleanupTempFilesIfSafe() {
