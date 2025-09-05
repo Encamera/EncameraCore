@@ -52,8 +52,42 @@ public actor InteractableMediaDiskAccess: FileAccess {
 
 
 
-    public func loadLeadingThumbnail() async throws -> UIImage? {
-        return try await fileAccess.loadLeadingThumbnail()
+    public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> UIImage? {
+        guard let purchasedPermissions = purchasedPermissions else {
+            // If no permissions provided, use the default behavior
+            return try await fileAccess.loadLeadingThumbnail(purchasedPermissions: nil)
+        }
+        
+        // Get all media properly grouped as InteractableMedia (like the gallery does)
+        let media: [InteractableMedia<EncryptedMedia>] = await enumerateMedia()
+        guard !media.isEmpty else {
+            return nil
+        }
+        
+        // Find the last accessible photo (similar to blurItemAt logic)
+        let totalCount = media.count
+        
+        // Start from the most recent photo (index 0) and find the first one we can access
+        for index in 0..<totalCount {
+            let accessCount = Double(totalCount - index)
+            if purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: accessCount)) {
+                // This is the most recent photo we can access, use it as the leading thumbnail
+                let targetMedia = media[index]
+                do {
+                    let cleartextPreview = try await fileAccess.loadMediaPreview(for: targetMedia.thumbnailSource)
+                    guard let previewData = cleartextPreview.thumbnailMedia.data, 
+                          let thumbnail = UIImage(data: previewData) else {
+                        continue // Try next photo if thumbnail generation fails
+                    }
+                    return thumbnail
+                } catch {
+                    continue // Try next photo if preview loading fails
+                }
+            }
+        }
+        
+        // If we can't access any photos, return nil
+        return nil
     }
     
     public func loadMediaPreview<T>(for media: InteractableMedia<T>) async throws -> PreviewModel where T : MediaDescribing {
