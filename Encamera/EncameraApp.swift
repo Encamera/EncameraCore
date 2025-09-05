@@ -442,11 +442,6 @@ struct EncameraApp: App {
                 // Dismiss any open modal when app enters background
                 appModalStateModel.currentModal = nil
             }
-            .onReceive(NotificationUtils.willResignActivePublisher) { _ in
-                // Also dismiss modal when app becomes inactive (e.g., when control center is opened)
-                appModalStateModel.currentModal = nil
-            }
-
         }
             
     }
