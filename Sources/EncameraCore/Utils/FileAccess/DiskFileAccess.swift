@@ -218,7 +218,7 @@ extension DiskFileAccess {
             }
         }
     }
-    public func loadLeadingThumbnail() async throws -> UIImage? {
+    public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)? = nil) async throws -> UIImage? {
         if let album,
            let coverImageId = UserDefaultUtils.string(forKey: .albumCoverImage(albumName: album.name)) {
             if coverImageId == "none" {

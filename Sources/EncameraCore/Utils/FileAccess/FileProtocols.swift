@@ -33,7 +33,7 @@ public protocol FileEnumerator {
 public protocol FileReader: FileEnumerator {
     
     func configure(for album: Album, albumManager: AlbumManaging) async
-    func loadLeadingThumbnail() async throws -> UIImage?
+    func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> UIImage?
     func loadMediaPreview<T: MediaDescribing>(for media: InteractableMedia<T>) async throws -> PreviewModel
     func loadMedia<T: MediaDescribing>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia>
 }
