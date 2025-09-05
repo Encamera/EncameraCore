@@ -12,7 +12,7 @@ public protocol PurchasedPermissionManaging {
 public class AppPurchasedPermissionUtils: PurchasedPermissionManaging, ObservableObject {
 
 
-    public var hasEntitlement: Bool = false
+    @Published public var hasEntitlement: Bool = false
     public init() {
         refreshEntitlements()
     }
