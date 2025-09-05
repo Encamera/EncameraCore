@@ -70,14 +70,28 @@ class GlobalImportProgressViewModel: ObservableObject {
     
     // MARK: - Computed Properties
     
-    var actionButtonImageName: String {
+    var actionButtonText: String {
         if isCompleted {
-            return "trash.fill"
+            return completedTasks.isEmpty ? L10n.cancel : L10n.delete
         } else {
-            return "stop.fill"
+            return L10n.cancel
         }
     }
-    
+
+    /// Controls visibility of the action button.
+    /// - When importing: show the Cancel button if `deleteEnabled` is true (existing behavior).
+    /// - When completed successfully: show Delete if `deleteEnabled` is true and there are completed tasks.
+    /// - When cancelled (no completed tasks): hide the button entirely.
+    var shouldHideActionButton: Bool {
+        if isCompleted {
+            // Hide when cancelled (no completed tasks), or when delete is disabled
+            return completedTasks.isEmpty || !deleteEnabled
+        } else {
+            // Preserve existing behavior for in-progress state
+            return !deleteEnabled
+        }
+    }
+
     // MARK: - Update Methods
     
     private func updateStatusText() {
@@ -143,8 +157,9 @@ class GlobalImportProgressViewModel: ObservableObject {
     }
     
     func handleActionButtonTap() {
-
         if isCompleted {
+            // Only allow delete when there are completed tasks (not a cancelled import)
+            guard !completedTasks.isEmpty else { return }
             // Cancel dismissal timer when showing delete confirmation
             cancelDismissalTimer()
             showDeleteConfirmation = true
@@ -292,6 +307,29 @@ struct GlobalImportProgressView: View {
             insertion: .move(edge: .bottom).combined(with: .opacity),
             removal: .move(edge: .bottom).combined(with: .opacity)
         ))
+        .offset(y: max(0, dragOffset)) // Only allow downward movement
+        // .simultaneousGesture(
+        //         DragGesture()
+        //             .onChanged { value in
+        //                 // Only track downward drags that are significant
+        //                 if value.translation.height > 10 {
+        //                     dragOffset = value.translation.height
+        //                 }
+        //             }
+        //             .onEnded { value in
+        //                 if value.translation.height > swipeThreshold {
+        //                     // Swipe down threshold reached, dismiss the view
+        //                     withAnimation(.easeOut(duration: 0.5)) {
+        //                         showProgressView = false
+        //                     }
+        //                 } else {
+        //                     // Snap back to original position
+        //                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+        //                         dragOffset = 0
+        //                     }
+        //                 }
+        //             }
+        //     )
     }
 
     init(viewModel: GlobalImportProgressViewModel, showProgressView: Binding<Bool>) {
@@ -340,29 +378,6 @@ struct GlobalImportProgressView: View {
 
     private var progressCardWithInteractions: some View {
         progressCard
-            .offset(y: max(0, dragOffset)) // Only allow downward movement
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        // Only track downward drags
-                        if value.translation.height > 0 {
-                            dragOffset = value.translation.height
-                        }
-                    }
-                    .onEnded { value in
-                        if value.translation.height > swipeThreshold {
-                            // Swipe down threshold reached, dismiss the view
-                            withAnimation(.easeOut(duration: 0.5)) {
-                                showProgressView = false
-                            }
-                        } else {
-                            // Snap back to original position
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                dragOffset = 0
-                            }
-                        }
-                    }
-            )
             .onTapGesture {
                 if viewModel.isCompleted {
                     withAnimation(.easeOut(duration: 0.5)) {
@@ -403,13 +418,13 @@ struct GlobalImportProgressView: View {
 
                 // Action button
                 Button(action: viewModel.handleActionButtonTap) {
-                    Image(systemName: viewModel.actionButtonImageName)
-                        .renderingMode(.template)
-                        .foregroundColor(.actionYellowGreen)
-                        .font(.system(size: 24))
-                }.if(!viewModel.deleteEnabled) { view in
+                    Text(viewModel.actionButtonText)
+                }
+                .textButton()
+                .if(viewModel.shouldHideActionButton) { view in
                     view.hidden()
                 }
+                .padding(.trailing, 5)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
