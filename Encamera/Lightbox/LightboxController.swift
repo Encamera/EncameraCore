@@ -102,7 +102,19 @@ open class LightboxController: UIViewController {
                 self.footerView.media = media
             }
         }
-
+        
+        // Hide menu button if current page shows purchase overlay
+        updateMenuButtonVisibility()
+    }
+    
+    private func currentPageShouldShowPurchaseOverlay() -> Bool {
+        guard currentPage < initialImages.count else { return false }
+        return !purchasePermissionsManager.isAllowedAccess(feature: .accessPhoto(count: Double(initialImages.count - currentPage)))
+    }
+    
+    private func updateMenuButtonVisibility() {
+        let shouldHideMenu = currentPageShouldShowPurchaseOverlay()
+        menuButton.isHidden = shouldHideMenu
     }
 
     func reconfigurePagesForPreload() {
@@ -270,6 +282,7 @@ open class LightboxController: UIViewController {
         configureDynamicBackground()
 
         addCloseButton()
+        updateMenuButtonVisibility()
     }
 
     private func addCloseButton() {
@@ -455,7 +468,12 @@ open class LightboxController: UIViewController {
     func toggleControls(pageView: PageView?, visible: Bool, duration: TimeInterval = 0.1, delay: TimeInterval = 0) {
         let alpha: CGFloat = visible ? 1.0 : 0.0
         closeButton.alpha = visible ? 1.0 : 0.0
-        menuButton.alpha = visible ? 1.0 : 0.0
+        
+        // Only show menu button if visible AND no purchase overlay is showing
+        let shouldShowMenu = visible && !currentPageShouldShowPurchaseOverlay()
+        menuButton.alpha = shouldShowMenu ? 1.0 : 0.0
+        menuButton.isHidden = !shouldShowMenu
+        
         pageView?.playButton.isHidden = !visible
 
         // Update statusBarHidden variable and request the status bar update
