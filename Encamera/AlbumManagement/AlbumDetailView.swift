@@ -55,12 +55,7 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     @Published var lastImportedAssets: [PHPickerResult] = []
     @Published var showPhotoPicker: ImportSource? = nil
     @Published var photoLibraryPermissionStatus: PHAuthorizationStatus = .notDetermined
-    @Published var showImportProgressView: Bool = false {
-        didSet {
-            print("AlbumDetailView setting showProgressView \(showImportProgressView)")
-
-        }
-    }
+    @Published var showImportProgressView: Bool = false
 
     var agreedToDeleteWithNoLicense: Bool = false
 
@@ -1009,7 +1004,11 @@ struct AlbumDetailView<D: FileAccess>: View {
                     Spacer().frame(height: 26)
                 }
                 .ignoresSafeArea(edges: .top)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.asymmetric(
+                    insertion: .move(edge: .bottom),
+                    removal: .move(edge: .bottom)
+                ))
+                .id("import-progress-overlay") // Stable identity for animation
             }
         }
         .toolbarRole(.editor)

@@ -216,7 +216,9 @@ class GlobalImportProgressViewModel: ObservableObject {
             // If this is a new session, reset dismissal state to ensure visibility
             if lastActiveImportSession != currentSessionId {
                 lastActiveImportSession = currentSessionId
-                showProgressView.wrappedValue = false
+                withAnimation(.easeOut(duration: 1.0)) {
+                    showProgressView.wrappedValue = false
+                }
             }
         }
         // If no tasks remain, clear the session tracking
@@ -228,7 +230,8 @@ class GlobalImportProgressViewModel: ObservableObject {
     func handleViewDisappear(showProgressView: Binding<Bool>) {
         // When navigating away and import is not running, mark as dismissed
         if !importManager.isImporting {
-            withAnimation(.easeOut(duration: 0.5)) {
+            // Wrap the dismissal in animation
+            withAnimation(.easeOut(duration: 1.0)) {
                 showProgressView.wrappedValue = false
             }
             // Clear all tasks and reset state when view is dismissed
@@ -273,7 +276,8 @@ class GlobalImportProgressViewModel: ObservableObject {
                     // Countdown finished, dismiss the view
                     self.cancelDismissalTimer()
                     
-                    withAnimation(.easeOut(duration: 1.0)) {
+                    // Wrap the dismissal in animation
+                    withAnimation(.easeOut(duration: 1.5)) {
                         showProgressView.wrappedValue = false
                     }
                 } else {
@@ -303,10 +307,7 @@ struct GlobalImportProgressView: View {
         Group {
             mainContent
         }
-        .transition(.asymmetric(
-            insertion: .move(edge: .bottom).combined(with: .opacity),
-            removal: .move(edge: .bottom).combined(with: .opacity)
-        ))
+        // Remove internal transition to avoid conflicts with parent transition
         .offset(y: max(0, dragOffset)) // Only allow downward movement
         // .simultaneousGesture(
         //         DragGesture()
@@ -380,7 +381,7 @@ struct GlobalImportProgressView: View {
         progressCard
             .onTapGesture {
                 if viewModel.isCompleted {
-                    withAnimation(.easeOut(duration: 0.5)) {
+                    withAnimation(.easeOut(duration: 1.0)) {
                         showProgressView = false
                     }
                 }
