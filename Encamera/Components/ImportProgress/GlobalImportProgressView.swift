@@ -180,7 +180,7 @@ class GlobalImportProgressViewModel: ObservableObject {
     
 
     
-    func deleteAllCompletedTaskPhotos() async {
+    func deleteAllCompletedTaskPhotos(showProgressView: Binding<Bool>) async {
         let allAssetIdentifiers = completedTasks.flatMap { $0.assetIdentifiers }
 
         await deletionManager.deletePhotos(assetIdentifiers: allAssetIdentifiers)
@@ -197,6 +197,11 @@ class GlobalImportProgressViewModel: ObservableObject {
         // If no tasks remain after deletion, clear session tracking
         if importManager.currentTasks.filter({ $0.state != .completed }).isEmpty {
             lastActiveImportSession = nil
+        }
+        
+        // Start dismissal countdown after deletion completes
+        await MainActor.run {
+            startDismissalCountdown(showProgressView: showProgressView)
         }
     }
     
@@ -359,7 +364,7 @@ struct GlobalImportProgressView: View {
             .alert(L10n.GlobalImportProgress.deleteFromPhotoLibraryAlert, isPresented: $viewModel.showDeleteConfirmation) {
                 Button(L10n.delete, role: .destructive) {
                     Task {
-                        await viewModel.deleteAllCompletedTaskPhotos()
+                        await viewModel.deleteAllCompletedTaskPhotos(showProgressView: $showProgressView)
                     }
                 }
                 Button(L10n.cancel, role: .cancel) {}
