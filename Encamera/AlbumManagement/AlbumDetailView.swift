@@ -1218,23 +1218,25 @@ struct AlbumDetailView<D: FileAccess>: View {
             Button(L10n.importFromFiles) {
                 viewModel.showPhotoPicker = .files
             }
-            Button {
-                if viewModel.purchasedPermissions.hasEntitlement == false {
-                    viewModel.isShowingPurchaseSheet = true
-                    viewModel.afterPurchaseAction = {
+            if FeatureToggle.isEnabled(feature: .hideAlbum) {
+                Button {
+                    if viewModel.purchasedPermissions.hasEntitlement == false {
+                        viewModel.isShowingPurchaseSheet = true
+                        viewModel.afterPurchaseAction = {
+                            viewModel.activeAlert = .hideAlbum
+                        }
+                    } else if viewModel.isAlbumHidden {
+                        viewModel.isAlbumHidden = false
+                    } else {
                         viewModel.activeAlert = .hideAlbum
                     }
-                } else if viewModel.isAlbumHidden {
-                    viewModel.isAlbumHidden = false
-                } else {
-                    viewModel.activeAlert = .hideAlbum
-                }
-            } label: {
-                HStack {
-                    Text(L10n.AlbumDetailView.hideAlbumMenuItem)
-                    Spacer()
-                    if viewModel.isAlbumHidden {
-                        Image(systemName: "checkmark")
+                } label: {
+                    HStack {
+                        Text(L10n.AlbumDetailView.hideAlbumMenuItem)
+                        Spacer()
+                        if viewModel.isAlbumHidden {
+                            Image(systemName: "checkmark")
+                        }
                     }
                 }
             }
