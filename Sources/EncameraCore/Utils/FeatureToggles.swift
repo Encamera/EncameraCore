@@ -11,6 +11,7 @@ public enum Feature: String {
     case enableVideo
     case stopTracking
     case recoveryPhrase
+    case hideAlbum
     var userDefaultsKey: String {
         return "feature_" +  rawValue
     }

@@ -53,9 +53,16 @@ public actor InteractableMediaDiskAccess: FileAccess {
 
 
     public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> UIImage? {
+        // Always check for album cover image first (same logic as DiskFileAccess)
+        // This delegates to the underlying fileAccess which has access to album and directoryModel
+        if let coverThumbnail = try await fileAccess.loadLeadingThumbnail(purchasedPermissions: nil) {
+            return coverThumbnail
+        }
+        
+        // If no cover image is set and we have permissions, use permission-based logic
         guard let purchasedPermissions = purchasedPermissions else {
-            // If no permissions provided, use the default behavior
-            return try await fileAccess.loadLeadingThumbnail(purchasedPermissions: nil)
+            // If no permissions and no cover image, return nil
+            return nil
         }
         
         // Get all media properly grouped as InteractableMedia (like the gallery does)
