@@ -8,6 +8,18 @@ public class DemoAlbumManager: AlbumManaging {
         
     }
     
+    public func removeAlbumCover(album: Album) {
+        
+    }
+    
+    public func resetAlbumCover(album: Album) {
+        
+    }
+    
+    public func getAlbumCoverImageId(album: Album) -> String? {
+        return nil
+    }
+    
     public func isAlbumHidden(_ album: Album) -> Bool {
         return false
     }
