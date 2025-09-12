@@ -24,6 +24,7 @@ public actor DiskFileAccess: DebugPrintable {
     private var album: Album?
     public var directoryModel: DataStorageModel?
     private var keyManager: KeyManager?
+    private var albumManager: AlbumManaging?
 
     public init() {
 
@@ -37,6 +38,7 @@ public actor DiskFileAccess: DebugPrintable {
         self.key = album.key
         self.album = album
         self.keyManager = albumManager.keyManager
+        self.albumManager = albumManager
         let storageModel = albumManager.storageModel(for: album)
         self.directoryModel = storageModel
         try? self.directoryModel?.initializeDirectories()
@@ -220,7 +222,8 @@ extension DiskFileAccess {
     }
     public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)? = nil) async throws -> UIImage? {
         if let album,
-           let coverImageId = UserDefaultUtils.string(forKey: .albumCoverImage(albumName: album.name)) {
+           let albumManager = albumManager,
+           let coverImageId = albumManager.getAlbumCoverImageId(album: album) {
             if coverImageId == "none" {
                 return nil
             } else if let coverImageURL = directoryModel?.driveURLForMedia(withID: coverImageId, type: .photo),
