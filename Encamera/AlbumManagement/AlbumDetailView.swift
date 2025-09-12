@@ -165,16 +165,16 @@ class AlbumDetailViewModel<D: FileAccess>: ObservableObject, DebugPrintable {
     }
 
     func removeAlbumCover() {
-        guard let albumName = album?.name else { return }
-        UserDefaultUtils.set("none", forKey: .albumCoverImage(albumName: albumName))
+        guard let album = album else { return }
+        albumManager.removeAlbumCover(album: album)
         showToast(type: .albumCoverRemoved)
         EventTracking.trackAlbumCoverRemoved()
 
     }
 
     func resetAlbumCover() {
-        if let albumName = album?.name {
-            UserDefaultUtils.set(nil, forKey: .albumCoverImage(albumName: albumName))
+        if let album = album {
+            albumManager.resetAlbumCover(album: album)
             showToast(type: .albumCoverReset)
             EventTracking.trackAlbumCoverReset()
         }
@@ -1252,7 +1252,7 @@ struct AlbumDetailView<D: FileAccess>: View {
                         }))
                     }
                 }
-                if let albumName = viewModel.album?.name, UserDefaultUtils.string(forKey: .albumCoverImage(albumName: albumName)) != nil {
+                if let album = viewModel.album, viewModel.albumManager.getAlbumCoverImageId(album: album) != nil {
                     Button(L10n.AlbumDetailView.resetCoverImage) {
                         viewModel.resetAlbumCover()
                     }
