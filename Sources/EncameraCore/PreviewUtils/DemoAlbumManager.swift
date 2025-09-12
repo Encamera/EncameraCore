@@ -20,6 +20,10 @@ public class DemoAlbumManager: AlbumManaging {
         return nil
     }
     
+    public func isAlbumCoverImageDisabled(album: Album) -> Bool {
+        return false
+    }
+    
     public func isAlbumHidden(_ album: Album) -> Bool {
         return false
     }
