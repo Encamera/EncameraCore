@@ -20,6 +20,9 @@ public protocol AlbumManaging {
     var currentAlbumMediaCount: Int? { get }
     func delete(album: Album)
     func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>)
+    func removeAlbumCover(album: Album)
+    func resetAlbumCover(album: Album) 
+    func getAlbumCoverImageId(album: Album) -> String?
     func loadAlbumsFromFilesystem()
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
     func storageModel(for album: Album) -> DataStorageModel?
