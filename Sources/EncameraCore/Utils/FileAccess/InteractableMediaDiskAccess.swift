@@ -11,14 +11,20 @@ public actor InteractableMediaDiskAccess: FileAccess {
 
 
     private var fileAccess: DiskFileAccess
+    private var album: Album?
+    private var albumManager: AlbumManaging?
 
     public init(for album: Album, albumManager: AlbumManaging) async {
         await self.fileAccess = DiskFileAccess(for: album, albumManager: albumManager)
+        self.album = album
+        self.albumManager = albumManager
     }
 
 
     public func configure(for album: Album, albumManager: AlbumManaging) async {
         await fileAccess.configure(for: album, albumManager: albumManager)
+        self.album = album
+        self.albumManager = albumManager
     }
     
     public func enumerateMedia<T>() async -> [InteractableMedia<T>] where T : MediaDescribing {
@@ -53,48 +59,89 @@ public actor InteractableMediaDiskAccess: FileAccess {
 
 
     public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> UIImage? {
-        // Always check for album cover image first (same logic as DiskFileAccess)
-        // This delegates to the underlying fileAccess which has access to album and directoryModel
-        if let coverThumbnail = try await fileAccess.loadLeadingThumbnail(purchasedPermissions: nil) {
-            return coverThumbnail
-        }
-        
-        // If no cover image is set and we have permissions, use permission-based logic
-        guard let purchasedPermissions = purchasedPermissions else {
-            // If no permissions and no cover image, return nil
-            return nil
-        }
-        
-        // Get all media properly grouped as InteractableMedia (like the gallery does)
-        let media: [InteractableMedia<EncryptedMedia>] = await enumerateMedia()
-        guard !media.isEmpty else {
-            return nil
-        }
-        
-        // Find the last accessible photo (similar to blurItemAt logic)
-        let totalCount = media.count
-        
-        // Start from the most recent photo (index 0) and find the first one we can access
-        for index in 0..<totalCount {
-            let accessCount = Double(totalCount - index)
-            if purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: accessCount)) {
-                // This is the most recent photo we can access, use it as the leading thumbnail
-                let targetMedia = media[index]
-                do {
-                    let cleartextPreview = try await fileAccess.loadMediaPreview(for: targetMedia.thumbnailSource)
-                    guard let previewData = cleartextPreview.thumbnailMedia.data, 
-                          let thumbnail = UIImage(data: previewData) else {
-                        continue // Try next photo if thumbnail generation fails
+        // Check if album cover is explicitly disabled
+        if let album = album,
+           let albumManager = albumManager,
+           albumManager.isAlbumCoverImageDisabled(album: album) {
+            // Cover is disabled, skip cover image check and go to permission-based logic
+            guard let purchasedPermissions = purchasedPermissions else {
+                return nil
+            }
+            
+            // Get all media properly grouped as InteractableMedia (like the gallery does)
+            let media: [InteractableMedia<EncryptedMedia>] = await enumerateMedia()
+            guard !media.isEmpty else {
+                return nil
+            }
+            
+            // Find the last accessible photo (similar to blurItemAt logic)
+            let totalCount = media.count
+            
+            // Start from the most recent photo (index 0) and find the first one we can access
+            for index in 0..<totalCount {
+                let accessCount = Double(totalCount - index)
+                if purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: accessCount)) {
+                    // This is the most recent photo we can access, use it as the leading thumbnail
+                    let targetMedia = media[index]
+                    do {
+                        let cleartextPreview = try await fileAccess.loadMediaPreview(for: targetMedia.thumbnailSource)
+                        guard let previewData = cleartextPreview.thumbnailMedia.data, 
+                              let thumbnail = UIImage(data: previewData) else {
+                            continue // Try next photo if thumbnail generation fails
+                        }
+                        return thumbnail
+                    } catch {
+                        continue // Try next photo if preview loading fails
                     }
-                    return thumbnail
-                } catch {
-                    continue // Try next photo if preview loading fails
                 }
             }
+            
+            // If we can't access any photos, return nil
+            return nil
+        } else {
+            // Cover is not disabled, check for album cover image first (same logic as DiskFileAccess)
+            // This delegates to the underlying fileAccess which has access to album and directoryModel
+            if let coverThumbnail = try await fileAccess.loadLeadingThumbnail(purchasedPermissions: nil) {
+                return coverThumbnail
+            }
+            
+            // If no cover image is set and we have permissions, use permission-based logic
+            guard let purchasedPermissions = purchasedPermissions else {
+                // If no permissions and no cover image, return nil
+                return nil
+            }
+            
+            // Get all media properly grouped as InteractableMedia (like the gallery does)
+            let media: [InteractableMedia<EncryptedMedia>] = await enumerateMedia()
+            guard !media.isEmpty else {
+                return nil
+            }
+            
+            // Find the last accessible photo (similar to blurItemAt logic)
+            let totalCount = media.count
+            
+            // Start from the most recent photo (index 0) and find the first one we can access
+            for index in 0..<totalCount {
+                let accessCount = Double(totalCount - index)
+                if purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: accessCount)) {
+                    // This is the most recent photo we can access, use it as the leading thumbnail
+                    let targetMedia = media[index]
+                    do {
+                        let cleartextPreview = try await fileAccess.loadMediaPreview(for: targetMedia.thumbnailSource)
+                        guard let previewData = cleartextPreview.thumbnailMedia.data, 
+                              let thumbnail = UIImage(data: previewData) else {
+                            continue // Try next photo if thumbnail generation fails
+                        }
+                        return thumbnail
+                    } catch {
+                        continue // Try next photo if preview loading fails
+                    }
+                }
+            }
+            
+            // If we can't access any photos, return nil
+            return nil
         }
-        
-        // If we can't access any photos, return nil
-        return nil
     }
     
     public func loadMediaPreview<T>(for media: InteractableMedia<T>) async throws -> PreviewModel where T : MediaDescribing {
