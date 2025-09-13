@@ -38,7 +38,7 @@ struct DualButtonComponent: View {
                 .textButton()
             }
         }
-        .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
+        .padding(EdgeInsets(top: 0, leading: 24, bottom: 14, trailing: 24))
 
     }
 

@@ -276,23 +276,11 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                         content: { _ in
 
                             AnyView(
-                                VStack(alignment: .center) {
-                                    ZStack {
-                                        Image("Onboarding-Shield")
-                                        Rectangle()
-                                            .foregroundColor(.clear)
-                                            .frame(width: 96, height: 96)
-                                            .background(Color.actionYellowGreen.opacity(0.1))
-                                            .cornerRadius(24)
-                                    }
-                                    Spacer().frame(height: 32)
-                                    Text(L10n.selectLoginMethod)
-                                        .fontType(.pt24, weight: .bold)
-                                    Spacer().frame(height: 12)
-                                    Text(L10n.loginMethodDescription)
-                                        .fontType(.pt14)
-                                        .multilineTextAlignment(.center)
-                                }.frame(width: 290)
+                                OnboardingContentView(
+                                    imageName: "Onboarding-Shield",
+                                    title: L10n.selectLoginMethod,
+                                    subtitle: L10n.loginMethodDescription
+                                )
                             )
                         })
             ).onAppear {
@@ -309,28 +297,13 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                         showTopBar: true,
                         content: { _ in
                             AnyView(
-                                VStack(alignment: .center) {
-                                    ZStack {
-                                        Image("Onboarding-PinKey")
-                                        Rectangle()
-                                            .foregroundColor(.clear)
-                                            .frame(width: 96, height: 96)
-                                            .background(Color.actionYellowGreen.opacity(0.1))
-                                            .cornerRadius(24)
-                                    }
-                                    Spacer().frame(height: 32)
-
-                                    Text(L10n.setPinCode)
-                                        .fontType(.pt24, weight: .bold)
-                                    Spacer().frame(height: 12)
-
-                                    Text(L10n.setPinCodeSubtitle)
-                                        .fontType(.pt14)
-                                        .lineLimit(2, reservesSpace: true)
-                                        .multilineTextAlignment(.center)
-                                        .pad(.pt64, edge: .bottom)
+                                OnboardingContentView(
+                                    imageName: "Onboarding-PinKey",
+                                    title: L10n.setPinCode,
+                                    subtitle: L10n.setPinCodeSubtitle
+                                ) {
                                     PinCodeView(pinCode: $viewModel.pinCode1, pinLength: AppConstants.defaultPinCodeLength)
-                                }.frame(width: 290)
+                                }
                             )
                         })
             ).onChange(of: viewModel.pinCode1) { oldValue, newValue in
@@ -363,30 +336,18 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                         },
                         content: { _ in
                             AnyView(
-                                VStack(alignment: .center) {
-                                    ZStack {
-                                        Image("Onboarding-PinKey")
-                                        Rectangle()
-                                            .foregroundColor(.clear)
-                                            .frame(width: 96, height: 96)
-                                            .background(Color.actionYellowGreen.opacity(0.1))
-                                            .cornerRadius(24)
+                                OnboardingContentView(
+                                    imageName: "Onboarding-PinKey",
+                                    title: L10n.confirmPinCode,
+                                    subtitle: L10n.repeatPinCodeSubtitle
+                                ) {
+                                    VStack {
+                                        PinCodeView(pinCode: $viewModel.pinCode2, pinLength: AppConstants.defaultPinCodeLength)
+                                        if let pinCodeError = viewModel.pinCodeError {
+                                            Text(pinCodeError).alertText()
+                                        }
                                     }
-                                    Spacer().frame(height: 32)
-                                    Text(L10n.confirmPinCode)
-                                        .fontType(.pt24, weight: .bold)
-                                    Spacer().frame(height: 12)
-                                    Text(L10n.repeatPinCodeSubtitle)
-                                        .fontType(.pt14)
-                                        .multilineTextAlignment(.center)
-                                        .lineLimit(2, reservesSpace: true)
-                                        .pad(.pt64, edge: .bottom)
-                                    PinCodeView(pinCode: $viewModel.pinCode2, pinLength: AppConstants.defaultPinCodeLength)
-                                    if let pinCodeError = viewModel.pinCodeError {
-                                        Text(pinCodeError).alertText()
-                                    }
-                                }.frame(width: 290)
-
+                                }
                             )
                         })
             )
@@ -423,26 +384,11 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                         },
                         content: { _ in
                             AnyView(
-                                VStack(alignment: .center) {
-                                    ZStack {
-                                        Image("Onboarding-FinishedCheck")
-                                        Rectangle()
-                                            .foregroundColor(.clear)
-                                            .frame(width: 96, height: 96)
-                                            .background(Color.actionYellowGreen.opacity(0.1))
-                                            .cornerRadius(24)
-                                    }
-                                    Spacer().frame(height: 32)
-                                    Text(L10n.finishedReadyToUseEncamera)
-                                        .fontType(.pt24, weight: .bold)
-                                        .multilineTextAlignment(.center)
-                                    Spacer().frame(height: 12)
-                                    Text(viewModel.hasAlbums ? "" : L10n.finishedSubtitle)
-                                        .fontType(.pt14)
-                                        .multilineTextAlignment(.center)
-                                        .pad(.pt64, edge: .bottom)
-                                }.frame(width: 290)
-
+                                OnboardingContentView(
+                                    imageName: "Onboarding-FinishedCheck",
+                                    title: L10n.finishedReadyToUseEncamera,
+                                    subtitle: viewModel.hasAlbums ? "" : L10n.finishedSubtitle
+                                )
                             )
                         })
             )

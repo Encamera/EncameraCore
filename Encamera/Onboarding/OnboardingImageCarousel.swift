@@ -50,6 +50,17 @@ struct OnboardingImageCarousel: View {
                             .resizable()
                             .scaledToFill()
                             .clipped()
+                            .mask(
+                                LinearGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: .black, location: 0.0),
+                                        .init(color: .black, location: 0.6),
+                                        .init(color: .clear, location: 1.0)
+                                    ]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
                         
                         VStack(spacing: 8) {
                             Text(image.heading)
