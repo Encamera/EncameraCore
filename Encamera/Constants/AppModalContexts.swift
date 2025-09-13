@@ -71,10 +71,25 @@ struct AlbumSelectionContext: ModalContext {
     }
 }
 
+struct AddAlbumModalContext: ModalContext {
+    let sourceView: String
+    let onAlbumCreated: (Album) -> Void
+    let onDismiss: () -> Void
+    
+    static func == (lhs: AddAlbumModalContext, rhs: AddAlbumModalContext) -> Bool {
+        return lhs.sourceView == rhs.sourceView
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(sourceView)
+    }
+}
+
 enum AppModal: Hashable {
     case galleryScrollView(context: GalleryScrollViewContext)
     case cameraView(context: CameraViewContext)
     case feedbackView
     case purchaseView(context: PurchaseViewContext)
     case albumSelection(context: AlbumSelectionContext)
+    case addAlbum(context: AddAlbumModalContext)
 }
