@@ -373,6 +373,8 @@ struct EncameraApp: App {
                     break
                 case .albumSelection(context: _):
                     break
+                case .addAlbum(context: _):
+                    break
                 }
             })
             .onChange(of: appModalStateModel.currentModal, { oldValue, newValue in
@@ -427,6 +429,19 @@ struct EncameraApp: App {
                         ProductStoreView(fromView: context.sourceView, purchaseAction: context.purchaseAction, viewModel: .init(purchasedPermissionsManaging: viewModel.purchasedPermissions))
                     case .feedbackView:
                         FeedbackView()
+                    case .addAlbum(context: let context):
+                        AddAlbumModal(saveAction: { albumName in
+                            guard let albumManager = viewModel.albumManager else { return }
+                            do {
+                                let newAlbum = try albumManager.create(name: albumName, storageOption: albumManager.defaultStorageForAlbum)
+                                self.appModalStateModel.currentModal = nil
+                                context.onAlbumCreated(newAlbum)
+                            } catch {
+                                // Handle error - could show an alert or toast
+                                print("Error creating album: \(error)")
+                                self.appModalStateModel.currentModal = nil
+                            }
+                        })
                     case nil:
                         AnyView(EmptyView())
                     }
