@@ -40,76 +40,39 @@ struct OnboardingImageCarousel: View {
     private var carouselItems: [ImageCarouselItem]
 
     var body: some View {
-        VStack {
-            GeometryReader { geo in
-                ScrollViewReader { value in
-                    let frame = geo.frame(in: .local)
-                    ZStack {
-                        VStack {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 0) {
-                                    ForEach(carouselItems.indices, id: \.self) { index in
-                                        let image = carouselItems[index]
-                                        VStack {
-                                            Color.clear
-                                                .background {
-                                                    Image(image.imageID)
-                                                        .resizable()
-                                                        .scaledToFill()
-                                                }.clipShape(RoundedRectangle(cornerSize: .init(width: 30, height: 30)))
-                                                .frame(width: frame.width, height: frame.height * 0.7)
-                                                .padding(.bottom, 32)
-                                            Group {
-                                                Text(image.heading)
-                                                    .fontType(.medium, weight: .bold)
-                                                    .lineLimit(2, reservesSpace: true)
-                                                Text(image.subheading)
-                                                    .fontType(.pt18)
-                                                    .lineLimit(2, reservesSpace: true)
-                                            }
-                                            .multilineTextAlignment(.center)
-
-                                        }
-                                        .frame(width: frame.width)
-                                        .tag(index)
-
-                                    }
-                                }
-                            }
-                            .allowsHitTesting(false)
-                            .onChange(of: currentScrolledToImage, perform: { newImage in
-                                withAnimation {
-                                    value.scrollTo(newImage, anchor: .leading)
-                                }
-                            })
+        VStack(spacing: 16) {
+            // Modern TabView approach - no GeometryReader needed!
+            TabView(selection: $currentScrolledToImage) {
+                ForEach(carouselItems.indices, id: \.self) { index in
+                    let image = carouselItems[index]
+                    VStack(spacing: 16) {
+                        Image(image.imageID)
+                            .resizable()
+                            .scaledToFill()
+                            .clipped()
+                        
+                        VStack(spacing: 8) {
+                            Text(image.heading)
+                                .fontType(.medium, weight: .bold)
+                                .lineLimit(2, reservesSpace: true)
+                            Text(image.subheading)
+                                .fontType(.pt14)
+                                .lineLimit(2, reservesSpace: true)
                         }
-                        Color.clear
-                            .contentShape(Rectangle())
-                            .gesture(
-                                DragGesture()
-                                    .onEnded({ gesture in
-                                        if gesture.translation.width > 0 {
-                                            // Swiped right
-                                            if currentScrolledToImage > 0 {
-                                                currentScrolledToImage -= 1
-                                            }
-                                        } else if gesture.translation.width < 0 {
-                                            // Swiped left
-                                            if currentScrolledToImage < carouselItems.count - 1 {
-                                                currentScrolledToImage += 1
-                                            }
-                                        }
-                                    })
-                            )
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                     }
+                    .tag(index)
                 }
             }
-
-            Spacer().frame(height: 32)
+            .tabViewStyle(.page(indexDisplayMode: .never)) // Hide built-in page indicators
+            
             ImageStepIndicator(activeIndex: $currentScrolledToImage, numberOfItems: carouselItems.count)
                 .onTapGesture {
                     withAnimation {
-                        currentScrolledToImage += 1
+                        if currentScrolledToImage < carouselItems.count - 1 {
+                            currentScrolledToImage += 1
+                        }
                     }
                 }
         }

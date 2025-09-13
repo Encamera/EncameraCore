@@ -37,7 +37,9 @@ struct DualButtonComponent: View {
                 }
                 .textButton()
             }
-        }.padding(14)
+        }
+        .padding(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14))
+
     }
 
     private func triggerHapticFeedback() {

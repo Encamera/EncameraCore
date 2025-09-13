@@ -61,7 +61,6 @@ struct NewOnboardingView: View {
                         dismiss()
                     }
                 }
-                Spacer().frame(height: Constants.topElementTitleSpacing)
                 HeadingSubheadingImageComponent(title: viewModel.title, subheading: viewModel.subheading, image: viewModel.image)
                 self.viewModel.content?({
                     nextActive = true
@@ -73,7 +72,6 @@ struct NewOnboardingView: View {
                                       secondaryButtonTitle: viewModel.secondaryButtonTitle,
                                       secondaryButtonAction: viewModel.secondaryButtonAction)
             }
-            .padding(EdgeInsets(top: 0, leading: 10, bottom: 20, trailing: 10))
             .frame(maxWidth: .infinity)
             .navigationBarHidden(true)
             .gradientBackground()
