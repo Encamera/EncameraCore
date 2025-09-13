@@ -23,6 +23,7 @@ public protocol AlbumManaging {
     func removeAlbumCover(album: Album)
     func resetAlbumCover(album: Album) 
     func getAlbumCoverImageId(album: Album) -> String?
+    func isAlbumCoverImageDisabled(album: Album) -> Bool
     func loadAlbumsFromFilesystem()
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
     func storageModel(for album: Album) -> DataStorageModel?

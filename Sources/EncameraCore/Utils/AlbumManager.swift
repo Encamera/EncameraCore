@@ -172,6 +172,10 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         return UserDefaultUtils.string(forKey: .albumCoverImage(albumName: album.name))
     }
 
+    public func isAlbumCoverImageDisabled(album: Album) -> Bool {
+        return UserDefaultUtils.string(forKey: .albumCoverImage(albumName: album.name)) == "none"
+    }
+
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album  {
         guard let currentKey = keyManager.currentKey else {
             throw AlbumError.noCurrentKeySet
