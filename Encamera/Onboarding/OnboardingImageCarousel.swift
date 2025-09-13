@@ -29,9 +29,9 @@ struct OnboardingImageCarousel: View {
     init(currentScrolledToImage: Binding<Int>) {
         self.carouselItems = [
 
-            ImageCarouselItem(imageID: "Onboarding-Image-1", heading: L10n.onboardingIntroHeadingText1, subheading: L10n.onboardingIntroSubheadingText),
-            ImageCarouselItem(imageID: "Onboarding-Image-2", heading: L10n.keyBasedEncryption, subheading: L10n.encryptionExplanation),
-            ImageCarouselItem(imageID: "Onboarding-Image-3", heading: L10n.noTrackingOnboardingExplanation, subheading: L10n.noTrackingExplanation),
+            ImageCarouselItem(imageID: "Onboarding-Image-1", heading: L10n.OnboardingCarousel.headingText1, subheading: L10n.OnboardingCarousel.subheadingText1),
+            ImageCarouselItem(imageID: "Onboarding-Image-2", heading: L10n.OnboardingCarousel.headingText2, subheading: L10n.OnboardingCarousel.subheadingText2),
+            ImageCarouselItem(imageID: "Onboarding-Image-3", heading: L10n.OnboardingCarousel.headingText3, subheading: L10n.OnboardingCarousel.subheadingText3),
         ]
         _currentScrolledToImage = currentScrolledToImage
     }
