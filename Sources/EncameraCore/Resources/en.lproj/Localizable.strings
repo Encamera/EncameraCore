@@ -281,17 +281,14 @@
 "No info available" = "No info available";
 /* ./Encamera/Onboarding/MainOnboardingView.swift */
 "Next" = "Next";
-"OnboardingIntroHeadingText1" = "Privacy-First Camera";
-"OnboardingIntroSubheadingText" = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
+"OnboardingCarousel.HeadingText1" = "Your memories, fully protected";
+"OnboardingCarousel.SubheadingText1" = "We encrypt every picture and video instantly. No one else can see them, not even us.";
+"OnboardingCarousel.HeadingText2" = "Only you hold the encryption key";
+"OnboardingCarousel.SubheadingText2" = "Your albums are locked with your unique key and stored safely on your device or iCloud.";
+"OnboardingCarousel.HeadingText3" = "No accounts. No profiling. No ads.";
+"OnboardingCarousel.SubheadingText3" = "Encamera never collects your data. Your private moments stay completely yours.";
 "GetStartedButtonText" = "Let's Start";
-"Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera encrypts everything, keeping your media safe from unwanted eyes.";
-"KeyBasedEncryption" = "Key-Based Encryption";
-"IntroStorageExplanation" = "Your media is safely secured behind a key and stored locally on your device or iCloud.";
-"NoTrackingOnboardingExplanation" = "Your Data is Secure";
-"EncryptionExplanation" = "Your media is safely secured behind a key and stored locally on your device or iCloud";
-"NoTrackingExplanation" = "Nobody can access your data except you.";
-"EncameraIsOpenSource" = "Open Source";
-"OpenSourceExplanation" = "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.";
+
 
 "You have an existing password for this device." = "You have an existing password for this device.";
 

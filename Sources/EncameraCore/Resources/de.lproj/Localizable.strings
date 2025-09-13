@@ -706,3 +706,13 @@
 "TaskDetailCard.StatusWaiting" = "Warten";
 "CustomPhotoPicker.LimitedAccess" = "Eingeschränkter Zugriff. Tippen Sie hier, um mehr Fotos auszuwählen oder vollen Zugriff zu gewähren.";
 "AuthenticationView.RetryIn" = "Sie können Ihr Passwort in %@ erneut versuchen";
+"OnboardingCarousel.HeadingText1" = "Ihre Erinnerungen, vollständig geschützt";
+"GlobalImportProgress.Remaining" = "Verbleibend";
+"GlobalImportProgress.PhotosDeleted" = "Fotos gelöscht";
+"TaskDetailCard.LimitedAccessInfo" = "Eingeschränkter Fotozugriff";
+"TaskDetailCard.LimitedAccessMessage" = "Bei begrenztem Fotozugriff können nur die von Ihnen ausgewählten Fotos gelöscht werden. Um alle importierten Fotos zu löschen, gewähren Sie bitte in den Einstellungen vollen Zugriff auf die Fotobibliothek.";
+"OnboardingCarousel.SubheadingText3" = "Encamera sammelt niemals Ihre Daten. Ihre privaten Momente bleiben ganz bei Ihnen.";
+"OnboardingCarousel.SubheadingText1" = "Wir verschlüsseln jedes Bild und Video sofort. Niemand sonst kann sie sehen, nicht einmal wir.";
+"OnboardingCarousel.SubheadingText2" = "Ihre Alben sind mit Ihrem einzigartigen Schlüssel gesperrt und sicher auf Ihrem Gerät oder in iCloud gespeichert.";
+"OnboardingCarousel.HeadingText2" = "Nur Sie besitzen den Verschlüsselungsschlüssel";
+"OnboardingCarousel.HeadingText3" = "Keine Konten. Kein Profiling. Keine Werbung.";

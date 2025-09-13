@@ -247,18 +247,12 @@ public enum L10n {
   }
   /// Enable Face ID
   public static let enableFaceID = L10n.tr("Localizable", "Enable Face ID", fallback: "Enable Face ID")
-  /// Encamera encrypts everything, keeping your media safe from unwanted eyes.
-  public static let encameraEncryptsAllDataItCreatesKeepingYourDataSafeFromThePryingEyesOfAIMediaAnalysisAndOtherViolationsOfPrivacy = L10n.tr("Localizable", "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy.", fallback: "Encamera encrypts everything, keeping your media safe from unwanted eyes.")
-  /// Open Source
-  public static let encameraIsOpenSource = L10n.tr("Localizable", "EncameraIsOpenSource", fallback: "Open Source")
   /// ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift
   public static let encryptEverything = L10n.tr("Localizable", "Encrypt Everything", fallback: "Encrypt Everything")
   /// Encrypting
   public static let encrypting = L10n.tr("Localizable", "Encrypting", fallback: "Encrypting")
   /// Encryption Key
   public static let encryptionKey = L10n.tr("Localizable", "Encryption Key", fallback: "Encryption Key")
-  /// Your media is safely secured behind a key and stored locally on your device or iCloud
-  public static let encryptionExplanation = L10n.tr("Localizable", "EncryptionExplanation", fallback: "Your media is safely secured behind a key and stored locally on your device or iCloud")
   /// Enter Promo Code
   public static let enterPromoCode = L10n.tr("Localizable", "Enter Promo Code", fallback: "Enter Promo Code")
   /// Enter Key Phrase
@@ -370,8 +364,6 @@ public enum L10n {
   public static let installWidgetButtonText = L10n.tr("Localizable", "InstallWidgetButtonText", fallback: "Add Widget")
   /// Install Lock Screen Widget
   public static let installWidgetTitle = L10n.tr("Localizable", "InstallWidgetTitle", fallback: "Install Lock Screen Widget")
-  /// Your media is safely secured behind a key and stored locally on your device or iCloud.
-  public static let introStorageExplanation = L10n.tr("Localizable", "IntroStorageExplanation", fallback: "Your media is safely secured behind a key and stored locally on your device or iCloud.")
   /// Invalid Password
   public static let invalidPassword = L10n.tr("Localizable", "Invalid Password", fallback: "Invalid Password")
   /// I Remember my Passcode
@@ -400,8 +392,6 @@ public enum L10n {
   }
   /// Key not found.
   public static let keyNotFound = L10n.tr("Localizable", "Key not found.", fallback: "Key not found.")
-  /// Key-Based Encryption
-  public static let keyBasedEncryption = L10n.tr("Localizable", "KeyBasedEncryption", fallback: "Key-Based Encryption")
   /// Keys
   public static let keys = L10n.tr("Localizable", "Keys", fallback: "Keys")
   /// Non explicabo officia aut odit ex eum ipsum libero.
@@ -477,16 +467,8 @@ public enum L10n {
   public static let notificationBannerTitle = L10n.tr("Localizable", "NotificationBannerTitle", fallback: "Secured with Encryption")
   /// Notifications
   public static let notificationListTitle = L10n.tr("Localizable", "NotificationListTitle", fallback: "Notifications")
-  /// Nobody can access your data except you.
-  public static let noTrackingExplanation = L10n.tr("Localizable", "NoTrackingExplanation", fallback: "Nobody can access your data except you.")
-  /// Your Data is Secure
-  public static let noTrackingOnboardingExplanation = L10n.tr("Localizable", "NoTrackingOnboardingExplanation", fallback: "Your Data is Secure")
   /// OK
   public static let ok = L10n.tr("Localizable", "OK", fallback: "OK")
-  /// Privacy-First Camera
-  public static let onboardingIntroHeadingText1 = L10n.tr("Localizable", "OnboardingIntroHeadingText1", fallback: "Privacy-First Camera")
-  /// Encamera encrypts everything, keeping your media safe from unwanted eyes.
-  public static let onboardingIntroSubheadingText = L10n.tr("Localizable", "OnboardingIntroSubheadingText", fallback: "Encamera encrypts everything, keeping your media safe from unwanted eyes.")
   /// Camera access
   public static let onboardingPermissionsCameraAccess = L10n.tr("Localizable", "OnboardingPermissionsCameraAccess", fallback: "Camera access")
   /// Needed to take photos
@@ -505,8 +487,6 @@ public enum L10n {
   public static let openSource = L10n.tr("Localizable", "Open Source", fallback: "Open Source")
   /// Open Settings
   public static let openSettings = L10n.tr("Localizable", "OpenSettings", fallback: "Open Settings")
-  /// Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.
-  public static let openSourceExplanation = L10n.tr("Localizable", "OpenSourceExplanation", fallback: "Encamera's core functionality is open sourced, meaning you can see the code that's making your photos safe.")
   /// Go to Settings
   public static let openSystemSettings = L10n.tr("Localizable", "OpenSystemSettings", fallback: "Go to Settings")
   /// Or
@@ -1203,6 +1183,20 @@ public enum L10n {
       /// Are you on Reddit?
       public static let title = L10n.tr("Localizable", "NotificationBanner.Reddit.Title", fallback: "Are you on Reddit?")
     }
+  }
+  public enum OnboardingCarousel {
+    /// Your memories, fully protected
+    public static let headingText1 = L10n.tr("Localizable", "OnboardingCarousel.HeadingText1", fallback: "Your memories, fully protected")
+    /// Only you hold the encryption key
+    public static let headingText2 = L10n.tr("Localizable", "OnboardingCarousel.HeadingText2", fallback: "Only you hold the encryption key")
+    /// No accounts. No tracking. No ads.
+    public static let headingText3 = L10n.tr("Localizable", "OnboardingCarousel.HeadingText3", fallback: "No accounts. No tracking. No ads.")
+    /// We encrypt every picture and video instantly. No one else can see them, not even us.
+    public static let subheadingText1 = L10n.tr("Localizable", "OnboardingCarousel.SubheadingText1", fallback: "We encrypt every picture and video instantly. No one else can see them, not even us.")
+    /// Your albums are locked with your unique key and stored safely on your device or iCloud.
+    public static let subheadingText2 = L10n.tr("Localizable", "OnboardingCarousel.SubheadingText2", fallback: "Your albums are locked with your unique key and stored safely on your device or iCloud.")
+    /// Encamera never collects your data. Your private moments stay completely yours.
+    public static let subheadingText3 = L10n.tr("Localizable", "OnboardingCarousel.SubheadingText3", fallback: "Encamera never collects your data. Your private moments stay completely yours.")
   }
   public enum PhotoPickerWrapper {
     /// Continue with Limited Access

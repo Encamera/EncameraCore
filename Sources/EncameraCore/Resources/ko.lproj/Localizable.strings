@@ -572,3 +572,13 @@
 "TaskDetailCard.StatusWaiting" = "대기 중";
 "CustomPhotoPicker.LimitedAccess" = "접근 제한. 여기 탭하여 더 많은 사진을 선택하거나 전체 접근 권한을 부여하세요.";
 "AuthenticationView.RetryIn" = "비밀번호를 %@에 다시 시도할 수 있습니다.";
+"OnboardingCarousel.HeadingText1" = "당신의 추억, 완벽히 보호됩니다";
+"GlobalImportProgress.Remaining" = "남은";
+"GlobalImportProgress.PhotosDeleted" = "사진 삭제됨";
+"TaskDetailCard.LimitedAccessInfo" = "제한된 사진 접근";
+"TaskDetailCard.LimitedAccessMessage" = "제한된 사진 접근으로, 선택한 사진만 삭제할 수 있습니다. 모든 가져온 사진을 삭제하려면, 설정에서 전체 사진 라이브러리 접근 권한을 부여하세요.";
+"OnboardingCarousel.SubheadingText3" = "Encamera는 절대 데이터를 수집하지 않습니다. 당신의 사적인 순간은 완전히 당신의 것입니다.";
+"OnboardingCarousel.SubheadingText1" = "우리는 모든 사진과 비디오를 즉시 암호화합니다. 아무도 그것을 볼 수 없으며, 우리도 볼 수 없습니다.";
+"OnboardingCarousel.SubheadingText2" = "당신의 앨범은 당신만의 고유 키로 잠겨 있으며, 기기 또는 iCloud에 안전하게 저장됩니다.";
+"OnboardingCarousel.HeadingText2" = "암호화 키는 오직 당신만이 보유하고 있습니다.";
+"OnboardingCarousel.HeadingText3" = "계정 없음. 프로파일링 없음. 광고 없음.";
