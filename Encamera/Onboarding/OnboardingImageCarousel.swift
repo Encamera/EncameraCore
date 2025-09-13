@@ -66,6 +66,7 @@ struct OnboardingImageCarousel: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never)) // Hide built-in page indicators
+            .animation(.easeInOut(duration: 0.3), value: currentScrolledToImage) // Smooth animation on programmatic changes
             
             ImageStepIndicator(activeIndex: $currentScrolledToImage, numberOfItems: carouselItems.count)
                 .onTapGesture {
