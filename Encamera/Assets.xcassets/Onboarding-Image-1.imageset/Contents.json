@@ -1,8 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "handsome-man-feeling-happy-spending-morning-with-w-2023-11-27-05-08-03-utc.jpg",
-      "idiom" : "universal"
+      "filename" : "Onboarding-Image-1.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "idiom" : "universal",
+      "scale" : "3x"
     }
   ],
   "info" : {
