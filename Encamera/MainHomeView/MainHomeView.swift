@@ -135,11 +135,6 @@ struct MainHomeView<D: FileAccess>: View {
             .navigationDestination(for: AppNavigationPaths.self) { destination in
                 Group {
                     switch destination {
-                    case .createAlbum:
-                        AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: nil,
-                                                            purchasedPermissions: viewModel.purchasedPermissions, shouldCreateAlbum: true)).onAppear {
-                            EventTracking.trackCreateAlbumButtonPressed()
-                        }
                     case .albumDetail(album: let album):
                         AlbumDetailView<D>(viewModel: .init(albumManager: viewModel.albumManager, album: album, purchasedPermissions: viewModel.purchasedPermissions)).onAppear {
                             EventTracking.trackAlbumOpened()

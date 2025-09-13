@@ -11,8 +11,6 @@ import EncameraCore
 
 enum AppNavigationPaths: Hashable {
 
-
-    case createAlbum
     case albumDetail(album: Album)
     
     // Settings navigation paths

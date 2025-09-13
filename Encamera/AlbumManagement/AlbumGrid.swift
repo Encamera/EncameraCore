@@ -179,8 +179,18 @@ struct AlbumGrid<D: FileAccess>: View {
         
         Button {
             if !viewModel.shouldShowPurchaseScreenForAlbum {
-                // Use programmatic navigation instead of NavigationLink to avoid iOS 16.4 freezing bug
-                navigateToPath(.createAlbum)
+                // Track the event that was previously tracked in navigation
+                EventTracking.trackCreateAlbumButtonPressed()
+                // Use modal instead of navigation
+                appModalStateModel.currentModal = .addAlbum(context: .init(
+                    sourceView: "AlbumGrid",
+                    onAlbumCreated: { newAlbum in
+                        navigateToPath(.albumDetail(album: newAlbum))
+                    },
+                    onDismiss: {
+                        // Modal dismissal is handled automatically
+                    }
+                ))
             } else {
                 appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "AlbumGrid", purchaseAction: nil))
             }
