@@ -73,6 +73,7 @@ struct OnboardingImageCarousel: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     }
+                    .clipped()
                     .tag(index)
                 }
             }
