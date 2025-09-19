@@ -1086,6 +1086,16 @@ public enum L10n {
     /// Key copied to clipboard. Store this in a password manager or other secure place.
     public static let storeThisInAPasswordManagerOrOtherSecurePlace = L10n.tr("Localizable", "Key copied to clipboard. Store this in a password manager or other secure place.", fallback: "Key copied to clipboard. Store this in a password manager or other secure place.")
   }
+  public enum KeyPhrase {
+    /// My Key Has Been Stored
+    public static let continueButton = L10n.tr("Localizable", "KeyPhrase.ContinueButton", fallback: "My Key Has Been Stored")
+    /// Copy Key Phrase
+    public static let copyButton = L10n.tr("Localizable", "KeyPhrase.CopyButton", fallback: "Copy Key Phrase")
+    /// This is your unique encryption key phrase. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.
+    public static let subtitle = L10n.tr("Localizable", "KeyPhrase.Subtitle", fallback: "This is your unique encryption key phrase. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.")
+    /// Key Phrase Display Screen
+    public static let title = L10n.tr("Localizable", "KeyPhrase.Title", fallback: "Your Encryption Key Phrase")
+  }
   public enum MediaSelectionTray {
     /// Selected
     public static let itemSelected = L10n.tr("Localizable", "MediaSelectionTray.ItemSelected", fallback: "Selected")
@@ -1189,8 +1199,8 @@ public enum L10n {
     public static let headingText1 = L10n.tr("Localizable", "OnboardingCarousel.HeadingText1", fallback: "Your memories, fully protected")
     /// Only you hold the encryption key
     public static let headingText2 = L10n.tr("Localizable", "OnboardingCarousel.HeadingText2", fallback: "Only you hold the encryption key")
-    /// No accounts. No tracking. No ads.
-    public static let headingText3 = L10n.tr("Localizable", "OnboardingCarousel.HeadingText3", fallback: "No accounts. No tracking. No ads.")
+    /// No accounts. No profiling. No ads.
+    public static let headingText3 = L10n.tr("Localizable", "OnboardingCarousel.HeadingText3", fallback: "No accounts. No profiling. No ads.")
     /// We encrypt every picture and video instantly. No one else can see them, not even us.
     public static let subheadingText1 = L10n.tr("Localizable", "OnboardingCarousel.SubheadingText1", fallback: "We encrypt every picture and video instantly. No one else can see them, not even us.")
     /// Your albums are locked with your unique key and stored safely on your device or iCloud.
@@ -1237,8 +1247,8 @@ public enum L10n {
     public static let reviewButton = L10n.tr("Localizable", "PostPurchaseView.ReviewButton", fallback: "Help us with a review")
     /// You are one of the early supporters of Encamera and we thank you for the support!
     public static let subtext1 = L10n.tr("Localizable", "PostPurchaseView.Subtext1", fallback: "You are one of the early supporters of Encamera and we thank you for the support!")
-    /// In the meantime, we will highly appreciate if you could help us with a Review on the App Store
-    public static let subtext2 = L10n.tr("Localizable", "PostPurchaseView.Subtext2", fallback: "In the meantime, we will highly appreciate if you could help us with a Review on the App Store")
+    /// In the meantime, we would highly appreciate if you could help us with a Review on the App Store
+    public static let subtext2 = L10n.tr("Localizable", "PostPurchaseView.Subtext2", fallback: "In the meantime, we would highly appreciate if you could help us with a Review on the App Store")
     /// Thanks for your purchase!
     public static let thanksForYourPurchase = L10n.tr("Localizable", "PostPurchaseView.ThanksForYourPurchase", fallback: "Thanks for your purchase!")
   }
