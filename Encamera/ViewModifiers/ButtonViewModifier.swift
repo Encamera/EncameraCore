@@ -10,12 +10,12 @@ import SwiftUI
 
 
 struct EncameraButtonStyle: ButtonStyle {
-    
+
     var hostSurface: SurfaceType
 
     func makeBody(configuration: Configuration) -> some View {
         return configuration.label
-            .fontType(.pt18, on: hostSurface, weight: .bold)
+            .fontType(.pt14, on: hostSurface, weight: .bold)
             .padding(.vertical, 14)
             .padding(.horizontal, 56)
             .frame(minHeight: 54)
