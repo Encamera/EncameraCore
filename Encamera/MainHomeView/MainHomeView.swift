@@ -75,6 +75,7 @@ struct MainHomeView<D: FileAccess>: View {
     @EnvironmentObject var appModalStateModel: AppModalStateModel
 
     @State private var selectedNavigationItem: BottomNavigationBar.ButtonItem = .albums
+    @State private var showKeyBackupModal = false
 
     init(viewModel: MainHomeViewViewModel<D>) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -125,6 +126,16 @@ struct MainHomeView<D: FileAccess>: View {
                         }
                     }
                 }
+                
+                // Check if we should show the key backup reminder modal
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    let launchCount = LaunchCountUtils.fetchCurrentVersionLaunchCount()
+                    let isUpgradeLaunch = LaunchCountUtils.isUpgradeLaunch()
+                    
+                    if launchCount == 5 || isUpgradeLaunch {
+                        showKeyBackupModal = true
+                    }
+                }
             }
             .onChange(of: viewModel.selectedNavigationItem, { oldValue, newValue in
                 selectedNavigationItem = newValue
@@ -162,6 +173,40 @@ struct MainHomeView<D: FileAccess>: View {
                 }.environmentObject(appModalStateModel)
             }
             .screenBlocked()
+            .reusableModal(isPresented: $showKeyBackupModal) {
+                // Key backup reminder modal content
+                VStack(spacing: 24) {
+                    Image("EncryptionKeyBackupHeading")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 60, height: 60)
+                        .foregroundColor(.orange)
+                    
+                    Text("Back up your Encryption Key")
+                        .fontType(.pt24, weight: .bold)
+
+                    VStack(spacing: 16) {
+                        Text("Your photos are protected with a unique encryption key. This is the only way to recover your images if you switch devices or reinstall the app.")
+                            .fontType(.pt16)
+                            .multilineTextAlignment(.center)
+                        
+                        Text("We cannot help you recover lost photos without this key.")
+                            .fontType(.pt16, weight: .bold)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    Button("View the Key") {
+                        showKeyBackupModal = false
+                        // Show the KeyPhraseView modal
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            appModalStateModel.currentModal = .keyPhraseView
+                        }
+                    }
+                    .primaryButton()
+                }
+                .padding(.vertical, 40)
+            }
         }
     }
 }
