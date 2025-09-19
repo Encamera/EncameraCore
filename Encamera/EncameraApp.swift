@@ -375,6 +375,8 @@ struct EncameraApp: App {
                     break
                 case .addAlbum(context: _):
                     break
+                case .keyPhraseView:
+                    break
                 }
             })
             .onChange(of: appModalStateModel.currentModal, { oldValue, newValue in
@@ -442,6 +444,8 @@ struct EncameraApp: App {
                                 self.appModalStateModel.currentModal = nil
                             }
                         })
+                    case .keyPhraseView:
+                        KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
                     case nil:
                         AnyView(EmptyView())
                     }
