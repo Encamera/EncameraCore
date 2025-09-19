@@ -445,7 +445,7 @@ struct EncameraApp: App {
                             }
                         })
                     case .keyPhraseView:
-                        KeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
+                        DismissibleKeyPhraseView(viewModel: .init(keyManager: viewModel.keyManager))
                     case nil:
                         AnyView(EmptyView())
                     }
