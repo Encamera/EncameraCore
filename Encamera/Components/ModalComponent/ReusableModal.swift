@@ -22,7 +22,7 @@ struct ReusableModal<Content: View>: View {
     }
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             if isPresented {
                 // Full screen overlay with blur
                 Color.clear
@@ -32,7 +32,7 @@ struct ReusableModal<Content: View>: View {
                         dismissModal()
                     }
                 
-                // Modal content
+                // Modal content pinned to bottom
                 ModalContent(
                     content: content,
                     dragOffset: $dragOffset,
@@ -43,10 +43,12 @@ struct ReusableModal<Content: View>: View {
                 .animation(.spring(response: 0.3, dampingFraction: 0.9), value: dragOffset)
             }
         }
+        .ignoresSafeArea(.container, edges: .bottom) // Extend frame into safe area
+
         .onAppear {
             showModal = true
         }
-        .onChange(of: isPresented) { presented in
+        .onChange(of: isPresented) { _, presented in
             if presented {
                 showModal = true
             } else {
@@ -80,7 +82,10 @@ private struct ModalContent<Content: View>: View {
             content()
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 0)
-                .padding(.bottom, 34) // Safe area bottom padding
+        }
+        .safeAreaInset(edge: .bottom) {
+            // This creates space for the safe area without using content
+            Color.clear.frame(height: 20) // Extra padding beyond safe area
         }
         .gradientBackground()
         .clipShape(
@@ -106,7 +111,6 @@ private struct ModalContent<Content: View>: View {
         )
     }
 }
-
 
 // MARK: - View Extension
 extension View {
