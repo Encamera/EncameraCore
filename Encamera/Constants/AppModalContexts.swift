@@ -92,4 +92,5 @@ enum AppModal: Hashable {
     case purchaseView(context: PurchaseViewContext)
     case albumSelection(context: AlbumSelectionContext)
     case addAlbum(context: AddAlbumModalContext)
+    case keyPhraseView
 }
