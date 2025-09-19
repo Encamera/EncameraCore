@@ -131,10 +131,14 @@ struct MainHomeView<D: FileAccess>: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     let launchCount = LaunchCountUtils.fetchCurrentVersionLaunchCount()
                     let isUpgradeLaunch = LaunchCountUtils.isUpgradeLaunch()
-                    
+
+                    #if DEBUG
+                    showKeyBackupModal = true
+                    #else
                     if launchCount == 5 || isUpgradeLaunch {
                         showKeyBackupModal = true
                     }
+                    #endif
                 }
             }
             .onChange(of: viewModel.selectedNavigationItem, { oldValue, newValue in

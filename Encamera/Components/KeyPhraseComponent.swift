@@ -38,7 +38,7 @@ extension ItemView {
 }
 
 struct KeyPhraseComponent: View {
-  var words = ["Hello", "World", "I", "love", "Swift", "and", "tag", "clouds"]
+  let words: [String]
 
   var body: some View {
       TagCloudView(data: words) { element in
@@ -49,5 +49,5 @@ struct KeyPhraseComponent: View {
 }
 
 #Preview {
-    KeyPhraseComponent()
+    KeyPhraseComponent(words: ["Hello", "World", "I", "love", "Swift", "and", "tag", "clouds"])
 }

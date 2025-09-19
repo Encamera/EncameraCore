@@ -14,6 +14,7 @@ struct ReusableModal<Content: View>: View {
     let content: () -> Content
     
     @State private var showModal: Bool = false
+    @State private var showBackground: Bool = false
     @State private var dragOffset: CGSize = .zero
     
     init(isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) {
@@ -24,10 +25,12 @@ struct ReusableModal<Content: View>: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             if isPresented {
-                // Full screen overlay with blur
+                // Full screen overlay with blur - quick fade animation
                 Color.clear
                     .background(.ultraThinMaterial)
                     .ignoresSafeArea(.all)
+                    .opacity(showBackground ? 1.0 : 0.0)
+                    .animation(.easeInOut(duration: 0.2), value: showBackground)
                     .onTapGesture {
                         dismissModal()
                     }
@@ -39,27 +42,59 @@ struct ReusableModal<Content: View>: View {
                     onDismiss: dismissModal
                 )
                 .offset(y: showModal ? dragOffset.height : UIScreen.main.bounds.height)
-                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: showModal)
+                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: showModal)
                 .animation(.spring(response: 0.3, dampingFraction: 0.9), value: dragOffset)
             }
         }
         .ignoresSafeArea(.container, edges: .bottom) // Extend frame into safe area
-
         .onAppear {
-            showModal = true
+            if isPresented {
+                // Quick background fade, then modal slide up
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showBackground = true
+                }
+                // Slight delay for modal to create sequence
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                        showModal = true
+                    }
+                }
+            }
         }
         .onChange(of: isPresented) { _, presented in
             if presented {
-                showModal = true
+                // Quick background fade, then modal slide up
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showBackground = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                        showModal = true
+                    }
+                }
             } else {
-                showModal = false
+                // Immediate modal slide down, then background fade
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    showModal = false
+                }
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    showBackground = false
+                }
             }
         }
     }
     
     private func dismissModal() {
-        showModal = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        // Animate modal sliding down first
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            showModal = false
+        }
+        // Then fade background
+        withAnimation(.easeInOut(duration: 0.15)) {
+            showBackground = false
+        }
+        // Finally dismiss after animations complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             isPresented = false
             dragOffset = .zero
         }
