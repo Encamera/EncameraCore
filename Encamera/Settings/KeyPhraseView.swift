@@ -44,12 +44,16 @@ struct KeyPhraseView: View {
                 let phraseArray = passphrase.words
                 KeyPhraseComponent(words: phraseArray)
                 Spacer()
-                Button(copyPressed ? L10n.recoveryPhraseCopied : L10n.copyPhrase) {
-                    let phraseString = phraseArray.joined(separator: " ")
-                    EventTracking.trackKeyPhraseBackupCopied()
-                    UIPasteboard.general.string = phraseString
-                    copyPressed = true
-                }.primaryButton()
+                HStack {
+                    Spacer()
+                    Button(copyPressed ? L10n.recoveryPhraseCopied : L10n.copyPhrase) {
+                        let phraseString = phraseArray.joined(separator: " ")
+                        EventTracking.trackKeyPhraseBackupCopied()
+                        UIPasteboard.general.string = phraseString
+                        copyPressed = true
+                    }.primaryButton()
+                    Spacer()
+                }
             }
 //            Divider()
 //            Toggle("Back up key to iCloud", isOn: $viewModel.iCloudBackupEnabled)
