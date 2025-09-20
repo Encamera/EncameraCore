@@ -12,6 +12,7 @@ import Combine
 class KeyPhraseViewModel: ObservableObject {
 
     var keyManager: KeyManager
+    @Published var useiCloudKeyBackup: Bool = false
 
     var phraseArray: KeyPassphrase?
 
@@ -20,6 +21,8 @@ class KeyPhraseViewModel: ObservableObject {
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
         phraseArray = try? keyManager.retrieveKeyPassphrase()
+        self.useiCloudKeyBackup = keyManager.isSyncEnabled
+        setupToggleObserver()
     }
 
     func toggleCloudBackup(isOn: Bool) {
@@ -28,6 +31,13 @@ class KeyPhraseViewModel: ObservableObject {
         } catch {
             debugPrint("Error toggling key backup to iCloud: \(error)")
         }
+    }
+
+    func setupToggleObserver() {
+        self.$useiCloudKeyBackup.dropFirst().sink { [weak self] value in
+            guard let self else { return }
+            try? self.keyManager.backupKeychainToiCloud(backupEnabled: value)
+        }.store(in: &cancellables)
     }
 
 }
@@ -55,11 +65,23 @@ struct KeyPhraseView: View {
                     Spacer()
                 }
             }
-//            Divider()
-//            Toggle("Back up key to iCloud", isOn: $viewModel.iCloudBackupEnabled)
-//            Text("If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.")
-//                .fontType(.pt12)
-//            Spacer()
+            
+            Divider()
+                .padding(.vertical, 16)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle(isOn: $viewModel.useiCloudKeyBackup) {
+                    Text(L10n.Settings.backupKeyToiCloud)
+                        .fontType(.pt14, weight: .bold)
+                }
+                .tint(Color.actionYellowGreen)
+                
+                Text(L10n.Settings.backupKeyToiCloudDescription)
+                    .fontType(.pt12)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
         }
         .onChange(of: copyPressed, { oldValue, newValue in
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {

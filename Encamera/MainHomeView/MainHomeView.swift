@@ -186,21 +186,21 @@ struct MainHomeView<D: FileAccess>: View {
                         .frame(width: 60, height: 60)
                         .foregroundColor(.orange)
                     
-                    Text("Back up your Encryption Key")
+                    Text(L10n.MainHomeView.backupEncryptionKey)
                         .fontType(.pt24, weight: .bold)
 
                     VStack(spacing: 16) {
-                        Text("Your photos are protected with a unique encryption key. This is the only way to recover your images if you switch devices or reinstall the app.")
+                        Text(L10n.MainHomeView.keyBackupExplanation)
                             .fontType(.pt16)
                             .multilineTextAlignment(.center)
                         
-                        Text("We cannot help you recover lost photos without this key.")
+                        Text(L10n.MainHomeView.keyBackupWarning)
                             .fontType(.pt16, weight: .bold)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal, 20)
                     
-                    Button("View the Key") {
+                    Button(L10n.MainHomeView.viewTheKey) {
                         showKeyBackupModal = false
                         // Show the KeyPhraseView modal
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {

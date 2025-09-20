@@ -117,7 +117,6 @@
 		365F533E1056DD94FC272B41 /* VideoScrubbingSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25866C1CC9DC241EE55EFC5D /* VideoScrubbingSlider.swift */; };
 		36C5677F5BE2E84E24004996 /* NotificationCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD0F708E55FC007B119B855 /* NotificationCarousel.swift */; };
 		36E0E84AB09238B05CF4C079 /* Satoshi-MediumItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 851DD3DC1BD4F3BBDAB226B1 /* Satoshi-MediumItalic.otf */; };
-		376C35093967CD1D5EC84EF3 /* ModalUsageExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41BD380758BD4AC82FE23675 /* ModalUsageExample.swift */; };
 		386E7E3E064CBDDF175CCBEC /* CameraPreviewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 800E012D9BB48780A37F5735 /* CameraPreviewController.swift */; };
 		38B9B3BB67AABD0AB502B0AD /* UIColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E62CD858E570616AF74D119 /* UIColor.swift */; };
 		38DC728EA6EE69A696AEAFC6 /* MediaViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9820DFDC9E5EF8572F77A9B0 /* MediaViewModelProtocol.swift */; };
@@ -378,7 +377,6 @@
 		C5A2C1B02914147FB96D2AE3 /* Spacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F1A4289E4353AAA09B47E9F /* Spacing.swift */; };
 		C5A9017D90629C088B3CA53C /* Satoshi-LightItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 3CEFAA012887940F0776105B /* Satoshi-LightItalic.otf */; };
 		C662E276CD00A447DF41EA79 /* BottomNavigationBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978DFBA064D16EA0AE814467 /* BottomNavigationBar.swift */; };
-		C6F3B0C5B8EF92D54677FFCB /* ModalUsageExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41BD380758BD4AC82FE23675 /* ModalUsageExample.swift */; };
 		C8AFCA3DD12DE8B123260328 /* PhotoLimitReachedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4900B5F3BBE74A9E15B2AFE4 /* PhotoLimitReachedView.swift */; };
 		C92EDAFE527F8533B4759FCB /* LivePhotoUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A17CCD2D8F3AB1414DE4A03 /* LivePhotoUIView.swift */; };
 		C9F8453D895180F1E9813D2A /* PiwikPROSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 4CCD757806714279705AE19F /* PiwikPROSDK */; };
@@ -603,7 +601,6 @@
 		3ED72EDC146A5E38FC4EE96A /* EncryptedVideoIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = EncryptedVideoIcon.png; sourceTree = "<group>"; };
 		3ED8F164556978451324A891 /* 9.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 9.jpg; sourceTree = "<group>"; };
 		40DE9D924F220F92F648807C /* ImportKeyPhrase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportKeyPhrase.swift; sourceTree = "<group>"; };
-		41BD380758BD4AC82FE23675 /* ModalUsageExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalUsageExample.swift; sourceTree = "<group>"; };
 		425F1BE33BAF48A0B741BFD1 /* StorePurchaseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorePurchaseButton.swift; sourceTree = "<group>"; };
 		444C602F6CE6897937BAAA12 /* AppModalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModalModifier.swift; sourceTree = "<group>"; };
 		44E990D15FF89B8B297FF774 /* EmptyMediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyMediaView.swift; sourceTree = "<group>"; };
@@ -933,7 +930,6 @@
 		1C0234592D08984A3238591A /* ModalComponent */ = {
 			isa = PBXGroup;
 			children = (
-				41BD380758BD4AC82FE23675 /* ModalUsageExample.swift */,
 				C461FF444B4B030D164CCD47 /* README.md */,
 				21A8A69D4A421C0F6BC32F9C /* ReusableModal.swift */,
 			);
@@ -1933,7 +1929,6 @@
 				D6CB997B5300E48551DC634A /* MediaViewingDelegate.swift in Sources */,
 				6637DE974ED5A2C6860A8D0E /* MediaViewingError.swift in Sources */,
 				D4AD2628394DF3E2399EFFEF /* MediaViewingViewModel.swift in Sources */,
-				376C35093967CD1D5EC84EF3 /* ModalUsageExample.swift in Sources */,
 				EA9742C2A450179A1B972DA3 /* MovieViewing.swift in Sources */,
 				E1BA69FA29C3F90F40BEB21B /* MovingGradient.swift in Sources */,
 				5C242765482F8F9C8B0BC2DA /* NavigationPath.swift in Sources */,
@@ -2119,7 +2114,6 @@
 				BCED6B7B1594B7955A529364 /* MediaViewingDelegate.swift in Sources */,
 				173846240608B3AE76784429 /* MediaViewingError.swift in Sources */,
 				D31AC5E5EF17DD59E61D486D /* MediaViewingViewModel.swift in Sources */,
-				C6F3B0C5B8EF92D54677FFCB /* ModalUsageExample.swift in Sources */,
 				6D38701EED69816C864AC33F /* MovieViewing.swift in Sources */,
 				246172C46673DC5A9D848C8D /* MovingGradient.swift in Sources */,
 				90A67C8D7E6A28B34D2729DF /* NavigationPath.swift in Sources */,

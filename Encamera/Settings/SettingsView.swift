@@ -82,7 +82,7 @@ class SettingsViewViewModel: ObservableObject {
         self.showKeyBackup = ((try? keyManager.retrieveKeyPassphrase()) != nil)
         self.defaultStorageOption = albumManager.defaultStorageForAlbum
         self.purchasedPermissions = purchasedPermissions
-        self.useiCloudKeyBackup = purchasedPermissions.hasEntitlement && keyManager.isSyncEnabled
+        self.useiCloudKeyBackup = keyManager.isSyncEnabled
     }
     
     func setupToggleObservers() {
@@ -108,15 +108,7 @@ class SettingsViewViewModel: ObservableObject {
 
         self.$useiCloudKeyBackup.dropFirst().sink { [weak self] value in
             guard let self else { return }
-            
-            if self.purchasedPermissions.hasEntitlement || value == false {
-                try? self.keyManager.backupKeychainToiCloud(backupEnabled: value)
-            } else {
-                self.showPurchaseScreen = value
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        self.useiCloudKeyBackup = false
-                }
-            }
+            try? self.keyManager.backupKeychainToiCloud(backupEnabled: value)
         }.store(in: &cancellables)
     }
 
