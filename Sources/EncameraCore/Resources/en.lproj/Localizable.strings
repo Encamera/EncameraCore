@@ -533,6 +533,7 @@
 "Settings.ImportKeyPhrase" = "Import Key Phrase";
 "Settings.DefaultStorageOption" = "Default Storage Option";
 "Settings.BackupKeyToiCloud" = "Sync Key to iCloud";
+"Settings.BackupKeyToiCloudDescription" = "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.";
 "Settings.GiveInstantFeedback" = "Give Instant Feedback";
 "Settings.PurchasesRestored" = "Purchases restored!";
 "Settings.PurchasesRestoredMessage" = "Any valid purchases you made have been restored.";
@@ -722,3 +723,9 @@
 
 /* ./Encamera/Settings/SettingsView.swift */
 "SettingsView.UnknownError" = "Unknown error";
+
+/* ./Encamera/MainHomeView/MainHomeView.swift */
+"MainHomeView.BackupEncryptionKey" = "Back up your Encryption Key";
+"MainHomeView.KeyBackupExplanation" = "Your photos are protected with a unique encryption key. This is the only way to decrypt your images if you switch devices or reinstall the app.";
+"MainHomeView.KeyBackupWarning" = "You will not be able to view your media without this key.";
+"MainHomeView.ViewTheKey" = "View the Key";

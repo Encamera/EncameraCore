@@ -714,3 +714,12 @@
 "OnboardingCarousel.SubheadingText2" = "Tus álbumes están protegidos con tu clave única y se almacenan de manera segura en tu dispositivo o iCloud.";
 "OnboardingCarousel.HeadingText2" = "Solo tú tienes la clave de cifrado";
 "OnboardingCarousel.HeadingText3" = "Sin cuentas. Sin perfilado. Sin anuncios.";
+"Settings.BackupKeyToiCloudDescription" = "Si está habilitado, su clave se respaldará automáticamente en su iCloud Keychain. Si pierde su dispositivo, aún tendrá acceso a los archivos almacenados en iCloud si elige esta opción.";
+"KeyPhrase.ContinueButton" = "Mi clave ha sido almacenada";
+"MainHomeView.BackupEncryptionKey" = "Haga una copia de seguridad de su clave de cifrado";
+"MainHomeView.KeyBackupExplanation" = "Sus fotos están protegidas con una clave de cifrado única. Esta es la única manera de descifrar sus imágenes si cambia de dispositivo o reinstala la aplicación.";
+"KeyPhrase.Subtitle" = "Esta es su frase de clave de cifrado única. Si la pierde y obtiene un nuevo teléfono, nunca podrá acceder a sus fotos y videos cifrados nuevamente. Por favor, guárdela en un lugar seguro.";
+"KeyPhrase.Title" = "Tu frase de clave de cifrado";
+"KeyPhrase.CopyButton" = "Copiar frase de clave";
+"MainHomeView.ViewTheKey" = "Ver la clave";
+"MainHomeView.KeyBackupWarning" = "No podrás ver tu contenido multimedia sin esta clave.";

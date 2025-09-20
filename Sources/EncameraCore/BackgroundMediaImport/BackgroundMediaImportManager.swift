@@ -47,7 +47,6 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
 
     public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = []) async throws {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
-        
         // Reset time estimation for new import
         resetTimeEstimationState()
         

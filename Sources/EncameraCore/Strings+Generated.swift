@@ -1096,6 +1096,16 @@ public enum L10n {
     /// Key Phrase Display Screen
     public static let title = L10n.tr("Localizable", "KeyPhrase.Title", fallback: "Your Encryption Key Phrase")
   }
+  public enum MainHomeView {
+    /// ./Encamera/MainHomeView/MainHomeView.swift
+    public static let backupEncryptionKey = L10n.tr("Localizable", "MainHomeView.BackupEncryptionKey", fallback: "Back up your Encryption Key")
+    /// Your photos are protected with a unique encryption key. This is the only way to recover your images if you switch devices or reinstall the app.
+    public static let keyBackupExplanation = L10n.tr("Localizable", "MainHomeView.KeyBackupExplanation", fallback: "Your photos are protected with a unique encryption key. This is the only way to recover your images if you switch devices or reinstall the app.")
+    /// We cannot help you recover lost photos without this key.
+    public static let keyBackupWarning = L10n.tr("Localizable", "MainHomeView.KeyBackupWarning", fallback: "We cannot help you recover lost photos without this key.")
+    /// View the Key
+    public static let viewTheKey = L10n.tr("Localizable", "MainHomeView.ViewTheKey", fallback: "View the Key")
+  }
   public enum MediaSelectionTray {
     /// Selected
     public static let itemSelected = L10n.tr("Localizable", "MediaSelectionTray.ItemSelected", fallback: "Selected")
@@ -1303,6 +1313,8 @@ public enum L10n {
     public static let backupKeyPhrase = L10n.tr("Localizable", "Settings.BackupKeyPhrase", fallback: "Backup Key Phrase")
     /// Sync Key to iCloud
     public static let backupKeyToiCloud = L10n.tr("Localizable", "Settings.BackupKeyToiCloud", fallback: "Sync Key to iCloud")
+    /// If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.
+    public static let backupKeyToiCloudDescription = L10n.tr("Localizable", "Settings.BackupKeyToiCloudDescription", fallback: "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.")
     /// Contact Support
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
     /// Default Storage Option

@@ -582,3 +582,12 @@
 "OnboardingCarousel.SubheadingText2" = "당신의 앨범은 당신만의 고유 키로 잠겨 있으며, 기기 또는 iCloud에 안전하게 저장됩니다.";
 "OnboardingCarousel.HeadingText2" = "암호화 키는 오직 당신만이 보유하고 있습니다.";
 "OnboardingCarousel.HeadingText3" = "계정 없음. 프로파일링 없음. 광고 없음.";
+"MainHomeView.BackupEncryptionKey" = "암호화 키를 백업하세요";
+"KeyPhrase.Title" = "귀하의 암호화 키 구문";
+"MainHomeView.ViewTheKey" = "키 보기";
+"MainHomeView.KeyBackupExplanation" = "귀하의 사진은 고유한 암호화 키로 보호됩니다. 이는 기기를 변경하거나 앱을 재설치할 때 이미지를 복호화할 수 있는 유일한 방법입니다.";
+"KeyPhrase.CopyButton" = "키 구문 복사";
+"KeyPhrase.ContinueButton" = "내 키가 저장되었습니다";
+"KeyPhrase.Subtitle" = "이것은 귀하의 고유한 암호화 키 구문입니다. 이것을 잃어버리고 새 휴대폰을 받으면 암호화된 사진과 비디오에 다시 액세스할 수 없습니다. 안전한 장소에 보관하십시오.";
+"Settings.BackupKeyToiCloudDescription" = "사용 설정하면 키가 iCloud 키체인에 자동으로 백업됩니다. 이 옵션을 선택하면 장치를 분실하더라도 iCloud에 저장된 파일에 액세스할 수 있습니다.";
+"MainHomeView.KeyBackupWarning" = "이 키 없이는 미디어를 볼 수 없습니다.";

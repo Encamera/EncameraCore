@@ -14,7 +14,7 @@ extension DebugPrintable {
     public static func printDebug(_ items: Any..., separator: String = " ", terminator: String = "\n") {
         let className = String(describing: type(of: self))
         let message = items.map { "\($0)" }.joined(separator: separator)
-        print("\(className): \(message)", terminator: terminator)
+        debugPrint("\(className): \(message)", terminator: terminator)
     }
 
     public func printDebug(_ items: Any..., separator: String = " ", terminator: String = "\n") {
