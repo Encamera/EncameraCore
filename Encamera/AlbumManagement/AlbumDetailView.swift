@@ -1089,7 +1089,7 @@ struct AlbumDetailView<D: FileAccess>: View {
 
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .center, spacing: 16) {
 
             VStack(spacing: 24) {
                 VStack(spacing: 12) {

@@ -25,14 +25,6 @@ class KeyPhraseViewModel: ObservableObject {
         setupToggleObserver()
     }
 
-    func toggleCloudBackup(isOn: Bool) {
-        do {
-            try self.keyManager.backupKeychainToiCloud(backupEnabled: isOn)
-        } catch {
-            debugPrint("Error toggling key backup to iCloud: \(error)")
-        }
-    }
-
     func setupToggleObserver() {
         self.$useiCloudKeyBackup.dropFirst().sink { [weak self] value in
             guard let self else { return }
@@ -66,20 +58,16 @@ struct KeyPhraseView: View {
                 }
             }
             
-            Divider()
-                .padding(.vertical, 16)
+//            Divider()
+//                .padding(.vertical, 16)
             
-            VStack(alignment: .leading, spacing: 12) {
-                Toggle(isOn: $viewModel.useiCloudKeyBackup) {
-                    Text(L10n.Settings.backupKeyToiCloud)
-                        .fontType(.pt14, weight: .bold)
-                }
-                .tint(Color.actionYellowGreen)
-                
-                Text(L10n.Settings.backupKeyToiCloudDescription)
-                    .fontType(.pt12)
-                    .foregroundColor(.secondary)
-            }
+//            VStack(alignment: .leading, spacing: 12) {
+//                Toggle(isOn: $viewModel.useiCloudKeyBackup) {
+//                    Text(L10n.Settings.backupKeyToiCloud)
+//                        .fontType(.pt14, weight: .bold)
+//                }
+//                .tint(Color.actionYellowGreen)
+//            }
             
             Spacer()
         }
