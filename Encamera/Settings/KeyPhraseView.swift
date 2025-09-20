@@ -93,7 +93,6 @@ struct KeyPhraseView: View {
         .onAppear {
             EventTracking.trackKeyPhraseBackupScreenOpened()
         }
-        .navigationTitle(L10n.yourRecoveryPhrase)
         .pad(.pt16)
         .gradientBackground()
     }
