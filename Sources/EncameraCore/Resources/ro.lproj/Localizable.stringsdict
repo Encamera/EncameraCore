@@ -12,8 +12,14 @@
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
+			<key>zero</key>
+			<string>Niciun element</string>
+			<key>one</key>
+			<string>1 element</string>
+			<key>few</key>
+			<string>%d elemente</string>
 			<key>other</key>
-			<string>%d개 항목</string>
+			<string>%d de elemente</string>
 		</dict>
 	</dict>
 	<key>%@ Video(s)</key>
@@ -26,8 +32,14 @@
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
+			<key>zero</key>
+			<string>Niciun video</string>
+			<key>one</key>
+			<string>1 video</string>
+			<key>few</key>
+			<string>%d videouri</string>
 			<key>other</key>
-			<string>동영상</string>
+			<string>%d de videouri</string>
 		</dict>
 	</dict>
 	<key>%@ Photo(s) Left</key>
@@ -40,8 +52,14 @@
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
+			<key>zero</key>
+			<string>Fotografii rămase</string>
+			<key>one</key>
+			<string>Fotografie rămasă</string>
+			<key>few</key>
+			<string>Fotografii rămase</string>
 			<key>other</key>
-			<string>남은 사진</string>
+			<string>Fotografii rămase</string>
 		</dict>
 	</dict>
 </dict>

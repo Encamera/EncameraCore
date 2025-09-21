@@ -12,8 +12,18 @@
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
+			<key>zero</key>
+			<string>لا توجد عناصر</string>
+			<key>one</key>
+			<string>عنصر واحد</string>
+			<key>two</key>
+			<string>عنصران</string>
+			<key>few</key>
+			<string>%d عناصر</string>
+			<key>many</key>
+			<string>%d عنصراً</string>
 			<key>other</key>
-			<string>%d개 항목</string>
+			<string>%d عنصر</string>
 		</dict>
 	</dict>
 	<key>%@ Video(s)</key>
@@ -26,8 +36,18 @@
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
+			<key>zero</key>
+			<string>لا توجد فيديوهات</string>
+			<key>one</key>
+			<string>فيديو واحد</string>
+			<key>two</key>
+			<string>فيديوان</string>
+			<key>few</key>
+			<string>%d فيديوهات</string>
+			<key>many</key>
+			<string>%d فيديو</string>
 			<key>other</key>
-			<string>동영상</string>
+			<string>%d فيديو</string>
 		</dict>
 	</dict>
 	<key>%@ Photo(s) Left</key>
@@ -40,8 +60,18 @@
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
+			<key>zero</key>
+			<string>لا توجد صور متبقية</string>
+			<key>one</key>
+			<string>صورة واحدة متبقية</string>
+			<key>two</key>
+			<string>صورتان متبقيتان</string>
+			<key>few</key>
+			<string>%d صور متبقية</string>
+			<key>many</key>
+			<string>%d صورة متبقية</string>
 			<key>other</key>
-			<string>남은 사진</string>
+			<string>%d صورة متبقية</string>
 		</dict>
 	</dict>
 </dict>

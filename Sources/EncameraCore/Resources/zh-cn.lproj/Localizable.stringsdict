@@ -13,7 +13,7 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>other</key>
-			<string>%d개 항목</string>
+			<string>%d个项目</string>
 		</dict>
 	</dict>
 	<key>%@ Video(s)</key>
@@ -27,7 +27,7 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>other</key>
-			<string>동영상</string>
+			<string>视频</string>
 		</dict>
 	</dict>
 	<key>%@ Photo(s) Left</key>
@@ -41,7 +41,7 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>other</key>
-			<string>남은 사진</string>
+			<string>剩余照片</string>
 		</dict>
 	</dict>
 </dict>

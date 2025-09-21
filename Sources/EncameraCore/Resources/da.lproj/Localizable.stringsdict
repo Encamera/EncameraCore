@@ -12,8 +12,12 @@
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
+			<key>zero</key>
+			<string>Ingen elementer</string>
+			<key>one</key>
+			<string>1 element</string>
 			<key>other</key>
-			<string>%d개 항목</string>
+			<string>%d elementer</string>
 		</dict>
 	</dict>
 	<key>%@ Video(s)</key>
@@ -26,8 +30,12 @@
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
+			<key>zero</key>
+			<string>Ingen videoer</string>
+			<key>one</key>
+			<string>1 video</string>
 			<key>other</key>
-			<string>동영상</string>
+			<string>%d videoer</string>
 		</dict>
 	</dict>
 	<key>%@ Photo(s) Left</key>
@@ -40,8 +48,12 @@
 			<string>NSStringPluralRuleType</string>
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
+			<key>zero</key>
+			<string>Tilbage fotos</string>
+			<key>one</key>
+			<string>Tilbage foto</string>
 			<key>other</key>
-			<string>남은 사진</string>
+			<string>Tilbage fotos</string>
 		</dict>
 	</dict>
 </dict>
