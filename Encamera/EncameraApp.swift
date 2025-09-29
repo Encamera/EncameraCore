@@ -66,6 +66,8 @@ struct EncameraApp: App {
             self.cameraService = CameraConfigurationService(model: CameraConfigurationServiceModel())
             self.keychainMigrationUtil.completeMigration()
             
+            // print current locale to console
+            print("Current locale: \(Locale.current.identifier)")
             
             self.onboardingManager
                 .observables

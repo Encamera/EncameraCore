@@ -1,0 +1,15 @@
+/* 
+  InfoPlist.strings
+  Encamera - Romanian (Română)
+
+  Created by localization setup.
+  
+*/
+/* Camera usage description */
+NSCameraUsageDescription = "Encamera are nevoie de acces la camera ta pentru a captura fotografii pe care le va cripta.";
+
+/* Face ID usage description */
+NSFaceIDUsageDescription = "Encamera are nevoie de Face ID pentru securizarea fotografiilor tale.";
+
+/* Microphone usage description */
+NSMicrophoneUsageDescription = "Encamera are nevoie de acces la microfon pentru captarea și criptarea audio.";

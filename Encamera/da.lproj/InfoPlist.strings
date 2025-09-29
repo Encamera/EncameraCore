@@ -1,0 +1,15 @@
+/* 
+  InfoPlist.strings
+  Encamera - Danish (Dansk)
+
+  Created by localization setup.
+  
+*/
+/* Camera usage description */
+NSCameraUsageDescription = "Encamera har brug for adgang til dit kamera for at tage billeder, som det krypterer.";
+
+/* Face ID usage description */
+NSFaceIDUsageDescription = "Encamera har brug for Face ID til at sikre dine fotos.";
+
+/* Microphone usage description */
+NSMicrophoneUsageDescription = "Encamera har brug for adgang til din mikrofon for at optage og kryptere lyd.";
