@@ -182,10 +182,14 @@ class CustomPhotoPickerViewController: UIViewController {
         // Clamp between 3-6 columns for good UX
         let columns = min(max(maxColumns, 3), 6)
         
-        let itemWidth = (availableWidth - (spacing * (columns - 1))) / columns
+        // Calculate item width and floor it to avoid fractional points
+        let totalSpacing = spacing * (columns - 1)
+        let itemWidth = floor((availableWidth - totalSpacing) / columns)
+        
         layout.itemSize = CGSize(width: itemWidth, height: itemWidth)
         layout.minimumInteritemSpacing = spacing
         layout.minimumLineSpacing = spacing
+        layout.sectionInset = .zero
         
         return layout
     }
