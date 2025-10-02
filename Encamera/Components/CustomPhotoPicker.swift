@@ -167,14 +167,42 @@ class CustomPhotoPickerViewController: UIViewController {
         updateNavigationBar()
     }
     
-    private func setupCollectionView() {
+    private func createLayout(for width: CGFloat? = nil) -> UICollectionViewFlowLayout {
         let layout = UICollectionViewFlowLayout()
         let spacing: CGFloat = 2
-        let columns: CGFloat = 4
-        let width = (view.bounds.width - (spacing * (columns - 1))) / columns
-        layout.itemSize = CGSize(width: width, height: width)
+        
+        // Use provided width or fall back to view bounds
+        let availableWidth = width ?? view.bounds.width
+        
+        // Calculate optimal number of columns based on width
+        // Target: ~100pt per thumbnail minimum
+        let minThumbnailWidth: CGFloat = 100
+        let maxColumns: CGFloat = floor(availableWidth / minThumbnailWidth)
+        
+        // Clamp between 3-6 columns for good UX
+        let columns = min(max(maxColumns, 3), 6)
+        
+        let itemWidth = (availableWidth - (spacing * (columns - 1))) / columns
+        layout.itemSize = CGSize(width: itemWidth, height: itemWidth)
         layout.minimumInteritemSpacing = spacing
         layout.minimumLineSpacing = spacing
+        
+        return layout
+    }
+    
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        
+        coordinator.animate(alongsideTransition: { [weak self] _ in
+            guard let self = self else { return }
+            // Update collection view layout for new size
+            self.collectionView.collectionViewLayout = self.createLayout(for: size.width)
+            self.collectionView.collectionViewLayout.invalidateLayout()
+        }, completion: nil)
+    }
+    
+    private func setupCollectionView() {
+        let layout = createLayout()
         
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
