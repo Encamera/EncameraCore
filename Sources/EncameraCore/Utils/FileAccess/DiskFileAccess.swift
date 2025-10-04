@@ -504,7 +504,7 @@ extension DiskFileAccess {
     }
 
     public func copy(media: EncryptedMedia) async throws {
-        guard let destinationURL = directoryModel?.driveURLForMedia(media), case .url(let source) = media.source else {
+        guard var destinationURL = directoryModel?.driveURLForMedia(media), case .url(let source) = media.source else {
             throw FileAccessError.missingDirectoryModel
         }
         try FileManager.default.copyItem(at: source, to: destinationURL)
@@ -514,13 +514,20 @@ extension DiskFileAccess {
             try? ExtendedAttributesUtil.setKeyUUID(keyUUID, for: destinationURL)
         }
         
+        // Ensure copied files are included in device backups for transfer to new devices
+        if directoryModel?.storageType == .local {
+            var resourceValues = URLResourceValues()
+            resourceValues.isExcludedFromBackup = false
+            try? destinationURL.setResourceValues(resourceValues)
+        }
+        
         if let newMedia = EncryptedMedia(source: destinationURL) {
             operationBus.didCreate(newMedia)
         }
     }
 
     public func move(media: EncryptedMedia) async throws {
-        guard let destinationURL = directoryModel?.driveURLForMedia(media), case .url(let source) = media.source else {
+        guard var destinationURL = directoryModel?.driveURLForMedia(media), case .url(let source) = media.source else {
             throw FileAccessError.missingDirectoryModel
         }
 
@@ -532,6 +539,13 @@ extension DiskFileAccess {
         // Restore the key UUID extended attribute if it existed
         if let keyUUID = keyUUID {
             try? ExtendedAttributesUtil.setKeyUUID(keyUUID, for: destinationURL)
+        }
+        
+        // Ensure moved files are included in device backups for transfer to new devices
+        if directoryModel?.storageType == .local {
+            var resourceValues = URLResourceValues()
+            resourceValues.isExcludedFromBackup = false
+            try? destinationURL.setResourceValues(resourceValues)
         }
         
         if let newMedia = EncryptedMedia(source: destinationURL) {
