@@ -41,6 +41,7 @@ class SettingsViewViewModel: ObservableObject {
             albumManager.defaultStorageForAlbum = defaultStorageOption
         }
     }
+    @Published var revenueCatIdCopied: Bool = false
 
     var keyManager: KeyManager
     var fileAccess: FileAccess
@@ -144,6 +145,18 @@ class SettingsViewViewModel: ObservableObject {
     
     func eraseAllData() {
         
+    }
+    
+    func copyRevenueCatId() {
+        let customerId = Purchases.shared.appUserID
+        UIPasteboard.general.string = customerId
+        revenueCatIdCopied = true
+        Task {
+            try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            await MainActor.run {
+                revenueCatIdCopied = false
+            }
+        }
     }
     
 }
@@ -251,6 +264,16 @@ struct SettingsView: View {
                     Section {
                         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown version"
                         Text("\(L10n.Settings.version) \(appVersion)")
+                        
+                        Button {
+                            viewModel.copyRevenueCatId()
+                        } label: {
+                            HStack {
+                                Text(viewModel.revenueCatIdCopied ? L10n.Settings.copiedToClipboard : L10n.Settings.revenueCatCustomerId)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                            }
+                        }
                     }
                 }
                 .padding(.init(top: 10, leading: 0, bottom: 10, trailing: 0))

@@ -1,0 +1,15 @@
+/* 
+  InfoPlist.strings
+  Encamera - Chinese Traditional (繁體中文)
+
+  Created by localization setup.
+  
+*/
+/* Camera usage description */
+NSCameraUsageDescription = "Encamera 需要存取您的相機來拍攝照片並進行加密。";
+
+/* Face ID usage description */
+NSFaceIDUsageDescription = "Encamera 需要使用 Face ID 來保護您的照片。";
+
+/* Microphone usage description */
+NSMicrophoneUsageDescription = "Encamera 需要存取您的麥克風來錄製和加密音訊。";

@@ -17,7 +17,8 @@
 		<string>ja</string>
 		<string>ko</string>
 		<string>ro</string>
-		<string>zh-cn</string>
+		<string>zh-Hans</string>
+		<string>zh-Hant</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>$(APP_DISPLAY_NAME)</string>
