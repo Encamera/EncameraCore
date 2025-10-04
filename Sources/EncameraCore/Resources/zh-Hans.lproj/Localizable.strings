@@ -567,3 +567,7 @@
 "MainHomeView.KeyBackupExplanation" = "您的照片受到唯一加密密钥的保护。如果您更换设备或重新安装应用程序，这是解密图像的唯一方法。";
 "MainHomeView.KeyBackupWarning" = "没有这个密钥，您将无法查看您的媒体。";
 "MainHomeView.ViewTheKey" = "查看密钥";
+
+"Settings.CopiedToClipboard" = "已复制到剪贴板";
+"Settings.PiwikTrackingId" = "Piwik 跟踪 ID";
+"Settings.RevenueCatCustomerId" = "RevenueCat 客户 ID";

@@ -1099,10 +1099,10 @@ public enum L10n {
   public enum MainHomeView {
     /// ./Encamera/MainHomeView/MainHomeView.swift
     public static let backupEncryptionKey = L10n.tr("Localizable", "MainHomeView.BackupEncryptionKey", fallback: "Back up your Encryption Key")
-    /// Your photos are protected with a unique encryption key. This is the only way to recover your images if you switch devices or reinstall the app.
-    public static let keyBackupExplanation = L10n.tr("Localizable", "MainHomeView.KeyBackupExplanation", fallback: "Your photos are protected with a unique encryption key. This is the only way to recover your images if you switch devices or reinstall the app.")
-    /// We cannot help you recover lost photos without this key.
-    public static let keyBackupWarning = L10n.tr("Localizable", "MainHomeView.KeyBackupWarning", fallback: "We cannot help you recover lost photos without this key.")
+    /// Your photos are protected with a unique encryption key. This is the only way to decrypt your images if you switch devices or reinstall the app.
+    public static let keyBackupExplanation = L10n.tr("Localizable", "MainHomeView.KeyBackupExplanation", fallback: "Your photos are protected with a unique encryption key. This is the only way to decrypt your images if you switch devices or reinstall the app.")
+    /// You will not be able to view your media without this key.
+    public static let keyBackupWarning = L10n.tr("Localizable", "MainHomeView.KeyBackupWarning", fallback: "You will not be able to view your media without this key.")
     /// View the Key
     public static let viewTheKey = L10n.tr("Localizable", "MainHomeView.ViewTheKey", fallback: "View the Key")
   }
@@ -1317,16 +1317,22 @@ public enum L10n {
     public static let backupKeyToiCloudDescription = L10n.tr("Localizable", "Settings.BackupKeyToiCloudDescription", fallback: "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.")
     /// Contact Support
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
+    /// Copied to clipboard
+    public static let copiedToClipboard = L10n.tr("Localizable", "Settings.CopiedToClipboard", fallback: "Copied to clipboard")
     /// Default Storage Option
     public static let defaultStorageOption = L10n.tr("Localizable", "Settings.DefaultStorageOption", fallback: "Default Storage Option")
     /// Give Instant Feedback
     public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
     /// Import Key Phrase
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
+    /// Piwik Tracking ID
+    public static let piwikTrackingId = L10n.tr("Localizable", "Settings.PiwikTrackingId", fallback: "Piwik Tracking ID")
     /// Purchases restored!
     public static let purchasesRestored = L10n.tr("Localizable", "Settings.PurchasesRestored", fallback: "Purchases restored!")
     /// Any valid purchases you made have been restored.
     public static let purchasesRestoredMessage = L10n.tr("Localizable", "Settings.PurchasesRestoredMessage", fallback: "Any valid purchases you made have been restored.")
+    /// RevenueCat Customer ID
+    public static let revenueCatCustomerId = L10n.tr("Localizable", "Settings.RevenueCatCustomerId", fallback: "RevenueCat Customer ID")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
   }

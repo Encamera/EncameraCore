@@ -581,3 +581,6 @@ Devi solo fare due cose:
 "AlbumDetailView.CoverImageResetToast" = "L'immagine di copertina predefinita è l'ultima immagine";
 "Notification.Scheduling.Error" = "Errore durante la pianificazione della notifica: %@";
 "New Album Subheading" = "Imposta il nome per questo album fotografico crittografato.";
+"Settings.CopiedToClipboard" = "Copiato negli appunti";
+"Settings.PiwikTrackingId" = "ID di tracciamento Piwik";
+"Settings.RevenueCatCustomerId" = "ID cliente RevenueCat";

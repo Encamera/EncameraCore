@@ -573,3 +573,11 @@ Du skal kun gøre to ting:
 "AlbumDetailView.CoverImageResetToast" = "Forsidebilledet er som standard det nyeste billede";
 "Notification.Scheduling.Error" = "Fejl ved planlægning af besked: %@";
 "New Album Subheading" = "Angiv navnet på dette krypterede fotoalbum.";
+"ImportKeyPhrase" = "Importer nøgleudtryk";
+"Use %@?" = "Brug %@?";
+"Settings.CopiedToClipboard" = "Kopieret til udklipsholder";
+"appDataExplanation" = "Er du sikker på, at du vil slette ALLE app-data?\n\nDETTE VIL SLETTE:\n\n ALLE dine gemte nøgler \n Din adgangskode \n App-indstillinger \n\nDETTE VIL IKKE SLETTE:\n\n Medier, du har gemt lokalt eller på iCloud\n\nDu kan lave en sikkerhedskopi af dine nøgler fra nøglehåndteringsskærmen.\n\nAppen lukker, når sletningen er færdig.\n\n";
+"Settings.RevenueCatCustomerId" = "RevenueCat-kunde-ID";
+"TakeSurveyButtonText" = "Tag undersøgelse";
+"SelectProduct" = "Vælg et produkt";
+"Settings.PiwikTrackingId" = "Piwik-sporings-ID";

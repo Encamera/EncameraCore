@@ -528,6 +528,9 @@
 "Notification.WidgetSetup.Guidance" = "Guiding user to add a widget to the lock screen.";
 "Notification.Scheduling.Error" = "Error scheduling notification: %@";
 "Settings.Version" = "Version";
+"Settings.RevenueCatCustomerId" = "RevenueCat Customer ID";
+"Settings.PiwikTrackingId" = "Piwik Tracking ID";
+"Settings.CopiedToClipboard" = "Copied to clipboard";
 "Settings.Contact" = "Contact Support";
 "Settings.BackupKeyPhrase" = "Backup Key Phrase";
 "Settings.ImportKeyPhrase" = "Import Key Phrase";

@@ -607,3 +607,7 @@
   "MainHomeView.KeyBackupExplanation" = "Vos photos sont protégées par une clé de chiffrement unique. C'est le seul moyen de déchiffrer vos images si vous changez d'appareil ou réinstallez l'application.";
   "MainHomeView.KeyBackupWarning" = "Vous ne pourrez pas consulter vos médias sans cette clé.";
   "MainHomeView.ViewTheKey" = "Afficher la clé";
+
+"Settings.CopiedToClipboard" = "Copié dans le presse-papiers";
+"Settings.PiwikTrackingId" = "ID de suivi Piwik";
+"Settings.RevenueCatCustomerId" = "ID client RevenueCat";

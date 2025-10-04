@@ -590,3 +590,7 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "MainHomeView.KeyBackupExplanation" = "Fotografiile tale sunt protejate cu o cheie de criptare unică. Aceasta este singura modalitate de a decripta imaginile dacă schimbi dispozitivele sau reinstalezi aplicația.";
 "MainHomeView.KeyBackupWarning" = "Nu veți putea vizualiza conținutul media fără această cheie.";
 "MainHomeView.ViewTheKey" = "Vezi cheia";
+
+"Settings.CopiedToClipboard" = "Copiat în clipboard";
+"Settings.PiwikTrackingId" = "ID urmărire Piwik";
+"Settings.RevenueCatCustomerId" = "ID client RevenueCat";
