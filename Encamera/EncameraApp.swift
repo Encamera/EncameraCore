@@ -474,6 +474,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
 
+        // ===== CRITICAL: Setup iCloud Sync FIRST =====
+        // This must happen before any other UserDefaultUtils calls
+        // to ensure proper synchronization of authentication state
+        UserDefaultUtils.setupiCloudSync()
+        
+        // Migrate existing UserDefaults to iCloud if needed
+        if UserDefaultUtils.needsiCloudMigration() {
+            print("[AppDelegate] Performing iCloud migration...")
+            UserDefaultUtils.migrateToiCloudStorage()
+        }
+        // =============================================
+
 #if DEBUG
         let isUpgradeLaunch = true
 #else
@@ -528,5 +540,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("Failed to register for remote notifications: \(error)")
+    }
+    
+    func applicationWillTerminate(_ application: UIApplication) {
+        // Clean up iCloud sync observers
+        UserDefaultUtils.tearDowniCloudSync()
     }
 }
