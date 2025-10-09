@@ -64,7 +64,7 @@ struct ChooseStorageModal: View {
                                 }
                             }
                             HStack {
-                                Button(showUpgradeText ? L10n.upgradeToPremium : L10n.confirmStorage) {
+                                Button(L10n.confirmStorage) {
                                     guard let selectedStorage else {
                                         return
                                     }
@@ -89,10 +89,6 @@ struct ChooseStorageModal: View {
 
 
 
-    }
-
-    private var showUpgradeText: Bool {
-        selectedStorage != nil && selectedStorage == .icloud && !hasEntitlement
     }
 }
 

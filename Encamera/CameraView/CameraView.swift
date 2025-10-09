@@ -160,16 +160,7 @@ struct CameraView: View {
                             album: cameraModel.albumManager.currentAlbum,
                             purchasedPermissions: cameraModel.purchaseManager,
                             didSelectStorage: { selectedStorage, hasEntitlement in
-            if hasEntitlement || selectedStorage == .local {
-                afterChooseStorageAction(selectedStorage: selectedStorage)
-
-            } else if !hasEntitlement && selectedStorage == .icloud {
-                appModalStateModel.currentModal = .purchaseView(context: .init(sourceView: "CameraView", purchaseAction: { finished in
-                    if case .purchaseComplete = finished {
-                        afterChooseStorageAction(selectedStorage: selectedStorage)
-                    }
-                }))
-            }
+            afterChooseStorageAction(selectedStorage: selectedStorage)
         }, dismissAction: dismissStorageSelectionSheet)
     }
 

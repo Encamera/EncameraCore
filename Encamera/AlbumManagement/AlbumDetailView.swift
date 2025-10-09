@@ -965,16 +965,8 @@ struct AlbumDetailView<D: FileAccess>: View {
                 .chooseStorageModal(isPresented: $isShowingMoveAlbumModal,
                                     album: viewModel.album,
                                     purchasedPermissions: viewModel.purchasedPermissions, didSelectStorage: { storage, hasEntitlement in
-                    if hasEntitlement || storage == .local {
-                        viewModel.moveAlbum(to: storage)
-                        isShowingMoveAlbumModal = false
-                    } else if !hasEntitlement && storage == .icloud {
-
-                        viewModel.isShowingPurchaseSheet = true
-                        viewModel.afterPurchaseAction = {
-                            viewModel.moveAlbum(to: storage)
-                        }
-                    }
+                    viewModel.moveAlbum(to: storage)
+                    isShowingMoveAlbumModal = false
                 }, dismissAction: {
                     isShowingMoveAlbumModal = false
                 })

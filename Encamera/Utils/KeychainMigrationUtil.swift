@@ -69,7 +69,7 @@ class KeychainMigrationUtil: DebugPrintable {
 
 
                 let key = try JSONDecoder().decode(PrivateKey.self, from: keys)
-                try keyManager.save(key: key, setNewKeyToCurrent: true)
+                try keyManager.save(key: key, setNewKeyAsMain: true)
                 UserDefaults.standard.set(nil, forKey: keyForPrivateKey)
                 printDebug("Keychain migration completed")
             }
