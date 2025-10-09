@@ -22,8 +22,8 @@ class KeychainMigrationUtil: DebugPrintable {
 
     func prepareMigration() {
         do {
-            guard let key = keyManager.currentKey else {
-                printDebug("No current active key")
+            guard let key = keyManager.mainKey else {
+                printDebug("No main key")
                 return
             }
             printDebug("Keychain migration started")

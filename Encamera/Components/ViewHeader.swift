@@ -61,6 +61,8 @@ struct ViewHeader<RightContent: View, LeftContent: View, CenterContent: View>: V
                     Spacer()
                     centerContent?()
                     Spacer()
+                } else {
+                    Spacer()
                 }
                 if let title {
                     Text(title)
