@@ -69,19 +69,17 @@ struct PurchaseStorefront: View {
                     ScrollView(showsIndicators: false) {
                         PurchaseUpgradeHeaderView(purchasedProduct: currentSubscription)
                         if showPurchaseOptions {
-                            // Segmented control for purchase type
+                            // Custom tab bar for purchase type
                             if !subscriptionOptions.isEmpty && !oneTimeOptions.isEmpty {
-                                Picker("Purchase Type", selection: $selectedPurchaseType) {
-                                    ForEach(PurchaseType.allCases, id: \.self) { type in
-                                        Text(type.rawValue).tag(type)
+                                PurchaseTypeTabBar(
+                                    selectedType: $selectedPurchaseType,
+                                    onSelectionChange: { newType in
+                                        // Auto-select first item in the new list
+                                        selectedPurchasable = currentOptions.first
                                     }
-                                }
-                                .pickerStyle(.segmented)
+                                )
                                 .padding(.horizontal)
-                                .onChange(of: selectedPurchaseType) { _, newType in
-                                    // Auto-select first item in the new list
-                                    selectedPurchasable = currentOptions.first
-                                }
+                                .padding(.bottom, 8)
                             }
                             
                             // Purchase options with sliding transition

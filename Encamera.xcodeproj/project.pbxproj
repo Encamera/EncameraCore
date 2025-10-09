@@ -108,6 +108,7 @@
 		313B05E5CD7541D6A5697AC9 /* OnboardingViewError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB3AA38D651FF8331C0601C /* OnboardingViewError.swift */; };
 		314C1682F74B89FEB81D801D /* DismissButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDAE32CBB0CA3BFF5A99A2A /* DismissButton.swift */; };
 		323554E2E75AE1A9BCFD1EE2 /* 2.jpg in Resources */ = {isa = PBXBuildFile; fileRef = DF3B40B0062A68BD1E2338FD /* 2.jpg */; };
+		3284B6C965B29F4A7FEB4E62 /* PurchaseTypeTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8100EDFBE8DFC8D869E599A /* PurchaseTypeTabBar.swift */; };
 		33ECD054AF9C6C4CF9386C6E /* SafeAreaUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5962A9B956E3B444997D50 /* SafeAreaUtils.swift */; };
 		3415307FE0C9FE46F9BA5B25 /* DefaultEdgeSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90AFF3D0CA3F3E90F75BE891 /* DefaultEdgeSpacing.swift */; };
 		34263AF8E18855C7731B911C /* ReusableModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21A8A69D4A421C0F6BC32F9C /* ReusableModal.swift */; };
@@ -184,6 +185,7 @@
 		544469FC8962611F6F8F615E /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = 966AD9D0BE48CC6E4C4FF069 /* Text.swift */; };
 		578DC4FF0C54A481ABB87A6A /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C078E03BCFAAA274C5A52366 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		58C645BF3E4CA9943BC3ABE6 /* 2.jpg in Resources */ = {isa = PBXBuildFile; fileRef = DF3B40B0062A68BD1E2338FD /* 2.jpg */; };
+		596AE21D968D9F9BFB88AA98 /* PurchaseTypeTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8100EDFBE8DFC8D869E599A /* PurchaseTypeTabBar.swift */; };
 		5994159B8DB9A94D63D7C75E /* DismissibleKeyPhraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AD8135959A72434C19D9A5C /* DismissibleKeyPhraseView.swift */; };
 		5A11DC5FE8387F57FE50E7ED /* DefaultEdgeSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90AFF3D0CA3F3E90F75BE891 /* DefaultEdgeSpacing.swift */; };
 		5A304A552BBF9DB3FEE00210 /* NotificationListCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7BDBAB9014E99ED7C3E4EF /* NotificationListCell.swift */; };
@@ -815,6 +817,7 @@
 		F54F9666128C03EAA53E6CA1 /* ShareExtension-release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "ShareExtension-release.xcconfig"; sourceTree = "<group>"; };
 		F5E4B7B84569DC8C3F5B5EAF /* WidgetExtensionBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetExtensionBundle.swift; sourceTree = "<group>"; };
 		F6C7B4340F9BA5AC5E1CABBD /* file-icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "file-icon.png"; sourceTree = "<group>"; };
+		F8100EDFBE8DFC8D869E599A /* PurchaseTypeTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseTypeTabBar.swift; sourceTree = "<group>"; };
 		F87130057593981EF7E23745 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = StoreKit.framework; sourceTree = "<group>"; };
 		F8883FEBF4CFB0B8D3B028A3 /* UUIDMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UUIDMigrationTests.swift; sourceTree = "<group>"; };
 		F8C8A1F504CADD09FEAA10B8 /* 4.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = 4.jpg; sourceTree = "<group>"; };
@@ -1134,6 +1137,7 @@
 				D226078E37858D0CE665EAFE /* PremiumBenefitsScrollView.swift */,
 				7B26FF8AF9330F01C8E2F24E /* PurchaseOptionComponent.swift */,
 				C06BB62B60E8F868D2A51CB1 /* PurchaseStorefront.swift */,
+				F8100EDFBE8DFC8D869E599A /* PurchaseTypeTabBar.swift */,
 				425F1BE33BAF48A0B741BFD1 /* StorePurchaseButton.swift */,
 			);
 			path = NewPurchaseView;
@@ -2021,6 +2025,7 @@
 				F30D4AE8166C0034674E0DBB /* PromptToErase.swift in Sources */,
 				98A721D1FA95D116D436CABF /* PurchaseOptionComponent.swift in Sources */,
 				68F6B62C3079851125DD0538 /* PurchaseStorefront.swift in Sources */,
+				596AE21D968D9F9BFB88AA98 /* PurchaseTypeTabBar.swift in Sources */,
 				F52B09D9AEBF17B9E89E4219 /* PurchaseUpgradeHeaderView.swift in Sources */,
 				F2E098FAC214B2418AD4E414 /* PushNotification.swift in Sources */,
 				38FB92A129A45BE66679A014 /* ReusableModal.swift in Sources */,
@@ -2209,6 +2214,7 @@
 				BFB399E63CA3C82BE2537605 /* PromptToErase.swift in Sources */,
 				CE3FAAC3505894EB9A878B17 /* PurchaseOptionComponent.swift in Sources */,
 				BAFF8A36F81BD57709639CDC /* PurchaseStorefront.swift in Sources */,
+				3284B6C965B29F4A7FEB4E62 /* PurchaseTypeTabBar.swift in Sources */,
 				734D01AB3BEF13BC9EDA09E1 /* PurchaseUpgradeHeaderView.swift in Sources */,
 				0DC0FFED274E8B3D367DFEFA /* PushNotification.swift in Sources */,
 				34263AF8E18855C7731B911C /* ReusableModal.swift in Sources */,
