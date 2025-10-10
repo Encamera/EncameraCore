@@ -17,11 +17,26 @@
     {
       "displayPrice" : "69.99",
       "familyShareable" : false,
+      "internalID" : "6753774675",
+      "localizations" : [
+        {
+          "description" : "Lifetime purchase. Get updates for one year.",
+          "displayName" : "Limited Lifetime",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "purchase.lifetimelimited",
+      "referenceName" : "LifetimeLimited",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "249.99",
+      "familyShareable" : false,
       "internalID" : "6444623609",
       "localizations" : [
         {
           "description" : "Buy once. Use forever.",
-          "displayName" : "Lifetime Unlimited",
+          "displayName" : "Lifetime",
           "locale" : "en_US"
         }
       ],
@@ -32,14 +47,18 @@
   ],
   "settings" : {
     "_applicationInternalID" : "1639202616",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
     "_developerTeamID" : "5UMBL85J64",
+    "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 751406144.82990098,
+    "_lastSynchronizedDate" : 781711434.35614204,
     "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "USA",
     "_storeKitErrors" : [
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Load Products"
       },
@@ -52,41 +71,35 @@
         "name" : "Purchase"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Verification"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "App Store Sync"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Subscription Status"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "App Transaction"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Manage Subscriptions Sheet"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Refund Request Sheet"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Offer Code Redeem Sheet"
       }
-    ]
+    ],
+    "_timeRate" : 0
   },
   "subscriptionGroups" : [
     {
@@ -101,50 +114,107 @@
 
           ],
           "codeOffers" : [
+
+          ],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "6744564486",
+          "introductoryOffer" : null,
+          "localizations" : [
             {
-              "eligibility" : [
-                "new"
-              ],
-              "internalID" : "DF4EEDFD",
-              "isStackable" : true,
-              "numberOfPeriods" : 1,
-              "paymentMode" : "free",
-              "referenceName" : "Reddit Privacy Guides",
-              "subscriptionPeriod" : "P2M"
-            },
-            {
-              "eligibility" : [
-                "new",
-                "existing"
-              ],
-              "internalID" : "863DB8E9",
-              "isStackable" : false,
-              "numberOfPeriods" : 1,
-              "paymentMode" : "free",
-              "referenceName" : "Survey Completed",
-              "subscriptionPeriod" : "P3M"
+              "description" : "Access to Encamera premium features",
+              "displayName" : "Premium Monthly",
+              "locale" : "en_US"
             }
           ],
-          "displayPrice" : "4.99",
+          "productID" : "subscription.monthly.premium.299",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "PremiumMonthly299",
+          "subscriptionGroupID" : "21023642",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "5.99",
           "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "6444257273",
+          "groupNumber" : 5,
+          "internalID" : "6746578830",
           "introductoryOffer" : null,
           "localizations" : [
             {
               "description" : "Billed monthly",
-              "displayName" : "Unlimited Monthly",
+              "displayName" : "1 Month",
               "locale" : "en_US"
-            },
-            {
-              "description" : "Monatlich berechnet",
-              "displayName" : "Unlimited Monatlich",
-              "locale" : "de"
             }
           ],
-          "productID" : "subscription.monthly.unlimitedkeysandphotos",
+          "productID" : "subscription.yearly.premium.high",
           "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "UnlimitedKeysAndPhotosMonthly",
+          "referenceName" : "PremiumMonthlyHigh",
+          "subscriptionGroupID" : "21023642",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "0.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6744564434",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Access to Encamera premium features",
+              "displayName" : "Premium Weekly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "subscription.weekly.premium",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "PremiumWeekly",
+          "subscriptionGroupID" : "21023642",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "17.99",
+          "familyShareable" : false,
+          "groupNumber" : 4,
+          "internalID" : "6744564515",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Access to Encamera premium features",
+              "displayName" : "Premium Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "subscription.yearly.premium.1899",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "PremiumYearly1899",
           "subscriptionGroupID" : "21023642",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
@@ -160,7 +230,79 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "D8450A05",
+              "internalID" : "F2F31C66",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "free",
+              "referenceName" : "Reddit Privacy Guides",
+              "subscriptionPeriod" : "P2M"
+            },
+            {
+              "eligibility" : [
+                "new",
+                "existing"
+              ],
+              "internalID" : "869A50A3",
+              "isStackable" : false,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "free",
+              "referenceName" : "Survey Completed",
+              "subscriptionPeriod" : "P3M"
+            }
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6444257273",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Monatlich berechnet",
+              "displayName" : "1 Monat",
+              "locale" : "de"
+            },
+            {
+              "description" : "Billed monthly",
+              "displayName" : "1 Month",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "subscription.monthly.unlimitedkeysandphotos",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "UnlimitedKeysAndPhotosMonthly",
+          "subscriptionGroupID" : "21023642",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+            {
+              "displayPrice" : "12.99",
+              "internalID" : "E9AC4611",
+              "numberOfPeriods" : 1,
+              "offerID" : "blackfriday24",
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Black Friday 24",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "9.99",
+              "internalID" : "BF98040F",
+              "numberOfPeriods" : 1,
+              "offerID" : "REDDIT9",
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Reddit 9.99",
+              "subscriptionPeriod" : "P1Y"
+            }
+          ],
+          "codeOffers" : [
+            {
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "92F3BE10",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
@@ -171,7 +313,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "8713587E",
+              "internalID" : "184EFA06",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "free",
@@ -183,7 +325,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "CEB71A50",
+              "internalID" : "4F91B4AD",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -195,19 +337,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "523C3D35",
-              "isStackable" : true,
-              "numberOfPeriods" : 1,
-              "paymentMode" : "payAsYouGo",
-              "referenceName" : "Malia C Influencer",
-              "subscriptionPeriod" : "P1Y"
-            },
-            {
-              "displayPrice" : "9.99",
-              "eligibility" : [
-                "new"
-              ],
-              "internalID" : "1C2D1D27",
+              "internalID" : "698B8461",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -219,11 +349,11 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "23360EF9",
+              "internalID" : "1F62EEC3",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
-              "referenceName" : "kimou.bey 60% off",
+              "referenceName" : "Malia C Influencer",
               "subscriptionPeriod" : "P1Y"
             },
             {
@@ -231,7 +361,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "C2014274",
+              "internalID" : "E672E0CE",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -239,15 +369,15 @@
               "subscriptionPeriod" : "P1Y"
             },
             {
-              "displayPrice" : "4.99",
+              "displayPrice" : "19.99",
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "CF08F591",
+              "internalID" : "B5AF468C",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
-              "referenceName" : "Reddit Privacy Guides",
+              "referenceName" : "All Things Secured 20%",
               "subscriptionPeriod" : "P1Y"
             },
             {
@@ -255,7 +385,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "479ED3E8",
+              "internalID" : "FB57B337",
               "isStackable" : false,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -267,7 +397,7 @@
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "7EBCF43F",
+              "internalID" : "F4FDF6A3",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
@@ -275,24 +405,50 @@
               "subscriptionPeriod" : "P1Y"
             },
             {
-              "displayPrice" : "19.99",
+              "displayPrice" : "4.99",
               "eligibility" : [
                 "new"
               ],
-              "internalID" : "34DC2DB2",
+              "internalID" : "A1BFD0E1",
               "isStackable" : true,
               "numberOfPeriods" : 1,
               "paymentMode" : "payAsYouGo",
-              "referenceName" : "All Things Secured 20%",
+              "referenceName" : "Reddit Privacy Guides",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "9.99",
+              "eligibility" : [
+                "new"
+              ],
+              "internalID" : "AA9B1F7C",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "kimou.bey 60% off",
+              "subscriptionPeriod" : "P1Y"
+            },
+            {
+              "displayPrice" : "12.99",
+              "eligibility" : [
+                "new",
+                "existing",
+                "expired"
+              ],
+              "internalID" : "DA63CCE9",
+              "isStackable" : true,
+              "numberOfPeriods" : 1,
+              "paymentMode" : "payAsYouGo",
+              "referenceName" : "Black Friday 2024",
               "subscriptionPeriod" : "P1Y"
             }
           ],
-          "displayPrice" : "24.99",
+          "displayPrice" : "12.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "6444257244",
           "introductoryOffer" : {
-            "internalID" : "924AFB4D",
+            "internalID" : "EE706DC2",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
             "subscriptionPeriod" : "P1W"
@@ -300,12 +456,12 @@
           "localizations" : [
             {
               "description" : "Benutze alle features, jährlich berechnet.",
-              "displayName" : "Unlimited Jährlich",
+              "displayName" : "12 Monate",
               "locale" : "de"
             },
             {
               "description" : "Use premium features, renewed yearly",
-              "displayName" : "Unlimited Yearly",
+              "displayName" : "12 Months",
               "locale" : "en_US"
             }
           ],
