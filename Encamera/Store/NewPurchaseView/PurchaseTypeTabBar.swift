@@ -33,7 +33,7 @@ struct PurchaseTypeTabBar: View {
                 
                 // Underline indicator
                 Rectangle()
-                    .fill(selectedType == type ? Color.white : Color.clear)
+                    .fill(selectedType == type ? Color.actionYellowGreen : Color.clear)
                     .frame(height: 2)
             }
             .frame(maxWidth: .infinity)
@@ -57,5 +57,6 @@ struct PurchaseTypeTabBar: View {
         }
     }
 }
+
 
 

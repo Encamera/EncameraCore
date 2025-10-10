@@ -51,7 +51,7 @@ struct PurchaseStorefront: View {
 
     var showPurchaseOptions: Bool {
         if let currentSubscription {
-            return currentSubscription.isLifetime == false
+            return currentSubscription.isLifetimeUnlimited == false
         }
         return true
     }
@@ -59,7 +59,7 @@ struct PurchaseStorefront: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
-                Image(AppConstants.isInPromoMode ? "HalloweenBG" : "Premium-TopHalo")
+                Image("Premium-TopHalo")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: geo.size.width)

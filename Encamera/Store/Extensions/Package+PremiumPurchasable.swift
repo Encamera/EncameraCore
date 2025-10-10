@@ -9,10 +9,12 @@ import Foundation
 import EncameraCore
 import RevenueCat
 
+private let lifetimeUnlimited: String = "purchase.lifetimeunlimitedbasic"
+private let lifetimeLimited: String = "purchase.lifetimelimited"
 // Lifetime product identifiers
 private let lifetimeProductIDs: Set<String> = [
-    "purchase.lifetimelimited",
-    "purchase.lifetimeunlimitedbasic"
+    lifetimeLimited,
+    lifetimeUnlimited
 ]
 
 extension Package: PremiumPurchasable {
@@ -73,6 +75,10 @@ extension Package: PremiumPurchasable {
     
     var isLifetime: Bool {
         return lifetimeProductIDs.contains(storeProduct.productIdentifier)
+    }
+
+    var isLifetimeUnlimited: Bool {
+        return storeProduct.productIdentifier == lifetimeUnlimited
     }
 }
 
