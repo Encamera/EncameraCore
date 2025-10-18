@@ -286,11 +286,6 @@ private extension DeviceAuthManager {
         return AuthenticationPolicy(preferredAuthenticationMethod: preferredAuth, authenticationExpirySeconds: 60)
     }
     
-    func storeAuthenticationPolicy(_ policy: AuthenticationPolicy) throws {
-        let data = try JSONEncoder().encode(policy)
-        UserDefaultUtils.set(data, forKey: UserDefaultKey.authenticationPolicy)
-    }
-    
     func reauthorizeForPassword() {
         authState = .unauthenticated
     }

@@ -51,6 +51,48 @@ public enum UserDefaultKey {
         }
     }
     
+    /// Determines whether this key should sync to iCloud via NSUbiquitousKeyValueStore
+    /// Critical authentication and settings keys sync, while device-specific metrics stay local
+    var shouldSyncToiCloud: Bool {
+        switch self {
+        // MUST SYNC: Critical authentication and onboarding state
+        case .authenticationPolicy,
+             .onboardingState,
+             .savedSettings,
+             .currentAlbumID,
+             .showCurrentAlbumOnLaunch,
+             .keyTutorialClosed,
+             .hasOpenedAlbum,
+             .defaultStorageLocation,
+             .livePhotosActivated,
+             .gridZoomLevel,
+             .hasCompletedFirstLockout:
+            return true
+            
+        // ALBUM-SPECIFIC: Sync album settings
+        case .directoryTypeKeyFor,
+             .isAlbumHidden,
+             .albumCoverImage:
+            return true
+            
+        // LOCAL ONLY: Device-specific metrics, counts, and temporary state
+        case .capturedPhotos,
+             .featureToggle,
+             .viewGalleryCount,
+             .reviewRequestedMetric,
+             .lastVersionReviewRequested,
+             .lockoutEnd,
+             .launchCountKey,
+             .lastVersionKey,
+             .photoAddedCount,
+             .videoAddedCount,
+             .widgetOpenCount,
+             .showPushNotificationPrompt,
+             .passcodeType: // Passcode type is now managed via keychain
+            return false
+        }
+    }
+    
     private static var directoryPrefix: String {
         "encamera.keydirectory."
     }
