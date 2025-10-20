@@ -19,7 +19,7 @@ public class TestUtils {
     public static func createTestKey(name: String = "testKey", keyManager: KeychainManager, setAsCurrent: Bool = true) throws -> PrivateKey {
         let keyBytes = TestDataGenerator.generateRandomKeyBytes()
         let key = PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
-        try keyManager.save(key: key, setNewKeyAsMain: setAsCurrent)
+        try keyManager.save(key: key, setNewKeyToCurrent: setAsCurrent)
         return key
     }
     

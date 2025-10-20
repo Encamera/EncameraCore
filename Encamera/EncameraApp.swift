@@ -213,7 +213,7 @@ struct EncameraApp: App {
                     albumManager: albumManager
                 )
                 
-                guard keyManager.mainKey != nil else { return }
+                guard keyManager.currentKey != nil else { return }
                 await showImportScreenIfNeeded()
             }
         }
@@ -243,8 +243,8 @@ struct EncameraApp: App {
             // Wait a bit to ensure the app is fully initialized
             try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
             
-            guard keyManager.mainKey != nil else {
-                debugPrint("migrateExistingFilesUUIDs: No main key available, skipping migration")
+            guard keyManager.currentKey != nil else {
+                debugPrint("migrateExistingFilesUUIDs: No current key available, skipping migration")
                 return
             }
             

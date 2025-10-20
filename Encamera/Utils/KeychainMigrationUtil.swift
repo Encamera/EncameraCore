@@ -22,8 +22,8 @@ class KeychainMigrationUtil: DebugPrintable {
 
     func prepareMigration() {
         do {
-            guard let key = keyManager.mainKey else {
-                printDebug("No main key")
+            guard let key = keyManager.currentKey else {
+                printDebug("No current active key")
                 return
             }
             printDebug("Keychain migration started")
@@ -69,7 +69,7 @@ class KeychainMigrationUtil: DebugPrintable {
 
 
                 let key = try JSONDecoder().decode(PrivateKey.self, from: keys)
-                try keyManager.save(key: key, setNewKeyAsMain: true)
+                try keyManager.save(key: key, setNewKeyToCurrent: true)
                 UserDefaults.standard.set(nil, forKey: keyForPrivateKey)
                 printDebug("Keychain migration completed")
             }
