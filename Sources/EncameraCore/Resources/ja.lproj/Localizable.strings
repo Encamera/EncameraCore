@@ -610,3 +610,10 @@
 "Settings.CopiedToClipboard" = "クリップボードにコピーしました";
 "Settings.PiwikTrackingId" = "PiwikトラッキングID";
 "Settings.RevenueCatCustomerId" = "RevenueCatカスタマーID";
+"BillingFrequency.PerYear" = "年ごと";
+"BillingFrequency.OneTime" = "一回限り";
+"BillingFrequency.PerWeek" = "週ごと";
+"BillingFrequency.PerMonth" = "月ごと";
+"BillingFrequency.LifetimeUnlimited" = "無制限のアップデート";
+"BillingFrequency.LifetimeLimited" = "1年間のアップデート";
+"AddAlbumModal.RenameAlbumTitle" = "アルバムの名前を変更しましょう";

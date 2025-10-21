@@ -611,3 +611,11 @@
 "Settings.CopiedToClipboard" = "Copié dans le presse-papiers";
 "Settings.PiwikTrackingId" = "ID de suivi Piwik";
 "Settings.RevenueCatCustomerId" = "ID client RevenueCat";
+"BillingFrequency.PerYear" = "par an";
+"BillingFrequency.OneTime" = "une fois";
+"BillingFrequency.PerWeek" = "par semaine";
+"BillingFrequency.PerMonth" = "par mois";
+"BillingFrequency.LifetimeUnlimited" = "Mises à jour illimitées";
+"BillingFrequency.LifetimeLimited" = "1 an de mises à jour";
+"AddAlbumModal.RenameAlbumTitle" = "Renommons votre
+album";

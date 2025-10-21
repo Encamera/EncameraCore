@@ -574,3 +574,11 @@
 "Settings.CopiedToClipboard" = "تم النسخ إلى الحافظة";
 "Settings.PiwikTrackingId" = "معرف تتبع Piwik";
 "Settings.RevenueCatCustomerId" = "معرف عميل RevenueCat";
+"" = "";
+"BillingFrequency.PerYear" = "سنوياً";
+"BillingFrequency.PerMonth" = "شهرياً";
+"BillingFrequency.OneTime" = "مرة واحدة";
+"BillingFrequency.PerWeek" = "أسبوعياً";
+"BillingFrequency.LifetimeUnlimited" = "تحديثات غير محدودة";
+"BillingFrequency.LifetimeLimited" = "سنة واحدة من التحديثات";
+"AddAlbumModal.RenameAlbumTitle" = "لنقم بإعادة تسمية ألبومك";

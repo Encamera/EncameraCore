@@ -594,3 +594,10 @@
 "Settings.CopiedToClipboard" = "클립보드에 복사됨";
 "Settings.PiwikTrackingId" = "Piwik 추적 ID";
 "Settings.RevenueCatCustomerId" = "RevenueCat 고객 ID";
+"BillingFrequency.PerYear" = "연간";
+"BillingFrequency.OneTime" = "한 번";
+"BillingFrequency.PerWeek" = "주간";
+"BillingFrequency.PerMonth" = "월간";
+"BillingFrequency.LifetimeUnlimited" = "무제한 업데이트";
+"BillingFrequency.LifetimeLimited" = "1년간 업데이트";
+"AddAlbumModal.RenameAlbumTitle" = "앨범 이름을 변경해봅시다";

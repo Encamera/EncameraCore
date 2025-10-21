@@ -728,3 +728,10 @@
 "Settings.CopiedToClipboard" = "In die Zwischenablage kopiert";
 "Settings.PiwikTrackingId" = "Piwik-Tracking-ID";
 "Settings.RevenueCatCustomerId" = "RevenueCat-Kundennummer";
+"BillingFrequency.PerYear" = "pro Jahr";
+"BillingFrequency.OneTime" = "einmalig";
+"BillingFrequency.PerWeek" = "pro Woche";
+"BillingFrequency.PerMonth" = "pro Monat";
+"BillingFrequency.LifetimeUnlimited" = "Unbegrenzte Updates";
+"BillingFrequency.LifetimeLimited" = "1 Jahr Updates";
+"AddAlbumModal.RenameAlbumTitle" = "Lass uns dein\nAlbum umbenennen";

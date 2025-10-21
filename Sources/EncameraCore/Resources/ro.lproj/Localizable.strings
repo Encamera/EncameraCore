@@ -594,3 +594,10 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "Settings.CopiedToClipboard" = "Copiat în clipboard";
 "Settings.PiwikTrackingId" = "ID urmărire Piwik";
 "Settings.RevenueCatCustomerId" = "ID client RevenueCat";
+"BillingFrequency.PerYear" = "pe an";
+"BillingFrequency.OneTime" = "o dată";
+"BillingFrequency.PerWeek" = "pe săptămână";
+"BillingFrequency.PerMonth" = "pe lună";
+"BillingFrequency.LifetimeUnlimited" = "Actualizări nelimitate";
+"BillingFrequency.LifetimeLimited" = "1 an de actualizări";
+"AddAlbumModal.RenameAlbumTitle" = "Hai să redenumim albumul tău";

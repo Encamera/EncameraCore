@@ -571,3 +571,10 @@
 "Settings.CopiedToClipboard" = "已复制到剪贴板";
 "Settings.PiwikTrackingId" = "Piwik 跟踪 ID";
 "Settings.RevenueCatCustomerId" = "RevenueCat 客户 ID";
+"BillingFrequency.PerYear" = "每年";
+"BillingFrequency.OneTime" = "一次性";
+"BillingFrequency.PerWeek" = "每周";
+"BillingFrequency.PerMonth" = "每月";
+"BillingFrequency.LifetimeUnlimited" = "无限更新";
+"BillingFrequency.LifetimeLimited" = "1年更新";
+"AddAlbumModal.RenameAlbumTitle" = "让我们重命名你的相册";

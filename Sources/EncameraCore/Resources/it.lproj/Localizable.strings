@@ -584,3 +584,11 @@ Devi solo fare due cose:
 "Settings.CopiedToClipboard" = "Copiato negli appunti";
 "Settings.PiwikTrackingId" = "ID di tracciamento Piwik";
 "Settings.RevenueCatCustomerId" = "ID cliente RevenueCat";
+"BillingFrequency.PerYear" = "all'anno";
+"BillingFrequency.OneTime" = "una volta";
+"BillingFrequency.PerWeek" = "a settimana";
+"BillingFrequency.PerMonth" = "al mese";
+"BillingFrequency.LifetimeUnlimited" = "Aggiornamenti illimitati";
+"BillingFrequency.LifetimeLimited" = "1 anno di aggiornamenti";
+"AddAlbumModal.RenameAlbumTitle" = "Rinominiamo il tuo
+album";

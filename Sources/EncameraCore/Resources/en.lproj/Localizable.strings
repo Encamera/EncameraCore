@@ -336,6 +336,12 @@
 "View unlimited photos for each key." = "View unlimited photos for each key.";
 "Create an unlimited number of keys." = "Create an unlimited number of keys.";
 "Support privacy-focused development." = "Support privacy-focused development.";
+/* ./Encamera/Store/Extensions/Package+PremiumPurchasable.swift */
+"BillingFrequency.PerMonth" = "per month";
+"BillingFrequency.PerYear" = "per year";
+"BillingFrequency.PerWeek" = "per week";
+"BillingFrequency.LifetimeUnlimited" = "Unlimited Updates";
+"BillingFrequency.LifetimeLimited" = "1 Year of Updates";
 /* ./Encamera/Store/SubscriptionView.swift */
 "UnlimitedStorageFeatureRowTitle" = "Unlimited storage for photos & videos";
 "UnlimitedAlbumsFeatureRowTitle" = "Unlimited albums for your memories";
@@ -442,6 +448,7 @@
 "AlbumDetailView.HideAlbumAlertMessage" = "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.";
 "AlbumDetailView.HideAlbumMenuItem" = "Hide Album";
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
+"AddAlbumModal.RenameAlbumTitle" = "Let's rename your\nalbum";
 "SetPinCode" = "Set Pin Code";
 "SetPinCodeSubtitle" = "This pin will be used to securely access the app. Make sure you remember it!";
 "RepeatPinCode" = "Repeat Pin Code";

@@ -606,3 +606,11 @@ Encamera！";
 "MainHomeView.KeyBackupExplanation" = "你的照片受到獨特加密金鑰的保護。如果你更換裝置或重新安裝應用程式，這是唯一能解密你圖片的方法。";
 "MainHomeView.KeyBackupWarning" = "沒有這個金鑰，你將無法查看你的媒體。";
 "MainHomeView.ViewTheKey" = "查看金鑰";
+
+"BillingFrequency.PerYear" = "每年";
+"BillingFrequency.OneTime" = "一次性";
+"BillingFrequency.PerWeek" = "每週";
+"BillingFrequency.PerMonth" = "每月";
+"BillingFrequency.LifetimeUnlimited" = "無限次更新";
+"BillingFrequency.LifetimeLimited" = "一年更新";
+"AddAlbumModal.RenameAlbumTitle" = "讓我們重新命名你的相簿";

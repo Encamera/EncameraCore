@@ -581,3 +581,10 @@ Du skal kun gøre to ting:
 "TakeSurveyButtonText" = "Tag undersøgelse";
 "SelectProduct" = "Vælg et produkt";
 "Settings.PiwikTrackingId" = "Piwik-sporings-ID";
+"BillingFrequency.PerYear" = "om året";
+"BillingFrequency.OneTime" = "én gang";
+"BillingFrequency.PerWeek" = "om ugen";
+"BillingFrequency.PerMonth" = "om måneden";
+"BillingFrequency.LifetimeUnlimited" = "Ubegrænsede opdateringer";
+"BillingFrequency.LifetimeLimited" = "1 års opdateringer";
+"AddAlbumModal.RenameAlbumTitle" = "Lad os omdøbe dit\nalbum";

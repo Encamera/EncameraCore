@@ -589,3 +589,26 @@ Sovellus sulkeutuu, kun poisto on valmis.
 "PasswordSetSuccessMessage" = "Uusi salasanasi on tallennettu";
 "Leave a Review" = "Jätä arvostelu";
 "Yes" = "Kyllä";
+"Please select a storage location." = "Valitse tallennussijainti.";
+"BillingFrequency.OneTime" = "kertaluonteinen";
+"BillingFrequency.PerYear" = "vuosittain";
+"You took your first photo! 📸 🥳" = "Otit ensimmäisen valokuvasi! 📸 🥳";
+"allDataExplanation" = "Oletko varma, että haluat poistaa KAIKEN ENCAMERA-DATAN?
+
+TÄMÄ POISTAA:
+
+• KAIKKI tallentamasi avaimet 🔑
+• Salasanasi 🔐
+• Sovelluksen asetukset 🎛️
+• PAIKALLISESTI TAI iCLOUDISSA TALLENNETUN MEDIAN
+
+Voit luoda varmuuskopion avaimistasi avainhallinnan kautta.
+
+Sovellus sulkeutuu, kun poisto on valmis.";
+"BillingFrequency.PerMonth" = "kuukaudessa";
+"AuthenticationMethod.SecurityLevel.pinCode6Digit" = "Turvallisempi PIN-koodi";
+"**Purchased: %@**" = "**Ostettu: %@**";
+"BillingFrequency.PerWeek" = "viikossa";
+"BillingFrequency.LifetimeUnlimited" = "Rajoittamattomat päivitykset";
+"BillingFrequency.LifetimeLimited" = "1 vuoden päivitykset";
+"AddAlbumModal.RenameAlbumTitle" = "Nimetään albumisi uudelleen";

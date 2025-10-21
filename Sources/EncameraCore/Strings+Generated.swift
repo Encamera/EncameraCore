@@ -790,6 +790,11 @@ public enum L10n {
   public static let yourRecoveryPhrase = L10n.tr("Localizable", "YourRecoveryPhrase", fallback: "Key Backup")
   /// Afterwards, you will be sent a promo code via DM that you can redeem in the app.
   public static let youWillBeSentAPromoCode = L10n.tr("Localizable", "YouWillBeSentAPromoCode", fallback: "Afterwards, you will be sent a promo code via DM that you can redeem in the app.")
+  public enum AddAlbumModal {
+    /// Let's rename your
+    /// album
+    public static let renameAlbumTitle = L10n.tr("Localizable", "AddAlbumModal.RenameAlbumTitle", fallback: "Let's rename your\nalbum")
+  }
   public enum AlbumDetailView {
     /// Add your first image
     public static let addFirstImage = L10n.tr("Localizable", "AlbumDetailView.AddFirstImage", fallback: "Add your first image")
@@ -949,6 +954,18 @@ public enum L10n {
     }
     /// ./Encamera/AuthenticationView/AuthenticationView.swift
     public static let tooManyAttempts = L10n.tr("Localizable", "AuthenticationView.TooManyAttempts", fallback: "Too many attempts")
+  }
+  public enum BillingFrequency {
+    /// 1 Year of Updates
+    public static let lifetimeLimited = L10n.tr("Localizable", "BillingFrequency.LifetimeLimited", fallback: "1 Year of Updates")
+    /// Unlimited Updates
+    public static let lifetimeUnlimited = L10n.tr("Localizable", "BillingFrequency.LifetimeUnlimited", fallback: "Unlimited Updates")
+    /// ./Encamera/Store/Extensions/Package+PremiumPurchasable.swift
+    public static let perMonth = L10n.tr("Localizable", "BillingFrequency.PerMonth", fallback: "per month")
+    /// per week
+    public static let perWeek = L10n.tr("Localizable", "BillingFrequency.PerWeek", fallback: "per week")
+    /// per year
+    public static let perYear = L10n.tr("Localizable", "BillingFrequency.PerYear", fallback: "per year")
   }
   public enum ChangingYourAuthenticationMethodWillRequireSettingUpANewPINOrPassword {
     /// Changing your authentication method will require setting up a new PIN or password. Would you like to continue?
