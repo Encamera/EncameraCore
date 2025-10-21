@@ -434,7 +434,7 @@ struct EncameraApp: App {
                     case .feedbackView:
                         FeedbackView()
                     case .addAlbum(context: let context):
-                        AddAlbumModal(saveAction: { albumName in
+                        AlbumNameModal(saveAction: { albumName in
                             guard let albumManager = viewModel.albumManager else { return }
                             do {
                                 let newAlbum = try albumManager.create(name: albumName, storageOption: albumManager.defaultStorageForAlbum)

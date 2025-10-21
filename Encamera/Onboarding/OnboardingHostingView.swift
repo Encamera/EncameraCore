@@ -393,7 +393,7 @@ struct OnboardingHostingView<GenericAlbumManaging: AlbumManaging>: View {
                         })
             )
             .sheet(isPresented: $viewModel.showAddAlbumModal, content: {
-                AddAlbumModal { albumName in
+                AlbumNameModal { albumName in
                     Task {
                         try await viewModel.finishOnboarding(albumName: albumName)
                         presentationMode.wrappedValue.dismiss()

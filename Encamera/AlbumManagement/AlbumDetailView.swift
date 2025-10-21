@@ -1049,12 +1049,13 @@ struct AlbumDetailView<D: FileAccess>: View {
             }
         })
         .sheet(isPresented: $viewModel.isEditingAlbumName) {
-            AddAlbumModal(
+            AlbumNameModal(
                 saveAction: { newName in
                     viewModel.albumName = newName
                     viewModel.setAlbumNameFromInput()
                 },
-                albumName: viewModel.album?.name ?? ""
+                albumName: viewModel.album?.name ?? "",
+                isEditing: true
             )
         }
         .toast(isShowing: Binding<Bool>(get: {

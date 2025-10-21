@@ -1,18 +1,11 @@
-//
-//  AddAlbumModal.swift
-//  Encamera
-//
-//  Created by Alexander Freas on 22.01.24.
-//
-
 import SwiftUI
 import EncameraCore
-import SwiftUIIntrospect
 
 struct AlbumNameModal: View {
     var saveAction: ((String) -> Void)?
     @State var albumName: String = ""
     var isEditing: Bool = false
+    @FocusState private var isTextFieldFocused: Bool
 
     @Environment(\.presentationMode) private var presentationMode
 
@@ -52,7 +45,7 @@ struct AlbumNameModal: View {
                     .noAutoModification()
                     .pad(.pt8, edge: .bottom)
                     .offset(.init(width: -Spacing.pt16.value, height: 0))
-                    .becomeFirstResponder()
+                    .focused($isTextFieldFocused)
                     .onChange(of: albumName) { oldValue, newValue in
                         if newValue.count > AppConstants.maxCharacterAlbumName {
                             albumName = oldValue
@@ -64,6 +57,9 @@ struct AlbumNameModal: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.modalBackgroundColor)
+        .onAppear {
+            isTextFieldFocused = true
+        }
     }
 
 }
