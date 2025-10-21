@@ -46,7 +46,6 @@ class AlbumGridViewModel<D: FileAccess>: ObservableObject {
     @Published var albums: [Album] = .init()
     @Published var isShowingAddExistingKeyView: Bool = false
     @Published var isKeyTutorialClosed: Bool = true
-    @Published var isShowingStoreView: Bool = false
 
     var albumManager: AlbumManaging
     var fileManager: D

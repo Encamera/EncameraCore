@@ -37,8 +37,8 @@ struct PostPurchaseView: View {
             dismissButton
                 .padding()
         }
-        .gradientBackground()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .gradientBackground()
 
     }
 

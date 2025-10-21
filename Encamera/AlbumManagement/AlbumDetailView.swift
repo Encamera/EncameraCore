@@ -976,8 +976,6 @@ struct AlbumDetailView<D: FileAccess>: View {
                         Task {
                             await viewModel.gridViewModel.enumerateMedia()
                         }
-                    } else {
-                        viewModel.isShowingPurchaseSheet = false
                     }
                 }
                 

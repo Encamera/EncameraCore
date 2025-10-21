@@ -118,9 +118,9 @@ struct CameraView: View {
         .productStorefront(isPresented: $cameraModel.showPurchaseSheet, fromViewName: viewTitle) { finishedAction in
             if case .purchaseComplete = finishedAction {
                 cameraModel.showExplanationForUpgrade = false
-            }
-            Task {
-                await cameraModel.service.start()
+                Task {
+                    await cameraModel.service.start()
+                }
             }
         }
     }
