@@ -9,7 +9,7 @@ import Foundation
 import EncameraCore
 import RevenueCat
 
-extension Offering: PremiumPurchasableCollection {
+extension RevenueCat.Offering: PremiumPurchasableCollection {
     var options: [any PremiumPurchasable] {
         return availablePackages
     }

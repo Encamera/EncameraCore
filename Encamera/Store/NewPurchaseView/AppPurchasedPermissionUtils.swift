@@ -13,7 +13,7 @@ public class AppPurchasedPermissionUtils: @preconcurrency PurchasedPermissionMan
 
     public func refreshEntitlements() async {
         do {
-            let customerInfo = try await Purchases.shared.customerInfo()
+            let customerInfo = try await RevenueCat.Purchases.shared.customerInfo()
             self.hasEntitlement = !customerInfo.entitlements.active.isEmpty
             EventTracking.setSubscriptionDimensions(
                 productID: customerInfo.entitlements.active.first?.value.productIdentifier

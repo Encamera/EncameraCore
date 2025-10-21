@@ -148,7 +148,7 @@ class SettingsViewViewModel: ObservableObject {
     }
     
     func copyRevenueCatId() {
-        let customerId = Purchases.shared.appUserID
+        let customerId = RevenueCat.Purchases.shared.appUserID
         UIPasteboard.general.string = customerId
         revenueCatIdCopied = true
         Task {
@@ -184,7 +184,7 @@ struct SettingsView: View {
                         }
                         Button(L10n.restorePurchases) {
                             Task(priority: .userInitiated) {
-                                let _ = try await Purchases.shared.restorePurchases()
+                                let _ = try await RevenueCat.Purchases.shared.restorePurchases()
                                 if let appPermissions = viewModel.purchasedPermissions as? AppPurchasedPermissionUtils {
                                     await appPermissions.refreshEntitlements()
                                 }
@@ -194,7 +194,7 @@ struct SettingsView: View {
                             }
                         }
                         Button(L10n.enterPromoCode) {
-                            Purchases.shared.presentCodeRedemptionSheet()
+                            RevenueCat.Purchases.shared.presentCodeRedemptionSheet()
                         }
                     }
                     Section {

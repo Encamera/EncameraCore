@@ -45,15 +45,17 @@ extension Package: PremiumPurchasable {
             if let subscriptionPeriod = product.subscription?.subscriptionPeriod {
                 switch subscriptionPeriod.unit {
                 case .month:
-                    return "per month"
+                    return L10n.BillingFrequency.perMonth
                 case .year:
-                    return "per year"
+                    return L10n.BillingFrequency.perYear
+                case .week:
+                    return L10n.BillingFrequency.perWeek
                 default:
                     return ""
                 }
             }
-        } else if product.type == .nonConsumable {
-            return "one time"
+        } else if self.isLifetimeUnlimited {
+            return L10n.BillingFrequency.oneTime
         }
 
         return ""

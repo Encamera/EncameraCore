@@ -488,8 +488,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
 #if DEBUG
         let isUpgradeLaunch = true
+        RevenueCat.Purchases.configure(withAPIKey: "test_rKbgVvvqpyGMFbGxtOJCKPSpJXH")
+
 #else
         let isUpgradeLaunch = LaunchCountUtils.isUpgradeLaunch()
+        RevenueCat.Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT")
+
 #endif
         if isUpgradeLaunch {
             UserDefaultUtils.resetReviewMetric()
@@ -499,15 +503,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         EventTracking.trackAppLaunched()
         LaunchCountUtils.recordCurrentVersionLaunch()
 
-        Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT")
-        
+
 #if !DEBUG
         Purchases.shared.attribution.setAttributes(["piwik_visitor_id": EventTracking.shared.piwikTracker.visitorID])
         Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
 #endif
 #if DEBUG
-        Purchases.logLevel = .info
-        Purchases.shared.invalidateCustomerInfoCache()
+        RevenueCat.Purchases.logLevel = .info
+        RevenueCat.Purchases.shared.invalidateCustomerInfoCache()
 #endif
         let audioSession = AVAudioSession.sharedInstance()
         do {

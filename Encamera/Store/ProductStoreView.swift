@@ -24,10 +24,10 @@ class ProductStoreViewViewModel: ObservableObject {
     }
 
     func loadOffering() async throws {
-        let offerings = try await Purchases.shared.offerings()
+        let offerings = try await RevenueCat.Purchases.shared.offerings()
 
         Task { @MainActor in
-            self.purchaseOptions = offerings.current
+            self.purchaseOptions = offerings.offering(identifier: "DefaultOfferingWithLifetimeOptions")
         }
     }
 }
@@ -70,58 +70,68 @@ struct ProductStoreView: View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
                 if let options = viewModel.purchaseOptions {
-                    PurchaseStorefront(purchaseOptions: options, selectedPurchasable: options.defaultSelection) { purchasable in
-
-
-                       Task(priority: .userInitiated) { @MainActor in
-                            guard let purchasable = purchasable as? Package else {
-                                return
-                            }
-                           do {
-                               let (transaction, customerInfo, userCancelled) = try await Purchases.shared.purchase(package: purchasable)
-                               if !customerInfo.entitlements.active.isEmpty {
-                                   if let skTransaction = transaction?.sk2Transaction,
-                                       let amount = purchasable.storeProduct.sk2Product?.price,
-                                      let currency = purchasable.storeProduct.sk2Product?.priceFormatStyle.currencyCode {
-                                       let product = skTransaction.productID
-                                       EventTracking.trackPurchaseCompleted(from: fromView, currency: currency, amount: amount, product: product)
-                                   }
-
-                                   showPostPurchaseScreen = true
-                                   Task{
-                                       if let appPermissions = viewModel.purchasedPermissionsManaging as? AppPurchasedPermissionUtils {
-                                           await appPermissions.refreshEntitlements()
-                                       }
-                                   }
-                                   purchaseAction?(.purchaseComplete(amount: purchasable.storeProduct.price, currencyCode: purchasable.storeProduct.localizedPriceString))
-                                   
-                               }
-
-                               if userCancelled {
-                                   EventTracking.trackPurchaseCancelled(from: fromView, product: purchasable.id)
-                                   purchaseAction?(.cancelled)
-                               }
-
-                           } catch {
-                               errorAlertIsPresented = true
-                               EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
-                           }
-                        }
+                    purchaseOptionScreen(options: options)
+                } else {
+                    ZStack {
+                        ProgressView()
                     }
-                    .scrollIndicators(.never)
-                    .navigationBarTitle(L10n.upgradeToday)
-                    .transition(.opacity)
-                    .overlay(alignment: .topLeading) {
-                        if showDismissButton {
-                            dismissButton
-                                .padding()
-                        }
-                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .gradientBackground()
                 }
             }.onAppear {
                 EventTracking.trackShowPurchaseScreen(from: fromView)
             }.task {
                 try? await viewModel.loadOffering()
+            }
+        }
+    }
+
+    private func purchaseOptionScreen(options: PremiumPurchasableCollection) -> some View {
+        PurchaseStorefront(purchaseOptions: options, selectedPurchasable: options.defaultSelection) { purchasable in
+
+
+           Task(priority: .userInitiated) { @MainActor in
+               guard let purchasable = purchasable as? RevenueCat.Package else {
+                    return
+                }
+               do {
+                   let (transaction, customerInfo, userCancelled) = try await RevenueCat.Purchases.shared.purchase(package: purchasable)
+                   if !customerInfo.entitlements.active.isEmpty {
+                       if let skTransaction = transaction?.sk2Transaction,
+                           let amount = purchasable.storeProduct.sk2Product?.price,
+                          let currency = purchasable.storeProduct.sk2Product?.priceFormatStyle.currencyCode {
+                           let product = skTransaction.productID
+                           EventTracking.trackPurchaseCompleted(from: fromView, currency: currency, amount: amount, product: product)
+                       }
+
+                       showPostPurchaseScreen = true
+                       Task{
+                           if let appPermissions = viewModel.purchasedPermissionsManaging as? AppPurchasedPermissionUtils {
+                               await appPermissions.refreshEntitlements()
+                           }
+                       }
+                       purchaseAction?(.purchaseComplete(amount: purchasable.storeProduct.price, currencyCode: purchasable.storeProduct.localizedPriceString))
+
+                   }
+
+                   if userCancelled {
+                       EventTracking.trackPurchaseCancelled(from: fromView, product: purchasable.id)
+                       purchaseAction?(.cancelled)
+                   }
+
+               } catch {
+                   errorAlertIsPresented = true
+                   EventTracking.trackPurchaseIncomplete(from: fromView, product: purchasable.id)
+               }
+            }
+        }
+        .scrollIndicators(.never)
+        .navigationBarTitle(L10n.upgradeToday)
+        .transition(.opacity)
+        .overlay(alignment: .topLeading) {
+            if showDismissButton {
+                dismissButton
+                    .padding()
             }
         }
     }
