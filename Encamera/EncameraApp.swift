@@ -330,7 +330,7 @@ struct EncameraApp: App {
                                         switch urlType {
                                             
                                         case .featureToggle(let feature):
-                                            FeatureToggle.enable(feature: feature)
+                                            FeatureToggle.toggle(feature: feature)
                                         case .cameraFromWidget:
                                             UserDefaultUtils.increaseInteger(forKey: .widgetOpenCount)
                                             EventTracking.trackOpenedCameraFromWidget()
@@ -471,6 +471,10 @@ struct EncameraApp: App {
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+
+    static let testRevenueCatApiKey = "test_rKbgVvvqpyGMFbGxtOJCKPSpJXH"
+    static let productionRevenueCatApiKey = "appl_tHhKivzStYoIKvXOnWdSdhaYQlT"
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
 
@@ -485,16 +489,21 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             UserDefaultUtils.migrateToiCloudStorage()
         }
         // =============================================
-
+        var revenueCatApiKey: String!
 #if DEBUG
         let isUpgradeLaunch = true
-        RevenueCat.Purchases.configure(withAPIKey: "test_rKbgVvvqpyGMFbGxtOJCKPSpJXH")
+        revenueCatApiKey = Self.testRevenueCatApiKey
 
 #else
         let isUpgradeLaunch = LaunchCountUtils.isUpgradeLaunch()
-        RevenueCat.Purchases.configure(withAPIKey: "appl_tHhKivzStYoIKvXOnWdSdhaYQlT")
-
+        revenueCatApiKey = Self.productionRevenueCatApiKey
 #endif
+
+        if FeatureToggle.isEnabled(feature: .enableTestRevenueCat) {
+            revenueCatApiKey = Self.testRevenueCatApiKey
+        }
+        RevenueCat.Purchases.configure(withAPIKey: revenueCatApiKey)
+
         if isUpgradeLaunch {
             UserDefaultUtils.resetReviewMetric()
         }
