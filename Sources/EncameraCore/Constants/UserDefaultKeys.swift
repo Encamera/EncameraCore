@@ -66,6 +66,7 @@ public enum UserDefaultKey {
              .defaultStorageLocation,
              .livePhotosActivated,
              .gridZoomLevel,
+             .currentKey,
              .hasCompletedFirstLockout:
             return true
             
