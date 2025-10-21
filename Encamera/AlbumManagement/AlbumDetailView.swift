@@ -939,7 +939,6 @@ struct AlbumDetailView<D: FileAccess>: View {
     @Environment(\.presentationMode) private var presentationMode
     @Environment(\.isScreenBlockingActive) private var isScreenBlockingActive
     @EnvironmentObject var appModalStateModel: AppModalStateModel
-    @FocusState private var isAlbumNameFocused: Bool
 
     func popLastView() {
         presentationMode.wrappedValue.dismiss()
@@ -1003,11 +1002,13 @@ struct AlbumDetailView<D: FileAccess>: View {
                 .id("import-progress-overlay") // Stable identity for animation
             }
         }
-        .toolbarRole(.editor)
         .toolbar(content: {
-            ToolbarItemGroup(placement: .principal, content: {
+            ToolbarItem(placement: .principal) {
                 horizontalTitleComponents
-            })
+            }
+            ToolbarItem(placement: .primaryAction) {
+                buttonMenu
+            }
         })
         .alert(isPresented: Binding<Bool>(
             get: { viewModel.activeAlert != nil },
@@ -1047,6 +1048,15 @@ struct AlbumDetailView<D: FileAccess>: View {
                 EmptyView()
             }
         })
+        .sheet(isPresented: $viewModel.isEditingAlbumName) {
+            AddAlbumModal(
+                saveAction: { newName in
+                    viewModel.albumName = newName
+                    viewModel.setAlbumNameFromInput()
+                },
+                albumName: viewModel.album?.name ?? ""
+            )
+        }
         .toast(isShowing: Binding<Bool>(get: {
             let showing = viewModel.activeToast != nil
             return showing
@@ -1060,21 +1070,6 @@ struct AlbumDetailView<D: FileAccess>: View {
         .screenBlocked()
         .onAppear {
             viewModel.appModalStateModel = appModalStateModel
-            // Focus the text field if we're creating a new album
-            if viewModel.shouldCreateAlbum {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isAlbumNameFocused = true
-                }
-            }
-        }
-        .onChange(of: viewModel.isEditingAlbumName) { _, newValue in
-            if newValue {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isAlbumNameFocused = true
-                }
-            } else {
-                isAlbumNameFocused = false
-            }
         }
 
     }
@@ -1126,62 +1121,10 @@ struct AlbumDetailView<D: FileAccess>: View {
 
 
     var horizontalTitleComponents: some View {
-        Group {
-            if viewModel.isEditingAlbumName {
-                ViewHeader(isToolbar: true, centerContent: {
-                    TextField(L10n.albumName, text: $viewModel.albumName)
-                        .focused($isAlbumNameFocused)
-                        .fontType(.pt18, weight: .bold)
-                        .noAutoModification()
-                        .onChange(of: viewModel.albumName) { oldValue, newValue in
-                            if newValue.count > AppConstants.maxCharacterAlbumName {
-                                viewModel.albumName = oldValue
-                            }
-                        }
-                        .becomeFirstResponder()
-                }, rightContent: {
-                    HStack(alignment: .center) {
-                        Button {
-                            viewModel.albumName = viewModel.album?.name ?? ""
-                            viewModel.isEditingAlbumName = false
-                            if viewModel.albumName == "" {
-                                popLastView()
-                            }
-                        } label: {
-                            Text(L10n.cancel)
-                                .fontType(.pt14, weight: .bold)
-                        }
-
-                        Button {
-                            viewModel.setAlbumNameFromInput()
-                            viewModel.isEditingAlbumName = false
-                        } label: {
-                            Text(L10n.save)
-                                .fontType(.pt14, weight: .bold)
-                        }
-                    }
-                })
-            } else  {
-                ViewHeader(title: isScreenBlockingActive ? "" : viewModel.albumName, isToolbar: true,
-                           textAlignment: .center,
-                           titleFont: .pt18,
-                           rightContent: {
-                    HStack(alignment: .center) {
-                        if viewModel.isSelectingMedia {
-                            Button {
-                                viewModel.isSelectingMedia = false
-                            } label: {
-                                Text(L10n.cancel)
-                                    .fontType(.pt14, weight: .bold)
-                            }
-                        } else {
-                            buttonMenu
-                        }
-                    }
-                })
-                .transition(.slide)
-            }
-        }
+        ViewHeader(title: isScreenBlockingActive ? "" : viewModel.albumName, isToolbar: true,
+                   textAlignment: .center,
+                   titleFont: .pt18)
+            .frame(width: .infinity)
     }
     var buttonMenu: some View {
         Menu {
