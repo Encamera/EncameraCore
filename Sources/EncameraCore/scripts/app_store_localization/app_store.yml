@@ -7,6 +7,7 @@ target_languages:
   - "da-DK" # Danish (maps to da.lproj)
   - "de-DE" # German (maps to de.lproj)
   - "es-ES" # Spanish (maps to es.lproj)
+  - "es-MX" # Spanish (Mexico) (maps to es-mx.lproj)
   - "fi-FI" # Finnish (maps to fi.lproj)
   - "fr-FR" # French (maps to fr.lproj)
   - "it-IT" # Italian (maps to it.lproj)
