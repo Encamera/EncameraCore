@@ -8,3 +8,11 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 **/__pycache__/
+
+# Python virtual environments
+**/venv/
+**/.venv/
+
+# App Store Connect API Keys (private)
+**/*.p8
+**/credentials.yml
