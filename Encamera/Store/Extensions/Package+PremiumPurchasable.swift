@@ -55,7 +55,9 @@ extension Package: PremiumPurchasable {
                 }
             }
         } else if self.isLifetimeUnlimited {
-            return L10n.BillingFrequency.oneTime
+            return L10n.BillingFrequency.lifetimeUnlimited
+        } else if self.isLifetimeLimited {
+            return L10n.BillingFrequency.lifetimeLimited
         }
 
         return ""
@@ -82,5 +84,10 @@ extension Package: PremiumPurchasable {
     var isLifetimeUnlimited: Bool {
         return storeProduct.productIdentifier == lifetimeUnlimited
     }
+
+    var isLifetimeLimited: Bool {
+        return storeProduct.productIdentifier == lifetimeLimited
+    }
+
 }
 

@@ -22,8 +22,8 @@ struct PremiumBenefitsScrollView: View {
         BenefitModel(iconName: "photo", text: L10n.PurchaseView.BenefitModel.unlimitedStorage),
         BenefitModel(iconName: "rectangle.stack", text: L10n.PurchaseView.BenefitModel.unlimitedAlbums),
         BenefitModel(iconName: "icloud", text: L10n.PurchaseView.BenefitModel.iCloudStorage),
+        BenefitModel(iconName: "key.icloud", text: L10n.PurchaseView.BenefitModel.backupKeychain, comingSoon: false),
         BenefitModel(iconName: "app.gift", text: L10n.PurchaseView.BenefitModel.changeAppIcon, comingSoon: true),
-        BenefitModel(iconName: "key.icloud", text: L10n.PurchaseView.BenefitModel.backupKeychain, comingSoon: true),
         BenefitModel(iconName: "eye.slash", text: L10n.PurchaseView.BenefitModel.hiddenAlbums, comingSoon: true)
     ]
 

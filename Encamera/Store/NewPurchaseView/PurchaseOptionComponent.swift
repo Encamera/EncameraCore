@@ -1,59 +1,6 @@
 import SwiftUI
 import EncameraCore
 
-
-protocol PremiumPurchasableCollection {
-    var options: [any PremiumPurchasable] { get }
-    var defaultSelection: (any PremiumPurchasable)? { get }
-    func yearlySavings() -> SubscriptionSavings?
-
-}
-
-protocol PremiumPurchasable: Equatable, Hashable {
-    var id: String { get }
-    var optionPeriod: String { get }
-    var formattedPrice: String { get }
-    var billingFrequency: String { get }
-    var purchaseActionText: String { get }
-    var isEligibleForIntroOffer: Bool { get }
-    var isLifetime: Bool { get }
-    var isLifetimeUnlimited: Bool { get }
-}
-
-struct PurchaseOptionCollectionModel: PremiumPurchasableCollection {
-    var defaultSelection: (any PremiumPurchasable)?
-    
-    var options: [any PremiumPurchasable]
-
-    func yearlySavings() -> SubscriptionSavings? {
-        return nil
-    }
-}
-
-struct PurchaseOptionComponentModel: PremiumPurchasable, Hashable {
-    var id: String = UUID().uuidString
-    var optionPeriod: String
-    var formattedPrice: String
-    var billingFrequency: String
-    var purchaseActionText: String = "Purchase"
-    var isEligibleForIntroOffer: Bool = false
-    var isLifetime: Bool = true
-    var isLifetimeUnlimited: Bool = false
-}
-
-class PurchaseOptionComponentViewModel: ObservableObject {
-    @Published var optionsCollection: PremiumPurchasableCollection
-
-    var savingsString: String? {
-        guard let savings = optionsCollection.yearlySavings() else { return nil }
-        return savings.formattedTotalSavings
-    }
-
-    init(optionsCollection: PremiumPurchasableCollection) {
-        self.optionsCollection = optionsCollection
-    }
-}
-
 struct VerticalDivider: View {
     var body: some View {
         Rectangle()

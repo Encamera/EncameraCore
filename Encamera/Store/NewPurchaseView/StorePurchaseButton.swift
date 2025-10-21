@@ -53,11 +53,13 @@ struct StorePurchaseButton: View {
             }
             .primaryButton(enabled: selectedPurchasable != nil && activePurchase?.id != selectedPurchasable?.id)
             .disabled(selectedPurchasable == nil || activePurchase?.id == selectedPurchasable?.id)
-
+            
             Spacer().frame(height: 8)
-            Text(L10n.noCommitmentCancelAnytime)
-                .fontType(.pt14, weight: .bold)
-                .opacity(0.8)
+            if selectedPurchasable?.isLifetime == false {
+                Text(L10n.noCommitmentCancelAnytime)
+                    .fontType(.pt14, weight: .bold)
+                    .opacity(0.8)
+            }
         }
         .frame(maxWidth: .infinity)
     }
