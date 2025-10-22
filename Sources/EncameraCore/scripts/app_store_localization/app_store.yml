@@ -1,0 +1,86 @@
+# Base language (will be translated FROM this language)
+base_language: "en-US"
+strings_path: "/Users/akfreas/github/EncameraApp/EncameraCore/Sources/EncameraCore/Resources/en.lproj"
+# Target languages (matching your .lproj structure)
+target_languages:
+  - "ar-SA" # Arabic (maps to ar.lproj)
+  - "da-DK" # Danish (maps to da.lproj)
+  - "de-DE" # German (maps to de.lproj)
+  - "es-ES" # Spanish (maps to es.lproj)
+  - "es-MX" # Spanish (Mexico) (maps to es-mx.lproj)
+  - "fi-FI" # Finnish (maps to fi.lproj)
+  - "fr-FR" # French (maps to fr.lproj)
+  - "it-IT" # Italian (maps to it.lproj)
+  - "ja-JP" # Japanese (maps to ja.lproj)
+  - "ko-KR" # Korean (maps to ko.lproj)
+  - "ro-RO" # Romanian (maps to ro.lproj)
+  - "zh-Hans" # Chinese Simplified (maps to zh-cn.lproj)
+  - "zh-Hant" # Chinese Traditional (maps to zh-hk.lproj)
+# App Store listing content (in base language)
+listing:
+  description: |
+    Encamera is the ultimate privacy-focused camera and photo vault app designed to keep your personal photos and videos safe. Unlike other photo lockers and private photo apps, Encamera offers a sleek, minimalist interface paired with top-tier privacy features, ensuring your memories are secure.
+
+      Key Features:
+
+      • Encrypted Photo Vault: Encamera automatically locks photos by encrypting all media you add or capture from the camera, storing them securely on your device or your personal iCloud. No third-party servers, no data tracking—just pure privacy.
+      • Advanced Security: Protect your vault with Face ID, PIN protection, and robust encryption. You control where your data is stored and who can access it.
+      • Minimalist Design: Encamera is built for simplicity. Capture and organize your private photos and videos with ease, all within a beautifully designed interface.
+
+      Why Choose Encamera?
+
+      • Capture & Encrypt Instantly: Snap photos directly from the app or widget, bypassing your default gallery for true privacy.
+      • No Account Needed: Enjoy total privacy without needing to sign up or provide your email.
+      • Ad-Free & No Data Tracking: Encamera respects your privacy—no ads, no tracking, ever.
+      • Local & iCloud Storage Options: Store your photos locally or on your personal iCloud—your choice, album by album.
+      • Open Source & Transparent: Encamera’s code is open for review by anyone who wants to ensure our privacy-first promise.
+
+      Uses for Encamera:
+
+      • Hide Photos: Keep sensitive images out of your main gallery and away from prying eyes.
+      • Secure Document Storage: Encrypt and store personal documents safely.
+      • Everyday Media Protection: Safeguard all your media with ease.
+
+      Basic Features:
+
+      • Private Camera: Take photos and videos directly within Encamera without saving them to your photos app.
+      • Quick Capture Widget: Snap photos from your lockscreen for instant privacy.
+      • Organize Securely: Sort your encrypted images and videos into custom folders.
+      • Import & Encrypt: Bring photos from your gallery into your secure vault with ease.
+      • Live Photo Support: Capture and view Live Photos, fully protected.
+
+      Encamera Premium:
+
+      Unlock even more with Encamera Premium:
+
+      • Unlimited Photo Storage: Store as many encrypted photos as you need.
+      • Unlimited Albums: Organize your memories without limits.
+      • iCloud Storage: Backup and access your secure albums from anywhere.
+
+      Premium Subscription Options:
+
+      • Yearly Subscription: Billed annually with a 7-day free trial.
+      • Monthly Subscription: Flexible month-to-month access.
+      • Weekly Subscription: Flexible week-by-week access.
+  whats_new: |
+    THE LIFETIME PLAN IS BACK!!
+
+    We've heard your (many) requests to reintroduce the lifetime plan, and we're happy to announce that it's back! 
+
+    You have two options: Lifetime Unlimited or Lifetime Limited. Lifetime Unlimited will allow you to access all current and future updates of the app forever. You'll never pay again. Lifetime Limited will allow you to access all current and future updates of the app for one year. You'll pay once and then you'll never pay again, but you will have to pay to get new features after one year.
+
+    We did this to support our continued development of the app and to ensure that you have the best experience possible. We are also not fans of subscriptions!
+# Character limits (App Store enforced)
+limits:
+  name: 30
+  subtitle: 30
+  description: 4000
+  promotional_text: 170
+  whats_new: 4000
+  keywords: 100
+
+# Translation settings
+translation:
+  preserve_formatting: true # Keep line breaks and bullet points
+  preserve_placeholders: true # Keep %s, {0}, etc.
+  context_note: "This is an iOS app store listing for a camera/photo app"

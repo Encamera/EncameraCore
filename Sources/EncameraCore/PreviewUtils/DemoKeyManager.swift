@@ -1,0 +1,170 @@
+import Foundation
+import Combine
+
+public class DemoKeyManager: KeyManager {
+    public var isSyncEnabled: Bool = false
+    
+    public func setPassword(_ password: String, type: PasscodeType) throws {
+
+    }
+    
+    public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
+
+    }
+    
+    public func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws {
+        
+    }
+    
+    public var passcodeType: PasscodeType {
+        return .pinCode(length: AppConstants.defaultPinCodeLength)
+    }
+
+
+    public func clearPassword() throws {
+        
+    }
+    public var keyPublisher: AnyPublisher<PrivateKey?, Never>
+
+
+    private var hasExistingPassword = false
+    public var throwError = false
+    public var password: String? {
+        didSet {
+            hasExistingPassword = password != nil
+        }
+    }
+
+    public func keyWith(name: String) -> PrivateKey? {
+        return nil
+    }
+
+    public func keyWith(uuid: UUID) -> PrivateKey? {
+        return storedKeysValue.first(where: { $0.uuid == uuid })
+    }
+    public func getPasswordHash() throws -> Data {
+        return Data()
+    }
+
+    public func setPasswordHash(hash: Data) throws {
+
+    }
+
+    public func setOrUpdatePassword(_ password: String) throws {
+
+    }
+
+    public func createBackupDocument() throws -> String {
+        return ""
+    }
+    public func retrieveKeyPassphrase() throws -> KeyPassphrase {
+        return KeyPassphrase(words: ["your", "cool", "cat"])
+    }
+    public func passwordExists() -> Bool {
+        return hasExistingPassword
+    }
+    public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
+        return DemoPrivateKey.dummyKey()
+    }
+    
+    public func backupKeychainToiCloud(backupEnabled: Bool) throws {
+
+    }
+    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String) throws -> PrivateKey {
+        return DemoPrivateKey.dummyKey()
+    }
+
+    public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {
+        return DemoPrivateKey.dummyKey()
+    }
+
+    func validate(password: String) -> PasswordValidation {
+        return .valid
+    }
+
+    public func changePassword(newPassword: String, existingPassword: String) throws {
+
+    }
+
+    public func checkPassword(_ password: String) throws -> Bool {
+        if self.password != password {
+            throw KeyManagerError.invalidPassword
+        }
+        return self.password == password
+    }
+
+    public func setPassword(_ password: String) throws {
+        self.password = password
+    }
+
+    public func deleteKey(_ key: PrivateKey) throws {
+
+    }
+
+    public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
+
+    }
+
+    public func update(key: PrivateKey) throws {
+
+    }
+
+    public var currentKey: PrivateKey?
+
+    public func setActiveKey(_ name: KeyName?) throws {
+
+    }
+
+
+    public var storedKeysValue: [PrivateKey] = []
+
+    func deleteKey(by name: KeyName) throws {
+
+    }
+
+    func setActiveKey(_ name: KeyName) throws {
+
+    }
+
+    public func generateNewKey(name: String) throws -> PrivateKey {
+        return try PrivateKey(base64String: "")
+    }
+
+    public func storedKeys() throws -> [PrivateKey] {
+        return storedKeysValue
+    }
+
+    public func validateKeyName(name: String) throws {
+
+    }
+
+
+    public convenience init() {
+        self.init(isAuthenticated: Just(true).eraseToAnyPublisher())
+    }
+
+    public convenience init(keys: [PrivateKey]) {
+        self.init(isAuthenticated: Just(true).eraseToAnyPublisher())
+        self.storedKeysValue = keys
+    }
+
+    public required init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol = KeychainWrapper()) {
+        self.isAuthenticated = isAuthenticated
+        self.currentKey = PrivateKey(name: "secrets", keyBytes: [], creationDate: Date())
+        self.keyPublisher = PassthroughSubject<PrivateKey?, Never>().eraseToAnyPublisher()
+    }
+
+    public var isAuthenticated: AnyPublisher<Bool, Never>
+
+    public func clearKeychainData() {
+
+    }
+
+    func generateNewKey(name: String) throws {
+
+    }
+
+    func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
+        return .valid
+    }
+}
