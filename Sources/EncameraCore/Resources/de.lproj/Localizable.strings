@@ -1,0 +1,737 @@
+/* ./EncameraCore/Constants/AppConstants.swift */
+"DefaultAlbumName" = "Mein Album"; 
+
+/* ./EncameraCore/Utils/KeyManager.swift */
+"Could not delete keychain items." = "Schlüsselbund-Elemente konnten nicht gelöscht werden.";
+"Not authenticated for this operation." = "Für diese Operation nicht authentifiziert.";
+"Key name is invalid, must be more than two characters" = "Der Schlüsselname ist ungültig, er muss mehr als zwei Zeichen haben";
+"Key not found." = "Schlüssel nicht gefunden.";
+"Error coding keychain data." = "Fehler beim Kodieren der Schlüsselbund-Daten.";
+"A key with this name already exists." = "Ein Schlüssel mit diesem Namen existiert bereits."; 
+
+/* ./EncameraCore/Utils/AuthManager.swift */
+"Touch ID" = "Touch ID";
+"Face ID" = "Face ID";
+"Password" = "Passwort";
+"Use Password" = "Passwort verwenden";
+"Keep your encrypted data safe by using %@" = "Halten Sie Ihre verschlüsselten Daten sicher, indem Sie %@ verwenden."; 
+
+/* ./EncameraCore/Utils/PasswordValidator.swift */
+"Not determined." = "Nicht festgelegt.";
+"Password is valid." = "Passwort ist gültig.";
+"Password is too short, <%@" = "Passwort ist zu kurz, <%@";
+"Passwords do not match." = "Passwörter stimmen nicht überein.";
+"Password is too long, >%@" = "Passwort ist zu lang, >%@"; 
+
+/* ./EncameraCore/Utils/DataStorageUserDefaultsSetting.swift */
+"No iCloud account found on this device." = "Kein iCloud-Konto auf diesem Gerät gefunden."; 
+
+/* ./EncameraCore/Utils/SettingsManager.swift */
+"%@ must be set" = "%@ muss eingestellt werden"; 
+
+/* ./EncameraCore/Models/StorageType.swift */
+"iCloud" = "iCloud";
+"Local" = "Lokal";
+"SaveToiCloudDrive" = "In iCloud Drive speichern";
+"SaveLocally" = "Auf diesem Gerät speichern"; 
+
+/* ./Encamera/CameraView/CameraView.swift */
+"Missing camera access" = "Kamerazugriff fehlt";
+"OpenSettings" = "Einstellungen öffnen";
+"FinishImportingMedia" = "Medienimport abschließen";
+"TakeYourFirstPicture" = "NEHMEN SIE IHR ERSTES FOTO";
+"ImageSavedToAlbum" = "BILD IM ALBUM GESPEICHERT";
+"NoAlbum" = "Kein Album";
+"NoAlbumSelected" = "Kein Album ausgewählt. Sie müssen ein Album auswählen, um Fotos zu speichern."; 
+
+/* ./Encamera/CameraView/CameraModePicker.swift */
+"PHOTO" = "FOTO";
+"VIDEO" = "VIDEO"; 
+
+/* ./Encamera/ShareHandling/ShareHandling.swift */
+"Shared Media" = "Geteilte Medien";
+"Save" = "Speichern"; 
+
+/* ./Encamera/Settings/SettingsView.swift */
+"FeedbackRequest" = "Da Encamera keinerlei Nutzerverhalten verfolgt und keine Informationen über Sie, den Nutzer, sammelt, sind wir auf Ihr Feedback angewiesen, um die App zu verbessern.";
+"What is Encamera?" = "Was ist Encamera?";
+"Why Encrypt Media?" = "Warum Medien verschlüsseln?";
+"Open Source" = "Open Source";
+"Leave a Review" = "Eine Bewertung hinterlassen";
+"Password successfully changed" = "Passwort erfolgreich geändert";
+"GetPremium" = "Premium erhalten";
+"PremiumUnlockTheseBenefits" = "Heute all diese erstaunlichen Vorteile freischalten";
+"Restore Purchases" = "Käufe wiederherstellen";
+"Settings" = "Einstellungen";
+"Join Telegram Group" = "Telegram-Gruppe beitreten";
+"Privacy Policy" = "Datenschutzrichtlinie";
+"Terms of Use" = "Nutzungsbedingungen";
+"Erase" = "Löschen";
+"Erase keychain data" = "Schlüsselbunddaten löschen";
+"Erase All Data" = "Alle Daten löschen";
+"allDataExplanation" = "Sind Sie sicher, dass Sie ALLE ENCAMERA-DATEN löschen möchten?\n\nDAS WIRD GELÖSCHT:\n\n• Alle Ihre gespeicherten Schlüssel 🔑\n• Ihr Passwort 🔐\n• App-Einstellungen 🎛\n• VON IHNEN LOKAL ODER AUF iCLOUD GESPEICHERTE MEDIEN\n\nSie können ein Backup Ihrer Schlüssel über den Schlüsselverwaltungsbildschirm erstellen.\n\nDie App wird nach dem Löschen beendet.";
+"appDataExplanation" = "Sind Sie sicher, dass Sie ALLE App-Daten löschen möchten?\n\nDAS WIRD GELÖSCHT:\n\n• Alle Ihre gespeicherten Schlüssel 🔑\n• Ihr Passwort 🔐\n• App-Einstellungen 🎛\n\nDAS WIRD NICHT GELÖSCHT:\n\n• Medien, die Sie lokal oder auf iCloud gespeichert haben\n\nSie können ein Backup Ihrer Schlüssel über den Schlüsselverwaltungsbildschirm erstellen.\n\nDie App wird nach dem Löschen beendet.\n\n";
+"Erase" = "Löschen";
+"Change Password" = "Passwort ändern";
+"Current Password" = "Aktuelles Passwort";
+"New Password" = "Neues Passwort";
+"Repeat Password" = "Passwort wiederholen";
+"Save" = "Speichern";
+"Change Password" = "Passwort ändern";
+"Roadmap" = "Fahrplan & Funktionserweiterungen"; 
+
+/* ./Encamera/Settings/PromptToErase.swift */
+"Hold to erase" = "Halten zum Löschen";
+"Erase App Data" = "App-Daten löschen";
+"Erasing in %@" = "Löschen in %@"; 
+
+/* ./Encamera/Tutorial/ChooseStorageModal.swift */
+"Congratulations!" = "Herzlichen Glückwunsch!";
+"ChooseYourStorage" = "Wählen Sie Ihren Speicher";
+"ChooseYourStorageDescription" = "Wählen Sie, wo Sie Ihre Bilder ab jetzt sicher speichern möchten.";
+"You took your first photo! 📸 🥳" = "Du hast dein erstes Foto gemacht! 📸 🥳";
+"See the photos that belong to a key by tapping the " = "Sehen Sie die Fotos, die zu einem Schlüssel gehören, indem Sie auf das ";
+" icon on the top left of the screen." = "-Symbol oben links auf dem Bildschirm tippen.";
+"ConfirmStorage" = "Speicher bestätigen"; 
+
+/* ./Encamera/Camera/AlertError.swift */
+"Accept" = "Akzeptieren"; 
+
+/* ./Encamera/KeyManagement/AlbumGridItem.swift */
+"Active" = "Aktiv";
+"CreateNewAlbum" = "Neues Album erstellen";
+"Add Existing Key" = "Vorhandenen Schlüssel hinzufügen"; 
+
+/* AlbumGrid */
+"AlbumsTitle" = "Alben"; 
+
+/* ./Encamera/KeyManagement/KeyOperationCell.swift */
+"Add Key" = "Schlüssel hinzufügen"; 
+
+/* ./Encamera/KeyManagement/KeyExchange.swift */
+"ShareKeyExplanation" = "Teilen Sie Ihren Verschlüsselungscode mit jemandem, dem Sie vertrauen.\n\nWenn Sie ihn teilen, bedeutet das, dass sie alle Medien, die Sie mit ihnen teilen und mit diesem Schlüssel verschlüsselt sind, entschlüsseln können.";
+"Scan with Encamera app" = "Mit der Encamera-App scannen";
+"Hold to reveal" = "Halten, um zu enthüllen";
+"Share Key" = "Schlüssel teilen"; 
+
+/* ./Encamera/KeyManagement/AlbumDetailView.swift */
+"Fehler beim Löschen des Schlüssels. Bitte versuchen Sie es erneut." = "Fehler beim Löschen des Schlüssels. Bitte versuchen Sie es erneut.";
+"Rename" = "Umbenennen";
+"Saved to Device" = "Auf Gerät gespeichert";
+"Saved to iCloud" = "In iCloud gespeichert";
+"AddPhotosToThisAlbum" = "FOTOS ZU DIESEM ALBUM HINZUFÜGEN";
+"UseCameraToTakePhotos" = "Nutzen Sie die eingebaute Kamera, um Fotos und Videos aufzunehmen.";
+"AlbumExistsError" = "Ein Album mit diesem Namen existiert bereits.";
+"CouldNotRenameAlbumError" = "Album konnte nicht umbenannt werden.";
+"PleaseEnterAnAlbumName" = "Bitte geben Sie einen Namen für das Album ein";
+"Error clearing keychain" = "Fehler beim Löschen des Schlüsselbunds";
+"Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Fehler beim Löschen des Schlüssels und der zugehörigen Dateien. Bitte versuchen Sie es erneut oder löschen Sie die Dateien manuell über die Dateien-App.";
+"Error deleting all files" = "Fehler beim Löschen aller Dateien";
+"Set as Active Key" = "Als aktiven Schlüssel festlegen";
+"Key Info" = "Schlüsselinformationen";
+"Share Key" = "Schlüssel teilen";
+"Back Up Key" = "Schlüssel sichern";
+"AddPhotos" = "Fotos hinzufügen";
+"DeleteAlbum" = "Album löschen";
+"ViewInFiles" = "In Dateien-App anzeigen";
+"MoveAlbumStorage" = "Album verschieben";
+"Delete" = "Löschen";
+"Delete All Key Data" = "Medien & Schlüssel löschen";
+"Save Key to iCloud" = "Schlüssel in iCloud speichern";
+"Copied to Clipboard" = "In Zwischenablage kopiert";
+"OK" = "OK";
+"Key copied to clipboard. Store this in a password manager or other secure place." = "Schlüssel wurde in die Zwischenablage kopiert. Bewahren Sie diesen in einem Passwort-Manager oder an einem anderen sicheren Ort auf.";
+"Delete All Associated Data?" = "Alle zugehörigen Daten löschen?";
+"Delete Everything" = "Alles löschen";
+"Cancel" = "Abbrechen";
+"DeleteAlbumForever" = "Möchten Sie dieses Album und alle damit verbundenen Medien für immer löschen?";
+"Delete Album question" = "Album löschen?";
+"Delete" = "Löschen";
+"Cancel" = "Abbrechen";
+"Enter the name of the key to delete it forever. All media will remain saved." = "Geben Sie den Namen des Schlüssels ein, um ihn für immer zu löschen. Alle Medien werden weiterhin gespeichert bleiben.";
+"Do you want to delete this key forever? All media will remain saved." = "Möchten Sie diesen Schlüssel für immer löschen? Alle Medien werden weiterhin gespeichert.";
+"Deletion Error" = "Löschfehler";
+"OK" = "OK"; 
+
+/* ./Encamera/KeyManagement/AlbumCell.swift */
+"Active" = "Aktiv"; 
+
+/* ./Encamera/KeyManagement/KeyInformation.swift */
+"Created %@" = "Erstellt am %@";
+"Key length: %@" = "Schlüssellänge: %@"; 
+
+/* ./Encamera/KeyManagement/AlbumList.swift */
+"Add Existing Key" = "Vorhandenen Schlüssel hinzufügen";
+"Backup Keys" = "Schlüssel sichern";
+"Keys" = "Schlüssel";
+"Key Management" = "Schlüsselverwaltung";
+"Active" = "Aktiv"; 
+
+/* ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift */
+"Key Name: %@" = "Schlüsselname: %@";
+"Creation Date: %@" = "Erstellungsdatum: %@";
+"Save Key" = "Schlüssel speichern";
+"Confirm adding key" = "Hinzufügen des Schlüssels bestätigen"; 
+
+/* ./Encamera/KeyManagement/KeyEntry.swift */
+"Error saving key" = "Fehler beim Speichern des Schlüssels";
+"Paste the private key here." = "Fügen Sie hier den privaten Schlüssel ein.";
+"Where do you want to save this key's media?" = "Wo möchten Sie die Medien dieses Schlüssels speichern?";
+"Save" = "Speichern";
+"Key Entry" = "Schlüsseleingabe";
+"Cancel" = "Abbrechen";
+"Save Key" = "Schlüssel speichern"; 
+
+/* ./Encamera/KeyManagement/KeyGeneration.swift */
+"" = "";
+"StorageSettingsSubheading" = "Wo möchten Sie Medien für Dateien speichern, die mit diesem Schlüssel verschlüsselt wurden?\nJeder Schlüssel speichert Daten in einem eigenen Verzeichnis.\n";
+"New Album" = "Neues Album";
+"AlbumNameInvalid" = "Der Name des Albums muss länger als ein Zeichen sein";
+"MultipleKeysForMultiplePurposesExplanation" = "Sie können mehrere Schlüssel für verschiedene Zwecke haben, z.B. einen mit dem Namen \"Dokumente\" und einen anderen \"Persönlich\".";
+"Storage Settings" = "Speichereinstellungen";
+"Save Key" = "Schlüssel speichern";
+"Select a place to keep media for this key." = "Wählen Sie einen Ort, um Medien für diesen Schlüssel aufzubewahren."; 
+
+/* ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift */
+"Family Shareable" = "Familienfreigabe möglich";
+"Free Trial" = "Kostenlose Probeversion"; 
+
+/* ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift */
+"Encrypt Everything" = "Alles verschlüsseln";
+"Unlock" = "Entsperren";
+"Share" = "Teilen"; 
+
+/* ./Encamera/EncameraApp.swift */
+"No private key or media found." = "Kein privater Schlüssel oder Medien gefunden.";
+"Close" = "Schließen";
+"Save this media?" = "Dieses Medium speichern?";
+"This will save the media to your library." = "Das Medium wird in Ihrer Bibliothek gespeichert.";
+"Cancel" = "Abbrechen";
+"Save" = "Speichern"; 
+
+/* ./Encamera/AuthenticationView/PasswordEntry.swift */
+"WelcomeBack" = "Willkommen zurück!";
+"EnterYourPassword" = "Geben Sie Ihr Passwort ein";
+"Or" = "Oder";
+"Password" = "Passwort";
+"Invalid Password" = "Ungültiges Passwort"; 
+
+/* ./Encamera/AuthenticationView/AuthenticationView.swift */
+"Missing password" = "Passwort fehlt";
+"Password incorrect" = "Passwort falsch";
+"Biometrics failed" = "Biometrische Erkennung fehlgeschlagen";
+"Biometrics unavailable" = "Biometrie nicht verfügbar";
+"Unlock with %@" = "Entsperren mit %@"; 
+
+/* ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift */
+"Upgrade to view unlimited photos" = "Upgrade für unbegrenzte Fotoansicht";
+"Photo limit reached" = "Fotolimit erreicht";
+"ModalUpgradeText" = "Upgrade auf Premium, um unbegrenzte Fotos freizuschalten";
+"Upgrade to Premium" = "Auf Premium upgraden";
+"Back to album" = "Zurück zum Album";
+"Tap to Upgrade" = "Zum Upgraden antippen"; 
+
+/* Picture taken overlay */
+"CoolPicture" = "Das ist ein cooles Bild!";
+"WhereToFindYourPictures" = "Alle Ihre Fotos und Videos finden Sie gruppiert in den „Alben“";
+"ViewAlbums" = "Alben ansehen";
+"TakeAnotherPhoto" = "Machen Sie ein weiteres Foto"; 
+
+/* ./Encamera/ImageViewing/GalleryHorizontalScrollView.swift */
+"Delete this image?" = "Dieses Bild löschen?";
+"Delete" = "Löschen";
+"Share Image" = "Bild teilen";
+"Share this image?" = "Dieses Bild teilen?";
+"Share Encrypted" = "Verschlüsselt teilen";
+"Share Decrypted" = "Entschlüsselt teilen";
+"ImportingPleaseWait" = "Importieren, bitte warten";
+/* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
+"The media you tried to open could not be decrypted." = "Die Medien, die Sie zu öffnen versuchten, konnten nicht entschlüsselt werden.";
+"Check that the same key that was used to encrypt this media is set as the active key." = "Überprüfen Sie, ob der gleiche Schlüssel, der zur Verschlüsselung dieser Medien verwendet wurde, als aktiver Schlüssel eingestellt ist.";
+"Tap the " = "Tippen Sie auf das ";
+" icon in the camera view to change the active key." = " Symbol in der Kameraansicht, um den aktiven Schlüssel zu ändern."; 
+
+/* ./Encamera/ImageViewing/GalleryGridView.swift */
+"Hide" = "Verbergen"; 
+
+/* ./Encamera/ImageViewing/ImageViewing.swift */
+"No key available." = "Kein Schlüssel verfügbar.";
+"No file access available." = "Kein Dateizugriff verfügbar.";
+"Decryption error: %@" = "Entschlüsselungsfehler: %@";
+"Decryption error: %@" = "Entschlüsselungsfehler: %@"; 
+
+/* ./Encamera/ImageViewing/MovieViewing.swift */
+"Decrypting..." = "Entschlüsselung läuft..."; 
+
+/* ./Encamera/ImageViewing/PhotoInfoView.swift */
+"No info available" = "Keine Informationen verfügbar"; 
+
+/* ./Encamera/Onboarding/MainOnboardingView.swift */
+"Next" = "Weiter";
+"OnboardingIntroHeadingText1" = "Datenschutzorientierte Kamera";
+"OnboardingIntroSubheadingText" = "Encamera verschlüsselt alles, um Ihre Medien vor unerwünschten Blicken zu schützen.";
+"GetStartedButtonText" = "Lasst uns anfangen";
+"Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera verschlüsselt alles, um Ihre Daten vor den neugierigen Blicken von KI, Medienanalysen und anderen Datenschutzverletzungen zu schützen.";
+"KeyBasedEncryption" = "Schlüsselbasierte Verschlüsselung";
+"IntroStorageExplanation" = "Ihre Medien sind sicher hinter einem Schlüssel verwahrt und lokal auf Ihrem Gerät oder in iCloud gespeichert.";
+"NoTrackingOnboardingExplanation" = "Ihre Daten sind sicher";
+"EncryptionExplanation" = "Ihre Medien sind sicher hinter einem Schlüssel verwahrt und lokal auf Ihrem Gerät oder in iCloud gespeichert";
+"NoTrackingExplanation" = "Niemand außer Ihnen kann auf Ihre Daten zugreifen.";
+"EncameraIsOpenSource" = "Open Source";
+"OpenSourceExplanation" = "Die Kernfunktionalitäten von Encamera sind Open Source, sodass Sie den Code, der Ihre Fotos sicher macht, einsehen können.";
+"Enter Password" = "Passwort eingeben";
+"You have an existing password for this device." = "Sie haben bereits ein Passwort für dieses Gerät.";
+"Erase Device Data" = "Gerätedaten löschen";
+"Set Password" = "Passwort festlegen";
+"SetAPasswordWarning" = "Legen Sie ein Passwort fest, um auf die App zuzugreifen. Bewahren Sie es an einem sicheren Ort auf – Sie können es später nicht wiederherstellen.";
+"Storage location onboarding" = "Wo möchten Sie Ihre Medien speichern? Jeder Schlüssel speichert die Daten in seinem eigenen Verzeichnis, sobald sie verschlüsselt sind.";
+"Skip for now" = "Vorerst überspringen";
+"Set Password" = "Passwort festlegen";
+"StorageExplanationHeader" = "Wo sind meine Fotos gespeichert?";
+"StorageExplanation" = "Encamera speichert Medien nicht in Ihrer Foto-Galerie. Alle verschlüsselten Medien werden entweder in dieser App oder in iCloud gespeichert, abhängig von Ihrer Speicherwahl.";
+"BackUpKeysHeader" = "Sichern Sie diese Schlüssel!";
+"BackUpKeysExplanation" = "Wenn Sie Ihren Schlüssel verlieren, ist es unmöglich, Ihre Daten wiederherzustellen. Sichern Sie Ihre Schlüssel in einem Passwortmanager, nachdem Sie sie erstellt haben, oder speichern Sie sie in iCloud.";
+"Password" = "Passwort";
+"Repeat Password" = "Passwort wiederholen";
+"Use %@?" = "%@ verwenden?";
+"Enable %@ to quickly and securely gain access to the app." = "Aktivieren Sie %@, um schnell und sicher auf die App zuzugreifen.";
+"Enable %@" = "%@ aktivieren";
+"Encryption Key" = "Verschlüsselungsschlüssel";
+"New Album Subheading" = "Geben Sie den Namen für dieses verschlüsselte Fotoalbum ein.";
+"AlbumName" = "Albumname";
+"Select Storage" = "Speicher wählen";
+"OnboardingPermissionsTitle" = "Berechtigungen";
+"OnboardingPermissionsSubheading" = "Sie müssen Berechtigungen für die Verwendung der Kamera & des Mikrofons erteilen, um auf die App zugreifen zu können";
+"OnboardingPermissionsCameraAccess" = "Kamerazugriff";
+"OnboardingPermissionsCameraAccessSubheading" = "Notwendig, um Fotos aufzunehmen";
+"OnboardingPermissionsMicrophoneAccess" = "Mikrofonzugriff";
+"OnboardingPermissionsMicrophoneAccessSubheading" = "Nur notwendig für Videos";
+"Add Permissions" = "Berechtigungen hinzufügen";
+"PermissionsNeededTitle" = "Kameraberechtigungen benötigt";
+"PermissionsNeededText" = "Sie müssen die Kameraberechtigungen aktivieren, um fortzufahren. Öffnen Sie die Einstellungs-App, um dies zu tun.";
+"Please select a storage location." = "Bitte wählen Sie einen Speicherort aus.";
+"DoneOnboarding" = "Fertig!";
+"Done" = "Fertig"; 
+
+/* ./Encamera/Onboarding/OnboardingView.swift */
+"ProfileSetup" = "PROFIL EINRICHTEN"; 
+
+/* ./Encamera/Store/PurchaseUpgradeHeaderView.swift */
+"View unlimited photos for each key." = "Unbegrenzt Fotos für jeden Schlüssel ansehen.";
+"Create an unlimited number of keys." = "Erstellen Sie eine unbegrenzte Anzahl von Schlüsseln.";
+"Support privacy-focused development." = "Unterstützen Sie die datenschutzorientierte Entwicklung."; 
+
+/* ./Encamera/Store/SubscriptionView.swift */
+"UnlimitedStorageFeatureRowTitle" = "Unbegrenzter Speicher für Fotos & Videos";
+"UnlimitedAlbumsFeatureRowTitle" = "Unbegrenzte Alben für Ihre Erinnerungen";
+"iCloudStorageFeatureRowTitle" = "iCloud-Speicher & Backup";
+"View unlimited photos for each key." = "Unbegrenzt viele Fotos für jeden Schlüssel ansehen.";
+"Create an unlimited number of keys." = "Erstellen Sie eine unbegrenzte Anzahl von Schlüsseln.";
+"Support privacy-focused development." = "Unterstützung für datenschutzorientierte Entwicklung.";
+"Restore Purchases" = "Käufe wiederherstellen";
+"Enter Promo Code" = "Promo-Code eingeben";
+"UnlockUnlimitedForFree" = "Unbegrenzt kostenlos freischalten!";
+"Start trial offer" = "Gratisprobezeit starten";
+"FreeTrialTerms" = "7 Tage kostenlos, danach %@";
+"NoCommitmentCancelAnytime" = "Ohne Bindung, jederzeit kündbar";
+"MostPopular" = "AM BELIEBTESTEN";
+"Subscribe" = "Abonnieren"; 
+
+/* ./Encamera/Store/SubscriptionOptionView.swift */
+"Subscribed" = "Abonniert";
+"SaveAmount %@ %@" = "Spare %@ %@"; 
+
+/* ./Encamera/Store/PurchaseUpgradeOptionsListView.swift */
+"**Purchased: %@**" = "**Gekauft: %@**";
+"Thank you for your support!" = "Vielen Dank für Ihre Unterstützung!";
+"premium" = "Premium";
+"Subscription" = "Abonnement";
+"One-Time Purchase" = "Einmaliger Kauf"; 
+
+/* ./Encamera/Store/PurchaseUpgradeView.swift */
+"Start trial offer" = "Testangebot starten";
+"Subscribe" = "Abonnieren";
+"Upgrade Today!" = "Heute upgraden!";
+"Tap to Upgrade" = "Zum Upgraden antippen";
+"Take a Photo!" = "Foto aufnehmen!";
+"Your Keys" = "Ihre Schlüssel";
+"KeyTutorialText" = "Non explicabo officia aut odit ex eum ipsum libero."; 
+"KeyTutorialTitle" = "Alle Ihre Dateien sind verschlüsselt"; 
+
+/* ./Encamera/MediaImport/MediaImportView.swift */
+"Select All" = "Alles auswählen";
+"Import" = "Importieren";
+"Import media" = "Medien importieren";
+"ImportSelectedImages" = "Ausgewählte Bilder in das aktuell aktive Schlüsselalbum importieren";
+"DeleteImported" = "Bilder löschen?";
+"DoYouWantToDeleteNotImported" = "Sind Sie fertig mit dem Importieren der Bilder?";
+"NotDoneYet" = "Ich bin noch nicht fertig";
+"Change Key Album" = "Ich möchte ein anderes Zielalbum wählen";
+"IAmDone" = "Ich bin fertig";
+"Encrypting" = "Verschlüsselung"; 
+
+/* ShareViewController.swift */
+"Cannot handle media" = "Medien können nicht verarbeitet werden"; 
+
+/* TweetToShareView.swift */
+"GetOneYearFree" = "Erhalte 1 Jahr kostenlos!";
+"TweetToRedeemOfferExplanation" = "Erhalte 100%% Rabatt auf die jährliche Abonnementgebühr von 9,99 $!\n\n Du musst nur zwei Dinge tun:\n1. Folge @encamera_app\n2. Klicke auf den Link unten, um über Encamera zu twittern";
+"FollowUs" = "Folge @encamera_app auf Twitter";
+"TapToTweet" = "Zum Twittern tippen!";
+"YouWillBeSentAPromoCode" = "Danach wird dir ein Promo-Code per DM zugeschickt, den du in der App einlösen kannst."; 
+
+/* Widget */
+"QuicklyTakePictures" = "Schnell Fotos und Videos aufnehmen."; 
+
+/* AlbumManager */
+"AlbumNotFoundAtSourceLocation" = "Das Album konnte am Quellort nicht gefunden werden. Verwenden Sie die Dateien-App, um sicherzustellen, dass es existiert."; 
+
+/* Notification Banners */
+"NotificationBannerTitle" = "Mit Verschlüsselung gesichert";
+"NotificationBannerBody" = "Alle Medien werden vor dem Speichern verschlüsselt. Niemand außer Ihnen kann Ihre Dateien einsehen.";
+"TelegramGroupJoinTitle" = "Telegram-Gruppe beitreten";
+"TelegramGroupJoinBody" = "Erhalten Sie frühzeitigen Zugang zu Beta-Funktionen und geben Sie Feedback";
+"TelegramGroupJoinButtonText" = "Gruppe beitreten";
+"InstallWidgetTitle" = "Lock Screen-Widget installieren";
+"InstallWidgetBody" = "Fügen Sie Encamera Ihrem Sperrbildschirm hinzu, um schnell Fotos zu machen";
+"InstallWidgetButtonText" = "Widget hinzufügen";
+
+"Enable Face ID" = "Face ID aktivieren";
+"Use PIN instead" = "Stattdessen PIN verwenden";
+"LoginMethodDescription" = "Wählen Sie, wie Sie auf Ihre privaten Alben zugreifen möchten.";
+"FinishedReadyToUseEncamera" = "Sie sind bereit, Encamera zu nutzen!";
+"FinishedSubtitle" = "Lassen Sie uns Ihr erstes Album erstellen";
+"CreateFirstAlbum" = "Erstes Album erstellen";
+"LetsGiveYourAlbumAName" = "Lassen Sie uns Ihrem\nAlbum einen Namen geben";
+"SetPinCode" = "Pin-Code festlegen";
+"SetPinCodeSubtitle" = "Dieser Pin wird verwendet, um sicher in Ihrer App anzumelden. Stellen Sie sicher, dass Sie ihn sich merken!";
+"RepeatPinCode" = "Pin-Code wiederholen";
+"RepeatPinCodeSubtitle" = "Wiederholen Sie Ihren Pin-Code zur Bestätigung.";
+"ConfirmPinCode" = "Pin-Code bestätigen";
+"IncorrectPinCode" = "Falscher PIN-Code. Bitte versuchen Sie es erneut.";
+"PinCodeDoesNotMatch" = "PIN stimmt nicht überein. Bitte versuchen Sie es erneut.";
+"PinCodeLockTryAgainIn" = "Zu viele Versuche. Bitte warten Sie %@";
+"FinishedOnboardingTitle" = "Sie sind bereit, Encamera zu nutzen!";
+"FinishedOnboardingSubtitle" = "Lassen Sie uns einige Medien sichern";
+"SelectAnOption" = "Eine Option auswählen";
+"PinCodeMismatch" = "Pincodes stimmen nicht überein";
+"EmptyAlbumTakeAPictureHeading" = "Erstellen Sie eine neue Erinnerung";
+"EmptyAlbumTakeAPictureSubtitle" = "Öffnen Sie Ihre Kamera und machen Sie ein Foto";
+"EmptyAlbumTakeAPictureActionTitle" = "Ein Foto machen";
+"EmptyAlbumImportPhotosHeading" = "Sichern Sie Ihre Fotos";
+"EmptyAlbumImportPhotosSubtitle" = "Importieren Sie Bilder aus Ihrer Fotogalerie";
+"EmptyAlbumImportPhotosActionTitle" = "Bilder importieren";
+"PinSuccessfullyChanged" = "Pin erfolgreich geändert";
+"MakeSureYouRememberYourPin" = "Stellen Sie sicher, dass Sie sich an Ihren Pin-Code erinnern!";
+"ErrorSavingPassword" = "Fehler beim Speichern des Passworts";
+"DoYouRememberYourPin" = "Erinnern Sie sich an Ihren Pin?";
+"DoYouRememberYourPinSubtitle" = "Wenn nicht, können Sie einen neuen festlegen, indem Sie zu 'Pin ändern' gehen";
+"IRemember" = "Ich erinnere mich an meinen Pin";
+"IForgot" = "Ich habe vergessen";
+"TakeSurveyTitle" = "Möchten Sie 3 Monate kostenlos?";
+"TakeSurveyBody" = "Geben Sie uns Ihr Feedback und erhalten Sie 3 Monate kostenlos";
+"TakeSurveyButtonText" = "Umfrage teilnehmen";
+"SettingsFaceIdDisabled" = "Face ID ist deaktiviert";
+"SettingsFaceIdOpenSettings" = "Sie haben Face ID für Encamera deaktiviert. Aktivieren Sie es in den Einstellungen, um sich mit Face ID anzumelden.";
+
+"ThanksForPurchasingLifetimeSubtitle" = "Du rockst und wirst bald neue Vorteile freischalten.";
+"OverwriteKeyPhrase" = "Schlüsselphrase überschreiben?";
+"ErrorImportingKeyPhrase" = "Fehler beim Importieren der Schlüsselphrase";
+"PostPurchaseView.ReviewButton" = "Hilf uns mit einer Bewertung";
+"BuyOnceUseForever" = "Einmal kaufen. Für immer nutzen.";
+"PostPurchaseView.MaybeLater" = "Vielleicht später";
+"PostPurchaseView.Subtext2" = "In der Zwischenzeit würden wir es sehr schätzen, wenn Sie uns mit einer Bewertung im App Store helfen könnten";
+"EnterKeyPhrase" = "Schlüsselphrase eingeben";
+"PostPurchaseView.ThanksForYourPurchase" = "Danke für Ihren Kauf!";
+"YourRecoveryPhrase" = "Ihr Wiederherstellungsphrase";
+"Error deleting key. Please try again." = "Fehler beim Löschen des Schlüssels. Bitte versuchen Sie es erneut.";
+"SaveAmount %@ $@" = "SPEICHERN %@";
+"OverwriteAreYouSure" = "Sind Sie sicher, dass Sie Ihre aktuelle Schlüsselphrase überschreiben möchten? Sie werden nicht in der Lage sein, auf Medien zuzugreifen, die mit der aktuellen Schlüsselphrase verschlüsselt wurden.";
+"ImSure" = "Ich bin sicher";
+"ImportKeyPhrase" = "Schlüsselphrase importieren";
+"PurchaseProduct" = "Kaufen";
+"EnterKeyPhraseDescription" = "Geben Sie die Schlüsselphrase ein, die Sie importieren möchten. Trennen Sie jedes Wort mit einem Leerzeichen.\nDies wird Ihre aktuelle Schlüsselphrase überschreiben.";
+"ThanksForPurchasingLifetime" = "Vielen Dank für den Kauf einer lebenslangen Lizenz!";
+"Keep your encrypted data safe by using %@." = "Halten Sie Ihre verschlüsselten Daten sicher, indem Sie %@ verwenden.";
+"SelectProduct" = "Wählen Sie ein Produkt";
+"PostPurchaseView.Subtext1" = "Sie sind einer der frühen Unterstützer von Encamera und wir danken Ihnen für die Unterstützung!";
+"Notification.WidgetSetup.Guidance" = "Anleitung für den Benutzer, ein Widget zum Sperrbildschirm hinzuzufügen.";
+"Notification.ImportImages.Prompt" = "Aufforderung an den Benutzer, mehr Bilder für die Sicherheit zu importieren.";
+"Notification.Permission.Granted" = "Berechtigungen für lokale Benachrichtigungen erteilt.";
+"Notification.WidgetReminder.Body" = "Vergiss nicht, das Widget auf dem Sperrbildschirm hinzuzufügen und schnell Bilder aufzunehmen. Sieh selbst!";
+"Notification.InactiveUserReminder.Body" = "Vergiss nicht, mehr Bilder zu sichern, indem du sie zu deinem Album hinzufügst. Jetzt importieren!";
+"Notification.ImageSecurityReminder.Title" = "Wusstest du schon? 🤔";
+"Notification.ImageSaveReminder.Title" = "Wir würden uns über deine Unterstützung freuen 🙏";
+"Notification.WidgetReminder.Title" = "Mache direkt verschlüsselte Fotos 📸";
+"Notification.ReviewPage.Navigation" = "Navigation zur Seite für die Einreichung von Bewertungen.";
+"Notification.Scheduling.Error" = "Fehler bei der Planung der Benachrichtigung: %@";
+"Notification.VideoSave.EducationalContent" = "Anzeige von Lehrinhalten darüber, wie man Videos speichert.";
+"Notification.Permission.Error" = "Fehler bei der Anforderung lokaler Benachrichtigungsberechtigungen: %@";
+"Notification.ImageSaveReminder.Body" = "Wir hoffen, dass Ihnen Encamera gefällt - Deshalb benötigen wir Ihre Unterstützung durch eine Bewertung. Tippen Sie hier!";
+"Notification.Permission.RemoteError" = "Fehler bei der Anforderung entfernter Benachrichtigungsberechtigungen: %@";
+"Notification.UnknownIdentifier" = "Unbekannter Benachrichtigungsidentifikator";
+"Notification.ImageSecurityReminder.Body" = "Sie können auch Videos in Ihren Alben speichern, nicht nur Bilder. Probieren Sie es jetzt aus und sichern Sie sich einige!";
+"Notification.PremiumPage.Navigation" = "Navigieren Sie zur Kaufseite des Premium-Plans.";
+"Notification.PremiumReminder.Title" = "20%% Rabatt - Begrenzte Zeit \uD83D\uDCC5";
+"Notification.PremiumReminder.Body" = "Verwenden Sie den Code 'ENCAMERA20', um 20%% Rabatt auf jeden Plan zu erhalten. Beeilen Sie sich!";
+"Notification.InactiveUserReminder.Title" = "Ihre Bilder könnten gefährdet sein \uD83D\uDDE8";
+
+"Settings.Version" = "Version";
+
+"Settings.Contact" = "Kontaktieren Sie den Support";
+"NotificationBanner.LeaveAReview.Body" = "Wenn Ihnen Encamera gefällt, helfen Sie uns mit einer Bewertung!";
+"NotificationBanner.Reddit.Button" = "Subreddit beitreten";
+"AlbumDetailView.ImportButton" = "Bilder importieren";
+"AlbumDetailView.AddFirstImage" = "Fügen Sie Ihr erstes Bild hinzu";
+"AlbumDetailView.AddFirstImageSubtitle" = "Importieren Sie ein Bild aus Ihrem Album oder öffnen Sie die Kamera und machen Sie ein neues Bild für dieses Album";
+"NotificationBanner.Reddit.Body" = "Treten Sie dem Encamera-Subreddit bei, um das Neueste zu verfolgen und Feedback zu geben";
+"AlbumDetailView.OpenCamera" = "Machen Sie ein neues Bild";
+"NotificationBanner.LeaveAReview.Title" = "Wir brauchen Ihre Hilfe!";
+"NotificationBanner.Reddit.Title" = "Bist du auf Reddit?";
+
+"GalleryView.PlayLivePhoto" = "Live Photo - Zum Ansehen halten";
+"PinTooShort" = "PIN ist zu kurz. Es muss mindestens %@ Stellen haben.";
+"UnlockWithPin" = "Entsperren";
+"SavePinCode" = "PIN-Code speichern";
+"OpenSystemSettings" = "Zu den Einstellungen gehen";
+
+"Settings.BackupKeyPhrase" = "Sicherungsschlüsselphrase";
+"Settings.ImportKeyPhrase" = "Schlüsselphrase importieren";
+"MediaSelectionTray.ItemSelected" = "Element ausgewählt";
+"NotificationListTitle" = "Benachrichtigungen";
+"MediaSelectionTray.SelectMedia" = "Medien auswählen";
+"CopyPhraseInstructions" = "Schreiben Sie diese Wörter in der richtigen Reihenfolge auf oder kopieren Sie sie und speichern Sie sie an einem sicheren Ort.\n\nDieser Satz wird verwendet, um den Verschlüsselungsschlüssel zu generieren, der Ihre Medien verschlüsselt.\n\nEs ist wichtig, diesen Schlüssel zu speichern, falls Sie Ihr Gerät verlieren.";
+"RecoveryPhraseCopied" = "Wiederherstellungsphrase kopiert!";
+"CopyPhrase" = "Phrase in die Zwischenablage kopieren";
+"MovieDecryptionError" = "Film konnte nicht geladen oder entschlüsselt werden. Möglicherweise kann er nicht heruntergeladen werden. Wenn sich dieses Medium in iCloud befindet, stellen Sie sicher, dass Sie Dateien mit Ihrer aktuellen Internetverbindung herunterladen können.";
+
+"AlbumDetailView.PhotoAccessAlertTitle" = "Nach dem Import löschen?";
+"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Da Sie keine kostenpflichtige Lizenz für Encamera haben, können Sie in der App nur 10 Bilder anzeigen. Wenn Sie Bilder aus Ihrer Fotobibliothek löschen, können Sie sie möglicherweise ohne eine kostenpflichtige Lizenz nicht anzeigen.";
+"AlbumDetailView.PhotoAccessAlertMessage" = "Möchten Sie die Bilder nach dem Import aus Ihrer Fotobibliothek löschen? Encamera benötigt hierfür die Berechtigung zu Ihrer Fotobibliothek.";
+"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Nicht jetzt";
+"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Ich verstehe";
+"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Wichtig ⚠️";
+"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Löschen";
+
+"Settings.DefaultStorageOption" = "Standard Speicheroption";
+"Yes" = "Ja";
+"AskForReview.EnjoyingTheApp" = "Genießen Sie die App?";
+"No" = "Nein";
+"GetPremiumPromoText" = "Halloween-Verkauf!";
+"PromoPremiumUnlockTheseBenefits" = "Unbegrenzte Alben und iCloud-Speicher\n und ZWEI MONATE GRATIS";
+"AlbumDetailView.RenameAlbum" = "Album umbenennen";
+"PromoFreeTrialTerms" = "60 Tage kostenlos, dann %@";
+"AskForReview.AskMeLater" = "Frag mich später";
+"MediaSelectionTray.MoveMedia" = "Bewegen";
+"FeedbackView.WeAppreciateIt" = "Wir schätzen Ihr Feedback";
+"FeedbackView.Subheading" = "Ihr Feedback ist uns wirklich wichtig und hilft uns, ein besseres Produkt zu entwickeln. Wir schätzen es wirklich!";
+"FeedbackView.Title" = "Feedback hinterlassen";
+"FeedbackView.Submit" = "Einreichen";
+"AlbumDetailView.deleteSelectedMedia" = "Möchten Sie %@ löschen?";
+"AlbumDetailView.confirmDeletion" = "Löschen bestätigen";
+"FeedbackView.Thanks" = "Danke!";
+"FeedbackView.PlaceholderText" = "Was könnten wir verbessern?";
+"FooterView.MediaDetails" = "Mediendetails";
+"Error.Alert.Title" = "Fehler";
+"Import files" = "Dateien hinzufügen";
+"Alert.LoadingFile.Message" = "Bitte warten...";
+"ProgressView.FileLoadedSuccessfully" = "Datei erfolgreich geladen";
+"ProgressView.Downloading" = "Herunterladen: %.0f%%";
+"ProgressView.StartingDownload" = "Download wird gestartet...";
+"Error.Alert.FailedToLoadFile" = "Datei konnte nicht geladen werden: %@";
+"ProgressView.Decrypting" = "Entschlüsseln: %.0f%%";
+"Alert.LoadingFile.Title" = "Datei wird geladen";
+"Import from files" = "Import aus Dateien";
+"Import from photos" = "Import aus Fotos";
+"AlbumDetailView.HideAlbumMenuItem" = "Album verbergen";
+"Test" = "Hier ist ein Test der Zeichenkettenübersetzung";
+"AlbumDetailView.HideAlbumAlertTitle" = "Dieses Album verbergen?";
+"AlbumDetailView.HideAlbumAlertMessage" = "Sind Sie sicher, dass Sie dieses Album verbergen möchten? Sie MÜSSEN sich den Namen dieses Albums merken, um wieder darauf zugreifen zu können.";
+
+"LetsGo" = "Los geht's!";
+"PurchaseView.BenefitModel.BackupKeychain" = "Schlüsselbund in iCloud sichern";
+"PurchaseView.BenefitModel.ComingSoon" = "Demnächst verfügbar";
+"PurchaseView.BenefitModel.UnlimitedStorage" = "Unbegrenzter Speicher für Fotos & Videos";
+"PurchaseView.BenefitModel.UnlimitedAlbums" = "Unbegrenzte Alben für Ihre Erinnerungen";
+"PurchaseView.BenefitModel.HiddenAlbums" = "Versteckte Alben";
+"PurchaseView.BenefitModel.ChangeAppIcon" = "App-Symbol ändern";
+"PurchaseView.BenefitModel.iCloudStorage" = "iCloud-Speicher & Backup";
+"Settings.BackupKeyToiCloud" = "Schlüssel mit iCloud synchronisieren";
+"PurchaseView.UnlockBenefits" = "Schalte alle diese Vorteile frei:";
+"PurchaseView.YourBenefits" = "Ihre Premium-Vorteile:";
+"Settings.GiveInstantFeedback" = "Geben Sie sofortiges Feedback";
+"AlbumDetailView.Select" = "Medien auswählen";
+"Settings.PurchasesRestoredMessage" = "Alle gültigen Käufe, die Sie getätigt haben, wurden wiederhergestellt.";
+"Settings.PurchasesRestored" = "Käufe wiederhergestellt!";
+"AlbumDetailView.CoverImageRemovedToast" = "Titelbild deaktiviert";
+"AlbumDetailView.ConfirmDeletion" = "Löschen bestätigen";
+"GalleryView.AlbumCoverSetToast" = "Albumcover festgelegt";
+"GalleryView.MakeAlbumCover" = "Als Albumcover festlegen";
+"AlbumDetailView.RemoveCoverImage" = "Albumcover deaktivieren";
+"AlbumDetailView.AlbumCoverMenuTitle" = "Albumcover";
+"AlbumDetailView.DeleteSelectedMedia" = "Möchten Sie %@ löschen?";
+"AlbumDetailView.CoverImageResetToast" = "Das Titelbild wird standardmäßig auf das zuletzt aufgenommene Bild gesetzt";
+
+"AlbumDetailView.ResetCoverImage" = "Standardmäßig auf das neueste Bild";
+
+"AuthenticationMethod.TextDescription.PinCode" = "PIN-Code";
+"AuthenticationMethod.SecurityLevel.pinCode4Digit" = "Schnell, aber weniger sicher";
+"AuthenticationMethod.Disable" = "Deaktivieren";
+"Use Face ID" = "Face ID verwenden";
+"Clear Password" = "Passwort löschen";
+"Change Authentication Method" = "Authentifizierungsmethode ändern";
+"setPasswordSubtitle" = "Dieses Passwort wird verwendet, um sicher auf die App zuzugreifen. Stellen Sie sicher, dass Sie es sich merken!";
+"RepeatPassword" = "Passwort wiederholen";
+"CannotClearTitle" = "Kann nicht gelöscht werden";
+"HideAlbumsTutorial.Subheading1" = "Encamera ermöglicht es Ihnen, Alben aus der Hauptansicht für zusätzliche Privatsphäre zu verbergen.";
+"FaceIDOnlyAlert.Title" = "PIN/Passwort löschen?";
+"FaceIDOnlyAlert.Continue" = "Fortfahren";
+"Use Passcode instead" = "Stattdessen Code verwenden";
+"AuthenticationMethod" = "Code-Optionen";
+"Changing your authentication method will require setting up a new PIN or password. Would you like to continue?" = "Das Ändern Ihrer Authentifizierungsmethode erfordert das Einrichten einer neuen PIN oder eines neuen Passworts. Möchten Sie fortfahren?";
+"AuthenticationMethod.Cancel" = "Abbrechen";
+"ProtectionLevel.Strong" = "Starker Schutz";
+"repeatPasswordSubtitle" = "Wiederholen Sie Ihr Passwort zur Bestätigung.";
+"ProtectionLevel.Low" = "Niedriger Schutz";
+"AuthenticationMethod.DisableTitle" = "Passcode deaktivieren";
+"AuthenticationMethod.MultipleMethodsInfo" = "Sie können mehrere Authentifizierungsmethoden auswählen";
+"AuthenticationMethod.TapToDisableBanner" = "Tippen Sie, um die ausgewählte Methode zu deaktivieren";
+"AuthenticationMethod.TextDescription.FaceID" = "Face ID";
+"AuthenticationMethod.ConfirmDisablePinCode" = "Möchten Sie %@ wirklich deaktivieren? Dadurch wird der gespeicherte PIN-Code gelöscht.";
+"HideAlbumsTutorial.Heading1" = "Halten Sie Ihre Alben privat";
+"AuthenticationMethod.SecurityLevel.PinCode" = "Moderater Schutz";
+"HideAlbumsTutorial.Heading2" = "Zugriff auf versteckte Alben";
+"RemovePasscode" = "Dies wird Ihren Passcode entfernen. Sie können nur Face ID verwenden, um in die App zu gelangen. Fortfahren?";
+"AuthenticationMethod.ConfirmDisableFaceID" = "Möchten Sie %@ wirklich deaktivieren?";
+"PasswordSetSuccessMessage" = "Ihr neues Passwort wurde gespeichert";
+"Select Login Method" = "Bitte wählen Sie eine Methode aus";
+"ProtectionLevel.Moderate" = "Moderater Schutz";
+"Fast and convenient" = "Schnell und bequem";
+"AuthenticationMethod.ConfirmDisablePassword" = "Möchten Sie wirklich %@ deaktivieren? Dadurch wird das gespeicherte Passwort gelöscht.";
+"AuthenticationMethod.IncompatibleDetail" = "%@ kann nicht mit den derzeit ausgewählten Methoden verwendet werden. PIN und Passwort können nicht zusammen verwendet werden.";
+"PasswordMismatch" = "Passwörter stimmen nicht überein";
+"CannotClearMessage" = "Sie können Ihren Code nicht löschen. Sie müssen Face ID aktiviert haben, um dies zu tun.";
+"ChangePasscode" = "Code ändern";
+"None" = "Keine";
+"SplashScreen.Subline" = "Sichern Sie Ihre Erinnerungen";
+"AuthenticationMethod.ConfirmDisable" = "Möchten Sie %@ wirklich deaktivieren?";
+"AuthenticationMethod.IncompatibleMessage" = "Die ausgewählten Authentifizierungsmethoden sind nicht kompatibel.";
+"FaceIDOnlyAlert.Cancel" = "Abbrechen";
+"Choose your login method" = "Wählen Sie Ihre Anmeldemethode";
+"FailedToSavePassword" = "Fehler beim Speichern des Passworts";
+"PasswordSetSuccessfully" = "Passwort erfolgreich festgelegt";
+"AuthenticationMethod.TextDescription.pinCode6Digit" = "6-stelliger PIN";
+"EnterPassword" = "Passwort eingeben";
+"HideAlbumsTutorial.Subheading4" = "Um ein Album zu verstecken, öffnen Sie es und tippen Sie auf das Drei-Punkte-Menü, dann wählen Sie 'Album verstecken'.";
+"HideAlbumsTutorial.Subheading2" = "Um auf ein verstecktes Album zuzugreifen, suchen Sie einfach nach seinem Namen in der Suchleiste.";
+"AuthenticationMethod.TextDescription.pinCode4Digit" = "4-stelliger PIN";
+"Confirm 6-Digit PIN" = "6-stelligen PIN bestätigen";
+"Clear" = "Löschen";
+"HideAlbumsTutorial.Heading3" = "Albumnamen merken";
+"AuthenticationMethod.SecurityLevel.password" = "Sicherste Option";
+"Clear saved password/PIN" = "Gespeichertes Passwort/PIN löschen";
+"AuthenticationMethod.OK" = "OK";
+"Continue" = "Weiter";
+"HideAlbumsTutorial.Title" = "Alben ausblenden";
+"AuthenticationMethod.SecurityLevel.FaceID" = "Niedriger Schutz";
+"FaceIDOnlyAlert.Message" = "Durch das Wechseln zu Face ID wird Ihre aktuelle PIN/Ihr Passwort gelöscht. Sie können die App dann nur noch mit Face ID entsperren.";
+"HideAlbumsTutorial.Subheading3" = "Stellen Sie sicher, dass Sie sich die Namen Ihrer versteckten Alben merken, da diese nicht in Ihrer Albenliste erscheinen.";
+"AuthenticationMethod.TextDescription.Password" = "Passwort";
+"AuthenticationMethod.SecurityLevel.pinCode6Digit" = "Sichererer PIN-Code";
+"HideAlbumsTutorial.Heading4" = "Ein Album ausblenden";
+"Set 6-Digit PIN" = "6-stelligen PIN festlegen";
+"ProtectionLevel.Strongest" = "Stärkster Schutz";
+"TaskDetailCard.TaskID" = "Aufgaben-ID: %@";
+"TaskDetailCard.StatusCancelled" = "Abgebrochen";
+"GlobalImportProgress.NoActiveImports" = "Keine aktiven Importe";
+"CustomPhotoPicker.GrantAccessMessage" = "Bitte gewähren Sie vollen Zugriff auf Ihre Fotobibliothek, um die Wischauswahl zu verwenden. Sie können dies in den Einstellungen ändern.";
+"ImportTaskDetailsView.Done" = "Fertig";
+"TaskDetailCard.Resume" = "Fortsetzen";
+"AlbumSelectionModal.Move" = "Bewegen";
+"PhotoPickerWrapper.UpgradeMessage" = "Sie haben derzeit eingeschränkten Zugriff auf Fotos. Gewähren Sie vollen Zugriff, um das Wischen-zum-Auswählen mehrerer Fotos auf einmal zu ermöglichen, was den Import erheblich beschleunigt!";
+"PhotoPickerWrapper.GrantAccessDescription" = "Gewähren Sie vollen Zugriff auf Ihre Fotos, um das Wischen-zum-Auswählen mehrerer Fotos auf einmal zu ermöglichen!";
+"GlobalImportProgress.ImportCompleted" = "Import abgeschlossen";
+"AlbumDetailView.MoveMediaConfirm" = "%@ Element%@ nach %@ verschieben?";
+"GlobalImportProgress.DeleteFromPhotoLibraryMessage" = "Dadurch werden alle importierten Fotos aus Ihrer Fotobibliothek gelöscht.";
+"GlobalImportProgress.ImportingProgress" = "Importiere %@ von %@";
+"GlobalImportProgress.ImportStopped" = "Import gestoppt";
+"TaskDetailCard.StatusFailed" = "Fehlgeschlagen";
+"MediaSelectionTray.MoveToAlbum" = "In Album verschieben";
+"TaskDetailCard.StatusRunning" = "Laufen";
+"TaskDetailCard.DeleteMessage" = "Dies wird %@ Foto(s) aus Ihrer Fotobibliothek löschen, die in Encamera importiert wurden.";
+"AlbumSelectionModal.Title" = "In Album verschieben";
+"PhotoPickerWrapper.UpgradeTitle" = "Upgrade auf vollen Fotozugriff";
+"TaskDetailCard.DeleteFromCameraRoll" = "Aus Kamerarolle löschen";
+"CustomPhotoPicker.PhotoAccessRequired" = "Fotozugriff erforderlich";
+"AlbumSelectionModal.Description" = "Wählen Sie ein Album, um %@ Elemente zu verschieben";
+"TaskDetailCard.StatusPaused" = "Pausiert";
+"GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "Aus Fotobibliothek löschen?";
+"AuthenticationView.ForgotPassword" = "Passwort vergessen? App zurücksetzen";
+"PhotoPickerWrapper.SwipeToSelect" = "Zum Auswählen wischen";
+"AlbumDetailView.PhotoAccessSettings" = "Bitte gewähren Sie in den Einstellungen Zugriff auf Ihre Fotobibliothek, um Fotos zu importieren.";
+"TaskDetailCard.GrantAccessMessage" = "Bitte gewähren Sie in den Einstellungen vollen Zugriff auf Ihre Fotobibliothek, um importierte Fotos zu löschen.";
+"TaskProgressRow.Processing" = "Verarbeitung: %@";
+"TaskDetailCard.Progress" = "Fortschritt:";
+"AlbumDetailView.PhotoAccessRequired" = "Fotozugriff erforderlich";
+"PhotoPickerWrapper.FasterImport" = "Schnellerer Import";
+"TaskDetailCard.StatusCompleted" = "Abgeschlossen";
+"TaskDetailCard.Pause" = "Pause";
+"PhotoPickerWrapper.EnableSwipeSelection" = "Streichauswahl aktivieren";
+"SettingsView.UnknownError" = "Unbekannter Fehler";
+"PhotoPickerWrapper.UpgradeToFullAccess" = "Auf Vollzugriff upgraden";
+"ImportTaskDetailsView.ClearAll" = "Alle löschen";
+"CustomPhotoPicker.Selected" = "%@ ausgewählt";
+"PhotoPickerWrapper.GrantAccess" = "Zugriff gewähren";
+"AlbumDetailView.MovedToast" = "%@ Element%@ nach %@ verschoben";
+"AuthenticationView.TooManyAttempts" = "Zu viele Versuche";
+"AlbumDetailView.OpenSettings" = "Einstellungen öffnen";
+"TaskDetailCard.EstimatedTime" = "Geschätzte verbleibende Zeit: %@";
+"CustomPhotoPicker.Add" = "Hinzufügen";
+"GlobalImportProgress.ImportingBatches" = "Importiere %@ Chargen";
+"PhotoPickerWrapper.NotNow" = "Nicht jetzt";
+"TaskDetailCard.Created" = "Erstellt: %@";
+"PhotoPickerWrapper.ContinueLimited" = "Mit eingeschränktem Zugriff fortfahren";
+"AlbumDetailView.MoveMedia" = "Medien verschieben";
+"PhotoPickerWrapper.SwipeDescription" = "Wählen Sie mehrere Fotos mit einem einzigen Wischen aus";
+"ImportTaskDetailsView.Title" = "Aufgaben importieren";
+"TaskDetailCard.PhotoLibraryAccessRequired" = "Zugriff auf Fotobibliothek erforderlich";
+"CustomPhotoPicker.SelectPhotos" = "Fotos auswählen";
+"PhotoPickerWrapper.GrantFullAccess" = "Vollzugriff gewähren";
+"TaskDetailCard.Current" = "Aktuell: %@";
+"PhotoPickerWrapper.FasterImportDescription" = "Fotos viel schneller importieren";
+"PhotoPickerWrapper.PrivacyDescription" = "Ihre Fotos bleiben verschlüsselt und privat";
+"CustomPhotoPicker.SwipeInstruction" = "Lange drücken & wischen, um mehrere Fotos auszuwählen";
+"TaskDetailCard.Unknown" = "Unbekannt";
+"PhotoPickerWrapper.PrivacyFirst" = "Datenschutz an erster Stelle";
+"TaskDetailCard.StatusWaiting" = "Warten";
+"CustomPhotoPicker.LimitedAccess" = "Eingeschränkter Zugriff. Tippen Sie hier, um mehr Fotos auszuwählen oder vollen Zugriff zu gewähren.";
+"AuthenticationView.RetryIn" = "Sie können Ihr Passwort in %@ erneut versuchen";
+"OnboardingCarousel.HeadingText1" = "Ihre Erinnerungen, vollständig geschützt";
+"GlobalImportProgress.Remaining" = "Verbleibend";
+"GlobalImportProgress.PhotosDeleted" = "Fotos gelöscht";
+"TaskDetailCard.LimitedAccessInfo" = "Eingeschränkter Fotozugriff";
+"TaskDetailCard.LimitedAccessMessage" = "Bei begrenztem Fotozugriff können nur die von Ihnen ausgewählten Fotos gelöscht werden. Um alle importierten Fotos zu löschen, gewähren Sie bitte in den Einstellungen vollen Zugriff auf die Fotobibliothek.";
+"OnboardingCarousel.SubheadingText3" = "Encamera sammelt niemals Ihre Daten. Ihre privaten Momente bleiben ganz bei Ihnen.";
+"OnboardingCarousel.SubheadingText1" = "Wir verschlüsseln jedes Bild und Video sofort. Niemand sonst kann sie sehen, nicht einmal wir.";
+"OnboardingCarousel.SubheadingText2" = "Ihre Alben sind mit Ihrem einzigartigen Schlüssel gesperrt und sicher auf Ihrem Gerät oder in iCloud gespeichert.";
+"OnboardingCarousel.HeadingText2" = "Nur Sie besitzen den Verschlüsselungsschlüssel";
+"OnboardingCarousel.HeadingText3" = "Keine Konten. Kein Profiling. Keine Werbung.";
+"Settings.BackupKeyToiCloudDescription" = "Wenn aktiviert, wird Ihr Schlüssel automatisch in Ihrem iCloud-Schlüsselbund gesichert. Wenn Sie Ihr Gerät verlieren, haben Sie immer noch Zugriff auf Dateien, die auf iCloud gespeichert sind, wenn Sie diese Option wählen.";
+"KeyPhrase.ContinueButton" = "Mein Schlüssel wurde gespeichert";
+"MainHomeView.BackupEncryptionKey" = "Sichern Sie Ihren Verschlüsselungsschlüssel";
+"MainHomeView.KeyBackupExplanation" = "Ihre Fotos sind mit einem einzigartigen Verschlüsselungsschlüssel geschützt. Dies ist der einzige Weg, um Ihre Bilder zu entschlüsseln, wenn Sie das Gerät wechseln oder die App neu installieren.";
+"KeyPhrase.Subtitle" = "Dies ist Ihre einzigartige Verschlüsselungsschlüsselphrase. Wenn Sie diese verlieren und ein neues Telefon bekommen, werden Sie niemals wieder auf Ihre verschlüsselten Fotos und Videos zugreifen können. Bitte speichern Sie es an einem sicheren Ort.";
+"KeyPhrase.Title" = "Ihr Verschlüsselungsschlüsselphrase";
+"KeyPhrase.CopyButton" = "Schlüsselphrase kopieren";
+"MainHomeView.ViewTheKey" = "Den Schlüssel anzeigen";
+"MainHomeView.KeyBackupWarning" = "Sie können Ihre Medien ohne diesen Schlüssel nicht anzeigen.";
+"Settings.CopiedToClipboard" = "In die Zwischenablage kopiert";
+"Settings.PiwikTrackingId" = "Piwik-Tracking-ID";
+"Settings.RevenueCatCustomerId" = "RevenueCat-Kundennummer";
+"BillingFrequency.PerYear" = "pro Jahr";
+"BillingFrequency.OneTime" = "einmalig";
+"BillingFrequency.PerWeek" = "pro Woche";
+"BillingFrequency.PerMonth" = "pro Monat";
+"BillingFrequency.LifetimeUnlimited" = "Unbegrenzte Updates";
+"BillingFrequency.LifetimeLimited" = "1 Jahr Updates";
+"AddAlbumModal.RenameAlbumTitle" = "Lass uns dein\nAlbum umbenennen";

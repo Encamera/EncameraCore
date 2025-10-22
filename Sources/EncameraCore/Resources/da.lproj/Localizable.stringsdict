@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ Image(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@image_count@</string>
+		<key>image_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Ingen elementer</string>
+			<key>one</key>
+			<string>1 element</string>
+			<key>other</key>
+			<string>%d elementer</string>
+		</dict>
+	</dict>
+	<key>%@ Video(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@video_count@</string>
+		<key>video_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Ingen videoer</string>
+			<key>one</key>
+			<string>1 video</string>
+			<key>other</key>
+			<string>%d videoer</string>
+		</dict>
+	</dict>
+	<key>%@ Photo(s) Left</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@photo_count@</string>
+		<key>photo_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Tilbage fotos</string>
+			<key>one</key>
+			<string>Tilbage foto</string>
+			<key>other</key>
+			<string>Tilbage fotos</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ Image(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@image_count@</string>
+		<key>image_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Niciun element</string>
+			<key>one</key>
+			<string>1 element</string>
+			<key>few</key>
+			<string>%d elemente</string>
+			<key>other</key>
+			<string>%d de elemente</string>
+		</dict>
+	</dict>
+	<key>%@ Video(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@video_count@</string>
+		<key>video_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Niciun video</string>
+			<key>one</key>
+			<string>1 video</string>
+			<key>few</key>
+			<string>%d videouri</string>
+			<key>other</key>
+			<string>%d de videouri</string>
+		</dict>
+	</dict>
+	<key>%@ Photo(s) Left</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@photo_count@</string>
+		<key>photo_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>Fotografii rămase</string>
+			<key>one</key>
+			<string>Fotografie rămasă</string>
+			<key>few</key>
+			<string>Fotografii rămase</string>
+			<key>other</key>
+			<string>Fotografii rămase</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

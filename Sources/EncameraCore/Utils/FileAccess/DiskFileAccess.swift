@@ -1,0 +1,698 @@
+//
+//  iCloudFilesManager.swift
+//  Encamera
+//
+//  Created by Alexander Freas on 25.11.21.
+//
+
+import Foundation
+import UIKit
+import Combine
+import AVFoundation
+
+
+
+public actor DiskFileAccess: DebugPrintable {
+
+    enum iCloudError: Error {
+        case invalidURL
+        case general
+    }
+    var key: PrivateKey?
+
+    private var cancellables = Set<AnyCancellable>()
+    private var album: Album?
+    public var directoryModel: DataStorageModel?
+    private var keyManager: KeyManager?
+    private var albumManager: AlbumManaging?
+
+    public init() {
+
+    }
+
+    public init(for album: Album, albumManager: AlbumManaging) async {
+        await configure(for: album, albumManager: albumManager)
+    }
+
+    public func configure(for album: Album, albumManager: AlbumManaging) async {
+        self.key = album.key
+        self.album = album
+        self.keyManager = albumManager.keyManager
+        self.albumManager = albumManager
+        let storageModel = albumManager.storageModel(for: album)
+        self.directoryModel = storageModel
+        try? self.directoryModel?.initializeDirectories()
+    }
+
+    public func resolveEncryptedMedia(by id: String, type: MediaType) -> EncryptedMedia? {
+        guard let url = directoryModel?.driveURLForMedia(withID: id, type: type) else {
+            return nil
+        }
+        let media = EncryptedMedia(source: .url(url), mediaType: type, id: id)
+        return media
+    }
+
+    public func enumerateMedia<T : MediaDescribing>() async -> [T] {
+        guard let directoryModel = directoryModel else {
+            return []
+        }
+        let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
+
+        let filter = [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]
+
+        let urls: [URL] = directoryModel.enumeratorForStorageDirectory(
+            resourceKeys: resourceKeys,
+            fileExtensionFilter: filter
+        )
+
+        let imageItems: [T] = urls
+            .sorted { (url1: URL, url2: URL) in
+                guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
+                      let creationDate1 = resourceValues1.creationDate,
+                      let resourceValues2 = try? url2.resourceValues(forKeys: resourceKeys),
+                      let creationDate2 = resourceValues2.creationDate else {
+                    return false
+                }
+
+                // First, sort by creation date
+                let dateComparison = creationDate1.compare(creationDate2)
+                if dateComparison != .orderedSame {
+                    return dateComparison == .orderedDescending
+                }
+
+                // If dates are the same, prioritize photos over videos
+                let isPhoto1 = url1.pathExtension == MediaType.photo.encryptedFileExtension
+                let isPhoto2 = url2.pathExtension == MediaType.video.encryptedFileExtension
+
+                if isPhoto1 != isPhoto2 {
+                    return isPhoto1 && !isPhoto2
+                }
+
+                // If media types are the same, sort by filename
+                return url1.lastPathComponent < url2.lastPathComponent
+            }.compactMap { (itemUrl: URL) in
+                return T(source: .url(itemUrl), generateID: false)
+            }
+        return imageItems
+    }
+
+    /// Enumerates all encrypted media files across all albums in both local and iCloud storage
+    /// This is like running a `find` command at the base storage directories
+    public func enumerateAllMedia<T: MediaDescribing>() async -> [T] {
+        let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
+        let filter = [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]
+        var allURLs: [URL] = []
+        
+        // Enumerate local storage
+        let localURLs = LocalStorageModel.enumeratorForStorageDirectory(
+            at: LocalStorageModel.rootURL,
+            resourceKeys: resourceKeys,
+            fileExtensionFilter: filter
+        )
+        allURLs.append(contentsOf: localURLs)
+        
+        // Enumerate iCloud storage if available
+        if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
+            let iCloudURLs = iCloudStorageModel.enumeratorForStorageDirectory(
+                at: iCloudStorageModel.rootURL,
+                resourceKeys: resourceKeys,
+                fileExtensionFilter: filter
+            )
+            allURLs.append(contentsOf: iCloudURLs)
+        }
+        
+        print("enumerateAllMedia found URLs:", allURLs.map { $0.path })
+        
+        let mediaItems: [T] = allURLs
+            .sorted { (url1: URL, url2: URL) in
+                guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
+                      let creationDate1 = resourceValues1.creationDate,
+                      let resourceValues2 = try? url2.resourceValues(forKeys: resourceKeys),
+                      let creationDate2 = resourceValues2.creationDate else {
+                    return false
+                }
+
+                // First, sort by creation date
+                let dateComparison = creationDate1.compare(creationDate2)
+                if dateComparison != .orderedSame {
+                    return dateComparison == .orderedDescending
+                }
+
+                // If dates are the same, prioritize photos over videos
+                let isPhoto1 = url1.pathExtension == MediaType.photo.encryptedFileExtension
+                let isPhoto2 = url2.pathExtension == MediaType.video.encryptedFileExtension
+
+                if isPhoto1 != isPhoto2 {
+                    return isPhoto1 && !isPhoto2
+                }
+
+                // If media types are the same, sort by filename
+                return url1.lastPathComponent < url2.lastPathComponent
+            }.compactMap { (itemUrl: URL) in
+                return T(source: .url(itemUrl), generateID: false)
+            }
+        return mediaItems
+    }
+
+    /// Enumerates all preview files across all storage types
+    private func enumerateAllPreviewFiles() -> [URL] {
+        var allPreviewFiles: [URL] = []
+        
+        // Get preview files from local storage
+        let localPreviewFiles = LocalStorageModel.enumeratorForStorageDirectory(
+            at: LocalStorageModel.thumbnailDirectory,
+            fileExtensionFilter: [MediaType.preview.encryptedFileExtension]
+        )
+        allPreviewFiles.append(contentsOf: localPreviewFiles)
+        
+        // Get preview files from iCloud storage if available
+        if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
+            let iCloudPreviewFiles = iCloudStorageModel.enumeratorForStorageDirectory(
+                at: iCloudStorageModel.thumbnailDirectory,
+                fileExtensionFilter: [MediaType.preview.encryptedFileExtension]
+            )
+            allPreviewFiles.append(contentsOf: iCloudPreviewFiles)
+        }
+        
+        return allPreviewFiles
+    }
+
+}
+
+extension FileReader {
+
+}
+
+
+extension DiskFileAccess {
+
+    
+
+
+    public func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel  {
+        guard let thumbnailPath = directoryModel?.previewURLForMedia(media) else {
+            printDebug("loadMediaPreview: No thumbnail path found")
+            throw FileAccessError.missingDirectoryModel
+        }
+        let preview = T(source: .url(thumbnailPath), mediaType: .preview, id: media.id)
+
+        do {
+            printDebug("loadMediaPreview: Trying to load thumbnail", media.id)
+            let existingPreview = try await loadMediaInMemory(media: preview) { _ in }
+            printDebug("loadMediaPreview: Found existing thumbnail", media.id)
+            return try PreviewModel(source: existingPreview)
+        } catch {
+            switch media.mediaType {
+            case .photo:
+                printDebug("loadMediaPreview: No thumbnail found for photo with id: \(media.id)")
+                return try await createPreview(for: media)
+            case .video:
+                // We are signaling here that there is no thumbnail for the
+                // video at this time. The preview strategy should be changed
+                // so that an encrypted preview is stored in a certain region
+                // of the file, so we can load the preview without decrypting
+                // the entire file
+                printDebug("loadMediaPreview: No thumbnail found for video with id: \(media.id)")
+                return try await createPreview(for: media)
+            default:
+                printDebug("loadMediaPreview: No thumbnail found for unknown media type")
+                throw SecretFilesError.createThumbnailError
+            }
+        }
+    }
+    public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)? = nil) async throws -> UIImage? {
+        if let album,
+           let albumManager = albumManager,
+           let coverImageId = albumManager.getAlbumCoverImageId(album: album) {
+            if coverImageId == "none" {
+                return nil
+            } else if let coverImageURL = directoryModel?.driveURLForMedia(withID: coverImageId, type: .photo),
+                      let preview = try? await loadMediaPreview(for: EncryptedMedia(source: .url(coverImageURL), mediaType: .photo, id: coverImageId)),
+                      let previewData = preview.thumbnailMedia.data, let thumbnail = UIImage(data: previewData) {
+                return thumbnail
+            } else {
+                return try await loadDefaultLeadingThumbnail()
+            }
+        } else {
+            return try await loadDefaultLeadingThumbnail()
+        }
+    }
+
+    public func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
+
+        if var encrypted = media as? EncryptedMedia {
+            if encrypted.needsDownload,
+                let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
+                printDebug("Downloading file from iCloud", encrypted.id)
+                encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { [weak self] prog in
+                    self?.printDebug("Downloading file from iCloud", encrypted.id, prog)
+                    progress(.downloading(progress: prog))
+                }
+            }
+            return try await decryptMediaToData(encrypted: encrypted, progress: progress)
+        } else {
+            fatalError()
+        }
+    }
+
+    public func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
+        if var encrypted = media as? EncryptedMedia {
+            if encrypted.needsDownload,
+                let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
+                encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
+                    progress(.downloading(progress: prog))
+                }
+
+            }
+            return try await decryptMediaToURL(encrypted: encrypted, progress: progress)
+        } else if let cleartext = media as? CleartextMedia {
+            return cleartext
+        }
+        fatalError()
+    }
+
+
+
+    @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
+        do {
+            let thumbnail = try await createThumbnail(for: media)
+            printDebug("createPreview: Created thumbnail for \(media.id)")
+            var preview = PreviewModel(thumbnailMedia: thumbnail)
+            if let encrypted = media as? EncryptedMedia {
+                switch encrypted.mediaType {
+                case .photo:
+                    break
+                case .video:
+                    let video: CleartextMedia = try await decryptMediaToURL(encrypted: encrypted, progress: {_ in })
+                    guard let url = video.url else {
+                        printDebug("createPreview: Could not get video URL")
+                        throw SecretFilesError.createPreviewError
+                    }
+                    let asset = AVURLAsset(url: url, options: nil)
+                    preview.videoDuration = asset.duration.durationText
+                default:
+                    printDebug("createPreview: Unknown media type")
+                    throw SecretFilesError.createPreviewError
+                }
+            } else if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video, case .url(let source) = decrypted.source {
+                let asset = AVURLAsset(url: source, options: nil)
+                preview.videoDuration = asset.duration.durationText
+            }
+            try await savePreview(preview: preview, sourceMedia: media)
+            return preview
+
+        } catch {
+            printDebug("createPreview: Error creating preview for \(media.id)")
+            throw error
+        }
+
+    }
+
+
+    private func decryptMediaToData(encrypted: EncryptedMedia, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
+        guard let keyManager else {
+            throw FileAccessError.missingKeyManager
+        }
+        guard case .url(let sourceURL) = encrypted.source else {
+            throw FileAccessError.couldNotLoadMedia
+        }
+
+        // Try to get the key UUID from extended attributes
+        let keyToUse: PrivateKey
+        if let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL),
+           let matchingKey = await keyManager.keyWith(uuid: storedKeyUUID) {
+            keyToUse = matchingKey
+            printDebug("decryptMediaToData: Using key with UUID \(storedKeyUUID) for file \(encrypted.id)")
+        } else {
+            // Fall back to current key if no UUID found or key not available
+            guard let currentKey = key else {
+                throw FileAccessError.missingPrivateKey
+            }
+            keyToUse = currentKey
+            printDebug("decryptMediaToData: Using current key for file \(encrypted.id)")
+        }
+
+        let fileHandler = SecretFileHandler(keyBytes: keyToUse.keyBytes, source: encrypted)
+
+        let decrypted: CleartextMedia = try await fileHandler.decryptInMemory()
+        return decrypted
+    }
+
+    private func loadDefaultLeadingThumbnail() async throws -> UIImage? {
+        let media: [EncryptedMedia] = await enumerateMedia()
+        guard let firstMedia = media.first else {
+            return nil
+        }
+
+        do {
+            let cleartextPreview = try await loadMediaPreview(for: firstMedia)
+            guard let previewData = cleartextPreview.thumbnailMedia.data, let thumbnail = UIImage(data: previewData) else {
+                return nil
+            }
+            return thumbnail
+
+        } catch {
+            return nil
+        }
+    }
+
+    private func decryptMediaToURL(
+        encrypted: EncryptedMedia,
+        progress: @escaping (FileLoadingStatus) -> Void
+    ) async throws -> CleartextMedia {
+        guard let keyManager else {
+            throw FileAccessError.missingKeyManager
+        }
+
+        guard case .url(let sourceURL) = encrypted.source else {
+            printDebug("decryptMediaToURL: Could not load media")
+            throw FileAccessError.couldNotLoadMedia
+        }
+
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+
+        let targetURL = URL.tempMediaDirectory
+            .appendingPathComponent(encrypted.id)
+            .appendingPathExtension(encrypted.mediaType.decryptedFileExtension)
+
+        if FileManager.default.fileExists(atPath: targetURL.path) {
+            return CleartextMedia(source: targetURL)
+        }
+
+        // Try to get the key UUID from extended attributes
+        let keyToUse: PrivateKey
+        if let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL),
+           let matchingKey = await keyManager.keyWith(uuid: storedKeyUUID) {
+            keyToUse = matchingKey
+            printDebug("decryptMediaToURL: Using key with UUID \(storedKeyUUID) for file \(encrypted.id)")
+        } else {
+            // Fall back to current key if no UUID found or key not available
+            guard let currentKey = key else {
+                throw FileAccessError.missingPrivateKey
+            }
+            keyToUse = currentKey
+            printDebug("decryptMediaToURL: Using current key for file \(encrypted.id)")
+        }
+
+        let fileHandler = SecretFileHandler(keyBytes: keyToUse.keyBytes, source: encrypted, targetURL: targetURL)
+
+        fileHandler.progress
+            .receive(on: DispatchQueue.main)
+            .sink { percent in
+                progress(.decrypting(progress: percent))
+            }
+            .store(in: &cancellables)
+        let decrypted = try await fileHandler.decryptToURL()
+        return decrypted
+
+    }
+
+    @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia {
+
+
+        var thumb: CleartextMedia
+        if let encrypted = media as? EncryptedMedia {
+
+            switch encrypted.mediaType {
+
+            case .photo:
+                let decrypted: CleartextMedia = try await decryptMediaToData(encrypted: encrypted) { _ in }
+                thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
+
+            case .video:
+                let decrypted: CleartextMedia = try await self.decryptMediaToURL(encrypted: encrypted) { _ in }
+                thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
+            default:
+                throw SecretFilesError.fileTypeError
+            }
+        } else if let cleartext = media as? CleartextMedia {
+            thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
+        } else if let cleartext = media as? CleartextMedia {
+            thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
+        } else {
+            fatalError()
+        }
+        return thumb
+    }
+}
+
+
+
+extension DiskFileAccess {
+
+    @discardableResult public func savePreview<T: MediaDescribing>(preview: PreviewModel, sourceMedia: T) async throws -> CleartextMedia {
+        guard let key = key else {
+            throw FileAccessError.missingPrivateKey
+        }
+        let data = try JSONEncoder().encode(preview)
+        let destinationURL = directoryModel?.previewURLForMedia(sourceMedia)
+        let cleartextPreview = CleartextMedia(source: data, mediaType: .preview, id: sourceMedia.id)
+
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
+
+        let encrypted = try await fileHandler.encrypt()
+        
+        // Store the key UUID as an extended attribute for preview files too
+        if var encryptedURL = encrypted.url {
+            try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
+            
+            // Ensure preview files are also included in device backups
+            if directoryModel?.storageType == .local {
+                var resourceValues = URLResourceValues()
+                resourceValues.isExcludedFromBackup = false
+                try? encryptedURL.setResourceValues(resourceValues)
+            }
+        }
+        
+        printDebug("Saved preview for \(sourceMedia.id)")
+        return cleartextPreview
+    }
+
+    @discardableResult public func save(media: CleartextMedia, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
+        guard let key = key else {
+            throw FileAccessError.missingPrivateKey
+        }
+
+        guard let directoryModel else {
+            throw FileAccessError.missingDirectoryModel
+        }
+        let destinationURL = directoryModel.driveURLForMedia(media)
+        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
+        fileHandler.progress
+            .receive(on: DispatchQueue.main)
+            .sink { percent in
+                progress(percent)
+            }.store(in: &cancellables)
+
+        let encrypted = try await fileHandler.encrypt()
+        
+        // Store the key UUID as an extended attribute
+        if var encryptedURL = encrypted.url {
+            try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
+            
+            // Ensure local files are included in device backups for transfer to new devices
+            if directoryModel.storageType == .local {
+                var resourceValues = URLResourceValues()
+                resourceValues.isExcludedFromBackup = false
+                try? encryptedURL.setResourceValues(resourceValues)
+            }
+        }
+        
+        try await createPreview(for: media)
+        operationBus.didCreate(encrypted)
+        return encrypted
+    }
+
+    public func copy(media: EncryptedMedia) async throws {
+        guard var destinationURL = directoryModel?.driveURLForMedia(media), case .url(let source) = media.source else {
+            throw FileAccessError.missingDirectoryModel
+        }
+        try FileManager.default.copyItem(at: source, to: destinationURL)
+        
+        // Copy the key UUID extended attribute if it exists
+        if let keyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: source) {
+            try? ExtendedAttributesUtil.setKeyUUID(keyUUID, for: destinationURL)
+        }
+        
+        // Ensure copied files are included in device backups for transfer to new devices
+        if directoryModel?.storageType == .local {
+            var resourceValues = URLResourceValues()
+            resourceValues.isExcludedFromBackup = false
+            try? destinationURL.setResourceValues(resourceValues)
+        }
+        
+        if let newMedia = EncryptedMedia(source: destinationURL) {
+            operationBus.didCreate(newMedia)
+        }
+    }
+
+    public func move(media: EncryptedMedia) async throws {
+        guard var destinationURL = directoryModel?.driveURLForMedia(media), case .url(let source) = media.source else {
+            throw FileAccessError.missingDirectoryModel
+        }
+
+        // Preserve the key UUID extended attribute during move
+        let keyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: source)
+        
+        try FileManager.default.moveItem(at: source, to: destinationURL)
+        
+        // Restore the key UUID extended attribute if it existed
+        if let keyUUID = keyUUID {
+            try? ExtendedAttributesUtil.setKeyUUID(keyUUID, for: destinationURL)
+        }
+        
+        // Ensure moved files are included in device backups for transfer to new devices
+        if directoryModel?.storageType == .local {
+            var resourceValues = URLResourceValues()
+            resourceValues.isExcludedFromBackup = false
+            try? destinationURL.setResourceValues(resourceValues)
+        }
+        
+        if let newMedia = EncryptedMedia(source: destinationURL) {
+            operationBus.didCreate(newMedia)
+        }
+    }
+
+    public func delete(media: [EncryptedMedia]) async throws {
+        var deletedMedia: [EncryptedMedia] = []
+        
+        for mediaItem in media {
+            guard case .url(let source) = mediaItem.source else {
+                printDebug("Error deleting media: \(mediaItem)")
+                throw FileAccessError.missingDirectoryModel
+            }
+            
+            try FileManager.default.removeItem(at: source)
+            if let previewURL = directoryModel?.previewURLForMedia(mediaItem) {
+                try? FileManager.default.removeItem(at: previewURL)
+            }
+            deletedMedia.append(mediaItem)
+        }
+        
+        operationBus.didDelete(deletedMedia)
+    }
+
+    public func deleteMediaForKey() async throws {
+
+        guard let url = directoryModel?.baseURL else {
+            throw FileAccessError.missingPrivateKey
+        }
+
+        try FileManager.default.removeItem(at: url)
+    }
+    public func deleteAllMedia() async throws {
+        for type in StorageType.allCases {
+            guard case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: type) else {
+                continue
+            }
+            do {
+                try type.modelForType.deleteAllFiles()
+            } catch {
+                print("Could not delete all files for \(type): ", error)
+            }
+        }
+    }
+    
+    public func setKeyUUIDForExistingFiles() async throws {
+        guard let keyManager = keyManager else {
+            printDebug("setKeyUUIDForExistingFiles: No key manager available")
+            throw FileAccessError.missingKeyManager
+        }
+        
+        guard let currentKey = keyManager.currentKey else {
+            printDebug("setKeyUUIDForExistingFiles: No current key available")
+            throw FileAccessError.missingPrivateKey
+        }
+        
+        printDebug("setKeyUUIDForExistingFiles: Starting UUID migration for existing files")
+        
+        // Get all encrypted media files across all albums
+        var allEncryptedMedia: [EncryptedMedia] = await enumerateAllMedia()
+        
+        // Also include files from the current album if we have a directoryModel configured
+        if let directoryModel = directoryModel {
+            let currentAlbumMedia: [EncryptedMedia] = await enumerateMedia()
+            allEncryptedMedia.append(contentsOf: currentAlbumMedia)
+        }
+        
+        // Remove duplicates based on file URL
+        var uniqueMedia: [EncryptedMedia] = []
+        var seenURLs: Set<URL> = []
+        
+        for media in allEncryptedMedia {
+            if case .url(let fileURL) = media.source, !seenURLs.contains(fileURL) {
+                seenURLs.insert(fileURL)
+                uniqueMedia.append(media)
+            }
+        }
+        
+        var processedCount = 0
+        var updatedCount = 0
+        print("encrypted media", uniqueMedia.map({$0.id}))
+
+        for media in uniqueMedia {
+            guard case .url(let fileURL) = media.source else {
+                continue
+            }
+            
+            processedCount += 1
+            
+            do {
+                // Check if UUID is already set
+                let existingUUID = try? ExtendedAttributesUtil.getKeyUUID(for: fileURL)
+                
+                if existingUUID == nil {
+                    // No UUID set, set it to the current key's UUID
+                    try ExtendedAttributesUtil.setKeyUUID(currentKey.uuid, for: fileURL)
+                    updatedCount += 1
+                    printDebug("setKeyUUIDForExistingFiles: Set UUID for file \(media.id)")
+                } else {
+                    printDebug("setKeyUUIDForExistingFiles: File \(media.id) already has UUID, skipping")
+                }
+            } catch {
+                printDebug("setKeyUUIDForExistingFiles: Failed to process file \(media.id): \(error)")
+            }
+        }
+        
+        // Also process preview files across all storage types
+        var allPreviewFiles = enumerateAllPreviewFiles()
+        
+        // Include preview files from current album if we have a directoryModel
+        if let directoryModel = directoryModel {
+            let currentAlbumPreviewFiles = directoryModel.enumeratePreviewFiles()
+            allPreviewFiles.append(contentsOf: currentAlbumPreviewFiles)
+        }
+        
+        // Remove duplicate preview files
+        let uniquePreviewFiles = Array(Set(allPreviewFiles))
+        
+        for previewURL in uniquePreviewFiles {
+            processedCount += 1
+            
+            do {
+                let existingUUID = try? ExtendedAttributesUtil.getKeyUUID(for: previewURL)
+                
+                if existingUUID == nil {
+                    try ExtendedAttributesUtil.setKeyUUID(currentKey.uuid, for: previewURL)
+                    updatedCount += 1
+                    printDebug("setKeyUUIDForExistingFiles: Set UUID for preview file \(previewURL.lastPathComponent)")
+                }
+            } catch {
+                printDebug("setKeyUUIDForExistingFiles: Failed to process preview file \(previewURL.lastPathComponent): \(error)")
+            }
+        }
+        
+        printDebug("setKeyUUIDForExistingFiles: Completed. Processed \(processedCount) files, updated \(updatedCount) files")
+    }
+    public static func deleteThumbnailDirectory() throws {
+        try LocalStorageModel.deletePreviewDirectory()
+        try iCloudStorageModel.deletePreviewDirectory()
+    }
+
+    var operationBus: FileOperationBus {
+        FileOperationBus.shared
+    }
+
+
+}
+
