@@ -259,8 +259,8 @@ public enum L10n {
   public static let enterKeyPhrase = L10n.tr("Localizable", "EnterKeyPhrase", fallback: "Enter Key Phrase")
   /// Enter the key phrase you want to import. Separate each word with a space.
   public static let enterKeyPhraseDescription = L10n.tr("Localizable", "EnterKeyPhraseDescription", fallback: "Enter the key phrase you want to import. Separate each word with a space.")
-  /// Enter Password
-  public static let enterPassword = L10n.tr("Localizable", "EnterPassword", fallback: "Enter Password")
+  /// Enter Passcode
+  public static let enterPasscode = L10n.tr("Localizable", "EnterPasscode", fallback: "Enter Passcode")
   /// Enter your password
   public static let enterYourPassword = L10n.tr("Localizable", "EnterYourPassword", fallback: "Enter your password")
   /// Erase

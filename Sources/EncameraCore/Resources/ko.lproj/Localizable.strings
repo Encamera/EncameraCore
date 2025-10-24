@@ -487,7 +487,7 @@
 "FailedToSavePassword" = "비밀번호 저장에 실패했습니다";
 "PasswordSetSuccessfully" = "비밀번호가 성공적으로 설정되었습니다";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "6자리 PIN";
-"EnterPassword" = "비밀번호 입력";
+
 "HideAlbumsTutorial.Subheading4" = "앨범을 숨기려면, 앨범을 열고 세 점 메뉴를 탭한 다음 '앨범 숨기기'를 선택하세요.";
 "HideAlbumsTutorial.Subheading2" = "숨겨진 앨범에 접근하려면 검색창에 앨범 이름을 입력하면 됩니다.";
 "AuthenticationMethod.TextDescription.pinCode4Digit" = "4자리 PIN";
@@ -601,3 +601,5 @@
 "BillingFrequency.LifetimeUnlimited" = "무제한 업데이트";
 "BillingFrequency.LifetimeLimited" = "1년간 업데이트";
 "AddAlbumModal.RenameAlbumTitle" = "앨범 이름을 변경해봅시다";
+
+"EnterPasscode" = "암호 입력";

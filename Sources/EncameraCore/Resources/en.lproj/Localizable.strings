@@ -229,7 +229,7 @@
 "PasswordSetSuccessfully" = "Password Set Successfully";
 "PasswordSetSuccessMessage" = "Your new password has been saved";
 "FailedToSavePassword" = "Failed to save password";
-"EnterPassword" = "Enter Password";
+"EnterPasscode" = "Enter Passcode";
 "RepeatPassword" = "Repeat Password";
 "PasswordMismatch" = "Passwords do not match";
 /* ./Encamera/AuthenticationView/AuthenticationView.swift */

@@ -619,7 +619,7 @@
 "FailedToSavePassword" = "Error al guardar la contraseña";
 "PasswordSetSuccessfully" = "Contraseña establecida con éxito";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "PIN de 6 dígitos";
-"EnterPassword" = "Ingrese la contraseña";
+
 "HideAlbumsTutorial.Subheading4" = "Para ocultar un álbum, ábralo y toque el menú de tres puntos, luego seleccione 'Ocultar álbum'.";
 "HideAlbumsTutorial.Subheading2" = "Para acceder a un álbum oculto, simplemente busque su nombre en la barra de búsqueda.";
 "AuthenticationMethod.TextDescription.pinCode4Digit" = "PIN de 4 dígitos";
@@ -734,3 +734,5 @@
 "BillingFrequency.LifetimeLimited" = "1 año de actualizaciones";
 "AddAlbumModal.RenameAlbumTitle" = "Cambiemos el nombre de tu
 álbum";
+
+"EnterPasscode" = "Introducir código de acceso";

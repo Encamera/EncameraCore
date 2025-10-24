@@ -621,7 +621,7 @@
 "FailedToSavePassword" = "Fehler beim Speichern des Passworts";
 "PasswordSetSuccessfully" = "Passwort erfolgreich festgelegt";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "6-stelliger PIN";
-"EnterPassword" = "Passwort eingeben";
+
 "HideAlbumsTutorial.Subheading4" = "Um ein Album zu verstecken, öffnen Sie es und tippen Sie auf das Drei-Punkte-Menü, dann wählen Sie 'Album verstecken'.";
 "HideAlbumsTutorial.Subheading2" = "Um auf ein verstecktes Album zuzugreifen, suchen Sie einfach nach seinem Namen in der Suchleiste.";
 "AuthenticationMethod.TextDescription.pinCode4Digit" = "4-stelliger PIN";
@@ -735,3 +735,5 @@
 "BillingFrequency.LifetimeUnlimited" = "Unbegrenzte Updates";
 "BillingFrequency.LifetimeLimited" = "1 Jahr Updates";
 "AddAlbumModal.RenameAlbumTitle" = "Lass uns dein\nAlbum umbenennen";
+
+"EnterPasscode" = "Passcode eingeben";

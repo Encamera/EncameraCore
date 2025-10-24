@@ -515,7 +515,7 @@ Du skal kun gøre to ting:
 "PinCodeDoesNotMatch" = "PIN-koden passer ikke. Prøv igen.";
 "Cancel" = "Annuller";
 "WelcomeBack" = "Velkommen tilbage!";
-"EnterPassword" = "Indtast adgangskode";
+
 "GlobalImportProgress.ImportStopped" = "Import stoppet";
 "Enter the name of the key to delete it forever. All media will remain saved." = "Indtast navnet på nøglen for at slette den permanent. Al media vil forblive gemt.";
 "GlobalImportProgress.Remaining" = "Tilbage";
@@ -588,3 +588,5 @@ Du skal kun gøre to ting:
 "BillingFrequency.LifetimeUnlimited" = "Ubegrænsede opdateringer";
 "BillingFrequency.LifetimeLimited" = "1 års opdateringer";
 "AddAlbumModal.RenameAlbumTitle" = "Lad os omdøbe dit\nalbum";
+
+"EnterPasscode" = "Indtast adgangskode";

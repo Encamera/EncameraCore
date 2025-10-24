@@ -513,7 +513,7 @@
 "PinCodeDoesNotMatch" = "الرمز السري غير متطابق. يرجى المحاولة مرة أخرى.";
 "Cancel" = "إلغاء";
 "WelcomeBack" = "مرحبًا بعودتك!";
-"EnterPassword" = "أدخل كلمة المرور";
+
 "GlobalImportProgress.ImportStopped" = "تم إيقاف الاستيراد";
 "Enter the name of the key to delete it forever. All media will remain saved." = "أدخل اسم المفتاح لحذفه نهائيًا. ستبقى جميع الوسائط محفوظة.";
 "GlobalImportProgress.Remaining" = "المتبقي";
@@ -582,3 +582,5 @@
 "BillingFrequency.LifetimeUnlimited" = "تحديثات غير محدودة";
 "BillingFrequency.LifetimeLimited" = "سنة واحدة من التحديثات";
 "AddAlbumModal.RenameAlbumTitle" = "لنقم بإعادة تسمية ألبومك";
+
+"EnterPasscode" = "أدخل رمز المرور";

@@ -200,7 +200,7 @@
   "PasswordSetSuccessfully" = "Mot de passe défini avec succès";
   "PasswordSetSuccessMessage" = "Votre nouveau mot de passe a été enregistré";
   "FailedToSavePassword" = "Échec de l'enregistrement du mot de passe";
-  "EnterPassword" = "Entrez le mot de passe";
+  
   "RepeatPassword" = "Répéter le mot de passe";
   "PasswordMismatch" = "Les mots de passe ne correspondent pas";
   "Missing password" = "Mot de passe manquant";
@@ -619,3 +619,5 @@
 "BillingFrequency.LifetimeLimited" = "1 an de mises à jour";
 "AddAlbumModal.RenameAlbumTitle" = "Renommons votre
 album";
+
+"EnterPasscode" = "Entrez le code d’accès";

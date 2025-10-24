@@ -549,7 +549,7 @@
 "PinCodeDoesNotMatch" = "PINが一致しません。もう一度お試しください。";
 "Cancel" = "キャンセル";
 "WelcomeBack" = "おかえりなさい！";
-"EnterPassword" = "パスワードを入力してください";
+
 "GlobalImportProgress.ImportStopped" = "インポートが停止されました";
 "Enter the name of the key to delete it forever. All media will remain saved." = "削除するキーの名前を入力してください。すべてのメディアは保存されたままです。";
 "GlobalImportProgress.Remaining" = "残り";
@@ -617,3 +617,5 @@
 "BillingFrequency.LifetimeUnlimited" = "無制限のアップデート";
 "BillingFrequency.LifetimeLimited" = "1年間のアップデート";
 "AddAlbumModal.RenameAlbumTitle" = "アルバムの名前を変更しましょう";
+
+"EnterPasscode" = "パスコードを入力してください";

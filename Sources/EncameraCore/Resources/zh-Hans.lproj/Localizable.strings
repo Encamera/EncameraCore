@@ -169,7 +169,7 @@
 "PasswordSetSuccessfully" = "密码设置成功";
 "PasswordSetSuccessMessage" = "您的新密码已保存";
 "FailedToSavePassword" = "保存密码失败";
-"EnterPassword" = "输入密码";
+
 "RepeatPassword" = "重复密码";
 "PasswordMismatch" = "密码不匹配";
 "Missing password" = "缺少密码";
@@ -578,3 +578,5 @@
 "BillingFrequency.LifetimeUnlimited" = "无限更新";
 "BillingFrequency.LifetimeLimited" = "1年更新";
 "AddAlbumModal.RenameAlbumTitle" = "让我们重命名你的相册";
+
+"EnterPasscode" = "输入密码";
