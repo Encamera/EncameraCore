@@ -196,7 +196,7 @@
 "PasswordSetSuccessfully" = "密碼設定成功";
 "PasswordSetSuccessMessage" = "您的新密碼已儲存";
 "FailedToSavePassword" = "密碼儲存失敗";
-"EnterPassword" = "輸入密碼";
+
 "RepeatPassword" = "重複密碼";
 "PasswordMismatch" = "密碼不一致";
 "Missing password" = "缺少密碼";
@@ -614,3 +614,5 @@ Encamera！";
 "BillingFrequency.LifetimeUnlimited" = "無限次更新";
 "BillingFrequency.LifetimeLimited" = "一年更新";
 "AddAlbumModal.RenameAlbumTitle" = "讓我們重新命名你的相簿";
+
+"EnterPasscode" = "輸入密碼";

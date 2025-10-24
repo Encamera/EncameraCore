@@ -523,7 +523,7 @@ Devi solo fare due cose:
 "PinCodeDoesNotMatch" = "Il PIN non corrisponde. Riprova.";
 "Cancel" = "Annulla";
 "WelcomeBack" = "Bentornato!";
-"EnterPassword" = "Inserisci la password";
+
 "GlobalImportProgress.ImportStopped" = "Importazione interrotta";
 "Enter the name of the key to delete it forever. All media will remain saved." = "Inserisci il nome della chiave per eliminarla definitivamente. Tutti i media rimarranno salvati.";
 "GlobalImportProgress.Remaining" = "Rimanente";
@@ -592,3 +592,5 @@ Devi solo fare due cose:
 "BillingFrequency.LifetimeLimited" = "1 anno di aggiornamenti";
 "AddAlbumModal.RenameAlbumTitle" = "Rinominiamo il tuo
 album";
+
+"EnterPasscode" = "Inserisci codice di accesso";

@@ -146,7 +146,7 @@
 "TaskDetailCard.DeleteFromCameraRoll" = "Poista kameran rullasta";
 "NoAlbumSelected" = "Albumia ei valittu. Sinun täytyy valita albumi, johon tallennat valokuvat.";
 "FinishImportingMedia" = "Viimeistele median tuonti";
-"EnterPassword" = "Syötä salasana";
+
 "Congratulations!" = "Onnittelut!";
 "DefaultAlbumName" = "Oma albumi";
 "TaskDetailCard.StatusWaiting" = "Odotetaan";
@@ -612,3 +612,5 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "BillingFrequency.LifetimeUnlimited" = "Rajoittamattomat päivitykset";
 "BillingFrequency.LifetimeLimited" = "1 vuoden päivitykset";
 "AddAlbumModal.RenameAlbumTitle" = "Nimetään albumisi uudelleen";
+
+"EnterPasscode" = "Syötä pääsykoodi";

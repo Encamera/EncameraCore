@@ -183,7 +183,7 @@ Aplicația se va închide după ce ștergerea este finalizată.";
 "PasswordSetSuccessfully" = "Parolă setată cu succes";
 "PasswordSetSuccessMessage" = "Noua ta parolă a fost salvată";
 "FailedToSavePassword" = "Salvarea parolei a eșuat";
-"EnterPassword" = "Introduceți parola";
+
 "RepeatPassword" = "Repetă parola";
 "PasswordMismatch" = "Parolele nu se potrivesc";
 "Missing password" = "Parolă lipsă";
@@ -601,3 +601,5 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "BillingFrequency.LifetimeUnlimited" = "Actualizări nelimitate";
 "BillingFrequency.LifetimeLimited" = "1 an de actualizări";
 "AddAlbumModal.RenameAlbumTitle" = "Hai să redenumim albumul tău";
+
+"EnterPasscode" = "Introduceți codul de acces";
