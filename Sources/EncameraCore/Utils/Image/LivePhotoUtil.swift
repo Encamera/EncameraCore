@@ -85,6 +85,14 @@ public class LivePhotoUtility {
                             subject.send(completion: .failure(error))
                         }
                     }
+                    
+                    // Configure popover for iPad
+                    if let popoverController = activityVC.popoverPresentationController {
+                        popoverController.sourceView = viewController.view
+                        popoverController.sourceRect = CGRect(x: viewController.view.bounds.midX, y: viewController.view.bounds.midY, width: 0, height: 0)
+                        popoverController.permittedArrowDirections = []
+                    }
+                    
                     viewController.present(activityVC, animated: true, completion: nil)
                 }
                 return subject.eraseToAnyPublisher()
