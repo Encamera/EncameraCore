@@ -115,6 +115,14 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
                 while let presentedVC = currentVC.presentedViewController {
                     currentVC = presentedVC
                 }
+                
+                // Configure popover for iPad
+                if let popoverController = activityView.popoverPresentationController {
+                    popoverController.sourceView = currentVC.view
+                    popoverController.sourceRect = CGRect(x: currentVC.view.bounds.midX, y: currentVC.view.bounds.midY, width: 0, height: 0)
+                    popoverController.permittedArrowDirections = []
+                }
+                
                 currentVC.present(activityView, animated: true, completion: nil)
             }
         }
