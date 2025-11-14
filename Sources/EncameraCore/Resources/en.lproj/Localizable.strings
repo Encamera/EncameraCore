@@ -739,3 +739,16 @@
 "MainHomeView.KeyBackupExplanation" = "Your photos are protected with a unique encryption key. This is the only way to decrypt your images if you switch devices or reinstall the app.";
 "MainHomeView.KeyBackupWarning" = "You will not be able to view your media without this key.";
 "MainHomeView.ViewTheKey" = "View the Key";
+
+/* ./Encamera/Settings/FeatureTogglesView.swift */
+"FeatureToggles.Title" = "Feature Toggles";
+"FeatureToggles.EnableVideo" = "Enable Video";
+"FeatureToggles.EnableVideoDescription" = "Enable video recording and playback";
+"FeatureToggles.StopTracking" = "Stop Tracking";
+"FeatureToggles.StopTrackingDescription" = "Disable all analytics tracking";
+"FeatureToggles.RecoveryPhrase" = "Recovery Phrase";
+"FeatureToggles.RecoveryPhraseDescription" = "Enable recovery phrase feature";
+"FeatureToggles.HideAlbum" = "Hide Album";
+"FeatureToggles.HideAlbumDescription" = "Hide album from main view";
+"FeatureToggles.EnableTestRevenueCat" = "Test RevenueCat";
+"FeatureToggles.EnableTestRevenueCatDescription" = "Enable RevenueCat testing mode";

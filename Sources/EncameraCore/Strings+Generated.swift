@@ -1021,6 +1021,30 @@ public enum L10n {
     /// Clear PIN/Password?
     public static let title = L10n.tr("Localizable", "FaceIDOnlyAlert.Title", fallback: "Clear PIN/Password?")
   }
+  public enum FeatureToggles {
+    /// Test RevenueCat
+    public static let enableTestRevenueCat = L10n.tr("Localizable", "FeatureToggles.EnableTestRevenueCat", fallback: "Test RevenueCat")
+    /// Enable RevenueCat testing mode
+    public static let enableTestRevenueCatDescription = L10n.tr("Localizable", "FeatureToggles.EnableTestRevenueCatDescription", fallback: "Enable RevenueCat testing mode")
+    /// Enable Video
+    public static let enableVideo = L10n.tr("Localizable", "FeatureToggles.EnableVideo", fallback: "Enable Video")
+    /// Enable video recording and playback
+    public static let enableVideoDescription = L10n.tr("Localizable", "FeatureToggles.EnableVideoDescription", fallback: "Enable video recording and playback")
+    /// Hide Album
+    public static let hideAlbum = L10n.tr("Localizable", "FeatureToggles.HideAlbum", fallback: "Hide Album")
+    /// Hide album from main view
+    public static let hideAlbumDescription = L10n.tr("Localizable", "FeatureToggles.HideAlbumDescription", fallback: "Hide album from main view")
+    /// Recovery Phrase
+    public static let recoveryPhrase = L10n.tr("Localizable", "FeatureToggles.RecoveryPhrase", fallback: "Recovery Phrase")
+    /// Enable recovery phrase feature
+    public static let recoveryPhraseDescription = L10n.tr("Localizable", "FeatureToggles.RecoveryPhraseDescription", fallback: "Enable recovery phrase feature")
+    /// Stop Tracking
+    public static let stopTracking = L10n.tr("Localizable", "FeatureToggles.StopTracking", fallback: "Stop Tracking")
+    /// Disable all analytics tracking
+    public static let stopTrackingDescription = L10n.tr("Localizable", "FeatureToggles.StopTrackingDescription", fallback: "Disable all analytics tracking")
+    /// ./Encamera/Settings/FeatureTogglesView.swift
+    public static let title = L10n.tr("Localizable", "FeatureToggles.Title", fallback: "Feature Toggles")
+  }
   public enum FeedbackView {
     /// What could we improve?
     public static let placeholderText = L10n.tr("Localizable", "FeedbackView.PlaceholderText", fallback: "What could we improve?")
