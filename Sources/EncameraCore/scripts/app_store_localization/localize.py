@@ -66,11 +66,81 @@ class AppStoreConnectAPI:
         print(f"  • Private key starts with: {self.private_key[:50]}...")
         
         try:
-            token = jwt.encode(payload, self.private_key, algorithm="ES256", headers=headers)
+            # PyJWT 2.x+ uses 'additional_headers' instead of 'headers'
+            # Try the newer parameter name first, fallback to older if needed
+            import inspect
+            encode_params = inspect.signature(jwt.encode).parameters
+            
+            if 'additional_headers' in encode_params:
+                print(f"  • Using PyJWT 2.x+ (additional_headers parameter)")
+                token = jwt.encode(payload, self.private_key, algorithm="ES256", additional_headers={"kid": self.key_id})
+            elif 'headers' in encode_params:
+                print(f"  • Using PyJWT 1.x (headers parameter)")
+                token = jwt.encode(payload, self.private_key, algorithm="ES256", headers={"kid": self.key_id})
+            else:
+                # Fallback: try additional_headers (most common in 2025)
+                print(f"  • Attempting with additional_headers parameter (default for modern PyJWT)")
+                token = jwt.encode(payload, self.private_key, algorithm="ES256", additional_headers={"kid": self.key_id})
+            
             self.token = token
             self.token_expires_at = now + 19 * 60  # Refresh 1 minute before expiration
             print(f"  ✅ Token generated successfully")
             print(f"  • Token preview: {token[:50]}...")
+            
+            # Verify the token structure by decoding header and payload (without verification)
+            try:
+                import base64
+                # JWT format: header.payload.signature
+                parts = token.split('.')
+                
+                # Decode header
+                header_segment = parts[0]
+                header_segment += '=' * (4 - len(header_segment) % 4)
+                decoded_header = json.loads(base64.urlsafe_b64decode(header_segment))
+                print(f"  🔍 Decoded JWT Header: {json.dumps(decoded_header, indent=4)}")
+                
+                # Decode payload
+                payload_segment = parts[1]
+                payload_segment += '=' * (4 - len(payload_segment) % 4)
+                decoded_payload = json.loads(base64.urlsafe_b64decode(payload_segment))
+                print(f"  🔍 Decoded JWT Payload: {json.dumps(decoded_payload, indent=4)}")
+                
+                # Verify header
+                if 'kid' not in decoded_header:
+                    print(f"  ⚠️  WARNING: 'kid' is missing from JWT header!")
+                    print(f"  ⚠️  This will cause authentication to fail with Apple's API")
+                    raise ValueError("JWT 'kid' header is missing - this is required for App Store Connect API authentication")
+                else:
+                    print(f"  ✅ 'kid' is present in JWT header: {decoded_header['kid']}")
+                
+                # Verify payload required fields
+                required_fields = ['iss', 'iat', 'exp', 'aud']
+                for field in required_fields:
+                    if field not in decoded_payload:
+                        print(f"  ⚠️  WARNING: '{field}' is missing from JWT payload!")
+                    else:
+                        print(f"  ✅ '{field}' is present in JWT payload")
+                
+                # Verify expiration
+                if 'exp' in decoded_payload and 'iat' in decoded_payload:
+                    exp_time = decoded_payload['exp']
+                    iat_time = decoded_payload['iat']
+                    duration_minutes = (exp_time - iat_time) / 60
+                    print(f"  ✅ Token validity: {duration_minutes:.1f} minutes")
+                    
+                    if duration_minutes > 20:
+                        print(f"  ⚠️  WARNING: Token validity exceeds Apple's 20 minute maximum!")
+                
+                # Verify audience
+                if 'aud' in decoded_payload:
+                    if decoded_payload['aud'] != 'appstoreconnect-v1':
+                        print(f"  ⚠️  WARNING: Audience is '{decoded_payload['aud']}' (expected 'appstoreconnect-v1')")
+                    
+            except Exception as debug_error:
+                print(f"  ⚠️  Could not decode token for verification: {debug_error}")
+                if 'kid' in str(debug_error):
+                    raise  # Re-raise if it's the kid missing error
+            
             return token
         except Exception as e:
             print(f"  ❌ Token generation failed: {e}")
@@ -705,16 +775,66 @@ def load_private_key(credentials_config, credentials_file_path=None):
                 
                 # Validate key format
                 if "-----BEGIN PRIVATE KEY-----" not in key_content:
-                    raise ValueError("Private key file doesn't appear to contain a valid private key (missing BEGIN marker)")
-                if "-----END PRIVATE KEY-----" not in key_content:
+                    # Check if it's an EC PRIVATE KEY format (also valid)
+                    if "-----BEGIN EC PRIVATE KEY-----" not in key_content:
+                        raise ValueError("Private key file doesn't appear to contain a valid private key (missing BEGIN marker)")
+                
+                if "-----END PRIVATE KEY-----" not in key_content and "-----END EC PRIVATE KEY-----" not in key_content:
                     raise ValueError("Private key file doesn't appear to contain a valid private key (missing END marker)")
                 
-                print(f"  ✅ Private key format validated")
+                # Detect key type from markers
+                if "-----BEGIN EC PRIVATE KEY-----" in key_content:
+                    print(f"  ✅ Private key format validated (EC PRIVATE KEY)")
+                elif "-----BEGIN PRIVATE KEY-----" in key_content:
+                    print(f"  ✅ Private key format validated (PKCS#8 PRIVATE KEY)")
+                    # Apple .p8 files should be PKCS#8 format
+                    print(f"  ℹ️  Note: Apple .p8 files use PKCS#8 format (this is correct)")
+                
+                # Additional validation: Try to load the key with cryptography library to verify it's EC
+                try:
+                    from cryptography.hazmat.primitives import serialization
+                    from cryptography.hazmat.backends import default_backend
+                    
+                    # Try to load as EC key
+                    try:
+                        key_bytes = key_content.encode() if isinstance(key_content, str) else key_content
+                        private_key_obj = serialization.load_pem_private_key(
+                            key_bytes,
+                            password=None,
+                            backend=default_backend()
+                        )
+                        
+                        # Check if it's an EC key
+                        from cryptography.hazmat.primitives.asymmetric import ec
+                        if isinstance(private_key_obj, ec.EllipticCurvePrivateKey):
+                            curve_name = private_key_obj.curve.name
+                            print(f"  ✅ Verified as Elliptic Curve key (curve: {curve_name})")
+                            
+                            # ES256 requires P-256 curve (secp256r1)
+                            if curve_name != 'secp256r1':
+                                print(f"  ⚠️  WARNING: Expected secp256r1 (P-256) curve for ES256, got {curve_name}")
+                        else:
+                            print(f"  ⚠️  WARNING: Key is not an Elliptic Curve key (type: {type(private_key_obj).__name__})")
+                            print(f"  ⚠️  ES256 algorithm requires an EC key, not RSA or other types")
+                    except Exception as key_load_error:
+                        print(f"  ⚠️  Could not validate key type with cryptography library: {key_load_error}")
+                        
+                except ImportError:
+                    print(f"  ℹ️  cryptography library not available for detailed key validation")
                 
                 # Try to validate that JWT library can use this key
                 try:
+                    import inspect
                     test_payload = {"test": "test"}
-                    jwt.encode(test_payload, key_content, algorithm="ES256")
+                    test_kid = "test-kid"
+                    
+                    # Use the correct parameter based on PyJWT version
+                    encode_params = inspect.signature(jwt.encode).parameters
+                    if 'additional_headers' in encode_params:
+                        jwt.encode(test_payload, key_content, algorithm="ES256", additional_headers={"kid": test_kid})
+                    else:
+                        jwt.encode(test_payload, key_content, algorithm="ES256", headers={"kid": test_kid})
+                    
                     print(f"  ✅ Private key is compatible with JWT ES256 signing")
                 except Exception as e:
                     raise ValueError(f"Private key validation failed - JWT library cannot use this key: {e}")
@@ -731,8 +851,17 @@ def load_private_key(credentials_config, credentials_file_path=None):
         
         # Try to validate that JWT library can use this key
         try:
+            import inspect
             test_payload = {"test": "test"}
-            jwt.encode(test_payload, private_key_content, algorithm="ES256")
+            test_kid = "test-kid"
+            
+            # Use the correct parameter based on PyJWT version
+            encode_params = inspect.signature(jwt.encode).parameters
+            if 'additional_headers' in encode_params:
+                jwt.encode(test_payload, private_key_content, algorithm="ES256", additional_headers={"kid": test_kid})
+            else:
+                jwt.encode(test_payload, private_key_content, algorithm="ES256", headers={"kid": test_kid})
+            
             print(f"  ✅ Private key is compatible with JWT ES256 signing")
         except Exception as e:
             raise ValueError(f"Private key validation failed - JWT library cannot use this key: {e}")
@@ -852,33 +981,58 @@ def preflight_check(credentials_config, credentials_file_path=None):
         # Provide specific troubleshooting help for 401 errors
         if "401" in error_str or "Unauthorized" in error_str or "NOT_AUTHORIZED" in error_str:
             print("\n🔍 Troubleshooting 401 Unauthorized Error:")
-            print("=" * 60)
+            print("=" * 80)
             print("This error means Apple rejected your API credentials. Common causes:")
             print()
             print("1. ❌ Key ID doesn't match the private key file")
             print(f"   Current Key ID: {app_store_api_config.get('key_id')}")
             print(f"   Private key file: {app_store_api_config.get('private_key_file')}")
-            print("   → Verify the Key ID in your credentials.yml matches your .p8 filename")
+            print("   → The Key ID MUST match the ID shown in App Store Connect for this .p8 file")
+            print("   → The .p8 filename format is: AuthKey_<KEY_ID>.p8")
+            print("   → Example: If file is AuthKey_C7MGZKX3NM.p8, Key ID must be C7MGZKX3NM")
             print()
             print("2. ❌ Issuer ID is incorrect")
             print(f"   Current Issuer ID: {app_store_api_config.get('issuer_id')}")
-            print("   → Double-check this UUID from App Store Connect > Users and Access > Integrations > Team ID")
+            print("   → This is your Team ID (UUID format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)")
+            print("   → Find it at: App Store Connect > Users and Access > Integrations")
+            print("   → It's shown at the top of the page as 'Issuer ID'")
             print()
-            print("3. ❌ API key has been revoked or expired")
-            print("   → Check App Store Connect > Users and Access > Integrations > Active")
-            print("   → Make sure the API key hasn't been revoked")
+            print("3. ❌ Wrong private key file for this Key ID")
+            print("   → Each Key ID has a unique .p8 file")
+            print("   → You cannot use a different .p8 file even if it's from the same account")
+            print("   → Download the correct .p8 file or generate a new key")
             print()
-            print("4. ❌ API key doesn't have proper permissions")
-            print("   → The API key needs 'App Manager' or 'Admin' role")
-            print("   → Check in App Store Connect > Users and Access > Integrations")
+            print("4. ❌ API key has been revoked or expired")
+            print("   → Check App Store Connect > Users and Access > Integrations > API Keys")
+            print("   → Status must show 'Active' (not 'Revoked')")
+            print(f"   → Look for Key ID: {app_store_api_config.get('key_id')}")
+            print()
+            print("5. ❌ API key doesn't have proper permissions")
+            print("   → The API key needs 'App Manager', 'Developer', or 'Admin' role")
+            print("   → 'Read Only' role is NOT sufficient")
+            print("   → Check role in App Store Connect > Users and Access > Integrations")
+            print()
+            print("6. ❌ JWT signing failed (private key corruption)")
+            print("   → The private key might be corrupted or modified")
+            print("   → Whitespace/newlines must be preserved exactly as downloaded")
+            print("   → Try re-downloading the .p8 file (if available) or generate a new key")
             print()
             print("📖 How to verify your credentials:")
-            print("   1. Go to https://appstoreconnect.apple.com/access/integrations/api")
-            print("   2. Find your API key (should match Key ID: {})".format(app_store_api_config.get('key_id')))
-            print("   3. Verify it's 'Active' and has the right role")
-            print("   4. Copy the Issuer ID from the top of the page")
-            print("   5. If needed, generate a new API key and update credentials.yml")
-            print("=" * 60)
+            print("   1. Go to: https://appstoreconnect.apple.com/access/integrations/api")
+            print(f"   2. Look for Key ID: {app_store_api_config.get('key_id')}")
+            print("   3. Verify:")
+            print("      • Status is 'Active' (not 'Revoked')")
+            print("      • Role is 'App Manager', 'Developer', or 'Admin'")
+            print("      • The Issuer ID at top of page matches your config")
+            print(f"      • Current Issuer ID in config: {app_store_api_config.get('issuer_id')}")
+            print("   4. If the Key ID doesn't exist or was revoked:")
+            print("      • Generate a new API key")
+            print("      • Download the new .p8 file (can only download once!)")
+            print("      • Update credentials.yml with new Key ID and .p8 file path")
+            print()
+            print("⚠️  IMPORTANT: .p8 files can only be downloaded ONCE when created!")
+            print("   If you've lost the .p8 file, you must generate a new API key.")
+            print("=" * 80)
         
         return None, None
 

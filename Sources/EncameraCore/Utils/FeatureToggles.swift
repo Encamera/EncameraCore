@@ -13,6 +13,7 @@ public enum Feature: String {
     case recoveryPhrase
     case hideAlbum
     case enableTestRevenueCat
+    case showFeatureToggles
     var userDefaultsKey: String {
         return "feature_" +  rawValue
     }
