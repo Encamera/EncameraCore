@@ -485,6 +485,9 @@
 "PurchaseProduct" = "Purchase";
 "SelectProduct" = "Select a Product";
 "BuyOnceUseForever" = "Buy once. Use forever.";
+"PurchaseScreen.LoadingSubscriptions" = "Loading subscriptions...";
+"PurchaseScreen.ErrorLoadingSubscriptions" = "Unable to load subscriptions";
+"PurchaseScreen.Retry" = "Retry";
 "PurchaseView.UnlockBenefits" = "Unlock all of these benefits:";
 "PurchaseView.YourBenefits" = "Your Premium benefits:";
 "PurchaseView.BenefitModel.UnlimitedStorage" = "Unlimited storage for photos & videos";
@@ -746,9 +749,15 @@
 "FeatureToggles.EnableVideoDescription" = "Enable video recording and playback";
 "FeatureToggles.StopTracking" = "Stop Tracking";
 "FeatureToggles.StopTrackingDescription" = "Disable all analytics tracking";
+"FeatureToggles.StopTrackingToggleTitle" = "Confirm Tracking Change";
+"FeatureToggles.StopTrackingToggleMessage" = "Changing this setting will affect app analytics. Are you sure?";
 "FeatureToggles.RecoveryPhrase" = "Recovery Phrase";
 "FeatureToggles.RecoveryPhraseDescription" = "Enable recovery phrase feature";
 "FeatureToggles.HideAlbum" = "Hide Album";
 "FeatureToggles.HideAlbumDescription" = "Hide album from main view";
 "FeatureToggles.EnableTestRevenueCat" = "Test RevenueCat";
 "FeatureToggles.EnableTestRevenueCatDescription" = "Enable RevenueCat testing mode";
+"FeatureToggles.RevenuecatToggleTitle" = "Restart Required";
+"FeatureToggles.RevenuecatToggleMessage" = "Changing RevenueCat mode requires restarting the app. Continue?";
+"Common.Cancel" = "Cancel";
+"Common.Confirm" = "Confirm";

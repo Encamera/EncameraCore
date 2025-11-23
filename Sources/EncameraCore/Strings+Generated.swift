@@ -971,6 +971,12 @@ public enum L10n {
     /// Changing your authentication method will require setting up a new PIN or password. Would you like to continue?
     public static let wouldYouLikeToContinue = L10n.tr("Localizable", "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?", fallback: "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?")
   }
+  public enum Common {
+    /// Cancel
+    public static let cancel = L10n.tr("Localizable", "Common.Cancel", fallback: "Cancel")
+    /// Confirm
+    public static let confirm = L10n.tr("Localizable", "Common.Confirm", fallback: "Confirm")
+  }
   public enum CustomPhotoPicker {
     /// Add
     public static let add = L10n.tr("Localizable", "CustomPhotoPicker.Add", fallback: "Add")
@@ -1038,10 +1044,18 @@ public enum L10n {
     public static let recoveryPhrase = L10n.tr("Localizable", "FeatureToggles.RecoveryPhrase", fallback: "Recovery Phrase")
     /// Enable recovery phrase feature
     public static let recoveryPhraseDescription = L10n.tr("Localizable", "FeatureToggles.RecoveryPhraseDescription", fallback: "Enable recovery phrase feature")
+    /// Changing RevenueCat mode requires restarting the app. Continue?
+    public static let revenuecatToggleMessage = L10n.tr("Localizable", "FeatureToggles.RevenuecatToggleMessage", fallback: "Changing RevenueCat mode requires restarting the app. Continue?")
+    /// Restart Required
+    public static let revenuecatToggleTitle = L10n.tr("Localizable", "FeatureToggles.RevenuecatToggleTitle", fallback: "Restart Required")
     /// Stop Tracking
     public static let stopTracking = L10n.tr("Localizable", "FeatureToggles.StopTracking", fallback: "Stop Tracking")
     /// Disable all analytics tracking
     public static let stopTrackingDescription = L10n.tr("Localizable", "FeatureToggles.StopTrackingDescription", fallback: "Disable all analytics tracking")
+    /// Changing this setting will affect app analytics. Are you sure?
+    public static let stopTrackingToggleMessage = L10n.tr("Localizable", "FeatureToggles.StopTrackingToggleMessage", fallback: "Changing this setting will affect app analytics. Are you sure?")
+    /// Confirm Tracking Change
+    public static let stopTrackingToggleTitle = L10n.tr("Localizable", "FeatureToggles.StopTrackingToggleTitle", fallback: "Confirm Tracking Change")
     /// ./Encamera/Settings/FeatureTogglesView.swift
     public static let title = L10n.tr("Localizable", "FeatureToggles.Title", fallback: "Feature Toggles")
   }
@@ -1326,6 +1340,14 @@ public enum L10n {
     public static let strong = L10n.tr("Localizable", "ProtectionLevel.Strong", fallback: "Strong protection")
     /// Strongest protection
     public static let strongest = L10n.tr("Localizable", "ProtectionLevel.Strongest", fallback: "Strongest protection")
+  }
+  public enum PurchaseScreen {
+    /// Unable to load subscriptions
+    public static let errorLoadingSubscriptions = L10n.tr("Localizable", "PurchaseScreen.ErrorLoadingSubscriptions", fallback: "Unable to load subscriptions")
+    /// Loading subscriptions...
+    public static let loadingSubscriptions = L10n.tr("Localizable", "PurchaseScreen.LoadingSubscriptions", fallback: "Loading subscriptions...")
+    /// Retry
+    public static let retry = L10n.tr("Localizable", "PurchaseScreen.Retry", fallback: "Retry")
   }
   public enum PurchaseView {
     /// Unlock all of these benefits:
