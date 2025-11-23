@@ -39,6 +39,7 @@ public enum UserDefaultKey {
     case gridZoomLevel
     case hasCompletedFirstLockout
     case keyBackupPromptLastShown
+    case promotionalBannerInteractions
 
     var rawValue: String {
         switch self {
@@ -91,7 +92,8 @@ public enum UserDefaultKey {
              .widgetOpenCount,
              .showPushNotificationPrompt,
              .passcodeType, // Passcode type is now managed via keychain
-             .keyBackupPromptLastShown:
+             .keyBackupPromptLastShown,
+             .promotionalBannerInteractions:
             return false
         }
     }
