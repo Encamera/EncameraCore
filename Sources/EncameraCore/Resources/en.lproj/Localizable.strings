@@ -761,3 +761,13 @@
 "FeatureToggles.RevenuecatToggleMessage" = "Changing RevenueCat mode requires restarting the app. Continue?";
 "Common.Cancel" = "Cancel";
 "Common.Confirm" = "Confirm";
+
+/* ./Encamera/Services/CMS/ContentfulService.swift */
+"CMS.NetworkError" = "Unable to load promotional content. Using cached data.";
+"CMS.LoadingError" = "Failed to load promotional banners";
+"CMS.NoBannersAvailable" = "No promotional banners available";
+
+/* ./Encamera/Components/PromotionalBannerView.swift */
+"PromotionalBanner.ImageLoadError" = "Image failed to load";
+"PromotionalBanner.DismissAccessibility" = "Dismiss banner";
+
