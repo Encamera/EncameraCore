@@ -37,4 +37,7 @@ public enum AppConstants {
         }
         return false
     }
+    public static var contentfulSpaceId = "qguykt3vtagc"
+    public static var contentfulEnvironment = "master"
+    public static var contentfulDeliveryApiKey = "3Xc0neflFc5qby2HFQz-D24FeZE_E4_lGIVSWpUlH5M"
 }
