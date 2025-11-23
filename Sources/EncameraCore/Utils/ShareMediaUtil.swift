@@ -28,6 +28,26 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
         self.fileAccess = fileAccess
         super.init()
     }
+    
+    /// Configures popover presentation for iPad
+    /// - Parameters:
+    ///   - activityController: The activity view controller to configure
+    ///   - sourceView: The view to use as the anchor for the popover
+    public static func configurePopoverForIPad(
+        activityController: UIActivityViewController,
+        sourceView: UIView
+    ) {
+        if let popoverController = activityController.popoverPresentationController {
+            popoverController.sourceView = sourceView
+            popoverController.sourceRect = CGRect(
+                x: sourceView.bounds.midX,
+                y: sourceView.bounds.midY,
+                width: 0,
+                height: 0
+            )
+            popoverController.permittedArrowDirections = []
+        }
+    }
 
     public func prepareSharingData(progress: @escaping (FileLoadingStatus) -> Void) async throws {
 
@@ -117,11 +137,10 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
                 }
                 
                 // Configure popover for iPad
-                if let popoverController = activityView.popoverPresentationController {
-                    popoverController.sourceView = currentVC.view
-                    popoverController.sourceRect = CGRect(x: currentVC.view.bounds.midX, y: currentVC.view.bounds.midY, width: 0, height: 0)
-                    popoverController.permittedArrowDirections = []
-                }
+                ShareMediaUtil.configurePopoverForIPad(
+                    activityController: activityView,
+                    sourceView: currentVC.view
+                )
                 
                 currentVC.present(activityView, animated: true, completion: nil)
             }
