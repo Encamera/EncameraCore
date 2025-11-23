@@ -967,6 +967,14 @@ public enum L10n {
     /// per year
     public static let perYear = L10n.tr("Localizable", "BillingFrequency.PerYear", fallback: "per year")
   }
+  public enum Cms {
+    /// Failed to load promotional banners
+    public static let loadingError = L10n.tr("Localizable", "CMS.LoadingError", fallback: "Failed to load promotional banners")
+    /// ./Encamera/Services/CMS/ContentfulService.swift
+    public static let networkError = L10n.tr("Localizable", "CMS.NetworkError", fallback: "Unable to load promotional content. Using cached data.")
+    /// No promotional banners available
+    public static let noBannersAvailable = L10n.tr("Localizable", "CMS.NoBannersAvailable", fallback: "No promotional banners available")
+  }
   public enum ChangingYourAuthenticationMethodWillRequireSettingUpANewPINOrPassword {
     /// Changing your authentication method will require setting up a new PIN or password. Would you like to continue?
     public static let wouldYouLikeToContinue = L10n.tr("Localizable", "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?", fallback: "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?")
@@ -1330,6 +1338,12 @@ public enum L10n {
     public static let fileLoadedSuccessfully = L10n.tr("Localizable", "ProgressView.FileLoadedSuccessfully", fallback: "File loaded successfully")
     /// Starting download...
     public static let startingDownload = L10n.tr("Localizable", "ProgressView.StartingDownload", fallback: "Starting download...")
+  }
+  public enum PromotionalBanner {
+    /// Dismiss banner
+    public static let dismissAccessibility = L10n.tr("Localizable", "PromotionalBanner.DismissAccessibility", fallback: "Dismiss banner")
+    /// ./Encamera/Components/PromotionalBannerView.swift
+    public static let imageLoadError = L10n.tr("Localizable", "PromotionalBanner.ImageLoadError", fallback: "Image failed to load")
   }
   public enum ProtectionLevel {
     /// ./EncameraCore/Authentication/PasscodeType.swift
