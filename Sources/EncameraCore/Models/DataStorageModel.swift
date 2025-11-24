@@ -90,7 +90,7 @@ extension DataStorageModel {
     public static func enumerateRootDirectory() -> [URL] {
         return enumeratorForStorageDirectory(
             at: rootURL,
-            exclude: [AppConstants.previewDirectory, "thumbs"],
+            exclude: [AppConstants.previewDirectory, "thumbs", "RevenueCat"],
             onlyDirectories: true)
     }
 
