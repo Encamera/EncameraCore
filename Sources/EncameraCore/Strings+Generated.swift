@@ -1325,6 +1325,12 @@ public enum L10n {
     /// Thanks for your purchase!
     public static let thanksForYourPurchase = L10n.tr("Localizable", "PostPurchaseView.ThanksForYourPurchase", fallback: "Thanks for your purchase!")
   }
+  public enum ProductPrice {
+    /// ./Encamera/Store/ProductPrice.swift
+    public static func salePercentageOff(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "ProductPrice.SalePercentageOff", p1, fallback: "%d%% OFF")
+    }
+  }
   public enum ProgressView {
     /// Decrypting: %.0f%%
     public static func decrypting(_ p1: Float) -> String {
