@@ -342,6 +342,8 @@
 "BillingFrequency.PerWeek" = "per week";
 "BillingFrequency.LifetimeUnlimited" = "Unlimited Updates";
 "BillingFrequency.LifetimeLimited" = "1 Year of Updates";
+/* ./Encamera/Store/ProductPrice.swift */
+"ProductPrice.SalePercentageOff" = "%d%% OFF";
 /* ./Encamera/Store/SubscriptionView.swift */
 "UnlimitedStorageFeatureRowTitle" = "Unlimited storage for photos & videos";
 "UnlimitedAlbumsFeatureRowTitle" = "Unlimited albums for your memories";
