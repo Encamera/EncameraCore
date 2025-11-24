@@ -107,6 +107,10 @@ public enum L10n {
   public static let biometricsFailed = L10n.tr("Localizable", "Biometrics failed", fallback: "Biometrics failed")
   /// Biometrics unavailable
   public static let biometricsUnavailable = L10n.tr("Localizable", "Biometrics unavailable", fallback: "Biometrics unavailable")
+  /// Don't miss out! Deal ends soon!
+  public static let blackFridaySubtitle = L10n.tr("Localizable", "BlackFridaySubtitle", fallback: "Don't miss out! Deal ends soon!")
+  /// BLACK FRIDAY IS HERE!
+  public static let blackFridayTitle = L10n.tr("Localizable", "BlackFridayTitle", fallback: "BLACK FRIDAY IS HERE!")
   /// Buy once. Use forever.
   public static let buyOnceUseForever = L10n.tr("Localizable", "BuyOnceUseForever", fallback: "Buy once. Use forever.")
   /// Cancel

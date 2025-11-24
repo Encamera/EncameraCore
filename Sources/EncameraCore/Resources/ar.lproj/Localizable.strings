@@ -106,7 +106,6 @@
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ هام ⚠️";
 "Notification.PremiumReminder.Body" = "استخدم الرمز 'ENCAMERA20' للحصول على خصم 20٪ على أي خطة. سارع الآن!";
 "Skip for now" = "تخطي الآن";
-"GetPremiumPromoText" = "تخفيضات الهالوين!";
 "OnboardingCarousel.SubheadingText2" = "ألبوماتك مقفلة بمفتاحك الفريد ومخزنة بأمان على جهازك أو على iCloud.";
 "TaskDetailCard.Current" = "الحالي: %@";
 "Clear saved password/PIN" = "مسح كلمة المرور/الرمز المحفوظ";
@@ -584,3 +583,32 @@
 "AddAlbumModal.RenameAlbumTitle" = "لنقم بإعادة تسمية ألبومك";
 
 "EnterPasscode" = "أدخل رمز المرور";
+
+"BlackFridayTitle" = "الجمعة السوداء هنا!";
+"FeatureToggles.StopTrackingDescription" = "تعطيل جميع تتبعات التحليلات";
+"BlackFridaySubtitle" = "لا تفوت الفرصة! العرض ينتهي قريبًا!";
+"FeatureToggles.RecoveryPhraseDescription" = "تفعيل ميزة عبارة الاسترداد";
+"FeatureToggles.RevenuecatToggleTitle" = "إعادة التشغيل مطلوبة";
+"PromotionalBanner.ImageLoadError" = "فشل تحميل الصورة";
+"PromotionalBanner.DismissAccessibility" = "إغلاق الشريط";
+"FeatureToggles.StopTrackingToggleTitle" = "تأكيد تغيير التتبع";
+"CMS.LoadingError" = "فشل تحميل اللافتات الترويجية";
+"FeatureToggles.EnableVideoDescription" = "تفعيل تسجيل وتشغيل الفيديو";
+"PurchaseScreen.Retry" = "إعادة المحاولة";
+"Common.Cancel" = "إلغاء";
+"FeatureToggles.EnableTestRevenueCatDescription" = "تفعيل وضع اختبار RevenueCat";
+"Common.Confirm" = "تأكيد";
+"ProductPrice.SalePercentageOff" = "%d%% خصم";
+"PurchaseScreen.LoadingSubscriptions" = "جارٍ تحميل الاشتراكات...";
+"FeatureToggles.StopTracking" = "إيقاف التتبع";
+"CMS.NoBannersAvailable" = "لا توجد لافتات ترويجية متاحة";
+"CMS.NetworkError" = "تعذر تحميل المحتوى الترويجي. يتم استخدام البيانات المخزنة مؤقتًا.";
+"FeatureToggles.Title" = "تبديل الميزات";
+"FeatureToggles.HideAlbumDescription" = "إخفاء الألبوم من العرض الرئيسي";
+"FeatureToggles.RevenuecatToggleMessage" = "تغيير وضع RevenueCat يتطلب إعادة تشغيل التطبيق. هل تريد المتابعة؟";
+"FeatureToggles.RecoveryPhrase" = "عبارة الاسترداد";
+"PurchaseScreen.ErrorLoadingSubscriptions" = "غير قادر على تحميل الاشتراكات";
+"FeatureToggles.EnableTestRevenueCat" = "اختبار RevenueCat";
+"FeatureToggles.HideAlbum" = "إخفاء الألبوم";
+"FeatureToggles.StopTrackingToggleMessage" = "تغيير هذا الإعداد سيؤثر على تحليلات التطبيق. هل أنت متأكد؟";
+"FeatureToggles.EnableVideo" = "تفعيل الفيديو";

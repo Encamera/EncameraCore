@@ -107,7 +107,6 @@
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Vigtigt ⚠️";
 "Notification.PremiumReminder.Body" = "Brug koden 'ENCAMERA20' for at få 20% rabat på enhver plan. Skynd dig!";
 "Skip for now" = "Spring over for nu";
-"GetPremiumPromoText" = "Halloween-udsalg!";
 "OnboardingCarousel.SubheadingText2" = "Dine albums er låst med din unikke nøgle og gemt sikkert på din enhed eller iCloud.";
 "TaskDetailCard.Current" = "Nuværende: %@";
 "Clear saved password/PIN" = "Ryd gemt adgangskode/PIN";
@@ -590,3 +589,32 @@ Du skal kun gøre to ting:
 "AddAlbumModal.RenameAlbumTitle" = "Lad os omdøbe dit\nalbum";
 
 "EnterPasscode" = "Indtast adgangskode";
+
+"BlackFridayTitle" = "BLACK FRIDAY ER HER!";
+"FeatureToggles.StopTrackingDescription" = "Deaktiver al analytisk sporing";
+"BlackFridaySubtitle" = "Gå ikke glip af det! Tilbuddet slutter snart!";
+"FeatureToggles.RecoveryPhraseDescription" = "Aktivér funktion til gendannelsesfrase";
+"FeatureToggles.RevenuecatToggleTitle" = "Genstart påkrævet";
+"PromotionalBanner.ImageLoadError" = "Billedet kunne ikke indlæses";
+"PromotionalBanner.DismissAccessibility" = "Afvis banner";
+"FeatureToggles.StopTrackingToggleTitle" = "Bekræft ændring af sporing";
+"CMS.LoadingError" = "Kunne ikke indlæse reklamebannere";
+"FeatureToggles.EnableVideoDescription" = "Aktivér videooptagelse og afspilning";
+"PurchaseScreen.Retry" = "Prøv igen";
+"Common.Cancel" = "Annuller";
+"FeatureToggles.EnableTestRevenueCatDescription" = "Aktivér RevenueCat testtilstand";
+"Common.Confirm" = "Bekræft";
+"ProductPrice.SalePercentageOff" = "%d%% RABAT";
+"PurchaseScreen.LoadingSubscriptions" = "Indlæser abonnementer...";
+"FeatureToggles.StopTracking" = "Stop sporing";
+"CMS.NoBannersAvailable" = "Ingen reklamebannere tilgængelige";
+"CMS.NetworkError" = "Kan ikke indlæse reklameindhold. Bruger cachede data.";
+"FeatureToggles.Title" = "Funktionsskiftere";
+"FeatureToggles.HideAlbumDescription" = "Skjul album fra hovedvisning";
+"FeatureToggles.RevenuecatToggleMessage" = "Ændring af RevenueCat-tilstand kræver, at appen genstartes. Fortsæt?";
+"FeatureToggles.RecoveryPhrase" = "Gendannelsesfrase";
+"PurchaseScreen.ErrorLoadingSubscriptions" = "Kan ikke indlæse abonnementer";
+"FeatureToggles.EnableTestRevenueCat" = "Test RevenueCat";
+"FeatureToggles.HideAlbum" = "Skjul album";
+"FeatureToggles.StopTrackingToggleMessage" = "Ændring af denne indstilling vil påvirke app-analyse. Er du sikker?";
+"FeatureToggles.EnableVideo" = "Aktivér video";

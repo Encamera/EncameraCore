@@ -387,7 +387,6 @@
 "StorageExplanation" = "Encamera는 미디어를 카메라 롤에 저장하지 않습니다. 모든 암호화된 미디어는 저장 선택에 따라 이 앱이나 iCloud에 저장됩니다.";
 "VIDEO" = "비디오";
 "Select a place to keep media for this key." = "이 키에 대한 미디어를 저장할 장소를 선택하세요.";
-"GetPremiumPromoText" = "할로윈 세일!";
 " icon in the camera view to change the active key." = "카메라 뷰에서 아이콘을 눌러 활성 키를 변경하세요.";
 "OnboardingPermissionsCameraAccess" = "카메라 접근";
 "Unlock" = "잠금 해제";
@@ -603,3 +602,32 @@
 "AddAlbumModal.RenameAlbumTitle" = "앨범 이름을 변경해봅시다";
 
 "EnterPasscode" = "암호 입력";
+
+"BlackFridayTitle" = "블랙 프라이데이가 왔어요!";
+"FeatureToggles.StopTrackingDescription" = "모든 분석 추적 비활성화";
+"BlackFridaySubtitle" = "놓치지 마세요! 곧 행사가 종료됩니다!";
+"FeatureToggles.RecoveryPhraseDescription" = "복구 구문 기능 활성화";
+"FeatureToggles.RevenuecatToggleTitle" = "재시작 필요";
+"PromotionalBanner.ImageLoadError" = "이미지 불러오기에 실패했습니다";
+"PromotionalBanner.DismissAccessibility" = "배너 닫기";
+"FeatureToggles.StopTrackingToggleTitle" = "추적 변경 확인";
+"CMS.LoadingError" = "프로모션 배너 불러오기에 실패했습니다";
+"FeatureToggles.EnableVideoDescription" = "비디오 녹화 및 재생 활성화";
+"PurchaseScreen.Retry" = "다시 시도";
+"Common.Cancel" = "취소";
+"FeatureToggles.EnableTestRevenueCatDescription" = "RevenueCat 테스트 모드 활성화";
+"Common.Confirm" = "확인";
+"ProductPrice.SalePercentageOff" = "%d%% 할인";
+"PurchaseScreen.LoadingSubscriptions" = "구독을 불러오는 중...";
+"FeatureToggles.StopTracking" = "추적 중지";
+"CMS.NoBannersAvailable" = "사용 가능한 프로모션 배너가 없습니다";
+"CMS.NetworkError" = "프로모션 콘텐츠를 불러올 수 없습니다. 캐시된 데이터를 사용합니다.";
+"FeatureToggles.Title" = "기능 토글";
+"FeatureToggles.HideAlbumDescription" = "앨범을 메인 화면에서 숨기기";
+"FeatureToggles.RevenuecatToggleMessage" = "RevenueCat 모드를 변경하려면 앱을 재시작해야 합니다. 계속하시겠습니까?";
+"FeatureToggles.RecoveryPhrase" = "복구 구문";
+"PurchaseScreen.ErrorLoadingSubscriptions" = "구독 정보를 불러올 수 없습니다";
+"FeatureToggles.EnableTestRevenueCat" = "RevenueCat 테스트";
+"FeatureToggles.HideAlbum" = "앨범 숨기기";
+"FeatureToggles.StopTrackingToggleMessage" = "이 설정을 변경하면 앱 분석에 영향을 미칩니다. 계속하시겠습니까?";
+"FeatureToggles.EnableVideo" = "비디오 활성화";
