@@ -40,6 +40,14 @@ public enum UserDefaultKey {
     case hasCompletedFirstLockout
     case keyBackupPromptLastShown
     case promotionalBannerInteractions
+    case dismissedBanners
+    case contentfulBannersCache
+    case contentfulBannersCacheLocale
+    case hasSeenPhotoAccessUpgradePrompt
+    case keyMigration
+    case passphraseMigration
+    case passwordHashMigration
+    case completedMigration
 
     var rawValue: String {
         switch self {
@@ -47,6 +55,22 @@ public enum UserDefaultKey {
             return "\(UserDefaultKey.directoryPrefix)\(album.name)"
         case .featureToggle(feature: let feature):
             return "featureToggle_\(feature)"
+        case .dismissedBanners:
+            return "com.encamera.dismissedBanners"
+        case .contentfulBannersCache:
+            return "com.encamera.contentful.banners"
+        case .contentfulBannersCacheLocale:
+            return "com.encamera.contentful.banners.locale"
+        case .hasSeenPhotoAccessUpgradePrompt:
+            return "HasSeenPhotoAccessUpgradePrompt"
+        case .keyMigration:
+            return "keyMigration"
+        case .passphraseMigration:
+            return "passphraseMigration"
+        case .passwordHashMigration:
+            return "passwordHashMigration"
+        case .completedMigration:
+            return "completedMigration"
         default:
             return String(describing: self)
         
@@ -93,7 +117,15 @@ public enum UserDefaultKey {
              .showPushNotificationPrompt,
              .passcodeType, // Passcode type is now managed via keychain
              .keyBackupPromptLastShown,
-             .promotionalBannerInteractions:
+             .promotionalBannerInteractions,
+             .dismissedBanners,
+             .contentfulBannersCache,
+             .contentfulBannersCacheLocale,
+             .hasSeenPhotoAccessUpgradePrompt,
+             .keyMigration,
+             .passphraseMigration,
+             .passwordHashMigration,
+             .completedMigration:
             return false
         }
     }
