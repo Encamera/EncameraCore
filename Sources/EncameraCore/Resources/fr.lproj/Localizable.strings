@@ -48,7 +48,6 @@
   "Leave a Review" = "Laisser un avis";
   "Password successfully changed" = "Mot de passe changé avec succès";
   "GetPremium" = "Obtenir Premium";
-  "GetPremiumPromoText" = "Promotion d’Halloween !";
   "PremiumUnlockTheseBenefits" = "Albums illimités et stockage iCloud";
   "PromoPremiumUnlockTheseBenefits" = "Albums illimités et stockage iCloud\n et DEUX MOIS GRATUITS";
   "Restore Purchases" = "Restaurer les achats";
@@ -621,3 +620,32 @@
 album";
 
 "EnterPasscode" = "Entrez le code d’accès";
+
+"BlackFridayTitle" = "LE BLACK FRIDAY EST LÀ !";
+"FeatureToggles.StopTrackingDescription" = "Désactiver tous les suivis analytiques";
+"BlackFridaySubtitle" = "Ne manquez pas cette offre ! La promotion se termine bientôt !";
+"FeatureToggles.RecoveryPhraseDescription" = "Activer la fonctionnalité de phrase de récupération";
+"FeatureToggles.RevenuecatToggleTitle" = "Redémarrage requis";
+"PromotionalBanner.ImageLoadError" = "Échec du chargement de l'image";
+"PromotionalBanner.DismissAccessibility" = "Fermer la bannière";
+"FeatureToggles.StopTrackingToggleTitle" = "Confirmer la modification du suivi";
+"CMS.LoadingError" = "Échec du chargement des bannières promotionnelles";
+"FeatureToggles.EnableVideoDescription" = "Activer l'enregistrement et la lecture vidéo";
+"PurchaseScreen.Retry" = "Réessayer";
+"Common.Cancel" = "Annuler";
+"FeatureToggles.EnableTestRevenueCatDescription" = "Activer le mode test RevenueCat";
+"Common.Confirm" = "Confirmer";
+"ProductPrice.SalePercentageOff" = "%d%% DE RÉDUCTION";
+"PurchaseScreen.LoadingSubscriptions" = "Chargement des abonnements...";
+"FeatureToggles.StopTracking" = "Arrêter le suivi";
+"CMS.NoBannersAvailable" = "Aucune bannière promotionnelle disponible";
+"CMS.NetworkError" = "Impossible de charger le contenu promotionnel. Utilisation des données en cache.";
+"FeatureToggles.Title" = "Commutateurs de fonctionnalités";
+"FeatureToggles.HideAlbumDescription" = "Masquer l'album de la vue principale";
+"FeatureToggles.RevenuecatToggleMessage" = "Changer le mode RevenueCat nécessite de redémarrer l'application. Continuer ?";
+"FeatureToggles.RecoveryPhrase" = "Phrase de récupération";
+"PurchaseScreen.ErrorLoadingSubscriptions" = "Impossible de charger les abonnements";
+"FeatureToggles.EnableTestRevenueCat" = "Tester RevenueCat";
+"FeatureToggles.HideAlbum" = "Masquer l’album";
+"FeatureToggles.StopTrackingToggleMessage" = "La modification de ce paramètre affectera les analyses de l’application. Êtes-vous sûr ?";
+"FeatureToggles.EnableVideo" = "Activer la vidéo";

@@ -48,7 +48,6 @@
 "Leave a Review" = "留下评论";
 "Password successfully changed" = "密码修改成功";
 "GetPremium" = "获取高级版";
-"GetPremiumPromoText" = "万圣节促销！";
 "PremiumUnlockTheseBenefits" = "无限专辑和iCloud存储";
 "PromoPremiumUnlockTheseBenefits" = "无限相册和iCloud存储\n以及两个月免费";
 "Restore Purchases" = "恢复购买";
@@ -580,3 +579,32 @@
 "AddAlbumModal.RenameAlbumTitle" = "让我们重命名你的相册";
 
 "EnterPasscode" = "输入密码";
+
+"BlackFridayTitle" = "黑色星期五来了！";
+"FeatureToggles.StopTrackingDescription" = "禁用所有分析追踪";
+"BlackFridaySubtitle" = "不要错过！优惠即将结束！";
+"FeatureToggles.RecoveryPhraseDescription" = "启用恢复短语功能";
+"FeatureToggles.RevenuecatToggleTitle" = "需要重启";
+"PromotionalBanner.ImageLoadError" = "图片加载失败";
+"PromotionalBanner.DismissAccessibility" = "关闭横幅";
+"FeatureToggles.StopTrackingToggleTitle" = "确认跟踪更改";
+"CMS.LoadingError" = "促销横幅加载失败";
+"FeatureToggles.EnableVideoDescription" = "启用视频录制和回放";
+"PurchaseScreen.Retry" = "重试";
+"Common.Cancel" = "取消";
+"FeatureToggles.EnableTestRevenueCatDescription" = "启用 RevenueCat 测试模式";
+"Common.Confirm" = "确认";
+"ProductPrice.SalePercentageOff" = "优惠%d%%";
+"PurchaseScreen.LoadingSubscriptions" = "正在加载订阅...";
+"FeatureToggles.StopTracking" = "停止跟踪";
+"CMS.NoBannersAvailable" = "暂无可用的推广横幅";
+"CMS.NetworkError" = "无法加载推广内容。正在使用缓存数据。";
+"FeatureToggles.Title" = "功能开关";
+"FeatureToggles.HideAlbumDescription" = "在主视图中隐藏相册";
+"FeatureToggles.RevenuecatToggleMessage" = "更改 RevenueCat 模式需要重启应用。是否继续？";
+"FeatureToggles.RecoveryPhrase" = "恢复短语";
+"PurchaseScreen.ErrorLoadingSubscriptions" = "无法加载订阅";
+"FeatureToggles.EnableTestRevenueCat" = "测试 RevenueCat";
+"FeatureToggles.HideAlbum" = "隐藏相册";
+"FeatureToggles.StopTrackingToggleMessage" = "更改此设置将影响应用分析。您确定要继续吗？";
+"FeatureToggles.EnableVideo" = "启用视频";

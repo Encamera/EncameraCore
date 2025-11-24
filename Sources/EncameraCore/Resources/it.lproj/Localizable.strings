@@ -106,7 +106,6 @@
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Importante ⚠️";
 "Notification.PremiumReminder.Body" = "Usa il codice 'ENCAMERA20' per ottenere uno sconto del 20% su qualsiasi piano. Affrettati!";
 "Skip for now" = "Salta per ora";
-"GetPremiumPromoText" = "Saldi di Halloween!";
 "OnboardingCarousel.SubheadingText2" = "I tuoi album sono protetti con la tua chiave unica e archiviati in modo sicuro sul tuo dispositivo o su iCloud.";
 "TaskDetailCard.Current" = "Attuale: %@";
 "Clear saved password/PIN" = "Cancella password/PIN salvato";
@@ -594,3 +593,32 @@ Devi solo fare due cose:
 album";
 
 "EnterPasscode" = "Inserisci codice di accesso";
+
+"BlackFridayTitle" = "IL BLACK FRIDAY È ARRIVATO!";
+"FeatureToggles.StopTrackingDescription" = "Disabilita tutto il tracciamento analitico";
+"BlackFridaySubtitle" = "Non lasciarti scappare l'offerta! L'affare termina presto!";
+"FeatureToggles.RecoveryPhraseDescription" = "Abilita la funzione frase di recupero";
+"FeatureToggles.RevenuecatToggleTitle" = "Riavvio richiesto";
+"PromotionalBanner.ImageLoadError" = "Immagine non caricata";
+"PromotionalBanner.DismissAccessibility" = "Chiudi banner";
+"FeatureToggles.StopTrackingToggleTitle" = "Conferma modifica tracciamento";
+"CMS.LoadingError" = "Impossibile caricare i banner promozionali";
+"FeatureToggles.EnableVideoDescription" = "Abilita registrazione e riproduzione video";
+"PurchaseScreen.Retry" = "Riprova";
+"Common.Cancel" = "Annulla";
+"FeatureToggles.EnableTestRevenueCatDescription" = "Abilita la modalità di test RevenueCat";
+"Common.Confirm" = "Conferma";
+"ProductPrice.SalePercentageOff" = "%d%% DI SCONTO";
+"PurchaseScreen.LoadingSubscriptions" = "Caricamento abbonamenti...";
+"FeatureToggles.StopTracking" = "Interrompi monitoraggio";
+"CMS.NoBannersAvailable" = "Nessun banner promozionale disponibile";
+"CMS.NetworkError" = "Impossibile caricare i contenuti promozionali. Utilizzo dei dati memorizzati nella cache.";
+"FeatureToggles.Title" = "Interruttori delle funzionalità";
+"FeatureToggles.HideAlbumDescription" = "Nascondi album dalla vista principale";
+"FeatureToggles.RevenuecatToggleMessage" = "La modifica della modalità RevenueCat richiede il riavvio dell'app. Continuare?";
+"FeatureToggles.RecoveryPhrase" = "Frase di recupero";
+"PurchaseScreen.ErrorLoadingSubscriptions" = "Impossibile caricare gli abbonamenti";
+"FeatureToggles.EnableTestRevenueCat" = "Test RevenueCat";
+"FeatureToggles.HideAlbum" = "Nascondi album";
+"FeatureToggles.StopTrackingToggleMessage" = "La modifica di questa impostazione influirà sulle analisi dell'app. Sei sicuro?";
+"FeatureToggles.EnableVideo" = "Abilita video";

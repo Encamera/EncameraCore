@@ -48,7 +48,6 @@
 "Leave a Review" = "Lasă o recenzie";
 "Password successfully changed" = "Parola a fost schimbată cu succes";
 "GetPremium" = "Obține Premium";
-"GetPremiumPromoText" = "Reducere de Halloween!";
 "PremiumUnlockTheseBenefits" = "Albume nelimitate și stocare iCloud";
 "PromoPremiumUnlockTheseBenefits" = "Albume nelimitate și stocare iCloud
 și DOUĂ LUNI GRATUIT";
@@ -603,3 +602,32 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "AddAlbumModal.RenameAlbumTitle" = "Hai să redenumim albumul tău";
 
 "EnterPasscode" = "Introduceți codul de acces";
+
+"BlackFridayTitle" = "BLACK FRIDAY ESTE AICI!";
+"FeatureToggles.StopTrackingDescription" = "Dezactivează toate urmăririle analitice";
+"BlackFridaySubtitle" = "Nu rata! Oferta se încheie în curând!";
+"FeatureToggles.RecoveryPhraseDescription" = "Activează funcția de frază de recuperare";
+"FeatureToggles.RevenuecatToggleTitle" = "Este necesară repornirea";
+"PromotionalBanner.ImageLoadError" = "Imaginea nu a putut fi încărcată";
+"PromotionalBanner.DismissAccessibility" = "Închide bannerul";
+"FeatureToggles.StopTrackingToggleTitle" = "Confirmă modificarea urmăririi";
+"CMS.LoadingError" = "Nu s-au putut încărca bannerele promoționale";
+"FeatureToggles.EnableVideoDescription" = "Activează înregistrarea și redarea videoclipurilor";
+"PurchaseScreen.Retry" = "Reîncearcă";
+"Common.Cancel" = "Anulează";
+"FeatureToggles.EnableTestRevenueCatDescription" = "Activează modul de testare RevenueCat";
+"Common.Confirm" = "Confirmă";
+"ProductPrice.SalePercentageOff" = "%d%% REDUCERE";
+"PurchaseScreen.LoadingSubscriptions" = "Se încarcă abonamentele...";
+"FeatureToggles.StopTracking" = "Oprește urmărirea";
+"CMS.NoBannersAvailable" = "Nu există bannere promoționale disponibile";
+"CMS.NetworkError" = "Nu se poate încărca conținutul promoțional. Se folosește datele din cache.";
+"FeatureToggles.Title" = "Comutatoare de funcționalități";
+"FeatureToggles.HideAlbumDescription" = "Ascunde albumul din vizualizarea principală";
+"FeatureToggles.RevenuecatToggleMessage" = "Schimbarea modului RevenueCat necesită repornirea aplicației. Continuați?";
+"FeatureToggles.RecoveryPhrase" = "Frază de recuperare";
+"PurchaseScreen.ErrorLoadingSubscriptions" = "Nu s-au putut încărca abonamentele";
+"FeatureToggles.EnableTestRevenueCat" = "Testează RevenueCat";
+"FeatureToggles.HideAlbum" = "Ascunde albumul";
+"FeatureToggles.StopTrackingToggleMessage" = "Modificarea acestei setări va afecta analiza aplicației. Ești sigur?";
+"FeatureToggles.EnableVideo" = "Activează video";

@@ -515,7 +515,6 @@
 "Yes" = "Sí";
 "AskForReview.EnjoyingTheApp" = "¿Estás disfrutando de la aplicación?";
 "No" = "No";
-"GetPremiumPromoText" = "¡Venta de Halloween!";
 "PromoPremiumUnlockTheseBenefits" = "Álbumes ilimitados y almacenamiento en iCloud\n y DOS MESES GRATIS";
 "AlbumDetailView.RenameAlbum" = "Renombrar álbum";
 "PromoFreeTrialTerms" = "60 días gratis, luego %@";
@@ -736,3 +735,32 @@
 álbum";
 
 "EnterPasscode" = "Introducir código de acceso";
+
+"BlackFridayTitle" = "¡EL BLACK FRIDAY YA ESTÁ AQUÍ!";
+"FeatureToggles.StopTrackingDescription" = "Desactivar todo el seguimiento de análisis";
+"BlackFridaySubtitle" = "¡No te lo pierdas! ¡La oferta termina pronto!";
+"FeatureToggles.RecoveryPhraseDescription" = "Habilitar la función de frase de recuperación";
+"FeatureToggles.RevenuecatToggleTitle" = "Reinicio requerido";
+"PromotionalBanner.ImageLoadError" = "La imagen no se pudo cargar";
+"PromotionalBanner.DismissAccessibility" = "Descartar banner";
+"FeatureToggles.StopTrackingToggleTitle" = "Confirmar cambio de seguimiento";
+"CMS.LoadingError" = "No se pudieron cargar los banners promocionales";
+"FeatureToggles.EnableVideoDescription" = "Habilitar grabación y reproducción de video";
+"PurchaseScreen.Retry" = "Reintentar";
+"Common.Cancel" = "Cancelar";
+"FeatureToggles.EnableTestRevenueCatDescription" = "Activar el modo de prueba de RevenueCat";
+"Common.Confirm" = "Confirmar";
+"ProductPrice.SalePercentageOff" = "%d%% DE DESCUENTO";
+"PurchaseScreen.LoadingSubscriptions" = "Cargando suscripciones...";
+"FeatureToggles.StopTracking" = "Dejar de rastrear";
+"CMS.NoBannersAvailable" = "No hay banners promocionales disponibles";
+"CMS.NetworkError" = "No se puede cargar el contenido promocional. Usando datos en caché.";
+"FeatureToggles.Title" = "Alternadores de funciones";
+"FeatureToggles.HideAlbumDescription" = "Ocultar álbum de la vista principal";
+"FeatureToggles.RevenuecatToggleMessage" = "Cambiar el modo de RevenueCat requiere reiniciar la aplicación. ¿Continuar?";
+"FeatureToggles.RecoveryPhrase" = "Frase de recuperación";
+"PurchaseScreen.ErrorLoadingSubscriptions" = "No se pueden cargar las suscripciones";
+"FeatureToggles.EnableTestRevenueCat" = "Probar RevenueCat";
+"FeatureToggles.HideAlbum" = "Ocultar álbum";
+"FeatureToggles.StopTrackingToggleMessage" = "Cambiar esta configuración afectará las analíticas de la aplicación. ¿Estás seguro?";
+"FeatureToggles.EnableVideo" = "Habilitar video";
