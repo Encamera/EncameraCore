@@ -28,15 +28,6 @@ public enum AppConstants {
     public static let maxCharacterAlbumName = 20
     public static let widgetVimeoLink = URL(string: "https://vimeo.com/896507875")!
     public static let feedbackApiURL = URL(string: "https://script.google.com/macros/s/AKfycbwDkuMT5MkmfpBmaahRJhM7BVWCvBcALiC6cKIaanmNGggMrY7qn50EKV-ZeZS6miJO/exec")!
-    public static var isInPromoMode: Bool {
-        let currentDate = Date()
-        let promoEndDateComponents = DateComponents(year: 2024, month: 11, day: 3)
-        let calendar = Calendar.current
-        if let promoEndDate = calendar.date(from: promoEndDateComponents) {
-            return currentDate <= promoEndDate
-        }
-        return false
-    }
     public static var contentfulSpaceId = "qguykt3vtagc"
     public static var contentfulEnvironment = "master"
     public static var contentfulDeliveryApiKey = "3Xc0neflFc5qby2HFQz-D24FeZE_E4_lGIVSWpUlH5M"
