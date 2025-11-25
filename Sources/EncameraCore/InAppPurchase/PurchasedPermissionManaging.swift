@@ -10,4 +10,5 @@ import Foundation
 public protocol PurchasedPermissionManaging {
     func isAllowedAccess(feature: AppFeature) -> Bool
     var hasEntitlement: Bool { get }
+    func hasLifetimeUnlimitedSubscription() async -> Bool
 }
