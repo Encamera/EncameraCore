@@ -70,15 +70,7 @@ listing:
     EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
   whats_new: |
-    A couple of bug fixes related to backup code reminder and purchase screen.
-
-    THE LIFETIME PLAN IS BACK!!
-
-    We've heard your (many) requests to reintroduce the lifetime plan, and we're happy to announce that it's back! 
-
-    You have two options: Lifetime Unlimited or Lifetime Limited. Lifetime Unlimited will allow you to access all current and future updates of the app forever. You'll never pay again. Lifetime Limited will allow you to access all current and future updates of the app for one year. You'll pay once and then you'll never pay again, but you will have to pay to get new features after one year.
-
-    We did this to support our continued development of the app and to ensure that you have the best experience possible. We are also not fans of subscriptions!
+    Some bug fixes related to the purchase screen and the import progress view.
 # Character limits (App Store enforced)
 limits:
   name: 30
