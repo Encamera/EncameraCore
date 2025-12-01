@@ -9,12 +9,36 @@ import Foundation
 import Combine
 import UIKit
 
-public enum FileAccessError: Error {
+public enum FileAccessError: Error, ErrorDescribable {
     case missingDirectoryModel
     case missingPrivateKey
     case missingKeyManager
     case unhandledMediaType
     case couldNotLoadMedia
+    case iCloudFileNotDownloaded(status: iCloudFileStatus)
+    case iCloudDownloadFailed(status: iCloudFileStatus)
+    case iCloudDownloadInProgress(status: iCloudFileStatus)
+    
+    public var displayDescription: String {
+        switch self {
+        case .missingDirectoryModel:
+            return "Missing directory model"
+        case .missingPrivateKey:
+            return L10n.noKeyAvailable
+        case .missingKeyManager:
+            return "Missing key manager"
+        case .unhandledMediaType:
+            return "Unhandled media type"
+        case .couldNotLoadMedia:
+            return "Could not load media"
+        case .iCloudFileNotDownloaded(let status):
+            return iCloudFileStatusUtil.userFriendlyErrorMessage(for: status)
+        case .iCloudDownloadFailed(let status):
+            return iCloudFileStatusUtil.userFriendlyErrorMessage(for: status)
+        case .iCloudDownloadInProgress(let status):
+            return iCloudFileStatusUtil.userFriendlyErrorMessage(for: status)
+        }
+    }
 }
 
 public enum FileLoadingStatus {

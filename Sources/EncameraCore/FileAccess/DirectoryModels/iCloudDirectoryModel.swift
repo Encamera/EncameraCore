@@ -41,7 +41,7 @@ public class iCloudStorageModel: DataStorageModel {
 
     public func triggerDownloadOfAllFilesFromiCloud() {
         enumeratorForStorageDirectory().forEach({
-            try? FileManager.default.startDownloadingUbiquitousItem(at: $0)
+            try? iCloudFileStatusUtil.startDownload(for: $0)
         })
     }
 
@@ -49,7 +49,7 @@ public class iCloudStorageModel: DataStorageModel {
         guard case .url(let source) = file.source else {
             return
         }
-        try? FileManager.default.startDownloadingUbiquitousItem(at: source)
+        try? iCloudFileStatusUtil.startDownload(for: source)
     }
 
     public func resolveDownloadedMedia<T: MediaDescribing>(media: T) throws -> T?  {
@@ -145,7 +145,7 @@ public class iCloudStorageModel: DataStorageModel {
             return media
         }
 
-        try FileManager.default.startDownloadingUbiquitousItem(at: source)
+        try iCloudFileStatusUtil.startDownload(for: source)
         
         // Use AsyncThrowingStream to properly handle the callback-based NSMetadataQuery
         let stream = AsyncThrowingStream<iCloudDownloadStatus, Error> { continuation in

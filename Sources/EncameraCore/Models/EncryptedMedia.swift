@@ -13,24 +13,7 @@ public class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identif
         guard case .url(let source) = source else {
             return false
         }
-
-        do {
-            let resourceValues = try source.resourceValues(forKeys: [
-                .isUbiquitousItemKey,
-                .ubiquitousItemDownloadingStatusKey
-            ])
-
-            if resourceValues.isUbiquitousItem == true {
-                if let downloadingStatus = resourceValues.ubiquitousItemDownloadingStatus {
-                    return downloadingStatus != .current
-                }
-            }
-
-            return false
-        } catch {
-            print("Error accessing file resource values: \(error)")
-            return false
-        }
+        return iCloudFileStatusUtil.needsDownload(url: source)
     }
 
     public var mediaType: MediaType = .unknown

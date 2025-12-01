@@ -241,29 +241,71 @@ extension DiskFileAccess {
     public func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
 
         if var encrypted = media as? EncryptedMedia {
-            if encrypted.needsDownload,
-                let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
-                printDebug("Downloading file from iCloud", encrypted.id)
-                encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { [weak self] prog in
-                    self?.printDebug("Downloading file from iCloud", encrypted.id, prog)
-                    progress(.downloading(progress: prog))
-                }
-            }
+            // Check if file needs to be downloaded from iCloud
+            encrypted = try await ensureFileIsDownloaded(encrypted: encrypted, progress: progress)
             return try await decryptMediaToData(encrypted: encrypted, progress: progress)
         } else {
             fatalError()
         }
     }
+    
+    /// Ensures the file is downloaded from iCloud if needed
+    /// Works regardless of the current directoryModel type by checking the actual file status
+    private func ensureFileIsDownloaded(encrypted: EncryptedMedia, progress: @escaping (FileLoadingStatus) -> Void) async throws -> EncryptedMedia {
+        guard case .url(let sourceURL) = encrypted.source else {
+            return encrypted
+        }
+        
+        // Get comprehensive iCloud status
+        let status = iCloudFileStatusUtil.getStatus(for: sourceURL)
+        
+        // If file is not a ubiquitous item or is already downloaded, proceed
+        guard status.isUbiquitousItem else {
+            return encrypted
+        }
+        
+        switch status.downloadState {
+        case .current:
+            // File is fully downloaded
+            return encrypted
+            
+        case .notDownloaded:
+            // File needs to be downloaded
+            printDebug("File needs download from iCloud", encrypted.id)
+            
+            // If we have an iCloud directory model, use its download method
+            if let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
+                let downloaded = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { [weak self] prog in
+                    self?.printDebug("Downloading file from iCloud", encrypted.id, prog)
+                    progress(.downloading(progress: prog))
+                }
+                return downloaded
+            } else {
+                // directoryModel is not iCloud, but file is in iCloud - throw specific error
+                printDebug("File is in iCloud but directoryModel is not iCloudStorageModel", encrypted.id)
+                throw FileAccessError.iCloudFileNotDownloaded(status: status)
+            }
+            
+        case .downloading(let downloadProgress):
+            // Download is already in progress
+            printDebug("File is currently downloading from iCloud", encrypted.id, downloadProgress)
+            throw FileAccessError.iCloudDownloadInProgress(status: status)
+            
+        case .downloadFailed:
+            // Previous download failed
+            printDebug("iCloud download failed for file", encrypted.id)
+            throw FileAccessError.iCloudDownloadFailed(status: status)
+            
+        case .notUbiquitous:
+            // Not an iCloud file, should have been caught above
+            return encrypted
+        }
+    }
 
     public func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
         if var encrypted = media as? EncryptedMedia {
-            if encrypted.needsDownload,
-                let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
-                encrypted = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { prog in
-                    progress(.downloading(progress: prog))
-                }
-
-            }
+            // Check if file needs to be downloaded from iCloud
+            encrypted = try await ensureFileIsDownloaded(encrypted: encrypted, progress: progress)
             return try await decryptMediaToURL(encrypted: encrypted, progress: progress)
         } else if let cleartext = media as? CleartextMedia {
             return cleartext

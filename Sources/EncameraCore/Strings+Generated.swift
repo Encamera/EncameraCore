@@ -326,8 +326,6 @@ public enum L10n {
   public static let getOneYearFree = L10n.tr("Localizable", "GetOneYearFree", fallback: "Get 1 Year Free!")
   /// Get Premium
   public static let getPremium = L10n.tr("Localizable", "GetPremium", fallback: "Get Premium")
-  /// Halloween Sale!
-  public static let getPremiumPromoText = L10n.tr("Localizable", "GetPremiumPromoText", fallback: "Halloween Sale!")
   /// Let's Start
   public static let getStartedButtonText = L10n.tr("Localizable", "GetStartedButtonText", fallback: "Let's Start")
   /// ./Encamera/ImageViewing/GalleryGridView.swift
@@ -1140,6 +1138,40 @@ public enum L10n {
     public static let subheading4 = L10n.tr("Localizable", "HideAlbumsTutorial.Subheading4", fallback: "To hide an album, open it and tap the three dots menu, then select 'Hide Album'.")
     /// Hide Albums Tutorial
     public static let title = L10n.tr("Localizable", "HideAlbumsTutorial.Title", fallback: "Hide Albums")
+  }
+  public enum ICloudError {
+    /// Could not download '%@' from iCloud: %@
+    public static func downloadFailed(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "ICloudError.DownloadFailed", String(describing: p1), String(describing: p2), fallback: "Could not download '%@' from iCloud: %@")
+    }
+    /// Could not download '%@' from iCloud. Please check your internet connection and iCloud settings.
+    public static func downloadFailedGeneric(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "ICloudError.DownloadFailedGeneric", String(describing: p1), fallback: "Could not download '%@' from iCloud. Please check your internet connection and iCloud settings.")
+    }
+    /// File '%@' is still downloading from iCloud. Please wait.
+    public static func downloadInProgress(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "ICloudError.DownloadInProgress", String(describing: p1), fallback: "File '%@' is still downloading from iCloud. Please wait.")
+    }
+    /// ./Encamera/ImageViewing/MediaViewingError.swift - iCloud Error Messages
+    public static let fileNotDownloaded = L10n.tr("Localizable", "ICloudError.FileNotDownloaded", fallback: "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.")
+  }
+  public enum ICloudStatus {
+    /// File is downloaded.
+    public static let downloaded = L10n.tr("Localizable", "ICloudStatus.Downloaded", fallback: "File is downloaded.")
+    /// Download failed: %@
+    public static func downloadFailed(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "ICloudStatus.DownloadFailed", String(describing: p1), fallback: "Download failed: %@")
+    }
+    /// Download from iCloud failed.
+    public static let downloadFailedUnknown = L10n.tr("Localizable", "ICloudStatus.DownloadFailedUnknown", fallback: "Download from iCloud failed.")
+    /// Downloading from iCloud: %d%%
+    public static func downloading(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "ICloudStatus.Downloading", p1, fallback: "Downloading from iCloud: %d%%")
+    }
+    /// File is stored in iCloud and needs to be downloaded.
+    public static let notDownloaded = L10n.tr("Localizable", "ICloudStatus.NotDownloaded", fallback: "File is stored in iCloud and needs to be downloaded.")
+    /// ./EncameraCore/Utils/iCloudFileStatusUtil.swift
+    public static let notICloudFile = L10n.tr("Localizable", "ICloudStatus.NotICloudFile", fallback: "This file is stored locally.")
   }
   public enum ImportTaskDetailsView {
     /// Clear All
