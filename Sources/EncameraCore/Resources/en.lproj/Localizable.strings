@@ -774,3 +774,17 @@
 "PromotionalBanner.ImageLoadError" = "Image failed to load";
 "PromotionalBanner.DismissAccessibility" = "Dismiss banner";
 
+/* ./EncameraCore/Utils/iCloudFileStatusUtil.swift */
+"ICloudStatus.NotICloudFile" = "This file is stored locally.";
+"ICloudStatus.Downloaded" = "File is downloaded.";
+"ICloudStatus.NotDownloaded" = "File is stored in iCloud and needs to be downloaded.";
+"ICloudStatus.Downloading" = "Downloading from iCloud: %d%%";
+"ICloudStatus.DownloadFailed" = "Download failed: %@";
+"ICloudStatus.DownloadFailedUnknown" = "Download from iCloud failed.";
+
+/* ./Encamera/ImageViewing/MediaViewingError.swift - iCloud Error Messages */
+"ICloudError.FileNotDownloaded" = "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.";
+"ICloudError.DownloadFailed" = "Could not download '%@' from iCloud: %@";
+"ICloudError.DownloadFailedGeneric" = "Could not download '%@' from iCloud. Please check your internet connection and iCloud settings.";
+"ICloudError.DownloadInProgress" = "File '%@' is still downloading from iCloud. Please wait.";
+
