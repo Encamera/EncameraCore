@@ -15,6 +15,7 @@ public enum Feature: String {
     case enableTestRevenueCat
     case showFeatureToggles
     case showMoveToAlbum
+    case showDesignSystem
     var userDefaultsKey: String {
         return "feature_" +  rawValue
     }
