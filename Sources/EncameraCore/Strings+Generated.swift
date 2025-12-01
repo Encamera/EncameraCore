@@ -1156,6 +1156,8 @@ public enum L10n {
     public static let fileNotDownloaded = L10n.tr("Localizable", "ICloudError.FileNotDownloaded", fallback: "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.")
   }
   public enum ICloudStatus {
+    /// ./Encamera/Components/iCloudSyncStatusIndicator.swift - Directory Sync Status
+    public static let allSynced = L10n.tr("Localizable", "ICloudStatus.AllSynced", fallback: "All files downloaded")
     /// File is downloaded.
     public static let downloaded = L10n.tr("Localizable", "ICloudStatus.Downloaded", fallback: "File is downloaded.")
     /// Download failed: %@
@@ -1168,10 +1170,22 @@ public enum L10n {
     public static func downloading(_ p1: Int) -> String {
       return L10n.tr("Localizable", "ICloudStatus.Downloading", p1, fallback: "Downloading from iCloud: %d%%")
     }
+    /// No files in iCloud
+    public static let noFiles = L10n.tr("Localizable", "ICloudStatus.NoFiles", fallback: "No files in iCloud")
     /// File is stored in iCloud and needs to be downloaded.
     public static let notDownloaded = L10n.tr("Localizable", "ICloudStatus.NotDownloaded", fallback: "File is stored in iCloud and needs to be downloaded.")
     /// ./EncameraCore/Utils/iCloudFileStatusUtil.swift
     public static let notICloudFile = L10n.tr("Localizable", "ICloudStatus.NotICloudFile", fallback: "This file is stored locally.")
+    /// %d files need download
+    public static func pendingDownload(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "ICloudStatus.PendingDownload", p1, fallback: "%d files need download")
+    }
+    /// Downloading %d of %d files
+    public static func syncing(_ p1: Int, _ p2: Int) -> String {
+      return L10n.tr("Localizable", "ICloudStatus.Syncing", p1, p2, fallback: "Downloading %d of %d files")
+    }
+    /// Tap to download
+    public static let tapToDownload = L10n.tr("Localizable", "ICloudStatus.TapToDownload", fallback: "Tap to download")
   }
   public enum ImportTaskDetailsView {
     /// Clear All
