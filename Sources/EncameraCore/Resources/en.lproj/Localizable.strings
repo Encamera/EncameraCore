@@ -782,6 +782,13 @@
 "ICloudStatus.DownloadFailed" = "Download failed: %@";
 "ICloudStatus.DownloadFailedUnknown" = "Download from iCloud failed.";
 
+/* ./Encamera/Components/iCloudSyncStatusIndicator.swift - Directory Sync Status */
+"ICloudStatus.AllSynced" = "All files downloaded";
+"ICloudStatus.Syncing" = "Downloading %d of %d files";
+"ICloudStatus.PendingDownload" = "%d files need download";
+"ICloudStatus.NoFiles" = "No files in iCloud";
+"ICloudStatus.TapToDownload" = "Tap to download";
+
 /* ./Encamera/ImageViewing/MediaViewingError.swift - iCloud Error Messages */
 "ICloudError.FileNotDownloaded" = "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.";
 "ICloudError.DownloadFailed" = "Could not download '%@' from iCloud: %@";

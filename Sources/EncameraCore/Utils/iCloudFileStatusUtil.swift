@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 /// Represents the download status of an iCloud file
 public enum iCloudFileDownloadState: Equatable {
@@ -219,6 +220,234 @@ public struct iCloudFileStatusUtil {
         default:
             return ""
         }
+    }
+}
+
+// MARK: - Directory Sync Status
+
+/// Aggregate status of iCloud sync for a directory
+public enum iCloudDirectorySyncState: Equatable {
+    case allSynced                    // All files are downloaded
+    case syncing(downloaded: Int, total: Int, progress: Double)  // Files are being downloaded
+    case pendingDownload(count: Int)  // Files need to be downloaded but aren't downloading
+    case noFiles                      // No files in directory
+    case notICloud                    // Not an iCloud directory
+}
+
+/// Published status for a directory's iCloud sync state
+public struct iCloudDirectorySyncStatus {
+    public let state: iCloudDirectorySyncState
+    public let totalFiles: Int
+    public let downloadedFiles: Int
+    public let downloadingFiles: Int
+    public let pendingFiles: Int
+    public let overallProgress: Double  // 0.0 to 1.0
+    
+    public init(
+        state: iCloudDirectorySyncState,
+        totalFiles: Int,
+        downloadedFiles: Int,
+        downloadingFiles: Int,
+        pendingFiles: Int,
+        overallProgress: Double
+    ) {
+        self.state = state
+        self.totalFiles = totalFiles
+        self.downloadedFiles = downloadedFiles
+        self.downloadingFiles = downloadingFiles
+        self.pendingFiles = pendingFiles
+        self.overallProgress = overallProgress
+    }
+    
+    public static let empty = iCloudDirectorySyncStatus(
+        state: .noFiles,
+        totalFiles: 0,
+        downloadedFiles: 0,
+        downloadingFiles: 0,
+        pendingFiles: 0,
+        overallProgress: 1.0
+    )
+}
+
+/// Monitors iCloud sync status for all files in a directory using NSMetadataQuery
+@MainActor
+public class iCloudDirectoryMonitor: ObservableObject {
+    
+    @Published public private(set) var syncStatus: iCloudDirectorySyncStatus = .empty
+    @Published public private(set) var isMonitoring: Bool = false
+    
+    private var metadataQuery: NSMetadataQuery?
+    private var queryObserver: NSObjectProtocol?
+    private var finishGatheringObserver: NSObjectProtocol?
+    private let directoryURL: URL
+    private let fileExtensions: [String]
+    
+    /// Creates a monitor for the specified directory
+    /// - Parameters:
+    ///   - directoryURL: The iCloud directory URL to monitor
+    ///   - fileExtensions: Optional file extensions to filter (e.g., ["encpht", "encvid"])
+    public init(directoryURL: URL, fileExtensions: [String] = []) {
+        self.directoryURL = directoryURL
+        self.fileExtensions = fileExtensions
+    }
+    
+    deinit {
+        Task { @MainActor in
+            stopMonitoring()
+        }
+    }
+    
+    /// Starts monitoring the directory for iCloud sync status changes
+    public func startMonitoring() {
+        guard !isMonitoring else { return }
+        
+        let query = NSMetadataQuery()
+        query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
+        
+        // Build predicate to match files in the directory
+        var predicates: [NSPredicate] = []
+        
+        // Match files that start with the directory path
+        let pathPredicate = NSPredicate(format: "%K BEGINSWITH %@", NSMetadataItemPathKey, directoryURL.path)
+        predicates.append(pathPredicate)
+        
+        // If file extensions are specified, add extension filter
+        if !fileExtensions.isEmpty {
+            let extensionPredicates = fileExtensions.map { ext in
+                NSPredicate(format: "%K ENDSWITH[c] %@", NSMetadataItemFSNameKey, ".\(ext)")
+            }
+            let extensionPredicate = NSCompoundPredicate(orPredicateWithSubpredicates: extensionPredicates)
+            predicates.append(extensionPredicate)
+        }
+        
+        query.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        
+        // Request download status attributes
+        query.valueListAttributes = [
+            NSMetadataUbiquitousItemDownloadingStatusKey,
+            NSMetadataUbiquitousItemPercentDownloadedKey,
+            NSMetadataUbiquitousItemIsDownloadingKey
+        ]
+        
+        // Observe initial gathering completion
+        finishGatheringObserver = NotificationCenter.default.addObserver(
+            forName: .NSMetadataQueryDidFinishGathering,
+            object: query,
+            queue: .main
+        ) { [weak self] _ in
+            self?.processQueryResults()
+        }
+        
+        // Observe updates
+        queryObserver = NotificationCenter.default.addObserver(
+            forName: .NSMetadataQueryDidUpdate,
+            object: query,
+            queue: .main
+        ) { [weak self] _ in
+            self?.processQueryResults()
+        }
+        
+        self.metadataQuery = query
+        query.start()
+        isMonitoring = true
+    }
+    
+    /// Stops monitoring the directory
+    public func stopMonitoring() {
+        if let observer = queryObserver {
+            NotificationCenter.default.removeObserver(observer)
+            queryObserver = nil
+        }
+        if let observer = finishGatheringObserver {
+            NotificationCenter.default.removeObserver(observer)
+            finishGatheringObserver = nil
+        }
+        metadataQuery?.stop()
+        metadataQuery = nil
+        isMonitoring = false
+    }
+    
+    /// Manually refresh the sync status
+    public func refresh() {
+        processQueryResults()
+    }
+    
+    /// Process query results and update sync status
+    private func processQueryResults() {
+        guard let query = metadataQuery else {
+            syncStatus = .empty
+            return
+        }
+        
+        query.disableUpdates()
+        defer { query.enableUpdates() }
+        
+        let results = query.results as? [NSMetadataItem] ?? []
+        
+        guard !results.isEmpty else {
+            syncStatus = iCloudDirectorySyncStatus(
+                state: .noFiles,
+                totalFiles: 0,
+                downloadedFiles: 0,
+                downloadingFiles: 0,
+                pendingFiles: 0,
+                overallProgress: 1.0
+            )
+            return
+        }
+        
+        var downloadedCount = 0
+        var downloadingCount = 0
+        var pendingCount = 0
+        var totalProgress: Double = 0
+        
+        for item in results {
+            let downloadStatus = item.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String
+            let percentDownloaded = item.value(forAttribute: NSMetadataUbiquitousItemPercentDownloadedKey) as? Double ?? 0
+            let isDownloading = item.value(forAttribute: NSMetadataUbiquitousItemIsDownloadingKey) as? Bool ?? false
+            
+            switch downloadStatus {
+            case NSMetadataUbiquitousItemDownloadingStatusCurrent,
+                 NSMetadataUbiquitousItemDownloadingStatusDownloaded:
+                downloadedCount += 1
+                totalProgress += 100.0
+            case NSMetadataUbiquitousItemDownloadingStatusNotDownloaded:
+                if isDownloading {
+                    downloadingCount += 1
+                    totalProgress += percentDownloaded
+                } else {
+                    pendingCount += 1
+                    // Pending files contribute 0 to progress
+                }
+            default:
+                // Unknown status, treat as pending
+                pendingCount += 1
+            }
+        }
+        
+        let totalFiles = results.count
+        let overallProgress = totalFiles > 0 ? totalProgress / (Double(totalFiles) * 100.0) : 1.0
+        
+        // Determine state
+        let state: iCloudDirectorySyncState
+        if downloadedCount == totalFiles {
+            state = .allSynced
+        } else if downloadingCount > 0 {
+            state = .syncing(downloaded: downloadedCount, total: totalFiles, progress: overallProgress)
+        } else if pendingCount > 0 {
+            state = .pendingDownload(count: pendingCount)
+        } else {
+            state = .allSynced
+        }
+        
+        syncStatus = iCloudDirectorySyncStatus(
+            state: state,
+            totalFiles: totalFiles,
+            downloadedFiles: downloadedCount,
+            downloadingFiles: downloadingCount,
+            pendingFiles: pendingCount,
+            overallProgress: overallProgress
+        )
     }
 }
 
