@@ -44,6 +44,77 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         printDebug("Configuring BackgroundMediaImportManager with albumManager")
         self.albumManager = albumManager
     }
+    
+    /// Starts the preparation phase before files are ready for import.
+    /// This shows the progress view immediately with "Preparing X files..." message.
+    /// Returns a task ID that should be used when calling `startImport` to continue the same task.
+    public func startPreparation(totalFiles: Int, albumId: String, source: ImportSource) -> String {
+        printDebug("Starting preparation phase for \(totalFiles) files to album: \(albumId)")
+        
+        // Create a task with no media yet - it will be populated later
+        let taskId = UUID().uuidString
+        let task = ImportTask(id: taskId, media: [], albumId: albumId, source: source, assetIdentifiers: [])
+        
+        // Set the task to preparing state
+        var mutableTask = task
+        mutableTask.progress.state = .preparing(totalFiles: totalFiles, preparedFiles: 0)
+        
+        currentTasks.append(mutableTask)
+        isImporting = true
+        
+        printDebug("Created preparation task with ID: \(taskId)")
+        return taskId
+    }
+    
+    /// Updates the preparation progress as files are being loaded from the photo library
+    public func updatePreparation(taskId: String, preparedFiles: Int, totalFiles: Int) {
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
+            printDebug("Failed to find task to update preparation: \(taskId)")
+            return
+        }
+        
+        currentTasks[taskIndex].progress.state = .preparing(totalFiles: totalFiles, preparedFiles: preparedFiles)
+        publishProgress(for: currentTasks[taskIndex])
+    }
+    
+    /// Cancels a preparation task (if user cancels before files are ready)
+    public func cancelPreparation(taskId: String) {
+        printDebug("Cancelling preparation task: \(taskId)")
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
+            printDebug("Failed to find preparation task to cancel: \(taskId)")
+            return
+        }
+        
+        currentTasks[taskIndex].progress.state = .cancelled
+        publishProgress(for: currentTasks[taskIndex])
+        
+        // Remove from active tasks after a delay to show cancelled state
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.currentTasks.removeAll { $0.id == taskId }
+            self.updateOverallProgress()
+            self.updateIsImporting()
+        }
+    }
+    
+    /// Transitions a preparation task to actual import with the loaded media
+    public func startImportFromPreparation(taskId: String, media: [CleartextMedia], assetIdentifiers: [String] = []) async throws {
+        printDebug("Starting import from preparation task: \(taskId) with \(media.count) media items")
+        
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
+            printDebug("Failed to find preparation task: \(taskId), starting fresh import")
+            // Fall back to creating a new task if preparation task not found
+            throw BackgroundImportError.configurationError
+        }
+        
+        let albumId = currentTasks[taskIndex].albumId
+        let source = currentTasks[taskIndex].source
+        
+        // Remove the preparation task and create a real import task
+        currentTasks.remove(at: taskIndex)
+        
+        // Now start the actual import
+        try await startImport(media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers)
+    }
 
     public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = []) async throws {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
@@ -65,6 +136,10 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         
         let task = ImportTask(media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers)
         currentTasks.append(task)
+        
+        // Set isImporting immediately when task is created, not in executeImportTask
+        // This ensures the progress view can appear before execution begins
+        isImporting = true
         
         printDebug("Created import task with ID: \(task.id)")
         printDebug("Total current tasks: \(currentTasks.count)")
