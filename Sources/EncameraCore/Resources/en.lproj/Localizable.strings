@@ -671,6 +671,8 @@
 "GlobalImportProgress.NoActiveImports" = "No active imports";
 "GlobalImportProgress.ImportingProgress" = "Importing %@ of %@";
 "GlobalImportProgress.ImportingBatches" = "Importing %@ batches";
+"GlobalImportProgress.PreparingFiles" = "Preparing %@ of %@ files...";
+"GlobalImportProgress.PreparingProgress" = "Preparing files...";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "Delete from Photo Library?";
 "GlobalImportProgress.DeleteFromPhotoLibraryMessage" = "This will delete all imported photos from your Photo Library.";
 "GlobalImportProgress.PhotosDeleted" = "Photos deleted";
@@ -690,6 +692,7 @@
 "TaskDetailCard.PhotoLibraryAccessRequired" = "Photo Library Access Required";
 "TaskDetailCard.GrantAccessMessage" = "Please grant access to your photo library in Settings to delete imported photos.";
 "TaskDetailCard.StatusWaiting" = "Waiting";
+"TaskDetailCard.StatusPreparing" = "Preparing %d of %d files...";
 "TaskDetailCard.StatusRunning" = "Running";
 "TaskDetailCard.StatusPaused" = "Paused";
 "TaskDetailCard.StatusCompleted" = "Completed";

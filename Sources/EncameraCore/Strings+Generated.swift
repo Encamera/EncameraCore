@@ -1116,6 +1116,12 @@ public enum L10n {
     public static let noActiveImports = L10n.tr("Localizable", "GlobalImportProgress.NoActiveImports", fallback: "No active imports")
     /// Photos deleted
     public static let photosDeleted = L10n.tr("Localizable", "GlobalImportProgress.PhotosDeleted", fallback: "Photos deleted")
+    /// Preparing %@ of %@ files...
+    public static func preparingFiles(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "GlobalImportProgress.PreparingFiles", String(describing: p1), String(describing: p2), fallback: "Preparing %@ of %@ files...")
+    }
+    /// Preparing files...
+    public static let preparingProgress = L10n.tr("Localizable", "GlobalImportProgress.PreparingProgress", fallback: "Preparing files...")
     /// Remaining
     public static let remaining = L10n.tr("Localizable", "GlobalImportProgress.Remaining", fallback: "Remaining")
   }
@@ -1518,6 +1524,10 @@ public enum L10n {
     public static let statusFailed = L10n.tr("Localizable", "TaskDetailCard.StatusFailed", fallback: "Failed")
     /// Paused
     public static let statusPaused = L10n.tr("Localizable", "TaskDetailCard.StatusPaused", fallback: "Paused")
+    /// Preparing %d of %d files...
+    public static func statusPreparing(_ p1: Int, _ p2: Int) -> String {
+      return L10n.tr("Localizable", "TaskDetailCard.StatusPreparing", p1, p2, fallback: "Preparing %d of %d files...")
+    }
     /// Running
     public static let statusRunning = L10n.tr("Localizable", "TaskDetailCard.StatusRunning", fallback: "Running")
     /// Waiting
