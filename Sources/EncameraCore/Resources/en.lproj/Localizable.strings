@@ -701,6 +701,16 @@
 "TaskDetailCard.LimitedAccessInfo" = "Limited Photo Access";
 "TaskDetailCard.LimitedAccessMessage" = "With limited photo access, only photos you've selected can be deleted. To delete all imported photos, please grant full photo library access in Settings.";
 
+/* ./Encamera/Components/ImportProgress/CompletedImportHistoryView.swift */
+"CompletedImportHistory.Title" = "Import History";
+"CompletedImportHistory.ClearAll" = "Clear All";
+"CompletedImportHistory.ItemsImported" = "%@ of %@ imported";
+"CompletedImportHistory.DeleteFromCameraRoll" = "Delete from Camera Roll";
+"CompletedImportHistory.EmptyState" = "No completed imports";
+"CompletedImportHistory.ViewImportHistory" = "View Import History";
+"CompletedImportHistory.DeleteConfirmTitle" = "Delete from Photo Library?";
+"CompletedImportHistory.DeleteConfirmMessage" = "This will delete %@ photo(s) from your Photo Library.";
+
 /* ./Encamera/Components/ImportProgress/ImportTaskDetailsView.swift */
 "ImportTaskDetailsView.Title" = "Import Tasks";
 "ImportTaskDetailsView.Done" = "Done";

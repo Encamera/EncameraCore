@@ -987,6 +987,28 @@ public enum L10n {
     /// Confirm
     public static let confirm = L10n.tr("Localizable", "Common.Confirm", fallback: "Confirm")
   }
+  public enum CompletedImportHistory {
+    /// Clear All
+    public static let clearAll = L10n.tr("Localizable", "CompletedImportHistory.ClearAll", fallback: "Clear All")
+    /// This will delete %@ photo(s) from your Photo Library.
+    public static func deleteConfirmMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CompletedImportHistory.DeleteConfirmMessage", String(describing: p1), fallback: "This will delete %@ photo(s) from your Photo Library.")
+    }
+    /// Delete from Photo Library?
+    public static let deleteConfirmTitle = L10n.tr("Localizable", "CompletedImportHistory.DeleteConfirmTitle", fallback: "Delete from Photo Library?")
+    /// Delete from Camera Roll
+    public static let deleteFromCameraRoll = L10n.tr("Localizable", "CompletedImportHistory.DeleteFromCameraRoll", fallback: "Delete from Camera Roll")
+    /// No completed imports
+    public static let emptyState = L10n.tr("Localizable", "CompletedImportHistory.EmptyState", fallback: "No completed imports")
+    /// %@ of %@ imported
+    public static func itemsImported(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "CompletedImportHistory.ItemsImported", String(describing: p1), String(describing: p2), fallback: "%@ of %@ imported")
+    }
+    /// ./Encamera/Components/ImportProgress/CompletedImportHistoryView.swift
+    public static let title = L10n.tr("Localizable", "CompletedImportHistory.Title", fallback: "Import History")
+    /// View Import History
+    public static let viewImportHistory = L10n.tr("Localizable", "CompletedImportHistory.ViewImportHistory", fallback: "View Import History")
+  }
   public enum CustomPhotoPicker {
     /// Add
     public static let add = L10n.tr("Localizable", "CustomPhotoPicker.Add", fallback: "Add")
