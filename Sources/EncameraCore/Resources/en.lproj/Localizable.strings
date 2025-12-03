@@ -170,6 +170,7 @@
 "AlbumDetailView.MoveMedia" = "Move Media";
 "AlbumDetailView.MoveMediaConfirm" = "Move %@ item%@ to %@?";
 "AlbumDetailView.MovedToast" = "Moved %@ item%@ to %@";
+"AlbumDetailView.MoveErrorToast" = "Failed to move %@ item%@";
 "AlbumDetailView.PhotoAccessRequired" = "Photo Access Required";
 "AlbumDetailView.PhotoAccessSettings" = "Please grant access to your photo library in Settings to import photos.";
 "AlbumDetailView.OpenSettings" = "Open Settings";
@@ -661,6 +662,8 @@
 "AlbumSelectionModal.Title" = "Move to Album";
 "AlbumSelectionModal.Description" = "Select an album to move %@ items to";
 "AlbumSelectionModal.Move" = "Move";
+"AlbumSelectionModal.NoAlbumsTitle" = "No Other Albums";
+"AlbumSelectionModal.NoAlbumsDescription" = "Create another album first to move media between albums.";
 
 /* ./Encamera/AlbumManagement/MediaSelectionTray.swift */
 "MediaSelectionTray.MoveToAlbum" = "Move to Album";
@@ -771,6 +774,8 @@
 "FeatureToggles.RecoveryPhraseDescription" = "Enable recovery phrase feature";
 "FeatureToggles.HideAlbum" = "Hide Album";
 "FeatureToggles.HideAlbumDescription" = "Hide album from main view";
+"FeatureToggles.ShowMoveToAlbum" = "Move to Album";
+"FeatureToggles.ShowMoveToAlbumDescription" = "Enable moving media between albums";
 "FeatureToggles.EnableTestRevenueCat" = "Test RevenueCat";
 "FeatureToggles.EnableTestRevenueCatDescription" = "Enable RevenueCat testing mode";
 "FeatureToggles.RevenuecatToggleTitle" = "Restart Required";

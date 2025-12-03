@@ -826,6 +826,10 @@ public enum L10n {
     public static func movedToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MovedToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Moved %@ item%@ to %@")
     }
+    /// Failed to move %@ item%@
+    public static func moveErrorToast(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveErrorToast", String(describing: p1), String(describing: p2), fallback: "Failed to move %@ item%@")
+    }
     /// Move Media
     public static let moveMedia = L10n.tr("Localizable", "AlbumDetailView.MoveMedia", fallback: "Move Media")
     /// Move %@ item%@ to %@?
@@ -870,6 +874,10 @@ public enum L10n {
     }
     /// Move
     public static let move = L10n.tr("Localizable", "AlbumSelectionModal.Move", fallback: "Move")
+    /// Create another album first to move media between albums.
+    public static let noAlbumsDescription = L10n.tr("Localizable", "AlbumSelectionModal.NoAlbumsDescription", fallback: "Create another album first to move media between albums.")
+    /// No Other Albums
+    public static let noAlbumsTitle = L10n.tr("Localizable", "AlbumSelectionModal.NoAlbumsTitle", fallback: "No Other Albums")
     /// ./Encamera/AlbumManagement/AlbumSelectionModal.swift
     public static let title = L10n.tr("Localizable", "AlbumSelectionModal.Title", fallback: "Move to Album")
   }
@@ -1074,6 +1082,10 @@ public enum L10n {
     public static let hideAlbumDescription = L10n.tr("Localizable", "FeatureToggles.HideAlbumDescription", fallback: "Hide album from main view")
     /// Recovery Phrase
     public static let recoveryPhrase = L10n.tr("Localizable", "FeatureToggles.RecoveryPhrase", fallback: "Recovery Phrase")
+    /// Move to Album
+    public static let showMoveToAlbum = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbum", fallback: "Move to Album")
+    /// Enable moving media between albums
+    public static let showMoveToAlbumDescription = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbumDescription", fallback: "Enable moving media between albums")
     /// Enable recovery phrase feature
     public static let recoveryPhraseDescription = L10n.tr("Localizable", "FeatureToggles.RecoveryPhraseDescription", fallback: "Enable recovery phrase feature")
     /// Changing RevenueCat mode requires restarting the app. Continue?
