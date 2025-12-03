@@ -213,6 +213,15 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         updateOverallProgress()
     }
     
+    /// Removes a specific task by ID without changing its state.
+    /// Use this for removing completed tasks from import history.
+    public func removeTask(taskId: String) {
+        printDebug("Removing task: \(taskId)")
+        currentTasks.removeAll { $0.id == taskId }
+        updateOverallProgress()
+        updateIsImporting()
+    }
+    
     public func clearAllTasks() {
         printDebug("Clearing all tasks and resetting state")
         
