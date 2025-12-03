@@ -10,8 +10,9 @@ import Combine
 import UIKit
 
 public enum ImportSource: String, Codable, CaseIterable {
-    case photos = "photos"        // Media from photo library (can delete temp files)
-    case files = "files"          // Media from file system (should not delete originals)
+    case photos = "photos"              // Media from photo library (can delete temp files)
+    case files = "files"                // Media from file system (should not delete originals)
+    case shareExtension = "shareExtension"  // Media from Share Extension (files in app group container)
     
     /// Whether temporary files can be safely deleted after import for this source type
     public var canDeleteTempFilesAfterImport: Bool {
@@ -20,6 +21,8 @@ public enum ImportSource: String, Codable, CaseIterable {
             return true  // Photo library imports copy to temp directory, safe to delete
         case .files:
             return false // File imports reference user's files, should not delete
+        case .shareExtension:
+            return true  // Share Extension files are in app group, safe to delete after import
         }
     }
 }

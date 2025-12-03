@@ -16,6 +16,7 @@ public enum URLType: Equatable {
     case key(key: PrivateKey)
     case featureToggle(feature: Feature)
     case cameraFromWidget
+    case pendingImport  // Deep link from Share Extension to trigger import flow
 
     public init?(url: URL) {
         if let key = URLType.extractKey(url: url) {
@@ -26,6 +27,8 @@ public enum URLType: Equatable {
             self = .featureToggle(feature: feature)
         } else if url.absoluteString.starts(with: "\(AppConstants.deeplinkSchema)://camera") {
             self = .cameraFromWidget
+        } else if url.absoluteString.starts(with: "\(AppConstants.deeplinkSchema)://pendingImport") {
+            self = .pendingImport
         } else {
             return nil
         }
@@ -44,7 +47,16 @@ public enum URLType: Equatable {
             return featureToggleURL(feature: feature)
         case .cameraFromWidget:
             return cameraURL()
+        case .pendingImport:
+            return pendingImportURL()
         }
+    }
+    
+    private func pendingImportURL() -> URL? {
+        var components = URLComponents()
+        components.scheme = AppConstants.deeplinkSchema
+        components.host = "pendingImport"
+        return components.url
     }
 
     private func cameraURL() -> URL? {
