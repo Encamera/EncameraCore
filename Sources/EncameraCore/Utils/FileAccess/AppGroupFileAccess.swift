@@ -1,213 +1,261 @@
-////
-////  File.swift
-////  
-////
-////  Created by Alexander Freas on 11.05.23.
-////
 //
-//import Foundation
-//import UIKit
-//import UniformTypeIdentifiers
+//  AppGroupFileAccess.swift
+//  EncameraCore
 //
-//public struct AppGroupStorageModel: DataStorageModel {
-//    public static var rootURL: URL {
-//        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: UserDefaultUtils.appGroup)!
-//            .appendingPathComponent("ImportImages")
-//    }
+//  Created by Alexander Freas on 11.05.23.
 //
-//    public var album: Album
-//
-//    public var baseURL: URL {
-//        return Self.rootURL
-//    }
-//
-//    public var storageType: StorageType = .local
-//    
-//    init?(albumManager: AlbumManaging) {
-//        if let currentAlbum = albumManager.currentAlbum {
-//            self.album = currentAlbum
-//        } else {
-//            return nil
-//        }
-//    }
-//    
-//    public init(album: Album) {
-//        self.album = album
-//    }
-//    
-//    
-//}
-//
-//public class AppGroupFileReader: FileAccess {
-//
-//    
-//    public var directoryModel: DataStorageModel?
-//    
-//    public required init() {
-//        assertionFailure("Cannot use default init with this reader")
-//
-//    }
-//
-//    public required init(for album: Album, albumManager: AlbumManaging) async {
-//        
-//    }
-//
-//    public required init?(albumManager: AlbumManaging) {
-//        guard let directoryModel = AppGroupStorageModel(albumManager: albumManager) else {
-//            return nil
-//        }
-//        self.directoryModel = directoryModel
-//        do {
-//            try directoryModel.initializeDirectories()
-//            
-//        } catch {
-//            assertionFailure("Directory init failed")
-//        }
-//    }
-//    
-//    public func loadLeadingThumbnail() async throws -> UIImage? {
-//        let media: [CleartextMedia] = await enumerateMedia()
-//        guard let first = media.first else {
-//            return nil
-//        }
-//        let data = try await ThumbnailUtils.createThumbnailDataFrom(cleartext: first)
-//        return UIImage(data: data)
-//    }
-//    
-//    public func loadMediaPreview<T>(for media: T) async throws -> PreviewModel where T : MediaDescribing {
-//        guard let cleartext = media as? CleartextMedia else {
-//            throw FileAccessError.unhandledMediaType
-//        }
-//        let thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
-//        let preview = PreviewModel(thumbnailMedia: thumb)
-//        
-//        return preview
-//    }
-//    
-//    public func loadMediaToURL<T>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
-//        guard let cleartext = media as? CleartextMedia else {
-//            throw FileAccessError.unhandledMediaType
-//        }
-//        return cleartext
-//    }
-//    
-//    public func loadMediaInMemory<T>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia where T : MediaDescribing {
-//        guard let cleartext = media as? CleartextMedia, case .url(let url) = cleartext.source else {
-//            throw FileAccessError.unhandledMediaType
-//        }
-//        let data = try Data(contentsOf: url)
-//
-//        return CleartextMedia(source: data)
-//    }
-//    
-//    
-//    
-//}
-//
-//
-//extension AppGroupFileReader: FileEnumerator {
-//
-//    public func configure(for album: Album, albumManager: AlbumManaging) async {
-//        
-//    }
-//    
-//    public func enumerateMedia<T>() async -> [T] where T : MediaDescribing {
-//        guard let containerUrl = directoryModel?.baseURL else {
-//            fatalError("Could not get shared container url")
-//        }
-//        guard T.self is CleartextMedia.Type else {
-//            return []
-//        }
-//        
-//        do {
-//            let mediaFiles = try FileManager.default.contentsOfDirectory(at: containerUrl, includingPropertiesForKeys: nil, options: [])
-//            
-//            let filteredMediaFiles = mediaFiles.filter { MediaType.supportedMediaFileExtensions.contains($0.pathExtension.lowercased()) }
-//            let mapped: [CleartextMedia] = filteredMediaFiles.map { url in
-//                CleartextMedia(source: url)
-//            }
-//            debugPrint("Files from app group", mediaFiles, filteredMediaFiles, mapped)
-//            // if there are other file types that were shared to
-//            // our app group that we don't support, delete them
-//            if mapped.count == 0 {
-//                try await deleteAllMedia()
-//            }
-//            return mapped as! [T]
-//        } catch {
-//            debugPrint("Could not list contents of directory at url", containerUrl)
-//            return []
-//        }
-//        
-//    }
-//    
-//}
-//
-//extension AppGroupFileReader: FileWriter {
-//    
-//    @discardableResult public func save(media: CleartextMedia, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
-//        if case .data(let source) = media.source, let url = directoryModel?.baseURL {
-//            let filename = "\(media.id).jpeg"
-//            let url = url.appendingPathComponent(filename)
-//
-//            print("new url", url)
-//            try source.write(to: url)
-//            return nil
-//        } else if case .url(let url) = media.source {
-//            guard let containerUrl = directoryModel?.baseURL else {
-//                fatalError("Could not get shared container url")
-//            }
-//            
-//            
-//            let fileExtension = url.pathExtension
-//                    .replacingOccurrences(of: "JPG", with: "jpeg")
-//                    .replacingOccurrences(of: "jpg", with: "jpeg")
-//            let filename = "\(media.id).\(fileExtension)"
-//            let destinationURL = containerUrl.appendingPathComponent(filename)
-//            debugPrint("Saving media to ", destinationURL)
-//            do {
-//                try FileManager.default.copyItem(at: url, to: destinationURL)
-//            } catch {
-//                print("Error while copying file from \(url) to \(destinationURL): \(error.localizedDescription)")
-//            }
-//        }
-//        return nil
-//    }
-//    
-//    public func createPreview(for media: CleartextMedia) async throws -> PreviewModel {
-//        guard case .url = media.source else {
-//            throw FileAccessError.unhandledMediaType
-//        }
-//        let thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: media)
-//        return PreviewModel(thumbnailMedia: thumb)
-//    }
-//    
-//    public func copy(media: EncryptedMedia) async throws {
-//        
-//    }
-//    
-//    public func move(media: EncryptedMedia) async throws {
-//        
-//    }
-//    
-//    public func delete(media: EncryptedMedia) async throws {
-//        
-//    }
-//    
-//    public func deleteMediaForKey() async throws {
-//        
-//    }
-//    
-//
-//    
-//    public func deleteAllMedia() async throws {
-//        guard let containerUrl = directoryModel?.baseURL else {
-//            fatalError("Could not get shared container url")
-//        }
-//        try? FileManager.default.removeItem(at: containerUrl)
-//    }
-//    
-//    public static func deleteThumbnailDirectory() throws {
-//        
-//    }
-//
-//}
+
+import Foundation
+import UIKit
+import UniformTypeIdentifiers
+
+/// Manages file access to the shared App Group container for sharing media between
+/// the Share Extension and the main app.
+public class AppGroupFileAccess: DebugPrintable {
+    
+    // MARK: - Shared Instance
+    
+    public static let shared = AppGroupFileAccess()
+    
+    // MARK: - Properties
+    
+    /// The root URL for the shared container's import directory
+    public var importDirectoryURL: URL? {
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: UserDefaultUtils.appGroup) else {
+            printDebug("ERROR: Could not get App Group container URL for identifier: \(UserDefaultUtils.appGroup)")
+            return nil
+        }
+        return containerURL.appendingPathComponent("ImportImages")
+    }
+    
+    // MARK: - Initialization
+    
+    public init() {
+        initializeDirectoryIfNeeded()
+    }
+    
+    // MARK: - Directory Management
+    
+    /// Ensures the import directory exists
+    private func initializeDirectoryIfNeeded() {
+        guard let url = importDirectoryURL else { return }
+        
+        if !FileManager.default.fileExists(atPath: url.path) {
+            do {
+                try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
+                printDebug("Created import directory at: \(url.path)")
+            } catch {
+                printDebug("ERROR: Failed to create import directory: \(error)")
+            }
+        }
+    }
+    
+    // MARK: - Saving Media
+    
+    /// Saves cleartext media to the App Group container
+    /// - Parameters:
+    ///   - media: The cleartext media to save
+    ///   - progress: Progress callback (0.0 to 1.0)
+    /// - Returns: The URL where the file was saved
+    @discardableResult
+    public func save(media: CleartextMedia, progress: @escaping (Double) -> Void) async throws -> URL {
+        guard let containerURL = importDirectoryURL else {
+            throw AppGroupFileAccessError.containerNotAvailable
+        }
+        
+        initializeDirectoryIfNeeded()
+        
+        switch media.source {
+        case .data(let data):
+            let filename = "\(media.id).jpeg"
+            let destinationURL = containerURL.appendingPathComponent(filename)
+            
+            printDebug("Saving media data to: \(destinationURL.path)")
+            try data.write(to: destinationURL)
+            progress(1.0)
+            return destinationURL
+            
+        case .url(let sourceURL):
+            let fileExtension = normalizeFileExtension(sourceURL.pathExtension)
+            let filename = "\(media.id).\(fileExtension)"
+            let destinationURL = containerURL.appendingPathComponent(filename)
+            
+            printDebug("Copying media from \(sourceURL.path) to \(destinationURL.path)")
+            
+            // Remove existing file if present
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            
+            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+            progress(1.0)
+            return destinationURL
+        }
+    }
+    
+    /// Normalizes file extensions for consistency
+    private func normalizeFileExtension(_ ext: String) -> String {
+        let lowercased = ext.lowercased()
+        switch lowercased {
+        case "jpg":
+            return "jpeg"
+        default:
+            return lowercased
+        }
+    }
+    
+    // MARK: - Enumerating Media
+    
+    /// Returns all pending media files in the import directory
+    public func enumerateMedia() async -> [CleartextMedia] {
+        guard let containerURL = importDirectoryURL else {
+            printDebug("ERROR: Container URL not available for enumeration")
+            return []
+        }
+        
+        do {
+            let fileURLs = try FileManager.default.contentsOfDirectory(
+                at: containerURL,
+                includingPropertiesForKeys: [.creationDateKey, .fileSizeKey],
+                options: [.skipsHiddenFiles]
+            )
+            
+            let supportedExtensions = MediaType.supportedMediaFileExtensions.map { $0.lowercased() }
+            let filteredURLs = fileURLs.filter { url in
+                supportedExtensions.contains(url.pathExtension.lowercased())
+            }
+            
+            let media = filteredURLs.map { url -> CleartextMedia in
+                var cleartextMedia = CleartextMedia(source: url)
+                // Try to get creation date for timestamp
+                if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+                   let creationDate = attributes[.creationDate] as? Date {
+                    cleartextMedia.timestamp = creationDate
+                }
+                return cleartextMedia
+            }
+            
+            printDebug("Found \(media.count) pending media files in app group container")
+            return media.sorted { ($0.timestamp ?? Date.distantPast) > ($1.timestamp ?? Date.distantPast) }
+            
+        } catch {
+            printDebug("ERROR: Could not enumerate contents of directory: \(error)")
+            return []
+        }
+    }
+    
+    /// Returns the count of pending media files without loading them all
+    public func pendingMediaCount() -> Int {
+        guard let containerURL = importDirectoryURL else { return 0 }
+        
+        do {
+            let fileURLs = try FileManager.default.contentsOfDirectory(
+                at: containerURL,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+            
+            let supportedExtensions = MediaType.supportedMediaFileExtensions.map { $0.lowercased() }
+            let count = fileURLs.filter { url in
+                supportedExtensions.contains(url.pathExtension.lowercased())
+            }.count
+            
+            return count
+        } catch {
+            return 0
+        }
+    }
+    
+    /// Checks if there are any pending media files
+    public func hasPendingMedia() -> Bool {
+        return pendingMediaCount() > 0
+    }
+    
+    // MARK: - Deleting Media
+    
+    /// Deletes a specific media file from the import directory
+    public func delete(media: CleartextMedia) async throws {
+        guard case .url(let url) = media.source else {
+            throw AppGroupFileAccessError.invalidMediaSource
+        }
+        
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            printDebug("File already deleted or doesn't exist: \(url.path)")
+            return
+        }
+        
+        try FileManager.default.removeItem(at: url)
+        printDebug("Deleted media file: \(url.lastPathComponent)")
+    }
+    
+    /// Deletes multiple media files
+    public func delete(mediaList: [CleartextMedia]) async throws {
+        for media in mediaList {
+            try await delete(media: media)
+        }
+    }
+    
+    /// Deletes all media files in the import directory
+    public func deleteAllMedia() async throws {
+        guard let containerURL = importDirectoryURL else {
+            throw AppGroupFileAccessError.containerNotAvailable
+        }
+        
+        let media = await enumerateMedia()
+        
+        for item in media {
+            try await delete(media: item)
+        }
+        
+        printDebug("Deleted all \(media.count) pending media files")
+    }
+    
+    /// Clears the entire import directory (including any non-media files)
+    public func clearImportDirectory() throws {
+        guard let containerURL = importDirectoryURL else {
+            throw AppGroupFileAccessError.containerNotAvailable
+        }
+        
+        if FileManager.default.fileExists(atPath: containerURL.path) {
+            try FileManager.default.removeItem(at: containerURL)
+            printDebug("Cleared import directory")
+        }
+        
+        // Recreate the empty directory
+        initializeDirectoryIfNeeded()
+    }
+    
+    // MARK: - Thumbnail Generation
+    
+    /// Generates a thumbnail for a cleartext media file
+    public func loadThumbnail(for media: CleartextMedia, targetSize: CGSize = CGSize(width: 200, height: 200)) async throws -> UIImage? {
+        guard case .url(let url) = media.source else {
+            throw AppGroupFileAccessError.invalidMediaSource
+        }
+        
+        let data = try await ThumbnailUtils.createThumbnailDataFrom(cleartext: media)
+        return UIImage(data: data)
+    }
+}
+
+// MARK: - Errors
+
+public enum AppGroupFileAccessError: Error, LocalizedError {
+    case containerNotAvailable
+    case invalidMediaSource
+    case fileNotFound
+    case saveFailed(underlyingError: Error)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .containerNotAvailable:
+            return "App Group container is not available"
+        case .invalidMediaSource:
+            return "Invalid media source"
+        case .fileNotFound:
+            return "File not found"
+        case .saveFailed(let error):
+            return "Failed to save file: \(error.localizedDescription)"
+        }
+    }
+}

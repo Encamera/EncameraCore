@@ -813,3 +813,19 @@
 "ICloudError.DownloadFailedGeneric" = "Could not download '%@' from iCloud. Please check your internet connection and iCloud settings.";
 "ICloudError.DownloadInProgress" = "File '%@' is still downloading from iCloud. Please wait.";
 
+/* ./ShareExtension/ShareViewController.swift - Share Extension */
+"ShareExtension.SavingMedia" = "Saving media...";
+"ShareExtension.MediaSaved" = "%d item(s) saved";
+"ShareExtension.OpenEncamera" = "Open Encamera";
+"ShareExtension.OpenAppToComplete" = "Open Encamera to finish importing your media and encrypting it.";
+"ShareExtension.SaveFailed" = "Failed to save media";
+
+/* ./Encamera/MediaImport/PendingImportView.swift - Pending Import */
+"PendingImport.Title" = "Import Media";
+"PendingImport.Description" = "%d item(s) ready to import and encrypt";
+"PendingImport.SelectAlbum" = "Select destination album:";
+"PendingImport.ImportButton" = "Import & Encrypt";
+"PendingImport.CancelConfirmTitle" = "Cancel Import?";
+"PendingImport.CancelConfirmMessage" = "This will delete the media waiting to be imported. This action cannot be undone.";
+"PendingImport.DeleteMedia" = "Delete Media";
+

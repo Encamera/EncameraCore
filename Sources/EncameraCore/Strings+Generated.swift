@@ -1371,6 +1371,24 @@ public enum L10n {
     /// Encamera never collects your data. Your private moments stay completely yours.
     public static let subheadingText3 = L10n.tr("Localizable", "OnboardingCarousel.SubheadingText3", fallback: "Encamera never collects your data. Your private moments stay completely yours.")
   }
+  public enum PendingImport {
+    /// This will delete the media waiting to be imported. This action cannot be undone.
+    public static let cancelConfirmMessage = L10n.tr("Localizable", "PendingImport.CancelConfirmMessage", fallback: "This will delete the media waiting to be imported. This action cannot be undone.")
+    /// Cancel Import?
+    public static let cancelConfirmTitle = L10n.tr("Localizable", "PendingImport.CancelConfirmTitle", fallback: "Cancel Import?")
+    /// Delete Media
+    public static let deleteMedia = L10n.tr("Localizable", "PendingImport.DeleteMedia", fallback: "Delete Media")
+    /// %d item(s) ready to import and encrypt
+    public static func description(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "PendingImport.Description", p1, fallback: "%d item(s) ready to import and encrypt")
+    }
+    /// Import & Encrypt
+    public static let importButton = L10n.tr("Localizable", "PendingImport.ImportButton", fallback: "Import & Encrypt")
+    /// Select destination album:
+    public static let selectAlbum = L10n.tr("Localizable", "PendingImport.SelectAlbum", fallback: "Select destination album:")
+    /// ./Encamera/MediaImport/PendingImportView.swift - Pending Import
+    public static let title = L10n.tr("Localizable", "PendingImport.Title", fallback: "Import Media")
+  }
   public enum PhotoPickerWrapper {
     /// Continue with Limited Access
     public static let continueLimited = L10n.tr("Localizable", "PhotoPickerWrapper.ContinueLimited", fallback: "Continue with Limited Access")
@@ -1512,6 +1530,20 @@ public enum L10n {
   public enum SettingsView {
     /// ./Encamera/Settings/SettingsView.swift
     public static let unknownError = L10n.tr("Localizable", "SettingsView.UnknownError", fallback: "Unknown error")
+  }
+  public enum ShareExtension {
+    /// %d item(s) saved
+    public static func mediaSaved(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "ShareExtension.MediaSaved", p1, fallback: "%d item(s) saved")
+    }
+    /// Open Encamera to finish importing your media and encrypting it.
+    public static let openAppToComplete = L10n.tr("Localizable", "ShareExtension.OpenAppToComplete", fallback: "Open Encamera to finish importing your media and encrypting it.")
+    /// Open Encamera
+    public static let openEncamera = L10n.tr("Localizable", "ShareExtension.OpenEncamera", fallback: "Open Encamera")
+    /// Failed to save media
+    public static let saveFailed = L10n.tr("Localizable", "ShareExtension.SaveFailed", fallback: "Failed to save media")
+    /// ./ShareExtension/ShareViewController.swift - Share Extension
+    public static let savingMedia = L10n.tr("Localizable", "ShareExtension.SavingMedia", fallback: "Saving media...")
   }
   public enum SplashScreen {
     /// Secure Your Memories
