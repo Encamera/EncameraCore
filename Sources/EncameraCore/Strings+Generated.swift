@@ -810,9 +810,9 @@ public enum L10n {
     public static let coverImageRemovedToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageRemovedToast", fallback: "Cover image disabled")
     /// Cover image defaults to latest image
     public static let coverImageResetToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageResetToast", fallback: "Cover image defaults to latest image")
-    /// Do you want to delete %@?
-    public static func deleteSelectedMedia(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", String(describing: p1), fallback: "Do you want to delete %@?")
+    /// Plural format key: "Do you want to delete %#@item_count@?"
+    public static func deleteSelectedMedia(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", p1, fallback: "Plural format key: \"Do you want to delete %#@item_count@?\"")
     }
     /// Are you sure you want to hide this album? You MUST remember the name of this album to access it again.
     public static let hideAlbumAlertMessage = L10n.tr("Localizable", "AlbumDetailView.HideAlbumAlertMessage", fallback: "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.")
@@ -822,20 +822,16 @@ public enum L10n {
     public static let hideAlbumMenuItem = L10n.tr("Localizable", "AlbumDetailView.HideAlbumMenuItem", fallback: "Hide Album")
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
-    /// Moved %@ item%@ to %@
-    public static func movedToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MovedToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Moved %@ item%@ to %@")
+    /// Plural format key: "Moved %#@item_count@ to %@"
+    public static func movedToast(_ p1: Int, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MovedToast", p1, String(describing: p2), fallback: "Plural format key: \"Moved %#@item_count@ to %@\"")
     }
-    /// Failed to move %@ item%@
-    public static func moveErrorToast(_ p1: Any, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MoveErrorToast", String(describing: p1), String(describing: p2), fallback: "Failed to move %@ item%@")
+    /// Plural format key: "Failed to move %#@item_count@"
+    public static func moveErrorToast(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveErrorToast", p1, fallback: "Plural format key: \"Failed to move %#@item_count@\"")
     }
     /// Move Media
     public static let moveMedia = L10n.tr("Localizable", "AlbumDetailView.MoveMedia", fallback: "Move Media")
-    /// Move %@ item%@ to %@?
-    public static func moveMediaConfirm(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MoveMediaConfirm", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Move %@ item%@ to %@?")
-    }
     /// Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.
     public static let noLicenseDeletionWarningMessage = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningMessage", fallback: "Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.")
     /// I Understand
