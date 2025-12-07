@@ -40,6 +40,10 @@ public struct ImportTask: Equatable {
         progress.state
     }
     public let assetIdentifiers: [String]
+    /// Identifier for the user-initiated batch. Multiple ImportTasks with the same userBatchId
+    /// were created from the same user selection (e.g., when selecting 20 photos from the photo picker,
+    /// they may be split into multiple technical batches for processing efficiency).
+    public let userBatchId: String?
     
     /// The number of unique media items (InteractableMedia) in this task.
     /// This groups live photo components (image + video with same ID) as a single item.
@@ -47,13 +51,14 @@ public struct ImportTask: Equatable {
         Set(media.map { $0.id }).count
     }
     
-    public init(id: String = UUID().uuidString, media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = []) {
+    public init(id: String = UUID().uuidString, media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = [], userBatchId: String? = nil) {
         self.id = id
         self.media = media
         self.albumId = albumId
         self.source = source
         self.createdAt = Date()
         self.assetIdentifiers = assetIdentifiers
+        self.userBatchId = userBatchId
         // Calculate totalFiles from unique media IDs so live photos count as one item
         let uniqueMediaCount = Set(media.map { $0.id }).count
         self.progress = ImportProgressUpdate(

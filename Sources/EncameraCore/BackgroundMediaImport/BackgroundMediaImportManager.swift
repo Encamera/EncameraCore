@@ -97,7 +97,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     /// Transitions a preparation task to actual import with the loaded media
-    public func startImportFromPreparation(taskId: String, media: [CleartextMedia], assetIdentifiers: [String] = []) async throws {
+    public func startImportFromPreparation(taskId: String, media: [CleartextMedia], assetIdentifiers: [String] = [], userBatchId: String? = nil) async throws {
         printDebug("Starting import from preparation task: \(taskId) with \(media.count) media items")
         
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
@@ -113,10 +113,10 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         currentTasks.remove(at: taskIndex)
         
         // Now start the actual import
-        try await startImport(media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers)
+        try await startImport(media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers, userBatchId: userBatchId)
     }
 
-    public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = []) async throws {
+    public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = [], userBatchId: String? = nil) async throws {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
         // Reset time estimation for new import
         resetTimeEstimationState()
@@ -134,7 +134,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             printDebug("... and \(media.count - 5) more media items")
         }
         
-        let task = ImportTask(media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers)
+        let task = ImportTask(media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers, userBatchId: userBatchId)
         currentTasks.append(task)
         
         // Set isImporting immediately when task is created, not in executeImportTask
