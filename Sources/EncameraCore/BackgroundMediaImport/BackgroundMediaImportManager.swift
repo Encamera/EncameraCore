@@ -277,10 +277,12 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                 await MainActor.run {
                     self.printDebug("Import task completed successfully: \(task.id)")
                     if let index = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
+                        // Use uniqueMediaCount to correctly count live photos as single items
+                        let totalItems = task.uniqueMediaCount
                         self.currentTasks[index].progress = ImportProgressUpdate(
                             taskId: task.id,
-                            currentFileIndex: task.media.count - 1,
-                            totalFiles: task.media.count,
+                            currentFileIndex: totalItems - 1,
+                            totalFiles: totalItems,
                             currentFileProgress: 1.0,
                             overallProgress: 1.0,
                             currentFileName: nil,
@@ -319,29 +321,35 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     private func performImport(task: ImportTask, fileAccess: FileAccess) async throws {
         printDebug("Performing import for task: \(task.id)")
         let startTime = Date()
-        var processedFiles = 0
+        var processedGroups = 0
         
-        // Process files concurrently in batches to avoid overwhelming the system
+        // Group media by ID so live photo components (image + video) are processed together
+        let mediaGroups = groupMediaById(task.media)
+        let totalGroups = mediaGroups.count
+        printDebug("Grouped \(task.media.count) media items into \(totalGroups) groups (live photos count as 1)")
+        
+        // Process groups concurrently in batches to avoid overwhelming the system
         let batchSize = 3
-        let batches = task.media.chunked(into: batchSize)
+        let batches = mediaGroups.chunked(into: batchSize)
         printDebug("Processing \(batches.count) batches of size \(batchSize)")
         
         for (batchIndex, batch) in batches.enumerated() {
             try Task.checkCancellation()
-            printDebug("Processing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) files")
+            printDebug("Processing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) media groups")
             
             // Process batch concurrently
             try await withThrowingTaskGroup(of: Void.self) { group in
-                for (fileIndex, media) in batch.enumerated() {
+                for (groupIndex, mediaGroup) in batch.enumerated() {
                     group.addTask {
-                        let globalIndex = batchIndex * batchSize + fileIndex
-                        try await self.processSingleFile(
-                            media: media,
+                        let globalIndex = batchIndex * batchSize + groupIndex
+                        try await self.processMediaGroup(
+                            mediaGroup: mediaGroup,
                             fileAccess: fileAccess,
                             task: task,
-                            fileIndex: globalIndex,
+                            groupIndex: globalIndex,
+                            totalGroups: totalGroups,
                             startTime: startTime,
-                            processedFiles: processedFiles
+                            processedGroups: processedGroups
                         )
                     }
                 }
@@ -349,150 +357,140 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
                 try await group.waitForAll()
             }
             
-            processedFiles += batch.count
-            printDebug("Completed batch \(batchIndex + 1)/\(batches.count), total processed: \(processedFiles)")
+            processedGroups += batch.count
+            printDebug("Completed batch \(batchIndex + 1)/\(batches.count), total processed: \(processedGroups)/\(totalGroups)")
         }
         
         printDebug("Import completed for task: \(task.id)")
     }
     
-    private func processSingleFile(
-        media: CleartextMedia,
+    /// Processes a group of CleartextMedia items as a single InteractableMedia.
+    /// For live photos, this receives both the image and video components together.
+    /// For regular photos/videos, this receives a single-element array.
+    private func processMediaGroup(
+        mediaGroup: [CleartextMedia],
         fileAccess: FileAccess,
         task: ImportTask,
-        fileIndex: Int,
+        groupIndex: Int,
+        totalGroups: Int,
         startTime: Date,
-        processedFiles: Int
+        processedGroups: Int
     ) async throws {
-        printDebug("Processing file \(fileIndex + 1)/\(task.media.count): \(media.id)")
+        let mediaId = mediaGroup.first?.id ?? "unknown"
+        let isLivePhoto = mediaGroup.count > 1
+        printDebug("Processing \(isLivePhoto ? "live photo" : "media") \(groupIndex + 1)/\(totalGroups): \(mediaId) (\(mediaGroup.count) component(s))")
         
-        // Enhanced logging for temp file tracking
-        if case .url(let sourceURL) = media.source {
-            printDebug("Source file URL: \(sourceURL.path)")
-            printDebug("Source file absolute path: \(sourceURL.absoluteString)")
-            
-            // Check file existence and attributes
-            let fileManager = FileManager.default
-            let exists = fileManager.fileExists(atPath: sourceURL.path)
-            printDebug("File exists check: \(exists)")
-            
-            if exists {
-                do {
-                    let attributes = try fileManager.attributesOfItem(atPath: sourceURL.path)
-                    let fileSize = attributes[.size] as? Int64 ?? 0
-                    let modificationDate = attributes[.modificationDate] as? Date
-                    let creationDate = attributes[.creationDate] as? Date
-                    printDebug("File attributes - Size: \(fileSize) bytes, Modified: \(modificationDate?.description ?? "unknown"), Created: \(creationDate?.description ?? "unknown")")
-                    
-                    // Check if file is in temp directory
-                    if sourceURL.path.contains("/tmp/") {
-                        printDebug("WARNING: File is in temp directory and may be cleaned up by the system")
-                        printDebug("Temp directory path component: \(sourceURL.pathComponents.filter { $0.contains("tmp") }.joined(separator: "/"))")
-                    }
-                } catch {
-                    printDebug("ERROR: Failed to get file attributes: \(error)")
-                }
-            } else {
-                printDebug("WARNING: Source file does not exist at path: \(sourceURL.path)")
-                
-                // Check parent directory
-                let parentDir = sourceURL.deletingLastPathComponent()
-                printDebug("Parent directory: \(parentDir.path)")
-                printDebug("Parent directory exists: \(fileManager.fileExists(atPath: parentDir.path))")
-                
-                // List contents of parent directory if it exists
-                if fileManager.fileExists(atPath: parentDir.path) {
-                    do {
-                        let contents = try fileManager.contentsOfDirectory(atPath: parentDir.path)
-                        printDebug("Parent directory contains \(contents.count) items")
-                        if contents.count < 20 {
-                            printDebug("Directory contents: \(contents)")
-                        }
-                    } catch {
-                        printDebug("ERROR: Failed to list directory contents: \(error)")
-                    }
-                }
-            }
-        }
+        logSourceFileStatus(for: mediaGroup)
         
-        let interactableMedia = try InteractableMedia(underlyingMedia: [media])
+        let interactableMedia = try InteractableMedia(underlyingMedia: mediaGroup)
         
-        // Check file existence right before save
-        if case .url(let sourceURL) = media.source {
-            printDebug("Pre-save file check for \(sourceURL.lastPathComponent)")
-            printDebug("File exists immediately before save: \(FileManager.default.fileExists(atPath: sourceURL.path))")
-        }
+        try await saveMedia(
+            interactableMedia,
+            mediaGroup: mediaGroup,
+            mediaId: mediaId,
+            fileAccess: fileAccess,
+            task: task,
+            groupIndex: groupIndex,
+            totalGroups: totalGroups,
+            startTime: startTime,
+            processedGroups: processedGroups
+        )
         
+        printDebug("Successfully saved \(isLivePhoto ? "live photo" : "media") \(groupIndex + 1)/\(totalGroups): \(mediaId)")
+    }
+    
+    /// Saves the InteractableMedia to disk and updates progress.
+    private func saveMedia(
+        _ interactableMedia: InteractableMedia<CleartextMedia>,
+        mediaGroup: [CleartextMedia],
+        mediaId: String,
+        fileAccess: FileAccess,
+        task: ImportTask,
+        groupIndex: Int,
+        totalGroups: Int,
+        startTime: Date,
+        processedGroups: Int
+    ) async throws {
         do {
-            var lastProgressCheck: TimeInterval = 0
-            
             try await fileAccess.save(media: interactableMedia) { fileProgress in
                 Task { @MainActor in
-                    let overallProgress = (Double(processedFiles) + fileProgress) / Double(task.media.count)
-                    let estimatedTimeRemaining = self.calculateEstimatedTime(
+                    self.updateImportProgress(
+                        task: task,
+                        groupIndex: groupIndex,
+                        totalGroups: totalGroups,
+                        fileProgress: fileProgress,
+                        processedGroups: processedGroups,
                         startTime: startTime,
-                        progress: overallProgress
+                        mediaId: mediaId
                     )
-                    
-                    // Log file existence during save progress
-                    let currentTime = Date().timeIntervalSince1970
-                    if currentTime - lastProgressCheck > 1.0 { // Check every second
-                        lastProgressCheck = currentTime
-                        if case .url(let sourceURL) = media.source {
-                            let exists = FileManager.default.fileExists(atPath: sourceURL.path)
-                            self.printDebug("During save - Progress: \(fileProgress * 100)%, File exists: \(exists)")
-                            if !exists {
-                                self.printDebug("CRITICAL: File disappeared during save operation!")
-                            }
-                        }
-                    }
-                    
-                    if let taskIndex = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
-                        self.currentTasks[taskIndex].progress = ImportProgressUpdate(
-                            taskId: task.id,
-                            currentFileIndex: fileIndex,
-                            totalFiles: task.media.count,
-                            currentFileProgress: fileProgress,
-                            overallProgress: overallProgress,
-                            currentFileName: media.id,
-                            state: .running,
-                            estimatedTimeRemaining: estimatedTimeRemaining
-                        )
-                        self.publishProgress(for: self.currentTasks[taskIndex])
-                    }
                 }
             }
-            
-            printDebug("Successfully saved file \(fileIndex + 1)/\(task.media.count): \(media.id)")
         } catch {
-            printDebug("Failed to save file \(media.id): \(error)")
-            printDebug("Error type: \(type(of: error))")
-            printDebug("Full error description: \(error)")
+            logSaveError(error, mediaGroup: mediaGroup, mediaId: mediaId)
+            throw error
+        }
+    }
+    
+    /// Updates the import progress for a task.
+    private func updateImportProgress(
+        task: ImportTask,
+        groupIndex: Int,
+        totalGroups: Int,
+        fileProgress: Double,
+        processedGroups: Int,
+        startTime: Date,
+        mediaId: String
+    ) {
+        let overallProgress = (Double(processedGroups) + fileProgress) / Double(totalGroups)
+        let estimatedTimeRemaining = calculateEstimatedTime(startTime: startTime, progress: overallProgress)
+        
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == task.id }) else { return }
+        
+        currentTasks[taskIndex].progress = ImportProgressUpdate(
+            taskId: task.id,
+            currentFileIndex: groupIndex,
+            totalFiles: totalGroups,
+            currentFileProgress: fileProgress,
+            overallProgress: overallProgress,
+            currentFileName: mediaId,
+            state: .running,
+            estimatedTimeRemaining: estimatedTimeRemaining
+        )
+        publishProgress(for: currentTasks[taskIndex])
+    }
+    
+    /// Logs source file status for debugging temp file issues.
+    private func logSourceFileStatus(for mediaGroup: [CleartextMedia]) {
+        for media in mediaGroup {
+            guard case .url(let sourceURL) = media.source else { continue }
             
-            // Enhanced error analysis
-            if let nsError = error as NSError? {
-                printDebug("NSError domain: \(nsError.domain), code: \(nsError.code)")
-                printDebug("NSError userInfo: \(nsError.userInfo)")
-                
-                if nsError.domain == NSCocoaErrorDomain && nsError.code == 4 {
-                    printDebug("File not found error - likely temp files were cleaned up")
-                    
-                    // Check if file still exists after error
-                    if case .url(let sourceURL) = media.source {
-                        printDebug("Post-error file check: \(FileManager.default.fileExists(atPath: sourceURL.path))")
+            let fileManager = FileManager.default
+            let exists = fileManager.fileExists(atPath: sourceURL.path)
+            printDebug("Source: \(sourceURL.lastPathComponent), exists: \(exists)")
+            
+            if !exists {
+                printDebug("WARNING: Source file missing at \(sourceURL.path)")
+            } else if sourceURL.path.contains("/tmp/") {
+                printDebug("Note: File is in temp directory")
+            }
+        }
+    }
+    
+    /// Logs detailed error information when save fails.
+    private func logSaveError(_ error: Error, mediaGroup: [CleartextMedia], mediaId: String) {
+        printDebug("Failed to save media \(mediaId): \(error)")
+        
+        if let nsError = error as NSError? {
+            printDebug("Error domain: \(nsError.domain), code: \(nsError.code)")
+            
+            if nsError.domain == NSCocoaErrorDomain && nsError.code == 4 {
+                printDebug("File not found - temp files may have been cleaned up")
+                for media in mediaGroup {
+                    if case .url(let url) = media.source {
+                        printDebug("Post-error check - \(url.lastPathComponent) exists: \(FileManager.default.fileExists(atPath: url.path))")
                     }
-                } else if nsError.domain == "PHPhotosErrorDomain" && nsError.code == -1 {
-                    printDebug("Photos framework error - generic error code -1")
                 }
             }
-            
-            // Check if it's an authentication error
-            if error.localizedDescription.contains("User interaction required") ||
-               error.localizedDescription.contains("Caller is not running foreground") {
-                printDebug("Authentication error in background - cannot access protected keychain items")
-            }
-            
-            throw error
         }
     }
     
@@ -617,6 +615,22 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         smoothedTimeEstimate = nil
         lastTimeEstimateUpdate = nil
         progressHistory.removeAll()
+    }
+    
+    /// Groups CleartextMedia items by their ID so that live photo components (image + video) are processed together.
+    /// This ensures live photos are counted as single items rather than counting their components separately.
+    private func groupMediaById(_ media: [CleartextMedia]) -> [[CleartextMedia]] {
+        var groups: [String: [CleartextMedia]] = [:]
+        for item in media {
+            groups[item.id, default: []].append(item)
+        }
+        // Preserve insertion order by iterating through original media
+        var seen = Set<String>()
+        return media.compactMap { item -> [CleartextMedia]? in
+            guard !seen.contains(item.id) else { return nil }
+            seen.insert(item.id)
+            return groups[item.id]
+        }
     }
     
     private func cleanupTempFilesIfSafe() {

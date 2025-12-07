@@ -41,6 +41,12 @@ public struct ImportTask: Equatable {
     }
     public let assetIdentifiers: [String]
     
+    /// The number of unique media items (InteractableMedia) in this task.
+    /// This groups live photo components (image + video with same ID) as a single item.
+    public var uniqueMediaCount: Int {
+        Set(media.map { $0.id }).count
+    }
+    
     public init(id: String = UUID().uuidString, media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = []) {
         self.id = id
         self.media = media
@@ -48,10 +54,12 @@ public struct ImportTask: Equatable {
         self.source = source
         self.createdAt = Date()
         self.assetIdentifiers = assetIdentifiers
+        // Calculate totalFiles from unique media IDs so live photos count as one item
+        let uniqueMediaCount = Set(media.map { $0.id }).count
         self.progress = ImportProgressUpdate(
             taskId: id,
             currentFileIndex: 0,
-            totalFiles: media.count,
+            totalFiles: uniqueMediaCount,
             currentFileProgress: 0.0,
             overallProgress: 0.0,
             currentFileName: nil,
