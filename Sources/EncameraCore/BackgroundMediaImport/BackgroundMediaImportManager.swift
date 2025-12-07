@@ -636,9 +636,17 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     private func cleanupTempFilesIfSafe() {
         printDebug("cleanupTempFilesIfSafe() called")
         
-        // Check if there are any active photo imports (which use temp files)
-        let hasActivePhotoImports = currentTasks.contains { task in
-            task.progress.state == .running
+        // Check if there are any active photo imports or preparing tasks (which use temp files)
+        let hasActiveOrPreparingImports = currentTasks.contains { task in
+            switch task.progress.state {
+            case .running:
+                return true
+            case .preparing:
+                // Preparation tasks have temp files that will be imported soon
+                return true
+            default:
+                return false
+            }
         }
         
         // Log current task states
@@ -647,15 +655,22 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             printDebug("Task \(index): id=\(task.id), state=\(task.progress.state), source=\(task.source.rawValue)")
         }
         
-        if !hasActivePhotoImports {
-            printDebug("No active photo imports - cleaning up temporary files")
+        if !hasActiveOrPreparingImports {
+            printDebug("No active or preparing photo imports - cleaning up temporary files")
             printDebug("About to call TempFileAccess.cleanupTemporaryFiles()")
             TempFileAccess.cleanupTemporaryFiles()
             printDebug("TempFileAccess.cleanupTemporaryFiles() completed")
         } else {
-            printDebug("Active photo imports detected - keeping temp files")
-            let activeCount = currentTasks.filter { $0.progress.state == .running }.count
-            printDebug("Number of active imports: \(activeCount)")
+            printDebug("Active or preparing photo imports detected - keeping temp files")
+            let activeCount = currentTasks.filter { 
+                if case .running = $0.progress.state { return true }
+                return false
+            }.count
+            let preparingCount = currentTasks.filter {
+                if case .preparing = $0.progress.state { return true }
+                return false
+            }.count
+            printDebug("Number of active imports: \(activeCount), preparing: \(preparingCount)")
         }
     }
     
