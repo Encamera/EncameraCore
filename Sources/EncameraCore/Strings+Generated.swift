@@ -1082,16 +1082,16 @@ public enum L10n {
     public static let hideAlbumDescription = L10n.tr("Localizable", "FeatureToggles.HideAlbumDescription", fallback: "Hide album from main view")
     /// Recovery Phrase
     public static let recoveryPhrase = L10n.tr("Localizable", "FeatureToggles.RecoveryPhrase", fallback: "Recovery Phrase")
-    /// Move to Album
-    public static let showMoveToAlbum = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbum", fallback: "Move to Album")
-    /// Enable moving media between albums
-    public static let showMoveToAlbumDescription = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbumDescription", fallback: "Enable moving media between albums")
     /// Enable recovery phrase feature
     public static let recoveryPhraseDescription = L10n.tr("Localizable", "FeatureToggles.RecoveryPhraseDescription", fallback: "Enable recovery phrase feature")
     /// Changing RevenueCat mode requires restarting the app. Continue?
     public static let revenuecatToggleMessage = L10n.tr("Localizable", "FeatureToggles.RevenuecatToggleMessage", fallback: "Changing RevenueCat mode requires restarting the app. Continue?")
     /// Restart Required
     public static let revenuecatToggleTitle = L10n.tr("Localizable", "FeatureToggles.RevenuecatToggleTitle", fallback: "Restart Required")
+    /// Move to Album
+    public static let showMoveToAlbum = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbum", fallback: "Move to Album")
+    /// Enable moving media between albums
+    public static let showMoveToAlbumDescription = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbumDescription", fallback: "Enable moving media between albums")
     /// Stop Tracking
     public static let stopTracking = L10n.tr("Localizable", "FeatureToggles.StopTracking", fallback: "Stop Tracking")
     /// Disable all analytics tracking
@@ -1116,6 +1116,16 @@ public enum L10n {
     public static let title = L10n.tr("Localizable", "FeedbackView.Title", fallback: "Leave feedback")
     /// We appreciate your feedback
     public static let weAppreciateIt = L10n.tr("Localizable", "FeedbackView.WeAppreciateIt", fallback: "We appreciate your feedback")
+  }
+  public enum FileLoading {
+    /// Decrypting media
+    public static let decrypting = L10n.tr("Localizable", "FileLoading.Decrypting", fallback: "Decrypting media")
+    /// Downloading media from iCloud
+    public static let downloading = L10n.tr("Localizable", "FileLoading.Downloading", fallback: "Downloading media from iCloud")
+    /// STEP %d OF 2
+    public static func stepIndicator(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "FileLoading.StepIndicator", p1, fallback: "STEP %d OF 2")
+    }
   }
   public enum FooterView {
     /// Media Details

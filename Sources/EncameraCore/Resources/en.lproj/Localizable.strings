@@ -576,6 +576,10 @@
 "ProgressView.Decrypting" = "Decrypting: %.0f%%";
 "ProgressView.FileLoadedSuccessfully" = "File loaded successfully";
 
+"FileLoading.StepIndicator" = "STEP %d OF 2";
+"FileLoading.Downloading" = "Downloading media from iCloud";
+"FileLoading.Decrypting" = "Decrypting media";
+
 "Error.Alert.Title" = "Error";
 "Error.Alert.FailedToLoadFile" = "Failed to load file: %@";
 "Test" = "Here is a test of the string translation";
