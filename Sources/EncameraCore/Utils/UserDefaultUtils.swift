@@ -11,9 +11,9 @@ import Combine
 public struct UserDefaultUtils {
 
     #if DEBUG
-    static var appGroup = "group.me.freas.encamera.debug"
+    public static var appGroup = "group.me.freas.encamera.debug"
     #else
-    static var appGroup = "group.me.freas.encamera"
+    public static var appGroup = "group.me.freas.encamera"
     #endif
     
     // MARK: - Constants
