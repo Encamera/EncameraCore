@@ -18,6 +18,10 @@ public enum L10n {
   public static func imageS(_ p1: Int) -> String {
     return L10n.tr("Localizable", "%@ Image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")
   }
+  /// Plural format key: "%#@item_count@"
+  public static func itemS(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "%@ Item(s)", p1, fallback: "Plural format key: \"%#@item_count@\"")
+  }
   /// ./EncameraCore/Utils/SettingsManager.swift
   public static func mustBeSet(_ p1: Any) -> String {
     return L10n.tr("Localizable", "%@ must be set", String(describing: p1), fallback: "%@ must be set")
@@ -810,9 +814,9 @@ public enum L10n {
     public static let coverImageRemovedToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageRemovedToast", fallback: "Cover image disabled")
     /// Cover image defaults to latest image
     public static let coverImageResetToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageResetToast", fallback: "Cover image defaults to latest image")
-    /// Plural format key: "Do you want to delete %#@item_count@?"
-    public static func deleteSelectedMedia(_ p1: Int) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", p1, fallback: "Plural format key: \"Do you want to delete %#@item_count@?\"")
+    /// Do you want to delete %@ %@?
+    public static func deleteSelectedMedia(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", String(describing: p1), String(describing: p2), fallback: "Do you want to delete %@ %@?")
     }
     /// Are you sure you want to hide this album? You MUST remember the name of this album to access it again.
     public static let hideAlbumAlertMessage = L10n.tr("Localizable", "AlbumDetailView.HideAlbumAlertMessage", fallback: "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.")
@@ -822,13 +826,13 @@ public enum L10n {
     public static let hideAlbumMenuItem = L10n.tr("Localizable", "AlbumDetailView.HideAlbumMenuItem", fallback: "Hide Album")
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
-    /// Plural format key: "Moved %#@item_count@ to %@"
-    public static func movedToast(_ p1: Int, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MovedToast", p1, String(describing: p2), fallback: "Plural format key: \"Moved %#@item_count@ to %@\"")
+    /// Moved %@ %@ to %@
+    public static func movedToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MovedToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Moved %@ %@ to %@")
     }
-    /// Plural format key: "Failed to move %#@item_count@"
-    public static func moveErrorToast(_ p1: Int) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MoveErrorToast", p1, fallback: "Plural format key: \"Failed to move %#@item_count@\"")
+    /// Failed to move %@ %@
+    public static func moveErrorToast(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveErrorToast", String(describing: p1), String(describing: p2), fallback: "Failed to move %@ %@")
     }
     /// Move Media
     public static let moveMedia = L10n.tr("Localizable", "AlbumDetailView.MoveMedia", fallback: "Move Media")
