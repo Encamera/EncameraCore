@@ -18,4 +18,5 @@ public enum BackgroundImportError: Error {
     case configurationError
     case taskNotFound
     case operationCancelled
+    case mismatchedType
 }
