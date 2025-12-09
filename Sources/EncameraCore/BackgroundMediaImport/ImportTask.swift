@@ -72,6 +72,28 @@ public struct ImportTask: Equatable {
             estimatedTimeRemaining: nil
         )
     }
+    
+    /// Creates an import task with a known total file count but no media yet.
+    /// Used for streaming imports where items are loaded and imported one at a time.
+    public init(id: String = UUID().uuidString, totalFiles: Int, albumId: String, source: ImportSource, userBatchId: String? = nil) {
+        self.id = id
+        self.media = []
+        self.albumId = albumId
+        self.source = source
+        self.createdAt = Date()
+        self.assetIdentifiers = []
+        self.userBatchId = userBatchId
+        self.progress = ImportProgressUpdate(
+            taskId: id,
+            currentFileIndex: 0,
+            totalFiles: totalFiles,
+            currentFileProgress: 0.0,
+            overallProgress: 0.0,
+            currentFileName: nil,
+            state: .idle,
+            estimatedTimeRemaining: nil
+        )
+    }
 
     public static func ==(lhs: ImportTask, rhs: ImportTask) -> Bool {
         return lhs.id == rhs.id
