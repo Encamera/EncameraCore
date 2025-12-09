@@ -3,6 +3,28 @@ import BackgroundTasks
 import Combine
 import UIKit
 
+// MARK: - Import Media Source
+
+/// Represents the source of media for an import operation.
+/// Supports both preloaded media (already in memory) and streaming from selection results.
+enum ImportMediaSource {
+    /// Media that has already been loaded into memory (e.g., from Files app or Share Extension)
+    case preloaded([CleartextMedia])
+    
+    /// Media selection results that need to be loaded on-demand (e.g., from Photo Picker)
+    /// Enables memory-efficient streaming where items are loaded one at a time
+    case streaming([MediaSelectionResult])
+    
+    var count: Int {
+        switch self {
+        case .preloaded(let media):
+            // Count unique media IDs (live photos have same ID for image+video)
+            return Set(media.map { $0.id }).count
+        case .streaming(let results):
+            return results.count
+        }
+    }
+}
 
 @MainActor
 public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
@@ -45,150 +67,78 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         printDebug("Configuring BackgroundMediaImportManager with albumManager")
         self.albumManager = albumManager
     }
-    
+
     /// High-level API: Start import directly from MediaSelectionResults (PHAssets or PHPickerResults)
     /// This handles the complete flow: load each item, import it, then cleanup its temp files atomically.
-    public func startImport(results: [MediaSelectionResult], albumId: String, source: ImportSource) async throws {
+    /// Uses streaming mode for memory efficiency - items are loaded one at a time.
+    /// Returns a summary of successful and failed imports.
+    @discardableResult
+    public func startImport(results: [MediaSelectionResult], albumId: String, source: ImportSource) async throws -> (success: Int, failure: Int) {
         printDebug("Starting import from \(results.count) MediaSelectionResults to album: \(albumId)")
         
-        guard let albumManager = albumManager else {
-            printDebug("Failed to start import - albumManager not configured")
-            throw BackgroundImportError.configurationError
-        }
+        // Validate configuration upfront
+        _ = try validateAndGetAlbum(albumId: albumId)
         
-        albumManager.loadAlbumsFromFilesystem()
-        guard let album = albumManager.albums.first(where: { $0.id == albumId }) else {
-            printDebug("Failed to start import - album not found: \(albumId)")
-            throw BackgroundImportError.configurationError
-        }
+        // Create and register the task using shared helper
+        let task = createAndRegisterTask(
+            totalFiles: results.count,
+            albumId: albumId,
+            source: source
+        )
         
-        // Generate a unique batch ID for this user selection
-        let userBatchId = UUID().uuidString
-        let taskId = UUID().uuidString
-        
-        // Create task with known total count - starts in running state immediately
-        var task = ImportTask(id: taskId, totalFiles: results.count, albumId: albumId, source: source, userBatchId: userBatchId)
-        task.progress.state = .running
-        currentTasks.append(task)
-        isImporting = true
-        
-        printDebug("Created import task with ID: \(taskId) for \(results.count) items")
-        
-        // Reset time estimation for new import
-        resetTimeEstimationState()
-        
-        // Start background task
-        startBackgroundTask()
-        
-        let startTime = Date()
-        var processedCount = 0
-        var collectedAssetIdentifiers: [String] = []
-        let fileAccess = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
-        
-        // Process each result atomically: load → import → cleanup
-        for (index, result) in results.enumerated() {
-            // Check for cancellation
-            guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }),
-                  currentTasks[taskIndex].progress.state == .running else {
-                printDebug("Import task \(taskId) was cancelled or not found, stopping")
-                break
-            }
-            
-            printDebug("📄 Processing item \(index + 1)/\(results.count)")
-            
-            do {
-                // 1. Load media from photo library to temp
-                let (media, assetId) = try await loadMediaFromResult(result)
-                
-                if let assetId = assetId {
-                    collectedAssetIdentifiers.append(assetId)
-                }
-                
-                // 2. Import to encrypted storage
-                let interactableMedia = try InteractableMedia(underlyingMedia: media)
-                try await fileAccess.save(media: interactableMedia) { fileProgress in
-                    Task { @MainActor in
-                        self.updateImportProgress(
-                            taskId: taskId,
-                            currentIndex: index,
-                            totalFiles: results.count,
-                            fileProgress: fileProgress,
-                            processedCount: processedCount,
-                            startTime: startTime
-                        )
-                    }
-                }
-                
-                // 3. Delete temp files for this item immediately after successful import
-                if source.canDeleteTempFilesAfterImport {
-                    deleteTempFiles(for: media)
-                }
-                
-                processedCount += 1
-                printDebug("✅ Successfully imported item \(index + 1)/\(results.count)")
-                
-            } catch {
-                printDebug("❌ Error processing item \(index + 1): \(error)")
-                // Continue with next item rather than failing the whole batch
-            }
-        }
-        
-        // Update final state
-        if let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) {
-            if currentTasks[taskIndex].progress.state == .running {
-                currentTasks[taskIndex].progress = ImportProgressUpdate(
-                    taskId: taskId,
-                    currentFileIndex: results.count - 1,
-                    totalFiles: results.count,
-                    currentFileProgress: 1.0,
-                    overallProgress: 1.0,
-                    currentFileName: nil,
-                    state: .completed,
-                    estimatedTimeRemaining: 0
-                )
-                publishProgress(for: currentTasks[taskIndex])
-            }
-        }
-        
-        printDebug("📈 Import complete - Processed: \(processedCount)/\(results.count)")
-        
-        updateIsImporting()
-        endBackgroundTask()
+        // Execute using unified infrastructure with streaming mode
+        return try await executeImportTask(task, mediaSource: .streaming(results))
     }
     
-    /// Helper to load media from a single MediaSelectionResult using MediaLoaderService
-    private func loadMediaFromResult(_ result: MediaSelectionResult) async throws -> (media: [CleartextMedia], assetId: String?) {
-        switch result {
-        case .phAsset(let asset):
-            let batch = try await mediaLoader.loadMedia(from: [result])
-            return (batch.media, asset.localIdentifier)
-        case .phPickerResult(let pickerResult):
-            let batch = try await mediaLoader.loadMedia(from: [result])
-            return (batch.media, pickerResult.assetIdentifier)
-        }
+    /// Helper to process a single item (load -> save -> progress)
+    /// Extracted for reuse and clarity
+    private func importSingleItem(
+        mediaGroup: [CleartextMedia],
+        fileAccess: FileAccess,
+        task: ImportTask,
+        groupIndex: Int,
+        totalGroups: Int,
+        startTime: Date,
+        processedGroups: Int
+    ) async throws {
+        let mediaId = mediaGroup.first?.id ?? "unknown"
+        let interactableMedia = try InteractableMedia(underlyingMedia: mediaGroup)
+        
+        try await saveMedia(
+            interactableMedia,
+            mediaGroup: mediaGroup,
+            mediaId: mediaId,
+            fileAccess: fileAccess,
+            task: task,
+            groupIndex: groupIndex,
+            totalGroups: totalGroups,
+            startTime: startTime,
+            processedGroups: processedGroups
+        )
     }
     
     /// Updates progress during import
     private func updateImportProgress(
-        taskId: String,
-        currentIndex: Int,
-        totalFiles: Int,
+        task: ImportTask,
+        groupIndex: Int,
+        totalGroups: Int,
         fileProgress: Double,
-        processedCount: Int,
-        startTime: Date
+        processedGroups: Int,
+        startTime: Date,
+        mediaId: String
     ) {
-        let overallProgress = (Double(processedCount) + fileProgress) / Double(totalFiles)
+        let overallProgress = (Double(processedGroups) + fileProgress) / Double(totalGroups)
         let estimatedTimeRemaining = calculateEstimatedTime(startTime: startTime, progress: overallProgress)
         
-        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else { return }
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == task.id }) else { return }
         
         currentTasks[taskIndex].progress = ImportProgressUpdate(
-            taskId: taskId,
-            currentFileIndex: currentIndex,
-            totalFiles: totalFiles,
+            taskId: task.id,
+            currentFileIndex: groupIndex,
+            totalFiles: totalGroups,
             currentFileProgress: fileProgress,
             overallProgress: overallProgress,
-            currentFileName: nil,
+            currentFileName: mediaId,
             state: .running,
             estimatedTimeRemaining: estimatedTimeRemaining
         )
@@ -197,11 +147,12 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     
     public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = [], userBatchId: String? = nil) async throws {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
-        // Reset time estimation for new import
-        resetTimeEstimationState()
         
-        // Log details about each media item
-        for (index, mediaItem) in media.prefix(5).enumerated() { // Log first 5 items
+        // Validate configuration upfront
+        _ = try validateAndGetAlbum(albumId: albumId)
+        
+        // Log details about each media item (first 5 for brevity)
+        for (index, mediaItem) in media.prefix(5).enumerated() {
             printDebug("Media item \(index): id=\(mediaItem.id)")
             if case .url(let url) = mediaItem.source {
                 printDebug("  - URL: \(url.path)")
@@ -213,17 +164,17 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             printDebug("... and \(media.count - 5) more media items")
         }
         
-        let task = ImportTask(media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers, userBatchId: userBatchId)
-        currentTasks.append(task)
+        // Create and register the task using shared helper
+        let task = createAndRegisterTask(
+            media: media,
+            albumId: albumId,
+            source: source,
+            assetIdentifiers: assetIdentifiers,
+            userBatchId: userBatchId
+        )
         
-        // Set isImporting immediately when task is created, not in executeImportTask
-        // This ensures the progress view can appear before execution begins
-        isImporting = true
-        
-        printDebug("Created import task with ID: \(task.id)")
-        printDebug("Total current tasks: \(currentTasks.count)")
-        
-        try await executeImportTask(task)
+        // Execute using unified infrastructure with preloaded mode
+        try await executeImportTask(task, mediaSource: .preloaded(media))
     }
     
     public func pauseImport(taskId: String) {
@@ -332,80 +283,162 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     
     // MARK: - Private Implementation
     
-    private func executeImportTask(_ task: ImportTask) async throws {
-        printDebug("Executing import task: \(task.id) with \(task.media.count) media items")
-        albumManager?.loadAlbumsFromFilesystem()
-        guard let albumManager = albumManager,
-              let album = albumManager.albums.first(where: { $0.id == task.albumId }) else {
-            printDebug("Failed to execute import task - missing configuration or album", albumManager?.albums)
+    // MARK: Task Lifecycle Helpers
+    
+    /// Creates and registers a new import task with the manager.
+    /// Handles common setup: task creation, registration, state initialization, and background task start.
+    private func createAndRegisterTask(
+        media: [CleartextMedia] = [],
+        totalFiles: Int? = nil,
+        albumId: String,
+        source: ImportSource,
+        assetIdentifiers: [String] = [],
+        userBatchId: String? = nil
+    ) -> ImportTask {
+        let taskId = UUID().uuidString
+        let batchId = userBatchId ?? UUID().uuidString
+        
+        let task: ImportTask
+        if media.isEmpty, let total = totalFiles {
+            // Streaming mode: create task with known count but no media yet
+            task = ImportTask(id: taskId, totalFiles: total, albumId: albumId, source: source, userBatchId: batchId)
+        } else {
+            // Preloaded mode: create task with media
+            task = ImportTask(id: taskId, media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers, userBatchId: batchId)
+        }
+        
+        currentTasks.append(task)
+        isImporting = true
+        
+        printDebug("Created import task with ID: \(taskId) for \(task.progress.totalFiles) items")
+        printDebug("Total current tasks: \(currentTasks.count)")
+        
+        return task
+    }
+    
+    /// Finalizes a task by updating its state to completed or failed.
+    /// Handles common teardown: state update, progress publishing, and cleanup.
+    private func finalizeTask(taskId: String, success: Bool, totalItems: Int, error: Error? = nil) {
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
+            printDebug("Cannot finalize task - not found: \(taskId)")
+            return
+        }
+        
+        if success {
+            currentTasks[taskIndex].progress = ImportProgressUpdate(
+                taskId: taskId,
+                currentFileIndex: totalItems - 1,
+                totalFiles: totalItems,
+                currentFileProgress: 1.0,
+                overallProgress: 1.0,
+                currentFileName: nil,
+                state: .completed,
+                estimatedTimeRemaining: 0
+            )
+            printDebug("Import task completed successfully: \(taskId)")
+        } else if let error = error {
+            currentTasks[taskIndex].progress.state = .failed(error)
+            printDebug("Import task failed with error: \(error.localizedDescription) for task: \(taskId)")
+        }
+        
+        publishProgress(for: currentTasks[taskIndex])
+        updateOverallProgress()
+        updateIsImporting()
+        endBackgroundTask()
+        cleanupTempFilesIfSafe()
+    }
+    
+    /// Validates album configuration and returns the album if valid.
+    private func validateAndGetAlbum(albumId: String) throws -> Album {
+        guard let albumManager = albumManager else {
+            printDebug("Failed to start import - albumManager not configured")
             throw BackgroundImportError.configurationError
         }
         
-        let taskIndex = currentTasks.firstIndex(where: { $0.id == task.id })!
+        albumManager.loadAlbumsFromFilesystem()
+        guard let album = albumManager.albums.first(where: { $0.id == albumId }) else {
+            printDebug("Failed to start import - album not found: \(albumId)")
+            throw BackgroundImportError.configurationError
+        }
+        
+        return album
+    }
+    
+    /// Unified import task execution that supports both preloaded and streaming modes.
+    /// - Parameters:
+    ///   - task: The import task to execute
+    ///   - mediaSource: The source of media (preloaded or streaming)
+    /// - Returns: A tuple of (successCount, failureCount) for streaming imports
+    @discardableResult
+    private func executeImportTask(_ task: ImportTask, mediaSource: ImportMediaSource) async throws -> (success: Int, failure: Int) {
+        printDebug("Executing import task: \(task.id) with source: \(mediaSource.count) items")
+        
+        let album = try validateAndGetAlbum(albumId: task.albumId)
+        guard let albumManager = albumManager else {
+            throw BackgroundImportError.configurationError
+        }
+        
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == task.id }) else {
+            throw BackgroundImportError.configurationError
+        }
         currentTasks[taskIndex].progress.state = .running
         isImporting = true
         
         printDebug("Starting background task for import: \(task.id)")
         startBackgroundTask()
+        resetTimeEstimationState()
+        
+        var successCount = 0
+        var failureCount = 0
         
         currentImportTask = Task {
-            do {
-                let fileAccess = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
-                try await performImport(task: task, fileAccess: fileAccess)
+            let fileAccess = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
+            
+            switch mediaSource {
+            case .preloaded(let media):
+                // Batch processing for preloaded media (existing behavior)
+                try await performBatchImport(task: task, media: media, fileAccess: fileAccess)
+                successCount = task.uniqueMediaCount
                 
-                await MainActor.run {
-                    self.printDebug("Import task completed successfully: \(task.id)")
-                    if let index = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
-                        // Use uniqueMediaCount to correctly count live photos as single items
-                        let totalItems = task.uniqueMediaCount
-                        self.currentTasks[index].progress = ImportProgressUpdate(
-                            taskId: task.id,
-                            currentFileIndex: totalItems - 1,
-                            totalFiles: totalItems,
-                            currentFileProgress: 1.0,
-                            overallProgress: 1.0,
-                            currentFileName: nil,
-                            state: .completed,
-                            estimatedTimeRemaining: 0
-                        )
-                        self.publishProgress(for: self.currentTasks[index])
-                    }
-                    self.updateIsImporting()
-                    self.endBackgroundTask()
-                    
-                    // Clean up temp files only if no other photo imports are running
-                    self.cleanupTempFilesIfSafe()
-                }
-            } catch {
-                await MainActor.run {
-                    self.printDebug("Import task failed with error: \(error.localizedDescription) for task: \(task.id)")
-                    if let index = self.currentTasks.firstIndex(where: { $0.id == task.id }) {
-                        self.currentTasks[index].progress.state = .failed(error)
-                        self.publishProgress(for: self.currentTasks[index])
-                    }
-                    self.updateOverallProgress()
-                    self.updateIsImporting()
-                    self.endBackgroundTask()
-                    
-                    // Clean up temp files only if no other photo imports are running
-                    self.cleanupTempFilesIfSafe()
-                }
-                throw error
+            case .streaming(let results):
+                // Sequential streaming for memory efficiency
+                let counts = try await performStreamingImport(task: task, results: results, fileAccess: fileAccess)
+                successCount = counts.success
+                failureCount = counts.failure
             }
         }
         
-        try await currentImportTask?.value
+        do {
+            try await currentImportTask?.value
+            await MainActor.run {
+                self.finalizeTask(taskId: task.id, success: true, totalItems: mediaSource.count)
+            }
+        } catch {
+            await MainActor.run {
+                self.finalizeTask(taskId: task.id, success: false, totalItems: mediaSource.count, error: error)
+            }
+            throw error
+        }
+        
+        return (successCount, failureCount)
     }
     
-    private func performImport(task: ImportTask, fileAccess: FileAccess) async throws {
-        printDebug("Performing import for task: \(task.id)")
+    /// Legacy overload for backward compatibility with resumeImport
+    private func executeImportTask(_ task: ImportTask) async throws {
+        try await executeImportTask(task, mediaSource: .preloaded(task.media))
+    }
+    
+    /// Performs batch import for preloaded media with concurrent processing.
+    /// Used when all media is already loaded into memory.
+    private func performBatchImport(task: ImportTask, media: [CleartextMedia], fileAccess: FileAccess) async throws {
+        printDebug("Performing batch import for task: \(task.id)")
         let startTime = Date()
         var processedGroups = 0
         
         // Group media by ID so live photo components (image + video) are processed together
-        let mediaGroups = groupMediaById(task.media)
+        let mediaGroups = groupMediaById(media)
         let totalGroups = mediaGroups.count
-        printDebug("Grouped \(task.media.count) media items into \(totalGroups) groups (live photos count as 1)")
+        printDebug("Grouped \(media.count) media items into \(totalGroups) groups (live photos count as 1)")
         
         // Process groups concurrently in batches to avoid overwhelming the system
         let batchSize = 3
@@ -440,7 +473,66 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             printDebug("Completed batch \(batchIndex + 1)/\(batches.count), total processed: \(processedGroups)/\(totalGroups)")
         }
         
-        printDebug("Import completed for task: \(task.id)")
+        printDebug("Batch import completed for task: \(task.id)")
+    }
+    
+    /// Performs streaming import for MediaSelectionResults with sequential processing.
+    /// Memory-efficient: loads one item at a time from the photo library.
+    /// Each item is loaded → imported → cleaned up atomically.
+    private func performStreamingImport(
+        task: ImportTask,
+        results: [MediaSelectionResult],
+        fileAccess: FileAccess
+    ) async throws -> (success: Int, failure: Int) {
+        printDebug("Performing streaming import for task: \(task.id) with \(results.count) results")
+        let startTime = Date()
+        var processedCount = 0
+        var successCount = 0
+        var failureCount = 0
+        
+        for (index, result) in results.enumerated() {
+            // Check for cancellation
+            guard let taskIndex = await MainActor.run(body: { currentTasks.firstIndex(where: { $0.id == task.id }) }),
+                  await MainActor.run(body: { currentTasks[taskIndex].progress.state == .running }) else {
+                printDebug("Import task \(task.id) was cancelled or not found, stopping")
+                break
+            }
+            
+            printDebug("📄 Processing item \(index + 1)/\(results.count)")
+            
+            do {
+                // 1. Load media from photo library to temp
+                let (media, _) = try await mediaLoader.loadSingleMedia(from: result)
+                
+                // 2. Import to encrypted storage
+                try await importSingleItem(
+                    mediaGroup: media,
+                    fileAccess: fileAccess,
+                    task: task,
+                    groupIndex: index,
+                    totalGroups: results.count,
+                    startTime: startTime,
+                    processedGroups: processedCount
+                )
+                
+                // 3. Delete temp files for this item immediately after successful import
+                if task.source.canDeleteTempFilesAfterImport {
+                    deleteTempFiles(for: media)
+                }
+                
+                successCount += 1
+                processedCount += 1
+                printDebug("✅ Successfully imported item \(index + 1)/\(results.count)")
+                
+            } catch {
+                failureCount += 1
+                printDebug("❌ Error processing item \(index + 1): \(error)")
+                // Continue with next item rather than failing the whole batch
+            }
+        }
+        
+        printDebug("📈 Streaming import complete - Processed: \(processedCount)/\(results.count) (Success: \(successCount), Failed: \(failureCount))")
+        return (successCount, failureCount)
     }
     
     /// Processes a group of CleartextMedia items as a single InteractableMedia.
@@ -461,12 +553,9 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         
         logSourceFileStatus(for: mediaGroup)
         
-        let interactableMedia = try InteractableMedia(underlyingMedia: mediaGroup)
-        
-        try await saveMedia(
-            interactableMedia,
+        // Use the shared helper for consistency
+        try await importSingleItem(
             mediaGroup: mediaGroup,
-            mediaId: mediaId,
             fileAccess: fileAccess,
             task: task,
             groupIndex: groupIndex,
@@ -508,34 +597,6 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             logSaveError(error, mediaGroup: mediaGroup, mediaId: mediaId)
             throw error
         }
-    }
-    
-    /// Updates the import progress for a task.
-    private func updateImportProgress(
-        task: ImportTask,
-        groupIndex: Int,
-        totalGroups: Int,
-        fileProgress: Double,
-        processedGroups: Int,
-        startTime: Date,
-        mediaId: String
-    ) {
-        let overallProgress = (Double(processedGroups) + fileProgress) / Double(totalGroups)
-        let estimatedTimeRemaining = calculateEstimatedTime(startTime: startTime, progress: overallProgress)
-        
-        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == task.id }) else { return }
-        
-        currentTasks[taskIndex].progress = ImportProgressUpdate(
-            taskId: task.id,
-            currentFileIndex: groupIndex,
-            totalFiles: totalGroups,
-            currentFileProgress: fileProgress,
-            overallProgress: overallProgress,
-            currentFileName: mediaId,
-            state: .running,
-            estimatedTimeRemaining: estimatedTimeRemaining
-        )
-        publishProgress(for: currentTasks[taskIndex])
     }
     
     /// Logs source file status for debugging temp file issues.
