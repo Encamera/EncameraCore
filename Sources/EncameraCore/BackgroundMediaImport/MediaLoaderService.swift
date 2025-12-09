@@ -31,6 +31,9 @@ public struct LoadedMediaBatch {
 @MainActor
 public class MediaLoaderService: DebugPrintable {
     
+    // Cache directory check state to avoid hitting filesystem repeatedly
+    private var tempDirectoryChecked = false
+    
     public init() {}
     
     // MARK: - Public API
@@ -49,7 +52,7 @@ public class MediaLoaderService: DebugPrintable {
             printDebug("📄 Processing result \(index + 1)/\(results.count)")
             
             do {
-                let (media, assetId) = try await loadMediaFromResult(result)
+                let (media, assetId) = try await loadSingleMedia(from: result)
                 
                 allMedia.append(contentsOf: media)
                 successfulLoads += 1
@@ -74,10 +77,11 @@ public class MediaLoaderService: DebugPrintable {
         )
     }
     
-    // MARK: - Private Implementation
-    
-    /// Loads media from either PHAsset or PHPickerResult, returning the media and asset ID if applicable
-    private func loadMediaFromResult(_ result: MediaSelectionResult) async throws -> (media: [CleartextMedia], assetId: String?) {
+    /// Loads media from a single MediaSelectionResult
+    /// Returns the loaded media and optional asset ID
+    public func loadSingleMedia(from result: MediaSelectionResult) async throws -> (media: [CleartextMedia], assetId: String?) {
+        try await ensureTempDirectoryExists()
+        
         switch result {
         case .phAsset(let asset):
             let media = try await loadMediaFromAsset(asset)
@@ -88,6 +92,8 @@ public class MediaLoaderService: DebugPrintable {
             return (media, pickerResult.assetIdentifier)
         }
     }
+    
+    // MARK: - Private Implementation
     
     // MARK: - PHPickerResult Loading
     
@@ -105,9 +111,6 @@ public class MediaLoaderService: DebugPrintable {
         let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
         let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
         
-        // Ensure temp directory exists
-        try await ensureTempDirectoryExists()
-        
         let url: URL? = try await withCheckedThrowingContinuation { continuation in
             result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
                 guard let url = url else {
@@ -116,7 +119,7 @@ public class MediaLoaderService: DebugPrintable {
                     return
                 }
                 
-                // Generate a unique file name to prevent overwriting existing files
+                // Use helper to copy file
                 let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
                 let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
                 
@@ -140,9 +143,6 @@ public class MediaLoaderService: DebugPrintable {
     }
     
     private func loadLivePhoto(result: PHPickerResult) async throws -> [CleartextMedia] {
-        // Ensure temp directory exists
-        try await ensureTempDirectoryExists()
-        
         let assetResources = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[PHAssetResource], Error>) in
             // Load the PHLivePhoto object from the picker result
             result.itemProvider.loadObject(ofClass: PHLivePhoto.self) { (object, error) in
@@ -160,43 +160,7 @@ public class MediaLoaderService: DebugPrintable {
             }
         }
         
-        var cleartextMediaArray: [CleartextMedia] = []
-        let id = UUID().uuidString
-        
-        for resource in assetResources {
-            let options = PHAssetResourceRequestOptions()
-            options.isNetworkAccessAllowed = true
-            
-            let documentsDirectory = URL.tempMediaDirectory
-            // Use a unique filename to avoid conflicts between imports
-            let fileExtension = (resource.originalFilename as NSString).pathExtension
-            let uniqueFileName = "\(UUID().uuidString).\(fileExtension.isEmpty ? "data" : fileExtension)"
-            let fileURL = documentsDirectory.appendingPathComponent(uniqueFileName)
-            
-            do {
-                var mediaType: MediaType
-                switch resource.type {
-                case .pairedVideo:
-                    mediaType = .video
-                case .photo:
-                    mediaType = .photo
-                default:
-                    printDebug("Error, could not handle media type \(resource.type)")
-                    throw BackgroundImportError.mismatchedType
-                }
-                try await PHAssetResourceManager.default().writeData(for: resource, toFile: fileURL, options: options)
-                let media = CleartextMedia(
-                    source: fileURL,
-                    mediaType: mediaType,
-                    id: id
-                )
-                cleartextMediaArray.append(media)
-            } catch {
-                throw error
-            }
-        }
-        
-        return cleartextMediaArray
+        return try await processAssetResources(assetResources)
     }
     
     // MARK: - PHAsset Loading
@@ -213,9 +177,6 @@ public class MediaLoaderService: DebugPrintable {
     private func loadRegularMediaFromAsset(_ asset: PHAsset) async throws -> CleartextMedia {
         let isVideo = asset.mediaType == .video
         let id = UUID().uuidString
-        
-        // Ensure temp directory exists
-        try await ensureTempDirectoryExists()
         
         if isVideo {
             // Handle video
@@ -273,11 +234,14 @@ public class MediaLoaderService: DebugPrintable {
     
     private func loadLivePhotoFromAsset(_ asset: PHAsset) async throws -> [CleartextMedia] {
         let resources = PHAssetResource.assetResources(for: asset)
+        return try await processAssetResources(resources)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func processAssetResources(_ resources: [PHAssetResource]) async throws -> [CleartextMedia] {
         var cleartextMediaArray: [CleartextMedia] = []
         let id = UUID().uuidString
-        
-        // Ensure temp directory exists
-        try await ensureTempDirectoryExists()
         
         for resource in resources {
             let options = PHAssetResourceRequestOptions()
@@ -312,9 +276,9 @@ public class MediaLoaderService: DebugPrintable {
         return cleartextMediaArray
     }
     
-    // MARK: - Helper Methods
-    
     private func ensureTempDirectoryExists() async throws {
+        if tempDirectoryChecked { return }
+        
         let tempDir = URL.tempMediaDirectory
         var isDirectory: ObjCBool = false
         
@@ -324,6 +288,8 @@ public class MediaLoaderService: DebugPrintable {
         } else {
             printDebug("🗂️ Temp directory already exists: \(tempDir.path)")
         }
+        
+        tempDirectoryChecked = true
     }
     
     /// Logs media loading errors with detailed information
