@@ -20,6 +20,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     private var cancellables = Set<AnyCancellable>()
     private var taskQueue = DispatchQueue(label: "media.import.queue", qos: .userInitiated)
     private var currentImportTask: Task<Void, Error>?
+    private let mediaLoader = MediaLoaderService()
     
     // Time estimation smoothing
     private var smoothedTimeEstimate: TimeInterval?
@@ -45,10 +46,128 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         self.albumManager = albumManager
     }
     
+    /// High-level API: Start import directly from MediaSelectionResults (PHAssets or PHPickerResults)
+    /// This handles the complete flow: preparation, media loading, and import
+    public func startImport(results: [MediaSelectionResult], albumId: String, source: ImportSource) async throws {
+        printDebug("Starting import from \(results.count) MediaSelectionResults to album: \(albumId)")
+        
+        // Generate a unique batch ID for this user selection
+        let userBatchId = UUID().uuidString
+        
+        // Start preparation phase IMMEDIATELY - shows progress view right away
+        let preparationTaskId = startPreparation(
+            totalFiles: results.count,
+            albumId: albumId,
+            source: source
+        )
+        
+        // Streaming state for batch processing
+        let streamingBatchSize = 5
+        var allMedia: [CleartextMedia] = []
+        var assetIdentifiers: [String] = []
+        var firstBatchMedia: [CleartextMedia] = []
+        var firstBatchAssetIds: [String] = []
+        var hasStartedFirstImport = false
+        var successfulLoads = 0
+        
+        // Process each result with progress updates
+        for (index, result) in results.enumerated() {
+            printDebug("📄 Processing result \(index + 1)/\(results.count)")
+            
+            do {
+                let (media, assetId) = try await loadMediaFromResult(result)
+                
+                allMedia.append(contentsOf: media)
+                successfulLoads += 1
+                
+                if let assetId = assetId {
+                    assetIdentifiers.append(assetId)
+                }
+                
+                // Update preparation progress
+                updatePreparation(
+                    taskId: preparationTaskId,
+                    preparedFiles: successfulLoads,
+                    totalFiles: results.count
+                )
+                
+                // Start first batch import early for large imports
+                if !hasStartedFirstImport &&
+                   successfulLoads >= streamingBatchSize &&
+                   results.count > streamingBatchSize {
+                    hasStartedFirstImport = true
+                    firstBatchMedia = allMedia
+                    firstBatchAssetIds = assetIdentifiers
+                    
+                    printDebug("🚀 Starting early import with first \(successfulLoads) files")
+                    Task {
+                        do {
+                            try await startImport(
+                                media: firstBatchMedia,
+                                albumId: albumId,
+                                source: source,
+                                assetIdentifiers: firstBatchAssetIds,
+                                userBatchId: userBatchId
+                            )
+                        } catch {
+                            printDebug("❌ Error starting first batch import: \(error)")
+                        }
+                    }
+                }
+                
+            } catch {
+                printDebug("❌ Error loading media from result: \(error)")
+            }
+        }
+        
+        printDebug("📈 Summary - Successful: \(successfulLoads), Total media: \(allMedia.count)")
+        
+        // All files loaded - complete the preparation task
+        completePreparation(taskId: preparationTaskId)
+        
+        // Start import for remaining files or all files if no streaming occurred
+        if hasStartedFirstImport {
+            // Import remaining files not in first batch
+            let remainingMedia = Array(allMedia.dropFirst(firstBatchMedia.count))
+            let remainingAssetIds = Array(assetIdentifiers.dropFirst(firstBatchAssetIds.count))
+            
+            guard !remainingMedia.isEmpty else { return }
+            
+            try await startImport(
+                media: remainingMedia,
+                albumId: albumId,
+                source: source,
+                assetIdentifiers: remainingAssetIds,
+                userBatchId: userBatchId
+            )
+        } else {
+            // No streaming - start full import
+            try await startImport(
+                media: allMedia,
+                albumId: albumId,
+                source: source,
+                assetIdentifiers: assetIdentifiers,
+                userBatchId: userBatchId
+            )
+        }
+    }
+    
+    /// Helper to load media from a single MediaSelectionResult using MediaLoaderService
+    private func loadMediaFromResult(_ result: MediaSelectionResult) async throws -> (media: [CleartextMedia], assetId: String?) {
+        switch result {
+        case .phAsset(let asset):
+            let batch = try await mediaLoader.loadMedia(from: [result])
+            return (batch.media, asset.localIdentifier)
+        case .phPickerResult(let pickerResult):
+            let batch = try await mediaLoader.loadMedia(from: [result])
+            return (batch.media, pickerResult.assetIdentifier)
+        }
+    }
+    
     /// Starts the preparation phase before files are ready for import.
     /// This shows the progress view immediately with "Preparing X files..." message.
     /// Returns a task ID that should be used when calling `startImport` to continue the same task.
-    public func startPreparation(totalFiles: Int, albumId: String, source: ImportSource) -> String {
+    internal func startPreparation(totalFiles: Int, albumId: String, source: ImportSource) -> String {
         printDebug("Starting preparation phase for \(totalFiles) files to album: \(albumId)")
         
         // Create a task with no media yet - it will be populated later
@@ -67,7 +186,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     /// Updates the preparation progress as files are being loaded from the photo library
-    public func updatePreparation(taskId: String, preparedFiles: Int, totalFiles: Int) {
+    internal func updatePreparation(taskId: String, preparedFiles: Int, totalFiles: Int) {
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
             printDebug("Failed to find task to update preparation: \(taskId)")
             return
@@ -78,7 +197,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     /// Cancels a preparation task (if user cancels before files are ready)
-    public func cancelPreparation(taskId: String) {
+    internal func cancelPreparation(taskId: String) {
         printDebug("Cancelling preparation task: \(taskId)")
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
             printDebug("Failed to find preparation task to cancel: \(taskId)")
@@ -96,8 +215,23 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         }
     }
     
+    /// Completes a preparation task by removing it from the task list.
+    /// Call this when all files have been loaded and are ready for import.
+    internal func completePreparation(taskId: String) {
+        printDebug("Completing preparation task: \(taskId)")
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
+            printDebug("Failed to find preparation task to complete: \(taskId)")
+            return
+        }
+        
+        // Simply remove it - the actual imports have already been queued
+        currentTasks.remove(at: taskIndex)
+        updateOverallProgress()
+        updateIsImporting()
+    }
+    
     /// Transitions a preparation task to actual import with the loaded media
-    public func startImportFromPreparation(taskId: String, media: [CleartextMedia], assetIdentifiers: [String] = [], userBatchId: String? = nil) async throws {
+    private func startImportFromPreparation(taskId: String, media: [CleartextMedia], assetIdentifiers: [String] = [], userBatchId: String? = nil) async throws {
         printDebug("Starting import from preparation task: \(taskId) with \(media.count) media items")
         
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
@@ -642,7 +776,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             case .running:
                 return true
             case .preparing:
-                // Preparation tasks have temp files that will be imported soon
+                // Preparation tasks mean files are still being loaded to temp - don't cleanup
                 return true
             default:
                 return false
