@@ -4,15 +4,15 @@ public class TempFileAccess: DebugPrintable {
 
     @MainActor public static func cleanupTemporaryFiles() {
         printDebug("TempFileAccess.cleanupTemporaryFiles() called")
-        printDebug("BackgroundMediaImportManager.shared.isImporting: \(BackgroundMediaImportManager.shared.isImporting)")
+        printDebug("BackgroundTaskManager.shared.isProcessing: \(BackgroundTaskManager.shared.isProcessing)")
         
-        if !BackgroundMediaImportManager.shared.isImporting {
-            printDebug("isImporting is false - proceeding with cleanup")
+        if !BackgroundTaskManager.shared.isProcessing {
+            printDebug("isProcessing is false - proceeding with cleanup")
             deleteDirectory(at: URL.tempMediaDirectory)
             // Recreate the temp directory after cleanup to ensure it exists for future operations
             createDirectoryIfNeeded(at: URL.tempMediaDirectory)
         } else {
-            printDebug("isImporting is true - skipping cleanup")
+            printDebug("isProcessing is true - skipping cleanup")
         }
     }
 
