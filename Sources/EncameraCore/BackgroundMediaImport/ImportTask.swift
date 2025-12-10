@@ -27,8 +27,15 @@ public enum ImportSource: String, Codable, CaseIterable {
     }
 }
 
+/// Identifies the type of background file task
+public enum FileTaskType: String {
+    case importMedia
+    case moveMedia
+}
+
 public protocol BackgroundFileTask: Equatable  {
     var id: String { get }
+    var taskType: FileTaskType { get }
     var createdAt: Date { get }
     var progress: ImportProgressUpdate { get }
     var state: FileTaskState { get }
@@ -37,6 +44,7 @@ public protocol BackgroundFileTask: Equatable  {
 
 public struct ImportTask: BackgroundFileTask {
     public let id: String
+    public let taskType: FileTaskType = .importMedia
     public let media: [CleartextMedia]
     public let albumId: String
     public let source: ImportSource
