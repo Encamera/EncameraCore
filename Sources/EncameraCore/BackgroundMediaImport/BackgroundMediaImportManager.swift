@@ -268,10 +268,10 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         printDebug("Cleared \(taskCount) tasks")
         
         // Reset all progress tracking
-        isImporting = false
         overallProgress = 0.0
         updateOverallProgress() // Ensure progress is properly recalculated and published
-        
+        updateIsImporting()
+
         // Reset time estimation smoothing state
         resetTimeEstimationState()
         
@@ -308,8 +308,8 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         }
         
         currentTasks.append(task)
-        isImporting = true
-        
+        updateIsImporting()
+
         printDebug("Created import task with ID: \(taskId) for \(task.progress.totalFiles) items")
         printDebug("Total current tasks: \(currentTasks.count)")
         
@@ -382,8 +382,8 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
             throw BackgroundImportError.configurationError
         }
         currentTasks[taskIndex].progress.state = .running
-        isImporting = true
-        
+        updateIsImporting()
+
         printDebug("Starting background task for import: \(task.id)")
         startBackgroundTask()
         resetTimeEstimationState()
@@ -687,8 +687,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
         }
         
         let now = Date()
-        let elapsed = now.timeIntervalSince(startTime)
-        
+
         // Add current progress to history
         progressHistory.append((date: now, progress: progress))
         
@@ -817,60 +816,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     }
     
     // MARK: - Background Task Management
-    
-    /// Must be called during app launch before application finishes launching
-    public static func registerBackgroundTasks() {
-        print("Registering background task: com.encamera.media-import")
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.encamera.media-import", using: nil) { task in
-            print("Background task handler called for: com.encamera.media-import")
-            BackgroundMediaImportManager.shared.handleBackgroundImport(task: task as! BGProcessingTask)
-        }
-    }
-    
-    private func scheduleBackgroundImport() {
-        printDebug("Scheduling background import task")
-        let request = BGProcessingTaskRequest(identifier: "com.encamera.media-import")
-        request.requiresNetworkConnectivity = false
-        request.requiresExternalPower = false
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 1)
-        
-        do {
-            try BGTaskScheduler.shared.submit(request)
-            printDebug("Successfully scheduled background import task")
-        } catch {
-            printDebug("Failed to schedule background import task: \(error.localizedDescription)")
-        }
-    }
-    
-    private func handleBackgroundImport(task: BGProcessingTask) {
-        printDebug("Handling background import task")
-        let hasActiveTasks = !currentTasks.filter { $0.progress.state == .running || $0.progress.state == .paused }.isEmpty
-        printDebug("Has active tasks: \(hasActiveTasks), total tasks: \(currentTasks.count)")
-        
-        if hasActiveTasks {
-            // Continue processing in background
-            task.expirationHandler = {
-                self.printDebug("Background task expiration handler called")
-                task.setTaskCompleted(success: false)
-            }
-            
-            Task {
-                printDebug("Starting background task execution")
-                // Resume or continue any paused/running tasks
-                for importTask in currentTasks where importTask.progress.state == .paused {
-                    printDebug("Resuming paused task in background: \(importTask.id)")
-                    try? await resumeImport(taskId: importTask.id)
-                }
-                
-                printDebug("Background task execution completed")
-                task.setTaskCompleted(success: true)
-            }
-        } else {
-            printDebug("No active tasks to process in background")
-            task.setTaskCompleted(success: true)
-        }
-    }
-    
+
     private func startBackgroundTask() {
         printDebug("Starting UIBackgroundTask")
         endBackgroundTask() // End any existing task
@@ -901,16 +847,7 @@ public class BackgroundMediaImportManager: ObservableObject, DebugPrintable {
     
     private func setupNotificationObservers() {
         printDebug("Setting up notification observers for background/foreground transitions")
-        
-        NotificationUtils.didEnterBackgroundPublisher
-            .sink { [weak self] _ in
-                self?.printDebug("App did enter background - scheduling background import")
-                self?.printDebug("Current active tasks count: \(self?.currentTasks.filter { $0.progress.state == .running }.count ?? 0)")
-                self?.printDebug("Active background task identifier: \(self?.activeBackgroundTask.rawValue ?? 0)")
-                self?.scheduleBackgroundImport()
-            }
-            .store(in: &cancellables)
-        
+
         NotificationUtils.willEnterForegroundPublisher
             .sink { [weak self] _ in
                 self?.printDebug("App will enter foreground - refreshing task states")
