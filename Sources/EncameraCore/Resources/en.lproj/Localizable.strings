@@ -684,6 +684,13 @@
 "GlobalImportProgress.PhotosDeleted" = "Photos deleted";
 "GlobalImportProgress.Remaining" = "Remaining";
 
+/* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations */
+"BackgroundTaskProgress.MoveCompleted" = "Move completed";
+"BackgroundTaskProgress.MoveStopped" = "Move stopped";
+"BackgroundTaskProgress.MovingProgress" = "Moving %@ of %@";
+"BackgroundTaskProgress.MovingBatches" = "Moving %@ batches";
+"BackgroundTaskProgress.NoActiveTasks" = "No active tasks";
+
 /* ./Encamera/Components/ImportProgress/TaskDetailCard.swift */
 "TaskDetailCard.TaskID" = "Task ID: %@";
 "TaskDetailCard.Created" = "Created: %@";

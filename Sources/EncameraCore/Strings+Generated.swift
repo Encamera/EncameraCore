@@ -965,6 +965,22 @@ public enum L10n {
     /// ./Encamera/AuthenticationView/AuthenticationView.swift
     public static let tooManyAttempts = L10n.tr("Localizable", "AuthenticationView.TooManyAttempts", fallback: "Too many attempts")
   }
+  public enum BackgroundTaskProgress {
+    /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations
+    public static let moveCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCompleted", fallback: "Move completed")
+    /// Move stopped
+    public static let moveStopped = L10n.tr("Localizable", "BackgroundTaskProgress.MoveStopped", fallback: "Move stopped")
+    /// Moving %@ batches
+    public static func movingBatches(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "BackgroundTaskProgress.MovingBatches", String(describing: p1), fallback: "Moving %@ batches")
+    }
+    /// Moving %@ of %@
+    public static func movingProgress(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "BackgroundTaskProgress.MovingProgress", String(describing: p1), String(describing: p2), fallback: "Moving %@ of %@")
+    }
+    /// No active tasks
+    public static let noActiveTasks = L10n.tr("Localizable", "BackgroundTaskProgress.NoActiveTasks", fallback: "No active tasks")
+  }
   public enum BillingFrequency {
     /// 1 Year of Updates
     public static let lifetimeLimited = L10n.tr("Localizable", "BillingFrequency.LifetimeLimited", fallback: "1 Year of Updates")

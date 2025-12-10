@@ -10,6 +10,7 @@ import Foundation
 /// Represents a task for moving media files between albums
 public struct MoveTask: BackgroundFileTask {
     public let id: String
+    public let taskType: FileTaskType = .moveMedia
     public let mediaToMove: [InteractableMedia<EncryptedMedia>]
     public let sourceAlbumId: String
     public let targetAlbumId: String
