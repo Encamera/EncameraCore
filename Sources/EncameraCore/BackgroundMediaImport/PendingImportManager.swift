@@ -114,8 +114,8 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         
         let mediaToImport = pendingMedia
         
-        // Use the existing BackgroundMediaImportManager for the actual import
-        try await BackgroundMediaImportManager.shared.startImport(
+        // Use the MediaImportHandler for the actual import
+        try await MediaImportHandler.shared.startImport(
             media: mediaToImport,
             albumId: albumId,
             source: .shareExtension,
