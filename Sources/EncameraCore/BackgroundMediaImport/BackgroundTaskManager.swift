@@ -71,6 +71,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             importTask.progress = progress
             currentTasks[taskIndex] = importTask
             publishProgress(for: importTask)
+        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
+            moveTask.progress = progress
+            currentTasks[taskIndex] = moveTask
+            publishProgress(for: moveTask)
         }
     }
     
@@ -84,6 +88,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         if var importTask = currentTasks[taskIndex] as? ImportTask {
             importTask.progress.state = .running
             currentTasks[taskIndex] = importTask
+            updateIsProcessing()
+        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
+            moveTask.progress.state = .running
+            currentTasks[taskIndex] = moveTask
             updateIsProcessing()
         }
     }
@@ -99,6 +107,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             importTask.progress.state = .paused
             currentTasks[taskIndex] = importTask
             publishProgress(for: importTask)
+        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
+            moveTask.progress.state = .paused
+            currentTasks[taskIndex] = moveTask
+            publishProgress(for: moveTask)
         }
     }
     
@@ -113,6 +125,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             importTask.progress.state = .cancelled
             currentTasks[taskIndex] = importTask
             publishProgress(for: importTask)
+        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
+            moveTask.progress.state = .cancelled
+            currentTasks[taskIndex] = moveTask
+            publishProgress(for: moveTask)
         }
     }
     
@@ -174,19 +190,26 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             return
         }
         
+        let completedProgress = ImportProgressUpdate(
+            taskId: taskId,
+            currentFileIndex: totalItems - 1,
+            totalFiles: totalItems,
+            currentFileProgress: 1.0,
+            overallProgress: 1.0,
+            currentFileName: nil,
+            state: .completed,
+            estimatedTimeRemaining: 0
+        )
+        
         if var importTask = currentTasks[taskIndex] as? ImportTask {
-            importTask.progress = ImportProgressUpdate(
-                taskId: taskId,
-                currentFileIndex: totalItems - 1,
-                totalFiles: totalItems,
-                currentFileProgress: 1.0,
-                overallProgress: 1.0,
-                currentFileName: nil,
-                state: .completed,
-                estimatedTimeRemaining: 0
-            )
+            importTask.progress = completedProgress
             currentTasks[taskIndex] = importTask
             publishProgress(for: importTask)
+            printDebug("Task completed successfully: \(taskId)")
+        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
+            moveTask.progress = completedProgress
+            currentTasks[taskIndex] = moveTask
+            publishProgress(for: moveTask)
             printDebug("Task completed successfully: \(taskId)")
         }
         
@@ -205,6 +228,11 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             importTask.progress.state = .failed(error)
             currentTasks[taskIndex] = importTask
             publishProgress(for: importTask)
+            printDebug("Task failed with error: \(error.localizedDescription) for task: \(taskId)")
+        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
+            moveTask.progress.state = .failed(error)
+            currentTasks[taskIndex] = moveTask
+            publishProgress(for: moveTask)
             printDebug("Task failed with error: \(error.localizedDescription) for task: \(taskId)")
         }
         
