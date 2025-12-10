@@ -19,10 +19,10 @@ public struct ImportProgressUpdate {
     public let currentFileProgress: Double
     public let overallProgress: Double
     public let currentFileName: String?
-    public var state: ImportTaskState
+    public var state: FileTaskState
     public let estimatedTimeRemaining: TimeInterval?
     
-    public init(taskId: String, currentFileIndex: Int, totalFiles: Int, currentFileProgress: Double, overallProgress: Double, currentFileName: String?, state: ImportTaskState, estimatedTimeRemaining: TimeInterval?) {
+    public init(taskId: String, currentFileIndex: Int, totalFiles: Int, currentFileProgress: Double, overallProgress: Double, currentFileName: String?, state: FileTaskState, estimatedTimeRemaining: TimeInterval?) {
         self.taskId = taskId
         self.currentFileIndex = currentFileIndex
         self.totalFiles = totalFiles

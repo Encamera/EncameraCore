@@ -1,5 +1,5 @@
 //
-//  ImportTaskState.swift
+//  FileTaskState.swift
 //  EncameraCore
 //
 //  Created by Alexander Freas on 24.07.25.
@@ -7,7 +7,7 @@
 
 
 
-public enum ImportTaskState: Equatable {
+public enum FileTaskState: Equatable {
     case idle
     case running
     case paused
@@ -15,7 +15,7 @@ public enum ImportTaskState: Equatable {
     case cancelled
     case failed(Error)
     
-    public static func == (lhs: ImportTaskState, rhs: ImportTaskState) -> Bool {
+    public static func == (lhs: FileTaskState, rhs: FileTaskState) -> Bool {
         switch (lhs, rhs) {
         case (.idle, .idle),
              (.running, .running),

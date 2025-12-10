@@ -27,16 +27,22 @@ public enum ImportSource: String, Codable, CaseIterable {
     }
 }
 
+public protocol BackgroundFileTask: Equatable  {
+    var id: String { get }
+    var createdAt: Date { get }
+    var progress: ImportProgressUpdate { get }
+    var state: FileTaskState { get }
+    var assetIdentifiers: [String] { get }
+}
 
-
-public struct ImportTask: Equatable {
+public struct ImportTask: BackgroundFileTask {
     public let id: String
     public let media: [CleartextMedia]
     public let albumId: String
     public let source: ImportSource
     public let createdAt: Date
     public var progress: ImportProgressUpdate
-    public var state: ImportTaskState {
+    public var state: FileTaskState {
         progress.state
     }
     public let assetIdentifiers: [String]
