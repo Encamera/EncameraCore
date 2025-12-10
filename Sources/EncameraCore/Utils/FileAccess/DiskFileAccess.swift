@@ -573,25 +573,14 @@ extension DiskFileAccess {
             throw FileAccessError.missingDirectoryModel
         }
 
-        // Preserve the key UUID extended attribute during move
-        let keyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: source)
-        
         try FileManager.default.moveItem(at: source, to: destinationURL)
-        
-        // Restore the key UUID extended attribute if it existed
-        if let keyUUID = keyUUID {
-            try? ExtendedAttributesUtil.setKeyUUID(keyUUID, for: destinationURL)
-        }
+
         
         // Ensure moved files are included in device backups for transfer to new devices
         if directoryModel?.storageType == .local {
             var resourceValues = URLResourceValues()
             resourceValues.isExcludedFromBackup = false
             try? destinationURL.setResourceValues(resourceValues)
-        }
-        
-        if let newMedia = EncryptedMedia(source: destinationURL) {
-            operationBus.didCreate(newMedia)
         }
     }
 
