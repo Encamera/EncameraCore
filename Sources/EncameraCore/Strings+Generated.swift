@@ -1084,6 +1084,10 @@ public enum L10n {
     public static let title = L10n.tr("Localizable", "FaceIDOnlyAlert.Title", fallback: "Clear PIN/Password?")
   }
   public enum FeatureToggles {
+    /// Debug Remote Content
+    public static let debugRemoteContent = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContent", fallback: "Debug Remote Content")
+    /// Enable debugging for remote CMS content
+    public static let debugRemoteContentDescription = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContentDescription", fallback: "Enable debugging for remote CMS content")
     /// Test RevenueCat
     public static let enableTestRevenueCat = L10n.tr("Localizable", "FeatureToggles.EnableTestRevenueCat", fallback: "Test RevenueCat")
     /// Enable RevenueCat testing mode
