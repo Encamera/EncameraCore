@@ -790,6 +790,8 @@
 "FeatureToggles.EnableTestRevenueCatDescription" = "Enable RevenueCat testing mode";
 "FeatureToggles.RevenuecatToggleTitle" = "Restart Required";
 "FeatureToggles.RevenuecatToggleMessage" = "Changing RevenueCat mode requires restarting the app. Continue?";
+"FeatureToggles.DebugRemoteContent" = "Debug Remote Content";
+"FeatureToggles.DebugRemoteContentDescription" = "Enable debugging for remote CMS content";
 "Common.Cancel" = "Cancel";
 "Common.Confirm" = "Confirm";
 
