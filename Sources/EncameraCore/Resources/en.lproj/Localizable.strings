@@ -173,6 +173,8 @@
 "AlbumDetailView.PhotoAccessRequired" = "Photo Access Required";
 "AlbumDetailView.PhotoAccessSettings" = "Please grant access to your photo library in Settings to import photos.";
 "AlbumDetailView.OpenSettings" = "Open Settings";
+"AlbumDetailView.LargeImportWarningTitle" = "For Faster Imports";
+"AlbumDetailView.LargeImportWarningMessage" = "Leave the app open and connected to WiFi for best results.";
 "OK" = "OK";
 /* ./Encamera/KeyManagement/AlbumCell.swift */
 "Active" = "Active";
