@@ -314,6 +314,7 @@ public class MediaImportHandler: DebugPrintable {
         printDebug("Processing \(batches.count) batches of size \(batchSize)")
         
         for (batchIndex, batch) in batches.enumerated() {
+            // Check for cancellation before processing each batch
             try Task.checkCancellation()
             printDebug("Processing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) media groups")
             
@@ -357,12 +358,9 @@ public class MediaImportHandler: DebugPrintable {
         var collectedAssetIdentifiers: [String] = []
         
         for (index, result) in results.enumerated() {
-            // Check for cancellation
-            guard let currentTask = await MainActor.run(body: { taskManager.task(withId: task.id) }),
-                  await MainActor.run(body: { currentTask.progress.state == .running }) else {
-                printDebug("Import task \(task.id) was cancelled or not found, stopping")
-                break
-            }
+            // Check for task cancellation (cooperative cancellation)
+            // This is more efficient than polling task state from MainActor
+            try Task.checkCancellation()
             
             printDebug("📄 Processing item \(index + 1)/\(results.count)")
             

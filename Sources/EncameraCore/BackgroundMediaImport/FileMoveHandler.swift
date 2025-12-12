@@ -156,6 +156,14 @@ public class FileMoveHandler: DebugPrintable {
                 self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: task.mediaToMove.count)
                 self.endBackgroundTask()
             }
+        } catch is CancellationError {
+            // Task was cancelled
+            await MainActor.run {
+                self.printDebug("Move was cancelled")
+                self.taskManager.finalizeTaskCancelled(taskId: task.id)
+                self.endBackgroundTask()
+            }
+            // Don't re-throw cancellation errors - the task is properly finalized
         } catch {
             await MainActor.run {
                 self.taskManager.finalizeTaskFailed(taskId: task.id, error: error)
@@ -179,12 +187,8 @@ public class FileMoveHandler: DebugPrintable {
         var failureCount = 0
         
         for (index, media) in task.mediaToMove.enumerated() {
-            // Check for cancellation
-            guard let currentTask = await MainActor.run(body: { taskManager.task(withId: task.id) }),
-                  await MainActor.run(body: { currentTask.progress.state == .running }) else {
-                printDebug("Move task \(task.id) was cancelled or not found, stopping")
-                break
-            }
+            // Check for task cancellation (cooperative cancellation)
+            try Task.checkCancellation()
             
             let needsDownload = media.needsDownload
             if needsDownload {
