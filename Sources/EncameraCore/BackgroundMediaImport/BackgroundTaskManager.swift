@@ -130,6 +130,9 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             currentTasks[taskIndex] = moveTask
             publishProgress(for: moveTask)
         }
+        
+        // Update processing state so UI observers (like progress view dismissal) are notified
+        updateIsProcessing()
     }
     
     // MARK: - Cancellation
@@ -147,7 +150,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         cancellationHandlers.removeValue(forKey: taskId)
     }
     
-    /// Cancels a task by invoking its cancellation handler and updating state
+    /// Cancels a task by invoking its cancellation handler and updating state.
+    /// Note: The task is NOT automatically removed - the handler is responsible for calling
+    /// finalizeTaskCancelled() which will decide whether to keep the task (for partial imports)
+    /// or remove it after a delay.
     public func cancelTask(taskId: String) {
         printDebug("Cancelling task: \(taskId)")
         guard task(withId: taskId) != nil else {
@@ -156,19 +162,19 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         }
         
         // Call the registered cancellation handler if one exists
+        // The handler is responsible for calling finalizeTaskCancelled() when done
         if let handler = cancellationHandlers[taskId] {
             printDebug("Invoking cancellation handler for task: \(taskId)")
             handler()
+        } else {
+            // No handler registered - mark cancelled and remove after delay
+            // This is a fallback for tasks that don't register a handler
+            markTaskCancelled(taskId: taskId)
+            removeTaskAfterDelay(taskId: taskId)
         }
-        
-        // Mark the task as cancelled
-        markTaskCancelled(taskId: taskId)
         
         // Remove the cancellation handler
         unregisterCancellationHandler(for: taskId)
-        
-        // Remove from active tasks after a delay to show cancelled state
-        removeTaskAfterDelay(taskId: taskId)
     }
     
     /// Pauses a task by invoking its pause handler (if registered) and updating state
@@ -239,6 +245,44 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             currentTasks[taskIndex] = moveTask
             publishProgress(for: moveTask)
             printDebug("Task failed with error: \(error.localizedDescription) for task: \(taskId)")
+        }
+        
+        updateOverallProgress()
+        updateIsProcessing()
+    }
+    
+    /// Finalizes a task as cancelled with optional partial results.
+    /// If assetIdentifiers are provided, they are stored on the task for later deletion from photo library.
+    /// Tasks with partial imports (assetIdentifiers > 0) are kept in the list for history.
+    /// Tasks without partial imports are removed after a delay.
+    public func finalizeTaskCancelled(taskId: String, assetIdentifiers: [String] = []) {
+        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
+            printDebug("Cannot finalize cancelled task - not found: \(taskId)")
+            return
+        }
+        
+        if var importTask = currentTasks[taskIndex] as? ImportTask {
+            importTask.progress.state = .cancelled
+            // Update asset identifiers if we have partial results
+            if !assetIdentifiers.isEmpty {
+                importTask = importTask.withAssetIdentifiers(assetIdentifiers)
+                printDebug("Task \(taskId) cancelled with \(assetIdentifiers.count) partial imports")
+            }
+            currentTasks[taskIndex] = importTask
+            publishProgress(for: importTask)
+            
+            // Only remove the task if there are no partial imports to show in history
+            if assetIdentifiers.isEmpty {
+                removeTaskAfterDelay(taskId: taskId)
+            } else {
+                printDebug("Keeping cancelled task \(taskId) in history for partial import deletion")
+            }
+        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
+            moveTask.progress.state = .cancelled
+            currentTasks[taskIndex] = moveTask
+            publishProgress(for: moveTask)
+            // Move tasks don't have partial results, always remove
+            removeTaskAfterDelay(taskId: taskId)
         }
         
         updateOverallProgress()
