@@ -92,27 +92,63 @@ public protocol AuthManager {
 
 public class DeviceAuthManager: AuthManager {
     
-    var context: LAContext {
-        let context = LAContext()
-        context.localizedCancelTitle = L10n.cancel
-        return context
+    // MARK: - LAContext Caching
+    
+    /// Cached LAContext instance to avoid expensive recreation on every access.
+    /// Creating a new LAContext and calling canEvaluatePolicy involves significant
+    /// system security framework overhead, which can cause delays during authentication.
+    private var _cachedContext: LAContext?
+    
+    /// Returns a cached LAContext, creating one only if needed.
+    /// The context is invalidated on background or after certain auth events.
+    private var context: LAContext {
+        if let existing = _cachedContext {
+            return existing
+        }
+        let newContext = LAContext()
+        newContext.localizedCancelTitle = L10n.cancel
+        _cachedContext = newContext
+        return newContext
     }
     
-    var _availableBiometric: AuthenticationMethod?
+    /// Invalidates the cached LAContext. Call this when the context may be stale
+    /// (e.g., after going to background, after failed biometric attempts).
+    private func invalidateContext() {
+        _cachedContext?.invalidate()
+        _cachedContext = nil
+        // Also reset cached biometric availability since it depends on context
+        _biometricAvailabilityChecked = false
+        _cachedAvailableBiometric = nil
+    }
+    
+    // MARK: - Biometric Availability Caching
+    
+    /// Cached result of biometric availability check
+    private var _cachedAvailableBiometric: AuthenticationMethod?
+    /// Flag to track if we've already checked biometric availability
+    private var _biometricAvailabilityChecked = false
+    
     public var availableBiometric: AuthenticationMethod? {
-        if let _availableBiometric = _availableBiometric {
-            return _availableBiometric
+        // Return cached result if we've already checked
+        if _biometricAvailabilityChecked {
+            return _cachedAvailableBiometric
         }
         
+        // Perform the check and cache the result
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
-            return .none
+            _biometricAvailabilityChecked = true
+            _cachedAvailableBiometric = nil
+            return nil
         }
-        _availableBiometric = deviceBiometryType
-        return _availableBiometric
+        
+        _cachedAvailableBiometric = deviceBiometryType
+        _biometricAvailabilityChecked = true
+        return _cachedAvailableBiometric
     }
 
     public var deviceBiometryType: AuthenticationMethod? {
-        context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        // Use the cached context to check biometry type
+        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
         return AuthenticationMethod.methodFrom(biometryType: context.biometryType)
     }
 
@@ -239,9 +275,22 @@ public class DeviceAuthManager: AuthManager {
             debugPrint("Attempting LA auth")
             cancelNotificationObservers()
             let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: L10n.keepYourEncryptedDataSafeByUsing(method.nameForMethod))
+            // Successful auth - invalidate context to get fresh one next time
+            // (LAContext should not be reused after successful evaluation)
+            invalidateContext()
             return result
         } catch let localAuthError as LAError {
             debugPrint("LAError", localAuthError)
+            
+            // Invalidate context on errors that may leave it in a bad state
+            switch localAuthError.code {
+            case .invalidContext, .systemCancel:
+                // These errors indicate the context is no longer valid
+                invalidateContext()
+            default:
+                break
+            }
+            
             switch localAuthError.code {
             case .appCancel:
                 break
@@ -258,6 +307,8 @@ public class DeviceAuthManager: AuthManager {
                 throw AuthManagerError.biometricsFailed
             }
         } catch {
+            // Unknown error - invalidate context to be safe
+            invalidateContext()
             throw AuthManagerError.biometricsFailed
         }
         return false
@@ -297,7 +348,9 @@ private extension DeviceAuthManager {
     func setupNotificationObservers() {
         NotificationUtils.didEnterBackgroundPublisher
             .sink { _ in
-
+                // Invalidate cached LAContext when going to background
+                // This ensures fresh context on next foreground, avoiding stale state
+                self.invalidateContext()
                 self.deauthorize()
             }.store(in: &appStateCancellables)
     }
