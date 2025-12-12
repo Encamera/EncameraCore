@@ -230,25 +230,8 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     
     /// Finalizes a task as failed
     public func finalizeTaskFailed(taskId: String, error: Error) {
-        guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
-            printDebug("Cannot finalize task - not found: \(taskId)")
-            return
-        }
-        
-        if var importTask = currentTasks[taskIndex] as? ImportTask {
-            importTask.progress.state = .failed(error)
-            currentTasks[taskIndex] = importTask
-            publishProgress(for: importTask)
-            printDebug("Task failed with error: \(error.localizedDescription) for task: \(taskId)")
-        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
-            moveTask.progress.state = .failed(error)
-            currentTasks[taskIndex] = moveTask
-            publishProgress(for: moveTask)
-            printDebug("Task failed with error: \(error.localizedDescription) for task: \(taskId)")
-        }
-        
-        updateOverallProgress()
-        updateIsProcessing()
+        finalizeTaskStopped(taskId: taskId, state: .failed(error), assetIdentifiers: [], shouldRemove: false)
+        printDebug("Task failed with error: \(error.localizedDescription) for task: \(taskId)")
     }
     
     /// Finalizes a task as cancelled with optional partial results.
@@ -256,33 +239,42 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     /// Tasks with partial imports (assetIdentifiers > 0) are kept in the list for history.
     /// Tasks without partial imports are removed after a delay.
     public func finalizeTaskCancelled(taskId: String, assetIdentifiers: [String] = []) {
+        // Only remove the task if there are no partial imports to show in history
+        let shouldRemove = assetIdentifiers.isEmpty
+        finalizeTaskStopped(taskId: taskId, state: .cancelled, assetIdentifiers: assetIdentifiers, shouldRemove: shouldRemove)
+        
+        if !assetIdentifiers.isEmpty {
+            printDebug("Keeping cancelled task \(taskId) in history with \(assetIdentifiers.count) partial imports")
+        }
+    }
+    
+    /// Private helper to finalize a task that has stopped (failed or cancelled).
+    private func finalizeTaskStopped(taskId: String, state: FileTaskState, assetIdentifiers: [String], shouldRemove: Bool) {
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
-            printDebug("Cannot finalize cancelled task - not found: \(taskId)")
+            printDebug("Cannot finalize task - not found: \(taskId)")
             return
         }
         
         if var importTask = currentTasks[taskIndex] as? ImportTask {
-            importTask.progress.state = .cancelled
-            // Update asset identifiers if we have partial results
+            importTask.progress.state = state
+            // Update asset identifiers if provided (for cancelled tasks with partial results)
             if !assetIdentifiers.isEmpty {
                 importTask = importTask.withAssetIdentifiers(assetIdentifiers)
-                printDebug("Task \(taskId) cancelled with \(assetIdentifiers.count) partial imports")
             }
             currentTasks[taskIndex] = importTask
             publishProgress(for: importTask)
             
-            // Only remove the task if there are no partial imports to show in history
-            if assetIdentifiers.isEmpty {
+            if shouldRemove {
                 removeTaskAfterDelay(taskId: taskId)
-            } else {
-                printDebug("Keeping cancelled task \(taskId) in history for partial import deletion")
             }
         } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
-            moveTask.progress.state = .cancelled
+            moveTask.progress.state = state
             currentTasks[taskIndex] = moveTask
             publishProgress(for: moveTask)
-            // Move tasks don't have partial results, always remove
-            removeTaskAfterDelay(taskId: taskId)
+            // Move tasks don't have partial results concept, always remove if requested
+            if shouldRemove {
+                removeTaskAfterDelay(taskId: taskId)
+            }
         }
         
         updateOverallProgress()
