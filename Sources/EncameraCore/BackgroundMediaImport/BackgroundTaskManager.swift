@@ -161,15 +161,20 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             return
         }
         
+        // Always mark the task as cancelled immediately so the UI updates right away.
+        // This ensures the task state is synchronized with the cancellation action.
+        // The handler will still be called to cancel any in-flight operations,
+        // and finalizeTaskCancelled() will be called later to handle cleanup and partial results.
+        markTaskCancelled(taskId: taskId)
+        
         // Call the registered cancellation handler if one exists
         // The handler is responsible for calling finalizeTaskCancelled() when done
         if let handler = cancellationHandlers[taskId] {
             printDebug("Invoking cancellation handler for task: \(taskId)")
             handler()
         } else {
-            // No handler registered - mark cancelled and remove after delay
-            // This is a fallback for tasks that don't register a handler
-            markTaskCancelled(taskId: taskId)
+            // No handler registered - remove after delay
+            // (task is already marked cancelled above)
             removeTaskAfterDelay(taskId: taskId)
         }
         
