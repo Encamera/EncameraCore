@@ -568,12 +568,22 @@ extension DiskFileAccess {
         }
     }
 
-    public func move(media: EncryptedMedia) async throws {
+    public func move(media: EncryptedMedia, progress: ((FileLoadingStatus) -> Void)? = nil) async throws {
         guard var destinationURL = directoryModel?.driveURLForMedia(media), case .url(let source) = media.source else {
             throw FileAccessError.missingDirectoryModel
         }
 
-        try FileManager.default.moveItem(at: source, to: destinationURL)
+        // CRITICAL: Ensure iCloud files are downloaded before moving
+        // iCloud files may exist only as placeholders locally. Attempting to move
+        // a placeholder will either fail or only move the metadata, not the actual data.
+        let downloadedMedia = try await ensureFileIsDownloadedForMove(encrypted: media, progress: progress)
+        
+        // Use the downloaded source URL (may be different if download was required)
+        guard case .url(let downloadedSource) = downloadedMedia.source else {
+            throw FileAccessError.couldNotLoadMedia
+        }
+        
+        try FileManager.default.moveItem(at: downloadedSource, to: destinationURL)
 
         
         // Ensure moved files are included in device backups for transfer to new devices
@@ -582,6 +592,115 @@ extension DiskFileAccess {
             resourceValues.isExcludedFromBackup = false
             try? destinationURL.setResourceValues(resourceValues)
         }
+    }
+    
+    /// Ensures the file is downloaded from iCloud before a move operation
+    /// Similar to ensureFileIsDownloaded but with specific handling for move operations
+    private func ensureFileIsDownloadedForMove(encrypted: EncryptedMedia, progress: ((FileLoadingStatus) -> Void)?) async throws -> EncryptedMedia {
+        guard case .url(let sourceURL) = encrypted.source else {
+            return encrypted
+        }
+        
+        // Get comprehensive iCloud status
+        let status = iCloudFileStatusUtil.getStatus(for: sourceURL)
+        
+        // If file is not a ubiquitous item or is already downloaded, proceed
+        guard status.isUbiquitousItem else {
+            return encrypted
+        }
+        
+        switch status.downloadState {
+        case .current:
+            // File is fully downloaded
+            return encrypted
+            
+        case .notDownloaded:
+            // File needs to be downloaded before moving
+            printDebug("File needs download from iCloud before move", encrypted.id)
+            progress?(.downloading(progress: 0))
+            
+            // If we have an iCloud directory model, use its download method
+            // Otherwise, create a temporary iCloud model to download the file
+            if let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
+                let downloaded = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { [weak self] prog in
+                    self?.printDebug("Downloading file from iCloud for move", encrypted.id, prog)
+                    progress?(.downloading(progress: prog))
+                }
+                return downloaded
+            } else {
+                // The file is in iCloud but our directoryModel is not iCloud
+                // This can happen when moving from iCloud album to local album
+                // We need to trigger the download and wait for it
+                printDebug("File is in iCloud but directoryModel is not iCloudStorageModel, triggering download", encrypted.id)
+                try iCloudFileStatusUtil.startDownload(for: sourceURL)
+                
+                // Wait for the download to complete with polling
+                let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
+                return downloaded
+            }
+            
+        case .downloading(let downloadProgress):
+            // Download is already in progress, wait for it to complete
+            printDebug("File is currently downloading from iCloud, waiting", encrypted.id, downloadProgress)
+            progress?(.downloading(progress: downloadProgress))
+            let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
+            return downloaded
+            
+        case .downloadFailed:
+            // Previous download failed, try again
+            printDebug("Previous iCloud download failed, retrying", encrypted.id)
+            try iCloudFileStatusUtil.startDownload(for: sourceURL)
+            let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
+            return downloaded
+            
+        case .notUbiquitous:
+            // Not an iCloud file, should have been caught above
+            return encrypted
+        }
+    }
+    
+    /// Waits for an iCloud file download to complete by polling
+    private func waitForICloudDownload(media: EncryptedMedia, progress: ((FileLoadingStatus) -> Void)?) async throws -> EncryptedMedia {
+        guard case .url(let sourceURL) = media.source else {
+            return media
+        }
+        
+        let maxWaitTime: TimeInterval = 300 // 5 minutes max wait
+        let pollInterval: TimeInterval = 0.5
+        let startTime = Date()
+        
+        while Date().timeIntervalSince(startTime) < maxWaitTime {
+            try Task.checkCancellation()
+            
+            let status = iCloudFileStatusUtil.getStatus(for: sourceURL)
+            
+            switch status.downloadState {
+            case .current:
+                // Download complete
+                progress?(.downloading(progress: 1.0))
+                return media
+                
+            case .downloading(let downloadProgress):
+                progress?(.downloading(progress: downloadProgress / 100.0))
+                
+            case .downloadFailed(let error):
+                throw FileAccessError.iCloudDownloadFailed(status: status)
+                
+            case .notDownloaded:
+                // Still waiting for download to start/continue
+                break
+                
+            case .notUbiquitous:
+                // File became local somehow (e.g., was fully downloaded)
+                return media
+            }
+            
+            try await Task.sleep(nanoseconds: UInt64(pollInterval * 1_000_000_000))
+        }
+        
+        // Timeout - throw error
+        printDebug("iCloud download timed out for file", media.id)
+        throw FileAccessError.iCloudDownloadTimeout
     }
 
     public func delete(media: [EncryptedMedia]) async throws {
