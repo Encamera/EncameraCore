@@ -230,6 +230,7 @@ public class MediaImportHandler: DebugPrintable {
         var successCount = 0
         var failureCount = 0
         var collectedAssetIdentifiers: [String] = []
+        var wasCancelled = false
         
         currentImportTask = Task {
             let fileAccess = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
@@ -246,16 +247,40 @@ public class MediaImportHandler: DebugPrintable {
                 successCount = counts.success
                 failureCount = counts.failure
                 collectedAssetIdentifiers = counts.assetIdentifiers
+                
+                // Check if we were cancelled (fewer successes than total results)
+                // This happens when the streaming loop breaks early due to cancellation
+                if successCount + failureCount < results.count {
+                    wasCancelled = true
+                }
             }
         }
         
         do {
             try await currentImportTask?.value
+            
             await MainActor.run {
-                self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: mediaSource.count, assetIdentifiers: collectedAssetIdentifiers)
+                // Check if the task was cancelled during streaming (early exit from loop)
+                if wasCancelled {
+                    self.printDebug("Streaming import was cancelled with \(collectedAssetIdentifiers.count) partial imports")
+                    self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: collectedAssetIdentifiers)
+                } else {
+                    self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: mediaSource.count, assetIdentifiers: collectedAssetIdentifiers)
+                }
                 self.endBackgroundTask()
                 self.cleanupTempFilesIfSafe()
             }
+        } catch is CancellationError {
+            // Task was cancelled (typically batch imports via Task.checkCancellation())
+            // For preloaded imports, use the task's existing asset identifiers
+            let partialIdentifiers = task.assetIdentifiers
+            await MainActor.run {
+                self.printDebug("Batch import was cancelled with \(partialIdentifiers.count) asset identifiers")
+                self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: partialIdentifiers)
+                self.endBackgroundTask()
+                self.cleanupTempFilesIfSafe()
+            }
+            // Don't re-throw cancellation errors - the task is properly finalized
         } catch {
             await MainActor.run {
                 self.taskManager.finalizeTaskFailed(taskId: task.id, error: error)
