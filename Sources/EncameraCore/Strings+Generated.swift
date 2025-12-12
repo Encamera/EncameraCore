@@ -1036,6 +1036,8 @@ public enum L10n {
   public enum CustomPhotoPicker {
     /// Add
     public static let add = L10n.tr("Localizable", "CustomPhotoPicker.Add", fallback: "Add")
+    /// All Photos
+    public static let allPhotos = L10n.tr("Localizable", "CustomPhotoPicker.AllPhotos", fallback: "All Photos")
     /// Please grant full access to your photo library to use swipe selection. You can change this in Settings.
     public static let grantAccessMessage = L10n.tr("Localizable", "CustomPhotoPicker.GrantAccessMessage", fallback: "Please grant full access to your photo library to use swipe selection. You can change this in Settings.")
     /// Limited access. Tap here to select more photos or grant full access.
@@ -1084,6 +1086,10 @@ public enum L10n {
     public static let title = L10n.tr("Localizable", "FaceIDOnlyAlert.Title", fallback: "Clear PIN/Password?")
   }
   public enum FeatureToggles {
+    /// Album Selection
+    public static let albumSelectionEnabled = L10n.tr("Localizable", "FeatureToggles.AlbumSelectionEnabled", fallback: "Album Selection")
+    /// Show album carousel in photo picker
+    public static let albumSelectionEnabledDescription = L10n.tr("Localizable", "FeatureToggles.AlbumSelectionEnabledDescription", fallback: "Show album carousel in photo picker")
     /// Debug Remote Content
     public static let debugRemoteContent = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContent", fallback: "Debug Remote Content")
     /// Enable debugging for remote CMS content

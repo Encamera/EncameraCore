@@ -17,6 +17,7 @@ public enum Feature: String {
     case showMoveToAlbum
     case showDesignSystem
     case debugRemoteContent
+    case albumSelectionEnabled
     var userDefaultsKey: String {
         return "feature_" +  rawValue
     }
