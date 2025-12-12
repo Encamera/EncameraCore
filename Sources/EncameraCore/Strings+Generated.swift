@@ -620,6 +620,7 @@ public enum L10n {
   public static let selectAPlaceToKeepMediaForThisKey = L10n.tr("Localizable", "Select a place to keep media for this key.", fallback: "Select a place to keep media for this key.")
   /// ./Encamera/MediaImport/MediaImportView.swift
   public static let selectAll = L10n.tr("Localizable", "Select All", fallback: "Select All")
+  public static let deselectAll = L10n.tr("Localizable", "Deselect All", fallback: "Deselect All")
   /// Please select a method
   public static let selectLoginMethod = L10n.tr("Localizable", "Select Login Method", fallback: "Please select a method")
   /// Select Storage
