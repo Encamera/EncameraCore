@@ -1237,6 +1237,8 @@ public enum L10n {
     }
     /// ./Encamera/ImageViewing/MediaViewingError.swift - iCloud Error Messages
     public static let fileNotDownloaded = L10n.tr("Localizable", "ICloudError.FileNotDownloaded", fallback: "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.")
+    /// iCloud download timed out. Please check your internet connection and try again.
+    public static let downloadTimeout = L10n.tr("Localizable", "ICloudError.DownloadTimeout", fallback: "iCloud download timed out. Please check your internet connection and try again.")
   }
   public enum ICloudStatus {
     /// ./Encamera/Components/iCloudSyncStatusIndicator.swift - Directory Sync Status

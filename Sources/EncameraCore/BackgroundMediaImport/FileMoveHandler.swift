@@ -186,10 +186,45 @@ public class FileMoveHandler: DebugPrintable {
                 break
             }
             
-            printDebug("📦 Moving item \(index + 1)/\(task.mediaToMove.count)")
+            let needsDownload = media.needsDownload
+            if needsDownload {
+                printDebug("📦 Moving item \(index + 1)/\(task.mediaToMove.count) (requires iCloud download)")
+            } else {
+                printDebug("📦 Moving item \(index + 1)/\(task.mediaToMove.count)")
+            }
             
             do {
-                try await fileAccess.move(media: media)
+                // Create a progress callback for iCloud downloads
+                let progressCallback: (FileLoadingStatus) -> Void = { [weak self] status in
+                    guard let self = self else { return }
+                    Task { @MainActor in
+                        switch status {
+                        case .downloading(let downloadProgress):
+                            self.printDebug("📥 Downloading from iCloud: \(Int(downloadProgress * 100))%")
+                            // Update progress to show iCloud download is in progress
+                            // The overall progress incorporates the download progress for the current item
+                            let itemProgress = downloadProgress
+                            let overallProgress = (Double(processedCount) + itemProgress) / Double(task.mediaToMove.count)
+                            let estimatedTimeRemaining = self.taskManager.calculateEstimatedTime(startTime: startTime, progress: overallProgress)
+                            
+                            let progress = ImportProgressUpdate(
+                                taskId: task.id,
+                                currentFileIndex: index,
+                                totalFiles: task.mediaToMove.count,
+                                currentFileProgress: itemProgress,
+                                overallProgress: overallProgress,
+                                currentFileName: needsDownload ? "Downloading from iCloud..." : nil,
+                                state: .running,
+                                estimatedTimeRemaining: estimatedTimeRemaining
+                            )
+                            self.taskManager.updateTaskProgress(taskId: task.id, progress: progress)
+                        default:
+                            break
+                        }
+                    }
+                }
+                
+                try await fileAccess.move(media: media, progress: progressCallback)
                 successCount += 1
                 processedCount += 1
                 printDebug("✅ Successfully moved item \(index + 1)/\(task.mediaToMove.count)")

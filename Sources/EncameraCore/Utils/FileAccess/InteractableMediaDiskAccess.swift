@@ -173,9 +173,9 @@ public actor InteractableMediaDiskAccess: FileAccess {
         }
     }
     
-    public func move(media: InteractableMedia<EncryptedMedia>) async throws {
+    public func move(media: InteractableMedia<EncryptedMedia>, progress: ((FileLoadingStatus) -> Void)? = nil) async throws {
         for mediaItem in media.underlyingMedia {
-            try await fileAccess.move(media: mediaItem)
+            try await fileAccess.move(media: mediaItem, progress: progress)
         }
     }
     
