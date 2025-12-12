@@ -79,7 +79,7 @@ public protocol FileWriter: FileEnumerator {
 }
 
 // Default implementation for backwards compatibility
-extension FileWriter {
+public extension FileWriter {
     func move(media: InteractableMedia<EncryptedMedia>) async throws {
         try await move(media: media, progress: nil)
     }
