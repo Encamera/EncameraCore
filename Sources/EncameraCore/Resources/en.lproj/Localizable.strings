@@ -744,6 +744,7 @@
 "CustomPhotoPicker.GrantAccessMessage" = "Please grant full access to your photo library to use swipe selection. You can change this in Settings.";
 "CustomPhotoPicker.Selected" = "%@ Selected";
 "CustomPhotoPicker.AllPhotos" = "All Photos";
+"CustomPhotoPicker.LoadingMore" = "Loading more photos...";
 
 /* ./Encamera/Components/PhotoPickerWrapper.swift */
 "PhotoPickerWrapper.UpgradeTitle" = "Upgrade to Full Photo Access";
