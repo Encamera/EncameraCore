@@ -128,6 +128,17 @@ public class DeviceAuthManager: AuthManager {
     /// Flag to track if we've already checked biometric availability
     private var _biometricAvailabilityChecked = false
     
+    // MARK: - Biometric Authentication Debouncing
+    
+    /// Timestamp of last biometric attempt for debouncing
+    private var lastBiometricAttemptTime: Date?
+    
+    /// Minimum interval between biometric attempts (in seconds)
+    private let biometricDebounceInterval: TimeInterval = 1.0
+    
+    /// Flag to track if biometric authentication is currently in progress
+    private var isBiometricAuthInProgress = false
+    
     public var availableBiometric: AuthenticationMethod? {
         // Return cached result if we've already checked
         if _biometricAvailabilityChecked {
@@ -318,6 +329,28 @@ public class DeviceAuthManager: AuthManager {
         guard let method = availableBiometric else {
             throw AuthManagerError.biometricsNotAvailable
         }
+        
+        // Debounce: Don't trigger if we just triggered within the debounce interval
+        // This prevents duplicate triggers from multiple sources firing simultaneously
+        if let lastAttempt = lastBiometricAttemptTime,
+           Date().timeIntervalSince(lastAttempt) < biometricDebounceInterval {
+            debugPrint("Skipping duplicate biometric attempt - debounced")
+            return
+        }
+        
+        // If biometric auth is already in progress, don't start another
+        guard !isBiometricAuthInProgress else {
+            debugPrint("Skipping biometric attempt - already in progress")
+            return
+        }
+        
+        lastBiometricAttemptTime = Date()
+        isBiometricAuthInProgress = true
+        
+        defer {
+            isBiometricAuthInProgress = false
+        }
+        
         let result = try await evaluateWithBiometrics()
         if result == true {
             self.authState = .authenticated(with: method)
