@@ -511,6 +511,10 @@ extension DiskFileAccess {
     }
 
     @discardableResult public func save(media: CleartextMedia, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
+        // Check for task cancellation at the start of save operation
+        // This ensures we don't start encryption if the task is already cancelled
+        try Task.checkCancellation()
+        
         guard let key = key else {
             throw FileAccessError.missingPrivateKey
         }
@@ -707,6 +711,9 @@ extension DiskFileAccess {
         var deletedMedia: [EncryptedMedia] = []
         
         for mediaItem in media {
+            // Check for cancellation before deleting each media item
+            try Task.checkCancellation()
+            
             guard case .url(let source) = mediaItem.source else {
                 printDebug("Error deleting media: \(mediaItem)")
                 throw FileAccessError.missingDirectoryModel
@@ -781,6 +788,9 @@ extension DiskFileAccess {
         print("encrypted media", uniqueMedia.map({$0.id}))
 
         for media in uniqueMedia {
+            // Check for cancellation periodically during UUID migration
+            try Task.checkCancellation()
+            
             guard case .url(let fileURL) = media.source else {
                 continue
             }
@@ -817,6 +827,9 @@ extension DiskFileAccess {
         let uniquePreviewFiles = Array(Set(allPreviewFiles))
         
         for previewURL in uniquePreviewFiles {
+            // Check for cancellation periodically during preview file UUID migration
+            try Task.checkCancellation()
+            
             processedCount += 1
             
             do {

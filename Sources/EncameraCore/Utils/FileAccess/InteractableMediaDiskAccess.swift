@@ -120,7 +120,9 @@ public actor InteractableMediaDiskAccess: FileAccess {
         progress: @escaping (FileLoadingStatus) -> Void) async throws -> [URL] {
         var urls = [URL]()
         for mediaItem in media.underlyingMedia {
-
+            // Check for cancellation before loading each media item
+            try Task.checkCancellation()
+            
             let loaded = try await fileAccess.loadMediaToURL(media: mediaItem, progress: progress)
             guard let url = loaded.url else {
                 continue
@@ -135,6 +137,9 @@ public actor InteractableMediaDiskAccess: FileAccess {
 
         var decrypted: [CleartextMedia] = []
         for mediaItem in media.underlyingMedia {
+            // Check for cancellation before decrypting each media item
+            try Task.checkCancellation()
+            
             if mediaItem.mediaType == .photo {
                 let cleartextMedia = try await fileAccess.loadMediaInMemory(media: mediaItem, progress: progress)
                 decrypted.append(cleartextMedia)
@@ -153,6 +158,9 @@ public actor InteractableMediaDiskAccess: FileAccess {
     public func save(media: InteractableMedia<CleartextMedia>, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
         var encrypted: [EncryptedMedia] = []
         for mediaItem in media.underlyingMedia {
+            // Check for cancellation before processing each media item
+            // This ensures cancellation propagates through the actor boundary
+            try Task.checkCancellation()
             if let encryptedMedia = try await fileAccess.save(media: mediaItem, progress: progress) {
                 encrypted.append(encryptedMedia)
             }
@@ -169,12 +177,16 @@ public actor InteractableMediaDiskAccess: FileAccess {
     
     public func copy(media: InteractableMedia<EncryptedMedia>) async throws {
         for mediaItem in media.underlyingMedia {
+            // Check for cancellation before copying each media item
+            try Task.checkCancellation()
             try await fileAccess.copy(media: mediaItem)
         }
     }
     
     public func move(media: InteractableMedia<EncryptedMedia>, progress: ((FileLoadingStatus) -> Void)? = nil) async throws {
         for mediaItem in media.underlyingMedia {
+            // Check for cancellation before moving each media item
+            try Task.checkCancellation()
             try await fileAccess.move(media: mediaItem, progress: progress)
         }
     }
