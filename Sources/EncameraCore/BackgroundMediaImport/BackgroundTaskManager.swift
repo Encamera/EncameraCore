@@ -184,7 +184,7 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     }
     
     /// Finalizes a task as completed
-    public func finalizeTaskCompleted(taskId: String, totalItems: Int) {
+    public func finalizeTaskCompleted(taskId: String, totalItems: Int, assetIdentifiers: [String] = []) {
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
             printDebug("Cannot finalize task - not found: \(taskId)")
             return
@@ -203,6 +203,11 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         
         if var importTask = currentTasks[taskIndex] as? ImportTask {
             importTask.progress = completedProgress
+            // Update asset identifiers if provided (for streaming imports)
+            if !assetIdentifiers.isEmpty {
+                importTask = importTask.withAssetIdentifiers(assetIdentifiers)
+                printDebug("Updated task \(taskId) with \(assetIdentifiers.count) asset identifiers")
+            }
             currentTasks[taskIndex] = importTask
             publishProgress(for: importTask)
             printDebug("Task completed successfully: \(taskId)")
