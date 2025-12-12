@@ -383,6 +383,7 @@
 
 /* ./Encamera/MediaImport/MediaImportView.swift */
 "Select All" = "Select All";
+"Deselect All" = "Deselect All";
 "Import" = "Import";
 "Import from photos" = "Import from Photos";
 "Import from files" = "Import from Files";
