@@ -229,6 +229,7 @@ public class MediaImportHandler: DebugPrintable {
         
         var successCount = 0
         var failureCount = 0
+        var collectedAssetIdentifiers: [String] = []
         
         currentImportTask = Task {
             let fileAccess = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
@@ -237,18 +238,21 @@ public class MediaImportHandler: DebugPrintable {
             case .preloaded(let media):
                 try await performBatchImport(task: task, media: media, fileAccess: fileAccess)
                 successCount = task.uniqueMediaCount
+                // For preloaded imports, asset identifiers are already set on the task
+                collectedAssetIdentifiers = task.assetIdentifiers
                 
             case .streaming(let results):
                 let counts = try await performStreamingImport(task: task, results: results, fileAccess: fileAccess)
                 successCount = counts.success
                 failureCount = counts.failure
+                collectedAssetIdentifiers = counts.assetIdentifiers
             }
         }
         
         do {
             try await currentImportTask?.value
             await MainActor.run {
-                self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: mediaSource.count)
+                self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: mediaSource.count, assetIdentifiers: collectedAssetIdentifiers)
                 self.endBackgroundTask()
                 self.cleanupTempFilesIfSafe()
             }
@@ -318,12 +322,13 @@ public class MediaImportHandler: DebugPrintable {
         task: ImportTask,
         results: [MediaSelectionResult],
         fileAccess: FileAccess
-    ) async throws -> (success: Int, failure: Int) {
+    ) async throws -> (success: Int, failure: Int, assetIdentifiers: [String]) {
         printDebug("Performing streaming import for task: \(task.id) with \(results.count) results")
         let startTime = Date()
         var processedCount = 0
         var successCount = 0
         var failureCount = 0
+        var collectedAssetIdentifiers: [String] = []
         
         for (index, result) in results.enumerated() {
             // Check for cancellation
@@ -336,7 +341,7 @@ public class MediaImportHandler: DebugPrintable {
             printDebug("📄 Processing item \(index + 1)/\(results.count)")
             
             do {
-                let (media, _) = try await mediaLoader.loadSingleMedia(from: result)
+                let (media, assetId) = try await mediaLoader.loadSingleMedia(from: result)
                 
                 try await importSingleItem(
                     mediaGroup: media,
@@ -352,6 +357,11 @@ public class MediaImportHandler: DebugPrintable {
                     deleteTempFiles(for: media)
                 }
                 
+                // Collect asset identifier for successful imports
+                if let assetId = assetId {
+                    collectedAssetIdentifiers.append(assetId)
+                }
+                
                 successCount += 1
                 processedCount += 1
                 printDebug("✅ Successfully imported item \(index + 1)/\(results.count)")
@@ -362,8 +372,8 @@ public class MediaImportHandler: DebugPrintable {
             }
         }
         
-        printDebug("📈 Streaming import complete - Processed: \(processedCount)/\(results.count) (Success: \(successCount), Failed: \(failureCount))")
-        return (successCount, failureCount)
+        printDebug("📈 Streaming import complete - Processed: \(processedCount)/\(results.count) (Success: \(successCount), Failed: \(failureCount), AssetIDs: \(collectedAssetIdentifiers.count))")
+        return (successCount, failureCount, collectedAssetIdentifiers)
     }
     
     // MARK: - Media Processing
