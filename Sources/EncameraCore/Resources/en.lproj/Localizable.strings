@@ -740,6 +740,7 @@
 "CustomPhotoPicker.PhotoAccessRequired" = "Photo Access Required";
 "CustomPhotoPicker.GrantAccessMessage" = "Please grant full access to your photo library to use swipe selection. You can change this in Settings.";
 "CustomPhotoPicker.Selected" = "%@ Selected";
+"CustomPhotoPicker.AllPhotos" = "All Photos";
 
 /* ./Encamera/Components/PhotoPickerWrapper.swift */
 "PhotoPickerWrapper.UpgradeTitle" = "Upgrade to Full Photo Access";
@@ -792,6 +793,8 @@
 "FeatureToggles.RevenuecatToggleMessage" = "Changing RevenueCat mode requires restarting the app. Continue?";
 "FeatureToggles.DebugRemoteContent" = "Debug Remote Content";
 "FeatureToggles.DebugRemoteContentDescription" = "Enable debugging for remote CMS content";
+"FeatureToggles.AlbumSelectionEnabled" = "Album Selection";
+"FeatureToggles.AlbumSelectionEnabledDescription" = "Show album carousel in photo picker";
 "Common.Cancel" = "Cancel";
 "Common.Confirm" = "Confirm";
 
