@@ -70,7 +70,14 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         
         printDebug("Checking for pending imports from Share Extension...")
         
-        let count = appGroupFileAccess.pendingMediaCount()
+        // Move file I/O off the main thread to avoid blocking during foreground transition
+        // This is important because this check happens when the app becomes active,
+        // which is the same time biometric authentication is trying to run
+        let fileAccess = appGroupFileAccess
+        let count = await Task.detached(priority: .utility) {
+            fileAccess.pendingMediaCount()
+        }.value
+        
         let hadPending = hasPendingImports
         
         pendingCount = count
@@ -204,24 +211,20 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     
     private func setupNotificationObservers() {
         // Check for pending imports when app becomes active
+        // Use a delay to avoid competing with biometric authentication during foreground transition
         NotificationUtils.didBecomeActivePublisher
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 Task { @MainActor in
+                    // Delay non-critical file I/O to let biometrics complete first
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                     await self?.checkForPendingImports()
                 }
             }
             .store(in: &cancellables)
         
-        // Also check when app enters foreground
-        NotificationUtils.willEnterForegroundPublisher
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                Task { @MainActor in
-                    await self?.checkForPendingImports()
-                }
-            }
-            .store(in: &cancellables)
+        // Remove the willEnterForeground observer - didBecomeActive is sufficient
+        // and having both causes redundant work during foreground transition
     }
 }
 
