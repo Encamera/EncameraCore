@@ -677,6 +677,7 @@
 /* ./Encamera/Components/ImportProgress/GlobalImportProgressView.swift */
 "GlobalImportProgress.ImportCompleted" = "Import completed";
 "GlobalImportProgress.ImportStopped" = "Import stopped";
+"GlobalImportProgress.ImportCanceled" = "Import canceled";
 "GlobalImportProgress.NoActiveImports" = "No active imports";
 "GlobalImportProgress.ImportingProgress" = "Importing %@ of %@";
 "GlobalImportProgress.ImportingBatches" = "Importing %@ batches";
@@ -690,6 +691,7 @@
 /* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations */
 "BackgroundTaskProgress.MoveCompleted" = "Move completed";
 "BackgroundTaskProgress.MoveStopped" = "Move stopped";
+"BackgroundTaskProgress.MoveCanceled" = "Move canceled";
 "BackgroundTaskProgress.MovingProgress" = "Moving %@ of %@";
 "BackgroundTaskProgress.MovingBatches" = "Moving %@ batches";
 "BackgroundTaskProgress.NoActiveTasks" = "No active tasks";

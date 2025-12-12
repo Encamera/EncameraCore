@@ -975,6 +975,8 @@ public enum L10n {
     public static let moveCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCompleted", fallback: "Move completed")
     /// Move stopped
     public static let moveStopped = L10n.tr("Localizable", "BackgroundTaskProgress.MoveStopped", fallback: "Move stopped")
+    /// Move canceled
+    public static let moveCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCanceled", fallback: "Move canceled")
     /// Moving %@ batches
     public static func movingBatches(_ p1: Any) -> String {
       return L10n.tr("Localizable", "BackgroundTaskProgress.MovingBatches", String(describing: p1), fallback: "Moving %@ batches")
@@ -1189,6 +1191,8 @@ public enum L10n {
     }
     /// Import stopped
     public static let importStopped = L10n.tr("Localizable", "GlobalImportProgress.ImportStopped", fallback: "Import stopped")
+    /// Import canceled
+    public static let importCanceled = L10n.tr("Localizable", "GlobalImportProgress.ImportCanceled", fallback: "Import canceled")
     /// No active imports
     public static let noActiveImports = L10n.tr("Localizable", "GlobalImportProgress.NoActiveImports", fallback: "No active imports")
     /// Photos deleted
