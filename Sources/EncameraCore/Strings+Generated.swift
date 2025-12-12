@@ -867,6 +867,10 @@ public enum L10n {
     public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to Latest Image")
     /// Select Media
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
+    /// For Faster Imports
+    public static let largeImportWarningTitle = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningTitle", fallback: "For Faster Imports")
+    /// Leave the app open and connected to WiFi for best results.
+    public static let largeImportWarningMessage = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningMessage", fallback: "Leave the app open and connected to WiFi for best results.")
   }
   public enum AlbumSelectionModal {
     /// Select an album to move %@ items to
