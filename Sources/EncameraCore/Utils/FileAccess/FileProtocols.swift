@@ -18,6 +18,7 @@ public enum FileAccessError: Error, ErrorDescribable {
     case iCloudFileNotDownloaded(status: iCloudFileStatus)
     case iCloudDownloadFailed(status: iCloudFileStatus)
     case iCloudDownloadInProgress(status: iCloudFileStatus)
+    case iCloudDownloadTimeout
     
     public var displayDescription: String {
         switch self {
@@ -37,6 +38,8 @@ public enum FileAccessError: Error, ErrorDescribable {
             return iCloudFileStatusUtil.userFriendlyErrorMessage(for: status)
         case .iCloudDownloadInProgress(let status):
             return iCloudFileStatusUtil.userFriendlyErrorMessage(for: status)
+        case .iCloudDownloadTimeout:
+            return L10n.ICloudError.downloadTimeout
         }
     }
 }
@@ -67,12 +70,19 @@ public protocol FileWriter: FileEnumerator {
     @discardableResult func save(media: InteractableMedia<CleartextMedia>, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>?
     @discardableResult func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel
     func copy(media: InteractableMedia<EncryptedMedia>) async throws
-    func move(media: InteractableMedia<EncryptedMedia>) async throws
+    func move(media: InteractableMedia<EncryptedMedia>, progress: ((FileLoadingStatus) -> Void)?) async throws
     func delete(media: [InteractableMedia<EncryptedMedia>]) async throws
     func deleteMediaForKey() async throws
     func deleteAllMedia() async throws
     func setKeyUUIDForExistingFiles() async throws
     static func deleteThumbnailDirectory() throws
+}
+
+// Default implementation for backwards compatibility
+extension FileWriter {
+    func move(media: InteractableMedia<EncryptedMedia>) async throws {
+        try await move(media: media, progress: nil)
+    }
 }
 
 public protocol FileAccess: FileEnumerator, FileReader, FileWriter {
