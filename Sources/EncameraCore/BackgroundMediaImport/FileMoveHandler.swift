@@ -277,6 +277,8 @@ public class FileMoveHandler: DebugPrintable {
             .sink { [weak self] _ in
                 self?.printDebug("App will enter foreground - refreshing move task states")
                 Task { @MainActor in
+                    // Delay non-critical work to let biometric authentication complete first
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                     self?.taskManager.updateOverallProgress()
                 }
             }
