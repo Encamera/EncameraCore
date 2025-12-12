@@ -1047,6 +1047,8 @@ public enum L10n {
     public static let grantAccessMessage = L10n.tr("Localizable", "CustomPhotoPicker.GrantAccessMessage", fallback: "Please grant full access to your photo library to use swipe selection. You can change this in Settings.")
     /// Limited access. Tap here to select more photos or grant full access.
     public static let limitedAccess = L10n.tr("Localizable", "CustomPhotoPicker.LimitedAccess", fallback: "Limited access. Tap here to select more photos or grant full access.")
+    /// Loading more photos...
+    public static let loadingMore = L10n.tr("Localizable", "CustomPhotoPicker.LoadingMore", fallback: "Loading more photos...")
     /// Photo Access Required
     public static let photoAccessRequired = L10n.tr("Localizable", "CustomPhotoPicker.PhotoAccessRequired", fallback: "Photo Access Required")
     /// %@ Selected
