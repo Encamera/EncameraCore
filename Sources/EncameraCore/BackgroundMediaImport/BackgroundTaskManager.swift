@@ -115,6 +115,8 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     }
     
     /// Updates a task's state to cancelled (internal use - prefer cancelTask for external callers)
+    /// Note: This does NOT update isProcessing - the task is still considered "in progress"
+    /// until finalizeTaskCancelled is called. This ensures proper cleanup timing.
     public func markTaskCancelled(taskId: String) {
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
             printDebug("Cannot mark cancelled - task not found: \(taskId)")
@@ -131,8 +133,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             publishProgress(for: moveTask)
         }
         
-        // Update processing state so UI observers (like progress view dismissal) are notified
-        updateIsProcessing()
+        // Note: We intentionally do NOT call updateIsProcessing() here.
+        // The task is still "in progress" until finalizeTaskCancelled is called,
+        // which handles cleanup, updates asset identifiers, and then updates isProcessing.
+        // This prevents premature UI dismissal before the import has properly cleaned up.
     }
     
     // MARK: - Cancellation

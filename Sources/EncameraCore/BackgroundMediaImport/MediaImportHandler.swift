@@ -272,10 +272,11 @@ public class MediaImportHandler: DebugPrintable {
             }
         } catch is CancellationError {
             // Task was cancelled (typically batch imports via Task.checkCancellation())
-            // For preloaded imports, use the task's existing asset identifiers
-            let partialIdentifiers = task.assetIdentifiers
+            // Use collectedAssetIdentifiers if we collected any (streaming imports),
+            // otherwise fall back to task.assetIdentifiers (preloaded imports)
+            let partialIdentifiers = !collectedAssetIdentifiers.isEmpty ? collectedAssetIdentifiers : task.assetIdentifiers
             await MainActor.run {
-                self.printDebug("Batch import was cancelled with \(partialIdentifiers.count) asset identifiers")
+                self.printDebug("Import was cancelled with \(partialIdentifiers.count) asset identifiers")
                 self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: partialIdentifiers)
                 self.endBackgroundTask()
                 self.cleanupTempFilesIfSafe()
