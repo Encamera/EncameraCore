@@ -53,7 +53,7 @@ public struct ImportTask: BackgroundFileTask {
     public var state: FileTaskState {
         progress.state
     }
-    public let assetIdentifiers: [String]
+    public private(set) var assetIdentifiers: [String]
     /// Identifier for the user-initiated batch. Multiple ImportTasks with the same userBatchId
     /// were created from the same user selection (e.g., when selecting 20 photos from the photo picker,
     /// they may be split into multiple technical batches for processing efficiency).
@@ -111,5 +111,13 @@ public struct ImportTask: BackgroundFileTask {
 
     public static func ==(lhs: ImportTask, rhs: ImportTask) -> Bool {
         return lhs.id == rhs.id
+    }
+    
+    /// Creates a copy of this task with updated asset identifiers.
+    /// Used for streaming imports where asset IDs are collected during processing.
+    public func withAssetIdentifiers(_ newAssetIdentifiers: [String]) -> ImportTask {
+        var copy = self
+        copy.assetIdentifiers = newAssetIdentifiers
+        return copy
     }
 }
