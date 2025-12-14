@@ -674,3 +674,6 @@
 "ShareExtension.OpenEncamera" = "افتح إنكاميرا";
 "CompletedImportHistory.DeleteConfirmMessage" = "سيؤدي هذا إلى حذف %@ صورة من مكتبة الصور الخاصة بك.";
 "CompletedImportHistory.EmptyState" = "لا توجد عمليات استيراد مكتملة";
+"ImportKeyPhrase.RestartRequired.Title" = "مطلوب إعادة التشغيل";
+"ICloudError.DownloadTimeout" = "انتهت مهلة تنزيل iCloud. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+"ImportKeyPhrase.RestartRequired.Message" = "بعد تغيير مفتاحك، سيُعاد تشغيل التطبيق.";

@@ -221,6 +221,8 @@ public enum L10n {
   public static let deleteImported = L10n.tr("Localizable", "DeleteImported", fallback: "Delete Images?")
   /// Deletion Error
   public static let deletionError = L10n.tr("Localizable", "Deletion Error", fallback: "Deletion Error")
+  /// Deselect All
+  public static let deselectAll = L10n.tr("Localizable", "Deselect All", fallback: "Deselect All")
   /// Do you want to delete this key forever? All media will remain saved.
   public static let doYouWantToDeleteThisKeyForeverAllMediaWillRemainSaved = L10n.tr("Localizable", "Do you want to delete this key forever? All media will remain saved.", fallback: "Do you want to delete this key forever? All media will remain saved.")
   /// Done
@@ -620,7 +622,6 @@ public enum L10n {
   public static let selectAPlaceToKeepMediaForThisKey = L10n.tr("Localizable", "Select a place to keep media for this key.", fallback: "Select a place to keep media for this key.")
   /// ./Encamera/MediaImport/MediaImportView.swift
   public static let selectAll = L10n.tr("Localizable", "Select All", fallback: "Select All")
-  public static let deselectAll = L10n.tr("Localizable", "Deselect All", fallback: "Deselect All")
   /// Please select a method
   public static let selectLoginMethod = L10n.tr("Localizable", "Select Login Method", fallback: "Please select a method")
   /// Select Storage
@@ -827,6 +828,10 @@ public enum L10n {
     public static let hideAlbumMenuItem = L10n.tr("Localizable", "AlbumDetailView.HideAlbumMenuItem", fallback: "Hide Album")
     /// Import Pictures
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
+    /// Leave the app open and connected to WiFi for best results.
+    public static let largeImportWarningMessage = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningMessage", fallback: "Leave the app open and connected to WiFi for best results.")
+    /// For Faster Imports
+    public static let largeImportWarningTitle = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningTitle", fallback: "For Faster Imports")
     /// Moved %@ %@ to %@
     public static func movedToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MovedToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Moved %@ %@ to %@")
@@ -867,10 +872,6 @@ public enum L10n {
     public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to Latest Image")
     /// Select Media
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
-    /// For Faster Imports
-    public static let largeImportWarningTitle = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningTitle", fallback: "For Faster Imports")
-    /// Leave the app open and connected to WiFi for best results.
-    public static let largeImportWarningMessage = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningMessage", fallback: "Leave the app open and connected to WiFi for best results.")
   }
   public enum AlbumSelectionModal {
     /// Select an album to move %@ items to
@@ -971,12 +972,12 @@ public enum L10n {
     public static let tooManyAttempts = L10n.tr("Localizable", "AuthenticationView.TooManyAttempts", fallback: "Too many attempts")
   }
   public enum BackgroundTaskProgress {
+    /// Move canceled
+    public static let moveCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCanceled", fallback: "Move canceled")
     /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations
     public static let moveCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCompleted", fallback: "Move completed")
     /// Move stopped
     public static let moveStopped = L10n.tr("Localizable", "BackgroundTaskProgress.MoveStopped", fallback: "Move stopped")
-    /// Move canceled
-    public static let moveCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCanceled", fallback: "Move canceled")
     /// Moving %@ batches
     public static func movingBatches(_ p1: Any) -> String {
       return L10n.tr("Localizable", "BackgroundTaskProgress.MovingBatches", String(describing: p1), fallback: "Moving %@ batches")
@@ -1179,6 +1180,8 @@ public enum L10n {
     public static let deleteFromPhotoLibraryAlert = L10n.tr("Localizable", "GlobalImportProgress.DeleteFromPhotoLibraryAlert", fallback: "Delete from Photo Library?")
     /// This will delete all imported photos from your Photo Library.
     public static let deleteFromPhotoLibraryMessage = L10n.tr("Localizable", "GlobalImportProgress.DeleteFromPhotoLibraryMessage", fallback: "This will delete all imported photos from your Photo Library.")
+    /// Import canceled
+    public static let importCanceled = L10n.tr("Localizable", "GlobalImportProgress.ImportCanceled", fallback: "Import canceled")
     /// ./Encamera/Components/ImportProgress/GlobalImportProgressView.swift
     public static let importCompleted = L10n.tr("Localizable", "GlobalImportProgress.ImportCompleted", fallback: "Import completed")
     /// Importing %@ batches
@@ -1191,8 +1194,6 @@ public enum L10n {
     }
     /// Import stopped
     public static let importStopped = L10n.tr("Localizable", "GlobalImportProgress.ImportStopped", fallback: "Import stopped")
-    /// Import canceled
-    public static let importCanceled = L10n.tr("Localizable", "GlobalImportProgress.ImportCanceled", fallback: "Import canceled")
     /// No active imports
     public static let noActiveImports = L10n.tr("Localizable", "GlobalImportProgress.NoActiveImports", fallback: "No active imports")
     /// Photos deleted
@@ -1239,10 +1240,10 @@ public enum L10n {
     public static func downloadInProgress(_ p1: Any) -> String {
       return L10n.tr("Localizable", "ICloudError.DownloadInProgress", String(describing: p1), fallback: "File '%@' is still downloading from iCloud. Please wait.")
     }
-    /// ./Encamera/ImageViewing/MediaViewingError.swift - iCloud Error Messages
-    public static let fileNotDownloaded = L10n.tr("Localizable", "ICloudError.FileNotDownloaded", fallback: "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.")
     /// iCloud download timed out. Please check your internet connection and try again.
     public static let downloadTimeout = L10n.tr("Localizable", "ICloudError.DownloadTimeout", fallback: "iCloud download timed out. Please check your internet connection and try again.")
+    /// ./Encamera/ImageViewing/MediaViewingError.swift - iCloud Error Messages
+    public static let fileNotDownloaded = L10n.tr("Localizable", "ICloudError.FileNotDownloaded", fallback: "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.")
   }
   public enum ICloudStatus {
     /// ./Encamera/Components/iCloudSyncStatusIndicator.swift - Directory Sync Status
@@ -1275,6 +1276,14 @@ public enum L10n {
     }
     /// Tap to download
     public static let tapToDownload = L10n.tr("Localizable", "ICloudStatus.TapToDownload", fallback: "Tap to download")
+  }
+  public enum ImportKeyPhrase {
+    public enum RestartRequired {
+      /// After changing your key, the app will restart.
+      public static let message = L10n.tr("Localizable", "ImportKeyPhrase.RestartRequired.Message", fallback: "After changing your key, the app will restart.")
+      /// Restart Required
+      public static let title = L10n.tr("Localizable", "ImportKeyPhrase.RestartRequired.Title", fallback: "Restart Required")
+    }
   }
   public enum ImportTaskDetailsView {
     /// Clear All

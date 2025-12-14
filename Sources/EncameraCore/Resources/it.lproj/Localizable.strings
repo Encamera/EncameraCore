@@ -684,3 +684,6 @@ album";
 "ShareExtension.OpenEncamera" = "Apri Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Questo eliminerà %@ foto dalla tua Libreria foto.";
 "CompletedImportHistory.EmptyState" = "Nessuna importazione completata";
+"ImportKeyPhrase.RestartRequired.Title" = "Riavvio richiesto";
+"ICloudError.DownloadTimeout" = "Il download da iCloud è scaduto. Controlla la connessione Internet e riprova.";
+"ImportKeyPhrase.RestartRequired.Message" = "Dopo aver cambiato la tua chiave, l'app verrà riavviata.";

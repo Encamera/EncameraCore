@@ -680,3 +680,6 @@ Du skal kun gøre to ting:
 "ShareExtension.OpenEncamera" = "Åbn Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Dette vil slette %@ foto(er) fra dit fotobibliotek.";
 "CompletedImportHistory.EmptyState" = "Ingen fuldførte importer";
+"ImportKeyPhrase.RestartRequired.Title" = "Genstart påkrævet";
+"ICloudError.DownloadTimeout" = "iCloud-downloadet fik timeout. Tjek venligst din internetforbindelse og prøv igen.";
+"ImportKeyPhrase.RestartRequired.Message" = "Efter du har ændret din nøgle, vil appen genstarte.";

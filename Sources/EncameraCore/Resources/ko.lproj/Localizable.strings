@@ -693,3 +693,6 @@
 "ShareExtension.OpenEncamera" = "Encamera 열기";
 "CompletedImportHistory.DeleteConfirmMessage" = "이 작업은 %@장의 사진을 사진 보관함에서 삭제합니다.";
 "CompletedImportHistory.EmptyState" = "완료된 가져오기 없음";
+"ImportKeyPhrase.RestartRequired.Title" = "재시작 필요";
+"ICloudError.DownloadTimeout" = "iCloud 다운로드 시간이 초과되었습니다. 인터넷 연결을 확인하고 다시 시도하세요.";
+"ImportKeyPhrase.RestartRequired.Message" = "키를 변경한 후 앱이 재시작됩니다.";

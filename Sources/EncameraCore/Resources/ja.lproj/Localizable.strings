@@ -709,3 +709,6 @@
 "ShareExtension.OpenEncamera" = "Encameraを開く";
 "CompletedImportHistory.DeleteConfirmMessage" = "これにより、フォトライブラリから%@枚の写真が削除されます。";
 "CompletedImportHistory.EmptyState" = "完了したインポートはありません";
+"ImportKeyPhrase.RestartRequired.Title" = "再起動が必要です";
+"ICloudError.DownloadTimeout" = "iCloudのダウンロードがタイムアウトしました。インターネット接続を確認して、もう一度お試しください。";
+"ImportKeyPhrase.RestartRequired.Message" = "キーを変更した後、アプリが再起動します。";
