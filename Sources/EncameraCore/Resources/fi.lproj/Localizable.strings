@@ -704,3 +704,6 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "ShareExtension.OpenEncamera" = "Avaa Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Tämä poistaa %@ valokuvaa kuvakirjastostasi.";
 "CompletedImportHistory.EmptyState" = "Ei valmiita tuonteja";
+"ImportKeyPhrase.RestartRequired.Title" = "Uudelleenkäynnistys vaaditaan";
+"ICloudError.DownloadTimeout" = "iCloud-lataus aikakatkaistiin. Tarkista internet-yhteytesi ja yritä uudelleen.";
+"ImportKeyPhrase.RestartRequired.Message" = "Avainmuutoksen jälkeen sovellus käynnistyy uudelleen.";

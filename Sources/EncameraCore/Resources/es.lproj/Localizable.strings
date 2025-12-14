@@ -826,3 +826,6 @@
 "ShareExtension.OpenEncamera" = "Abrir Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Esto eliminará %@ foto(s) de tu Biblioteca de Fotos.";
 "CompletedImportHistory.EmptyState" = "No hay importaciones completadas";
+"ImportKeyPhrase.RestartRequired.Title" = "Reinicio requerido";
+"ICloudError.DownloadTimeout" = "La descarga de iCloud excedió el tiempo de espera. Por favor, verifica tu conexión a internet e inténtalo de nuevo.";
+"ImportKeyPhrase.RestartRequired.Message" = "Después de cambiar tu clave, la aplicación se reiniciará.";

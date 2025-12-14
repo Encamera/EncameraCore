@@ -706,3 +706,6 @@ Encamera！";
 "ShareExtension.OpenEncamera" = "打開Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "這將從您的相片圖庫中刪除 %@ 張相片。";
 "CompletedImportHistory.EmptyState" = "沒有已完成的匯入";
+"ImportKeyPhrase.RestartRequired.Title" = "需要重新啟動";
+"ICloudError.DownloadTimeout" = "iCloud 下載逾時。請檢查您的網路連線並重試。";
+"ImportKeyPhrase.RestartRequired.Message" = "更改金鑰後，應用程式將會重新啟動。";

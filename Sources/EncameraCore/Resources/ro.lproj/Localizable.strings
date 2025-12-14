@@ -693,3 +693,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "ShareExtension.OpenEncamera" = "Deschide Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Aceasta va șterge %@ fotografie(i) din Biblioteca foto.";
 "CompletedImportHistory.EmptyState" = "Nicio importare finalizată";
+"ImportKeyPhrase.RestartRequired.Title" = "Este necesară repornirea";
+"ICloudError.DownloadTimeout" = "Descărcarea de pe iCloud a expirat. Vă rugăm să verificați conexiunea la internet și să încercați din nou.";
+"ImportKeyPhrase.RestartRequired.Message" = "După schimbarea cheii, aplicația va reporni.";

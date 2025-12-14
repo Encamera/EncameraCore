@@ -827,3 +827,6 @@
 "ShareExtension.OpenEncamera" = "Encamera öffnen";
 "CompletedImportHistory.DeleteConfirmMessage" = "Dies wird %@ Foto(s) aus Ihrer Fotomediathek löschen.";
 "CompletedImportHistory.EmptyState" = "Keine abgeschlossenen Importe";
+"ImportKeyPhrase.RestartRequired.Title" = "Neustart erforderlich";
+"ICloudError.DownloadTimeout" = "iCloud-Download hat zu lange gedauert. Bitte überprüfe deine Internetverbindung und versuche es erneut.";
+"ImportKeyPhrase.RestartRequired.Message" = "Nachdem du deinen Schlüssel geändert hast, wird die App neu gestartet.";

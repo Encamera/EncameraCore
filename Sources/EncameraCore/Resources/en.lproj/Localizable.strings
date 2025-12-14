@@ -518,6 +518,8 @@
 "OverwriteAreYouSure" = "Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.";
 "ImSure" = "I'm Sure";
 "ErrorImportingKeyPhrase" = "Error importing key phrase";
+"ImportKeyPhrase.RestartRequired.Title" = "Restart Required";
+"ImportKeyPhrase.RestartRequired.Message" = "After changing your key, the app will restart.";
 "PostPurchaseView.ThanksForYourPurchase" = "Thanks for your purchase!";
 "PostPurchaseView.Subtext1" = "You are one of the early supporters of Encamera and we thank you for the support!";
 "PostPurchaseView.Subtext2" = "In the meantime, we would highly appreciate if you could help us with a Review on the App Store";
@@ -833,6 +835,7 @@
 "ICloudError.DownloadFailed" = "Could not download '%@' from iCloud: %@";
 "ICloudError.DownloadFailedGeneric" = "Could not download '%@' from iCloud. Please check your internet connection and iCloud settings.";
 "ICloudError.DownloadInProgress" = "File '%@' is still downloading from iCloud. Please wait.";
+"ICloudError.DownloadTimeout" = "iCloud download timed out. Please check your internet connection and try again.";
 
 /* ./ShareExtension/ShareViewController.swift - Share Extension */
 "ShareExtension.SavingMedia" = "Saving media...";
