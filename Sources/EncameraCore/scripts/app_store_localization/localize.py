@@ -90,6 +90,7 @@ class AppStoreConnectAPI:
             # Verify the token structure by decoding header and payload (without verification)
             try:
                 import base64
+
                 # JWT format: header.payload.signature
                 parts = token.split('.')
                 
@@ -792,9 +793,9 @@ def load_private_key(credentials_config, credentials_file_path=None):
                 
                 # Additional validation: Try to load the key with cryptography library to verify it's EC
                 try:
-                    from cryptography.hazmat.primitives import serialization
                     from cryptography.hazmat.backends import default_backend
-                    
+                    from cryptography.hazmat.primitives import serialization
+
                     # Try to load as EC key
                     try:
                         key_bytes = key_content.encode() if isinstance(key_content, str) else key_content
@@ -805,7 +806,8 @@ def load_private_key(credentials_config, credentials_file_path=None):
                         )
                         
                         # Check if it's an EC key
-                        from cryptography.hazmat.primitives.asymmetric import ec
+                        from cryptography.hazmat.primitives.asymmetric import \
+                            ec
                         if isinstance(private_key_obj, ec.EllipticCurvePrivateKey):
                             curve_name = private_key_obj.curve.name
                             print(f"  ✅ Verified as Elliptic Curve key (curve: {curve_name})")
@@ -923,6 +925,60 @@ def display_translation_preview(translations, all_languages):
         
         if table_data:
             print(tabulate(table_data, headers=["Language", "Content"], tablefmt="grid"))
+
+
+def check_description_changed(api, app_id, base_language, local_description):
+    """Check if the App Store description differs from the local config.
+    
+    Returns:
+        tuple: (needs_translation: bool, app_store_description: str or None)
+    """
+    try:
+        print("\n🔍 Checking if App Store description matches local config...")
+        
+        # Get app store versions
+        versions = api.get_app_store_versions(app_id)
+        if not versions:
+            print("  ⚠️  No versions found, will proceed with translation")
+            return True, None
+        
+        version_id = versions[0]["id"]
+        
+        # Get existing localizations
+        existing_localizations = api.get_version_localizations(version_id)
+        
+        # Find base language localization
+        app_store_description = None
+        for loc in existing_localizations:
+            locale = loc["attributes"]["locale"]
+            if locale == base_language:
+                app_store_description = loc["attributes"].get("description", "")
+                break
+        
+        if app_store_description is None:
+            print(f"  ⚠️  No {base_language} localization found in App Store, will proceed with translation")
+            return True, None
+        
+        # Normalize both descriptions for comparison (strip whitespace)
+        local_desc_normalized = local_description.strip() if local_description else ""
+        app_store_desc_normalized = app_store_description.strip() if app_store_description else ""
+        
+        if local_desc_normalized == app_store_desc_normalized:
+            print("  ✅ App Store description matches local config")
+            return False, app_store_description
+        else:
+            print("  📝 App Store description differs from local config")
+            # Show a preview of what changed
+            local_preview = local_desc_normalized[:100] + "..." if len(local_desc_normalized) > 100 else local_desc_normalized
+            app_store_preview = app_store_desc_normalized[:100] + "..." if len(app_store_desc_normalized) > 100 else app_store_desc_normalized
+            print(f"     Local:     {local_preview}")
+            print(f"     App Store: {app_store_preview}")
+            return True, app_store_description
+            
+    except Exception as e:
+        print(f"  ⚠️  Could not compare descriptions: {e}")
+        print("  → Will proceed with translation to be safe")
+        return True, None
 
 
 def preflight_check(credentials_config, credentials_file_path=None):
@@ -1051,6 +1107,9 @@ Examples:
   
   # Auto-create missing string localizations and update App Store metadata
   python localize.py --auto-create-strings
+  
+  # Force retranslation even if App Store description matches local config
+  python localize.py --force-retranslation
     
     """
     )
@@ -1059,6 +1118,7 @@ Examples:
     parser.add_argument('--dry-run', action='store_true', help='Show translations without updating App Store')
     parser.add_argument('--skip-preflight', action='store_true', help='Skip preflight App Store Connect API check')
     parser.add_argument('--auto-create-strings', action='store_true', help='Automatically create missing string localizations from App Store')
+    parser.add_argument('--force-retranslation', action='store_true', help='Force retranslation even if App Store description matches local config')
     args = parser.parse_args()
 
     # Auto-detect config files if not provided
@@ -1160,12 +1220,31 @@ Examples:
     
     print(f"📋 Fields to process: {', '.join(listing.keys())}")
     
+    # Check if description needs retranslation (to save OpenAI API tokens)
+    skip_description_translation = False
+    if not args.skip_preflight and api and app_id:
+        local_description = listing.get("description", "")
+        
+        if args.force_retranslation:
+            print("\n🔄 Force retranslation flag set - will translate all content")
+        else:
+            needs_translation, _ = check_description_changed(api, app_id, base_language, local_description)
+            if not needs_translation:
+                skip_description_translation = True
+                print("  ⏭️  Will skip description translation to save API tokens")
+                print("     (Use --force-retranslation to override)")
+    
     # Process content for all languages (translate for targets, use original for base)
     translations = {}
     context_note = translation_config.get("context_note", "")
     
     for field_name, content in listing.items():
         if not content or not content.strip():
+            continue
+        
+        # Skip description translation if App Store content matches local config
+        if field_name == "description" and skip_description_translation:
+            print(f"\n⏭️  Skipping '{field_name}' translation - App Store content matches local config")
             continue
             
         print(f"\n🔄 Processing '{field_name}'...")
