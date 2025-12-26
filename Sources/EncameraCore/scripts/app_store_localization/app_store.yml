@@ -70,11 +70,7 @@ listing:
     EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
   whats_new: |
-    What’s new:
-      - We’re here with the most cutting edge feature of all time: finally, you can move media between albums!
-      - After you import media, you can see the imports in a list from the album detail view. This allows you to delete images after you have imported several batches
-      - Improved import functionality: we have been focusing on making the file import as reliable and transparent as possible, things should run much smoother now!
-      - Other bugs and tweaks: we have been working on fixing bugs and improving the app overall, things should run much smoother now!
+    Fixed a bug related to broken key import phrase functionality.
 limits:
   name: 30
   subtitle: 30
