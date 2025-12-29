@@ -1139,6 +1139,16 @@ public enum L10n {
     /// ./Encamera/Settings/FeatureTogglesView.swift
     public static let title = L10n.tr("Localizable", "FeatureToggles.Title", fallback: "Feature Toggles")
   }
+  public enum FeatureFlagToast {
+    /// disabled
+    public static let disabled = L10n.tr("Localizable", "FeatureFlagToast.Disabled", fallback: "disabled")
+    /// enabled
+    public static let enabled = L10n.tr("Localizable", "FeatureFlagToast.Enabled", fallback: "enabled")
+    /// Feature '%@' is now %@
+    public static func message(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "FeatureFlagToast.Message", String(describing: p1), String(describing: p2), fallback: "Feature '%@' is now %@")
+    }
+  }
   public enum FeedbackView {
     /// What could we improve?
     public static let placeholderText = L10n.tr("Localizable", "FeedbackView.PlaceholderText", fallback: "What could we improve?")
