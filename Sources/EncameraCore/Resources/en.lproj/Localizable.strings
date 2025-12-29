@@ -853,3 +853,8 @@
 "PendingImport.CancelConfirmMessage" = "This will delete the media waiting to be imported. This action cannot be undone.";
 "PendingImport.DeleteMedia" = "Delete Media";
 
+/* Feature Flag Toast - Deep Link Activation */
+"FeatureFlagToast.Message" = "Feature '%@' is now %@";
+"FeatureFlagToast.Enabled" = "enabled";
+"FeatureFlagToast.Disabled" = "disabled";
+
