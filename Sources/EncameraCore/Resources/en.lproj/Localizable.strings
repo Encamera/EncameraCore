@@ -857,6 +857,15 @@
 "PendingImport.CancelConfirmMessage" = "This will delete the media waiting to be imported. This action cannot be undone.";
 "PendingImport.DeleteMedia" = "Delete Media";
 
+/* ./Encamera/Settings/AppIconSelectionView.swift - App Icon Selection */
+"AppIconSelection.Title" = "App Icon";
+"AppIconSelection.SelectIcon" = "Select an icon";
+"AppIconSelection.CurrentIcon" = "Current";
+"AppIconSelection.PremiumFeature" = "Premium Feature";
+"AppIconSelection.PremiumDescription" = "Upgrade to customize your app icon";
+"AppIcon.Primary" = "Default";
+"AppIcon.Jazz" = "Jazz";
+
 /* Feature Flag Toast - Deep Link Activation */
 "FeatureFlagToast.Message" = "Feature '%@' is now %@";
 "FeatureFlagToast.Enabled" = "enabled";
