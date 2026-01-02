@@ -707,3 +707,12 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "ImportKeyPhrase.RestartRequired.Title" = "Uudelleenkäynnistys vaaditaan";
 "ICloudError.DownloadTimeout" = "iCloud-lataus aikakatkaistiin. Tarkista internet-yhteytesi ja yritä uudelleen.";
 "ImportKeyPhrase.RestartRequired.Message" = "Avainmuutoksen jälkeen sovellus käynnistyy uudelleen.";
+"SettingsView.SectionHeader.General" = "YLEINEN";
+"FeatureFlagToast.Disabled" = "poistettu käytöstä";
+
+"FeatureFlagToast.Enabled" = "käytössä";
+"FeatureFlagToast.Message" = "Ominaisuus '%@' on nyt %@";
+"SettingsView.SectionHeader.AppSettings" = "SOVELLUSASETUKSET";
+"SettingsView.SectionHeader.GetHelp" = "HANKI APUA";
+
+"SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";

@@ -673,3 +673,12 @@
 "ImportKeyPhrase.RestartRequired.Title" = "需要重启";
 "ICloudError.DownloadTimeout" = "iCloud下载超时。请检查您的网络连接并重试。";
 "ImportKeyPhrase.RestartRequired.Message" = "更改密钥后，应用将会重启。";
+"SettingsView.SectionHeader.General" = "常规";
+"FeatureFlagToast.Disabled" = "已禁用";
+
+"FeatureFlagToast.Enabled" = "已启用";
+"FeatureFlagToast.Message" = "功能“%@”现在为%@";
+"SettingsView.SectionHeader.AppSettings" = "应用设置";
+"SettingsView.SectionHeader.GetHelp" = "获取帮助";
+
+"SettingsView.SectionHeader.PremiumPlan" = "高级版";

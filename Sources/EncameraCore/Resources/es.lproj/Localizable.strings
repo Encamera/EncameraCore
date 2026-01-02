@@ -829,3 +829,12 @@
 "ImportKeyPhrase.RestartRequired.Title" = "Reinicio requerido";
 "ICloudError.DownloadTimeout" = "La descarga de iCloud excedió el tiempo de espera. Por favor, verifica tu conexión a internet e inténtalo de nuevo.";
 "ImportKeyPhrase.RestartRequired.Message" = "Después de cambiar tu clave, la aplicación se reiniciará.";
+"SettingsView.SectionHeader.General" = "GENERAL";
+"FeatureFlagToast.Disabled" = "desactivado";
+
+"FeatureFlagToast.Enabled" = "activado";
+"FeatureFlagToast.Message" = "La función '%@' ahora está %@";
+"SettingsView.SectionHeader.AppSettings" = "CONFIGURACIÓN DE LA APP";
+"SettingsView.SectionHeader.GetHelp" = "OBTENER AYUDA";
+
+"SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";

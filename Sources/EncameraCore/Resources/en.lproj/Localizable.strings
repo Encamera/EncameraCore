@@ -774,6 +774,10 @@
 
 /* ./Encamera/Settings/SettingsView.swift */
 "SettingsView.UnknownError" = "Unknown error";
+"SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
+"SettingsView.SectionHeader.GetHelp" = "GET HELP";
+"SettingsView.SectionHeader.AppSettings" = "APP SETTINGS";
+"SettingsView.SectionHeader.General" = "GENERAL";
 
 /* ./Encamera/MainHomeView/MainHomeView.swift */
 "MainHomeView.BackupEncryptionKey" = "Back up your Encryption Key";

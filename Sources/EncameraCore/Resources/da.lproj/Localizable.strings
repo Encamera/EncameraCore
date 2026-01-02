@@ -683,3 +683,12 @@ Du skal kun gøre to ting:
 "ImportKeyPhrase.RestartRequired.Title" = "Genstart påkrævet";
 "ICloudError.DownloadTimeout" = "iCloud-downloadet fik timeout. Tjek venligst din internetforbindelse og prøv igen.";
 "ImportKeyPhrase.RestartRequired.Message" = "Efter du har ændret din nøgle, vil appen genstarte.";
+"SettingsView.SectionHeader.General" = "GENERELT";
+"FeatureFlagToast.Disabled" = "deaktiveret";
+
+"FeatureFlagToast.Enabled" = "aktiveret";
+"FeatureFlagToast.Message" = "Funktionen '%@' er nu %@";
+"SettingsView.SectionHeader.AppSettings" = "APP-INDSTILLINGER";
+"SettingsView.SectionHeader.GetHelp" = "FÅ HJÆLP";
+
+"SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";

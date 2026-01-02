@@ -696,3 +696,12 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "ImportKeyPhrase.RestartRequired.Title" = "Este necesară repornirea";
 "ICloudError.DownloadTimeout" = "Descărcarea de pe iCloud a expirat. Vă rugăm să verificați conexiunea la internet și să încercați din nou.";
 "ImportKeyPhrase.RestartRequired.Message" = "După schimbarea cheii, aplicația va reporni.";
+"SettingsView.SectionHeader.General" = "GENERAL";
+"FeatureFlagToast.Disabled" = "dezactivat";
+
+"FeatureFlagToast.Enabled" = "activat";
+"FeatureFlagToast.Message" = "Funcția „%@” este acum %@";
+"SettingsView.SectionHeader.AppSettings" = "SETĂRI APLICAȚIE";
+"SettingsView.SectionHeader.GetHelp" = "OBȚINE AJUTOR";
+
+"SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
