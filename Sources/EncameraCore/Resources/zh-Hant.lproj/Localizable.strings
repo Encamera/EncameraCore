@@ -709,3 +709,12 @@ Encamera！";
 "ImportKeyPhrase.RestartRequired.Title" = "需要重新啟動";
 "ICloudError.DownloadTimeout" = "iCloud 下載逾時。請檢查您的網路連線並重試。";
 "ImportKeyPhrase.RestartRequired.Message" = "更改金鑰後，應用程式將會重新啟動。";
+"SettingsView.SectionHeader.General" = "一般";
+"FeatureFlagToast.Disabled" = "已停用";
+
+"FeatureFlagToast.Enabled" = "已啟用";
+"FeatureFlagToast.Message" = "功能「%@」現在為%@";
+"SettingsView.SectionHeader.AppSettings" = "應用程式設定";
+"SettingsView.SectionHeader.GetHelp" = "獲取協助";
+
+"SettingsView.SectionHeader.PremiumPlan" = "高級版";

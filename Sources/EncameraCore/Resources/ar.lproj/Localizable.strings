@@ -677,3 +677,12 @@
 "ImportKeyPhrase.RestartRequired.Title" = "مطلوب إعادة التشغيل";
 "ICloudError.DownloadTimeout" = "انتهت مهلة تنزيل iCloud. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
 "ImportKeyPhrase.RestartRequired.Message" = "بعد تغيير مفتاحك، سيُعاد تشغيل التطبيق.";
+"SettingsView.SectionHeader.General" = "عام";
+"FeatureFlagToast.Disabled" = "معطل";
+
+"FeatureFlagToast.Enabled" = "مفعل";
+"FeatureFlagToast.Message" = "الميزة '%@' أصبحت الآن %@";
+"SettingsView.SectionHeader.AppSettings" = "إعدادات التطبيق";
+"SettingsView.SectionHeader.GetHelp" = "الحصول على المساعدة";
+
+"SettingsView.SectionHeader.PremiumPlan" = "بريميوم";

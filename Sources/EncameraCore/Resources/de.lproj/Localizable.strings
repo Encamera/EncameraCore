@@ -830,3 +830,12 @@
 "ImportKeyPhrase.RestartRequired.Title" = "Neustart erforderlich";
 "ICloudError.DownloadTimeout" = "iCloud-Download hat zu lange gedauert. Bitte überprüfe deine Internetverbindung und versuche es erneut.";
 "ImportKeyPhrase.RestartRequired.Message" = "Nachdem du deinen Schlüssel geändert hast, wird die App neu gestartet.";
+"SettingsView.SectionHeader.General" = "ALLGEMEIN";
+"FeatureFlagToast.Disabled" = "deaktiviert";
+
+"FeatureFlagToast.Enabled" = "aktiviert";
+"FeatureFlagToast.Message" = "Funktion '%@' ist jetzt %@";
+"SettingsView.SectionHeader.AppSettings" = "APP-EINSTELLUNGEN";
+"SettingsView.SectionHeader.GetHelp" = "HILFE ERHALTEN";
+
+"SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";

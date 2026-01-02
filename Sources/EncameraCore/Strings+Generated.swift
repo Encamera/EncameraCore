@@ -1095,6 +1095,16 @@ public enum L10n {
     /// Clear PIN/Password?
     public static let title = L10n.tr("Localizable", "FaceIDOnlyAlert.Title", fallback: "Clear PIN/Password?")
   }
+  public enum FeatureFlagToast {
+    /// disabled
+    public static let disabled = L10n.tr("Localizable", "FeatureFlagToast.Disabled", fallback: "disabled")
+    /// enabled
+    public static let enabled = L10n.tr("Localizable", "FeatureFlagToast.Enabled", fallback: "enabled")
+    /// Feature Flag Toast - Deep Link Activation
+    public static func message(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "FeatureFlagToast.Message", String(describing: p1), String(describing: p2), fallback: "Feature '%@' is now %@")
+    }
+  }
   public enum FeatureToggles {
     /// Album Selection
     public static let albumSelectionEnabled = L10n.tr("Localizable", "FeatureToggles.AlbumSelectionEnabled", fallback: "Album Selection")
@@ -1138,16 +1148,6 @@ public enum L10n {
     public static let stopTrackingToggleTitle = L10n.tr("Localizable", "FeatureToggles.StopTrackingToggleTitle", fallback: "Confirm Tracking Change")
     /// ./Encamera/Settings/FeatureTogglesView.swift
     public static let title = L10n.tr("Localizable", "FeatureToggles.Title", fallback: "Feature Toggles")
-  }
-  public enum FeatureFlagToast {
-    /// disabled
-    public static let disabled = L10n.tr("Localizable", "FeatureFlagToast.Disabled", fallback: "disabled")
-    /// enabled
-    public static let enabled = L10n.tr("Localizable", "FeatureFlagToast.Enabled", fallback: "enabled")
-    /// Feature '%@' is now %@
-    public static func message(_ p1: Any, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "FeatureFlagToast.Message", String(describing: p1), String(describing: p2), fallback: "Feature '%@' is now %@")
-    }
   }
   public enum FeedbackView {
     /// What could we improve?
@@ -1598,6 +1598,16 @@ public enum L10n {
   public enum SettingsView {
     /// ./Encamera/Settings/SettingsView.swift
     public static let unknownError = L10n.tr("Localizable", "SettingsView.UnknownError", fallback: "Unknown error")
+    public enum SectionHeader {
+      /// APP SETTINGS
+      public static let appSettings = L10n.tr("Localizable", "SettingsView.SectionHeader.AppSettings", fallback: "APP SETTINGS")
+      /// GENERAL
+      public static let general = L10n.tr("Localizable", "SettingsView.SectionHeader.General", fallback: "GENERAL")
+      /// GET HELP
+      public static let getHelp = L10n.tr("Localizable", "SettingsView.SectionHeader.GetHelp", fallback: "GET HELP")
+      /// PREMIUM PLAN
+      public static let premiumPlan = L10n.tr("Localizable", 
+    }
   }
   public enum ShareExtension {
     /// %d item(s) saved

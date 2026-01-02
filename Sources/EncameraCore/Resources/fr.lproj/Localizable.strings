@@ -714,3 +714,12 @@ album";
 "ImportKeyPhrase.RestartRequired.Title" = "Redémarrage requis";
 "ICloudError.DownloadTimeout" = "Le téléchargement iCloud a expiré. Veuillez vérifier votre connexion Internet et réessayer.";
 "ImportKeyPhrase.RestartRequired.Message" = "Après avoir changé votre clé, l'application va redémarrer.";
+"SettingsView.SectionHeader.General" = "GÉNÉRAL";
+"FeatureFlagToast.Disabled" = "désactivé";
+
+"FeatureFlagToast.Enabled" = "activé";
+"FeatureFlagToast.Message" = "La fonctionnalité '%@' est maintenant %@";
+"SettingsView.SectionHeader.AppSettings" = "PARAMÈTRES DE L'APPLICATION";
+"SettingsView.SectionHeader.GetHelp" = "OBTENIR DE L'AIDE";
+
+"SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
