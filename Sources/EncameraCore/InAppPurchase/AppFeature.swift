@@ -15,4 +15,5 @@ enum RenewalFrequency: String {
 public enum AppFeature {
     case accessPhoto(count: Double)
     case createKey(count: Double)
+    case customizeAppIcon
 }

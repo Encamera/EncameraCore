@@ -895,6 +895,24 @@ public enum L10n {
       public static let title = L10n.tr("Localizable", "Alert.LoadingFile.Title", fallback: "Loading File")
     }
   }
+  public enum AppIcon {
+    /// Jazz
+    public static let jazz = L10n.tr("Localizable", "AppIcon.Jazz", fallback: "Jazz")
+    /// Default
+    public static let primary = L10n.tr("Localizable", "AppIcon.Primary", fallback: "Default")
+  }
+  public enum AppIconSelection {
+    /// Current
+    public static let currentIcon = L10n.tr("Localizable", "AppIconSelection.CurrentIcon", fallback: "Current")
+    /// Upgrade to customize your app icon
+    public static let premiumDescription = L10n.tr("Localizable", "AppIconSelection.PremiumDescription", fallback: "Upgrade to customize your app icon")
+    /// Premium Feature
+    public static let premiumFeature = L10n.tr("Localizable", "AppIconSelection.PremiumFeature", fallback: "Premium Feature")
+    /// Select an icon
+    public static let selectIcon = L10n.tr("Localizable", "AppIconSelection.SelectIcon", fallback: "Select an icon")
+    /// ./Encamera/Settings/AppIconSelectionView.swift - App Icon Selection
+    public static let title = L10n.tr("Localizable", "AppIconSelection.Title", fallback: "App Icon")
+  }
   public enum AskForReview {
     /// Ask me later
     public static let askMeLater = L10n.tr("Localizable", "AskForReview.AskMeLater", fallback: "Ask me later")
@@ -1605,8 +1623,8 @@ public enum L10n {
       public static let general = L10n.tr("Localizable", "SettingsView.SectionHeader.General", fallback: "GENERAL")
       /// GET HELP
       public static let getHelp = L10n.tr("Localizable", "SettingsView.SectionHeader.GetHelp", fallback: "GET HELP")
-      /// PREMIUM PLAN
-      public static let premiumPlan = L10n.tr("Localizable", 
+      /// PREMIUM
+      public static let premiumPlan = L10n.tr("Localizable", "SettingsView.SectionHeader.PremiumPlan", fallback: "PREMIUM")
     }
   }
   public enum ShareExtension {
