@@ -54,9 +54,77 @@ public actor InteractableMediaDiskAccess: FileAccess {
         return sortedByDateDesc
     }
     
-
-
-
+    /// Enumerates media with sorting and filtering support
+    /// Groups related media (e.g., Live Photo photo + video) into InteractableMedia wrappers
+    /// - Parameters:
+    ///   - sortBy: How to sort results (default: dateEncrypted descending)
+    ///   - filterBy: Media subtypes to include (default: all)
+    /// - Returns: Array of MediaWithMetadata containing grouped InteractableMedia and extracted metadata
+    public func enumerateMediaWithMetadata(
+        sortBy sortOption: MediaSortOption = .dateEncrypted(ascending: false),
+        filterBy filterOptions: MediaFilterOptions = .all
+    ) async -> [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] {
+        
+        // Get raw encrypted media with metadata from DiskFileAccess
+        let rawMediaWithMetadata = await fileAccess.enumerateEncryptedMediaWithMetadata(
+            sortBy: sortOption,
+            filterBy: filterOptions
+        )
+        
+        // Group by media ID (for Live Photos which have photo + video components)
+        // We need to preserve the order while grouping
+        var mediaMap: [String: (interactable: InteractableMedia<EncryptedMedia>, metadata: EncryptedFileMetadata?, dateTaken: Date?, dateEncrypted: Date?, subtype: MediaFilterOptions)] = [:]
+        var orderedIds: [String] = []
+        
+        for item in rawMediaWithMetadata {
+            let mediaId = item.media.id
+            
+            if var existing = mediaMap[mediaId] {
+                // Add to existing group (e.g., video component of Live Photo)
+                existing.interactable.appendToUnderlyingMedia(media: item.media)
+                mediaMap[mediaId] = existing
+            } else {
+                // Create new group
+                do {
+                    let interactable = try InteractableMedia(underlyingMedia: [item.media])
+                    mediaMap[mediaId] = (
+                        interactable: interactable,
+                        metadata: item.metadata,
+                        dateTaken: item.dateTaken,
+                        dateEncrypted: item.dateEncrypted,
+                        subtype: item.mediaSubtype
+                    )
+                    orderedIds.append(mediaId)
+                } catch {
+                    debugPrint("Could not create interactable media: \(error)")
+                }
+            }
+        }
+        
+        // Build result array preserving order
+        var results: [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] = []
+        
+        for mediaId in orderedIds {
+            guard let group = mediaMap[mediaId] else { continue }
+            
+            // For Live Photos, update the subtype based on the InteractableMedia detection
+            var subtype = group.subtype
+            if group.interactable.mediaType == .livePhoto {
+                subtype = .livePhoto
+            }
+            
+            let wrapper = MediaWithMetadata(
+                media: group.interactable,
+                metadata: group.metadata,
+                dateTaken: group.dateTaken,
+                dateEncrypted: group.dateEncrypted,
+                mediaSubtype: subtype
+            )
+            results.append(wrapper)
+        }
+        
+        return results
+    }
 
     public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> UIImage? {
         // Check if album cover is explicitly disabled
@@ -156,12 +224,16 @@ public actor InteractableMediaDiskAccess: FileAccess {
     
 
     public func save(media: InteractableMedia<CleartextMedia>, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
+        return try await save(media: media, metadata: nil, progress: progress)
+    }
+    
+    public func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
         var encrypted: [EncryptedMedia] = []
         for mediaItem in media.underlyingMedia {
             // Check for cancellation before processing each media item
             // This ensures cancellation propagates through the actor boundary
             try Task.checkCancellation()
-            if let encryptedMedia = try await fileAccess.save(media: mediaItem, progress: progress) {
+            if let encryptedMedia = try await fileAccess.save(media: mediaItem, metadata: metadata, progress: progress) {
                 encrypted.append(encryptedMedia)
             }
         }

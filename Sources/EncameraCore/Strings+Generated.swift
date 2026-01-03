@@ -1365,6 +1365,28 @@ public enum L10n {
     /// View the Key
     public static let viewTheKey = L10n.tr("Localizable", "MainHomeView.ViewTheKey", fallback: "View the Key")
   }
+  public enum MediaInfo {
+    /// Additional Details
+    public static let additionalDetails = L10n.tr("Localizable", "MediaInfo.AdditionalDetails", fallback: "Additional Details")
+    /// Burst Photo
+    public static let burstPhoto = L10n.tr("Localizable", "MediaInfo.BurstPhoto", fallback: "Burst Photo")
+    /// Codec
+    public static let codec = L10n.tr("Localizable", "MediaInfo.Codec", fallback: "Codec")
+    /// Duration
+    public static let duration = L10n.tr("Localizable", "MediaInfo.Duration", fallback: "Duration")
+    /// Encrypted
+    public static let encrypted = L10n.tr("Localizable", "MediaInfo.Encrypted", fallback: "Encrypted")
+    /// Frame Rate
+    public static let frameRate = L10n.tr("Localizable", "MediaInfo.FrameRate", fallback: "Frame Rate")
+    /// No details available
+    public static let noDetailsAvailable = L10n.tr("Localizable", "MediaInfo.NoDetailsAvailable", fallback: "No details available")
+    /// Screenshot
+    public static let screenshot = L10n.tr("Localizable", "MediaInfo.Screenshot", fallback: "Screenshot")
+    /// Type
+    public static let type = L10n.tr("Localizable", "MediaInfo.Type", fallback: "Type")
+    /// ./Encamera/Lightbox/Views/MediaInfoDetailView.swift - Media Info
+    public static let unknownDevice = L10n.tr("Localizable", "MediaInfo.UnknownDevice", fallback: "Unknown Device")
+  }
   public enum MediaSelectionTray {
     /// Selected
     public static let itemSelected = L10n.tr("Localizable", "MediaSelectionTray.ItemSelected", fallback: "Selected")

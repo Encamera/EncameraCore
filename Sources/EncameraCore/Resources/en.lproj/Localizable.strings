@@ -862,6 +862,17 @@
 "PendingImport.CancelConfirmMessage" = "This will delete the media waiting to be imported. This action cannot be undone.";
 "PendingImport.DeleteMedia" = "Delete Media";
 
+/* ./Encamera/Lightbox/Views/MediaInfoDetailView.swift - Media Info */
+"MediaInfo.UnknownDevice" = "Unknown Device";
+"MediaInfo.NoDetailsAvailable" = "No details available";
+"MediaInfo.AdditionalDetails" = "Additional Details";
+"MediaInfo.Duration" = "Duration";
+"MediaInfo.FrameRate" = "Frame Rate";
+"MediaInfo.Codec" = "Codec";
+"MediaInfo.Type" = "Type";
+"MediaInfo.Screenshot" = "Screenshot";
+"MediaInfo.BurstPhoto" = "Burst Photo";
+"MediaInfo.Encrypted" = "Encrypted";
 /* ./Encamera/Settings/AppIconSelectionView.swift - App Icon Selection */
 "AppIconSelection.Title" = "App Icon";
 "AppIconSelection.SelectIcon" = "Select an icon";

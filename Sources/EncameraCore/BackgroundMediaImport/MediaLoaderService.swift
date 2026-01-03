@@ -11,6 +11,19 @@ import PhotosUI
 import AVFoundation
 import UniformTypeIdentifiers
 
+/// Result of loading a single media item from the photo library
+public struct LoadedMediaItem {
+    public let media: [CleartextMedia]
+    public let metadata: EncryptedFileMetadata?
+    public let assetIdentifier: String?
+    
+    public init(media: [CleartextMedia], metadata: EncryptedFileMetadata?, assetIdentifier: String?) {
+        self.media = media
+        self.metadata = metadata
+        self.assetIdentifier = assetIdentifier
+    }
+}
+
 /// Result of loading a batch of media from the photo library
 public struct LoadedMediaBatch {
     public let media: [CleartextMedia]
@@ -34,6 +47,9 @@ public class MediaLoaderService: DebugPrintable {
     // Cache directory check state to avoid hitting filesystem repeatedly
     private var tempDirectoryChecked = false
     
+    /// Metadata extractor for extracting media metadata
+    private let metadataExtractor = MediaMetadataExtractor()
+    
     public init() {}
     
     // MARK: - Public API
@@ -52,12 +68,12 @@ public class MediaLoaderService: DebugPrintable {
             printDebug("📄 Processing result \(index + 1)/\(results.count)")
             
             do {
-                let (media, assetId) = try await loadSingleMedia(from: result)
+                let loaded = try await loadSingleMedia(from: result)
                 
-                allMedia.append(contentsOf: media)
+                allMedia.append(contentsOf: loaded.media)
                 successfulLoads += 1
                 
-                if let assetId = assetId {
+                if let assetId = loaded.assetIdentifier {
                     assetIdentifiers.append(assetId)
                 }
                 
@@ -78,19 +94,40 @@ public class MediaLoaderService: DebugPrintable {
     }
     
     /// Loads media from a single MediaSelectionResult
-    /// Returns the loaded media and optional asset ID
-    public func loadSingleMedia(from result: MediaSelectionResult) async throws -> (media: [CleartextMedia], assetId: String?) {
+    /// Returns the loaded media, metadata, and optional asset ID
+    public func loadSingleMedia(from result: MediaSelectionResult) async throws -> LoadedMediaItem {
         try await ensureTempDirectoryExists()
         
         switch result {
         case .phAsset(let asset):
             let media = try await loadMediaFromAsset(asset)
-            return (media, asset.localIdentifier)
+            // Extract metadata from the PHAsset
+            let metadata = await metadataExtractor.extractMetadata(from: asset)
+            return LoadedMediaItem(media: media, metadata: metadata, assetIdentifier: asset.localIdentifier)
             
         case .phPickerResult(let pickerResult):
             let media = try await loadMediaAsync(result: pickerResult)
-            return (media, pickerResult.assetIdentifier)
+            // For PHPickerResult, we can only extract metadata from the file URL
+            // Try to get PHAsset if available for richer metadata
+            var metadata: EncryptedFileMetadata?
+            if let assetId = pickerResult.assetIdentifier {
+                let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
+                if let asset = fetchResult.firstObject {
+                    metadata = await metadataExtractor.extractMetadata(from: asset)
+                }
+            }
+            // If we couldn't get PHAsset metadata, extract from the file URL
+            if metadata == nil, let firstMedia = media.first, let url = firstMedia.url {
+                metadata = await metadataExtractor.extractMetadata(from: url, mediaType: firstMedia.mediaType)
+            }
+            return LoadedMediaItem(media: media, metadata: metadata, assetIdentifier: pickerResult.assetIdentifier)
         }
+    }
+    
+    /// Legacy method for backwards compatibility - returns tuple format
+    public func loadSingleMediaTuple(from result: MediaSelectionResult) async throws -> (media: [CleartextMedia], assetId: String?) {
+        let loaded = try await loadSingleMedia(from: result)
+        return (loaded.media, loaded.assetIdentifier)
     }
     
     // MARK: - Private Implementation

@@ -65,6 +65,13 @@ private protocol SecretFileHandlerInt: SecretFileHandling {
     var progressSubject: PassthroughSubject<Double, Never> { get }
 }
 
+/// Result of checking for V2 format and reading the appropriate header
+private struct DecryptionSetup {
+    let streamHeader: [UInt8]
+    let blockSize: UInt32
+    let isV2: Bool
+}
+
 extension SecretFileHandlerInt {
 
     var progress: AnyPublisher<Double, Never> {
@@ -74,29 +81,121 @@ extension SecretFileHandlerInt {
     var sodium: Sodium {
         Sodium()
     }
-
+    
+    /// Checks for V2 format and reads the stream header appropriately
+    /// Returns the stream header bytes and block size, ready for decryption
+    private func setupDecryption<M: MediaDescribing>(fileHandler: FileLikeHandler<M>) throws -> DecryptionSetup {
+        debugPrint("SecretFileHandler: Setting up decryption")
+        
+        // Read first 4 bytes to check for V2 magic
+        guard let magicData = try fileHandler.read(upToCount: EncryptedFileFormat.magicSize),
+              magicData.count == EncryptedFileFormat.magicSize else {
+            throw SecretFilesError.decryptError("Could not read file header")
+        }
+        
+        let magicBytes = Array(magicData)
+        debugPrint("SecretFileHandler: First 4 bytes: \(magicBytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
+        
+        if magicBytes == EncryptedFileFormat.magic {
+            debugPrint("SecretFileHandler: V2 file detected, skipping metadata header")
+            
+            // V2 file - read and skip the rest of the metadata header
+            // Read version (2 bytes)
+            guard let versionData = try fileHandler.read(upToCount: EncryptedFileFormat.versionSize),
+                  versionData.count == EncryptedFileFormat.versionSize else {
+                throw SecretFilesError.decryptError("Could not read V2 version")
+            }
+            
+            // Read flags (2 bytes)
+            guard let flagsData = try fileHandler.read(upToCount: EncryptedFileFormat.flagsSize),
+                  flagsData.count == EncryptedFileFormat.flagsSize else {
+                throw SecretFilesError.decryptError("Could not read V2 flags")
+            }
+            
+            // Read metadata length (4 bytes)
+            guard let lengthData = try fileHandler.read(upToCount: EncryptedFileFormat.metadataLengthSize),
+                  lengthData.count == EncryptedFileFormat.metadataLengthSize else {
+                throw SecretFilesError.decryptError("Could not read V2 metadata length")
+            }
+            let metadataLength = lengthData.withUnsafeBytes { $0.load(as: UInt32.self) }
+            debugPrint("SecretFileHandler: V2 metadata length: \(metadataLength) bytes")
+            
+            // Validate metadata length to prevent excessive memory allocation from malicious files
+            guard metadataLength <= EncryptedFileFormat.maxMetadataSize else {
+                throw SecretFilesError.decryptError("Invalid metadata length: \(metadataLength) exceeds maximum allowed size")
+            }
+            
+            // Skip over the encrypted metadata
+            guard let metadataData = try fileHandler.read(upToCount: Int(metadataLength)),
+                  metadataData.count == Int(metadataLength) else {
+                throw SecretFilesError.decryptError("Could not skip V2 metadata")
+            }
+            
+            debugPrint("SecretFileHandler: V2 metadata skipped, reading stream header")
+            
+            // Now read the 24-byte stream header
+            guard let headerData = try fileHandler.read(upToCount: 24),
+                  headerData.count == 24 else {
+                throw SecretFilesError.decryptError("Could not read stream header after V2 metadata")
+            }
+            var headerBuffer = [UInt8](repeating: 0, count: 24)
+            headerData.copyBytes(to: &headerBuffer, count: 24)
+            
+            // Read block size (8 bytes, but we only use first 4)
+            guard let blockSizeData = try fileHandler.read(upToCount: 8),
+                  blockSizeData.count == 8 else {
+                throw SecretFilesError.decryptError("Could not read block size")
+            }
+            let blockSize: UInt32 = blockSizeData.withUnsafeBytes { $0.load(as: UInt32.self) }
+            debugPrint("SecretFileHandler: V2 block size: \(blockSize)")
+            
+            return DecryptionSetup(streamHeader: headerBuffer, blockSize: blockSize, isV2: true)
+            
+        } else {
+            debugPrint("SecretFileHandler: V1 file detected")
+            
+            // V1 file - the 4 bytes we read are the first 4 bytes of the 24-byte stream header
+            // Read the remaining 20 bytes
+            guard let remainingHeaderData = try fileHandler.read(upToCount: 20),
+                  remainingHeaderData.count == 20 else {
+                throw SecretFilesError.decryptError("Could not read remaining V1 header bytes")
+            }
+            
+            // Combine the 4 bytes we already read with the 20 we just read
+            var headerBuffer = [UInt8](repeating: 0, count: 24)
+            for (i, byte) in magicBytes.enumerated() {
+                headerBuffer[i] = byte
+            }
+            remainingHeaderData.copyBytes(to: &headerBuffer[4], count: 20)
+            
+            debugPrint("SecretFileHandler: V1 header reconstructed")
+            
+            // Read block size (8 bytes, but we only use first 4)
+            guard let blockSizeData = try fileHandler.read(upToCount: 8),
+                  blockSizeData.count == 8 else {
+                throw SecretFilesError.decryptError("Could not read V1 block size")
+            }
+            let blockSize: UInt32 = blockSizeData.withUnsafeBytes { $0.load(as: UInt32.self) }
+            debugPrint("SecretFileHandler: V1 block size: \(blockSize)")
+            
+            return DecryptionSetup(streamHeader: headerBuffer, blockSize: blockSize, isV2: false)
+        }
+    }
 
     func decryptFile() async throws -> AsyncThrowingStream<Data, Error> {
         do {
             let fileHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)
-            let headerBytesCount = 24
-            guard let headerBytes = try fileHandler.read(upToCount: headerBytesCount) else {
-                throw SecretFilesError.decryptError("Could not read header")
-            }
+            
+            // Setup decryption - handles both V1 and V2 formats
+            let setup = try setupDecryption(fileHandler: fileHandler)
+            debugPrint("SecretFileHandler: Decryption setup complete, isV2: \(setup.isV2), blockSize: \(setup.blockSize)")
 
-            var headerBuffer = [UInt8](repeating: 0, count: headerBytesCount)
-            headerBytes.copyBytes(to: &headerBuffer, count: headerBytesCount)
-
-            guard let blockSizeInfo = try fileHandler.read(upToCount: 8) else {
-                throw SecretFilesError.decryptError("Could not read block size")
-            }
-            let blockSize: UInt32 = blockSizeInfo.withUnsafeBytes { $0.load(as: UInt32.self) }
-
-            guard let streamDec = sodium.secretStream.xchacha20poly1305.initPull(secretKey: keyBytes, header: headerBuffer) else {
+            guard let streamDec = sodium.secretStream.xchacha20poly1305.initPull(secretKey: keyBytes, header: setup.streamHeader) else {
+                debugPrint("SecretFileHandler: Failed to init stream pull - key error")
                 throw SecretFilesError.keyError
             }
 
-            let processor = ChunkedFilesProcessor(sourceFileHandle: fileHandler, blockSize: Int(blockSize))
+            let processor = ChunkedFilesProcessor(sourceFileHandle: fileHandler, blockSize: Int(setup.blockSize))
             return AsyncThrowingStream<Data, Error> { continuation in
 
                 let readTask = Task {
@@ -130,8 +229,10 @@ extension SecretFileHandlerInt {
                     }
                 }
             }
+        } catch let error as SecretFilesError {
+            throw error
         } catch {
-            throw SecretFilesError.decryptError("Could not access source file")
+            throw SecretFilesError.decryptError("Could not access source file: \(error)")
         }
     }
 
