@@ -365,10 +365,11 @@ public class MediaImportHandler: DebugPrintable {
             printDebug("📄 Processing item \(index + 1)/\(results.count)")
             
             do {
-                let (media, assetId) = try await mediaLoader.loadSingleMedia(from: result)
+                let loaded = try await mediaLoader.loadSingleMedia(from: result)
                 
                 try await importSingleItem(
-                    mediaGroup: media,
+                    mediaGroup: loaded.media,
+                    metadata: loaded.metadata,
                     fileAccess: fileAccess,
                     task: task,
                     groupIndex: index,
@@ -378,11 +379,11 @@ public class MediaImportHandler: DebugPrintable {
                 )
                 
                 if task.source.canDeleteTempFilesAfterImport {
-                    deleteTempFiles(for: media)
+                    deleteTempFiles(for: loaded.media)
                 }
                 
                 // Collect asset identifier for successful imports
-                if let assetId = assetId {
+                if let assetId = loaded.assetIdentifier {
                     collectedAssetIdentifiers.append(assetId)
                 }
                 
@@ -405,6 +406,7 @@ public class MediaImportHandler: DebugPrintable {
     /// Helper to process a single item (load -> save -> progress)
     private func importSingleItem(
         mediaGroup: [CleartextMedia],
+        metadata: EncryptedFileMetadata? = nil,
         fileAccess: FileAccess,
         task: ImportTask,
         groupIndex: Int,
@@ -417,6 +419,7 @@ public class MediaImportHandler: DebugPrintable {
         
         try await saveMedia(
             interactableMedia,
+            metadata: metadata,
             mediaGroup: mediaGroup,
             mediaId: mediaId,
             fileAccess: fileAccess,
@@ -444,8 +447,16 @@ public class MediaImportHandler: DebugPrintable {
         
         logSourceFileStatus(for: mediaGroup)
         
+        // Extract metadata from the file URL for preloaded imports
+        var metadata: EncryptedFileMetadata?
+        if let firstMedia = mediaGroup.first, let url = firstMedia.url {
+            let extractor = MediaMetadataExtractor()
+            metadata = await extractor.extractMetadata(from: url, mediaType: firstMedia.mediaType)
+        }
+        
         try await importSingleItem(
             mediaGroup: mediaGroup,
+            metadata: metadata,
             fileAccess: fileAccess,
             task: task,
             groupIndex: groupIndex,
@@ -460,6 +471,7 @@ public class MediaImportHandler: DebugPrintable {
     /// Saves the InteractableMedia to disk and updates progress.
     private func saveMedia(
         _ interactableMedia: InteractableMedia<CleartextMedia>,
+        metadata: EncryptedFileMetadata? = nil,
         mediaGroup: [CleartextMedia],
         mediaId: String,
         fileAccess: FileAccess,
@@ -470,7 +482,7 @@ public class MediaImportHandler: DebugPrintable {
         processedGroups: Int
     ) async throws {
         do {
-            try await fileAccess.save(media: interactableMedia) { fileProgress in
+            try await fileAccess.save(media: interactableMedia, metadata: metadata) { fileProgress in
                 Task { @MainActor in
                     self.updateImportProgress(
                         task: task,

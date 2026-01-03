@@ -694,3 +694,13 @@
 "FooterView.Slideshow.SelectDuration" = "幻灯片时长";
 "AppIconSelection.PremiumDescription" = "升级以自定义您的应用图标";
 "AppIconSelection.Title" = "应用图标";
+"MediaInfo.Codec" = "编解码器";
+"MediaInfo.UnknownDevice" = "未知设备";
+"MediaInfo.NoDetailsAvailable" = "无可用详情";
+"MediaInfo.Screenshot" = "截图";
+"MediaInfo.BurstPhoto" = "连拍照片";
+"MediaInfo.Duration" = "持续时间";
+"MediaInfo.FrameRate" = "帧率";
+"MediaInfo.Encrypted" = "已加密";
+"MediaInfo.Type" = "类型";
+"MediaInfo.AdditionalDetails" = "附加信息";

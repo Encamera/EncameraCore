@@ -705,6 +705,16 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "SettingsView.SectionHeader.GetHelp" = "OBȚINE AJUTOR";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
+"MediaInfo.Codec" = "Codec";
+"MediaInfo.UnknownDevice" = "Dispozitiv necunoscut";
+"MediaInfo.NoDetailsAvailable" = "Nicio detaliu disponibil";
+"MediaInfo.Screenshot" = "Captură de ecran";
+"MediaInfo.BurstPhoto" = "Fotografie în rafală";
+"MediaInfo.Duration" = "Durată";
+"MediaInfo.FrameRate" = "Rată de cadre";
+"MediaInfo.Encrypted" = "Criptat";
+"MediaInfo.Type" = "Tip";
+"MediaInfo.AdditionalDetails" = "Detalii suplimentare";
 "AppIconSelection.PremiumFeature" = "Funcție premium";
 "AppIcon.Jazz" = "Jazz";
 "AppIconSelection.SelectIcon" = "Selectează o pictogramă";

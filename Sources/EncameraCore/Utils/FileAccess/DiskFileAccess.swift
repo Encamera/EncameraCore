@@ -176,6 +176,194 @@ public actor DiskFileAccess: DebugPrintable {
         
         return allPreviewFiles
     }
+    
+    // MARK: - Metadata Extraction Helpers
+    
+    /// Extracts metadata info for a single media item
+    /// For V2 files, reads embedded metadata. For V1 files, uses file system dates and extension-based type detection.
+    /// - Parameters:
+    ///   - media: The encrypted media to extract metadata for
+    ///   - v2Metadata: Pre-loaded V2 metadata (nil for V1 files)
+    /// - Returns: Tuple containing extracted dates and media subtype
+    private func extractMetadataInfo(
+        for media: EncryptedMedia,
+        v2Metadata: EncryptedFileMetadata?
+    ) -> (dateTaken: Date?, dateEncrypted: Date?, subtype: MediaFilterOptions) {
+        
+        if let metadata = v2Metadata {
+            // V2 file - use embedded metadata
+            let dateTaken = metadata.captureDate
+            let dateEncrypted = metadata.encryptionDate
+            
+            // Determine media subtype from V2 metadata
+            let subtype: MediaFilterOptions
+            if metadata.originalMediaType == "video" {
+                subtype = .video
+            } else if metadata.contentAnalysis?.isLivePhoto == true {
+                subtype = .livePhoto
+            } else if metadata.contentAnalysis?.isScreenshot == true {
+                subtype = .screenshot
+            } else {
+                subtype = .stillImage
+            }
+            
+            return (dateTaken, dateEncrypted, subtype)
+        } else {
+            // V1 file - fall back to file system dates
+            var dateTaken: Date?
+            var dateEncrypted: Date?
+            
+            if case .url(let url) = media.source {
+                let resourceKeys: Set<URLResourceKey> = [.creationDateKey]
+                if let values = try? url.resourceValues(forKeys: resourceKeys) {
+                    let creationDate = values.creationDate
+                    dateTaken = creationDate
+                    dateEncrypted = creationDate
+                }
+            }
+            
+            // V1 media subtype detection from file extension only
+            let subtype: MediaFilterOptions
+            switch media.mediaType {
+            case .video:
+                subtype = .video
+            case .photo:
+                // Cannot detect live photos or screenshots for V1 files
+                subtype = .stillImage
+            default:
+                subtype = .stillImage
+            }
+            
+            return (dateTaken, dateEncrypted, subtype)
+        }
+    }
+    
+    // MARK: - Enumeration with Metadata
+    
+    /// Enumerates encrypted media with metadata for sorting and filtering
+    /// This is the low-level implementation used by InteractableMediaDiskAccess
+    /// - Parameters:
+    ///   - sortOption: How to sort results (default: dateEncrypted descending)
+    ///   - filterOptions: Media subtypes to include (default: all)
+    /// - Returns: Array of MediaWithMetadata containing media and extracted metadata
+    public func enumerateEncryptedMediaWithMetadata(
+        sortBy sortOption: MediaSortOption = .dateEncrypted(ascending: false),
+        filterBy filterOptions: MediaFilterOptions = .all
+    ) async -> [MediaWithMetadata<EncryptedMedia>] {
+        
+        // Get all encrypted media
+        let allMedia: [EncryptedMedia] = await enumerateMedia()
+        
+        guard !allMedia.isEmpty else {
+            return []
+        }
+        
+        // Get key bytes for metadata decryption
+        guard let keyBytes = key?.keyBytes else {
+            printDebug("enumerateEncryptedMediaWithMetadata: No key available, using file system fallback for all files")
+            // Fall back to file system dates for all files
+            return buildMediaWithMetadataArray(
+                media: allMedia,
+                metadataMap: [:],
+                sortOption: sortOption,
+                filterOptions: filterOptions
+            )
+        }
+        
+        // Extract URLs for batch metadata reading
+        let urls: [URL] = allMedia.compactMap { media in
+            if case .url(let url) = media.source {
+                return url
+            }
+            return nil
+        }
+        
+        // Batch read V2 metadata
+        let metadataHandler = EncryptedMetadataHandler()
+        let metadataResults = await metadataHandler.readMetadataBatch(from: urls, keyBytes: keyBytes)
+        
+        // Build URL to metadata map
+        var metadataMap: [URL: EncryptedFileMetadata] = [:]
+        for (url, metadata) in metadataResults {
+            if let metadata = metadata {
+                metadataMap[url] = metadata
+            }
+        }
+        
+        return buildMediaWithMetadataArray(
+            media: allMedia,
+            metadataMap: metadataMap,
+            sortOption: sortOption,
+            filterOptions: filterOptions
+        )
+    }
+    
+    /// Builds the MediaWithMetadata array with filtering and sorting applied
+    private func buildMediaWithMetadataArray(
+        media: [EncryptedMedia],
+        metadataMap: [URL: EncryptedFileMetadata],
+        sortOption: MediaSortOption,
+        filterOptions: MediaFilterOptions
+    ) -> [MediaWithMetadata<EncryptedMedia>] {
+        
+        // Build MediaWithMetadata for each item
+        var results: [MediaWithMetadata<EncryptedMedia>] = []
+        
+        for mediaItem in media {
+            // Get V2 metadata if available
+            var v2Metadata: EncryptedFileMetadata?
+            if case .url(let url) = mediaItem.source {
+                v2Metadata = metadataMap[url]
+            }
+            
+            // Extract metadata info (handles V1/V2 fallback)
+            let (dateTaken, dateEncrypted, subtype) = extractMetadataInfo(
+                for: mediaItem,
+                v2Metadata: v2Metadata
+            )
+            
+            // Apply filter
+            if !filterOptions.contains(subtype) {
+                continue
+            }
+            
+            let wrapper = MediaWithMetadata(
+                media: mediaItem,
+                metadata: v2Metadata,
+                dateTaken: dateTaken,
+                dateEncrypted: dateEncrypted,
+                mediaSubtype: subtype
+            )
+            results.append(wrapper)
+        }
+        
+        // Apply sorting
+        results.sort { item1, item2 in
+            switch sortOption {
+            case .dateTaken(let ascending):
+                guard let date1 = item1.dateTaken, let date2 = item2.dateTaken else {
+                    // Items without dates go to the end
+                    if item1.dateTaken == nil && item2.dateTaken == nil {
+                        return false
+                    }
+                    return item1.dateTaken != nil
+                }
+                return ascending ? date1 < date2 : date1 > date2
+                
+            case .dateEncrypted(let ascending):
+                guard let date1 = item1.dateEncrypted, let date2 = item2.dateEncrypted else {
+                    // Items without dates go to the end
+                    if item1.dateEncrypted == nil && item2.dateEncrypted == nil {
+                        return false
+                    }
+                    return item1.dateEncrypted != nil
+                }
+                return ascending ? date1 < date2 : date1 > date2
+            }
+        }
+        
+        return results
+    }
 
 }
 
@@ -510,7 +698,7 @@ extension DiskFileAccess {
         return cleartextPreview
     }
 
-    @discardableResult public func save(media: CleartextMedia, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
+    @discardableResult public func save(media: CleartextMedia, metadata: EncryptedFileMetadata? = nil, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
         // Check for task cancellation at the start of save operation
         // This ensures we don't start encryption if the task is already cancelled
         try Task.checkCancellation()
@@ -523,14 +711,29 @@ extension DiskFileAccess {
             throw FileAccessError.missingDirectoryModel
         }
         let destinationURL = directoryModel.driveURLForMedia(media)
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
-        fileHandler.progress
-            .receive(on: DispatchQueue.main)
-            .sink { percent in
-                progress(percent)
-            }.store(in: &cancellables)
-
-        let encrypted = try await fileHandler.encrypt()
+        
+        let encrypted: EncryptedMedia
+        
+        // Use V2 handler if metadata is provided, otherwise use V1 for backwards compatibility
+        if let metadata = metadata {
+            let fileHandler = SecretFileHandlerV2(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
+            fileHandler.progress
+                .receive(on: DispatchQueue.main)
+                .sink { percent in
+                    progress(percent)
+                }.store(in: &cancellables)
+            
+            encrypted = try await fileHandler.encryptWithMetadata(metadata)
+        } else {
+            let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
+            fileHandler.progress
+                .receive(on: DispatchQueue.main)
+                .sink { percent in
+                    progress(percent)
+                }.store(in: &cancellables)
+            
+            encrypted = try await fileHandler.encrypt()
+        }
         
         // Store the key UUID as an extended attribute
         if var encryptedURL = encrypted.url {
