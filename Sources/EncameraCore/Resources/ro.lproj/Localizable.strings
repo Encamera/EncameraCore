@@ -705,3 +705,15 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "SettingsView.SectionHeader.GetHelp" = "OBȚINE AJUTOR";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
+"AppIconSelection.PremiumFeature" = "Funcție premium";
+"AppIcon.Jazz" = "Jazz";
+"AppIconSelection.SelectIcon" = "Selectează o pictogramă";
+"FooterView.Slideshow.FiveSeconds" = "5 secunde";
+"FooterView.Slideshow.FifteenSeconds" = "15 secunde";
+"AppIcon.Primary" = "Implicit";
+"FooterView.Slideshow.OneSecond" = "1 secundă";
+"AppIconSelection.CurrentIcon" = "Curent";
+"FooterView.Slideshow.ThreeSeconds" = "3 secunde";
+"FooterView.Slideshow.SelectDuration" = "Durata prezentării de diapozitive";
+"AppIconSelection.PremiumDescription" = "Fă upgrade pentru a-ți personaliza pictograma aplicației";
+"AppIconSelection.Title" = "Pictogramă aplicație";

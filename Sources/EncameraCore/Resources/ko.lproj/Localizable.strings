@@ -705,3 +705,15 @@
 "SettingsView.SectionHeader.GetHelp" = "도움 받기";
 
 "SettingsView.SectionHeader.PremiumPlan" = "프리미엄";
+"AppIconSelection.PremiumFeature" = "프리미엄 기능";
+"AppIcon.Jazz" = "재즈";
+"AppIconSelection.SelectIcon" = "아이콘 선택";
+"FooterView.Slideshow.FiveSeconds" = "5초";
+"FooterView.Slideshow.FifteenSeconds" = "15초";
+"AppIcon.Primary" = "기본값";
+"FooterView.Slideshow.OneSecond" = "1초";
+"AppIconSelection.CurrentIcon" = "현재";
+"FooterView.Slideshow.ThreeSeconds" = "3초";
+"FooterView.Slideshow.SelectDuration" = "슬라이드쇼 지속 시간";
+"AppIconSelection.PremiumDescription" = "앱 아이콘을 맞춤 설정하려면 업그레이드하세요";
+"AppIconSelection.Title" = "앱 아이콘";

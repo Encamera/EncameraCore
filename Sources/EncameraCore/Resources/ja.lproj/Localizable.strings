@@ -721,3 +721,15 @@
 "SettingsView.SectionHeader.GetHelp" = "ヘルプを取得";
 
 "SettingsView.SectionHeader.PremiumPlan" = "プレミアム";
+"AppIconSelection.PremiumFeature" = "プレミアム機能";
+"AppIcon.Jazz" = "ジャズ";
+"AppIconSelection.SelectIcon" = "アイコンを選択";
+"FooterView.Slideshow.FiveSeconds" = "5秒";
+"FooterView.Slideshow.FifteenSeconds" = "15秒";
+"AppIcon.Primary" = "デフォルト";
+"FooterView.Slideshow.OneSecond" = "1秒";
+"AppIconSelection.CurrentIcon" = "現在";
+"FooterView.Slideshow.ThreeSeconds" = "3秒";
+"FooterView.Slideshow.SelectDuration" = "スライドショーの長さ";
+"AppIconSelection.PremiumDescription" = "アップグレードしてアプリアイコンをカスタマイズ";
+"AppIconSelection.Title" = "アプリアイコン";

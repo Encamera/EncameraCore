@@ -1194,6 +1194,18 @@ public enum L10n {
   public enum FooterView {
     /// Media Details
     public static let mediaDetails = L10n.tr("Localizable", "FooterView.MediaDetails", fallback: "Media Details")
+    public enum Slideshow {
+      /// 15 Seconds
+      public static let fifteenSeconds = L10n.tr("Localizable", "FooterView.Slideshow.FifteenSeconds", fallback: "15 Seconds")
+      /// 5 Seconds
+      public static let fiveSeconds = L10n.tr("Localizable", "FooterView.Slideshow.FiveSeconds", fallback: "5 Seconds")
+      /// 1 Second
+      public static let oneSecond = L10n.tr("Localizable", "FooterView.Slideshow.OneSecond", fallback: "1 Second")
+      /// Slideshow Duration
+      public static let selectDuration = L10n.tr("Localizable", "FooterView.Slideshow.SelectDuration", fallback: "Slideshow Duration")
+      /// 3 Seconds
+      public static let threeSeconds = L10n.tr("Localizable", "FooterView.Slideshow.ThreeSeconds", fallback: "3 Seconds")
+    }
   }
   public enum GalleryView {
     /// Album cover set

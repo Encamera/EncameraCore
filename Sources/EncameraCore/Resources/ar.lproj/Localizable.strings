@@ -686,3 +686,15 @@
 "SettingsView.SectionHeader.GetHelp" = "الحصول على المساعدة";
 
 "SettingsView.SectionHeader.PremiumPlan" = "بريميوم";
+"AppIconSelection.PremiumFeature" = "ميزة مميزة";
+"AppIcon.Jazz" = "جاز";
+"AppIconSelection.SelectIcon" = "اختر أيقونة";
+"FooterView.Slideshow.FiveSeconds" = "5 ثوانٍ";
+"FooterView.Slideshow.FifteenSeconds" = "15 ثانية";
+"AppIcon.Primary" = "افتراضي";
+"FooterView.Slideshow.OneSecond" = "1 ثانية";
+"AppIconSelection.CurrentIcon" = "الحالي";
+"FooterView.Slideshow.ThreeSeconds" = "3 ثواني";
+"FooterView.Slideshow.SelectDuration" = "مدة عرض الشرائح";
+"AppIconSelection.PremiumDescription" = "قم بالترقية لتخصيص أيقونة التطبيق الخاصة بك";
+"AppIconSelection.Title" = "أيقونة التطبيق";
