@@ -100,11 +100,13 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         printDebug("Loaded \(media.count) pending media items")
     }
     
-    /// Imports all pending media to the specified album
+    /// Imports all pending media to the specified album.
+    /// This method returns immediately after starting the import - it does NOT wait for completion.
+    /// The import continues in the background, and cleanup happens when the import completes.
     /// - Parameters:
     ///   - albumId: The album ID to import media into
     ///   - albumManager: The album manager for configuration
-    /// - Returns: The number of successfully imported items
+    /// - Returns: The number of media items that will be imported
     public func importPendingMedia(
         toAlbumId albumId: String,
         albumManager: AlbumManaging
@@ -120,20 +122,36 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         }
         
         let mediaToImport = pendingMedia
+        let count = mediaToImport.count
         
-        // Use the MediaImportHandler for the actual import
-        try await MediaImportHandler.shared.startImport(
-            media: mediaToImport,
-            albumId: albumId,
-            source: .shareExtension,
-            assetIdentifiers: []
-        )
+        // Clear pending state IMMEDIATELY so the modal doesn't reappear
+        // The actual files will be cleaned up after import completes
+        pendingMedia = []
+        pendingCount = 0
+        hasPendingImports = false
+        clearPendingMetadata()
         
-        // Clean up the app group container after starting the import
-        // Note: The files will be copied during import, so we can clean up
-        await cleanupAfterImport(importedMedia: mediaToImport)
+        // Fire-and-forget: Start the import in a detached task so we return immediately
+        // The import will continue in the background
+        Task.detached { [weak self] in
+            do {
+                // Use the MediaImportHandler for the actual import
+                try await MediaImportHandler.shared.startImport(
+                    media: mediaToImport,
+                    albumId: albumId,
+                    source: .shareExtension,
+                    assetIdentifiers: []
+                )
+                
+                // Clean up the app group container after import completes
+                await self?.cleanupAfterImport(importedMedia: mediaToImport)
+            } catch {
+                await self?.printDebug("Import failed: \(error)")
+            }
+        }
         
-        return mediaToImport.count
+        // Return immediately with the count - don't wait for import to complete
+        return count
     }
     
     /// Cancels/dismisses pending imports without importing them
