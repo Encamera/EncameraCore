@@ -682,3 +682,15 @@
 "SettingsView.SectionHeader.GetHelp" = "获取帮助";
 
 "SettingsView.SectionHeader.PremiumPlan" = "高级版";
+"AppIconSelection.PremiumFeature" = "高级功能";
+"AppIcon.Jazz" = "爵士";
+"AppIconSelection.SelectIcon" = "选择一个图标";
+"FooterView.Slideshow.FiveSeconds" = "5秒";
+"FooterView.Slideshow.FifteenSeconds" = "15秒";
+"AppIcon.Primary" = "默认";
+"FooterView.Slideshow.OneSecond" = "1秒";
+"AppIconSelection.CurrentIcon" = "当前";
+"FooterView.Slideshow.ThreeSeconds" = "3秒";
+"FooterView.Slideshow.SelectDuration" = "幻灯片时长";
+"AppIconSelection.PremiumDescription" = "升级以自定义您的应用图标";
+"AppIconSelection.Title" = "应用图标";

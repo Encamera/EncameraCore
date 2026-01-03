@@ -839,3 +839,15 @@
 "SettingsView.SectionHeader.GetHelp" = "HILFE ERHALTEN";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
+"AppIconSelection.PremiumFeature" = "Premium-Funktion";
+"AppIcon.Jazz" = "Jazz";
+"AppIconSelection.SelectIcon" = "Wähle ein Symbol aus";
+"FooterView.Slideshow.FiveSeconds" = "5 Sekunden";
+"FooterView.Slideshow.FifteenSeconds" = "15 Sekunden";
+"AppIcon.Primary" = "Standard";
+"FooterView.Slideshow.OneSecond" = "1 Sekunde";
+"AppIconSelection.CurrentIcon" = "Aktuell";
+"FooterView.Slideshow.ThreeSeconds" = "3 Sekunden";
+"FooterView.Slideshow.SelectDuration" = "Diashow-Dauer";
+"AppIconSelection.PremiumDescription" = "Upgrade, um dein App-Symbol anzupassen";
+"AppIconSelection.Title" = "App-Symbol";

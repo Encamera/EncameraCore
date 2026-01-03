@@ -572,6 +572,11 @@
 "FeedbackView.Submit" = "Submit";
 
 "FooterView.MediaDetails" = "Media Details";
+"FooterView.Slideshow.SelectDuration" = "Slideshow Duration";
+"FooterView.Slideshow.OneSecond" = "1 Second";
+"FooterView.Slideshow.ThreeSeconds" = "3 Seconds";
+"FooterView.Slideshow.FiveSeconds" = "5 Seconds";
+"FooterView.Slideshow.FifteenSeconds" = "15 Seconds";
 "Alert.LoadingFile.Title" = "Loading File";
 "Alert.LoadingFile.Message" = "Please wait...";
 

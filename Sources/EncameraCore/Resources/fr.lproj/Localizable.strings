@@ -723,3 +723,15 @@ album";
 "SettingsView.SectionHeader.GetHelp" = "OBTENIR DE L'AIDE";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
+"AppIconSelection.PremiumFeature" = "Fonction Premium";
+"AppIcon.Jazz" = "Jazz";
+"AppIconSelection.SelectIcon" = "Sélectionner une icône";
+"FooterView.Slideshow.FiveSeconds" = "5 secondes";
+"FooterView.Slideshow.FifteenSeconds" = "15 secondes";
+"AppIcon.Primary" = "Par défaut";
+"FooterView.Slideshow.OneSecond" = "1 seconde";
+"AppIconSelection.CurrentIcon" = "Actuel";
+"FooterView.Slideshow.ThreeSeconds" = "3 secondes";
+"FooterView.Slideshow.SelectDuration" = "Durée du diaporama";
+"AppIconSelection.PremiumDescription" = "Passez à la version supérieure pour personnaliser l'icône de votre application";
+"AppIconSelection.Title" = "Icône de l'application";

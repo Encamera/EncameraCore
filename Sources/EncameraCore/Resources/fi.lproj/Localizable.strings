@@ -716,3 +716,15 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "SettingsView.SectionHeader.GetHelp" = "HANKI APUA";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
+"AppIconSelection.PremiumFeature" = "Premium-ominaisuus";
+"AppIcon.Jazz" = "Jazz";
+"AppIconSelection.SelectIcon" = "Valitse kuvake";
+"FooterView.Slideshow.FiveSeconds" = "5 sekuntia";
+"FooterView.Slideshow.FifteenSeconds" = "15 sekuntia";
+"AppIcon.Primary" = "Oletus";
+"FooterView.Slideshow.OneSecond" = "1 sekunti";
+"AppIconSelection.CurrentIcon" = "Nykyinen";
+"FooterView.Slideshow.ThreeSeconds" = "3 sekuntia";
+"FooterView.Slideshow.SelectDuration" = "Diaesityksen kesto";
+"AppIconSelection.PremiumDescription" = "Päivitä mukauttaaksesi sovelluskuvakettasi";
+"AppIconSelection.Title" = "Sovelluskuvake";

@@ -692,3 +692,15 @@ Du skal kun gøre to ting:
 "SettingsView.SectionHeader.GetHelp" = "FÅ HJÆLP";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
+"AppIconSelection.PremiumFeature" = "Premium-funktion";
+"AppIcon.Jazz" = "Jazz";
+"AppIconSelection.SelectIcon" = "Vælg et ikon";
+"FooterView.Slideshow.FiveSeconds" = "5 sekunder";
+"FooterView.Slideshow.FifteenSeconds" = "15 sekunder";
+"AppIcon.Primary" = "Standard";
+"FooterView.Slideshow.OneSecond" = "1 sekund";
+"AppIconSelection.CurrentIcon" = "Nuværende";
+"FooterView.Slideshow.ThreeSeconds" = "3 sekunder";
+"FooterView.Slideshow.SelectDuration" = "Diasvisningens varighed";
+"AppIconSelection.PremiumDescription" = "Opgrader for at tilpasse dit app-ikon";
+"AppIconSelection.Title" = "App-ikon";

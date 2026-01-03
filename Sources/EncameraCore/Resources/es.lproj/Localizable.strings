@@ -838,3 +838,15 @@
 "SettingsView.SectionHeader.GetHelp" = "OBTENER AYUDA";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
+"AppIconSelection.PremiumFeature" = "Función premium";
+"AppIcon.Jazz" = "Jazz";
+"AppIconSelection.SelectIcon" = "Selecciona un icono";
+"FooterView.Slideshow.FiveSeconds" = "5 segundos";
+"FooterView.Slideshow.FifteenSeconds" = "15 segundos";
+"AppIcon.Primary" = "Predeterminado";
+"FooterView.Slideshow.OneSecond" = "1 segundo";
+"AppIconSelection.CurrentIcon" = "Actual";
+"FooterView.Slideshow.ThreeSeconds" = "3 segundos";
+"FooterView.Slideshow.SelectDuration" = "Duración de la presentación";
+"AppIconSelection.PremiumDescription" = "Actualiza para personalizar el icono de tu aplicación";
+"AppIconSelection.Title" = "Icono de la aplicación";
