@@ -876,3 +876,8 @@
 "FeatureFlagToast.Enabled" = "enabled";
 "FeatureFlagToast.Disabled" = "disabled";
 
+/* ./Encamera/AlbumManagement/CreateAlbumModal.swift - Create Album Modal */
+"CreateAlbumModal.GiveItAName" = "Give it a name";
+"CreateAlbumModal.Placeholder" = "Your memories";
+"CreateAlbumModal.CreateAlbum" = "Create Album";
+

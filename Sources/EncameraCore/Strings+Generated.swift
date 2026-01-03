@@ -1059,6 +1059,14 @@ public enum L10n {
     /// View Import History
     public static let viewImportHistory = L10n.tr("Localizable", "CompletedImportHistory.ViewImportHistory", fallback: "View Import History")
   }
+  public enum CreateAlbumModal {
+    /// Create Album
+    public static let createAlbum = L10n.tr("Localizable", "CreateAlbumModal.CreateAlbum", fallback: "Create Album")
+    /// ./Encamera/AlbumManagement/CreateAlbumModal.swift - Create Album Modal
+    public static let giveItAName = L10n.tr("Localizable", "CreateAlbumModal.GiveItAName", fallback: "Give it a name")
+    /// Your memories
+    public static let placeholder = L10n.tr("Localizable", "CreateAlbumModal.Placeholder", fallback: "Your memories")
+  }
   public enum CustomPhotoPicker {
     /// Add
     public static let add = L10n.tr("Localizable", "CustomPhotoPicker.Add", fallback: "Add")
