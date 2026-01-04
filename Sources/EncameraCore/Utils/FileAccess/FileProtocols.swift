@@ -129,7 +129,6 @@ public protocol FileReader: FileEnumerator {
 
 public protocol FileWriter: FileEnumerator {
         
-    @discardableResult func save(media: InteractableMedia<CleartextMedia>, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>?
     @discardableResult func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>?
     @discardableResult func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel
     func copy(media: InteractableMedia<EncryptedMedia>) async throws
