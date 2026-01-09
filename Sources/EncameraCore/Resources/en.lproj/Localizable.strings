@@ -812,6 +812,12 @@
 "FeatureToggles.DebugRemoteContentDescription" = "Enable debugging for remote CMS content";
 "FeatureToggles.AlbumSelectionEnabled" = "Album Selection";
 "FeatureToggles.AlbumSelectionEnabledDescription" = "Show album carousel in photo picker";
+"FeatureToggles.ShowFeatureToggles" = "Show Feature Toggles";
+"FeatureToggles.ShowFeatureTogglesDescription" = "Enable the feature toggles menu in settings";
+"FeatureToggles.ShowDesignSystem" = "🎨 Design System";
+"FeatureToggles.ShowDesignSystemDescription" = "Show hidden design system showcase";
+"FeatureToggles.AppIconSelection" = "App Icon Selection";
+"FeatureToggles.AppIconSelectionDescription" = "Enable custom app icon selection";
 "Common.Cancel" = "Cancel";
 "Common.Confirm" = "Confirm";
 
