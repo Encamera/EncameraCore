@@ -1136,6 +1136,10 @@ public enum L10n {
     public static let albumSelectionEnabled = L10n.tr("Localizable", "FeatureToggles.AlbumSelectionEnabled", fallback: "Album Selection")
     /// Show album carousel in photo picker
     public static let albumSelectionEnabledDescription = L10n.tr("Localizable", "FeatureToggles.AlbumSelectionEnabledDescription", fallback: "Show album carousel in photo picker")
+    /// App Icon Selection
+    public static let appIconSelection = L10n.tr("Localizable", "FeatureToggles.AppIconSelection", fallback: "App Icon Selection")
+    /// Enable custom app icon selection
+    public static let appIconSelectionDescription = L10n.tr("Localizable", "FeatureToggles.AppIconSelectionDescription", fallback: "Enable custom app icon selection")
     /// Debug Remote Content
     public static let debugRemoteContent = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContent", fallback: "Debug Remote Content")
     /// Enable debugging for remote CMS content
@@ -1160,6 +1164,14 @@ public enum L10n {
     public static let revenuecatToggleMessage = L10n.tr("Localizable", "FeatureToggles.RevenuecatToggleMessage", fallback: "Changing RevenueCat mode requires restarting the app. Continue?")
     /// Restart Required
     public static let revenuecatToggleTitle = L10n.tr("Localizable", "FeatureToggles.RevenuecatToggleTitle", fallback: "Restart Required")
+    /// 🎨 Design System
+    public static let showDesignSystem = L10n.tr("Localizable", "FeatureToggles.ShowDesignSystem", fallback: "🎨 Design System")
+    /// Show hidden design system showcase
+    public static let showDesignSystemDescription = L10n.tr("Localizable", "FeatureToggles.ShowDesignSystemDescription", fallback: "Show hidden design system showcase")
+    /// Show Feature Toggles
+    public static let showFeatureToggles = L10n.tr("Localizable", "FeatureToggles.ShowFeatureToggles", fallback: "Show Feature Toggles")
+    /// Enable the feature toggles menu in settings
+    public static let showFeatureTogglesDescription = L10n.tr("Localizable", "FeatureToggles.ShowFeatureTogglesDescription", fallback: "Enable the feature toggles menu in settings")
     /// Move to Album
     public static let showMoveToAlbum = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbum", fallback: "Move to Album")
     /// Enable moving media between albums
