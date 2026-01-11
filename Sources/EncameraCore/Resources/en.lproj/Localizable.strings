@@ -789,6 +789,7 @@
 "MainHomeView.KeyBackupExplanation" = "Your photos are protected with a unique encryption key. This is the only way to decrypt your images if you switch devices or reinstall the app.";
 "MainHomeView.KeyBackupWarning" = "You will not be able to view your media without this key.";
 "MainHomeView.ViewTheKey" = "View the Key";
+"MainHomeView.TabBar.Camera" = "Camera";
 
 /* ./Encamera/Settings/FeatureTogglesView.swift */
 "FeatureToggles.Title" = "Feature Toggles";

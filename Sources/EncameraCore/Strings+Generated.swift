@@ -1376,6 +1376,10 @@ public enum L10n {
     public static let keyBackupWarning = L10n.tr("Localizable", "MainHomeView.KeyBackupWarning", fallback: "You will not be able to view your media without this key.")
     /// View the Key
     public static let viewTheKey = L10n.tr("Localizable", "MainHomeView.ViewTheKey", fallback: "View the Key")
+    public enum TabBar {
+      /// Camera
+      public static let camera = L10n.tr("Localizable", "MainHomeView.TabBar.Camera", fallback: "Camera")
+    }
   }
   public enum MediaInfo {
     /// Additional Details
