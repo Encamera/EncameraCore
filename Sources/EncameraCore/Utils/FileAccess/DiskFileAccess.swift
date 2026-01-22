@@ -460,6 +460,7 @@ extension DiskFileAccess {
         case .notDownloaded:
             // File needs to be downloaded
             printDebug("File needs download from iCloud", encrypted.id)
+            progress(.downloading(progress: 0))
             
             // If we have an iCloud directory model, use its download method
             if let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
@@ -469,20 +470,30 @@ extension DiskFileAccess {
                 }
                 return downloaded
             } else {
-                // directoryModel is not iCloud, but file is in iCloud - throw specific error
-                printDebug("File is in iCloud but directoryModel is not iCloudStorageModel", encrypted.id)
-                throw FileAccessError.iCloudFileNotDownloaded(status: status)
+                // The file is in iCloud but our directoryModel is not iCloud
+                // This can happen in edge cases - trigger download and wait
+                printDebug("File is in iCloud but directoryModel is not iCloudStorageModel, triggering download", encrypted.id)
+                try iCloudFileStatusUtil.startDownload(for: sourceURL)
+                
+                // Wait for the download to complete with polling
+                let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
+                return downloaded
             }
             
         case .downloading(let downloadProgress):
-            // Download is already in progress
-            printDebug("File is currently downloading from iCloud", encrypted.id, downloadProgress)
-            throw FileAccessError.iCloudDownloadInProgress(status: status)
+            // Download is already in progress, wait for it to complete
+            printDebug("File is currently downloading from iCloud, waiting", encrypted.id, downloadProgress)
+            progress(.downloading(progress: downloadProgress / 100.0))
+            let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
+            return downloaded
             
         case .downloadFailed:
-            // Previous download failed
-            printDebug("iCloud download failed for file", encrypted.id)
-            throw FileAccessError.iCloudDownloadFailed(status: status)
+            // Previous download failed, retry
+            printDebug("Previous iCloud download failed, retrying", encrypted.id)
+            progress(.downloading(progress: 0))
+            try iCloudFileStatusUtil.startDownload(for: sourceURL)
+            let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
+            return downloaded
             
         case .notUbiquitous:
             // Not an iCloud file, should have been caught above

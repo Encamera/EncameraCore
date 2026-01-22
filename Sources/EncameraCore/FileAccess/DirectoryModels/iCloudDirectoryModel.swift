@@ -33,7 +33,7 @@ public class iCloudStorageModel: DataStorageModel {
     @MainActor
     private var downloadTasks = [URL: AnyCancellable]()
     @MainActor
-    private var activeQueries = [URL: (NSMetadataQuery, NSObjectProtocol)]() // Track active queries for cleanup
+    private var activeQueries = [URL: (NSMetadataQuery, [NSObjectProtocol])]() // Track active queries for cleanup
 
     public var baseURL: URL {
         return iCloudStorageModel.rootURL.appendingPathComponent(album.encryptedPathComponent)
@@ -91,49 +91,99 @@ public class iCloudStorageModel: DataStorageModel {
             NSMetadataUbiquitousItemDownloadingStatusKey
         ]
 
-        var observer: NSObjectProtocol?
-        observer = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidUpdate, object: query, queue: .main) { [weak self] notification in
-            guard let items = notification.userInfo?[NSMetadataQueryUpdateChangedItemsKey] as? NSArray,
-                  let item = items.firstObject as? NSMetadataItem else {
-                return
-            }
-
-            func terminateObserver() {
-                query.stop()
-                if let observer = observer {
-                    NotificationCenter.default.removeObserver(observer)
-                }
-                Task { @MainActor in
-                    self?.downloadStatusSubjects.removeValue(forKey: fileURL)
-                    self?.activeQueries.removeValue(forKey: fileURL)
-                }
-            }
-
+        var updateObserver: NSObjectProtocol?
+        var gatheringObserver: NSObjectProtocol?
+        
+        // Helper function to process an NSMetadataItem and emit status
+        func processItem(_ item: NSMetadataItem) -> Bool {
+            // Returns true if download is complete and observer should be terminated
             if let downloadingStatus = item.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String {
                 switch downloadingStatus {
-                case NSMetadataUbiquitousItemDownloadingStatusDownloaded:
+                case NSMetadataUbiquitousItemDownloadingStatusDownloaded,
+                     NSMetadataUbiquitousItemDownloadingStatusCurrent:
                     subject.send(.downloaded)
                     subject.send(completion: .finished)
-                    terminateObserver()
+                    return true
                 default:
                     if let progress = item.value(forAttribute: NSMetadataUbiquitousItemPercentDownloadedKey) as? Double {
                         let percent = progress / 100.0
                         if percent < 1 {
                             subject.send(.downloading(progress: percent))
-                        } else if percent == 1 {
+                        } else if percent >= 1 {
                             subject.send(.downloaded)
+                            subject.send(completion: .finished)
+                            return true
                         }
                     } else {
                         subject.send(.notDownloaded)
                     }
                 }
             }
+            return false
         }
         
-        // Store the query and observer for cleanup on cancellation
-        if let observer = observer {
-            activeQueries[fileURL] = (query, observer)
+        let terminateObserver: () -> Void = { [weak self] in
+            query.stop()
+            if let observer = updateObserver {
+                NotificationCenter.default.removeObserver(observer)
+            }
+            if let observer = gatheringObserver {
+                NotificationCenter.default.removeObserver(observer)
+            }
+            Task { @MainActor [weak self] in
+                self?.downloadStatusSubjects.removeValue(forKey: fileURL)
+                self?.activeQueries.removeValue(forKey: fileURL)
+            }
         }
+        
+        // Observe updates for ongoing download progress
+        updateObserver = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidUpdate, object: query, queue: .main) { [weak self] notification in
+            guard self != nil else { return }
+            
+            // First try to get from the changed items in the notification
+            if let items = notification.userInfo?[NSMetadataQueryUpdateChangedItemsKey] as? NSArray,
+               let item = items.firstObject as? NSMetadataItem {
+                if processItem(item) {
+                    terminateObserver()
+                    return
+                }
+            }
+            
+            // Fallback: also check query.results directly - important for catching
+            // completion status that might not be in the notification's changed items
+            query.disableUpdates()
+            defer { query.enableUpdates() }
+            
+            if let item = query.results.first as? NSMetadataItem {
+                if processItem(item) {
+                    terminateObserver()
+                }
+            }
+        }
+        
+        // Also observe initial gathering completion - important for files that download quickly
+        // or are already downloaded when the query starts
+        gatheringObserver = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: query, queue: .main) { [weak self] _ in
+            guard self != nil else { return }
+            query.disableUpdates()
+            defer { query.enableUpdates() }
+            
+            if let item = query.results.first as? NSMetadataItem {
+                if processItem(item) {
+                    terminateObserver()
+                }
+            }
+        }
+        
+        // Store the query and observers for cleanup on cancellation
+        var observers: [NSObjectProtocol] = []
+        if let observer = updateObserver {
+            observers.append(observer)
+        }
+        if let observer = gatheringObserver {
+            observers.append(observer)
+        }
+        activeQueries[fileURL] = (query, observers)
 
         query.start()
     }
@@ -265,9 +315,11 @@ public class iCloudStorageModel: DataStorageModel {
     
     @MainActor
     private func cleanUpQuery(for url: URL) {
-        if let (query, observer) = activeQueries[url] {
+        if let (query, observers) = activeQueries[url] {
             query.stop()
-            NotificationCenter.default.removeObserver(observer)
+            for observer in observers {
+                NotificationCenter.default.removeObserver(observer)
+            }
             activeQueries.removeValue(forKey: url)
         }
         downloadStatusSubjects.removeValue(forKey: url)
