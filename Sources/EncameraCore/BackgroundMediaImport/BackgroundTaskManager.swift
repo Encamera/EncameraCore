@@ -75,6 +75,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             moveTask.progress = progress
             currentTasks[taskIndex] = moveTask
             publishProgress(for: moveTask)
+        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
+            exportTask.progress = progress
+            currentTasks[taskIndex] = exportTask
+            publishProgress(for: exportTask)
         }
     }
     
@@ -92,6 +96,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
             moveTask.progress.state = .running
             currentTasks[taskIndex] = moveTask
+            updateIsProcessing()
+        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
+            exportTask.progress.state = .running
+            currentTasks[taskIndex] = exportTask
             updateIsProcessing()
         }
     }
@@ -111,6 +119,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             moveTask.progress.state = .paused
             currentTasks[taskIndex] = moveTask
             publishProgress(for: moveTask)
+        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
+            exportTask.progress.state = .paused
+            currentTasks[taskIndex] = exportTask
+            publishProgress(for: exportTask)
         }
     }
     
@@ -131,6 +143,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             moveTask.progress.state = .cancelled
             currentTasks[taskIndex] = moveTask
             publishProgress(for: moveTask)
+        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
+            exportTask.progress.state = .cancelled
+            currentTasks[taskIndex] = exportTask
+            publishProgress(for: exportTask)
         }
         
         // Note: We intentionally do NOT call updateIsProcessing() here.
@@ -231,6 +247,11 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             currentTasks[taskIndex] = moveTask
             publishProgress(for: moveTask)
             printDebug("Task completed successfully: \(taskId)")
+        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
+            exportTask.progress = completedProgress
+            currentTasks[taskIndex] = exportTask
+            publishProgress(for: exportTask)
+            printDebug("Task completed successfully: \(taskId)")
         }
         
         updateOverallProgress()
@@ -281,6 +302,14 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             currentTasks[taskIndex] = moveTask
             publishProgress(for: moveTask)
             // Move tasks don't have partial results concept, always remove if requested
+            if shouldRemove {
+                removeTaskAfterDelay(taskId: taskId)
+            }
+        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
+            exportTask.progress.state = state
+            currentTasks[taskIndex] = exportTask
+            publishProgress(for: exportTask)
+            // Export tasks don't have partial results concept, always remove if requested
             if shouldRemove {
                 removeTaskAfterDelay(taskId: taskId)
             }

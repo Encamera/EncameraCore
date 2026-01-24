@@ -601,39 +601,59 @@ extension DiskFileAccess {
         encrypted: EncryptedMedia,
         progress: @escaping (FileLoadingStatus) -> Void
     ) async throws -> CleartextMedia {
+        printDebug("decryptMediaToURL: Starting decryption for \(encrypted.id)")
+        printDebug("decryptMediaToURL: keyManager exists: \(keyManager != nil)")
+        
         guard let keyManager else {
+            printDebug("decryptMediaToURL: ERROR - Missing keyManager")
             throw FileAccessError.missingKeyManager
         }
 
         guard case .url(let sourceURL) = encrypted.source else {
-            printDebug("decryptMediaToURL: Could not load media")
+            printDebug("decryptMediaToURL: ERROR - Could not get URL from encrypted.source")
+            printDebug("decryptMediaToURL: encrypted.source = \(encrypted.source)")
             throw FileAccessError.couldNotLoadMedia
         }
+        
+        printDebug("decryptMediaToURL: Source URL: \(sourceURL.path)")
+        printDebug("decryptMediaToURL: File exists: \(FileManager.default.fileExists(atPath: sourceURL.path))")
 
         defer { sourceURL.stopAccessingSecurityScopedResource() }
 
         let targetURL = URL.tempMediaDirectory
             .appendingPathComponent(encrypted.id)
             .appendingPathExtension(encrypted.mediaType.decryptedFileExtension)
+        
+        printDebug("decryptMediaToURL: Target URL: \(targetURL.path)")
 
         if FileManager.default.fileExists(atPath: targetURL.path) {
+            printDebug("decryptMediaToURL: Target already exists, returning cached")
             return CleartextMedia(source: targetURL)
         }
 
         // Try to get the key UUID from extended attributes
         let keyToUse: PrivateKey
-        if let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL),
+        let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL)
+        printDebug("decryptMediaToURL: Stored key UUID: \(storedKeyUUID?.uuidString ?? "nil")")
+        
+        if let storedKeyUUID,
            let matchingKey = await keyManager.keyWith(uuid: storedKeyUUID) {
             keyToUse = matchingKey
             printDebug("decryptMediaToURL: Using key with UUID \(storedKeyUUID) for file \(encrypted.id)")
+            printDebug("decryptMediaToURL: Key name: \(keyToUse.name)")
         } else {
             // Fall back to current key if no UUID found or key not available
+            printDebug("decryptMediaToURL: No UUID match, checking current key")
+            printDebug("decryptMediaToURL: self.key exists: \(key != nil)")
             guard let currentKey = key else {
+                printDebug("decryptMediaToURL: ERROR - No current key available")
                 throw FileAccessError.missingPrivateKey
             }
             keyToUse = currentKey
-            printDebug("decryptMediaToURL: Using current key for file \(encrypted.id)")
+            printDebug("decryptMediaToURL: Using current key '\(currentKey.name)' for file \(encrypted.id)")
         }
+        
+        printDebug("decryptMediaToURL: Creating SecretFileHandler with key bytes length: \(keyToUse.keyBytes.count)")
 
         let fileHandler = SecretFileHandler(keyBytes: keyToUse.keyBytes, source: encrypted, targetURL: targetURL)
 
@@ -643,9 +663,17 @@ extension DiskFileAccess {
                 progress(.decrypting(progress: percent))
             }
             .store(in: &cancellables)
-        let decrypted = try await fileHandler.decryptToURL()
-        return decrypted
-
+        
+        printDebug("decryptMediaToURL: Calling fileHandler.decryptToURL()...")
+        do {
+            let decrypted = try await fileHandler.decryptToURL()
+            printDebug("decryptMediaToURL: Decryption successful!")
+            return decrypted
+        } catch {
+            printDebug("decryptMediaToURL: ERROR - Decryption failed: \(error)")
+            printDebug("decryptMediaToURL: Error type: \(type(of: error))")
+            throw error
+        }
     }
 
     @discardableResult private func createThumbnail<T: MediaDescribing>(for media: T) async throws -> CleartextMedia {

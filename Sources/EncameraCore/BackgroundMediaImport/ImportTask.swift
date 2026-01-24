@@ -31,6 +31,7 @@ public enum ImportSource: String, Codable, CaseIterable {
 public enum FileTaskType: String {
     case importMedia
     case moveMedia
+    case exportMedia
 }
 
 public protocol BackgroundFileTask: Equatable  {

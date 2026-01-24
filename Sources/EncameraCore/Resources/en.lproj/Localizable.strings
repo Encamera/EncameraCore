@@ -805,6 +805,8 @@
 "FeatureToggles.HideAlbumDescription" = "Hide album from main view";
 "FeatureToggles.ShowMoveToAlbum" = "Move to Album";
 "FeatureToggles.ShowMoveToAlbumDescription" = "Enable moving media between albums";
+"FeatureToggles.EncryptedZipExport" = "Encrypted Zip Export";
+"FeatureToggles.EncryptedZipExportDescription" = "Enable sharing media as an encrypted zip";
 "FeatureToggles.EnableTestRevenueCat" = "Test RevenueCat";
 "FeatureToggles.EnableTestRevenueCatDescription" = "Enable RevenueCat testing mode";
 "FeatureToggles.RevenuecatToggleTitle" = "Restart Required";
@@ -894,6 +896,31 @@
 "FeatureFlagToast.Enabled" = "enabled";
 "FeatureFlagToast.Disabled" = "disabled";
 
+/* ZipExport - Encrypted Zip Export Feature */
+"ZipExport.ShareDecrypted" = "Share Decrypted";
+"ZipExport.ShareEncryptedZip" = "Share as Encrypted Zip";
+"ZipExport.EnterPassword" = "Enter Password";
+"ZipExport.PasswordPlaceholder" = "Zip file password";
+"ZipExport.ConfirmPassword" = "Confirm Password";
+"ZipExport.PasswordMismatch" = "Passwords do not match";
+"ZipExport.Continue" = "Continue";
+"ZipExport.Preparing" = "Preparing Encrypted Zip";
+"ZipExport.Decrypting" = "Decrypting %@ of %@...";
+"ZipExport.Compressing" = "Compressing files...";
+"ZipExport.Complete" = "Zip file ready!";
+"ZipExport.KeepPhoneOpen" = "Please keep your phone unlocked to complete this operation";
+"ZipExport.ShareZip" = "Share Zip";
+"ZipExport.Cancel" = "Cancel";
+"ZipExport.Close" = "Close";
+"ZipExport.Error" = "Error creating zip: %@";
+
+/* ZipExport Error Messages */
+"ZipExportError.NoMediaToExport" = "No media selected for export.";
+"ZipExportError.DecryptionFailed" = "Failed to decrypt media: %@";
+"ZipExportError.ZipCreationFailed" = "Failed to create zip file: %@";
+"ZipExportError.EmptyPassword" = "Password cannot be empty.";
+"ZipExportError.DirectoryCreationFailed" = "Failed to create export directory: %@";
+"ZipExportError.BackgroundTimeExpired" = "Export was interrupted because the app was in the background too long. Please return to the app and try again.";
 /* ./Encamera/AlbumManagement/CreateAlbumModal.swift - Create Album Modal */
 "CreateAlbumModal.GiveItAName" = "Give it a name";
 "CreateAlbumModal.Placeholder" = "Your memories";

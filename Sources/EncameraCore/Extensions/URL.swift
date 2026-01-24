@@ -20,4 +20,9 @@ extension URL {
                                     isDirectory: true)
     }
 
+    public static var tempExportDirectory: URL {
+        URL(fileURLWithPath: NSTemporaryDirectory().appending("exports"),
+                                    isDirectory: true)
+    }
+
 }

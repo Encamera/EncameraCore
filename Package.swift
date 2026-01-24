@@ -17,12 +17,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/jedisct1/swift-sodium.git", .upToNextMajor(from: "0.9.1")),
+        .package(url: "https://github.com/ZipArchive/ZipArchive.git", .upToNextMajor(from: "2.6.0")),
     ],
     targets: [
         .target(
             name: "EncameraCore",
             dependencies: [
-                .product(name: "Sodium", package: "swift-sodium")
+                .product(name: "Sodium", package: "swift-sodium"),
+                .product(name: "ZipArchive", package: "ZipArchive")
             ],
             resources: [.process("Resources")]
         ),
