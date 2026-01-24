@@ -9,6 +9,7 @@ public class TempFileAccess: DebugPrintable {
         if !BackgroundTaskManager.shared.isProcessing {
             printDebug("isProcessing is false - proceeding with cleanup")
             deleteDirectory(at: URL.tempMediaDirectory)
+            deleteDirectory(at: URL.tempExportDirectory)
             // Recreate the temp directory after cleanup to ensure it exists for future operations
             createDirectoryIfNeeded(at: URL.tempMediaDirectory)
         } else {

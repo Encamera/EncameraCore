@@ -15,6 +15,7 @@ public enum Feature: String, CaseIterable {
     case enableTestRevenueCat
     case showFeatureToggles
     case showMoveToAlbum
+    case encryptedZipExport
     case showDesignSystem
     case debugRemoteContent
     case albumSelectionEnabled
@@ -33,6 +34,7 @@ public enum Feature: String, CaseIterable {
         case .enableTestRevenueCat: return L10n.FeatureToggles.enableTestRevenueCat
         case .showFeatureToggles: return L10n.FeatureToggles.showFeatureToggles
         case .showMoveToAlbum: return L10n.FeatureToggles.showMoveToAlbum
+        case .encryptedZipExport: return L10n.FeatureToggles.encryptedZipExport
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystem
         case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContent
         case .albumSelectionEnabled: return L10n.FeatureToggles.albumSelectionEnabled
@@ -49,6 +51,7 @@ public enum Feature: String, CaseIterable {
         case .enableTestRevenueCat: return L10n.FeatureToggles.enableTestRevenueCatDescription
         case .showFeatureToggles: return L10n.FeatureToggles.showFeatureTogglesDescription
         case .showMoveToAlbum: return L10n.FeatureToggles.showMoveToAlbumDescription
+        case .encryptedZipExport: return L10n.FeatureToggles.encryptedZipExportDescription
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystemDescription
         case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContentDescription
         case .albumSelectionEnabled: return L10n.FeatureToggles.albumSelectionEnabledDescription

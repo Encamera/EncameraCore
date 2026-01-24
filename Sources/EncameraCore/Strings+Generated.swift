@@ -1144,6 +1144,10 @@ public enum L10n {
     public static let debugRemoteContent = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContent", fallback: "Debug Remote Content")
     /// Enable debugging for remote CMS content
     public static let debugRemoteContentDescription = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContentDescription", fallback: "Enable debugging for remote CMS content")
+    /// Encrypted Zip Export
+    public static let encryptedZipExport = L10n.tr("Localizable", "FeatureToggles.EncryptedZipExport", fallback: "Encrypted Zip Export")
+    /// Enable sharing media as an encrypted zip
+    public static let encryptedZipExportDescription = L10n.tr("Localizable", "FeatureToggles.EncryptedZipExportDescription", fallback: "Enable sharing media as an encrypted zip")
     /// Test RevenueCat
     public static let enableTestRevenueCat = L10n.tr("Localizable", "FeatureToggles.EnableTestRevenueCat", fallback: "Test RevenueCat")
     /// Enable RevenueCat testing mode
@@ -1763,6 +1767,64 @@ public enum L10n {
     /// ./Encamera/Components/ImportProgress/TaskProgressRow.swift
     public static func processing(_ p1: Any) -> String {
       return L10n.tr("Localizable", "TaskProgressRow.Processing", String(describing: p1), fallback: "Processing: %@")
+    }
+  }
+  public enum ZipExport {
+    /// Cancel
+    public static let cancel = L10n.tr("Localizable", "ZipExport.Cancel", fallback: "Cancel")
+    /// Close
+    public static let close = L10n.tr("Localizable", "ZipExport.Close", fallback: "Close")
+    /// Zip file ready!
+    public static let complete = L10n.tr("Localizable", "ZipExport.Complete", fallback: "Zip file ready!")
+    /// Compressing files...
+    public static let compressing = L10n.tr("Localizable", "ZipExport.Compressing", fallback: "Compressing files...")
+    /// Confirm Password
+    public static let confirmPassword = L10n.tr("Localizable", "ZipExport.ConfirmPassword", fallback: "Confirm Password")
+    /// Continue
+    public static let `continue` = L10n.tr("Localizable", "ZipExport.Continue", fallback: "Continue")
+    /// Decrypting %@ of %@...
+    public static func decrypting(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "ZipExport.Decrypting", String(describing: p1), String(describing: p2), fallback: "Decrypting %@ of %@...")
+    }
+    /// Enter Password
+    public static let enterPassword = L10n.tr("Localizable", "ZipExport.EnterPassword", fallback: "Enter Password")
+    /// Error creating zip: %@
+    public static func error(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "ZipExport.Error", String(describing: p1), fallback: "Error creating zip: %@")
+    }
+    /// Please keep your phone unlocked to complete this operation
+    public static let keepPhoneOpen = L10n.tr("Localizable", "ZipExport.KeepPhoneOpen", fallback: "Please keep your phone unlocked to complete this operation")
+    /// Passwords do not match
+    public static let passwordMismatch = L10n.tr("Localizable", "ZipExport.PasswordMismatch", fallback: "Passwords do not match")
+    /// Zip file password
+    public static let passwordPlaceholder = L10n.tr("Localizable", "ZipExport.PasswordPlaceholder", fallback: "Zip file password")
+    /// Preparing Encrypted Zip
+    public static let preparing = L10n.tr("Localizable", "ZipExport.Preparing", fallback: "Preparing Encrypted Zip")
+    /// ZipExport - Encrypted Zip Export Feature
+    public static let shareDecrypted = L10n.tr("Localizable", "ZipExport.ShareDecrypted", fallback: "Share Decrypted")
+    /// Share as Encrypted Zip
+    public static let shareEncryptedZip = L10n.tr("Localizable", "ZipExport.ShareEncryptedZip", fallback: "Share as Encrypted Zip")
+    /// Share Zip
+    public static let shareZip = L10n.tr("Localizable", "ZipExport.ShareZip", fallback: "Share Zip")
+  }
+  public enum ZipExportError {
+    /// Export was interrupted because the app was in the background too long. Please return to the app and try again.
+    public static let backgroundTimeExpired = L10n.tr("Localizable", "ZipExportError.BackgroundTimeExpired", fallback: "Export was interrupted because the app was in the background too long. Please return to the app and try again.")
+    /// Failed to decrypt media: %@
+    public static func decryptionFailed(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "ZipExportError.DecryptionFailed", String(describing: p1), fallback: "Failed to decrypt media: %@")
+    }
+    /// Failed to create export directory: %@
+    public static func directoryCreationFailed(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "ZipExportError.DirectoryCreationFailed", String(describing: p1), fallback: "Failed to create export directory: %@")
+    }
+    /// Password cannot be empty.
+    public static let emptyPassword = L10n.tr("Localizable", "ZipExportError.EmptyPassword", fallback: "Password cannot be empty.")
+    /// ZipExport Error Messages
+    public static let noMediaToExport = L10n.tr("Localizable", "ZipExportError.NoMediaToExport", fallback: "No media selected for export.")
+    /// Failed to create zip file: %@
+    public static func zipCreationFailed(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "ZipExportError.ZipCreationFailed", String(describing: p1), fallback: "Failed to create zip file: %@")
     }
   }
 }
