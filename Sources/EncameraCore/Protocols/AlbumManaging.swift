@@ -11,7 +11,7 @@ import UIKit
 
 public protocol AlbumManaging {
 
-    init(keyManager: KeyManager)
+    init(keyManager: KeyManager, syncedDataStore: SyncedDataStore?)
     var albums: [Album] { get }
     var keyManager: KeyManager { get }
     var albumOperationPublisher: AnyPublisher<AlbumOperation, Never> { get }

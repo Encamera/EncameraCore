@@ -13,6 +13,11 @@ import UIKit
 public enum AppIcon: String, CaseIterable, Identifiable {
     case primary = "AppIcon"
     case jazz = "AppIcon-Jazz"
+    case calculator = "AppIcon-Calculator"
+    case clock = "AppIcon-Clock"
+    case compass = "AppIcon-Compass"
+    case light = "AppIcon-Light"
+    case numbers = "AppIcon-Numbers"
     
     public var id: String { rawValue }
     
@@ -21,8 +26,18 @@ public enum AppIcon: String, CaseIterable, Identifiable {
         switch self {
         case .primary:
             return L10n.AppIcon.primary
+        case .light:
+            return L10n.AppIcon.light
         case .jazz:
             return L10n.AppIcon.jazz
+        case .calculator:
+            return L10n.AppIcon.calculator
+        case .clock:
+            return L10n.AppIcon.clock
+        case .compass:
+            return L10n.AppIcon.compass
+        case .numbers:
+            return L10n.AppIcon.numbers
         }
     }
     
@@ -34,6 +49,16 @@ public enum AppIcon: String, CaseIterable, Identifiable {
             return "AppIconPreview"
         case .jazz:
             return "AppIconPreview-Jazz"
+        case .calculator:
+            return "AppIconPreview-Calculator"
+        case .clock:
+            return "AppIconPreview-Clock"
+        case .compass:
+            return "AppIconPreview-Compass"
+        case .light:
+            return "AppIconPreview-Light"
+        case .numbers:
+            return "AppIconPreview-Numbers"
         }
     }
     

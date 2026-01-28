@@ -170,6 +170,7 @@
 "AlbumDetailView.MoveMedia" = "Move Media";
 "AlbumDetailView.MovedToast" = "Moved %@ %@ to %@";
 "AlbumDetailView.MoveErrorToast" = "Failed to move %@ %@";
+"AlbumDetailView.AlbumHiddenToast" = "Album is now hidden";
 "AlbumDetailView.PhotoAccessRequired" = "Photo Access Required";
 "AlbumDetailView.PhotoAccessSettings" = "Please grant access to your photo library in Settings to import photos.";
 "AlbumDetailView.OpenSettings" = "Open Settings";
@@ -558,6 +559,10 @@
 "Settings.GiveInstantFeedback" = "Give Instant Feedback";
 "Settings.PurchasesRestored" = "Purchases restored!";
 "Settings.PurchasesRestoredMessage" = "Any valid purchases you made have been restored.";
+"Settings.HiddenAlbums" = "Hidden Albums";
+"Settings.HiddenAlbumsModal.Title" = "Your hidden albums";
+"Settings.HiddenAlbumsModal.Subtitle" = "Access them by creating a new album with the exact same name";
+"Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBUMS";
 "MediaSelectionTray.SelectMedia" = "Select Media";
 "MediaSelectionTray.ItemSelected" = "Selected";
 "MediaSelectionTray.MoveMedia" = "Move";
@@ -604,6 +609,16 @@
 "HideAlbumsTutorial.Subheading3" = "Make sure to remember the names of your hidden albums, as they won't appear in your album list.";
 "HideAlbumsTutorial.Heading4" = "Hide an album";
 "HideAlbumsTutorial.Subheading4" = "To hide an album, open it and tap the three dots menu, then select 'Hide Album'.";
+
+/* Hide Image Tutorial */
+"HideImageTutorial.HeadingText1" = "Hide Your Albums";
+"HideImageTutorial.SubheadingText1" = "Tap the hide icon to make your albums invisible. Hidden albums are completely secure and won't appear in your list.";
+"HideImageTutorial.HeadingText2" = "Remember the Name";
+"HideImageTutorial.SubheadingText2" = "The album name is your key to access it later. Choose a name you'll remember or keep it noted somewhere safe.";
+"HideImageTutorial.HeadingText3" = "View Hidden Albums";
+"HideImageTutorial.SubheadingText3" = "Need a quick overview? Long press the \"Hide Albums\" section to see a list of all your hidden albums.";
+"HideImageTutorial.HeadingText4" = "Access the Albums";
+"HideImageTutorial.SubheadingText4" = "To unhide an album, create a new album with the exact same name. Your hidden albums will instantly reappear.";
 
 /* Authentication Method View */
 "AuthenticationMethod.MultipleMethodsInfo" = "You can select multiple authentication methods";
@@ -890,6 +905,11 @@
 "AppIconSelection.PremiumDescription" = "Upgrade to customize your app icon";
 "AppIcon.Primary" = "Default";
 "AppIcon.Jazz" = "Jazz";
+"AppIcon.Calculator" = "Calculator";
+"AppIcon.Clock" = "Clock";
+"AppIcon.Compass" = "Compass";
+"AppIcon.Light" = "Light";
+"AppIcon.Numbers" = "Numbers";
 
 /* Feature Flag Toast - Deep Link Activation */
 "FeatureFlagToast.Message" = "Feature '%@' is now %@";

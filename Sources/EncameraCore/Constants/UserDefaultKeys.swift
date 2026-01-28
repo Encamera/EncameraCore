@@ -38,6 +38,7 @@ public enum UserDefaultKey {
     case passcodeType
     case gridZoomLevel
     case hasCompletedFirstLockout
+    case hasBeenShownHideAlbumTutorial
     case keyBackupPromptLastShown
     case promotionalBannerInteractions
     case dismissedBanners
@@ -93,7 +94,8 @@ public enum UserDefaultKey {
              .livePhotosActivated,
              .gridZoomLevel,
              .currentKey,
-             .hasCompletedFirstLockout:
+             .hasCompletedFirstLockout,
+             .hasBeenShownHideAlbumTutorial:
             return true
             
         // ALBUM-SPECIFIC: Sync album settings
