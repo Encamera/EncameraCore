@@ -67,7 +67,7 @@ public class DemoAlbumManager: AlbumManaging {
     public var defaultStorageForAlbum: StorageType
     public var currentAlbum: Album?
 
-    public required init(keyManager: KeyManager = DemoKeyManager()) {
+    public required init(keyManager: KeyManager = DemoKeyManager(), syncedDataStore: SyncedDataStore? = nil) {
         // Initialize demo data
         self.defaultStorageForAlbum = .local // Example storage type
         let key = DemoPrivateKey.dummyKey()
@@ -82,7 +82,7 @@ public class DemoAlbumManager: AlbumManaging {
         ]
         self.keyManager = DemoKeyManager()
         self.currentAlbum = albums.first
-
+        // Note: syncedDataStore is ignored in demo implementation
     }
 
     public func delete(album: Album) {

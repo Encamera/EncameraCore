@@ -810,6 +810,8 @@ public enum L10n {
     public static let addFirstImageSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstImageSubtitle", fallback: "Import an image from your album or open the camera and take a new picture for this album")
     /// Album Cover
     public static let albumCoverMenuTitle = L10n.tr("Localizable", "AlbumDetailView.AlbumCoverMenuTitle", fallback: "Album Cover")
+    /// Album is now hidden
+    public static let albumHiddenToast = L10n.tr("Localizable", "AlbumDetailView.AlbumHiddenToast", fallback: "Album is now hidden")
     /// Confirm Delete
     public static let confirmDeletion = L10n.tr("Localizable", "AlbumDetailView.ConfirmDeletion", fallback: "Confirm Delete")
     /// Cover image disabled
@@ -896,8 +898,18 @@ public enum L10n {
     }
   }
   public enum AppIcon {
+    /// Calculator
+    public static let calculator = L10n.tr("Localizable", "AppIcon.Calculator", fallback: "Calculator")
+    /// Clock
+    public static let clock = L10n.tr("Localizable", "AppIcon.Clock", fallback: "Clock")
+    /// Compass
+    public static let compass = L10n.tr("Localizable", "AppIcon.Compass", fallback: "Compass")
     /// Jazz
     public static let jazz = L10n.tr("Localizable", "AppIcon.Jazz", fallback: "Jazz")
+    /// Light
+    public static let light = L10n.tr("Localizable", "AppIcon.Light", fallback: "Light")
+    /// Numbers
+    public static let numbers = L10n.tr("Localizable", "AppIcon.Numbers", fallback: "Numbers")
     /// Default
     public static let primary = L10n.tr("Localizable", "AppIcon.Primary", fallback: "Default")
   }
@@ -1144,10 +1156,6 @@ public enum L10n {
     public static let debugRemoteContent = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContent", fallback: "Debug Remote Content")
     /// Enable debugging for remote CMS content
     public static let debugRemoteContentDescription = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContentDescription", fallback: "Enable debugging for remote CMS content")
-    /// Encrypted Zip Export
-    public static let encryptedZipExport = L10n.tr("Localizable", "FeatureToggles.EncryptedZipExport", fallback: "Encrypted Zip Export")
-    /// Enable sharing media as an encrypted zip
-    public static let encryptedZipExportDescription = L10n.tr("Localizable", "FeatureToggles.EncryptedZipExportDescription", fallback: "Enable sharing media as an encrypted zip")
     /// Test RevenueCat
     public static let enableTestRevenueCat = L10n.tr("Localizable", "FeatureToggles.EnableTestRevenueCat", fallback: "Test RevenueCat")
     /// Enable RevenueCat testing mode
@@ -1156,6 +1164,10 @@ public enum L10n {
     public static let enableVideo = L10n.tr("Localizable", "FeatureToggles.EnableVideo", fallback: "Enable Video")
     /// Enable video recording and playback
     public static let enableVideoDescription = L10n.tr("Localizable", "FeatureToggles.EnableVideoDescription", fallback: "Enable video recording and playback")
+    /// Encrypted Zip Export
+    public static let encryptedZipExport = L10n.tr("Localizable", "FeatureToggles.EncryptedZipExport", fallback: "Encrypted Zip Export")
+    /// Enable sharing media as an encrypted zip
+    public static let encryptedZipExportDescription = L10n.tr("Localizable", "FeatureToggles.EncryptedZipExportDescription", fallback: "Enable sharing media as an encrypted zip")
     /// Hide Album
     public static let hideAlbum = L10n.tr("Localizable", "FeatureToggles.HideAlbum", fallback: "Hide Album")
     /// Hide album from main view
@@ -1290,6 +1302,24 @@ public enum L10n {
     public static let subheading4 = L10n.tr("Localizable", "HideAlbumsTutorial.Subheading4", fallback: "To hide an album, open it and tap the three dots menu, then select 'Hide Album'.")
     /// Hide Albums Tutorial
     public static let title = L10n.tr("Localizable", "HideAlbumsTutorial.Title", fallback: "Hide Albums")
+  }
+  public enum HideImageTutorial {
+    /// Hide Image Tutorial
+    public static let headingText1 = L10n.tr("Localizable", "HideImageTutorial.HeadingText1", fallback: "Hide Your Albums")
+    /// Remember the Name
+    public static let headingText2 = L10n.tr("Localizable", "HideImageTutorial.HeadingText2", fallback: "Remember the Name")
+    /// View Hidden Albums
+    public static let headingText3 = L10n.tr("Localizable", "HideImageTutorial.HeadingText3", fallback: "View Hidden Albums")
+    /// Access the Albums
+    public static let headingText4 = L10n.tr("Localizable", "HideImageTutorial.HeadingText4", fallback: "Access the Albums")
+    /// Tap the hide icon to make your albums invisible. Hidden albums are completely secure and won't appear in your list.
+    public static let subheadingText1 = L10n.tr("Localizable", "HideImageTutorial.SubheadingText1", fallback: "Tap the hide icon to make your albums invisible. Hidden albums are completely secure and won't appear in your list.")
+    /// The album name is your key to access it later. Choose a name you'll remember or keep it noted somewhere safe.
+    public static let subheadingText2 = L10n.tr("Localizable", "HideImageTutorial.SubheadingText2", fallback: "The album name is your key to access it later. Choose a name you'll remember or keep it noted somewhere safe.")
+    /// Need a quick overview? Long press the "Hide Albums" section to see a list of all your hidden albums.
+    public static let subheadingText3 = L10n.tr("Localizable", "HideImageTutorial.SubheadingText3", fallback: "Need a quick overview? Long press the \"Hide Albums\" section to see a list of all your hidden albums.")
+    /// To unhide an album, create a new album with the exact same name. Your hidden albums will instantly reappear.
+    public static let subheadingText4 = L10n.tr("Localizable", "HideImageTutorial.SubheadingText4", fallback: "To unhide an album, create a new album with the exact same name. Your hidden albums will instantly reappear.")
   }
   public enum ICloudError {
     /// Could not download '%@' from iCloud: %@
@@ -1662,6 +1692,8 @@ public enum L10n {
     public static let defaultStorageOption = L10n.tr("Localizable", "Settings.DefaultStorageOption", fallback: "Default Storage Option")
     /// Give Instant Feedback
     public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
+    /// Hidden Albums
+    public static let hiddenAlbums = L10n.tr("Localizable", "Settings.HiddenAlbums", fallback: "Hidden Albums")
     /// Import Key Phrase
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
     /// Piwik Tracking ID
@@ -1674,6 +1706,16 @@ public enum L10n {
     public static let revenueCatCustomerId = L10n.tr("Localizable", "Settings.RevenueCatCustomerId", fallback: "RevenueCat Customer ID")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
+    public enum HiddenAlbumsModal {
+      /// %@ ALBUMS
+      public static func albumsCount(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "Settings.HiddenAlbumsModal.AlbumsCount", String(describing: p1), fallback: "%@ ALBUMS")
+      }
+      /// Access them by creating a new album with the exact same name
+      public static let subtitle = L10n.tr("Localizable", "Settings.HiddenAlbumsModal.Subtitle", fallback: "Access them by creating a new album with the exact same name")
+      /// Your hidden albums
+      public static let title = L10n.tr("Localizable", "Settings.HiddenAlbumsModal.Title", fallback: "Your hidden albums")
+    }
   }
   public enum SettingsView {
     /// ./Encamera/Settings/SettingsView.swift

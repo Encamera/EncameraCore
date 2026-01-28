@@ -4,6 +4,8 @@
 import Foundation
 import Combine
 
+// MARK: - Album Errors
+
 public enum AlbumError: Error, CustomStringConvertible {
     case albumNameError
     case albumExists
@@ -68,22 +70,51 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     public private(set) var keyManager: KeyManager
+    
+    /// The synced data store for album settings (optional, uses legacy UserDefaults if nil)
+    private var albumsSyncedStore: AlbumsSyncedStore?
+    
+    private var syncedStoreCancellables = Set<AnyCancellable>()
 
     private var albumSet: Set<Album> = [] {
         didSet {
             albums = Array(albumSet).filter({ album in
-                !UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
+                !isAlbumHidden(album)
             }).sorted(by: { $0.creationDate < $1.creationDate })
         }
     }
 
+    /// Sets the hidden state for an album
+    /// Uses synced store if available, falls back to legacy UserDefaults
     public func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album) {
-        UserDefaultUtils.set(isAlbumHidden, forKey: .isAlbumHidden(name: album.name))
+        if let syncedStore = albumsSyncedStore {
+            do {
+                try syncedStore.setAlbumHidden(album.name, isHidden: isAlbumHidden)
+            } catch {
+                // Fallback to legacy if encryption key unavailable
+                printDebug("Failed to use synced store, falling back to UserDefaults: \(error)")
+                UserDefaultUtils.set(isAlbumHidden, forKey: .isAlbumHidden(name: album.name))
+            }
+        } else {
+            // Legacy path
+            UserDefaultUtils.set(isAlbumHidden, forKey: .isAlbumHidden(name: album.name))
+        }
         loadAlbumsFromFilesystem()
     }
 
+    /// Checks if an album is hidden
+    /// Uses synced store if available, falls back to legacy UserDefaults
     public func isAlbumHidden(_ album: Album) -> Bool {
-        UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
+        if let syncedStore = albumsSyncedStore {
+            do {
+                return try syncedStore.isAlbumHidden(album.name)
+            } catch {
+                // Fallback to legacy
+                printDebug("Failed to read from synced store, falling back to UserDefaults: \(error)")
+                return UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
+            }
+        }
+        return UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
     }
 
     public func loadAlbumsFromFilesystem() {
@@ -123,13 +154,32 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
     }
 
-    required public init(keyManager: KeyManager) {
+    /// Creates a new AlbumManager
+    /// - Parameters:
+    ///   - keyManager: The key manager for encryption operations
+    ///   - syncedDataStore: Optional synced data store for iCloud sync (uses legacy UserDefaults if nil)
+    required public init(keyManager: KeyManager, syncedDataStore: SyncedDataStore? = nil) {
         self.keyManager = keyManager
+        
+        // Initialize defaultStorageForAlbum first (before any callbacks can fire)
         if let defaultStorageLocationValue = UserDefaultUtils.string(forKey: .defaultStorageLocation),
            let defaultStorageLocation = StorageType(rawValue: defaultStorageLocationValue) {
             self.defaultStorageForAlbum = defaultStorageLocation
         } else {
             self.defaultStorageForAlbum = .local
+        }
+        
+        // Set up synced store if provided (after all properties are initialized)
+        if let syncedDataStore = syncedDataStore {
+            self.albumsSyncedStore = AlbumsSyncedStore(store: syncedDataStore)
+            
+            // Subscribe to external changes
+            albumsSyncedStore?.externalChangePublisher
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.loadAlbumsFromFilesystem()
+                }
+                .store(in: &syncedStoreCancellables)
         }
 
         loadAlbumsFromFilesystem()
