@@ -18,7 +18,6 @@ public enum Feature: String, CaseIterable {
     case encryptedZipExport
     case showDesignSystem
     case debugRemoteContent
-    case albumSelectionEnabled
     case appIconSelection
     
     var userDefaultsKey: String {
@@ -37,7 +36,6 @@ public enum Feature: String, CaseIterable {
         case .encryptedZipExport: return L10n.FeatureToggles.encryptedZipExport
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystem
         case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContent
-        case .albumSelectionEnabled: return L10n.FeatureToggles.albumSelectionEnabled
         case .appIconSelection: return L10n.FeatureToggles.appIconSelection
         }
     }
@@ -54,7 +52,6 @@ public enum Feature: String, CaseIterable {
         case .encryptedZipExport: return L10n.FeatureToggles.encryptedZipExportDescription
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystemDescription
         case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContentDescription
-        case .albumSelectionEnabled: return L10n.FeatureToggles.albumSelectionEnabledDescription
         case .appIconSelection: return L10n.FeatureToggles.appIconSelectionDescription
         }
     }

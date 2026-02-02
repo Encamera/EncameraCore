@@ -171,6 +171,7 @@
 "AlbumDetailView.MovedToast" = "Moved %@ %@ to %@";
 "AlbumDetailView.MoveErrorToast" = "Failed to move %@ %@";
 "AlbumDetailView.AlbumHiddenToast" = "Album is now hidden";
+"AlbumDetailView.AlbumUnhiddenToast" = "Album is now visible";
 "AlbumDetailView.PhotoAccessRequired" = "Photo Access Required";
 "AlbumDetailView.PhotoAccessSettings" = "Please grant access to your photo library in Settings to import photos.";
 "AlbumDetailView.OpenSettings" = "Open Settings";

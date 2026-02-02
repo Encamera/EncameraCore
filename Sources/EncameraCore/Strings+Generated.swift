@@ -812,6 +812,8 @@ public enum L10n {
     public static let albumCoverMenuTitle = L10n.tr("Localizable", "AlbumDetailView.AlbumCoverMenuTitle", fallback: "Album Cover")
     /// Album is now hidden
     public static let albumHiddenToast = L10n.tr("Localizable", "AlbumDetailView.AlbumHiddenToast", fallback: "Album is now hidden")
+    /// Album is now visible
+    public static let albumUnhiddenToast = L10n.tr("Localizable", "AlbumDetailView.AlbumUnhiddenToast", fallback: "Album is now visible")
     /// Confirm Delete
     public static let confirmDeletion = L10n.tr("Localizable", "AlbumDetailView.ConfirmDeletion", fallback: "Confirm Delete")
     /// Cover image disabled
