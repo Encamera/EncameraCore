@@ -127,7 +127,6 @@
 "" = "";
 "AuthenticationMethod.ConfirmDisableFaceID" = "Vil du virkelig deaktivere %@?";
 "Error saving key" = "Fejl ved lagring af nøgle";
-"MovieDecryptionError" = "Kunne ikke indlæse eller dekryptere film. Det er muligvis ikke muligt at downloade den. Hvis denne medie er på iCloud, skal du sikre dig, at du kan downloade filer med din nuværende internetforbindelse. Fejl: %@";
 "Notification.WidgetReminder.Title" = "Tag direkte krypterede fotos 📸";
 "Passwords do not match." = "Adgangskoderne matcher ikke.";
 "Please select a storage location." = "Vælg venligst en lagringsplacering.";
@@ -483,7 +482,6 @@ Encamera!";
 "NoCommitmentCancelAnytime" = "Ingen binding, annuller når som helst";
 "AlbumDetailView.OpenSettings" = "Åbn indstillinger";
 "Scan with Encamera app" = "Scan med Encamera-appen";
-"Decryption error: %@" = "Dekrypteringsfejl: %@";
 "FinishedSubtitle" = "Lad os oprette dit første album";
 "AuthenticationView.ForgotPassword" = "Glemt adgangskode? Nulstil app";
 "Share Decrypted" = "Del dekrypteret";
@@ -737,7 +735,6 @@ Du skal kun gøre to ting:
 "HideImageTutorial.HeadingText1" = "Skjul dine albums";
 "HideImageTutorial.SubheadingText1" = "Tryk på skjul-ikonet for at gøre dine album usynlige. Skjulte album er helt sikre og vises ikke på din liste.";
 "ZipExport.Decrypting" = "Dekrypterer %@ af %@...";
-"ZipExportError.DecryptionFailed" = "Kunne ikke dekryptere medie: %@";
 "FeatureToggles.EncryptedZipExport" = "Krypteret Zip-eksport";
 "AppIcon.Clock" = "Ur";
 "FeatureToggles.ShowDesignSystem" = "🎨 Designsystem";
@@ -768,3 +765,8 @@ Du skal kun gøre to ting:
 "ZipExport.Close" = "Luk";
 "Settings.HiddenAlbumsModal.Title" = "Dine skjulte albummer";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBUMMER";
+"MovieDecryptionError" = "Kunne ikke indlæse eller dekryptere filmen. Den kan muligvis ikke downloades. Hvis denne medie er på iCloud, skal du sikre dig, at du kan downloade filer med din nuværende internetforbindelse. Fejl: %@. Opdater venligst appen til den nyeste version, hvis du ikke allerede har gjort det.";
+"ZipExportError.DecryptionFailed" = "Kunne ikke dekryptere medie: %@. Opdater venligst appen til den nyeste version, hvis du ikke allerede har gjort det.";
+"FeatureToggles.WriteV2MetadataDescription" = "Skriv nye filer ved hjælp af V2-format med indlejrede metadata";
+"FeatureToggles.WriteV2Metadata" = "Skriv V2-metadata";
+"Decryption error: %@" = "Dekrypteringsfejl: %@. Opdater venligst appen til den nyeste version, hvis du ikke allerede har gjort det.";

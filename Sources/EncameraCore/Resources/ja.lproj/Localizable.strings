@@ -137,7 +137,6 @@
 "" = "";
 "AuthenticationMethod.ConfirmDisableFaceID" = "本当に%@を無効にしますか？";
 "Error saving key" = "キーの保存中にエラーが発生しました";
-"MovieDecryptionError" = "ムービーを読み込むか復号化できませんでした。ダウンロードできない可能性があります。このメディアがiCloud上にある場合は、現在のインターネット接続でファイルをダウンロードできることを確認してください。エラー：%@";
 "Notification.WidgetReminder.Title" = "写真を直接暗号化して撮影する📸";
 "Passwords do not match." = "パスワードが一致しません。";
 "Please select a storage location." = "保存場所を選択してください。";
@@ -517,7 +516,6 @@
 "NoCommitmentCancelAnytime" = "契約の縛りなし、いつでもキャンセル可能";
 "AlbumDetailView.OpenSettings" = "設定を開く";
 "Scan with Encamera app" = "Encameraアプリでスキャン";
-"Decryption error: %@" = "復号化エラー: %@";
 "FinishedSubtitle" = "最初のアルバムを作成しましょう";
 "AuthenticationView.ForgotPassword" = "パスワードをお忘れですか？アプリをリセット";
 "Share Decrypted" = "復号化して共有";
@@ -766,7 +764,6 @@
 "HideImageTutorial.HeadingText1" = "アルバムを非表示にする";
 "HideImageTutorial.SubheadingText1" = "非表示アイコンをタップしてアルバムを見えなくしましょう。非表示のアルバムは完全に安全で、リストには表示されません。";
 "ZipExport.Decrypting" = "%@／%@ を復号化しています...";
-"ZipExportError.DecryptionFailed" = "メディアの復号化に失敗しました: %@";
 "FeatureToggles.EncryptedZipExport" = "暗号化Zipエクスポート";
 "AppIcon.Clock" = "時計";
 "FeatureToggles.ShowDesignSystem" = "🎨 デザインシステム";
@@ -797,3 +794,8 @@
 "ZipExport.Close" = "閉じる";
 "Settings.HiddenAlbumsModal.Title" = "あなたの非表示アルバム";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ アルバム";
+"MovieDecryptionError" = "映画を読み込むか復号化できませんでした。ダウンロードできない可能性があります。このメディアがiCloud上にある場合は、現在のインターネット接続でファイルをダウンロードできることを確認してください。エラー: %@。まだアプリを最新バージョンにアップデートしていない場合は、アップデートしてください。";
+"ZipExportError.DecryptionFailed" = "メディアの復号化に失敗しました: %@。まだアプリを最新バージョンにアップデートしていない場合は、アップデートしてください。";
+"FeatureToggles.WriteV2MetadataDescription" = "埋め込みメタデータ付きのV2形式で新しいファイルを書き込みます";
+"FeatureToggles.WriteV2Metadata" = "V2メタデータを書き込む";
+"Decryption error: %@" = "復号化エラー: %@。まだアプリを最新バージョンにアップデートしていない場合は、アップデートしてください。";

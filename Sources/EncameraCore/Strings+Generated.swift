@@ -195,9 +195,9 @@ public enum L10n {
   public static let currentPassword = L10n.tr("Localizable", "Current Password", fallback: "Current Password")
   /// ./Encamera/ImageViewing/MovieViewing.swift
   public static let decrypting = L10n.tr("Localizable", "Decrypting...", fallback: "Decrypting...")
-  /// Decryption error: %@
+  /// Decryption error: %@. Please update the app to the latest version if you haven't already.
   public static func decryptionError(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "Decryption error: %@", String(describing: p1), fallback: "Decryption error: %@")
+    return L10n.tr("Localizable", "Decryption error: %@", String(describing: p1), fallback: "Decryption error: %@. Please update the app to the latest version if you haven't already.")
   }
   /// ./EncameraCore/Constants/AppConstants.swift
   public static let defaultAlbumName = L10n.tr("Localizable", "DefaultAlbumName", fallback: "My Album")
@@ -429,9 +429,9 @@ public enum L10n {
   public static let mostPopular = L10n.tr("Localizable", "MostPopular", fallback: "MOST POPULAR")
   /// Change Storage
   public static let moveAlbumStorage = L10n.tr("Localizable", "MoveAlbumStorage", fallback: "Change Storage")
-  /// Could not load or decrypt movie. It may not be able to be downloaded. If this media is on iCloud, make sure you are able to download files with your current Internet connection. Error: %@
+  /// Could not load or decrypt movie. It may not be able to be downloaded. If this media is on iCloud, make sure you are able to download files with your current Internet connection. Error: %@. Please update the app to the latest version if you haven't already.
   public static func movieDecryptionError(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "MovieDecryptionError", String(describing: p1), fallback: "Could not load or decrypt movie. It may not be able to be downloaded. If this media is on iCloud, make sure you are able to download files with your current Internet connection. Error: %@")
+    return L10n.tr("Localizable", "MovieDecryptionError", String(describing: p1), fallback: "Could not load or decrypt movie. It may not be able to be downloaded. If this media is on iCloud, make sure you are able to download files with your current Internet connection. Error: %@. Please update the app to the latest version if you haven't already.")
   }
   /// You can have multiple keys for different purposes, e.g. one named "Documents" and another "Personal".
   public static let multipleKeysForMultiplePurposesExplanation = L10n.tr("Localizable", "MultipleKeysForMultiplePurposesExplanation", fallback: "You can have multiple keys for different purposes, e.g. one named \"Documents\" and another \"Personal\".")
@@ -1204,6 +1204,10 @@ public enum L10n {
     public static let stopTrackingToggleTitle = L10n.tr("Localizable", "FeatureToggles.StopTrackingToggleTitle", fallback: "Confirm Tracking Change")
     /// ./Encamera/Settings/FeatureTogglesView.swift
     public static let title = L10n.tr("Localizable", "FeatureToggles.Title", fallback: "Feature Toggles")
+    /// Write V2 Metadata
+    public static let writeV2Metadata = L10n.tr("Localizable", "FeatureToggles.WriteV2Metadata", fallback: "Write V2 Metadata")
+    /// Write new files using V2 format with embedded metadata
+    public static let writeV2MetadataDescription = L10n.tr("Localizable", "FeatureToggles.WriteV2MetadataDescription", fallback: "Write new files using V2 format with embedded metadata")
   }
   public enum FeedbackView {
     /// What could we improve?
@@ -1854,9 +1858,9 @@ public enum L10n {
   public enum ZipExportError {
     /// Export was interrupted because the app was in the background too long. Please return to the app and try again.
     public static let backgroundTimeExpired = L10n.tr("Localizable", "ZipExportError.BackgroundTimeExpired", fallback: "Export was interrupted because the app was in the background too long. Please return to the app and try again.")
-    /// Failed to decrypt media: %@
+    /// Failed to decrypt media: %@. Please update the app to the latest version if you haven't already.
     public static func decryptionFailed(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "ZipExportError.DecryptionFailed", String(describing: p1), fallback: "Failed to decrypt media: %@")
+      return L10n.tr("Localizable", "ZipExportError.DecryptionFailed", String(describing: p1), fallback: "Failed to decrypt media: %@. Please update the app to the latest version if you haven't already.")
     }
     /// Failed to create export directory: %@
     public static func directoryCreationFailed(_ p1: Any) -> String {

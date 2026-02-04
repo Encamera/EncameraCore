@@ -257,8 +257,6 @@
 /* ./Encamera/ImageViewing/ImageViewing.swift */
 "No key available." = "Kein Schlüssel verfügbar.";
 "No file access available." = "Kein Dateizugriff verfügbar.";
-"Decryption error: %@" = "Entschlüsselungsfehler: %@";
-"Decryption error: %@" = "Entschlüsselungsfehler: %@"; 
 
 /* ./Encamera/ImageViewing/MovieViewing.swift */
 "Decrypting..." = "Entschlüsselung läuft..."; 
@@ -503,7 +501,6 @@
 "CopyPhraseInstructions" = "Schreiben Sie diese Wörter in der richtigen Reihenfolge auf oder kopieren Sie sie und speichern Sie sie an einem sicheren Ort.\n\nDieser Satz wird verwendet, um den Verschlüsselungsschlüssel zu generieren, der Ihre Medien verschlüsselt.\n\nEs ist wichtig, diesen Schlüssel zu speichern, falls Sie Ihr Gerät verlieren.";
 "RecoveryPhraseCopied" = "Wiederherstellungsphrase kopiert!";
 "CopyPhrase" = "Phrase in die Zwischenablage kopieren";
-"MovieDecryptionError" = "Film konnte nicht geladen oder entschlüsselt werden. Möglicherweise kann er nicht heruntergeladen werden. Wenn sich dieses Medium in iCloud befindet, stellen Sie sicher, dass Sie Dateien mit Ihrer aktuellen Internetverbindung herunterladen können.";
 
 "AlbumDetailView.PhotoAccessAlertTitle" = "Nach dem Import löschen?";
 "AlbumDetailView.NoLicenseDeletionWarningMessage" = "Da Sie keine kostenpflichtige Lizenz für Encamera haben, können Sie in der App nur 10 Bilder anzeigen. Wenn Sie Bilder aus Ihrer Fotobibliothek löschen, können Sie sie möglicherweise ohne eine kostenpflichtige Lizenz nicht anzeigen.";
@@ -884,7 +881,6 @@
 "HideImageTutorial.HeadingText1" = "Verstecken Sie Ihre Alben";
 "HideImageTutorial.SubheadingText1" = "Tippen Sie auf das Ausblenden-Symbol, um Ihre Alben unsichtbar zu machen. Versteckte Alben sind vollkommen sicher und erscheinen nicht in Ihrer Liste.";
 "ZipExport.Decrypting" = "Entschlüsseln von %@ von %@...";
-"ZipExportError.DecryptionFailed" = "Fehler beim Entschlüsseln der Medien: %@";
 "FeatureToggles.EncryptedZipExport" = "Verschlüsselte Zip-Export";
 "AppIcon.Clock" = "Uhr";
 "FeatureToggles.ShowDesignSystem" = "🎨 Design-System";
@@ -915,3 +911,8 @@
 "ZipExport.Close" = "Schließen";
 "Settings.HiddenAlbumsModal.Title" = "Ihre versteckten Alben";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBEN";
+"MovieDecryptionError" = "Film konnte nicht geladen oder entschlüsselt werden. Möglicherweise kann er nicht heruntergeladen werden. Wenn sich dieses Medium auf iCloud befindet, stellen Sie sicher, dass Sie mit Ihrer aktuellen Internetverbindung Dateien herunterladen können. Fehler: %@. Bitte aktualisieren Sie die App auf die neueste Version, falls Sie dies noch nicht getan haben.";
+"ZipExportError.DecryptionFailed" = "Entschlüsselung der Medien fehlgeschlagen: %@. Bitte aktualisieren Sie die App auf die neueste Version, falls Sie dies noch nicht getan haben.";
+"FeatureToggles.WriteV2MetadataDescription" = "Neue Dateien im V2-Format mit eingebetteten Metadaten schreiben";
+"FeatureToggles.WriteV2Metadata" = "V2-Metadaten schreiben";
+"Decryption error: %@" = "Entschlüsselungsfehler: %@. Bitte aktualisieren Sie die App auf die neueste Version, falls Sie dies noch nicht getan haben.";
