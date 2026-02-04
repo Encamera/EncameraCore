@@ -277,11 +277,11 @@
 /* ./Encamera/ImageViewing/ImageViewing.swift */
 "No key available." = "No key available.";
 "No file access available." = "No file access available.";
-"Decryption error: %@" = "Decryption error: %@";
-"Decryption error: %@" = "Decryption error: %@";
+"Decryption error: %@" = "Decryption error: %@. Please update the app to the latest version if you haven't already.";
+"Decryption error: %@" = "Decryption error: %@. Please update the app to the latest version if you haven't already.";
 /* ./Encamera/ImageViewing/MovieViewing.swift */
 "Decrypting..." = "Decrypting...";
-"MovieDecryptionError" = "Could not load or decrypt movie. It may not be able to be downloaded. If this media is on iCloud, make sure you are able to download files with your current Internet connection. Error: %@";
+"MovieDecryptionError" = "Could not load or decrypt movie. It may not be able to be downloaded. If this media is on iCloud, make sure you are able to download files with your current Internet connection. Error: %@. Please update the app to the latest version if you haven't already.";
 /* ./Encamera/ImageViewing/PhotoInfoView.swift */
 "No info available" = "No info available";
 /* ./Encamera/Onboarding/MainOnboardingView.swift */
@@ -837,6 +837,8 @@
 "FeatureToggles.ShowDesignSystemDescription" = "Show hidden design system showcase";
 "FeatureToggles.AppIconSelection" = "App Icon Selection";
 "FeatureToggles.AppIconSelectionDescription" = "Enable custom app icon selection";
+"FeatureToggles.WriteV2Metadata" = "Write V2 Metadata";
+"FeatureToggles.WriteV2MetadataDescription" = "Write new files using V2 format with embedded metadata";
 "Common.Cancel" = "Cancel";
 "Common.Confirm" = "Confirm";
 
@@ -937,7 +939,7 @@
 
 /* ZipExport Error Messages */
 "ZipExportError.NoMediaToExport" = "No media selected for export.";
-"ZipExportError.DecryptionFailed" = "Failed to decrypt media: %@";
+"ZipExportError.DecryptionFailed" = "Failed to decrypt media: %@. Please update the app to the latest version if you haven't already.";
 "ZipExportError.ZipCreationFailed" = "Failed to create zip file: %@";
 "ZipExportError.EmptyPassword" = "Password cannot be empty.";
 "ZipExportError.DirectoryCreationFailed" = "Failed to create export directory: %@";

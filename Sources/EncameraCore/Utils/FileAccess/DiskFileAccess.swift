@@ -753,8 +753,9 @@ extension DiskFileAccess {
         
         let encrypted: EncryptedMedia
         
-        // Use V2 handler if metadata is provided, otherwise use V1 for backwards compatibility
-        if let metadata = metadata {
+        // Use V2 handler only if metadata is provided AND the writeV2Metadata feature flag is enabled
+        // This allows reading V2 files while deferring writes until adoption is sufficient
+        if let metadata = metadata, FeatureToggle.isEnabled(feature: .writeV2Metadata) {
             let fileHandler = SecretFileHandlerV2(keyBytes: key.keyBytes, source: media, targetURL: destinationURL)
             fileHandler.progress
                 .receive(on: DispatchQueue.main)

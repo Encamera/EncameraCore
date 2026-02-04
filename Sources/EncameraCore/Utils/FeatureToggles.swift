@@ -19,6 +19,7 @@ public enum Feature: String, CaseIterable {
     case showDesignSystem
     case debugRemoteContent
     case appIconSelection
+    case writeV2Metadata
     
     var userDefaultsKey: String {
         return "feature_" +  rawValue
@@ -37,6 +38,7 @@ public enum Feature: String, CaseIterable {
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystem
         case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContent
         case .appIconSelection: return L10n.FeatureToggles.appIconSelection
+        case .writeV2Metadata: return L10n.FeatureToggles.writeV2Metadata
         }
     }
     
@@ -53,6 +55,7 @@ public enum Feature: String, CaseIterable {
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystemDescription
         case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContentDescription
         case .appIconSelection: return L10n.FeatureToggles.appIconSelectionDescription
+        case .writeV2Metadata: return L10n.FeatureToggles.writeV2MetadataDescription
         }
     }
     

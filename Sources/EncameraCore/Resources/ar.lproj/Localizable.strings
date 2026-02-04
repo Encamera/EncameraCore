@@ -125,7 +125,6 @@
 "ErrorImportingKeyPhrase" = "خطأ في استيراد العبارة الرئيسية";
 "AuthenticationMethod.ConfirmDisableFaceID" = "هل تريد فعلاً تعطيل %@؟";
 "Error saving key" = "خطأ في حفظ المفتاح";
-"MovieDecryptionError" = "تعذر تحميل أو فك تشفير الفيلم. قد لا يكون من الممكن تنزيله. إذا كانت هذه الوسائط على iCloud، تأكد من أنك قادر على تنزيل الملفات باستخدام اتصال الإنترنت الحالي لديك. الخطأ: %@";
 "Notification.WidgetReminder.Title" = "التقط صورًا مشفرة مباشرةً 4f8";
 "Passwords do not match." = "كلمات المرور غير متطابقة.";
 "Please select a storage location." = "يرجى اختيار موقع التخزين.";
@@ -485,7 +484,6 @@
 "NoCommitmentCancelAnytime" = "بدون التزام، يمكنك الإلغاء في أي وقت";
 "AlbumDetailView.OpenSettings" = "افتح الإعدادات";
 "Scan with Encamera app" = "امسح باستخدام تطبيق إنكاميرا";
-"Decryption error: %@" = "خطأ في فك التشفير: %@";
 "FinishedSubtitle" = "لننشئ ألبومك الأول";
 "AuthenticationView.ForgotPassword" = "نسيت كلمة المرور؟ أعد ضبط التطبيق";
 "Share Decrypted" = "مشاركة مفككة التشفير";
@@ -731,7 +729,6 @@
 "HideImageTutorial.HeadingText1" = "إخفاء ألبوماتك";
 "HideImageTutorial.SubheadingText1" = "اضغط على أيقونة الإخفاء لجعل ألبوماتك غير مرئية. الألبومات المخفية آمنة تمامًا ولن تظهر في قائمتك.";
 "ZipExport.Decrypting" = "جارٍ فك التشفير %@ من %@...";
-"ZipExportError.DecryptionFailed" = "فشل في فك تشفير الوسائط: %@";
 "FeatureToggles.EncryptedZipExport" = "تصدير ملف مضغوط مشفر";
 "AppIcon.Clock" = "ساعة";
 "FeatureToggles.ShowDesignSystem" = "نظام التصميم 🎨";
@@ -762,3 +759,8 @@
 "ZipExport.Close" = "إغلاق";
 "Settings.HiddenAlbumsModal.Title" = "ألبوماتك المخفية";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ألبومات";
+"MovieDecryptionError" = "تعذر تحميل أو فك تشفير الفيلم. قد لا يكون من الممكن تنزيله. إذا كان هذا الوسيط على iCloud، تأكد من أنك قادر على تنزيل الملفات باستخدام اتصال الإنترنت الحالي لديك. الخطأ: %@. يرجى تحديث التطبيق إلى أحدث إصدار إذا لم تكن قد فعلت ذلك بالفعل.";
+"ZipExportError.DecryptionFailed" = "فشل في فك تشفير الوسيط: %@. يرجى تحديث التطبيق إلى أحدث إصدار إذا لم تكن قد فعلت ذلك بالفعل.";
+"FeatureToggles.WriteV2MetadataDescription" = "كتابة ملفات جديدة باستخدام تنسيق V2 مع بيانات وصفية مضمنة";
+"FeatureToggles.WriteV2Metadata" = "كتابة بيانات وصفية V2";
+"Decryption error: %@" = "خطأ في فك التشفير: %@. يرجى تحديث التطبيق إلى أحدث إصدار إذا لم تكن قد فعلت ذلك بالفعل.";

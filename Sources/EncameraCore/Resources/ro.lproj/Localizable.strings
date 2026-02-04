@@ -216,9 +216,7 @@ Aplicația se va închide după ce ștergerea este finalizată.";
 "Hide" = "Ascunde";
 "No key available." = "Nicio cheie disponibilă.";
 "No file access available." = "Niciun acces la fișier disponibil.";
-"Decryption error: %@" = "Eroare de decriptare: %@";
 "Decrypting..." = "Se decriptează...";
-"MovieDecryptionError" = "Nu s-a putut încărca sau decripta filmul. Este posibil să nu poată fi descărcat. Dacă acest fișier media este pe iCloud, asigură-te că poți descărca fișiere cu conexiunea ta actuală la Internet. Eroare: %@";
 "No info available" = "Nu există informații disponibile";
 "Next" = "Următorul";
 "OnboardingCarousel.HeadingText1" = "Amintirile tale, complet protejate";
@@ -750,7 +748,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "HideImageTutorial.HeadingText1" = "Ascunde albumele tale";
 "HideImageTutorial.SubheadingText1" = "Atinge pictograma de ascundere pentru a face albumele tale invizibile. Albumele ascunse sunt complet securizate și nu vor apărea în lista ta.";
 "ZipExport.Decrypting" = "Se decriptează %@ din %@...";
-"ZipExportError.DecryptionFailed" = "Nu s-a putut decripta fișierul media: %@";
 "FeatureToggles.EncryptedZipExport" = "Export Zip criptat";
 "AppIcon.Clock" = "Ceas";
 "FeatureToggles.ShowDesignSystem" = "🎨 Sistem de Design";
@@ -781,3 +778,8 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "ZipExport.Close" = "Închide";
 "Settings.HiddenAlbumsModal.Title" = "Albumele tale ascunse";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBUME";
+"MovieDecryptionError" = "Nu s-a putut încărca sau decripta filmul. Este posibil să nu poată fi descărcat. Dacă acest fișier media se află pe iCloud, asigură-te că poți descărca fișiere cu conexiunea ta actuală la Internet. Eroare: %@. Te rugăm să actualizezi aplicația la cea mai recentă versiune dacă nu ai făcut-o deja.";
+"ZipExportError.DecryptionFailed" = "Decriptarea fișierului media a eșuat: %@. Te rugăm să actualizezi aplicația la cea mai recentă versiune dacă nu ai făcut-o deja.";
+"FeatureToggles.WriteV2MetadataDescription" = "Scrie fișiere noi folosind formatul V2 cu metadate încorporate";
+"FeatureToggles.WriteV2Metadata" = "Scrie metadate V2";
+"Decryption error: %@" = "Eroare de decriptare: %@. Te rugăm să actualizezi aplicația la cea mai recentă versiune dacă nu ai făcut-o deja.";

@@ -217,7 +217,6 @@
 "appDataExplanation" = "앱의 모든 데이터를 지우시겠습니까?\n\n이것은 지워집니다:\n\n• 저장된 모든 키 \\ud83d\\udd11\n• 비밀번호 \\ud83d\\udd10\n• 앱 설정 \\ud83c\\udf9b\n\n이것은 지워지지 않습니다:\n\n• 로컬 또는 iCloud에 저장된 미디어\n\n키 관리 화면에서 키의 백업을 생성할 수 있습니다.\n\n지우기가 완료되면 앱이 종료됩니다.\n\n";
 "Touch ID" = "터치 ID";
 "Start trial offer" = "무료 체험 시작";
-"MovieDecryptionError" = "영화를 로드하거나 복호화할 수 없습니다. 다운로드할 수 없을 수도 있습니다. 이 미디어가 iCloud에 있는 경우, 현재 인터넷 연결로 파일을 다운로드할 수 있는지 확인하세요. 오류: %@";
 "OnboardingIntroSubheadingText" = "Encamera는 모든 것을 암호화하여 원치 않는 시선으로부터 미디어를 안전하게 보호합니다.";
 "Password is valid." = "비밀번호가 유효합니다.";
 "Notification.ImageSecurityReminder.Body" = "이미지만이 아니라 비디오도 앨범에 저장할 수 있습니다. 지금 시도해보고 몇 가지를 확보하세요!";
@@ -288,7 +287,6 @@
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "키 및 관련 파일 삭제 오류입니다. 다시 시도하거나 파일 앱을 통해 파일을 수동으로 삭제해 보세요.";
 "YouWillBeSentAPromoCode" = "그 후, 앱에서 사용할 수 있는 프로모션 코드를 DM으로 보내드립니다.";
 "Notification.Permission.RemoteError" = "원격 알림 권한 요청 오류: %@";
-"Decryption error: %@" = "복호화 오류: %@";
 "UnlockWithPin" = "잠금 해제";
 "Leave a Review" = "리뷰 남기기";
 "Current Password" = "현재 비밀번호";
@@ -750,7 +748,6 @@
 "HideImageTutorial.HeadingText1" = "앨범 숨기기";
 "HideImageTutorial.SubheadingText1" = "숨기기 아이콘을 탭하여 앨범을 보이지 않게 하세요. 숨긴 앨범은 완전히 안전하며 목록에 표시되지 않습니다.";
 "ZipExport.Decrypting" = "%@ / %@ 해독 중...";
-"ZipExportError.DecryptionFailed" = "미디어 해독 실패: %@";
 "FeatureToggles.EncryptedZipExport" = "암호화된 Zip 내보내기";
 "AppIcon.Clock" = "시계";
 "FeatureToggles.ShowDesignSystem" = "🎨 디자인 시스템";
@@ -781,3 +778,8 @@
 "ZipExport.Close" = "닫기";
 "Settings.HiddenAlbumsModal.Title" = "숨겨진 앨범";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@개의 앨범";
+"MovieDecryptionError" = "영화 로드 또는 해독에 실패했습니다. 다운로드할 수 없는 파일일 수 있습니다. 이 미디어가 iCloud에 있다면 현재 인터넷 연결로 파일을 다운로드할 수 있는지 확인하세요. 오류: %@. 아직 앱을 최신 버전으로 업데이트하지 않았다면 업데이트해 주세요.";
+"ZipExportError.DecryptionFailed" = "미디어 해독 실패: %@. 아직 앱을 최신 버전으로 업데이트하지 않았다면 업데이트해 주세요.";
+"FeatureToggles.WriteV2MetadataDescription" = "메타데이터가 포함된 V2 포맷으로 새 파일 작성";
+"FeatureToggles.WriteV2Metadata" = "V2 메타데이터 작성";
+"Decryption error: %@" = "해독 오류: %@. 아직 앱을 최신 버전으로 업데이트하지 않았다면 업데이트해 주세요.";

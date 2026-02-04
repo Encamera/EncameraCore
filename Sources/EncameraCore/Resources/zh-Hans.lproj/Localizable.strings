@@ -202,9 +202,7 @@
 "Hide" = "隐藏";
 "No key available." = "没有可用的密钥。";
 "No file access available." = "没有可用的文件访问。";
-"Decryption error: %@" = "解密错误：%@";
 "Decrypting..." = "正在解密...";
-"MovieDecryptionError" = "无法加载或解密电影。可能无法下载。如果此媒体在iCloud上，请确保您当前的互联网连接能够下载文件。错误：%@";
 "No info available" = "无可用信息";
 "Next" = "下一步";
 "OnboardingCarousel.HeadingText1" = "您的记忆，完全保护";
@@ -727,7 +725,6 @@
 "HideImageTutorial.HeadingText1" = "隐藏你的相册";
 "HideImageTutorial.SubheadingText1" = "点击隐藏图标可使您的相册不可见。隐藏的相册完全安全，不会出现在您的列表中。";
 "ZipExport.Decrypting" = "正在解密 %@ / %@...";
-"ZipExportError.DecryptionFailed" = "解密媒体失败：%@";
 "FeatureToggles.EncryptedZipExport" = "加密Zip导出";
 "AppIcon.Clock" = "时钟";
 "FeatureToggles.ShowDesignSystem" = "🎨 设计系统";
@@ -758,3 +755,8 @@
 "ZipExport.Close" = "关闭";
 "Settings.HiddenAlbumsModal.Title" = "你的隐藏相册";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ 个相册";
+"MovieDecryptionError" = "无法加载或解密电影。可能无法下载。如果此媒体存储在 iCloud 上，请确保您当前的网络连接可以下载文件。错误：%@。如果您尚未更新应用程序，请将其更新到最新版本。";
+"ZipExportError.DecryptionFailed" = "解密媒体失败：%@。如果您尚未更新应用程序，请将其更新到最新版本。";
+"FeatureToggles.WriteV2MetadataDescription" = "使用嵌入元数据的 V2 格式写入新文件";
+"FeatureToggles.WriteV2Metadata" = "写入 V2 元数据";
+"Decryption error: %@" = "解密错误：%@。如果您尚未更新应用程序，请将其更新到最新版本。";
