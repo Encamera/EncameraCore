@@ -70,7 +70,11 @@ listing:
     EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
   whats_new: |
-    Fixed a bug related to broken key import phrase functionality.
+    We've added:
+      - Hide albums from the album list. Keep your most secret albums out of the main app view!
+      - Change the app icon. Hide the app in plain sight with a calculator, clock, or other inconspicuous icons!
+      - Slideshow feature in media viewer. Scroll through images automatically without touching the screen!
+      - Select media using an album from your photo library. Put all the media you want to encrypt in one album to add to Encamera!
 limits:
   name: 30
   subtitle: 30
