@@ -42,8 +42,6 @@ public enum UserDefaultKey {
     case keyBackupPromptLastShown
     case promotionalBannerInteractions
     case dismissedBanners
-    case contentfulBannersCache
-    case contentfulBannersCacheLocale
     case hasSeenPhotoAccessUpgradePrompt
     case keyMigration
     case passphraseMigration
@@ -58,10 +56,6 @@ public enum UserDefaultKey {
             return "featureToggle_\(feature)"
         case .dismissedBanners:
             return "com.encamera.dismissedBanners"
-        case .contentfulBannersCache:
-            return "com.encamera.contentful.banners"
-        case .contentfulBannersCacheLocale:
-            return "com.encamera.contentful.banners.locale"
         case .hasSeenPhotoAccessUpgradePrompt:
             return "HasSeenPhotoAccessUpgradePrompt"
         case .keyMigration:
@@ -121,8 +115,6 @@ public enum UserDefaultKey {
              .keyBackupPromptLastShown,
              .promotionalBannerInteractions,
              .dismissedBanners,
-             .contentfulBannersCache,
-             .contentfulBannersCacheLocale,
              .hasSeenPhotoAccessUpgradePrompt,
              .keyMigration,
              .passphraseMigration,
