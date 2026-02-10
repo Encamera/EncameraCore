@@ -1224,6 +1224,8 @@ public enum L10n {
     public static let weAppreciateIt = L10n.tr("Localizable", "FeedbackView.WeAppreciateIt", fallback: "We appreciate your feedback")
   }
   public enum FileLoading {
+    /// You are on cellular data. Large files may take longer to download from iCloud.
+    public static let cellularWarning = L10n.tr("Localizable", "FileLoading.CellularWarning", fallback: "You are on cellular data. Large files may take longer to download from iCloud.")
     /// Decrypting media
     public static let decrypting = L10n.tr("Localizable", "FileLoading.Decrypting", fallback: "Decrypting media")
     /// Downloading media from iCloud

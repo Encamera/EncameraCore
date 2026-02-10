@@ -594,6 +594,7 @@
 "FileLoading.StepIndicator" = "STEP %d OF 2";
 "FileLoading.Downloading" = "Downloading media from iCloud";
 "FileLoading.Decrypting" = "Decrypting media";
+"FileLoading.CellularWarning" = "You are on cellular data. Large files may take longer to download from iCloud.";
 
 "Error.Alert.Title" = "Error";
 "Error.Alert.FailedToLoadFile" = "Failed to load file: %@";
