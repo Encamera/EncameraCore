@@ -783,3 +783,4 @@
 "FeatureToggles.WriteV2MetadataDescription" = "메타데이터가 포함된 V2 포맷으로 새 파일 작성";
 "FeatureToggles.WriteV2Metadata" = "V2 메타데이터 작성";
 "Decryption error: %@" = "해독 오류: %@. 아직 앱을 최신 버전으로 업데이트하지 않았다면 업데이트해 주세요.";
+"FileLoading.CellularWarning" = "셀룰러 데이터를 사용 중입니다. 대용량 파일은 iCloud에서 다운로드하는 데 더 오래 걸릴 수 있습니다.";

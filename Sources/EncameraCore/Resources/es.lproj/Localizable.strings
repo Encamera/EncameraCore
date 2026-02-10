@@ -915,3 +915,4 @@
 "FeatureToggles.WriteV2MetadataDescription" = "Escribir nuevos archivos usando el formato V2 con metadatos integrados";
 "FeatureToggles.WriteV2Metadata" = "Escribir metadatos V2";
 "Decryption error: %@" = "Error de descifrado: %@. Por favor, actualiza la aplicación a la última versión si aún no lo has hecho.";
+"FileLoading.CellularWarning" = "Estás usando datos móviles. Los archivos grandes pueden tardar más en descargarse desde iCloud.";

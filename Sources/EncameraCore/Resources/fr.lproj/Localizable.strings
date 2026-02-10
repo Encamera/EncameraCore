@@ -801,3 +801,4 @@ album";
 "FeatureToggles.WriteV2MetadataDescription" = "Écrire de nouveaux fichiers en utilisant le format V2 avec des métadonnées intégrées";
 "FeatureToggles.WriteV2Metadata" = "Écrire les métadonnées V2";
 "Decryption error: %@" = "Erreur de déchiffrement : %@. Veuillez mettre à jour l'application vers la dernière version si ce n'est pas déjà fait.";
+"FileLoading.CellularWarning" = "Vous utilisez les données cellulaires. Les fichiers volumineux peuvent prendre plus de temps à télécharger depuis iCloud.";
