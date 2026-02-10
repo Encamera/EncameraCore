@@ -28,7 +28,4 @@ public enum AppConstants {
     public static let maxCharacterAlbumName = 20
     public static let widgetVimeoLink = URL(string: "https://vimeo.com/896507875")!
     public static let feedbackApiURL = URL(string: "https://script.google.com/macros/s/AKfycbwDkuMT5MkmfpBmaahRJhM7BVWCvBcALiC6cKIaanmNGggMrY7qn50EKV-ZeZS6miJO/exec")!
-    public static var contentfulSpaceId = "qguykt3vtagc"
-    public static var contentfulEnvironment = "master"
-    public static var contentfulDeliveryApiKey = "3Xc0neflFc5qby2HFQz-D24FeZE_E4_lGIVSWpUlH5M"
 }
