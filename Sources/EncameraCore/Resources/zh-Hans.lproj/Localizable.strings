@@ -760,3 +760,4 @@
 "FeatureToggles.WriteV2MetadataDescription" = "使用嵌入元数据的 V2 格式写入新文件";
 "FeatureToggles.WriteV2Metadata" = "写入 V2 元数据";
 "Decryption error: %@" = "解密错误：%@。如果您尚未更新应用程序，请将其更新到最新版本。";
+"FileLoading.CellularWarning" = "您正在使用蜂窝数据。大型文件从 iCloud 下载可能需要更长时间。";

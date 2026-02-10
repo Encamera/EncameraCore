@@ -764,3 +764,4 @@
 "FeatureToggles.WriteV2MetadataDescription" = "كتابة ملفات جديدة باستخدام تنسيق V2 مع بيانات وصفية مضمنة";
 "FeatureToggles.WriteV2Metadata" = "كتابة بيانات وصفية V2";
 "Decryption error: %@" = "خطأ في فك التشفير: %@. يرجى تحديث التطبيق إلى أحدث إصدار إذا لم تكن قد فعلت ذلك بالفعل.";
+"FileLoading.CellularWarning" = "أنت تستخدم بيانات الجوال. قد يستغرق تنزيل الملفات الكبيرة من iCloud وقتًا أطول.";

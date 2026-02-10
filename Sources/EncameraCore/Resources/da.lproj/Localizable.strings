@@ -770,3 +770,4 @@ Du skal kun gøre to ting:
 "FeatureToggles.WriteV2MetadataDescription" = "Skriv nye filer ved hjælp af V2-format med indlejrede metadata";
 "FeatureToggles.WriteV2Metadata" = "Skriv V2-metadata";
 "Decryption error: %@" = "Dekrypteringsfejl: %@. Opdater venligst appen til den nyeste version, hvis du ikke allerede har gjort det.";
+"FileLoading.CellularWarning" = "Du bruger mobildata. Store filer kan tage længere tid at downloade fra iCloud.";

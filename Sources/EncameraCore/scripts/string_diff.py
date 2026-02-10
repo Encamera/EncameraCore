@@ -21,6 +21,71 @@ except ImportError:
     sys.exit(1)
 
 
+PLACEHOLDER_CONTENT = """\
+/* 
+  Localizable.strings
+  Encamera
+
+  Placeholder to ensure iOS recognizes this locale for SPM bundle localization.
+  
+*/
+"""
+
+
+def find_workspace_root(master_dir):
+    """Walk up from master_dir to find the workspace root that contains both Encamera/ and EncameraCore/."""
+    current = master_dir.resolve()
+    for _ in range(10):
+        current = current.parent
+        if (current / "Encamera").is_dir() and (current / "EncameraCore").is_dir():
+            return current
+    return None
+
+
+def get_main_app_lproj_dir(workspace_root):
+    """Return the path to the main app's source directory containing .lproj folders."""
+    return workspace_root / "Encamera"
+
+
+def ensure_main_app_locale_placeholders(master_dir, verbose=True):
+    """Ensure the main app has a placeholder Localizable.strings for every locale
+    that exists in the EncameraCore package Resources directory.
+
+    iOS determines the app's preferred language from the main bundle's .lproj
+    directories. Without a Localizable.strings in the main app's .lproj, the
+    system won't select that language for SPM sub-bundles either.
+    """
+    workspace_root = find_workspace_root(master_dir)
+    if workspace_root is None:
+        print("⚠️  Could not find workspace root (directory containing both Encamera/ and EncameraCore/).")
+        return []
+
+    main_app_dir = get_main_app_lproj_dir(workspace_root)
+    resources_dir = master_dir.parent  # e.g. .../Resources/
+
+    created = []
+    for lproj in sorted(resources_dir.iterdir()):
+        if not lproj.is_dir() or not lproj.name.endswith(".lproj"):
+            continue
+        # We never need to touch en.lproj (the development language)
+        main_app_lproj = main_app_dir / lproj.name
+        main_app_loc_strings = main_app_lproj / "Localizable.strings"
+        if not main_app_loc_strings.exists():
+            main_app_lproj.mkdir(parents=True, exist_ok=True)
+            main_app_loc_strings.write_text(PLACEHOLDER_CONTENT, encoding="utf-8")
+            created.append(main_app_loc_strings)
+            if verbose:
+                print(f"  ✅ Created placeholder: {main_app_loc_strings.relative_to(workspace_root)}")
+
+    if created and verbose:
+        print(f"  📋 Created {len(created)} placeholder file(s) in the main app.")
+        print(f"  ⚠️  Run xcodegen to pick up the new files in the Xcode project.")
+    elif verbose:
+        print("  ✅ All main-app locale placeholders already exist.")
+
+    return created
+
+
 def append_translations_to_file(file_path, translations):
     with open(file_path, 'a', encoding='utf-8') as file:
         for translation in translations:
@@ -217,6 +282,11 @@ def create_new_localization(master_keys_and_values, master_dir, lang_code, lang_
             file.write(f"{translation}\n")
     
     print(f"✅ Created {loc_path}")
+
+    # Ensure the main app has matching placeholder files for this new locale
+    print(f"\n📱 Ensuring main app has locale placeholder for {lang_code}...")
+    ensure_main_app_locale_placeholders(master_dir, verbose=True)
+
     return True
 
 def show_comprehensive_status_table(status_data, localizations):
@@ -282,6 +352,7 @@ def interactive_menu():
                      choices=[
                          'Translate missing strings for existing localizations',
                          'Add new localization and translate',
+                         'Verify main-app locale placeholders',
                          'Exit'
                      ],
         ),
@@ -471,6 +542,10 @@ Examples:
     print(f"📁 Using master localization: {master_file}")
     print(f"📝 Loaded {len(master_keys_and_values)} strings from master file")
 
+    # Verify main-app locale placeholders on every run
+    print("\n📱 Checking main-app locale placeholders...")
+    ensure_main_app_locale_placeholders(master_dir, verbose=True)
+
     # Interactive mode
     print("\n🌍 Localization Manager")
     print("=" * 40)
@@ -486,6 +561,9 @@ Examples:
                 interactive_translate_missing(master_keys_and_values, master_dir, from_lang)
             elif action == 'Add new localization and translate':
                 interactive_add_localization(master_keys_and_values, master_dir, from_lang)
+            elif action == 'Verify main-app locale placeholders':
+                print("\n📱 Verifying main-app locale placeholders...")
+                ensure_main_app_locale_placeholders(master_dir, verbose=True)
             
             print("\n" + "=" * 40)
             
