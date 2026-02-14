@@ -560,6 +560,8 @@
 "Settings.GiveInstantFeedback" = "Give Instant Feedback";
 "Settings.PurchasesRestored" = "Purchases restored!";
 "Settings.PurchasesRestoredMessage" = "Any valid purchases you made have been restored.";
+"Settings.PurchasesRestoreFailed" = "Could not restore purchases";
+"Settings.PurchasesRestoreFailedMessage" = "Could not restore your purchases. Please try again or contact support.";
 "Settings.HiddenAlbums" = "Hidden Albums";
 "Settings.HiddenAlbumsModal.Title" = "Your hidden albums";
 "Settings.HiddenAlbumsModal.Subtitle" = "Access them by creating a new album with the exact same name";

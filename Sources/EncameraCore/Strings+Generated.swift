@@ -1710,6 +1710,10 @@ public enum L10n {
     public static let purchasesRestored = L10n.tr("Localizable", "Settings.PurchasesRestored", fallback: "Purchases restored!")
     /// Any valid purchases you made have been restored.
     public static let purchasesRestoredMessage = L10n.tr("Localizable", "Settings.PurchasesRestoredMessage", fallback: "Any valid purchases you made have been restored.")
+    /// Could not restore purchases
+    public static let purchasesRestoreFailed = L10n.tr("Localizable", "Settings.PurchasesRestoreFailed", fallback: "Could not restore purchases")
+    /// Could not restore your purchases. Please try again or contact support.
+    public static let purchasesRestoreFailedMessage = L10n.tr("Localizable", "Settings.PurchasesRestoreFailedMessage", fallback: "Could not restore your purchases. Please try again or contact support.")
     /// RevenueCat Customer ID
     public static let revenueCatCustomerId = L10n.tr("Localizable", "Settings.RevenueCatCustomerId", fallback: "RevenueCat Customer ID")
     /// Version
