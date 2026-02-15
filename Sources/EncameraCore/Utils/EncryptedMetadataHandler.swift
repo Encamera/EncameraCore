@@ -58,6 +58,11 @@ public actor EncryptedMetadataHandler: DebugPrintable {
     ) async throws -> EncryptedFileMetadata? {
         printDebug("readMetadata: Starting for file \(url.lastPathComponent)")
         
+        if iCloudFileStatusUtil.needsDownload(url: url) {
+            printDebug("readMetadata: File needs iCloud download, skipping \(url.lastPathComponent)")
+            return nil
+        }
+        
         guard FileManager.default.fileExists(atPath: url.path) else {
             printDebug("readMetadata: File not found at \(url.path)")
             throw EncryptedMetadataError.fileNotFound
