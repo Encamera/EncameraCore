@@ -14,6 +14,9 @@ import AVFoundation
 
 public actor DiskFileAccess: DebugPrintable {
 
+    /// Limits concurrent preview generation to avoid memory spikes from accumulated decrypted data.
+    private static let previewSemaphore = AsyncSemaphore(value: 3)
+
     enum iCloudError: Error {
         case invalidURL
         case general
@@ -515,38 +518,41 @@ extension DiskFileAccess {
 
 
     @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
+        await Self.previewSemaphore.wait()
+        defer { Task { await Self.previewSemaphore.signal() } }
+
         do {
-            let thumbnail = try await createThumbnail(for: media)
-            printDebug("createPreview: Created thumbnail for \(media.id)")
-            var preview = PreviewModel(thumbnailMedia: thumbnail)
-            if let encrypted = media as? EncryptedMedia {
-                switch encrypted.mediaType {
-                case .photo:
-                    break
-                case .video:
-                    let video: CleartextMedia = try await decryptMediaToURL(encrypted: encrypted, progress: {_ in })
-                    guard let url = video.url else {
-                        printDebug("createPreview: Could not get video URL")
-                        throw SecretFilesError.createPreviewError
-                    }
-                    let asset = AVURLAsset(url: url, options: nil)
-                    preview.videoDuration = asset.duration.durationText
-                default:
-                    printDebug("createPreview: Unknown media type")
+            var preview: PreviewModel
+
+            if let encrypted = media as? EncryptedMedia, encrypted.mediaType == .video {
+                // === Video: single decryption, extract both thumbnail and duration ===
+                let decrypted: CleartextMedia = try await decryptMediaToURL(encrypted: encrypted, progress: { _ in })
+                guard let url = decrypted.url else {
+                    printDebug("createPreview: Could not get video URL")
                     throw SecretFilesError.createPreviewError
                 }
-            } else if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video, case .url(let source) = decrypted.source {
-                let asset = AVURLAsset(url: source, options: nil)
+                let thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
+                preview = PreviewModel(thumbnailMedia: thumb)
+                let asset = AVURLAsset(url: url, options: nil)
                 preview.videoDuration = asset.duration.durationText
+            } else {
+                // === Photo or cleartext: existing path ===
+                let thumbnail = try await createThumbnail(for: media)
+                preview = PreviewModel(thumbnailMedia: thumbnail)
+                if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video,
+                   case .url(let source) = decrypted.source {
+                    let asset = AVURLAsset(url: source, options: nil)
+                    preview.videoDuration = asset.duration.durationText
+                }
             }
+
+            printDebug("createPreview: Created preview for \(media.id)")
             try await savePreview(preview: preview, sourceMedia: media)
             return preview
-
         } catch {
             printDebug("createPreview: Error creating preview for \(media.id)")
             throw error
         }
-
     }
 
 
@@ -694,8 +700,6 @@ extension DiskFileAccess {
             default:
                 throw SecretFilesError.fileTypeError
             }
-        } else if let cleartext = media as? CleartextMedia {
-            thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
         } else if let cleartext = media as? CleartextMedia {
             thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: cleartext)
         } else {
