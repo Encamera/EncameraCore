@@ -97,7 +97,7 @@ public protocol FileEnumerator {
 
     func configure(for album: Album, albumManager: AlbumManaging) async
     func enumerateMedia<T: MediaDescribing>() async -> [InteractableMedia<T>]
-    
+
     /// Enumerates media with sorting and filtering support
     /// - Parameters:
     ///   - sortBy: How to sort results
@@ -107,6 +107,10 @@ public protocol FileEnumerator {
         sortBy: MediaSortOption,
         filterBy: MediaFilterOptions
     ) async -> [MediaWithMetadata<InteractableMedia<EncryptedMedia>>]
+
+    /// Returns the total count of stored media across all albums and storage types.
+    /// Live Photo components (photo + video) sharing the same ID are counted as a single item.
+    func totalStoredMediaCount() async -> Int
 }
 
 // Default implementation for backwards compatibility
@@ -116,6 +120,10 @@ public extension FileEnumerator {
         filterBy: MediaFilterOptions = .all
     ) async -> [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] {
         return [] // Default empty - concrete types implement
+    }
+
+    func totalStoredMediaCount() async -> Int {
+        return 0
     }
 }
 

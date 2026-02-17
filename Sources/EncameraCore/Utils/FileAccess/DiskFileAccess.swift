@@ -157,6 +157,60 @@ public actor DiskFileAccess: DebugPrintable {
         return mediaItems
     }
 
+    public func totalStoredMediaCount() async -> Int {
+        let extensions = Set([MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension])
+        let maxDepth = 10
+        var count = 0
+        var countedMediaIDs = Set<String>()
+
+        func collectMediaCount(at rootURL: URL) {
+            _ = rootURL.startAccessingSecurityScopedResource()
+            defer { rootURL.stopAccessingSecurityScopedResource() }
+
+            guard let enumerator = FileManager.default.enumerator(
+                at: rootURL,
+                includingPropertiesForKeys: nil,
+                options: []
+            ) else { return }
+
+            for case let fileURL as URL in enumerator {
+                if enumerator.level > maxDepth {
+                    enumerator.skipDescendants()
+                    continue
+                }
+
+                // Skip directories that don't contain user media
+                let name = fileURL.lastPathComponent
+                if name == ".Trash" || name == AppConstants.previewDirectory || name == "thumbs" {
+                    enumerator.skipDescendants()
+                    continue
+                }
+
+                // Match extensions using the same logic as enumeratorForStorageDirectory,
+                // accounting for .icloud placeholder files (e.g. uuid.enc_photo.icloud)
+                let components = name.split(separator: ".")
+                guard components.count > 1,
+                      let fileExtension = components[safe: 1],
+                      extensions.contains(where: { $0.lowercased() == fileExtension.lowercased() }) else {
+                    continue
+                }
+
+                let mediaID = String(components[0])
+                if !mediaID.isEmpty, countedMediaIDs.insert(mediaID).inserted {
+                    count += 1
+                }
+            }
+        }
+
+        collectMediaCount(at: LocalStorageModel.rootURL)
+
+        if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
+            collectMediaCount(at: iCloudStorageModel.rootURL)
+        }
+
+        return count
+    }
+
     /// Enumerates all preview files across all storage types
     private func enumerateAllPreviewFiles() -> [URL] {
         var allPreviewFiles: [URL] = []

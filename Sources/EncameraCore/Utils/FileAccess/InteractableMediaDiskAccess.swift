@@ -280,6 +280,10 @@ public actor InteractableMediaDiskAccess: FileAccess {
         try await fileAccess.setKeyUUIDForExistingFiles()
     }
     
+    public func totalStoredMediaCount() async -> Int {
+        return await fileAccess.totalStoredMediaCount()
+    }
+
     public static func deleteThumbnailDirectory() throws {
         try DiskFileAccess.deleteThumbnailDirectory()
     }
