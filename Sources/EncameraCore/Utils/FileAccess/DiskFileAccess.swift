@@ -500,15 +500,26 @@ extension DiskFileAccess {
         guard case .url(let sourceURL) = encrypted.source else {
             return encrypted
         }
-        
+
+        // Quick check: if the file is physically readable on disk with actual content,
+        // skip the iCloud download flow entirely. This prevents hangs for files that
+        // were just created locally in the iCloud container but haven't been fully
+        // cataloged by iCloud yet (ubiquitousItemDownloadingStatus may be nil).
+        if FileManager.default.isReadableFile(atPath: sourceURL.path),
+           let attrs = try? FileManager.default.attributesOfItem(atPath: sourceURL.path),
+           let fileSize = attrs[.size] as? UInt64,
+           fileSize > 0 {
+            return encrypted
+        }
+
         // Get comprehensive iCloud status
         let status = iCloudFileStatusUtil.getStatus(for: sourceURL)
-        
+
         // If file is not a ubiquitous item or is already downloaded, proceed
         guard status.isUbiquitousItem else {
             return encrypted
         }
-        
+
         switch status.downloadState {
         case .current:
             // File is fully downloaded
