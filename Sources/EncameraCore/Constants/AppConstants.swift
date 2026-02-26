@@ -28,4 +28,11 @@ public enum AppConstants {
     public static let maxCharacterAlbumName = 20
     public static let widgetVimeoLink = URL(string: "https://vimeo.com/896507875")!
     public static let feedbackApiURL = URL(string: "https://script.google.com/macros/s/AKfycbwDkuMT5MkmfpBmaahRJhM7BVWCvBcALiC6cKIaanmNGggMrY7qn50EKV-ZeZS6miJO/exec")!
+
+    // Supabase Edge Functions
+//    #if DEBUG
+//    public static var supabaseFunctionsBaseURL = "http://127.0.0.1:54321/functions/v1"
+//    #else
+    public static var supabaseFunctionsBaseURL = "https://iwyaxywmukbescxoownb.supabase.co/functions/v1"
+//    #endif
 }
