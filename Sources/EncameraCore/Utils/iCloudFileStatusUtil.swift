@@ -146,8 +146,20 @@ public struct iCloudFileStatusUtil {
                     downloadState = .current
                 }
             } else {
-                // No status available, assume not downloaded if ubiquitous
-                downloadState = .notDownloaded
+                // No status available from iCloud metadata yet.
+                // This commonly occurs for files that were just created locally in
+                // the iCloud container — iCloud hasn't finished cataloging them.
+                // Check if the file is physically readable on disk before assuming
+                // it needs to be downloaded, to avoid triggering a spurious download
+                // wait loop that can freeze the UI.
+                if FileManager.default.isReadableFile(atPath: url.path),
+                   let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+                   let fileSize = attrs[.size] as? UInt64,
+                   fileSize > 0 {
+                    downloadState = .current
+                } else {
+                    downloadState = .notDownloaded
+                }
             }
             
             return iCloudFileStatus(

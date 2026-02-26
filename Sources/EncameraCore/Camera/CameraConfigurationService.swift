@@ -426,26 +426,28 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
 extension CameraConfigurationService {
 
-    public func createVideoProcessor() async throws -> AsyncVideoCaptureProcessor {
+    public func createVideoProcessor(captureOrientation: AVCaptureVideoOrientation? = nil) async throws -> AsyncVideoCaptureProcessor {
         guard let videoOutput = self.movieOutput else {
             throw MediaProcessorError.missingMovieOutput
         }
         let connection = videoOutput.connection(with: .video)
-        connection?.videoOrientation = model.orientation
+        let orientation = captureOrientation ?? model.orientation
+        connection?.videoOrientation = orientation
 
 
         return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
     }
 
 
-    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode, livePhotoEnabled: Bool) async throws -> AsyncPhotoCaptureProcessor {
+    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode, livePhotoEnabled: Bool, captureOrientation: AVCaptureVideoOrientation? = nil) async throws -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
             printDebug("Could not capture photo")
             throw MediaProcessorError.setupIncomplete
         }
 
+        let orientation = captureOrientation ?? model.orientation
         if let photoOutputConnection = self.photoOutput.connection(with: .video) {
-            photoOutputConnection.videoOrientation = model.orientation
+            photoOutputConnection.videoOrientation = orientation
         }
         configurePhotoOutput()
 
