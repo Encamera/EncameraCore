@@ -455,6 +455,18 @@
 "AlbumDetailView.HideAlbumAlertTitle" = "Hide this album?";
 "AlbumDetailView.HideAlbumAlertMessage" = "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.";
 "AlbumDetailView.HideAlbumMenuItem" = "Hide Album";
+
+/* Sort & Filter */
+"AlbumDetailView.SortFilter.DateAddedNewest" = "Date Added: Newest First";
+"AlbumDetailView.SortFilter.DateAddedOldest" = "Date Added: Oldest First";
+"AlbumDetailView.SortFilter.DateCapturedNewest" = "Date Captured: Newest First";
+"AlbumDetailView.SortFilter.DateCapturedOldest" = "Date Captured: Oldest First";
+"AlbumDetailView.SortFilter.FilterByType" = "Filter by Type";
+"AlbumDetailView.SortFilter.Photos" = "Photos";
+"AlbumDetailView.SortFilter.Videos" = "Videos";
+"AlbumDetailView.SortFilter.LivePhotos" = "Live Photos";
+"AlbumDetailView.SortFilter.ResetFilters" = "Reset Filters";
+
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "AddAlbumModal.RenameAlbumTitle" = "Let's rename your\nalbum";
 "SetPinCode" = "Set Pin Code";

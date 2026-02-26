@@ -254,10 +254,10 @@ public actor DiskFileAccess: DebugPrintable {
             
             // Determine media subtype from V2 metadata
             let subtype: MediaFilterOptions
-            if metadata.originalMediaType == "video" {
-                subtype = .video
-            } else if metadata.contentAnalysis?.isLivePhoto == true {
+            if metadata.contentAnalysis?.isLivePhoto == true || metadata.originalMediaType == "livePhoto" {
                 subtype = .livePhoto
+            } else if metadata.originalMediaType == "video" {
+                subtype = .video
             } else if metadata.contentAnalysis?.isScreenshot == true {
                 subtype = .screenshot
             } else {
