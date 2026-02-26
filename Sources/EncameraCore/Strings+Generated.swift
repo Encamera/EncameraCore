@@ -876,6 +876,26 @@ public enum L10n {
     public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to Latest Image")
     /// Select Media
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
+    public enum SortFilter {
+      /// Date Added: Newest First
+      public static let dateAddedNewest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateAddedNewest", fallback: "Date Added: Newest First")
+      /// Date Added: Oldest First
+      public static let dateAddedOldest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateAddedOldest", fallback: "Date Added: Oldest First")
+      /// Date Captured: Newest First
+      public static let dateCapturedNewest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateCapturedNewest", fallback: "Date Captured: Newest First")
+      /// Date Captured: Oldest First
+      public static let dateCapturedOldest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateCapturedOldest", fallback: "Date Captured: Oldest First")
+      /// Filter by Type
+      public static let filterByType = L10n.tr("Localizable", "AlbumDetailView.SortFilter.FilterByType", fallback: "Filter by Type")
+      /// Photos
+      public static let photos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.Photos", fallback: "Photos")
+      /// Videos
+      public static let videos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.Videos", fallback: "Videos")
+      /// Live Photos
+      public static let livePhotos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.LivePhotos", fallback: "Live Photos")
+      /// Reset Filters
+      public static let resetFilters = L10n.tr("Localizable", "AlbumDetailView.SortFilter.ResetFilters", fallback: "Reset Filters")
+    }
   }
   public enum AlbumSelectionModal {
     /// Select an album to move %@ items to
