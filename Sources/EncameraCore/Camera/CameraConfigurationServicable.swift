@@ -3,7 +3,6 @@ import AVFoundation
 
 protocol CameraConfigurationServicable {
     var session: AVCaptureSession { get }
-    var model: CameraConfigurationServiceModel { get }
     init(model: CameraConfigurationServiceModel)
     func configure() async
     func checkForPermissions() async
