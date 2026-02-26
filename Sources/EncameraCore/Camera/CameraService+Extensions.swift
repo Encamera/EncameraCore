@@ -3,7 +3,7 @@ import UIKit
 import AVFoundation
 
 extension AVCaptureVideoOrientation {
-    init?(deviceOrientation: UIDeviceOrientation) {
+    public init?(deviceOrientation: UIDeviceOrientation) {
         switch deviceOrientation {
         case .portrait: self = .portrait
         case .portraitUpsideDown: self = .portraitUpsideDown

@@ -79,11 +79,12 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             }
         }
     }
-    nonisolated public var canCaptureLivePhoto: Published<Bool>.Publisher {
-        model.$canCaptureLivePhoto
+    nonisolated private let canCaptureLivePhotoSubject: CurrentValueSubject<Bool, Never>
+    nonisolated public var canCaptureLivePhoto: AnyPublisher<Bool, Never> {
+        canCaptureLivePhotoSubject.eraseToAnyPublisher()
     }
     nonisolated public let session = AVCaptureSession()
-    public let model: CameraConfigurationServiceModel
+    private let model: CameraConfigurationServiceModel
     var delegate: CameraConfigurationServicableDelegate?
     private var availableZoomFactors: [CGFloat] = [1.0]
     private var availableCameras: [AVCaptureDevice] = []
@@ -111,6 +112,15 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
     public init(model: CameraConfigurationServiceModel) {
         self.model = model
+        self.canCaptureLivePhotoSubject = CurrentValueSubject(model.canCaptureLivePhoto)
+    }
+
+    public func currentSetupResult() -> SessionSetupResult {
+        model.setupResult
+    }
+
+    public func currentOrientation() -> AVCaptureVideoOrientation {
+        model.orientation
     }
 
     public func configure() async {
@@ -508,6 +518,7 @@ private extension CameraConfigurationService {
         let canCaptureLivePhoto = photoOutput.isLivePhotoCaptureSupported
         printDebug("canCaptureLivePhoto \(canCaptureLivePhoto)")
         model.canCaptureLivePhoto = canCaptureLivePhoto
+        canCaptureLivePhotoSubject.send(canCaptureLivePhoto)
         photoOutput.isLivePhotoCaptureEnabled = canCaptureLivePhoto
     }
 
