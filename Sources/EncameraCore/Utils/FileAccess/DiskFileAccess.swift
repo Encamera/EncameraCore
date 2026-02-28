@@ -253,9 +253,10 @@ public actor DiskFileAccess: DebugPrintable {
             let dateEncrypted = metadata.encryptionDate
             
             // Determine media subtype from V2 metadata
+            // Live Photos are treated as still images for filtering purposes
             let subtype: MediaFilterOptions
             if metadata.contentAnalysis?.isLivePhoto == true || metadata.originalMediaType == "livePhoto" {
-                subtype = .livePhoto
+                subtype = .stillImage
             } else if metadata.originalMediaType == "video" {
                 subtype = .video
             } else if metadata.contentAnalysis?.isScreenshot == true {
@@ -362,28 +363,48 @@ public actor DiskFileAccess: DebugPrintable {
         sortOption: MediaSortOption,
         filterOptions: MediaFilterOptions
     ) -> [MediaWithMetadata<EncryptedMedia>] {
-        
-        // Build MediaWithMetadata for each item
+
+        // First pass: identify IDs of Live Photo components so their video
+        // counterparts can also be treated as still images for filtering
+        var livePhotoIDs: Set<String> = []
+        for mediaItem in media {
+            var v2Metadata: EncryptedFileMetadata?
+            if case .url(let url) = mediaItem.source {
+                v2Metadata = metadataMap[url]
+            }
+            if let metadata = v2Metadata,
+               metadata.contentAnalysis?.isLivePhoto == true || metadata.originalMediaType == "livePhoto" {
+                livePhotoIDs.insert(mediaItem.id)
+            }
+        }
+
+        // Second pass: build MediaWithMetadata for each item
         var results: [MediaWithMetadata<EncryptedMedia>] = []
-        
+
         for mediaItem in media {
             // Get V2 metadata if available
             var v2Metadata: EncryptedFileMetadata?
             if case .url(let url) = mediaItem.source {
                 v2Metadata = metadataMap[url]
             }
-            
+
             // Extract metadata info (handles V1/V2 fallback)
-            let (dateTaken, dateEncrypted, subtype) = extractMetadataInfo(
+            var (dateTaken, dateEncrypted, subtype) = extractMetadataInfo(
                 for: mediaItem,
                 v2Metadata: v2Metadata
             )
-            
+
+            // Reclassify video components of Live Photos as still images
+            // so they are filtered together with their photo counterpart
+            if subtype == .video && livePhotoIDs.contains(mediaItem.id) {
+                subtype = .stillImage
+            }
+
             // Apply filter
             if !filterOptions.contains(subtype) {
                 continue
             }
-            
+
             let wrapper = MediaWithMetadata(
                 media: mediaItem,
                 metadata: v2Metadata,

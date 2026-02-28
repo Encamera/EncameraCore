@@ -466,6 +466,8 @@
 "AlbumDetailView.SortFilter.Videos" = "Videos";
 "AlbumDetailView.SortFilter.LivePhotos" = "Live Photos";
 "AlbumDetailView.SortFilter.ResetFilters" = "Reset Filters";
+"AlbumDetailView.NoMediaFound" = "No media found";
+"AlbumDetailView.ClearFilters" = "Clear Filters";
 
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "AddAlbumModal.RenameAlbumTitle" = "Let's rename your\nalbum";
