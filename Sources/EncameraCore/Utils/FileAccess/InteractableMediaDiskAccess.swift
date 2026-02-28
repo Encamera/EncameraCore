@@ -107,10 +107,10 @@ public actor InteractableMediaDiskAccess: FileAccess {
         for mediaId in orderedIds {
             guard let group = mediaMap[mediaId] else { continue }
             
-            // For Live Photos, update the subtype based on the InteractableMedia detection
+            // For Live Photos, treat as still images for filtering purposes
             var subtype = group.subtype
             if group.interactable.mediaType == .livePhoto {
-                subtype = .livePhoto
+                subtype = .stillImage
             }
             
             let wrapper = MediaWithMetadata(

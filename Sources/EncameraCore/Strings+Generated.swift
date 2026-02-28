@@ -810,6 +810,10 @@ public enum L10n {
     public static let addFirstImageSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstImageSubtitle", fallback: "Import an image from your album or open the camera and take a new picture for this album")
     /// Album Cover
     public static let albumCoverMenuTitle = L10n.tr("Localizable", "AlbumDetailView.AlbumCoverMenuTitle", fallback: "Album Cover")
+    /// Clear Filters
+    public static let clearFilters = L10n.tr("Localizable", "AlbumDetailView.ClearFilters", fallback: "Clear Filters")
+    /// No media found
+    public static let noMediaFound = L10n.tr("Localizable", "AlbumDetailView.NoMediaFound", fallback: "No media found")
     /// Album is now hidden
     public static let albumHiddenToast = L10n.tr("Localizable", "AlbumDetailView.AlbumHiddenToast", fallback: "Album is now hidden")
     /// Album is now visible

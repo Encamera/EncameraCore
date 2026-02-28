@@ -69,8 +69,8 @@ public struct MediaFilterOptions: OptionSet, Sendable {
     public static let screenshot = MediaFilterOptions(rawValue: 1 << 2)
     public static let stillImage = MediaFilterOptions(rawValue: 1 << 3)
     
-    public static let all: MediaFilterOptions = [.video, .livePhoto, .screenshot, .stillImage]
-    public static let allPhotos: MediaFilterOptions = [.livePhoto, .screenshot, .stillImage]
+    public static let all: MediaFilterOptions = [.video, .screenshot, .stillImage]
+    public static let allPhotos: MediaFilterOptions = [.screenshot, .stillImage]
 }
 
 /// Wrapper that pairs media with its metadata for sorted/filtered results
