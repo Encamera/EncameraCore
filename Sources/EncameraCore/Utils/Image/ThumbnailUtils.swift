@@ -47,7 +47,7 @@ public struct ThumbnailUtils {
             fatalError()
         }
         let resizer = ImageResizer(targetWidth: AppConstants.thumbnailWidth)
-        guard let thumbnailData = resizer.resize(data: thumbnailSourceData, quality: 1.0)?.pngData() else {
+        guard let thumbnailData = resizer.resize(data: thumbnailSourceData, quality: 1.0)?.jpegData(compressionQuality: 0.7) else {
             debugPrint("createThumbnailError: Error creating thumbnail for \(media.id)")
             throw SecretFilesError.createThumbnailError
         }

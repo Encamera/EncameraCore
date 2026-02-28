@@ -12,10 +12,24 @@ import AVFoundation
 
 
 
+/// Thread-safe wrapper for caching PreviewModel in NSCache.
+private final class PreviewModelWrapper: NSObject {
+    let preview: PreviewModel
+    init(_ preview: PreviewModel) { self.preview = preview }
+}
+
 public actor DiskFileAccess: DebugPrintable {
 
     /// Limits concurrent preview generation to avoid memory spikes from accumulated decrypted data.
-    private static let previewSemaphore = AsyncSemaphore(value: 3)
+    private static let previewSemaphore = AsyncSemaphore(value: 5)
+
+    /// In-memory cache for decrypted preview thumbnails. NSCache is thread-safe,
+    /// so it can be accessed outside actor isolation. Auto-evicts under memory pressure.
+    private static let previewCache: NSCache<NSString, PreviewModelWrapper> = {
+        let cache = NSCache<NSString, PreviewModelWrapper>()
+        cache.countLimit = 200
+        return cache
+    }()
 
     enum iCloudError: Error {
         case invalidURL
@@ -456,35 +470,38 @@ extension DiskFileAccess {
 
 
     public func loadMediaPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel  {
+        let cacheKey = media.id as NSString
+        if let cached = Self.previewCache.object(forKey: cacheKey) {
+            return cached.preview
+        }
+
         guard let thumbnailPath = directoryModel?.previewURLForMedia(media) else {
             printDebug("loadMediaPreview: No thumbnail path found")
             throw FileAccessError.missingDirectoryModel
         }
         let preview = T(source: .url(thumbnailPath), mediaType: .preview, id: media.id)
 
+        let result: PreviewModel
         do {
             printDebug("loadMediaPreview: Trying to load thumbnail", media.id)
             let existingPreview = try await loadMediaInMemory(media: preview) { _ in }
             printDebug("loadMediaPreview: Found existing thumbnail", media.id)
-            return try PreviewModel(source: existingPreview)
+            result = try PreviewModel(source: existingPreview)
         } catch {
             switch media.mediaType {
             case .photo:
                 printDebug("loadMediaPreview: No thumbnail found for photo with id: \(media.id)")
-                return try await createPreview(for: media)
+                result = try await createPreview(for: media)
             case .video:
-                // We are signaling here that there is no thumbnail for the
-                // video at this time. The preview strategy should be changed
-                // so that an encrypted preview is stored in a certain region
-                // of the file, so we can load the preview without decrypting
-                // the entire file
                 printDebug("loadMediaPreview: No thumbnail found for video with id: \(media.id)")
-                return try await createPreview(for: media)
+                result = try await createPreview(for: media)
             default:
                 printDebug("loadMediaPreview: No thumbnail found for unknown media type")
                 throw SecretFilesError.createThumbnailError
             }
         }
+        Self.previewCache.setObject(PreviewModelWrapper(result), forKey: cacheKey)
+        return result
     }
     public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)? = nil) async throws -> UIImage? {
         if let album,
@@ -604,8 +621,10 @@ extension DiskFileAccess {
 
 
     @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
+        try Task.checkCancellation()
         await Self.previewSemaphore.wait()
         defer { Task { await Self.previewSemaphore.signal() } }
+        try Task.checkCancellation()
 
         do {
             var preview: PreviewModel
@@ -1056,6 +1075,7 @@ extension DiskFileAccess {
             if let previewURL = directoryModel?.previewURLForMedia(mediaItem) {
                 try? FileManager.default.removeItem(at: previewURL)
             }
+            Self.previewCache.removeObject(forKey: mediaItem.id as NSString)
             deletedMedia.append(mediaItem)
         }
         
@@ -1069,6 +1089,7 @@ extension DiskFileAccess {
         }
 
         try FileManager.default.removeItem(at: url)
+        Self.previewCache.removeAllObjects()
     }
     public func deleteAllMedia() async throws {
         for type in StorageType.allCases {
@@ -1081,6 +1102,7 @@ extension DiskFileAccess {
                 print("Could not delete all files for \(type): ", error)
             }
         }
+        Self.previewCache.removeAllObjects()
     }
     
     public func setKeyUUIDForExistingFiles() async throws {
