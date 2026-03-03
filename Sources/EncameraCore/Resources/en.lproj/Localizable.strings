@@ -577,6 +577,9 @@
 "Settings.PurchasesRestoredMessage" = "Any valid purchases you made have been restored.";
 "Settings.PurchasesRestoreFailed" = "Could not restore purchases";
 "Settings.PurchasesRestoreFailedMessage" = "Could not restore your purchases. Please try again or contact support.";
+"Settings.ClearDismissedBanners" = "Clear Dismissed Banners";
+"Settings.BannersCleared" = "Banners Cleared";
+"Settings.BannersClearedMessage" = "All dismissed banners have been reset and will appear again.";
 "Settings.HiddenAlbums" = "Hidden Albums";
 "Settings.HiddenAlbumsModal.Title" = "Your hidden albums";
 "Settings.HiddenAlbumsModal.Subtitle" = "Access them by creating a new album with the exact same name";

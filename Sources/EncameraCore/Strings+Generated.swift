@@ -1722,6 +1722,12 @@ public enum L10n {
     public static let backupKeyToiCloud = L10n.tr("Localizable", "Settings.BackupKeyToiCloud", fallback: "Sync Key to iCloud")
     /// If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.
     public static let backupKeyToiCloudDescription = L10n.tr("Localizable", "Settings.BackupKeyToiCloudDescription", fallback: "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.")
+    /// Banners Cleared
+    public static let bannersCleared = L10n.tr("Localizable", "Settings.BannersCleared", fallback: "Banners Cleared")
+    /// All dismissed banners have been reset and will appear again.
+    public static let bannersClearedMessage = L10n.tr("Localizable", "Settings.BannersClearedMessage", fallback: "All dismissed banners have been reset and will appear again.")
+    /// Clear Dismissed Banners
+    public static let clearDismissedBanners = L10n.tr("Localizable", "Settings.ClearDismissedBanners", fallback: "Clear Dismissed Banners")
     /// Contact Support
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
     /// Copied to clipboard
