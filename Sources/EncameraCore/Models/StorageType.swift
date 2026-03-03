@@ -64,5 +64,15 @@ extension StorageType: Identifiable, CaseIterable {
             return L10n.saveLocally
         }
     }
-    
+
+    /// A human-readable location name for contextual display (e.g., "3 files on iCloud").
+    public var locationName: String {
+        switch self {
+        case .icloud:
+            return "iCloud"
+        case .local:
+            return L10n.localDevice
+        }
+    }
+
 }

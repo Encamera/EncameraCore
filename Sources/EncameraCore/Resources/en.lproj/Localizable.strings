@@ -41,6 +41,7 @@
 /* ./EncameraCore/Models/StorageType.swift */
 "iCloud" = "iCloud";
 "Local" = "Local";
+"LocalDevice" = "local device";
 "SaveToiCloudDrive" = "Save to iCloud Drive";
 "SaveLocally" = "Save to this device";
 "ChangePasscode" = "Change Passcode";

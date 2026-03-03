@@ -18,6 +18,10 @@ public enum L10n {
   public static func imageS(_ p1: Int) -> String {
     return L10n.tr("Localizable", "%@ Image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")
   }
+  /// Plural format key: "%#@file_count@"
+  public static func fileS(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "%@ File(s)", p1, fallback: "Plural format key: \"%#@file_count@\"")
+  }
   /// Plural format key: "%#@item_count@"
   public static func itemS(_ p1: Int) -> String {
     return L10n.tr("Localizable", "%@ Item(s)", p1, fallback: "Plural format key: \"%#@item_count@\"")
@@ -415,6 +419,8 @@ public enum L10n {
   public static let letsGo = L10n.tr("Localizable", "LetsGo", fallback: "Let's go!")
   /// Local
   public static let local = L10n.tr("Localizable", "Local", fallback: "Local")
+  /// local device
+  public static let localDevice = L10n.tr("Localizable", "LocalDevice", fallback: "local device")
   /// Choose how you want to access your private albums.
   public static let loginMethodDescription = L10n.tr("Localizable", "LoginMethodDescription", fallback: "Choose how you want to access your private albums.")
   /// Make sure you remember your pin code!
