@@ -92,7 +92,6 @@
 "Take a Photo!" = "Tag et foto!";
 "Change Authentication Method" = "Skift godkendelsesmetode";
 "GlobalImportProgress.DeleteFromPhotoLibraryMessage" = "Dette vil slette alle importerede fotos fra dit fotobibliotek.";
-"FollowUs" = "Følg @encamera_app på Twitter";
 "FeedbackView.Subheading" = "Din feedback er virkelig vigtig for os og hjælper os med at bygge et bedre produkt. Vi sætter stor pris på det!";
 "GlobalImportProgress.ImportingProgress" = "Importerer %@ af %@";
 "PasswordSetSuccessfully" = "Adgangskode sat korrekt";
@@ -207,7 +206,6 @@ Det er vigtigt at gemme denne nøgle, hvis du mister din enhed.";
 "SaveLocally" = "Gem på denne enhed";
 "PhotoPickerWrapper.FasterImport" = "Hurtigere import";
 "Set Password" = "Indstil adgangskode";
-"YouWillBeSentAPromoCode" = "Derefter vil du modtage en kampagnekode via DM, som du kan indløse i appen.";
 "GalleryView.PlayLivePhoto" = "Live Photo - Hold for at se";
 "Notification.Permission.Granted" = "Lokale notifikationstilladelser givet.";
 "Shared Media" = "Delt medie";
@@ -317,7 +315,6 @@ Det er vigtigt at gemme denne nøgle, hvis du mister din enhed.";
 "ChangePasscode" = "Skift adgangskode";
 "Done" = "Færdig";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Fejl ved sletning af nøgle og tilknyttede filer. Prøv igen, eller prøv at slette filerne manuelt via appen Filer.";
-"GetOneYearFree" = "Få 1 år gratis!";
 "StorageExplanationHeader" = "Hvor er mine billeder gemt?";
 "PhotoPickerWrapper.SwipeDescription" = "Vælg flere billeder med ét swipe";
 "HideAlbumsTutorial.Subheading4" = "For at skjule et album skal du åbne det og trykke på de tre prikker, og derefter vælge 'Skjul album'.";
@@ -439,7 +436,6 @@ Det er vigtigt at gemme denne nøgle, hvis du mister din enhed.";
 "AuthenticationMethod.ConfirmDisable" = "Vil du virkelig deaktivere %@?";
 "iCloud" = "iCloud";
 "Settings.Contact" = "Kontakt support";
-"TapToTweet" = "Tryk for at tweete!";
 "Import" = "Importer";
 "DefaultAlbumName" = "Mit album";
 "Share Encrypted" = "Del krypteret";
@@ -498,11 +494,6 @@ Encamera!";
 "HideAlbumsTutorial.Subheading3" = "Sørg for at huske navnene på dine skjulte albums, da de ikke vil fremgå af din albumliste.";
 "EmptyAlbumTakeAPictureActionTitle" = "Tag et billede";
 "PurchaseView.YourBenefits" = "Dine Premium-fordele:";
-"TweetToRedeemOfferExplanation" = "Få 100% rabat på det årlige abonnement til $9,99!
-
-Du skal kun gøre to ting:
-1. Følg @encamera_app
-2. Tryk på linket nedenfor for at tweete om Encamera";
 "Keep your encrypted data safe by using %@." = "Hold dine krypterede data sikre ved at bruge %@.";
 "Choose your login method" = "Vælg din login-metode";
 "Key Management" = "Nøglehåndtering";

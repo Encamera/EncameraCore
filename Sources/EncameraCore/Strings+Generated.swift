@@ -324,16 +324,12 @@ public enum L10n {
   public static let finishedSubtitle = L10n.tr("Localizable", "FinishedSubtitle", fallback: "Let's create your first album")
   /// Finish Importing Media
   public static let finishImportingMedia = L10n.tr("Localizable", "FinishImportingMedia", fallback: "Finish Importing Media")
-  /// Follow @encamera_app on Twitter
-  public static let followUs = L10n.tr("Localizable", "FollowUs", fallback: "Follow @encamera_app on Twitter")
   /// Free Trial
   public static let freeTrial = L10n.tr("Localizable", "Free Trial", fallback: "Free Trial")
   /// 7 days free, then %@
   public static func freeTrialTerms(_ p1: Any) -> String {
     return L10n.tr("Localizable", "FreeTrialTerms", String(describing: p1), fallback: "7 days free, then %@")
   }
-  /// TweetToShareView.swift
-  public static let getOneYearFree = L10n.tr("Localizable", "GetOneYearFree", fallback: "Get 1 Year Free!")
   /// Get Premium
   public static let getPremium = L10n.tr("Localizable", "GetPremium", fallback: "Get Premium")
   /// Let's Start
@@ -712,8 +708,6 @@ public enum L10n {
   public static let tapThe = L10n.tr("Localizable", "Tap the ", fallback: "Tap the ")
   /// Tap to Upgrade
   public static let tapToUpgrade = L10n.tr("Localizable", "Tap to Upgrade", fallback: "Tap to Upgrade")
-  /// Tap to Tweet!
-  public static let tapToTweet = L10n.tr("Localizable", "TapToTweet", fallback: "Tap to Tweet!")
   /// Get early access to beta features and give feedback
   public static let telegramGroupJoinBody = L10n.tr("Localizable", "TelegramGroupJoinBody", fallback: "Get early access to beta features and give feedback")
   /// Join Group
@@ -736,12 +730,6 @@ public enum L10n {
   public static let thisWillSaveTheMediaToYourLibrary = L10n.tr("Localizable", "This will save the media to your library.", fallback: "This will save the media to your library.")
   /// ./EncameraCore/Utils/AuthManager.swift
   public static let touchID = L10n.tr("Localizable", "Touch ID", fallback: "Touch ID")
-  /// Get 100%% off the $9.99 yearly subscription fee!
-  /// 
-  ///  You only need to do two things:
-  /// 1. Follow @encamera_app
-  /// 2. Tap the link below to tweet about Encamera
-  public static let tweetToRedeemOfferExplanation = L10n.tr("Localizable", "TweetToRedeemOfferExplanation", fallback: "Get 100%% off the $9.99 yearly subscription fee!\n\n You only need to do two things:\n1. Follow @encamera_app\n2. Tap the link below to tweet about Encamera")
   /// Unlimited albums for your memories
   public static let unlimitedAlbumsFeatureRowTitle = L10n.tr("Localizable", "UnlimitedAlbumsFeatureRowTitle", fallback: "Unlimited albums for your memories")
   /// ./Encamera/Store/SubscriptionView.swift
@@ -802,8 +790,6 @@ public enum L10n {
   public static let yourKeys = L10n.tr("Localizable", "Your Keys", fallback: "Your Keys")
   /// Key Backup
   public static let yourRecoveryPhrase = L10n.tr("Localizable", "YourRecoveryPhrase", fallback: "Key Backup")
-  /// Afterwards, you will be sent a promo code via DM that you can redeem in the app.
-  public static let youWillBeSentAPromoCode = L10n.tr("Localizable", "YouWillBeSentAPromoCode", fallback: "Afterwards, you will be sent a promo code via DM that you can redeem in the app.")
   public enum AddAlbumModal {
     /// Let's rename your
     /// album

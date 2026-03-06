@@ -284,11 +284,6 @@
 "IAmDone" = "我完成了";
 "Encrypting" = "加密";
 "Cannot handle media" = "无法处理媒体";
-"GetOneYearFree" = "免费获得1年！";
-"TweetToRedeemOfferExplanation" = "享受100%%的$9.99年订阅费折扣！\n\n你只需做两件事：\n1. 关注@encamera_app\n2. 点击下面的链接在推特上分享关于Encamera的信息";
-"FollowUs" = "在推特上关注@encamera_app";
-"TapToTweet" = "点击推文！";
-"YouWillBeSentAPromoCode" = "之后，您将通过私信收到一个促销代码，您可以在应用中兑换。";
 "QuicklyTakePictures" = "快速拍摄照片和视频。";
 "AlbumNotFoundAtSourceLocation" = "无法在源位置找到相册。请使用文件应用程序确保它存在。";
 "NotificationBannerTitle" = "已通过加密保护";

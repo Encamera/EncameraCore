@@ -91,7 +91,6 @@
 "Take a Photo!" = "التقط صورة!";
 "Change Authentication Method" = "تغيير طريقة التوثيق";
 "GlobalImportProgress.DeleteFromPhotoLibraryMessage" = "سيؤدي هذا إلى حذف جميع الصور المستوردة من مكتبة الصور الخاصة بك.";
-"FollowUs" = "تابع @encamera_app على تويتر";
 "FeedbackView.Subheading" = "ملاحظاتك مهمة جدًا بالنسبة لنا وتساعدنا في بناء منتج أفضل. نحن نقدر ذلك حقًا!";
 "GlobalImportProgress.ImportingProgress" = "جاري استيراد %@ من %@";
 "PasswordSetSuccessfully" = "تم تعيين كلمة المرور بنجاح";
@@ -205,7 +204,6 @@
 "SaveLocally" = "احفظ على هذا الجهاز";
 "PhotoPickerWrapper.FasterImport" = "استيراد أسرع";
 "Set Password" = "تعيين كلمة المرور";
-"YouWillBeSentAPromoCode" = "بعد ذلك، سيتم إرسال رمز ترويجي لك عبر الرسائل المباشرة يمكنك استرداده في التطبيق.";
 "GalleryView.PlayLivePhoto" = "صورة حية - اضغط مطولاً للمشاهدة";
 "Notification.Permission.Granted" = "تم منح أذونات الإشعارات المحلية.";
 "Shared Media" = "الوسائط المشتركة";
@@ -320,7 +318,6 @@
 "ChangePasscode" = "تغيير رمز المرور";
 "Done" = "تم";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "حدث خطأ أثناء حذف المفتاح والملفات المرتبطة به. يرجى المحاولة مرة أخرى أو محاولة حذف الملفات يدويًا عبر تطبيق الملفات.";
-"GetOneYearFree" = "احصل على سنة مجانية!";
 "StorageExplanationHeader" = "أين يتم تخزين صوري؟";
 "PhotoPickerWrapper.SwipeDescription" = "حدد عدة صور بتمرير واحد";
 "HideAlbumsTutorial.Subheading4" = "لإخفاء ألبوم، افتحه واضغط على قائمة النقاط الثلاث، ثم اختر 'إخفاء الألبوم'.";
@@ -442,7 +439,6 @@
 "AuthenticationMethod.ConfirmDisable" = "هل تريد حقًا تعطيل %@؟";
 "iCloud" = "آي كلاود";
 "Settings.Contact" = "اتصل بالدعم";
-"TapToTweet" = "اضغط للتغريد!";
 "Import" = "استيراد";
 "DefaultAlbumName" = "ألبومي";
 "Share Encrypted" = "مشاركة مشفرة";
@@ -500,7 +496,6 @@
 "HideAlbumsTutorial.Subheading3" = "تأكد من تذكر أسماء ألبوماتك المخفية، لأنها لن تظهر في قائمة الألبومات الخاصة بك.";
 "EmptyAlbumTakeAPictureActionTitle" = "التقط صورة";
 "PurchaseView.YourBenefits" = "مزايا البريميوم الخاصة بك:";
-"TweetToRedeemOfferExplanation" = "احصل على خصم 100٪ على رسوم الاشتراك السنوي البالغة 9.99 دولار!\n\n عليك فقط القيام بأمرين:\n1. تابع @encamera_app\n2. اضغط على الرابط أدناه لتغرد عن Encamera";
 "Keep your encrypted data safe by using %@." = "احتفظ ببياناتك المشفرة بأمان باستخدام %@.";
 "Choose your login method" = "اختر طريقة تسجيل الدخول الخاصة بك";
 "Key Management" = "إدارة المفاتيح";

@@ -311,15 +311,6 @@
 "IAmDone" = "我完成了";
 "Encrypting" = "加密中";
 "Cannot handle media" = "無法處理媒體";
-"GetOneYearFree" = "免費獲得一年！";
-"TweetToRedeemOfferExplanation" = "獲得100％的$9.99年費全免！
-
-你只需要做兩件事：
-1. 追蹤 @encamera_app
-2. 點擊下方連結發推文分享 Encamera";
-"FollowUs" = "在 Twitter 上追蹤 @encamera_app";
-"TapToTweet" = "點擊發佈推文！";
-"YouWillBeSentAPromoCode" = "之後，您將會收到一組可在應用程式兌換的促銷代碼，該代碼將通過私訊發送給您。";
 "QuicklyTakePictures" = "快速拍攝照片和影片。";
 "AlbumNotFoundAtSourceLocation" = "無法在來源位置找到相簿。請使用檔案應用程式確認其是否存在。";
 "NotificationBannerTitle" = "已加密保護";

@@ -372,13 +372,6 @@
 /* ShareViewController.swift */
 "Cannot handle media" = "No es posible procesar el multimedia"; 
 
-/* TweetToShareView.swift */
-"GetOneYearFree" = "¡Obtén 1 Año Gratis!";
-"TweetToRedeemOfferExplanation" = "¡Consigue el 100 %% de descuento en la tarifa de suscripción anual de $9.99!\n\n Solo necesitas hacer dos cosas:\n1. Seguir a @encamera_app\n2. Toca el enlace de abajo para twittear sobre Encamera";
-"FollowUs" = "Sigue a @encamera_app en Twitter";
-"TapToTweet" = "¡Toca para Twittear!";
-"YouWillBeSentAPromoCode" = "Después, se te enviará un código promocional vía DM que podrás canjear en la app."; 
-
 /* Widget */
 "QuicklyTakePictures" = "Toma fotos y videos rápidamente."; 
 
