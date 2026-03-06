@@ -74,5 +74,29 @@
 			<string>%d صورة متبقية</string>
 		</dict>
 	</dict>
+	<key>PendingImport.Description</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>اختر ألبوماً لنقل %#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>لا عناصر</string>
+			<key>one</key>
+			<string>عنصر واحد</string>
+			<key>two</key>
+			<string>عنصرين</string>
+			<key>few</key>
+			<string>%d عناصر</string>
+			<key>many</key>
+			<string>%d عنصراً</string>
+			<key>other</key>
+			<string>%d عنصر</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

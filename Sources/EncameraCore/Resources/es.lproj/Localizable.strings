@@ -799,7 +799,6 @@
 "ICloudStatus.AllSynced" = "Todos los archivos descargados";
 "Deselect All" = "Deseleccionar todo";
 "BackgroundTaskProgress.MovingBatches" = "Moviendo %@ lotes";
-"PendingImport.CancelConfirmMessage" = "Esto eliminará los medios que están esperando ser importados. Esta acción no se puede deshacer.";
 "ICloudStatus.Downloaded" = "El archivo está descargado.";
 "FileLoading.StepIndicator" = "PASO %d DE 2";
 "PendingImport.CancelConfirmTitle" = "¿Cancelar importación?";

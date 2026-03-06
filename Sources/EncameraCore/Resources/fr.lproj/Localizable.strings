@@ -685,7 +685,6 @@ album";
 "ICloudStatus.AllSynced" = "Tous les fichiers ont été téléchargés";
 "Deselect All" = "Tout désélectionner";
 "BackgroundTaskProgress.MovingBatches" = "Déplacement de %@ lots";
-"PendingImport.CancelConfirmMessage" = "Cela supprimera les médias en attente d'importation. Cette action est irréversible.";
 "ICloudStatus.Downloaded" = "Le fichier est téléchargé.";
 "FileLoading.StepIndicator" = "ÉTAPE %d SUR 2";
 "PendingImport.CancelConfirmTitle" = "Annuler l'importation ?";

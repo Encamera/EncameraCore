@@ -644,7 +644,6 @@
 "ICloudStatus.AllSynced" = "所有文件已下载";
 "Deselect All" = "取消全选";
 "BackgroundTaskProgress.MovingBatches" = "正在移动%@个批次";
-"PendingImport.CancelConfirmMessage" = "这将删除等待导入的媒体。此操作无法撤销。";
 "ICloudStatus.Downloaded" = "文件已下载。";
 "FileLoading.StepIndicator" = "第 %d 步，共 2 步";
 "PendingImport.CancelConfirmTitle" = "取消导入？";

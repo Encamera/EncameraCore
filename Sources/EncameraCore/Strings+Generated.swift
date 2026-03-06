@@ -14,13 +14,13 @@ public enum L10n {
   public static let iconInTheCameraViewToChangeTheActiveKey = L10n.tr("Localizable", " icon in the camera view to change the active key.", fallback: " icon in the camera view to change the active key.")
   ///  icon on the top left of the screen.
   public static let iconOnTheTopLeftOfTheScreen = L10n.tr("Localizable", " icon on the top left of the screen.", fallback: " icon on the top left of the screen.")
-  /// Plural format key: "%#@image_count@"
-  public static func imageS(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "%@ Image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")
-  }
   /// Plural format key: "%#@file_count@"
   public static func fileS(_ p1: Int) -> String {
     return L10n.tr("Localizable", "%@ File(s)", p1, fallback: "Plural format key: \"%#@file_count@\"")
+  }
+  /// Plural format key: "%#@image_count@"
+  public static func imageS(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "%@ Image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")
   }
   /// Plural format key: "%#@item_count@"
   public static func itemS(_ p1: Int) -> String {
@@ -816,14 +816,12 @@ public enum L10n {
     public static let addFirstImageSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstImageSubtitle", fallback: "Import an image from your album or open the camera and take a new picture for this album")
     /// Album Cover
     public static let albumCoverMenuTitle = L10n.tr("Localizable", "AlbumDetailView.AlbumCoverMenuTitle", fallback: "Album Cover")
-    /// Clear Filters
-    public static let clearFilters = L10n.tr("Localizable", "AlbumDetailView.ClearFilters", fallback: "Clear Filters")
-    /// No media found
-    public static let noMediaFound = L10n.tr("Localizable", "AlbumDetailView.NoMediaFound", fallback: "No media found")
     /// Album is now hidden
     public static let albumHiddenToast = L10n.tr("Localizable", "AlbumDetailView.AlbumHiddenToast", fallback: "Album is now hidden")
     /// Album is now visible
     public static let albumUnhiddenToast = L10n.tr("Localizable", "AlbumDetailView.AlbumUnhiddenToast", fallback: "Album is now visible")
+    /// Clear Filters
+    public static let clearFilters = L10n.tr("Localizable", "AlbumDetailView.ClearFilters", fallback: "Clear Filters")
     /// Confirm Delete
     public static let confirmDeletion = L10n.tr("Localizable", "AlbumDetailView.ConfirmDeletion", fallback: "Confirm Delete")
     /// Cover image disabled
@@ -862,6 +860,8 @@ public enum L10n {
     public static let noLicenseDeletionWarningPrimaryButton = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton", fallback: "I Understand")
     /// ⚠️ Important ⚠️
     public static let noLicenseDeletionWarningTitle = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningTitle", fallback: "⚠️ Important ⚠️")
+    /// No media found
+    public static let noMediaFound = L10n.tr("Localizable", "AlbumDetailView.NoMediaFound", fallback: "No media found")
     /// Take a New Picture
     public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Take a New Picture")
     /// Open Settings
@@ -887,7 +887,7 @@ public enum L10n {
     /// Select Media
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
     public enum SortFilter {
-      /// Date Added: Newest First
+      /// Sort & Filter
       public static let dateAddedNewest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateAddedNewest", fallback: "Date Added: Newest First")
       /// Date Added: Oldest First
       public static let dateAddedOldest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateAddedOldest", fallback: "Date Added: Oldest First")
@@ -897,14 +897,14 @@ public enum L10n {
       public static let dateCapturedOldest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateCapturedOldest", fallback: "Date Captured: Oldest First")
       /// Filter by Type
       public static let filterByType = L10n.tr("Localizable", "AlbumDetailView.SortFilter.FilterByType", fallback: "Filter by Type")
-      /// Photos
-      public static let photos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.Photos", fallback: "Photos")
-      /// Videos
-      public static let videos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.Videos", fallback: "Videos")
       /// Live Photos
       public static let livePhotos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.LivePhotos", fallback: "Live Photos")
+      /// Photos
+      public static let photos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.Photos", fallback: "Photos")
       /// Reset Filters
       public static let resetFilters = L10n.tr("Localizable", "AlbumDetailView.SortFilter.ResetFilters", fallback: "Reset Filters")
+      /// Videos
+      public static let videos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.Videos", fallback: "Videos")
     }
   }
   public enum AlbumSelectionModal {
@@ -1588,15 +1588,15 @@ public enum L10n {
     public static let subheadingText3 = L10n.tr("Localizable", "OnboardingCarousel.SubheadingText3", fallback: "Encamera never collects your data. Your private moments stay completely yours.")
   }
   public enum PendingImport {
-    /// This will delete the media waiting to be imported. This action cannot be undone.
-    public static let cancelConfirmMessage = L10n.tr("Localizable", "PendingImport.CancelConfirmMessage", fallback: "This will delete the media waiting to be imported. This action cannot be undone.")
+    /// This will cancel the import of this media. Do you want to continue?
+    public static let cancelConfirmMessage = L10n.tr("Localizable", "PendingImport.CancelConfirmMessage", fallback: "This will cancel the import of this media. Do you want to continue?")
     /// Cancel Import?
     public static let cancelConfirmTitle = L10n.tr("Localizable", "PendingImport.CancelConfirmTitle", fallback: "Cancel Import?")
     /// Delete Media
     public static let deleteMedia = L10n.tr("Localizable", "PendingImport.DeleteMedia", fallback: "Delete Media")
-    /// %d item(s) ready to import and encrypt
+    /// Select an album to move %d items
     public static func description(_ p1: Int) -> String {
-      return L10n.tr("Localizable", "PendingImport.Description", p1, fallback: "%d item(s) ready to import and encrypt")
+      return L10n.tr("Localizable", "PendingImport.Description", p1, fallback: "Select an album to move %d items")
     }
     /// Import & Encrypt
     public static let importButton = L10n.tr("Localizable", "PendingImport.ImportButton", fallback: "Import & Encrypt")
@@ -1796,6 +1796,12 @@ public enum L10n {
   public enum SplashScreen {
     /// Secure Your Memories
     public static let subline = L10n.tr("Localizable", "SplashScreen.Subline", fallback: "Secure Your Memories")
+  }
+  public enum StorageOption {
+    /// %@ Storage
+    public static func storage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "StorageOption.Storage", String(describing: p1), fallback: "%@ Storage")
+    }
   }
   public enum TaskDetailCard {
     /// Created: %@
