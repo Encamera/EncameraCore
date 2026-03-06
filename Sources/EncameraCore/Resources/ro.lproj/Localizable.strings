@@ -298,15 +298,6 @@ Aplicația se va închide după ce ștergerea este finalizată.";
 "IAmDone" = "Am terminat";
 "Encrypting" = "Criptare";
 "Cannot handle media" = "Nu poate gestiona fișiere media";
-"GetOneYearFree" = "Primește 1 an gratuit!";
-"TweetToRedeemOfferExplanation" = "Primește 100% reducere la abonamentul anual de 9,99$!
-
-Trebuie doar să faci două lucruri:
-1. Urmărește @encamera_app
-2. Apasă pe linkul de mai jos pentru a posta pe Twitter despre Encamera";
-"FollowUs" = "Urmărește @encamera_app pe Twitter";
-"TapToTweet" = "Apasă pentru a posta pe Twitter!";
-"YouWillBeSentAPromoCode" = "Ulterior, vei primi un cod promoțional prin mesaj direct pe care îl poți folosi în aplicație.";
 "QuicklyTakePictures" = "Fă rapid poze și videoclipuri.";
 "AlbumNotFoundAtSourceLocation" = "Nu s-a putut găsi albumul la locația sursă. Folosește aplicația Fișiere pentru a te asigura că există.";
 "NotificationBannerTitle" = "Protejat cu criptare";

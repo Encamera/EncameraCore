@@ -91,7 +91,6 @@
 "Take a Photo!" = "写真を撮る！";
 "Change Authentication Method" = "認証方法を変更する";
 "GlobalImportProgress.DeleteFromPhotoLibraryMessage" = "これにより、インポートしたすべての写真がフォトライブラリから削除されます。";
-"FollowUs" = "Twitterで@encamera_appをフォローしてください";
 "FeedbackView.Subheading" = "皆様のフィードバックは私たちにとって非常に重要であり、より良い製品を作るための助けとなります。ご協力ありがとうございます！";
 "GlobalImportProgress.ImportingProgress" = "%@ / %@ をインポート中";
 "PasswordSetSuccessfully" = "パスワードの設定が完了しました";
@@ -219,7 +218,6 @@
 "SaveLocally" = "このデバイスに保存";
 "PhotoPickerWrapper.FasterImport" = "高速インポート";
 "Set Password" = "パスワードを設定";
-"YouWillBeSentAPromoCode" = "後ほど、アプリで利用できるプロモコードがDMで送信されます。";
 "GalleryView.PlayLivePhoto" = "ライブフォト - 長押しで表示";
 "Notification.Permission.Granted" = "ローカル通知の許可が与えられました。";
 "Shared Media" = "共有メディア";
@@ -350,7 +348,6 @@
 "ChangePasscode" = "パスコードを変更";
 "Done" = "完了";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "キーと関連ファイルの削除中にエラーが発生しました。もう一度お試しいただくか、ファイルアプリから手動でファイルを削除してください。";
-"GetOneYearFree" = "1年間無料でゲット！";
 "StorageExplanationHeader" = "私の写真はどこに保存されていますか？";
 "PhotoPickerWrapper.SwipeDescription" = "スワイプ一回で複数の写真を選択";
 "HideAlbumsTutorial.Subheading4" = "アルバムを非表示にするには、アルバムを開いて三点メニューをタップし、「アルバムを非表示」を選択してください。";
@@ -474,7 +471,6 @@
 "AuthenticationMethod.ConfirmDisable" = "本当に%@を無効にしますか？";
 "iCloud" = "iCloud";
 "Settings.Contact" = "サポートに連絡";
-"TapToTweet" = "タップしてツイート！";
 "Import" = "インポート";
 "DefaultAlbumName" = "マイアルバム";
 "Share Encrypted" = "暗号化して共有";
@@ -532,11 +528,6 @@
 "HideAlbumsTutorial.Subheading3" = "非表示アルバムの名前はアルバム一覧に表示されないため、必ず覚えておいてください。";
 "EmptyAlbumTakeAPictureActionTitle" = "写真を撮る";
 "PurchaseView.YourBenefits" = "あなたのプレミアム特典：";
-"TweetToRedeemOfferExplanation" = "年額$9.99のサブスクリプションが100％オフ！
-
-やることは2つだけ：
-1. @encamera_appをフォロー
-2. 下のリンクをタップしてEncameraについてツイート";
 "Keep your encrypted data safe by using %@." = "%@を使って暗号化されたデータを安全に保ちましょう。";
 "Choose your login method" = "ログイン方法を選択してください";
 "Key Management" = "鍵管理";

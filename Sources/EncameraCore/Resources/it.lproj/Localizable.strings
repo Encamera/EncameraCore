@@ -91,7 +91,6 @@
 "Take a Photo!" = "Scatta una foto!";
 "Change Authentication Method" = "Cambia metodo di autenticazione";
 "GlobalImportProgress.DeleteFromPhotoLibraryMessage" = "Questo eliminerà tutte le foto importate dalla tua libreria fotografica.";
-"FollowUs" = "Segui @encamera_app su Twitter";
 "FeedbackView.Subheading" = "Il tuo feedback è davvero importante per noi e ci aiuta a costruire un prodotto migliore. Lo apprezziamo molto!";
 "GlobalImportProgress.ImportingProgress" = "Importazione %@ di %@";
 "PasswordSetSuccessfully" = "Password impostata con successo";
@@ -208,7 +207,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "SaveLocally" = "Salva su questo dispositivo";
 "PhotoPickerWrapper.FasterImport" = "Importazione più veloce";
 "Set Password" = "Imposta password";
-"YouWillBeSentAPromoCode" = "Successivamente, ti verrà inviato un codice promozionale tramite messaggio diretto che potrai riscattare nell'app.";
 "GalleryView.PlayLivePhoto" = "Live Photo - Tieni premuto per visualizzare";
 "Notification.Permission.Granted" = "Autorizzazioni per le notifiche locali concesse.";
 "Shared Media" = "Media condivisi";
@@ -323,7 +321,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "ChangePasscode" = "Cambia codice di accesso";
 "Done" = "Fatto";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Errore nell'eliminazione della chiave e dei file associati. Riprova oppure prova a eliminare i file manualmente tramite l'app File.";
-"GetOneYearFree" = "Ottieni 1 anno gratis!";
 "StorageExplanationHeader" = "Dove sono archiviate le mie foto?";
 "PhotoPickerWrapper.SwipeDescription" = "Seleziona più foto con un solo swipe";
 "HideAlbumsTutorial.Subheading4" = "Per nascondere un album, aprilo e tocca il menu con tre puntini, quindi seleziona 'Nascondi album'.";
@@ -447,7 +444,6 @@ Ogni chiave archivierà i dati nella propria cartella.
 "AuthenticationMethod.ConfirmDisable" = "Vuoi davvero disabilitare %@?";
 "iCloud" = "iCloud";
 "Settings.Contact" = "Contatta il supporto";
-"TapToTweet" = "Tocca per twittare!";
 "Import" = "Importa";
 "DefaultAlbumName" = "Il mio album";
 "Share Encrypted" = "Condividi cifrato";
@@ -506,11 +502,6 @@ Encamera!";
 "HideAlbumsTutorial.Subheading3" = "Assicurati di ricordare i nomi dei tuoi album nascosti, perché non appariranno nell'elenco dei tuoi album.";
 "EmptyAlbumTakeAPictureActionTitle" = "Scatta una foto";
 "PurchaseView.YourBenefits" = "I tuoi vantaggi Premium:";
-"TweetToRedeemOfferExplanation" = "Ottieni il 100% di sconto sulla quota di abbonamento annuale di 9,99 $!
-
-Devi solo fare due cose:
-1. Segui @encamera_app
-2. Tocca il link qui sotto per twittare su Encamera";
 "Keep your encrypted data safe by using %@." = "Tieni al sicuro i tuoi dati crittografati usando %@.";
 "Choose your login method" = "Scegli il tuo metodo di accesso";
 "Key Management" = "Gestione delle chiavi";

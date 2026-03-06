@@ -315,15 +315,6 @@
   "IAmDone" = "J'ai terminé";
   "Encrypting" = "Chiffrement";
   "Cannot handle media" = "Impossible de gérer les médias";
-  "GetOneYearFree" = "1 an gratuit !";
-  "TweetToRedeemOfferExplanation" = "Obtenez 100 % de réduction sur l’abonnement annuel de 9,99 $ !
-
-  Vous n’avez que deux choses à faire :
-  1. Suivez @encamera_app
-  2. Touchez le lien ci-dessous pour tweeter à propos d’Encamera";
-  "FollowUs" = "Suivez @encamera_app sur Twitter";
-  "TapToTweet" = "Appuyez pour tweeter !";
-  "YouWillBeSentAPromoCode" = "Ensuite, un code promo vous sera envoyé par message privé que vous pourrez utiliser dans l’application.";
   "QuicklyTakePictures" = "Prenez rapidement des photos et des vidéos.";
   "AlbumNotFoundAtSourceLocation" = "Impossible de trouver l’album à l’emplacement source. Utilisez l’application Fichiers pour vérifier qu’il existe.";
   "NotificationBannerTitle" = "Sécurisé par chiffrement";
