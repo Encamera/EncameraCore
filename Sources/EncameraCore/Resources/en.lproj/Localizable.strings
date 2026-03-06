@@ -714,6 +714,7 @@
 "AlbumSelectionModal.Move" = "Move";
 "AlbumSelectionModal.NoAlbumsTitle" = "No Other Albums";
 "AlbumSelectionModal.NoAlbumsDescription" = "Create another album first to move media between albums.";
+"StorageOption.Storage" = "%@ Storage";
 
 /* ./Encamera/AlbumManagement/MediaSelectionTray.swift */
 "MediaSelectionTray.MoveToAlbum" = "Move to Album";
@@ -903,12 +904,12 @@
 
 /* ./Encamera/MediaImport/PendingImportView.swift - Pending Import */
 "PendingImport.Title" = "Import Media";
-"PendingImport.Description" = "%d item(s) ready to import and encrypt";
+"PendingImport.Description" = "Select an album to move %d items";
 "PendingImport.SelectAlbum" = "Select destination album:";
 "PendingImport.ImportButton" = "Import & Encrypt";
 "PendingImport.CancelConfirmTitle" = "Cancel Import?";
-"PendingImport.CancelConfirmMessage" = "This will delete the media waiting to be imported. This action cannot be undone.";
 "PendingImport.DeleteMedia" = "Delete Media";
+"PendingImport.CancelConfirmMessage" = "This will cancel the import of this media. Do you want to continue?";
 
 /* ./Encamera/Lightbox/Views/MediaInfoDetailView.swift - Media Info */
 "MediaInfo.UnknownDevice" = "Unknown Device";

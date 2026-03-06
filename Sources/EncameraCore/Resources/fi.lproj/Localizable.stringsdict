@@ -56,5 +56,21 @@
 			<string>Kuvia jäljellä</string>
 		</dict>
 	</dict>
+	<key>PendingImport.Description</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Valitse albumi, johon siirretään %#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d kohde</string>
+			<key>other</key>
+			<string>%d kohdetta</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

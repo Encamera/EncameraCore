@@ -58,5 +58,21 @@
 			<string>Fotos restantes</string>
 		</dict>
 	</dict>
+	<key>PendingImport.Description</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Selecciona un álbum para mover %#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d elemento</string>
+			<key>other</key>
+			<string>%d elementos</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

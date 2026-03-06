@@ -667,7 +667,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "ICloudStatus.AllSynced" = "Toate fișierele au fost descărcate";
 "Deselect All" = "Deselectează tot";
 "BackgroundTaskProgress.MovingBatches" = "Se mută %@ loturi";
-"PendingImport.CancelConfirmMessage" = "Aceasta va șterge fișierele media care așteaptă să fie importate. Această acțiune nu poate fi anulată.";
 "ICloudStatus.Downloaded" = "Fișierul a fost descărcat.";
 "FileLoading.StepIndicator" = "PASUL %d DIN 2";
 "PendingImport.CancelConfirmTitle" = "Anulați importul?";

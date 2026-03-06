@@ -678,7 +678,6 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "ICloudStatus.AllSynced" = "Kaikki tiedostot ladattu";
 "Deselect All" = "Poista kaikki valinnat";
 "BackgroundTaskProgress.MovingBatches" = "Siirretään %@ erää";
-"PendingImport.CancelConfirmMessage" = "Tämä poistaa tuontia odottavat mediatiedostot. Tätä toimintoa ei voi perua.";
 "ICloudStatus.Downloaded" = "Tiedosto on ladattu.";
 "FileLoading.StepIndicator" = "VAIHE %d / 2";
 "PendingImport.CancelConfirmTitle" = "Peru tuonti?";

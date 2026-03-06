@@ -800,7 +800,6 @@
 "ICloudStatus.AllSynced" = "Alle Dateien heruntergeladen";
 "Deselect All" = "Alle abwählen";
 "BackgroundTaskProgress.MovingBatches" = "%@ Stapel werden verschoben";
-"PendingImport.CancelConfirmMessage" = "Dadurch werden die Medien gelöscht, die auf den Import warten. Diese Aktion kann nicht rückgängig gemacht werden.";
 "ICloudStatus.Downloaded" = "Datei ist heruntergeladen.";
 "FileLoading.StepIndicator" = "SCHRITT %d VON 2";
 "PendingImport.CancelConfirmTitle" = "Import abbrechen?";

@@ -654,7 +654,6 @@ Du skal kun gøre to ting:
 "ICloudStatus.AllSynced" = "Alle filer downloadet";
 "Deselect All" = "Fravælg alle";
 "BackgroundTaskProgress.MovingBatches" = "Flytter %@ batches";
-"PendingImport.CancelConfirmMessage" = "Dette vil slette medier, der venter på at blive importeret. Denne handling kan ikke fortrydes.";
 "ICloudStatus.Downloaded" = "Filen er downloadet.";
 "FileLoading.StepIndicator" = "TRIN %d AF 2";
 "PendingImport.CancelConfirmTitle" = "Annuller import?";

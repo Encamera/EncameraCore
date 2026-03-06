@@ -683,7 +683,6 @@
 "ICloudStatus.AllSynced" = "すべてのファイルがダウンロードされました";
 "Deselect All" = "すべて選択解除";
 "BackgroundTaskProgress.MovingBatches" = "%@件のバッチを移動中";
-"PendingImport.CancelConfirmMessage" = "これはインポート待ちのメディアを削除します。この操作は元に戻せません。";
 "ICloudStatus.Downloaded" = "ファイルはダウンロードされています。";
 "FileLoading.StepIndicator" = "ステップ %d / 2";
 "PendingImport.CancelConfirmTitle" = "インポートをキャンセルしますか？";

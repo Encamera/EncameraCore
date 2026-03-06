@@ -648,7 +648,6 @@
 "ICloudStatus.AllSynced" = "تم تنزيل جميع الملفات";
 "Deselect All" = "إلغاء تحديد الكل";
 "BackgroundTaskProgress.MovingBatches" = "يتم نقل %@ دفعات";
-"PendingImport.CancelConfirmMessage" = "سيؤدي هذا إلى حذف الوسائط التي تنتظر الاستيراد. لا يمكن التراجع عن هذا الإجراء.";
 "ICloudStatus.Downloaded" = "تم تنزيل الملف.";
 "FileLoading.StepIndicator" = "الخطوة %d من 2";
 "PendingImport.CancelConfirmTitle" = "إلغاء الاستيراد؟";
