@@ -1214,14 +1214,14 @@ public enum L10n {
     public static let showMoveToAlbum = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbum", fallback: "Move to Album")
     /// Enable moving media between albums
     public static let showMoveToAlbumDescription = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbumDescription", fallback: "Enable moving media between albums")
-    /// Stop Tracking
-    public static let stopTracking = L10n.tr("Localizable", "FeatureToggles.StopTracking", fallback: "Stop Tracking")
-    /// Disable all analytics tracking
-    public static let stopTrackingDescription = L10n.tr("Localizable", "FeatureToggles.StopTrackingDescription", fallback: "Disable all analytics tracking")
-    /// Changing this setting will affect app analytics. Are you sure?
-    public static let stopTrackingToggleMessage = L10n.tr("Localizable", "FeatureToggles.StopTrackingToggleMessage", fallback: "Changing this setting will affect app analytics. Are you sure?")
-    /// Confirm Tracking Change
-    public static let stopTrackingToggleTitle = L10n.tr("Localizable", "FeatureToggles.StopTrackingToggleTitle", fallback: "Confirm Tracking Change")
+    /// Debug Tracking
+    public static let debugTracking = L10n.tr("Localizable", "FeatureToggles.DebugTracking", fallback: "Debug Tracking")
+    /// Intercept analytics events and display them in-app for debugging
+    public static let debugTrackingDescription = L10n.tr("Localizable", "FeatureToggles.DebugTrackingDescription", fallback: "Intercept analytics events and display them in-app for debugging")
+    /// Analytics events will be captured in-app instead of sent to services. Continue?
+    public static let debugTrackingToggleMessage = L10n.tr("Localizable", "FeatureToggles.DebugTrackingToggleMessage", fallback: "Analytics events will be captured in-app instead of sent to services. Continue?")
+    /// Enable Debug Tracking
+    public static let debugTrackingToggleTitle = L10n.tr("Localizable", "FeatureToggles.DebugTrackingToggleTitle", fallback: "Enable Debug Tracking")
     /// ./Encamera/Settings/FeatureTogglesView.swift
     public static let title = L10n.tr("Localizable", "FeatureToggles.Title", fallback: "Feature Toggles")
     /// Write V2 Metadata

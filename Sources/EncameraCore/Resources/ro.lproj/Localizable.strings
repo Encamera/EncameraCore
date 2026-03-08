@@ -593,13 +593,11 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "EnterPasscode" = "Introduceți codul de acces";
 
 "BlackFridayTitle" = "BLACK FRIDAY ESTE AICI!";
-"FeatureToggles.StopTrackingDescription" = "Dezactivează toate urmăririle analitice";
 "BlackFridaySubtitle" = "Nu rata! Oferta se încheie în curând!";
 "FeatureToggles.RecoveryPhraseDescription" = "Activează funcția de frază de recuperare";
 "FeatureToggles.RevenuecatToggleTitle" = "Este necesară repornirea";
 "PromotionalBanner.ImageLoadError" = "Imaginea nu a putut fi încărcată";
 "PromotionalBanner.DismissAccessibility" = "Închide bannerul";
-"FeatureToggles.StopTrackingToggleTitle" = "Confirmă modificarea urmăririi";
 "CMS.LoadingError" = "Nu s-au putut încărca bannerele promoționale";
 "FeatureToggles.EnableVideoDescription" = "Activează înregistrarea și redarea videoclipurilor";
 "PurchaseScreen.Retry" = "Reîncearcă";
@@ -608,7 +606,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "Common.Confirm" = "Confirmă";
 "ProductPrice.SalePercentageOff" = "%d%% REDUCERE";
 "PurchaseScreen.LoadingSubscriptions" = "Se încarcă abonamentele...";
-"FeatureToggles.StopTracking" = "Oprește urmărirea";
 "CMS.NoBannersAvailable" = "Nu există bannere promoționale disponibile";
 "CMS.NetworkError" = "Nu se poate încărca conținutul promoțional. Se folosește datele din cache.";
 "FeatureToggles.Title" = "Comutatoare de funcționalități";
@@ -618,7 +615,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "PurchaseScreen.ErrorLoadingSubscriptions" = "Nu s-au putut încărca abonamentele";
 "FeatureToggles.EnableTestRevenueCat" = "Testează RevenueCat";
 "FeatureToggles.HideAlbum" = "Ascunde albumul";
-"FeatureToggles.StopTrackingToggleMessage" = "Modificarea acestei setări va afecta analiza aplicației. Ești sigur?";
 "FeatureToggles.EnableVideo" = "Activează video";
 "FeatureToggles.DebugRemoteContentDescription" = "Activează depanarea pentru conținutul CMS la distanță";
 "ICloudStatus.Downloading" = "Se descarcă din iCloud: %d%%";

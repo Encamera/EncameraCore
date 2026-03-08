@@ -138,8 +138,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
             let type = URLType(url: url)
             switch type {
-            case .featureToggle(feature: .stopTracking):
-                FeatureToggle.enable(feature: .stopTracking)
+            case .featureToggle(feature: .debugTracking):
+                FeatureToggle.enable(feature: .debugTracking)
             default:
                 break
             }

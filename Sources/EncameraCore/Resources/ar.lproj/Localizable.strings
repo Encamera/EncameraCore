@@ -578,13 +578,11 @@
 "EnterPasscode" = "أدخل رمز المرور";
 
 "BlackFridayTitle" = "الجمعة السوداء هنا!";
-"FeatureToggles.StopTrackingDescription" = "تعطيل جميع تتبعات التحليلات";
 "BlackFridaySubtitle" = "لا تفوت الفرصة! العرض ينتهي قريبًا!";
 "FeatureToggles.RecoveryPhraseDescription" = "تفعيل ميزة عبارة الاسترداد";
 "FeatureToggles.RevenuecatToggleTitle" = "إعادة التشغيل مطلوبة";
 "PromotionalBanner.ImageLoadError" = "فشل تحميل الصورة";
 "PromotionalBanner.DismissAccessibility" = "إغلاق الشريط";
-"FeatureToggles.StopTrackingToggleTitle" = "تأكيد تغيير التتبع";
 "CMS.LoadingError" = "فشل تحميل اللافتات الترويجية";
 "FeatureToggles.EnableVideoDescription" = "تفعيل تسجيل وتشغيل الفيديو";
 "PurchaseScreen.Retry" = "إعادة المحاولة";
@@ -593,7 +591,6 @@
 "Common.Confirm" = "تأكيد";
 "ProductPrice.SalePercentageOff" = "%d%% خصم";
 "PurchaseScreen.LoadingSubscriptions" = "جارٍ تحميل الاشتراكات...";
-"FeatureToggles.StopTracking" = "إيقاف التتبع";
 "CMS.NoBannersAvailable" = "لا توجد لافتات ترويجية متاحة";
 "CMS.NetworkError" = "تعذر تحميل المحتوى الترويجي. يتم استخدام البيانات المخزنة مؤقتًا.";
 "FeatureToggles.Title" = "تبديل الميزات";
@@ -603,7 +600,6 @@
 "PurchaseScreen.ErrorLoadingSubscriptions" = "غير قادر على تحميل الاشتراكات";
 "FeatureToggles.EnableTestRevenueCat" = "اختبار RevenueCat";
 "FeatureToggles.HideAlbum" = "إخفاء الألبوم";
-"FeatureToggles.StopTrackingToggleMessage" = "تغيير هذا الإعداد سيؤثر على تحليلات التطبيق. هل أنت متأكد؟";
 "FeatureToggles.EnableVideo" = "تفعيل الفيديو";
 "FeatureToggles.DebugRemoteContentDescription" = "تمكين التصحيح لمحتوى نظام إدارة المحتوى البعيد";
 "ICloudStatus.Downloading" = "جارٍ التنزيل من iCloud: ‏%d%%";

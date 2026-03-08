@@ -609,13 +609,11 @@
 "EnterPasscode" = "パスコードを入力してください";
 
 "BlackFridayTitle" = "ブラックフライデーがやってきた！";
-"FeatureToggles.StopTrackingDescription" = "すべてのアナリティクストラッキングを無効にする";
 "BlackFridaySubtitle" = "お見逃しなく！セールはまもなく終了します！";
 "FeatureToggles.RecoveryPhraseDescription" = "リカバリーフレーズ機能を有効にする";
 "FeatureToggles.RevenuecatToggleTitle" = "再起動が必要です";
 "PromotionalBanner.ImageLoadError" = "画像の読み込みに失敗しました";
 "PromotionalBanner.DismissAccessibility" = "バナーを閉じる";
-"FeatureToggles.StopTrackingToggleTitle" = "追跡変更の確認";
 "CMS.LoadingError" = "プロモーションバナーの読み込みに失敗しました";
 "FeatureToggles.EnableVideoDescription" = "ビデオ録画と再生を有効にする";
 "PurchaseScreen.Retry" = "再試行";
@@ -624,7 +622,6 @@
 "Common.Confirm" = "確認";
 "ProductPrice.SalePercentageOff" = "%d%%オフ";
 "PurchaseScreen.LoadingSubscriptions" = "購読を読み込んでいます...";
-"FeatureToggles.StopTracking" = "追跡を停止";
 "CMS.NoBannersAvailable" = "利用可能なプロモーションバナーはありません";
 "CMS.NetworkError" = "プロモーションコンテンツを読み込めません。キャッシュされたデータを使用します。";
 "FeatureToggles.Title" = "機能の切り替え";
@@ -634,7 +631,6 @@
 "PurchaseScreen.ErrorLoadingSubscriptions" = "サブスクリプションを読み込めません";
 "FeatureToggles.EnableTestRevenueCat" = "RevenueCatをテストする";
 "FeatureToggles.HideAlbum" = "アルバムを非表示";
-"FeatureToggles.StopTrackingToggleMessage" = "この設定を変更するとアプリの分析に影響します。本当によろしいですか？";
 "FeatureToggles.EnableVideo" = "ビデオを有効にする";
 "FeatureToggles.DebugRemoteContentDescription" = "リモートCMSコンテンツのデバッグを有効にする";
 "ICloudStatus.Downloading" = "iCloudからダウンロード中：%d%%";
