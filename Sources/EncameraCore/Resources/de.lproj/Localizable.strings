@@ -901,7 +901,5 @@
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBEN";
 "MovieDecryptionError" = "Film konnte nicht geladen oder entschlüsselt werden. Möglicherweise kann er nicht heruntergeladen werden. Wenn sich dieses Medium auf iCloud befindet, stellen Sie sicher, dass Sie mit Ihrer aktuellen Internetverbindung Dateien herunterladen können. Fehler: %@. Bitte aktualisieren Sie die App auf die neueste Version, falls Sie dies noch nicht getan haben.";
 "ZipExportError.DecryptionFailed" = "Entschlüsselung der Medien fehlgeschlagen: %@. Bitte aktualisieren Sie die App auf die neueste Version, falls Sie dies noch nicht getan haben.";
-"FeatureToggles.WriteV2MetadataDescription" = "Neue Dateien im V2-Format mit eingebetteten Metadaten schreiben";
-"FeatureToggles.WriteV2Metadata" = "V2-Metadaten schreiben";
 "Decryption error: %@" = "Entschlüsselungsfehler: %@. Bitte aktualisieren Sie die App auf die neueste Version, falls Sie dies noch nicht getan haben.";
 "FileLoading.CellularWarning" = "Sie verwenden mobile Daten. Große Dateien können länger dauern, um von iCloud heruntergeladen zu werden.";

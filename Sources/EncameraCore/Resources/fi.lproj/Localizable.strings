@@ -781,7 +781,5 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBUMIA";
 "MovieDecryptionError" = "Elokuvaa ei voitu ladata tai purkaa salauksesta. Sitä ei ehkä voi ladata. Jos tämä media on iCloudissa, varmista, että voit ladata tiedostoja nykyisellä internet-yhteydelläsi. Virhe: %@. Päivitä sovellus uusimpaan versioon, jos et ole jo tehnyt niin.";
 "ZipExportError.DecryptionFailed" = "Median purku salauksesta epäonnistui: %@. Päivitä sovellus uusimpaan versioon, jos et ole jo tehnyt niin.";
-"FeatureToggles.WriteV2MetadataDescription" = "Kirjoita uudet tiedostot V2-muodossa upotetulla metatiedolla";
-"FeatureToggles.WriteV2Metadata" = "Kirjoita V2-metatiedot";
 "Decryption error: %@" = "Salauspurkuvirhe: %@. Päivitä sovellus uusimpaan versioon, jos et ole jo tehnyt niin.";
 "FileLoading.CellularWarning" = "Käytät mobiilidataa. Suurten tiedostojen lataaminen iCloudista voi kestää kauemmin.";

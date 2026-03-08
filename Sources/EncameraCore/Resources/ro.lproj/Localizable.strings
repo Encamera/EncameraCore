@@ -766,7 +766,5 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBUME";
 "MovieDecryptionError" = "Nu s-a putut încărca sau decripta filmul. Este posibil să nu poată fi descărcat. Dacă acest fișier media se află pe iCloud, asigură-te că poți descărca fișiere cu conexiunea ta actuală la Internet. Eroare: %@. Te rugăm să actualizezi aplicația la cea mai recentă versiune dacă nu ai făcut-o deja.";
 "ZipExportError.DecryptionFailed" = "Decriptarea fișierului media a eșuat: %@. Te rugăm să actualizezi aplicația la cea mai recentă versiune dacă nu ai făcut-o deja.";
-"FeatureToggles.WriteV2MetadataDescription" = "Scrie fișiere noi folosind formatul V2 cu metadate încorporate";
-"FeatureToggles.WriteV2Metadata" = "Scrie metadate V2";
 "Decryption error: %@" = "Eroare de decriptare: %@. Te rugăm să actualizezi aplicația la cea mai recentă versiune dacă nu ai făcut-o deja.";
 "FileLoading.CellularWarning" = "Ești pe date mobile. Fișierele mari pot dura mai mult să se descarce de pe iCloud.";

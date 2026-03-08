@@ -1224,10 +1224,6 @@ public enum L10n {
     public static let debugTrackingToggleTitle = L10n.tr("Localizable", "FeatureToggles.DebugTrackingToggleTitle", fallback: "Enable Debug Tracking")
     /// ./Encamera/Settings/FeatureTogglesView.swift
     public static let title = L10n.tr("Localizable", "FeatureToggles.Title", fallback: "Feature Toggles")
-    /// Write V2 Metadata
-    public static let writeV2Metadata = L10n.tr("Localizable", "FeatureToggles.WriteV2Metadata", fallback: "Write V2 Metadata")
-    /// Write new files using V2 format with embedded metadata
-    public static let writeV2MetadataDescription = L10n.tr("Localizable", "FeatureToggles.WriteV2MetadataDescription", fallback: "Write new files using V2 format with embedded metadata")
   }
   public enum FeedbackView {
     /// What could we improve?

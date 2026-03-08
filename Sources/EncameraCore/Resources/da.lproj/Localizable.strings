@@ -753,7 +753,5 @@ Encamera!";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBUMMER";
 "MovieDecryptionError" = "Kunne ikke indlæse eller dekryptere filmen. Den kan muligvis ikke downloades. Hvis denne medie er på iCloud, skal du sikre dig, at du kan downloade filer med din nuværende internetforbindelse. Fejl: %@. Opdater venligst appen til den nyeste version, hvis du ikke allerede har gjort det.";
 "ZipExportError.DecryptionFailed" = "Kunne ikke dekryptere medie: %@. Opdater venligst appen til den nyeste version, hvis du ikke allerede har gjort det.";
-"FeatureToggles.WriteV2MetadataDescription" = "Skriv nye filer ved hjælp af V2-format med indlejrede metadata";
-"FeatureToggles.WriteV2Metadata" = "Skriv V2-metadata";
 "Decryption error: %@" = "Dekrypteringsfejl: %@. Opdater venligst appen til den nyeste version, hvis du ikke allerede har gjort det.";
 "FileLoading.CellularWarning" = "Du bruger mobildata. Store filer kan tage længere tid at downloade fra iCloud.";

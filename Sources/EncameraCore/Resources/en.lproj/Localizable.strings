@@ -893,8 +893,6 @@
 "FeatureToggles.ShowDesignSystemDescription" = "Show hidden design system showcase";
 "FeatureToggles.AppIconSelection" = "App Icon Selection";
 "FeatureToggles.AppIconSelectionDescription" = "Enable custom app icon selection";
-"FeatureToggles.WriteV2Metadata" = "Write V2 Metadata";
-"FeatureToggles.WriteV2MetadataDescription" = "Write new files using V2 format with embedded metadata";
 "FeatureToggles.NewPaywall" = "New Paywall";
 "FeatureToggles.NewPaywallDescription" = "Use the redesigned paywall instead of the classic purchase screen";
 "Common.Cancel" = "Cancel";
