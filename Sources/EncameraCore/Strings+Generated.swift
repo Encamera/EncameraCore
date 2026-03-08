@@ -1807,8 +1807,8 @@ public enum L10n {
     public static let bannersCleared = L10n.tr("Localizable", "Settings.BannersCleared", fallback: "Banners Cleared")
     /// All dismissed banners have been reset and will appear again.
     public static let bannersClearedMessage = L10n.tr("Localizable", "Settings.BannersClearedMessage", fallback: "All dismissed banners have been reset and will appear again.")
-    /// Clear Dismissed Banners
-    public static let clearDismissedBanners = L10n.tr("Localizable", "Settings.ClearDismissedBanners", fallback: "Clear Dismissed Banners")
+    /// Reset Banners
+    public static let clearDismissedBanners = L10n.tr("Localizable", "Settings.ClearDismissedBanners", fallback: "Reset Banners")
     /// Contact Support
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
     /// Copied to clipboard
