@@ -513,6 +513,51 @@
 "PurchaseView.BenefitModel.BackupKeychain" = "Backup keychain to iCloud";
 "PurchaseView.BenefitModel.HiddenAlbums" = "Hidden albums";
 "PurchaseView.BenefitModel.ComingSoon" = "Coming Soon";
+
+// MARK: - PaywallView
+"PaywallView.Premium" = "Premium";
+"PaywallView.Unlock" = "UNLOCK";
+"PaywallView.UnlimitedStorage" = "Unlimited Storage";
+"PaywallView.SelectPlan" = "Select the right plan for you";
+"PaywallView.CheckBenefits" = "Check benefits";
+"PaywallView.CurrentPlan" = "CURRENT PLAN";
+"PaywallView.BiggestSaving" = "BIGGEST SAVING";
+"PaywallView.MostFlexible" = "MOST FLEXIBLE";
+"PaywallView.OneTimePayment" = "ONE-TIME PAYMENT";
+"PaywallView.BestValue" = "BEST VALUE";
+"PaywallView.UnlimitedAnnualDescription" = "Ideal for users seeking continuous protection with the best annual savings";
+"PaywallView.UnlimitedAnnualSubtext" = "Billed yearly";
+"PaywallView.UnlimitedAnnualSubtextWithMonthlyPrice" = "%@ per month, billed yearly";
+"PaywallView.UnlimitedMonthlyDescription" = "Great for users who value flexibility and month-to-month freedom";
+"PaywallView.UnlimitedMonthlySubtext" = "Billed monthly, 7 day free trial";
+"PaywallView.LifetimeLimitedDescription" = "One-time payment for unlimited storage plus updates for one year only";
+"PaywallView.LifetimeLimitedSubtext" = "Pay once, use forever";
+"PaywallView.LifetimeUnlimitedDescription" = "Ultimate choice for users who demand complete protection that lasts forever";
+"PaywallView.LifetimeUnlimitedSubtext" = "Pay once, updates forever";
+"PaywallView.GetButton" = "Get %@";
+"PaywallView.EverythingYouGet" = "Everything you get\nwith Premium";
+"PaywallView.Benefit.UnlimitedStorage" = "Unlimited Storage";
+"PaywallView.Benefit.UnlimitedStorageDescription" = "Keep every photo and video, forever";
+"PaywallView.Benefit.UnlimitedAlbums" = "Unlimited Albums";
+"PaywallView.Benefit.UnlimitedAlbumsDescription" = "Organize memories without any limits";
+"PaywallView.Benefit.iCloudKeychainBackup" = "iCloud Keychain Backup";
+"PaywallView.Benefit.iCloudKeychainBackupDescription" = "Your encryption key stored on iCloud";
+"PaywallView.Benefit.ChangeAppIcon" = "Change App Icon";
+"PaywallView.Benefit.ChangeAppIconDescription" = "Make Encamera looks like a normal app";
+"PaywallView.Benefit.HiddenAlbums" = "Hidden Albums";
+"PaywallView.Benefit.HiddenAlbumsDescription" = "Keep private memories out of sight";
+"PaywallView.BuiltByPeople" = "Committed to your privacy.";
+"PaywallView.BackToPlans" = "Back to plans";
+"PaywallView.RestorePurchase" = "Restore Purchase";
+"PaywallView.PrivacyPolicy" = "Privacy Policy";
+"PaywallView.TermsOfService" = "Terms of Service";
+"PaywallView.AppName" = "Encamera";
+"PaywallView.BuiltByNames" = "Alex & Mihai";
+"PaywallView.AlbumPreview.PrivatePics" = "Private 🔒";
+"PaywallView.AlbumPreview.EightItems" = "8 items";
+"PaywallView.AlbumPreview.OurTrips" = "Our Trips";
+"PaywallView.AlbumPreview.SixteenItems" = "16 items";
+
 "ThanksForPurchasingLifetime" = "Thanks for purchasing a lifetime license!";
 "ThanksForPurchasingLifetimeSubtitle" = "You rock and you will unlock new benefits soon.";
 "ImportKeyPhrase" = "Import Key Phrase";
@@ -854,6 +899,8 @@
 "FeatureToggles.AppIconSelectionDescription" = "Enable custom app icon selection";
 "FeatureToggles.WriteV2Metadata" = "Write V2 Metadata";
 "FeatureToggles.WriteV2MetadataDescription" = "Write new files using V2 format with embedded metadata";
+"FeatureToggles.NewPaywall" = "New Paywall";
+"FeatureToggles.NewPaywallDescription" = "Use the redesigned paywall instead of the classic purchase screen";
 "Common.Cancel" = "Cancel";
 "Common.Confirm" = "Confirm";
 

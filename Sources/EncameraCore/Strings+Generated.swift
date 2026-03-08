@@ -1190,6 +1190,10 @@ public enum L10n {
     public static let hideAlbum = L10n.tr("Localizable", "FeatureToggles.HideAlbum", fallback: "Hide Album")
     /// Hide album from main view
     public static let hideAlbumDescription = L10n.tr("Localizable", "FeatureToggles.HideAlbumDescription", fallback: "Hide album from main view")
+    /// New Paywall
+    public static let newPaywall = L10n.tr("Localizable", "FeatureToggles.NewPaywall", fallback: "New Paywall")
+    /// Use the redesigned paywall instead of the classic purchase screen
+    public static let newPaywallDescription = L10n.tr("Localizable", "FeatureToggles.NewPaywallDescription", fallback: "Use the redesigned paywall instead of the classic purchase screen")
     /// Recovery Phrase
     public static let recoveryPhrase = L10n.tr("Localizable", "FeatureToggles.RecoveryPhrase", fallback: "Recovery Phrase")
     /// Enable recovery phrase feature
@@ -1572,6 +1576,101 @@ public enum L10n {
     public static let subheadingText2 = L10n.tr("Localizable", "OnboardingCarousel.SubheadingText2", fallback: "Your albums are locked with your unique key and stored safely on your device or iCloud.")
     /// Encamera never collects your data. Your private moments stay completely yours.
     public static let subheadingText3 = L10n.tr("Localizable", "OnboardingCarousel.SubheadingText3", fallback: "Encamera never collects your data. Your private moments stay completely yours.")
+  }
+  public enum PaywallView {
+    /// Encamera
+    public static let appName = L10n.tr("Localizable", "PaywallView.AppName", fallback: "Encamera")
+    /// Back to plans
+    public static let backToPlans = L10n.tr("Localizable", "PaywallView.BackToPlans", fallback: "Back to plans")
+    /// BEST VALUE
+    public static let bestValue = L10n.tr("Localizable", "PaywallView.BestValue", fallback: "BEST VALUE")
+    /// BIGGEST SAVING
+    public static let biggestSaving = L10n.tr("Localizable", "PaywallView.BiggestSaving", fallback: "BIGGEST SAVING")
+    /// Alex & Mihai
+    public static let builtByNames = L10n.tr("Localizable", "PaywallView.BuiltByNames", fallback: "Alex & Mihai")
+    /// Built by people who mean it.
+    public static let builtByPeople = L10n.tr("Localizable", "PaywallView.BuiltByPeople", fallback: "Built by people who mean it.")
+    /// Check benefits
+    public static let checkBenefits = L10n.tr("Localizable", "PaywallView.CheckBenefits", fallback: "Check benefits")
+    /// CURRENT PLAN
+    public static let currentPlan = L10n.tr("Localizable", "PaywallView.CurrentPlan", fallback: "CURRENT PLAN")
+    /// Everything you get
+    /// with Premium
+    public static let everythingYouGet = L10n.tr("Localizable", "PaywallView.EverythingYouGet", fallback: "Everything you get\nwith Premium")
+    /// Get %@
+    public static func getButton(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "PaywallView.GetButton", String(describing: p1), fallback: "Get %@")
+    }
+    /// One-time payment for unlimited storage plus updates for one year only
+    public static let lifetimeLimitedDescription = L10n.tr("Localizable", "PaywallView.LifetimeLimitedDescription", fallback: "One-time payment for unlimited storage plus updates for one year only")
+    /// Pay once, use forever
+    public static let lifetimeLimitedSubtext = L10n.tr("Localizable", "PaywallView.LifetimeLimitedSubtext", fallback: "Pay once, use forever")
+    /// Ultimate choice for users who demand complete protection that lasts forever
+    public static let lifetimeUnlimitedDescription = L10n.tr("Localizable", "PaywallView.LifetimeUnlimitedDescription", fallback: "Ultimate choice for users who demand complete protection that lasts forever")
+    /// Pay once, updates forever
+    public static let lifetimeUnlimitedSubtext = L10n.tr("Localizable", "PaywallView.LifetimeUnlimitedSubtext", fallback: "Pay once, updates forever")
+    /// MOST FLEXIBLE
+    public static let mostFlexible = L10n.tr("Localizable", "PaywallView.MostFlexible", fallback: "MOST FLEXIBLE")
+    /// ONE-TIME PAYMENT
+    public static let oneTimePayment = L10n.tr("Localizable", "PaywallView.OneTimePayment", fallback: "ONE-TIME PAYMENT")
+    /// Premium
+    public static let premium = L10n.tr("Localizable", "PaywallView.Premium", fallback: "Premium")
+    /// Privacy Policy
+    public static let privacyPolicy = L10n.tr("Localizable", "PaywallView.PrivacyPolicy", fallback: "Privacy Policy")
+    /// Restore Purchase
+    public static let restorePurchase = L10n.tr("Localizable", "PaywallView.RestorePurchase", fallback: "Restore Purchase")
+    /// Select the right plan for you
+    public static let selectPlan = L10n.tr("Localizable", "PaywallView.SelectPlan", fallback: "Select the right plan for you")
+    /// Terms of Service
+    public static let termsOfService = L10n.tr("Localizable", "PaywallView.TermsOfService", fallback: "Terms of Service")
+    /// Ideal for users seeking continuous protection with the best annual savings
+    public static let unlimitedAnnualDescription = L10n.tr("Localizable", "PaywallView.UnlimitedAnnualDescription", fallback: "Ideal for users seeking continuous protection with the best annual savings")
+    /// $1.99 per month, billed yearly
+    public static let unlimitedAnnualSubtext = L10n.tr("Localizable", "PaywallView.UnlimitedAnnualSubtext", fallback: "Billed yearly")
+    /// %@ per month, billed yearly
+    public static func unlimitedAnnualSubtextWithMonthlyPrice(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "PaywallView.UnlimitedAnnualSubtextWithMonthlyPrice", String(describing: p1), fallback: "%@ per month, billed yearly")
+    }
+    /// Great for users who value flexibility and month-to-month freedom
+    public static let unlimitedMonthlyDescription = L10n.tr("Localizable", "PaywallView.UnlimitedMonthlyDescription", fallback: "Great for users who value flexibility and month-to-month freedom")
+    /// Billed monthly, 7 day free trial
+    public static let unlimitedMonthlySubtext = L10n.tr("Localizable", "PaywallView.UnlimitedMonthlySubtext", fallback: "Billed monthly, 7 day free trial")
+    /// Unlimited Storage
+    public static let unlimitedStorage = L10n.tr("Localizable", "PaywallView.UnlimitedStorage", fallback: "Unlimited Storage")
+    /// UNLOCK
+    public static let unlock = L10n.tr("Localizable", "PaywallView.Unlock", fallback: "UNLOCK")
+    public enum AlbumPreview {
+      /// 8 items
+      public static let eightItems = L10n.tr("Localizable", "PaywallView.AlbumPreview.EightItems", fallback: "8 items")
+      /// Our Trips
+      public static let ourTrips = L10n.tr("Localizable", "PaywallView.AlbumPreview.OurTrips", fallback: "Our Trips")
+      /// Private Pics 🔒
+      public static let privatePics = L10n.tr("Localizable", "PaywallView.AlbumPreview.PrivatePics", fallback: "Private Pics 🔒")
+      /// 16 items
+      public static let sixteenItems = L10n.tr("Localizable", "PaywallView.AlbumPreview.SixteenItems", fallback: "16 items")
+    }
+    public enum Benefit {
+      /// Change App Icon
+      public static let changeAppIcon = L10n.tr("Localizable", "PaywallView.Benefit.ChangeAppIcon", fallback: "Change App Icon")
+      /// Make Encamera looks like a normal app
+      public static let changeAppIconDescription = L10n.tr("Localizable", "PaywallView.Benefit.ChangeAppIconDescription", fallback: "Make Encamera looks like a normal app")
+      /// Hidden Albums
+      public static let hiddenAlbums = L10n.tr("Localizable", "PaywallView.Benefit.HiddenAlbums", fallback: "Hidden Albums")
+      /// Keep private memories out of sight
+      public static let hiddenAlbumsDescription = L10n.tr("Localizable", "PaywallView.Benefit.HiddenAlbumsDescription", fallback: "Keep private memories out of sight")
+      /// iCloud Keychain Backup
+      public static let iCloudKeychainBackup = L10n.tr("Localizable", "PaywallView.Benefit.iCloudKeychainBackup", fallback: "iCloud Keychain Backup")
+      /// Your encryption key stored on iCloud
+      public static let iCloudKeychainBackupDescription = L10n.tr("Localizable", "PaywallView.Benefit.iCloudKeychainBackupDescription", fallback: "Your encryption key stored on iCloud")
+      /// Unlimited Albums
+      public static let unlimitedAlbums = L10n.tr("Localizable", "PaywallView.Benefit.UnlimitedAlbums", fallback: "Unlimited Albums")
+      /// Organize memories without any limits
+      public static let unlimitedAlbumsDescription = L10n.tr("Localizable", "PaywallView.Benefit.UnlimitedAlbumsDescription", fallback: "Organize memories without any limits")
+      /// Unlimited Storage
+      public static let unlimitedStorage = L10n.tr("Localizable", "PaywallView.Benefit.UnlimitedStorage", fallback: "Unlimited Storage")
+      /// Keep every photo and video, forever
+      public static let unlimitedStorageDescription = L10n.tr("Localizable", "PaywallView.Benefit.UnlimitedStorageDescription", fallback: "Keep every photo and video, forever")
+    }
   }
   public enum PendingImport {
     /// This will cancel the import of this media. Do you want to continue?
