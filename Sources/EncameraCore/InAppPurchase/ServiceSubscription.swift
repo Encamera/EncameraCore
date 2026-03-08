@@ -33,6 +33,10 @@ public struct SubscriptionSavings: Equatable {
         return "\(currency)/\(period)"
     }
 
+    public var formattedMonthlyPriceValue: String {
+        monthlyPrice.formatted(priceFormatStyle)
+    }
+
     public static func == (lhs: SubscriptionSavings, rhs: SubscriptionSavings) -> Bool {
         return lhs.totalSavings == rhs.totalSavings && lhs.monthlyPrice == rhs.monthlyPrice && lhs.granularPricePeriod == rhs.granularPricePeriod
     }

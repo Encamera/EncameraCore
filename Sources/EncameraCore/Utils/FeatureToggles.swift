@@ -20,7 +20,8 @@ public enum Feature: String, CaseIterable {
     case debugRemoteContent
     case appIconSelection
     case writeV2Metadata
-    
+    case newPaywall
+
     var userDefaultsKey: String {
         return "feature_" +  rawValue
     }
@@ -39,9 +40,10 @@ public enum Feature: String, CaseIterable {
         case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContent
         case .appIconSelection: return L10n.FeatureToggles.appIconSelection
         case .writeV2Metadata: return L10n.FeatureToggles.writeV2Metadata
+        case .newPaywall: return L10n.FeatureToggles.newPaywall
         }
     }
-    
+
     public var description: String {
         switch self {
         case .enableVideo: return L10n.FeatureToggles.enableVideoDescription
@@ -56,6 +58,7 @@ public enum Feature: String, CaseIterable {
         case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContentDescription
         case .appIconSelection: return L10n.FeatureToggles.appIconSelectionDescription
         case .writeV2Metadata: return L10n.FeatureToggles.writeV2MetadataDescription
+        case .newPaywall: return L10n.FeatureToggles.newPaywallDescription
         }
     }
     
