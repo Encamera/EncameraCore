@@ -782,7 +782,5 @@
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ アルバム";
 "MovieDecryptionError" = "映画を読み込むか復号化できませんでした。ダウンロードできない可能性があります。このメディアがiCloud上にある場合は、現在のインターネット接続でファイルをダウンロードできることを確認してください。エラー: %@。まだアプリを最新バージョンにアップデートしていない場合は、アップデートしてください。";
 "ZipExportError.DecryptionFailed" = "メディアの復号化に失敗しました: %@。まだアプリを最新バージョンにアップデートしていない場合は、アップデートしてください。";
-"FeatureToggles.WriteV2MetadataDescription" = "埋め込みメタデータ付きのV2形式で新しいファイルを書き込みます";
-"FeatureToggles.WriteV2Metadata" = "V2メタデータを書き込む";
 "Decryption error: %@" = "復号化エラー: %@。まだアプリを最新バージョンにアップデートしていない場合は、アップデートしてください。";
 "FileLoading.CellularWarning" = "モバイルデータ通信を使用しています。大きなファイルはiCloudからのダウンロードに時間がかかる場合があります。";

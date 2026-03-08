@@ -779,7 +779,5 @@ Encamera！";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ 個相簿";
 "MovieDecryptionError" = "無法載入或解密影片。可能無法下載此檔案。如果這個媒體檔案在 iCloud 上，請確保你目前的網路連線可以下載檔案。錯誤：%@。如果尚未更新，請將應用程式更新至最新版本。";
 "ZipExportError.DecryptionFailed" = "解密媒體失敗：%@。如果尚未更新，請將應用程式更新至最新版本。";
-"FeatureToggles.WriteV2MetadataDescription" = "使用內嵌中繼資料的 V2 格式寫入新檔案";
-"FeatureToggles.WriteV2Metadata" = "寫入 V2 中繼資料";
 "Decryption error: %@" = "解密錯誤：%@。如果尚未更新，請將應用程式更新至最新版本。";
 "FileLoading.CellularWarning" = "您目前正在使用行動數據。從 iCloud 下載大型檔案可能需要較長時間。";

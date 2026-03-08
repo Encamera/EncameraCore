@@ -784,7 +784,5 @@ album";
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBUMS";
 "MovieDecryptionError" = "Impossible de charger ou de déchiffrer le film. Il se peut qu'il ne puisse pas être téléchargé. Si ce média est sur iCloud, assurez-vous de pouvoir télécharger des fichiers avec votre connexion Internet actuelle. Erreur : %@. Veuillez mettre à jour l'application vers la dernière version si ce n'est pas déjà fait.";
 "ZipExportError.DecryptionFailed" = "Échec du déchiffrement du média : %@. Veuillez mettre à jour l'application vers la dernière version si ce n'est pas déjà fait.";
-"FeatureToggles.WriteV2MetadataDescription" = "Écrire de nouveaux fichiers en utilisant le format V2 avec des métadonnées intégrées";
-"FeatureToggles.WriteV2Metadata" = "Écrire les métadonnées V2";
 "Decryption error: %@" = "Erreur de déchiffrement : %@. Veuillez mettre à jour l'application vers la dernière version si ce n'est pas déjà fait.";
 "FileLoading.CellularWarning" = "Vous utilisez les données cellulaires. Les fichiers volumineux peuvent prendre plus de temps à télécharger depuis iCloud.";
