@@ -574,13 +574,11 @@
 "EnterPasscode" = "输入密码";
 
 "BlackFridayTitle" = "黑色星期五来了！";
-"FeatureToggles.StopTrackingDescription" = "禁用所有分析追踪";
 "BlackFridaySubtitle" = "不要错过！优惠即将结束！";
 "FeatureToggles.RecoveryPhraseDescription" = "启用恢复短语功能";
 "FeatureToggles.RevenuecatToggleTitle" = "需要重启";
 "PromotionalBanner.ImageLoadError" = "图片加载失败";
 "PromotionalBanner.DismissAccessibility" = "关闭横幅";
-"FeatureToggles.StopTrackingToggleTitle" = "确认跟踪更改";
 "CMS.LoadingError" = "促销横幅加载失败";
 "FeatureToggles.EnableVideoDescription" = "启用视频录制和回放";
 "PurchaseScreen.Retry" = "重试";
@@ -589,7 +587,6 @@
 "Common.Confirm" = "确认";
 "ProductPrice.SalePercentageOff" = "优惠%d%%";
 "PurchaseScreen.LoadingSubscriptions" = "正在加载订阅...";
-"FeatureToggles.StopTracking" = "停止跟踪";
 "CMS.NoBannersAvailable" = "暂无可用的推广横幅";
 "CMS.NetworkError" = "无法加载推广内容。正在使用缓存数据。";
 "FeatureToggles.Title" = "功能开关";
@@ -599,7 +596,6 @@
 "PurchaseScreen.ErrorLoadingSubscriptions" = "无法加载订阅";
 "FeatureToggles.EnableTestRevenueCat" = "测试 RevenueCat";
 "FeatureToggles.HideAlbum" = "隐藏相册";
-"FeatureToggles.StopTrackingToggleMessage" = "更改此设置将影响应用分析。您确定要继续吗？";
 "FeatureToggles.EnableVideo" = "启用视频";
 "FeatureToggles.DebugRemoteContentDescription" = "为远程CMS内容启用调试";
 "ICloudStatus.Downloading" = "从iCloud下载中：%d%%";

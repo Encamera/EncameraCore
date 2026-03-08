@@ -727,13 +727,11 @@
 "EnterPasscode" = "Introducir código de acceso";
 
 "BlackFridayTitle" = "¡EL BLACK FRIDAY YA ESTÁ AQUÍ!";
-"FeatureToggles.StopTrackingDescription" = "Desactivar todo el seguimiento de análisis";
 "BlackFridaySubtitle" = "¡No te lo pierdas! ¡La oferta termina pronto!";
 "FeatureToggles.RecoveryPhraseDescription" = "Habilitar la función de frase de recuperación";
 "FeatureToggles.RevenuecatToggleTitle" = "Reinicio requerido";
 "PromotionalBanner.ImageLoadError" = "La imagen no se pudo cargar";
 "PromotionalBanner.DismissAccessibility" = "Descartar banner";
-"FeatureToggles.StopTrackingToggleTitle" = "Confirmar cambio de seguimiento";
 "CMS.LoadingError" = "No se pudieron cargar los banners promocionales";
 "FeatureToggles.EnableVideoDescription" = "Habilitar grabación y reproducción de video";
 "PurchaseScreen.Retry" = "Reintentar";
@@ -742,7 +740,6 @@
 "Common.Confirm" = "Confirmar";
 "ProductPrice.SalePercentageOff" = "%d%% DE DESCUENTO";
 "PurchaseScreen.LoadingSubscriptions" = "Cargando suscripciones...";
-"FeatureToggles.StopTracking" = "Dejar de rastrear";
 "CMS.NoBannersAvailable" = "No hay banners promocionales disponibles";
 "CMS.NetworkError" = "No se puede cargar el contenido promocional. Usando datos en caché.";
 "FeatureToggles.Title" = "Alternadores de funciones";
@@ -752,7 +749,6 @@
 "PurchaseScreen.ErrorLoadingSubscriptions" = "No se pueden cargar las suscripciones";
 "FeatureToggles.EnableTestRevenueCat" = "Probar RevenueCat";
 "FeatureToggles.HideAlbum" = "Ocultar álbum";
-"FeatureToggles.StopTrackingToggleMessage" = "Cambiar esta configuración afectará las analíticas de la aplicación. ¿Estás seguro?";
 "FeatureToggles.EnableVideo" = "Habilitar video";
 "FeatureToggles.DebugRemoteContentDescription" = "Habilitar la depuración para contenido CMS remoto";
 "ICloudStatus.Downloading" = "Descargando desde iCloud: %d%%";

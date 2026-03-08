@@ -871,10 +871,6 @@
 "FeatureToggles.Title" = "Feature Toggles";
 "FeatureToggles.EnableVideo" = "Enable Video";
 "FeatureToggles.EnableVideoDescription" = "Enable video recording and playback";
-"FeatureToggles.StopTracking" = "Stop Tracking";
-"FeatureToggles.StopTrackingDescription" = "Disable all analytics tracking";
-"FeatureToggles.StopTrackingToggleTitle" = "Confirm Tracking Change";
-"FeatureToggles.StopTrackingToggleMessage" = "Changing this setting will affect app analytics. Are you sure?";
 "FeatureToggles.RecoveryPhrase" = "Recovery Phrase";
 "FeatureToggles.RecoveryPhraseDescription" = "Enable recovery phrase feature";
 "FeatureToggles.HideAlbum" = "Hide Album";

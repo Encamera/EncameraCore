@@ -9,7 +9,7 @@ import Foundation
 
 public enum Feature: String, CaseIterable {
     case enableVideo
-    case stopTracking
+    case debugTracking
     case recoveryPhrase
     case hideAlbum
     case enableTestRevenueCat
@@ -25,11 +25,11 @@ public enum Feature: String, CaseIterable {
     var userDefaultsKey: String {
         return "feature_" +  rawValue
     }
-    
+
     public var title: String {
         switch self {
         case .enableVideo: return L10n.FeatureToggles.enableVideo
-        case .stopTracking: return L10n.FeatureToggles.stopTracking
+        case .debugTracking: return "Debug Tracking"
         case .recoveryPhrase: return L10n.FeatureToggles.recoveryPhrase
         case .hideAlbum: return L10n.FeatureToggles.hideAlbum
         case .enableTestRevenueCat: return L10n.FeatureToggles.enableTestRevenueCat
@@ -47,7 +47,7 @@ public enum Feature: String, CaseIterable {
     public var description: String {
         switch self {
         case .enableVideo: return L10n.FeatureToggles.enableVideoDescription
-        case .stopTracking: return L10n.FeatureToggles.stopTrackingDescription
+        case .debugTracking: return "Intercept analytics events and display them in-app for debugging"
         case .recoveryPhrase: return L10n.FeatureToggles.recoveryPhraseDescription
         case .hideAlbum: return L10n.FeatureToggles.hideAlbumDescription
         case .enableTestRevenueCat: return L10n.FeatureToggles.enableTestRevenueCatDescription
@@ -61,27 +61,27 @@ public enum Feature: String, CaseIterable {
         case .newPaywall: return L10n.FeatureToggles.newPaywallDescription
         }
     }
-    
+
     public var requiresConfirmation: Bool {
         switch self {
-        case .stopTracking, .enableTestRevenueCat:
+        case .debugTracking, .enableTestRevenueCat:
             return true
         default:
             return false
         }
     }
-    
+
     public var confirmationTitle: String? {
         switch self {
-        case .stopTracking: return L10n.FeatureToggles.stopTrackingToggleTitle
+        case .debugTracking: return "Enable Debug Tracking"
         case .enableTestRevenueCat: return L10n.FeatureToggles.revenuecatToggleTitle
         default: return nil
         }
     }
-    
+
     public var confirmationMessage: String? {
         switch self {
-        case .stopTracking: return L10n.FeatureToggles.stopTrackingToggleMessage
+        case .debugTracking: return "Analytics events will be captured in-app instead of sent to services. Continue?"
         case .enableTestRevenueCat: return L10n.FeatureToggles.revenuecatToggleMessage
         default: return nil
         }
@@ -89,22 +89,22 @@ public enum Feature: String, CaseIterable {
 }
 
 public struct FeatureToggle {
-    
+
     public static func enable(feature: Feature) {
         UserDefaultUtils.set(true, forKey: .featureToggle(feature: feature))
     }
-    
+
     public static func toggle(feature: Feature) {
         let currentValue = isEnabled(feature: feature)
         setEnabled(feature: feature, enabled: !currentValue)
     }
-    
+
     public static func setEnabled(feature: Feature, enabled: Bool) {
         UserDefaultUtils.set(enabled, forKey: .featureToggle(feature: feature))
     }
-    
+
     public static func isEnabled(feature: Feature) -> Bool {
         return UserDefaultUtils.bool(forKey: .featureToggle(feature: feature))
     }
-    
+
 }
