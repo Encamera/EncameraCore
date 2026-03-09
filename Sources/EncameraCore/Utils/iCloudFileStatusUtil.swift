@@ -106,7 +106,9 @@ public struct iCloudFileStatusUtil {
         .ubiquitousItemDownloadingStatusKey,
         .ubiquitousItemDownloadRequestedKey,
         .ubiquitousItemIsDownloadingKey,
-        .ubiquitousItemDownloadingErrorKey
+        .ubiquitousItemDownloadingErrorKey,
+        .ubiquitousItemIsUploadedKey,
+        .ubiquitousItemIsUploadingKey
     ]
     
     /// Gets comprehensive iCloud status for a file URL
@@ -146,16 +148,16 @@ public struct iCloudFileStatusUtil {
                     downloadState = .current
                 }
             } else {
-                // No status available from iCloud metadata yet.
+                // No downloadingStatus available from iCloud metadata yet.
                 // This commonly occurs for files that were just created locally in
                 // the iCloud container — iCloud hasn't finished cataloging them.
-                // Check if the file is physically readable on disk before assuming
-                // it needs to be downloaded, to avoid triggering a spurious download
-                // wait loop that can freeze the UI.
-                if FileManager.default.isReadableFile(atPath: url.path),
-                   let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
-                   let fileSize = attrs[.size] as? UInt64,
-                   fileSize > 0 {
+                // Use ubiquitousItemIsUploaded to distinguish: if false, the file
+                // was created locally and hasn't been synced yet (data IS on disk).
+                // If true (or unknown), the file has been uploaded before and may be
+                // evicted — we must NOT assume local data is present based on fileSize,
+                // because evicted files report their full cloud size.
+                let isUploaded = resourceValues.ubiquitousItemIsUploaded ?? true
+                if !isUploaded {
                     downloadState = .current
                 } else {
                     downloadState = .notDownloaded

@@ -818,6 +818,10 @@ public enum L10n {
     public static func deleteSelectedMedia(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", String(describing: p1), String(describing: p2), fallback: "Do you want to delete %@ %@?")
     }
+    /// Plural format key: "%#@file_count@ on %2$@"
+    public static func fileCountOnLocation(_ p1: Int, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.FileCountOnLocation", p1, String(describing: p2), fallback: "Plural format key: \"%#@file_count@ on %2$@\"")
+    }
     /// Are you sure you want to hide this album? You MUST remember the name of this album to access it again.
     public static let hideAlbumAlertMessage = L10n.tr("Localizable", "AlbumDetailView.HideAlbumAlertMessage", fallback: "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.")
     /// Hide this album?
