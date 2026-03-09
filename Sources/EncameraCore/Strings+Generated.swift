@@ -730,6 +730,8 @@ public enum L10n {
   public static let thisWillSaveTheMediaToYourLibrary = L10n.tr("Localizable", "This will save the media to your library.", fallback: "This will save the media to your library.")
   /// ./EncameraCore/Utils/AuthManager.swift
   public static let touchID = L10n.tr("Localizable", "Touch ID", fallback: "Touch ID")
+  /// Try Again
+  public static let tryAgain = L10n.tr("Localizable", "TryAgain", fallback: "Try Again")
   /// Unlimited albums for your memories
   public static let unlimitedAlbumsFeatureRowTitle = L10n.tr("Localizable", "UnlimitedAlbumsFeatureRowTitle", fallback: "Unlimited albums for your memories")
   /// ./Encamera/Store/SubscriptionView.swift
@@ -1218,14 +1220,6 @@ public enum L10n {
     public static let showMoveToAlbum = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbum", fallback: "Move to Album")
     /// Enable moving media between albums
     public static let showMoveToAlbumDescription = L10n.tr("Localizable", "FeatureToggles.ShowMoveToAlbumDescription", fallback: "Enable moving media between albums")
-    /// Debug Tracking
-    public static let debugTracking = L10n.tr("Localizable", "FeatureToggles.DebugTracking", fallback: "Debug Tracking")
-    /// Intercept analytics events and display them in-app for debugging
-    public static let debugTrackingDescription = L10n.tr("Localizable", "FeatureToggles.DebugTrackingDescription", fallback: "Intercept analytics events and display them in-app for debugging")
-    /// Analytics events will be captured in-app instead of sent to services. Continue?
-    public static let debugTrackingToggleMessage = L10n.tr("Localizable", "FeatureToggles.DebugTrackingToggleMessage", fallback: "Analytics events will be captured in-app instead of sent to services. Continue?")
-    /// Enable Debug Tracking
-    public static let debugTrackingToggleTitle = L10n.tr("Localizable", "FeatureToggles.DebugTrackingToggleTitle", fallback: "Enable Debug Tracking")
     /// ./Encamera/Settings/FeatureTogglesView.swift
     public static let title = L10n.tr("Localizable", "FeatureToggles.Title", fallback: "Feature Toggles")
   }
@@ -1366,6 +1360,12 @@ public enum L10n {
     public static let downloadTimeout = L10n.tr("Localizable", "ICloudError.DownloadTimeout", fallback: "iCloud download timed out. Please check your internet connection and try again.")
     /// ./Encamera/ImageViewing/MediaViewingError.swift - iCloud Error Messages
     public static let fileNotDownloaded = L10n.tr("Localizable", "ICloudError.FileNotDownloaded", fallback: "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.")
+    /// This file is stored in iCloud and could not be downloaded. Connect to Wi-Fi and try again.
+    public static let notAvailableCellular = L10n.tr("Localizable", "ICloudError.NotAvailableCellular", fallback: "This file is stored in iCloud and could not be downloaded. Connect to Wi-Fi and try again.")
+    /// This file is stored in iCloud and could not be downloaded. Connect to the internet and try again.
+    public static let notAvailableNoConnection = L10n.tr("Localizable", "ICloudError.NotAvailableNoConnection", fallback: "This file is stored in iCloud and could not be downloaded. Connect to the internet and try again.")
+    /// This file is stored in iCloud and could not be downloaded. Check your iCloud connection and try again.
+    public static let notAvailableWiFi = L10n.tr("Localizable", "ICloudError.NotAvailableWiFi", fallback: "This file is stored in iCloud and could not be downloaded. Check your iCloud connection and try again.")
   }
   public enum ICloudStatus {
     /// ./Encamera/Components/iCloudSyncStatusIndicator.swift - Directory Sync Status
@@ -1588,8 +1588,8 @@ public enum L10n {
     public static let biggestSaving = L10n.tr("Localizable", "PaywallView.BiggestSaving", fallback: "BIGGEST SAVING")
     /// Alex & Mihai
     public static let builtByNames = L10n.tr("Localizable", "PaywallView.BuiltByNames", fallback: "Alex & Mihai")
-    /// Built by people who mean it.
-    public static let builtByPeople = L10n.tr("Localizable", "PaywallView.BuiltByPeople", fallback: "Built by people who mean it.")
+    /// Committed to your privacy.
+    public static let builtByPeople = L10n.tr("Localizable", "PaywallView.BuiltByPeople", fallback: "Committed to your privacy.")
     /// Check benefits
     public static let checkBenefits = L10n.tr("Localizable", "PaywallView.CheckBenefits", fallback: "Check benefits")
     /// CURRENT PLAN
@@ -1625,7 +1625,7 @@ public enum L10n {
     public static let termsOfService = L10n.tr("Localizable", "PaywallView.TermsOfService", fallback: "Terms of Service")
     /// Ideal for users seeking continuous protection with the best annual savings
     public static let unlimitedAnnualDescription = L10n.tr("Localizable", "PaywallView.UnlimitedAnnualDescription", fallback: "Ideal for users seeking continuous protection with the best annual savings")
-    /// $1.99 per month, billed yearly
+    /// Billed yearly
     public static let unlimitedAnnualSubtext = L10n.tr("Localizable", "PaywallView.UnlimitedAnnualSubtext", fallback: "Billed yearly")
     /// %@ per month, billed yearly
     public static func unlimitedAnnualSubtextWithMonthlyPrice(_ p1: Any) -> String {
@@ -1644,8 +1644,8 @@ public enum L10n {
       public static let eightItems = L10n.tr("Localizable", "PaywallView.AlbumPreview.EightItems", fallback: "8 items")
       /// Our Trips
       public static let ourTrips = L10n.tr("Localizable", "PaywallView.AlbumPreview.OurTrips", fallback: "Our Trips")
-      /// Private Pics 🔒
-      public static let privatePics = L10n.tr("Localizable", "PaywallView.AlbumPreview.PrivatePics", fallback: "Private Pics 🔒")
+      /// Private 🔒
+      public static let privatePics = L10n.tr("Localizable", "PaywallView.AlbumPreview.PrivatePics", fallback: "Private 🔒")
       /// 16 items
       public static let sixteenItems = L10n.tr("Localizable", "PaywallView.AlbumPreview.SixteenItems", fallback: "16 items")
     }

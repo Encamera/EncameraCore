@@ -928,6 +928,10 @@
 "ICloudError.DownloadFailedGeneric" = "Could not download '%@' from iCloud. Please check your internet connection and iCloud settings.";
 "ICloudError.DownloadInProgress" = "File '%@' is still downloading from iCloud. Please wait.";
 "ICloudError.DownloadTimeout" = "iCloud download timed out. Please check your internet connection and try again.";
+"TryAgain" = "Try Again";
+"ICloudError.NotAvailableCellular" = "This file is stored in iCloud and could not be downloaded. Connect to Wi-Fi and try again.";
+"ICloudError.NotAvailableWiFi" = "This file is stored in iCloud and could not be downloaded. Check your iCloud connection and try again.";
+"ICloudError.NotAvailableNoConnection" = "This file is stored in iCloud and could not be downloaded. Connect to the internet and try again.";
 
 /* ./ShareExtension/ShareViewController.swift - Share Extension */
 "ShareExtension.SavingMedia" = "Saving media...";
