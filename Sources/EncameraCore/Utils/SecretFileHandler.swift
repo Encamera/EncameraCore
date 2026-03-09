@@ -20,6 +20,7 @@ public enum SecretFilesError: ErrorDescribable {
     case createVideoThumbnailError
     case fileTypeError
     case createPreviewError
+    case iCloudFileNotAvailable
 
     public var displayDescription: String {
         switch self {
@@ -41,7 +42,15 @@ public enum SecretFilesError: ErrorDescribable {
             return "The file type is not supported."
         case .createPreviewError:
             return "Failed to create a preview for the file."
-
+        case .iCloudFileNotAvailable:
+            let monitor = NetworkMonitor.shared
+            if !monitor.isConnected {
+                return L10n.ICloudError.notAvailableNoConnection
+            } else if monitor.isOnCellular {
+                return L10n.ICloudError.notAvailableCellular
+            } else {
+                return L10n.ICloudError.notAvailableWiFi
+            }
         }
     }
 }
@@ -82,6 +91,15 @@ extension SecretFileHandlerInt {
         Sodium()
     }
     
+    /// Checks whether the source media's underlying file is available on disk.
+    /// Returns `true` when the file is a URL-backed iCloud item that hasn't been downloaded yet.
+    private func isSourceFileUnavailableFromICloud() -> Bool {
+        guard case .url(let sourceURL) = sourceMedia.source else {
+            return false
+        }
+        return iCloudFileStatusUtil.needsDownload(url: sourceURL)
+    }
+
     /// Checks for V2 format and reads the stream header appropriately
     /// Returns the stream header bytes and block size, ready for decryption
     private func setupDecryption<M: MediaDescribing>(fileHandler: FileLikeHandler<M>) throws -> DecryptionSetup {
@@ -90,6 +108,9 @@ extension SecretFileHandlerInt {
         // Read first 4 bytes to check for V2 magic
         guard let magicData = try fileHandler.read(upToCount: EncryptedFileFormat.magicSize),
               magicData.count == EncryptedFileFormat.magicSize else {
+            if isSourceFileUnavailableFromICloud() {
+                throw SecretFilesError.iCloudFileNotAvailable
+            }
             throw SecretFilesError.decryptError("Could not read file header")
         }
         
@@ -184,7 +205,15 @@ extension SecretFileHandlerInt {
 
     func decryptFile() async throws -> AsyncThrowingStream<Data, Error> {
         do {
-            let fileHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)
+            let fileHandler: FileLikeHandler<SourceMediaType>
+            do {
+                fileHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)
+            } catch {
+                if isSourceFileUnavailableFromICloud() {
+                    throw SecretFilesError.iCloudFileNotAvailable
+                }
+                throw error
+            }
             
             // Setup decryption - handles both V1 and V2 formats
             let setup = try setupDecryption(fileHandler: fileHandler)
@@ -328,6 +357,8 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
             }
 
             return CleartextMedia(source: accumulatedData, mediaType: self.sourceMedia.mediaType, id: self.sourceMedia.id)
+        } catch let error as SecretFilesError {
+            throw error
         } catch {
             throw SecretFilesError.decryptError("Could not decrypt file")
         }
