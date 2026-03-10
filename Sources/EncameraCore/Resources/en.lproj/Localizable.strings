@@ -370,6 +370,7 @@
 /* ./Encamera/Store/SubscriptionOptionView.swift */
 "Subscribed" = "Subscribed";
 "SaveAmount %@ $@" = "SAVE %@";
+"SavePercent %@" = "SAVE %@";
 /* ./Encamera/Store/PurchaseUpgradeOptionsListView.swift */
 "**Purchased: %@**" = "**Purchased: %@**";
 "Thank you for your support!" = "Thank you for your support!";
@@ -951,7 +952,7 @@
 
 /* ./Encamera/Lightbox/Views/MediaInfoDetailView.swift - Media Info */
 "MediaInfo.UnknownDevice" = "Unknown Device";
-"MediaInfo.NoDetailsAvailable" = "No details available";
+"MediaInfo.MetadataNotAvailable" = "Metadata Not Available";
 "MediaInfo.AdditionalDetails" = "Additional Details";
 "MediaInfo.Duration" = "Duration";
 "MediaInfo.FrameRate" = "Frame Rate";

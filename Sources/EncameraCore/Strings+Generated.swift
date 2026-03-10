@@ -612,6 +612,10 @@ public enum L10n {
   public static let savedToICloud = L10n.tr("Localizable", "Saved to iCloud", fallback: "Saved to iCloud")
   /// Save to this device
   public static let saveLocally = L10n.tr("Localizable", "SaveLocally", fallback: "Save to this device")
+  /// SAVE %@
+  public static func savePercent(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "SavePercent %@", String(describing: p1), fallback: "SAVE %@")
+  }
   /// Save PIN Code
   public static let savePinCode = L10n.tr("Localizable", "SavePinCode", fallback: "Save PIN Code")
   /// Save to iCloud Drive
@@ -1456,8 +1460,8 @@ public enum L10n {
     public static let encrypted = L10n.tr("Localizable", "MediaInfo.Encrypted", fallback: "Encrypted")
     /// Frame Rate
     public static let frameRate = L10n.tr("Localizable", "MediaInfo.FrameRate", fallback: "Frame Rate")
-    /// No details available
-    public static let noDetailsAvailable = L10n.tr("Localizable", "MediaInfo.NoDetailsAvailable", fallback: "No details available")
+    /// Metadata Not Available
+    public static let metadataNotAvailable = L10n.tr("Localizable", "MediaInfo.MetadataNotAvailable", fallback: "Metadata Not Available")
     /// Screenshot
     public static let screenshot = L10n.tr("Localizable", "MediaInfo.Screenshot", fallback: "Screenshot")
     /// Type

@@ -8,17 +8,11 @@
 import Foundation
 
 public enum Feature: String, CaseIterable {
-    case enableVideo
     case debugTracking
-    case recoveryPhrase
-    case hideAlbum
     case enableTestRevenueCat
     case showFeatureToggles
-    case showMoveToAlbum
     case encryptedZipExport
     case showDesignSystem
-    case debugRemoteContent
-    case appIconSelection
     case newPaywall
 
     var userDefaultsKey: String {
@@ -27,34 +21,22 @@ public enum Feature: String, CaseIterable {
 
     public var title: String {
         switch self {
-        case .enableVideo: return L10n.FeatureToggles.enableVideo
         case .debugTracking: return "Debug Tracking"
-        case .recoveryPhrase: return L10n.FeatureToggles.recoveryPhrase
-        case .hideAlbum: return L10n.FeatureToggles.hideAlbum
         case .enableTestRevenueCat: return L10n.FeatureToggles.enableTestRevenueCat
         case .showFeatureToggles: return L10n.FeatureToggles.showFeatureToggles
-        case .showMoveToAlbum: return L10n.FeatureToggles.showMoveToAlbum
         case .encryptedZipExport: return L10n.FeatureToggles.encryptedZipExport
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystem
-        case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContent
-        case .appIconSelection: return L10n.FeatureToggles.appIconSelection
         case .newPaywall: return L10n.FeatureToggles.newPaywall
         }
     }
 
     public var description: String {
         switch self {
-        case .enableVideo: return L10n.FeatureToggles.enableVideoDescription
         case .debugTracking: return "Intercept analytics events and display them in-app for debugging"
-        case .recoveryPhrase: return L10n.FeatureToggles.recoveryPhraseDescription
-        case .hideAlbum: return L10n.FeatureToggles.hideAlbumDescription
         case .enableTestRevenueCat: return L10n.FeatureToggles.enableTestRevenueCatDescription
         case .showFeatureToggles: return L10n.FeatureToggles.showFeatureTogglesDescription
-        case .showMoveToAlbum: return L10n.FeatureToggles.showMoveToAlbumDescription
         case .encryptedZipExport: return L10n.FeatureToggles.encryptedZipExportDescription
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystemDescription
-        case .debugRemoteContent: return L10n.FeatureToggles.debugRemoteContentDescription
-        case .appIconSelection: return L10n.FeatureToggles.appIconSelectionDescription
         case .newPaywall: return L10n.FeatureToggles.newPaywallDescription
         }
     }
