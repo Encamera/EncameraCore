@@ -35,7 +35,6 @@ public enum SetupError: Error {
     case couldNotCreateVideoDeviceInput(avFoundationError: Error)
     case couldNotAddPhotoOutputToSession
     case couldNotAddVideoOutputToSession
-    case couldNotAddMetadataOutputToSession
 }
 
 public enum MediaProcessorError: Error {
@@ -97,7 +96,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         }
     }
 
-    private lazy var metadataProcessor = QRCodeCaptureProcessor()
     private var movieOutput: AVCaptureMovieFileOutput?
     private let photoOutput = AVCapturePhotoOutput()
     private var videoDeviceInput: AVCaptureDeviceInput?
@@ -130,20 +128,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         } else {
             await self.initialSessionConfiguration()
         }
-        metadataProcessor.$lastCaptured.sink { qrCodeContents in
-            self.printDebug("Got QR Code: \(String(describing: qrCodeContents))")
-            guard let contents = qrCodeContents, let url = URL(string: contents) else {
-                return
-            }
-
-            let type = URLType(url: url)
-            switch type {
-            case .featureToggle(feature: .debugTracking):
-                FeatureToggle.enable(feature: .debugTracking)
-            default:
-                break
-            }
-        }.store(in: &cancellables)
     }
 
     public func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async {
@@ -541,16 +525,6 @@ private extension CameraConfigurationService {
         self.movieOutput = movieOutput
     }
 
-    private func addMetadataOutputToSession() throws {
-        let metadataOutput = AVCaptureMetadataOutput()
-        guard session.canAddOutput(metadataOutput) else {
-            return
-        }
-        session.addOutput(metadataOutput)
-        metadataOutput.setMetadataObjectsDelegate(metadataProcessor, queue: .main)
-        metadataOutput.metadataObjectTypes = metadataProcessor.supportedObjectTypes
-    }
-
     private func stopCancellables() {
         cancellables.forEach { $0.cancel() }
         cancellables.removeAll()
@@ -615,7 +589,6 @@ private extension CameraConfigurationService {
             // cannot be added to the session, it fails but does nothing
             try setupVideoCaptureDevice()
             try setupAudioCaptureDevice()
-            try addMetadataOutputToSession()
             try addPhotoOutputToSession()
         } catch {
             printDebug(error)
