@@ -18,6 +18,22 @@ target_languages:
   - "zh-Hant" # Chinese Traditional (maps to zh-hk.lproj)
 # App Store listing content (in base language)
 listing:
+  keywords:
+    en-US: local,locker,encrypt,lock,photo,hide,secure,secret,private,safe,album,vault,pictures,video,keep,calc
+    ar-SA: إخفاء,صور,خاص,سري,خزنة,تشفير,ألبوم,قفل,كاميرا,keepsafe,vault,أمان,خصوصية,معرض,آلة حاسبة,فيديو,مخفي
+    da-DK: skjul,billeder,hemmeligt,privat,lås,kamera,keepsafe,vault,lommeregner,galleri,sikker,skjult,foto,pin
+    de-DE: verstecken,bilder,geheim,tresor,sicher,ordner,galerie,video,kamera,safe,keepsafe,album,privat,foto
+    es-ES: ocultar,fotos,privado,seguro,secreto,bóveda,cifrado,álbum,galería,videos,esconder,bloqueo,cámara,pin
+    es-MX: ocultar,fotos,privado,seguro,secreto,bóveda,cifrado,álbum,videos,calculadora,contraseña,cámara,pin
+    fi-FI: piilota,kuvat,salainen,holvi,salattu,lukko,kamera,keepsafe,laskin,galleria,vault,albumi,turvallinen
+    fr-FR: cacher,photos,privé,secret,coffre,chiffré,album,galerie,vidéo,masquer,keepsafe,vault,caché,sécurisé
+    it-IT: nascondere,foto,privato,segreto,cassaforte,album,galleria,video,keepsafe,vault,sicuro,bloccare,pin
+    ja-JP: 隠す,写真,秘密,金庫,暗号化,アルバム,ロック,ギャラリー,keepsafe,電卓,非表示,鍵付き,プライベート,セキュリティ,vault,カメラ,安全,保護,動画,フォト,パスワード
+    ko-KR: 사진,숨기기,비밀,금고,암호화,앨범,잠금,갤러리,keepsafe,계산기,카메라,보안,개인,프라이빗,vault,동영상,비밀번호,보관함,안전,폴더,핀,앱잠금,사생활,비공개,숨김,암호
+    ro-RO: ascunde,poze,privat,secret,seif,criptat,album,blocare,cameră,keepsafe,vault,calculator,galerie,sigur
+    zh-Hans: 隐藏,照片,私密,秘密,保险箱,加密,相册,锁,相机,keepsafe,vault,计算器,安全,视频,私密相册,隐藏照片,照片锁,秘密照片,相册锁,私密照片,密码,文件,加密相册,图片,隐私,应用锁
+    zh-Hant: 隱藏,照片,私密,秘密,保險箱,加密,相簿,鎖,相機,keepsafe,vault,計算機,安全,影片,私密相簿,隱藏照片,照片鎖,秘密照片,相簿鎖,私密照片,密碼,檔案,加密相簿,圖片,隱私,應用鎖
+
   description: |
     Encamera is the ultimate privacy-focused camera and photo vault app designed to keep your personal photos and videos safe. Unlike other photo lockers and private photo apps, Encamera offers a sleek, minimalist interface paired with top-tier privacy features, ensuring your memories are secure.
 
@@ -71,10 +87,12 @@ listing:
 
   whats_new: |
     We've added:
-      - Hide albums from the album list. Keep your most secret albums out of the main app view!
-      - Change the app icon. Hide the app in plain sight with a calculator, clock, or other inconspicuous icons!
-      - Slideshow feature in media viewer. Scroll through images automatically without touching the screen!
-      - Select media using an album from your photo library. Put all the media you want to encrypt in one album to add to Encamera!
+       Share photos directly to your vault from any app via the native share sheet
+       Full landscape support, manage your media in any orientation
+       Sort by date captured or date added, newest or oldest first
+       Full metadata visible for every photo and video in your vault
+       Album stats always visible, file count and storage location at a glance
+
 limits:
   name: 30
   subtitle: 30

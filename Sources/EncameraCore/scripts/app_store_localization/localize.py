@@ -242,10 +242,10 @@ class AppStoreConnectAPI:
         
         return response.json()["data"]
     
-    def update_localization(self, localization_id, description=None, promotional_text=None, whats_new=None):
+    def update_localization(self, localization_id, description=None, promotional_text=None, whats_new=None, keywords=None):
         """Update a localization with new metadata."""
         url = f"{self.base_url}/appStoreVersionLocalizations/{localization_id}"
-        
+
         attributes = {}
         if description is not None:
             attributes["description"] = description
@@ -253,6 +253,8 @@ class AppStoreConnectAPI:
             attributes["promotionalText"] = promotional_text
         if whats_new is not None:
             attributes["whatsNew"] = whats_new
+        if keywords is not None:
+            attributes["keywords"] = keywords
         
         data = {
             "data": {
@@ -267,10 +269,10 @@ class AppStoreConnectAPI:
         
         return response.json()
     
-    def create_localization(self, version_id, locale, description=None, promotional_text=None, whats_new=None):
+    def create_localization(self, version_id, locale, description=None, promotional_text=None, whats_new=None, keywords=None):
         """Create a new localization for a version."""
         url = f"{self.base_url}/appStoreVersionLocalizations"
-        
+
         attributes = {"locale": locale}
         if description is not None:
             attributes["description"] = description
@@ -278,6 +280,8 @@ class AppStoreConnectAPI:
             attributes["promotionalText"] = promotional_text
         if whats_new is not None:
             attributes["whatsNew"] = whats_new
+        if keywords is not None:
+            attributes["keywords"] = keywords
         
         data = {
             "data": {
@@ -1239,38 +1243,95 @@ Examples:
     context_note = translation_config.get("context_note", "")
     
     for field_name, content in listing.items():
+        # Handle keywords specially - it's a dict keyed by locale
+        if field_name == "keywords":
+            if not content or not isinstance(content, dict):
+                continue
+
+            print(f"\n🔄 Processing '{field_name}'...")
+            field_translations = {}
+
+            # Get base language keywords
+            base_keywords = content.get(base_language)
+            if not base_keywords:
+                print(f"  ⚠️  No base language keywords found for {base_language}")
+                continue
+
+            # Check for pre-defined locale keywords first, translate the rest
+            field_translations[base_language_code] = base_keywords
+            print(f"  → {base_language_code} (base): ✅ Using original keywords")
+
+            keywords_limit = app_store_config.get("limits", {}).get("keywords", 100)
+
+            for lang_code in target_languages:
+                # Check if keywords are already defined for this locale in the config
+                if lang_code in content:
+                    field_translations[lang_code] = content[lang_code]
+                    print(f"  → {lang_code}: ✅ Using pre-defined keywords from config")
+                else:
+                    print(f"  → {lang_code}...", end=" ")
+                    keyword_context = (
+                        f"{context_note} "
+                        f"These are App Store keywords (comma-separated, max {keywords_limit} characters total including commas). "
+                        f"Return ONLY the translated comma-separated keywords, no extra text. "
+                        f"Keep the same number of keywords if possible. Do not add spaces after commas."
+                    )
+                    translated = translator.translate_content(
+                        content=base_keywords,
+                        from_lang="English",
+                        to_lang=lang_code,
+                        context_note=keyword_context
+                    )
+
+                    if translated:
+                        # Ensure keywords fit within the character limit
+                        if len(translated) > keywords_limit:
+                            # Trim keywords from the end until within limit
+                            parts = translated.split(",")
+                            while len(",".join(parts)) > keywords_limit and len(parts) > 1:
+                                parts.pop()
+                            translated = ",".join(parts)
+                        field_translations[lang_code] = translated
+                        print("✅")
+                    else:
+                        print("❌")
+
+            if field_translations:
+                translations[field_name] = field_translations
+            continue
+
         if not content or not content.strip():
             continue
-        
+
         # Skip description translation if App Store content matches local config
         if field_name == "description" and skip_description_translation:
             print(f"\n⏭️  Skipping '{field_name}' translation - App Store content matches local config")
             continue
-            
+
         print(f"\n🔄 Processing '{field_name}'...")
         field_translations = {}
-        
+
         # Add base language content (no translation needed)
         field_translations[base_language_code] = content
         print(f"  → {base_language_code} (base): ✅ Using original content")
-        
+
         # Translate for target languages
         for lang_code in target_languages:
             print(f"  → {lang_code}...", end=" ")
-            
+
             translated = translator.translate_content(
                 content=content,
                 from_lang="English",  # Assuming base language is English
                 to_lang=lang_code,
                 context_note=context_note
             )
-            
+
             if translated:
                 field_translations[lang_code] = translated
                 print("✅")
             else:
                 print("❌")
-        
+
         if field_translations:
             translations[field_name] = field_translations
     
@@ -1422,6 +1483,8 @@ Examples:
                     update_data["promotional_text"] = field_translations[lang_code]
                 elif field_name == "whats_new":
                     update_data["whats_new"] = field_translations[lang_code]
+                elif field_name == "keywords":
+                    update_data["keywords"] = field_translations[lang_code]
         
         if not update_data:
             if is_base_language:
