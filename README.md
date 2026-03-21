@@ -1,7 +1,7 @@
 # EncameraCore
 
 EncameraCore is the core functional source code for the iOS app [Encamera](https://apps.apple.com/us/app/encamera-secret-photo-vault/id1639202616), designed to provide secure file handling and encryption functionalities for iOS devices.
-If you are interested in suggesting features for Encamera, please write us a note here: https://encamera.featurebase.app/
+If you are interested in suggesting features for Encamera, please write us a note here: https://encamera.featurebase.app
 
 
 ## Concept
