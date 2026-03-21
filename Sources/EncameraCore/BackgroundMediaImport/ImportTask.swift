@@ -32,6 +32,7 @@ public enum FileTaskType: String {
     case importMedia
     case moveMedia
     case exportMedia
+    case editMedia
 }
 
 public protocol BackgroundFileTask: Equatable  {

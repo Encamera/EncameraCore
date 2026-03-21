@@ -79,9 +79,13 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             exportTask.progress = progress
             currentTasks[taskIndex] = exportTask
             publishProgress(for: exportTask)
+        } else if var editTask = currentTasks[taskIndex] as? EditTask {
+            editTask.progress = progress
+            currentTasks[taskIndex] = editTask
+            publishProgress(for: editTask)
         }
     }
-    
+
     /// Updates a task's state to running
     public func markTaskRunning(taskId: String) {
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
@@ -101,9 +105,13 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             exportTask.progress.state = .running
             currentTasks[taskIndex] = exportTask
             updateIsProcessing()
+        } else if var editTask = currentTasks[taskIndex] as? EditTask {
+            editTask.progress.state = .running
+            currentTasks[taskIndex] = editTask
+            updateIsProcessing()
         }
     }
-    
+
     /// Updates a task's state to paused
     public func markTaskPaused(taskId: String) {
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
@@ -123,9 +131,13 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             exportTask.progress.state = .paused
             currentTasks[taskIndex] = exportTask
             publishProgress(for: exportTask)
+        } else if var editTask = currentTasks[taskIndex] as? EditTask {
+            editTask.progress.state = .paused
+            currentTasks[taskIndex] = editTask
+            publishProgress(for: editTask)
         }
     }
-    
+
     /// Updates a task's state to cancelled (internal use - prefer cancelTask for external callers)
     /// Note: This does NOT update isProcessing - the task is still considered "in progress"
     /// until finalizeTaskCancelled is called. This ensures proper cleanup timing.
@@ -147,8 +159,12 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             exportTask.progress.state = .cancelled
             currentTasks[taskIndex] = exportTask
             publishProgress(for: exportTask)
+        } else if var editTask = currentTasks[taskIndex] as? EditTask {
+            editTask.progress.state = .cancelled
+            currentTasks[taskIndex] = editTask
+            publishProgress(for: editTask)
         }
-        
+
         // Note: We intentionally do NOT call updateIsProcessing() here.
         // The task is still "in progress" until finalizeTaskCancelled is called,
         // which handles cleanup, updates asset identifiers, and then updates isProcessing.
@@ -252,12 +268,17 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             currentTasks[taskIndex] = exportTask
             publishProgress(for: exportTask)
             printDebug("Task completed successfully: \(taskId)")
+        } else if var editTask = currentTasks[taskIndex] as? EditTask {
+            editTask.progress = completedProgress
+            currentTasks[taskIndex] = editTask
+            publishProgress(for: editTask)
+            printDebug("Task completed successfully: \(taskId)")
         }
-        
+
         updateOverallProgress()
         updateIsProcessing()
     }
-    
+
     /// Finalizes a task as failed
     public func finalizeTaskFailed(taskId: String, error: Error) {
         finalizeTaskStopped(taskId: taskId, state: .failed(error), assetIdentifiers: [], shouldRemove: false)
@@ -313,8 +334,15 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             if shouldRemove {
                 removeTaskAfterDelay(taskId: taskId)
             }
+        } else if var editTask = currentTasks[taskIndex] as? EditTask {
+            editTask.progress.state = state
+            currentTasks[taskIndex] = editTask
+            publishProgress(for: editTask)
+            if shouldRemove {
+                removeTaskAfterDelay(taskId: taskId)
+            }
         }
-        
+
         updateOverallProgress()
         updateIsProcessing()
     }

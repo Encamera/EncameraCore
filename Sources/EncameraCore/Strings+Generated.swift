@@ -1046,6 +1046,14 @@ public enum L10n {
     }
     /// No active tasks
     public static let noActiveTasks = L10n.tr("Localizable", "BackgroundTaskProgress.NoActiveTasks", fallback: "No active tasks")
+    /// Edit completed
+    public static let editCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.EditCompleted", fallback: "Edit completed")
+    /// Edit stopped
+    public static let editStopped = L10n.tr("Localizable", "BackgroundTaskProgress.EditStopped", fallback: "Edit stopped")
+    /// Edit cancelled
+    public static let editCancelled = L10n.tr("Localizable", "BackgroundTaskProgress.EditCancelled", fallback: "Edit cancelled")
+    /// Editing...
+    public static let editing = L10n.tr("Localizable", "BackgroundTaskProgress.Editing", fallback: "Editing...")
   }
   public enum BillingFrequency {
     /// 1 Year of Updates
@@ -1252,6 +1260,10 @@ public enum L10n {
     public static func stepIndicator(_ p1: Int) -> String {
       return L10n.tr("Localizable", "FileLoading.StepIndicator", p1, fallback: "STEP %d OF 2")
     }
+    /// STEP %d OF %d
+    public static func stepIndicator(_ p1: Int, _ p2: Int) -> String {
+      return L10n.tr("Localizable", "FileLoading.StepIndicatorGeneric", p1, p2, fallback: "STEP %d OF %d")
+    }
   }
   public enum FooterView {
     /// Media Details
@@ -1276,6 +1288,20 @@ public enum L10n {
     public static let makeAlbumCover = L10n.tr("Localizable", "GalleryView.MakeAlbumCover", fallback: "Make Album Cover")
     /// Live Photo - Hold to View
     public static let playLivePhoto = L10n.tr("Localizable", "GalleryView.PlayLivePhoto", fallback: "Live Photo - Hold to View")
+  }
+  public enum Lightbox {
+    /// Edit
+    public static let edit = L10n.tr("Localizable", "Lightbox.Edit", fallback: "Edit")
+    public enum Edit {
+      /// Decrypting...
+      public static let decrypting = L10n.tr("Localizable", "Lightbox.Edit.Decrypting", fallback: "Decrypting...")
+      /// Rotating...
+      public static let rotating = L10n.tr("Localizable", "Lightbox.Edit.Rotating", fallback: "Rotating...")
+      /// Encrypting...
+      public static let encrypting = L10n.tr("Localizable", "Lightbox.Edit.Encrypting", fallback: "Encrypting...")
+      /// Edit saved
+      public static let completed = L10n.tr("Localizable", "Lightbox.Edit.Completed", fallback: "Edit saved")
+    }
   }
   public enum GlobalImportProgress {
     /// Delete from Photo Library?

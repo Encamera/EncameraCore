@@ -651,6 +651,7 @@
 "ProgressView.FileLoadedSuccessfully" = "File loaded successfully";
 
 "FileLoading.StepIndicator" = "STEP %d OF 2";
+"FileLoading.StepIndicatorGeneric" = "STEP %d OF %d";
 "FileLoading.Downloading" = "Downloading media from iCloud";
 "FileLoading.Decrypting" = "Decrypting media";
 "FileLoading.CellularWarning" = "You are on cellular data. Large files may take longer to download from iCloud.";
@@ -779,6 +780,19 @@
 "BackgroundTaskProgress.MovingProgress" = "Moving %@ of %@";
 "BackgroundTaskProgress.MovingBatches" = "Moving %@ batches";
 "BackgroundTaskProgress.NoActiveTasks" = "No active tasks";
+
+/* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Edit Operations */
+"BackgroundTaskProgress.EditCompleted" = "Edit completed";
+"BackgroundTaskProgress.EditStopped" = "Edit stopped";
+"BackgroundTaskProgress.EditCancelled" = "Edit cancelled";
+"BackgroundTaskProgress.Editing" = "Editing...";
+
+/* ./Encamera/Lightbox/LightboxController.swift - Edit Mode */
+"Lightbox.Edit" = "Edit";
+"Lightbox.Edit.Decrypting" = "Decrypting...";
+"Lightbox.Edit.Rotating" = "Rotating...";
+"Lightbox.Edit.Encrypting" = "Encrypting...";
+"Lightbox.Edit.Completed" = "Edit saved";
 
 /* ./Encamera/Components/ImportProgress/TaskDetailCard.swift */
 "TaskDetailCard.TaskID" = "Task ID: %@";

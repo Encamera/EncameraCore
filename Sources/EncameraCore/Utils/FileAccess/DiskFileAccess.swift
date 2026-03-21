@@ -883,6 +883,8 @@ extension DiskFileAccess {
             }
         }
         
+        // Invalidate cached preview so the new one is picked up on next load
+        Self.previewCache.removeObject(forKey: media.id as NSString)
         try await createPreview(for: media)
         operationBus.didCreate(encrypted)
         return encrypted
