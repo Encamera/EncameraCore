@@ -14,8 +14,8 @@ class DemoCameraService: CameraConfigurationServicable {
     func set(zoom: ZoomLevel) async {
         
     }
-    func set(rotation: AVCaptureVideoOrientation) async {
-        
+    func set(rotationAngle: CGFloat) async {
+
     }
     func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async {
         

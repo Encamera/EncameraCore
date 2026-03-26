@@ -117,8 +117,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         model.setupResult
     }
 
-    public func currentOrientation() -> AVCaptureVideoOrientation {
-        model.orientation
+    public func currentRotationAngle() -> CGFloat {
+        model.rotationAngle
     }
 
     public func configure() async {
@@ -280,8 +280,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         self.zoomLevels = zoomLevelsDict
     }
 
-    public func set(rotation: AVCaptureVideoOrientation) async {
-        model.orientation = rotation
+    public func set(rotationAngle: CGFloat) async {
+        model.rotationAngle = rotationAngle
     }
 
     public func set(zoom: ZoomLevel) async {
@@ -420,28 +420,30 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
 extension CameraConfigurationService {
 
-    public func createVideoProcessor(captureOrientation: AVCaptureVideoOrientation? = nil) async throws -> AsyncVideoCaptureProcessor {
+    public func createVideoProcessor(captureRotationAngle: CGFloat? = nil) async throws -> AsyncVideoCaptureProcessor {
         guard let videoOutput = self.movieOutput else {
             throw MediaProcessorError.missingMovieOutput
         }
         let connection = videoOutput.connection(with: .video)
-        let orientation = captureOrientation ?? model.orientation
-        connection?.videoOrientation = orientation
-
+        let angle = captureRotationAngle ?? model.rotationAngle
+        if let connection, connection.isVideoRotationAngleSupported(angle) {
+            connection.videoRotationAngle = angle
+        }
 
         return AsyncVideoCaptureProcessor(videoCaptureOutput: videoOutput)
     }
 
 
-    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode, livePhotoEnabled: Bool, captureOrientation: AVCaptureVideoOrientation? = nil) async throws -> AsyncPhotoCaptureProcessor {
+    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode, livePhotoEnabled: Bool, captureRotationAngle: CGFloat? = nil) async throws -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
             printDebug("Could not capture photo")
             throw MediaProcessorError.setupIncomplete
         }
 
-        let orientation = captureOrientation ?? model.orientation
-        if let photoOutputConnection = self.photoOutput.connection(with: .video) {
-            photoOutputConnection.videoOrientation = orientation
+        let angle = captureRotationAngle ?? model.rotationAngle
+        if let photoOutputConnection = self.photoOutput.connection(with: .video),
+           photoOutputConnection.isVideoRotationAngleSupported(angle) {
+            photoOutputConnection.videoRotationAngle = angle
         }
         configurePhotoOutput()
 

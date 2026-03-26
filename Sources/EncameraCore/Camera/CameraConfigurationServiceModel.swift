@@ -9,7 +9,7 @@ import Foundation
 import AVFoundation
 
 public class CameraConfigurationServiceModel {
-    @Published public var orientation: AVCaptureVideoOrientation = .portrait
+    @Published public var rotationAngle: CGFloat = 90 // 90 = portrait
     @Published public var cameraMode: CameraMode = .photo
     @Published public var canCaptureLivePhoto: Bool = true
 
