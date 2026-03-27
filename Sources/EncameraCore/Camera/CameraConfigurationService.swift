@@ -223,7 +223,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         }
     }
 
-    func focus(at focusPoint: CGPoint) async {
+    public func focus(at focusPoint: CGPoint) async {
         guard let device = videoDeviceInput?.device else {
             printDebug("Trying to focus, video device is nil")
             return
@@ -243,6 +243,24 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         }
     }
 
+    public func setExposureTargetBias(_ bias: Float) async {
+        guard let device = videoDeviceInput?.device else {
+            printDebug("Trying to set exposure bias, video device is nil")
+            return
+        }
+        do {
+            try device.lockForConfiguration()
+            let clampedBias = max(device.minExposureTargetBias, min(bias, device.maxExposureTargetBias))
+            device.setExposureTargetBias(clampedBias, completionHandler: nil)
+            device.unlockForConfiguration()
+        } catch {
+            printDebug("Failed to set exposure target bias: \(error)")
+        }
+    }
+
+    public func resetExposureTargetBias() async {
+        await setExposureTargetBias(0)
+    }
 
     func loadAvailableZoomFactors() async {
 

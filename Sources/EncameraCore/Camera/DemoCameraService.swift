@@ -47,7 +47,15 @@ class DemoCameraService: CameraConfigurationServicable {
     }
     
     func focus(at focusPoint: CGPoint) async {
-        
+
+    }
+
+    func setExposureTargetBias(_ bias: Float) async {
+
+    }
+
+    func resetExposureTargetBias() async {
+
     }
     
     func set(zoom: CGFloat) async {
