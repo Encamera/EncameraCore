@@ -910,6 +910,10 @@
 "FeatureToggles.AppIconSelectionDescription" = "Enable custom app icon selection";
 "FeatureToggles.NewPaywall" = "New Paywall";
 "FeatureToggles.NewPaywallDescription" = "Use the redesigned paywall instead of the classic purchase screen";
+"FeatureToggles.EditRotation" = "Edit Rotation";
+"FeatureToggles.EditRotationDescription" = "Enable the edit button in the lightbox to rotate media";
+"FeatureToggles.DetectDuplicates" = "Detect Duplicates";
+"FeatureToggles.DetectDuplicatesDescription" = "Enable the find duplicates option in album menus";
 "Common.Cancel" = "Cancel";
 "Common.Confirm" = "Confirm";
 

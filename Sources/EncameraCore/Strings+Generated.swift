@@ -1208,6 +1208,14 @@ public enum L10n {
     public static let hideAlbum = L10n.tr("Localizable", "FeatureToggles.HideAlbum", fallback: "Hide Album")
     /// Hide album from main view
     public static let hideAlbumDescription = L10n.tr("Localizable", "FeatureToggles.HideAlbumDescription", fallback: "Hide album from main view")
+    /// Detect Duplicates
+    public static let detectDuplicates = L10n.tr("Localizable", "FeatureToggles.DetectDuplicates", fallback: "Detect Duplicates")
+    /// Enable the find duplicates option in album menus
+    public static let detectDuplicatesDescription = L10n.tr("Localizable", "FeatureToggles.DetectDuplicatesDescription", fallback: "Enable the find duplicates option in album menus")
+    /// Edit Rotation
+    public static let editRotation = L10n.tr("Localizable", "FeatureToggles.EditRotation", fallback: "Edit Rotation")
+    /// Enable the edit button in the lightbox to rotate media
+    public static let editRotationDescription = L10n.tr("Localizable", "FeatureToggles.EditRotationDescription", fallback: "Enable the edit button in the lightbox to rotate media")
     /// New Paywall
     public static let newPaywall = L10n.tr("Localizable", "FeatureToggles.NewPaywall", fallback: "New Paywall")
     /// Use the redesigned paywall instead of the classic purchase screen

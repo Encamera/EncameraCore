@@ -14,6 +14,8 @@ public enum Feature: String, CaseIterable {
     case encryptedZipExport
     case showDesignSystem
     case newPaywall
+    case editRotation
+    case detectDuplicates
 
     var userDefaultsKey: String {
         return "feature_" +  rawValue
@@ -27,6 +29,8 @@ public enum Feature: String, CaseIterable {
         case .encryptedZipExport: return L10n.FeatureToggles.encryptedZipExport
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystem
         case .newPaywall: return L10n.FeatureToggles.newPaywall
+        case .editRotation: return L10n.FeatureToggles.editRotation
+        case .detectDuplicates: return L10n.FeatureToggles.detectDuplicates
         }
     }
 
@@ -38,6 +42,8 @@ public enum Feature: String, CaseIterable {
         case .encryptedZipExport: return L10n.FeatureToggles.encryptedZipExportDescription
         case .showDesignSystem: return L10n.FeatureToggles.showDesignSystemDescription
         case .newPaywall: return L10n.FeatureToggles.newPaywallDescription
+        case .editRotation: return L10n.FeatureToggles.editRotationDescription
+        case .detectDuplicates: return L10n.FeatureToggles.detectDuplicatesDescription
         }
     }
 
