@@ -145,12 +145,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
         self.albumSet = Set(localAlbums).union(Set(iCloudAlbums))
         // Retrieve the current album ID from user defaults
+        // Only select non-hidden albums — hidden albums should not be accessible from the camera
         if let currentAlbumID = UserDefaultUtils.string(forKey: .currentAlbumID),
-            let foundAlbum = albumSet.first(where: { $0.id == currentAlbumID }) {
+            let foundAlbum = albums.first(where: { $0.id == currentAlbumID }) {
             // Find the album with the matching ID
             self.currentAlbum = foundAlbum
         } else {
-            self.currentAlbum = albumSet.first
+            self.currentAlbum = albums.first
         }
     }
 
@@ -198,10 +199,10 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // Remove album from albums collection
         albumSet.remove(album)
         albumOperationSubject.send(.albumDeleted(album: album))
-        if albumSet.count == 0 {
+        if albums.isEmpty {
             currentAlbum = nil
         } else {
-            currentAlbum = albumSet.first
+            currentAlbum = albums.first
         }
     }
 
