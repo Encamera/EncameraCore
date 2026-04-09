@@ -564,7 +564,6 @@
 "Notification.Scheduling.Error" = "حدث خطأ أثناء جدولة الإشعار: %@";
 "New Album Subheading" = "قم بتعيين اسم لهذا الألبوم المشفر للصور.";
 "Settings.CopiedToClipboard" = "تم النسخ إلى الحافظة";
-"Settings.PiwikTrackingId" = "معرف تتبع Piwik";
 "Settings.RevenueCatCustomerId" = "معرف عميل RevenueCat";
 "" = "";
 "BillingFrequency.PerYear" = "سنوياً";

@@ -50,7 +50,6 @@ public enum AppConstants {
         case feedbackApi = "https://script.google.com/macros/s/AKfycbwDkuMT5MkmfpBmaahRJhM7BVWCvBcALiC6cKIaanmNGggMrY7qn50EKV-ZeZS6miJO/exec"
         case supabaseFunctionsBase = "https://iwyaxywmukbescxoownb.supabase.co/functions/v1"
         case supabaseAnalyticsTrack = "https://iwyaxywmukbescxoownb.supabase.co/functions/v1/track"
-        case piwikAnalytics = "https://encamera.piwik.pro/piwik.php"
         case appleAdsAttribution = "https://api-adservices.apple.com/api/v1/"
 
         // Website Pages
@@ -85,7 +84,6 @@ public enum AppConstants {
             .feedbackApi,
             .supabaseFunctionsBase,
             .supabaseAnalyticsTrack,
-            .piwikAnalytics,
             .appleAdsAttribution,
             .twitter,
             .blackFridayHeaderImage,

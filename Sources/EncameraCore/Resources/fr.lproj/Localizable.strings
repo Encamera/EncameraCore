@@ -597,7 +597,6 @@
   "MainHomeView.ViewTheKey" = "Afficher la clé";
 
 "Settings.CopiedToClipboard" = "Copié dans le presse-papiers";
-"Settings.PiwikTrackingId" = "ID de suivi Piwik";
 "Settings.RevenueCatCustomerId" = "ID client RevenueCat";
 "BillingFrequency.PerYear" = "par an";
 "BillingFrequency.OneTime" = "une fois";

@@ -549,7 +549,6 @@ Sovellus sulkeutuu, kun poisto on valmis.
 "AuthenticationMethod.TextDescription.FaceID" = "Face ID";
 "Current Password" = "Nykyinen salasana";
 "SetAPasswordWarning" = "Aseta salasana sovelluksen käyttöä varten. Muista säilyttää se turvallisessa paikassa – et voi palauttaa sitä myöhemmin.";
-"Settings.PiwikTrackingId" = "Piwik-seurantatunnus";
 "Settings.ImportKeyPhrase" = "Tuo avainlause";
 "AlbumDetailView.PhotoAccessRequired" = "Valokuvien käyttöoikeus vaaditaan";
 "Notification.Permission.Granted" = "Paikallisen ilmoituksen luvat myönnetty.";

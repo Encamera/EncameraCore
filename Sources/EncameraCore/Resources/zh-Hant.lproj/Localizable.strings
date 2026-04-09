@@ -441,7 +441,6 @@ Encamera！";
 "Notification.Scheduling.Error" = "排程通知時發生錯誤：%@";
 "Settings.Version" = "版本";
 "Settings.RevenueCatCustomerId" = "RevenueCat 客戶 ID";
-"Settings.PiwikTrackingId" = "Piwik 追蹤 ID";
 "Settings.CopiedToClipboard" = "已複製到剪貼簿";
 "Settings.Contact" = "聯絡支援";
 "Settings.BackupKeyPhrase" = "備份金鑰詞組";

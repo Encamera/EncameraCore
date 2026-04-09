@@ -580,7 +580,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "MainHomeView.ViewTheKey" = "Vezi cheia";
 
 "Settings.CopiedToClipboard" = "Copiat în clipboard";
-"Settings.PiwikTrackingId" = "ID urmărire Piwik";
 "Settings.RevenueCatCustomerId" = "ID client RevenueCat";
 "BillingFrequency.PerYear" = "pe an";
 "BillingFrequency.OneTime" = "o dată";

@@ -713,7 +713,6 @@
 "MainHomeView.ViewTheKey" = "Ver la clave";
 "MainHomeView.KeyBackupWarning" = "No podrás ver tu contenido multimedia sin esta clave.";
 "Settings.CopiedToClipboard" = "Copiado al portapapeles";
-"Settings.PiwikTrackingId" = "ID de seguimiento de Piwik";
 "Settings.RevenueCatCustomerId" = "ID de cliente de RevenueCat";
 "BillingFrequency.PerYear" = "por año";
 "BillingFrequency.OneTime" = "una vez";

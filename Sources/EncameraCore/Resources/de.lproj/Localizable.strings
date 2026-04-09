@@ -715,7 +715,6 @@
 "MainHomeView.ViewTheKey" = "Den Schlüssel anzeigen";
 "MainHomeView.KeyBackupWarning" = "Sie können Ihre Medien ohne diesen Schlüssel nicht anzeigen.";
 "Settings.CopiedToClipboard" = "In die Zwischenablage kopiert";
-"Settings.PiwikTrackingId" = "Piwik-Tracking-ID";
 "Settings.RevenueCatCustomerId" = "RevenueCat-Kundennummer";
 "BillingFrequency.PerYear" = "pro Jahr";
 "BillingFrequency.OneTime" = "einmalig";

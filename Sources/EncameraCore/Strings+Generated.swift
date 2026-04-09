@@ -1030,6 +1030,14 @@ public enum L10n {
     public static let tooManyAttempts = L10n.tr("Localizable", "AuthenticationView.TooManyAttempts", fallback: "Too many attempts")
   }
   public enum BackgroundTaskProgress {
+    /// Edit cancelled
+    public static let editCancelled = L10n.tr("Localizable", "BackgroundTaskProgress.EditCancelled", fallback: "Edit cancelled")
+    /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Edit Operations
+    public static let editCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.EditCompleted", fallback: "Edit completed")
+    /// Editing...
+    public static let editing = L10n.tr("Localizable", "BackgroundTaskProgress.Editing", fallback: "Editing...")
+    /// Edit stopped
+    public static let editStopped = L10n.tr("Localizable", "BackgroundTaskProgress.EditStopped", fallback: "Edit stopped")
     /// Move canceled
     public static let moveCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCanceled", fallback: "Move canceled")
     /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations
@@ -1046,14 +1054,6 @@ public enum L10n {
     }
     /// No active tasks
     public static let noActiveTasks = L10n.tr("Localizable", "BackgroundTaskProgress.NoActiveTasks", fallback: "No active tasks")
-    /// Edit completed
-    public static let editCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.EditCompleted", fallback: "Edit completed")
-    /// Edit stopped
-    public static let editStopped = L10n.tr("Localizable", "BackgroundTaskProgress.EditStopped", fallback: "Edit stopped")
-    /// Edit cancelled
-    public static let editCancelled = L10n.tr("Localizable", "BackgroundTaskProgress.EditCancelled", fallback: "Edit cancelled")
-    /// Editing...
-    public static let editing = L10n.tr("Localizable", "BackgroundTaskProgress.Editing", fallback: "Editing...")
   }
   public enum BillingFrequency {
     /// 1 Year of Updates
@@ -1192,6 +1192,14 @@ public enum L10n {
     public static let debugRemoteContent = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContent", fallback: "Debug Remote Content")
     /// Enable debugging for remote CMS content
     public static let debugRemoteContentDescription = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContentDescription", fallback: "Enable debugging for remote CMS content")
+    /// Detect Duplicates
+    public static let detectDuplicates = L10n.tr("Localizable", "FeatureToggles.DetectDuplicates", fallback: "Detect Duplicates")
+    /// Enable the find duplicates option in album menus
+    public static let detectDuplicatesDescription = L10n.tr("Localizable", "FeatureToggles.DetectDuplicatesDescription", fallback: "Enable the find duplicates option in album menus")
+    /// Edit Rotation
+    public static let editRotation = L10n.tr("Localizable", "FeatureToggles.EditRotation", fallback: "Edit Rotation")
+    /// Enable the edit button in the lightbox to rotate media
+    public static let editRotationDescription = L10n.tr("Localizable", "FeatureToggles.EditRotationDescription", fallback: "Enable the edit button in the lightbox to rotate media")
     /// Test RevenueCat
     public static let enableTestRevenueCat = L10n.tr("Localizable", "FeatureToggles.EnableTestRevenueCat", fallback: "Test RevenueCat")
     /// Enable RevenueCat testing mode
@@ -1208,14 +1216,6 @@ public enum L10n {
     public static let hideAlbum = L10n.tr("Localizable", "FeatureToggles.HideAlbum", fallback: "Hide Album")
     /// Hide album from main view
     public static let hideAlbumDescription = L10n.tr("Localizable", "FeatureToggles.HideAlbumDescription", fallback: "Hide album from main view")
-    /// Detect Duplicates
-    public static let detectDuplicates = L10n.tr("Localizable", "FeatureToggles.DetectDuplicates", fallback: "Detect Duplicates")
-    /// Enable the find duplicates option in album menus
-    public static let detectDuplicatesDescription = L10n.tr("Localizable", "FeatureToggles.DetectDuplicatesDescription", fallback: "Enable the find duplicates option in album menus")
-    /// Edit Rotation
-    public static let editRotation = L10n.tr("Localizable", "FeatureToggles.EditRotation", fallback: "Edit Rotation")
-    /// Enable the edit button in the lightbox to rotate media
-    public static let editRotationDescription = L10n.tr("Localizable", "FeatureToggles.EditRotationDescription", fallback: "Enable the edit button in the lightbox to rotate media")
     /// New Paywall
     public static let newPaywall = L10n.tr("Localizable", "FeatureToggles.NewPaywall", fallback: "New Paywall")
     /// Use the redesigned paywall instead of the classic purchase screen
@@ -1269,7 +1269,7 @@ public enum L10n {
       return L10n.tr("Localizable", "FileLoading.StepIndicator", p1, fallback: "STEP %d OF 2")
     }
     /// STEP %d OF %d
-    public static func stepIndicator(_ p1: Int, _ p2: Int) -> String {
+    public static func stepIndicatorGeneric(_ p1: Int, _ p2: Int) -> String {
       return L10n.tr("Localizable", "FileLoading.StepIndicatorGeneric", p1, p2, fallback: "STEP %d OF %d")
     }
   }
@@ -1296,20 +1296,6 @@ public enum L10n {
     public static let makeAlbumCover = L10n.tr("Localizable", "GalleryView.MakeAlbumCover", fallback: "Make Album Cover")
     /// Live Photo - Hold to View
     public static let playLivePhoto = L10n.tr("Localizable", "GalleryView.PlayLivePhoto", fallback: "Live Photo - Hold to View")
-  }
-  public enum Lightbox {
-    /// Edit
-    public static let edit = L10n.tr("Localizable", "Lightbox.Edit", fallback: "Edit")
-    public enum Edit {
-      /// Decrypting...
-      public static let decrypting = L10n.tr("Localizable", "Lightbox.Edit.Decrypting", fallback: "Decrypting...")
-      /// Rotating...
-      public static let rotating = L10n.tr("Localizable", "Lightbox.Edit.Rotating", fallback: "Rotating...")
-      /// Encrypting...
-      public static let encrypting = L10n.tr("Localizable", "Lightbox.Edit.Encrypting", fallback: "Encrypting...")
-      /// Edit saved
-      public static let completed = L10n.tr("Localizable", "Lightbox.Edit.Completed", fallback: "Edit saved")
-    }
   }
   public enum GlobalImportProgress {
     /// Delete from Photo Library?
@@ -1466,6 +1452,20 @@ public enum L10n {
     public static let subtitle = L10n.tr("Localizable", "KeyPhrase.Subtitle", fallback: "This is your unique encryption key phrase. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.")
     /// Key Phrase Display Screen
     public static let title = L10n.tr("Localizable", "KeyPhrase.Title", fallback: "Your Encryption Key Phrase")
+  }
+  public enum Lightbox {
+    /// ./Encamera/Lightbox/LightboxController.swift - Edit Mode
+    public static let edit = L10n.tr("Localizable", "Lightbox.Edit", fallback: "Edit")
+    public enum Edit {
+      /// Edit saved
+      public static let completed = L10n.tr("Localizable", "Lightbox.Edit.Completed", fallback: "Edit saved")
+      /// Decrypting...
+      public static let decrypting = L10n.tr("Localizable", "Lightbox.Edit.Decrypting", fallback: "Decrypting...")
+      /// Encrypting...
+      public static let encrypting = L10n.tr("Localizable", "Lightbox.Edit.Encrypting", fallback: "Encrypting...")
+      /// Rotating...
+      public static let rotating = L10n.tr("Localizable", "Lightbox.Edit.Rotating", fallback: "Rotating...")
+    }
   }
   public enum MainHomeView {
     /// ./Encamera/MainHomeView/MainHomeView.swift
@@ -1863,8 +1863,6 @@ public enum L10n {
     public static let hiddenAlbums = L10n.tr("Localizable", "Settings.HiddenAlbums", fallback: "Hidden Albums")
     /// Import Key Phrase
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
-    /// Piwik Tracking ID
-    public static let piwikTrackingId = L10n.tr("Localizable", "Settings.PiwikTrackingId", fallback: "Piwik Tracking ID")
     /// Purchases restored!
     public static let purchasesRestored = L10n.tr("Localizable", "Settings.PurchasesRestored", fallback: "Purchases restored!")
     /// Any valid purchases you made have been restored.

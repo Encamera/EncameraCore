@@ -561,7 +561,6 @@
 "MainHomeView.ViewTheKey" = "查看密钥";
 
 "Settings.CopiedToClipboard" = "已复制到剪贴板";
-"Settings.PiwikTrackingId" = "Piwik 跟踪 ID";
 "Settings.RevenueCatCustomerId" = "RevenueCat 客户 ID";
 "BillingFrequency.PerYear" = "每年";
 "BillingFrequency.OneTime" = "一次性";

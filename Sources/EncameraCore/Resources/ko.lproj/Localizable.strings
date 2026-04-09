@@ -584,7 +584,6 @@
 "Settings.BackupKeyToiCloudDescription" = "사용 설정하면 키가 iCloud 키체인에 자동으로 백업됩니다. 이 옵션을 선택하면 장치를 분실하더라도 iCloud에 저장된 파일에 액세스할 수 있습니다.";
 "MainHomeView.KeyBackupWarning" = "이 키 없이는 미디어를 볼 수 없습니다.";
 "Settings.CopiedToClipboard" = "클립보드에 복사됨";
-"Settings.PiwikTrackingId" = "Piwik 추적 ID";
 "Settings.RevenueCatCustomerId" = "RevenueCat 고객 ID";
 "BillingFrequency.PerYear" = "연간";
 "BillingFrequency.OneTime" = "한 번";

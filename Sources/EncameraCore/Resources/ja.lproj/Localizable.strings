@@ -596,7 +596,6 @@
 "Notification.Scheduling.Error" = "通知のスケジューリング中にエラーが発生しました: %@";
 "New Album Subheading" = "この暗号化された写真アルバムの名前を設定してください。";
 "Settings.CopiedToClipboard" = "クリップボードにコピーしました";
-"Settings.PiwikTrackingId" = "PiwikトラッキングID";
 "Settings.RevenueCatCustomerId" = "RevenueCatカスタマーID";
 "BillingFrequency.PerYear" = "年ごと";
 "BillingFrequency.OneTime" = "一回限り";

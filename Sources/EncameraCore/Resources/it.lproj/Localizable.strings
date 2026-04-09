@@ -570,7 +570,6 @@ Encamera!";
 "Notification.Scheduling.Error" = "Errore durante la pianificazione della notifica: %@";
 "New Album Subheading" = "Imposta il nome per questo album fotografico crittografato.";
 "Settings.CopiedToClipboard" = "Copiato negli appunti";
-"Settings.PiwikTrackingId" = "ID di tracciamento Piwik";
 "Settings.RevenueCatCustomerId" = "ID cliente RevenueCat";
 "BillingFrequency.PerYear" = "all'anno";
 "BillingFrequency.OneTime" = "una volta";
