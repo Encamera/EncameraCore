@@ -15,9 +15,6 @@ public enum L10n {
   ///  icon on the top left of the screen.
   public static let iconOnTheTopLeftOfTheScreen = L10n.tr("Localizable", " icon on the top left of the screen.", fallback: " icon on the top left of the screen.")
   /// Plural format key: "%#@file_count@"
-  public static func fileS(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "%@ File(s)", p1, fallback: "Plural format key: \"%#@file_count@\"")
-  }
   /// Plural format key: "%#@image_count@"
   public static func imageS(_ p1: Int) -> String {
     return L10n.tr("Localizable", "%@ Image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")

@@ -86,12 +86,14 @@ listing:
     EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
   whats_new: |
-    We've added:
-       Share photos directly to your vault from any app via the native share sheet
-       Full landscape support, manage your media in any orientation
-       Sort by date captured or date added, newest or oldest first
-       Full metadata visible for every photo and video in your vault
-       Album stats always visible, file count and storage location at a glance
+    New in this update:
+       Camera exposure slider: adjust brightness with a smooth, iOS-style control right in the camera view
+       Tighter album grid: photos and videos now display edge-to-edge with rounded corners for a cleaner look
+       Smarter flash: the viewfinder no longer flashes when using the rear camera, only the front-facing camera
+       QR code features have been removed to streamline the app
+    Bug fixes:
+       Hidden albums can no longer be accessed through the camera's album selector
+       Various stability and performance improvements
 
 limits:
   name: 30

@@ -55,19 +55,6 @@ public enum ZoomLevel: CGFloat {
     case x5 = 5.0
 }
 
-fileprivate struct ZoomControlModel {
-
-
-    var zoomLevel: ZoomLevel = .x1
-    var captureDevice: AVCaptureDevice?
-    var useDigitalZoom: Bool = false
-    public init(zoomLevel: ZoomLevel, captureDevice: AVCaptureDevice? = nil, useDigitalZoom: Bool) {
-        self.zoomLevel = zoomLevel
-        self.captureDevice = captureDevice
-        self.useDigitalZoom = useDigitalZoom
-    }
-}
-
 public actor CameraConfigurationService: CameraConfigurationServicable, DebugPrintable {
 
     public var currentCameraDeviceType: AVCaptureDevice.DeviceType?
@@ -85,24 +72,24 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     nonisolated public let session = AVCaptureSession()
     private let model: CameraConfigurationServiceModel
     var delegate: CameraConfigurationServicableDelegate?
-    private var availableZoomFactors: [CGFloat] = [1.0]
-    private var availableCameras: [AVCaptureDevice] = []
-    private var selectedCamera: AVCaptureDevice?
-    private var zoomLevels: [ZoomLevel: ZoomControlModel] = [:] {
-        didSet {
-            Task { @MainActor in
-                await delegate?.didUpdate(zoomLevels: zoomLevels.keys.sorted(by: { $0.rawValue < $1.rawValue }))
-            }
-        }
-    }
-
     private var movieOutput: AVCaptureMovieFileOutput?
     private let photoOutput = AVCapturePhotoOutput()
     private var videoDeviceInput: AVCaptureDeviceInput?
+    /// Maps each ZoomLevel to the videoZoomFactor to apply on the current virtual device
+    private var zoomFactorMap: [ZoomLevel: CGFloat] = [:] {
+        didSet {
+            guard Set(zoomFactorMap.keys) != Set(oldValue.keys) else { return }
+            let sorted = zoomFactorMap.keys.sorted(by: { $0.rawValue < $1.rawValue })
+            Task { @MainActor in
+                await delegate?.didUpdate(zoomLevels: sorted)
+            }
+        }
+    }
     private let deviceTypes: [AVCaptureDevice.DeviceType] = [
+        .builtInTripleCamera,
+        .builtInDualWideCamera,
         .builtInDualCamera,
         .builtInWideAngleCamera,
-        .builtInDualWideCamera,
         .builtInTelephotoCamera,
         .builtInUltraWideCamera
     ]
@@ -263,39 +250,65 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     }
 
     func loadAvailableZoomFactors() async {
+        guard let device = videoDeviceInput?.device else { return }
 
-        let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(
-            deviceTypes:
-                deviceTypes, mediaType: .video, position: currentCameraPosition)
-        var zoomLevelsDict: [ZoomLevel: ZoomControlModel] = [:]
+        let constituents = device.constituentDevices
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat($0.doubleValue) }
+        let minZF = device.minAvailableVideoZoomFactor
+        let maxZF = device.activeFormat.videoMaxZoomFactor
+        let secondaryFactors = device.activeFormat.secondaryNativeResolutionZoomFactors
 
-        for camera in videoDeviceDiscoverySession.devices {
-            let maxZoomFactor = camera.maxAvailableVideoZoomFactor
+        printDebug("Zoom discovery: \(device.localizedName) (\(device.deviceType.rawValue)), range: \(minZF)–\(maxZF), switchOvers: \(switchOverFactors)")
 
-            switch camera.deviceType {
-            case .builtInUltraWideCamera:
-                if maxZoomFactor >= ZoomLevel.x05.rawValue {
-                    zoomLevelsDict[.x05] = ZoomControlModel(zoomLevel: .x05, captureDevice: camera, useDigitalZoom: false)
-                }
-            case .builtInWideAngleCamera:
-                if maxZoomFactor >= ZoomLevel.x1.rawValue {
-                    zoomLevelsDict[.x1] = ZoomControlModel(zoomLevel: .x1, captureDevice: camera, useDigitalZoom: true)
-                }
-                if maxZoomFactor >= ZoomLevel.x2.rawValue {
-                    zoomLevelsDict[.x2] = ZoomControlModel(zoomLevel: .x2, captureDevice: camera, useDigitalZoom: true)
-                }
-            case .builtInTelephotoCamera:
-                if maxZoomFactor >= ZoomLevel.x5.rawValue {
-                    zoomLevelsDict[.x5] = ZoomControlModel(zoomLevel: .x5, captureDevice: camera, useDigitalZoom: false)
-                } else if maxZoomFactor >= ZoomLevel.x3.rawValue {
-                    zoomLevelsDict[.x3] = ZoomControlModel(zoomLevel: .x3, captureDevice: camera, useDigitalZoom: false)
-                }
+        // Step 1: Determine wideBaseZF — the videoZoomFactor where the wide camera is at native 1x.
+        // On triple/dualWide cameras, 1.0 = ultra-wide, so wide is at the first switch-over factor.
+        // On dual/single cameras, 1.0 = wide already.
+        let wideBaseZF: CGFloat
+        switch device.deviceType {
+        case .builtInTripleCamera, .builtInDualWideCamera:
+            wideBaseZF = switchOverFactors.first ?? 1.0
+        default:
+            wideBaseZF = 1.0
+        }
+        let hasUltraWide = constituents.contains { $0.deviceType == .builtInUltraWideCamera }
+        let hasTelephoto = constituents.contains { $0.deviceType == .builtInTelephotoCamera }
+        var teleMarketingZoom: CGFloat?
+        if hasTelephoto, let lastSO = switchOverFactors.last {
+            teleMarketingZoom = lastSO / wideBaseZF
+        }
 
-            default:
-                break
+        let closestTeleLevel = teleMarketingZoom.flatMap { closestZoomLevel(to: $0, from: [.x2, .x3, .x5]) }
+        var factorMap: [ZoomLevel: CGFloat] = [:]
+        let allLevels: [ZoomLevel] = [.x05, .x1, .x2, .x3, .x5]
+
+        for level in allLevels {
+            let videoZF = wideBaseZF * level.rawValue
+            let inRange = videoZF >= minZF && videoZF <= maxZF
+
+            let isNative: Bool
+            switch level {
+            case .x05:
+                isNative = hasUltraWide
+            case .x1:
+                isNative = true
+            case .x2, .x3, .x5:
+                let hasCenterCrop = secondaryFactors.contains { abs($0 - videoZF) < 0.5 }
+                isNative = closestTeleLevel == level || hasCenterCrop
+            }
+
+            printDebug("\(level.rawValue)x → videoZF=\(videoZF), inRange=\(inRange), isNative=\(isNative)")
+
+            if inRange && isNative {
+                factorMap[level] = videoZF
             }
         }
-        self.zoomLevels = zoomLevelsDict
+
+        printDebug("Available zoom levels: \(factorMap.keys.sorted { $0.rawValue < $1.rawValue }.map { "\($0.rawValue)x" })")
+        self.zoomFactorMap = factorMap
+    }
+
+    private func closestZoomLevel(to value: CGFloat, from candidates: [ZoomLevel]) -> ZoomLevel? {
+        candidates.min(by: { abs($0.rawValue - value) < abs($1.rawValue - value) })
     }
 
     public func set(rotationAngle: CGFloat) async {
@@ -303,34 +316,26 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     }
 
     public func set(zoom: ZoomLevel) async {
-        guard let currentCamera = videoDeviceInput?.device else {
+        guard let device = videoDeviceInput?.device else {
             printDebug("No current camera device available.")
             return
         }
-        printDebug("Setting to zoom level \(zoom)")
-        // Determine the best camera device for the requested zoom level.
-        guard let zoomModel = zoomLevels[zoom], let bestCamera = zoomModel.captureDevice else {
-            printDebug("No suitable camera device found for zoom level: \(zoom)")
+        guard let targetFactor = zoomFactorMap[zoom] else {
+            printDebug("Zoom level \(zoom) not available")
             return
         }
-
-        printDebug("Using \(bestCamera.localizedName) for zoom to \(zoom)")
+        printDebug("Setting zoom \(zoom.rawValue)x → videoZoomFactor=\(targetFactor)")
         do {
-            if bestCamera != currentCamera {
-                // If the best camera is different from the current one, perform a seamless transition.
-                try performCameraTransition(to: bestCamera)
+            try device.lockForConfiguration()
+            let clamped = min(max(targetFactor, device.minAvailableVideoZoomFactor),
+                              device.activeFormat.videoMaxZoomFactor)
+            if clamped != targetFactor {
+                printDebug("Clamped \(targetFactor) to \(clamped) (device range: \(device.minAvailableVideoZoomFactor)–\(device.activeFormat.videoMaxZoomFactor))")
             }
-
-            if zoomModel.useDigitalZoom {
-                try bestCamera.lockForConfiguration()
-
-                bestCamera.videoZoomFactor = zoomModel.zoomLevel.rawValue
-
-                bestCamera.unlockForConfiguration()
-            }
+            device.videoZoomFactor = clamped
+            device.unlockForConfiguration()
         } catch {
             printDebug("Error occurred while setting video zoom factor: \(error)")
-            return
         }
     }
 
@@ -367,21 +372,17 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         let currentPosition = currentVideoDevice.position
 
         let preferredPosition: AVCaptureDevice.Position
-        let preferredDeviceType: AVCaptureDevice.DeviceType
 
         switch currentPosition {
         case .unspecified, .front:
             preferredPosition = .back
-            preferredDeviceType = .builtInWideAngleCamera
 
         case .back:
             preferredPosition = .front
-            preferredDeviceType = .builtInWideAngleCamera
 
         @unknown default:
             printDebug("Unknown capture position. Defaulting to back, dual-camera.")
             preferredPosition = .back
-            preferredDeviceType = .builtInWideAngleCamera
         }
         let devices = AVCaptureDevice.DiscoverySession(
             deviceTypes: deviceTypes,
@@ -389,11 +390,19 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             position: preferredPosition).devices
         var newVideoDevice: AVCaptureDevice? = nil
 
-        // First, seek a device with both the preferred position and device type. Otherwise, seek a device with only the preferred position.
-        if let device = devices.first(where: { $0.position == preferredPosition && $0.deviceType == preferredDeviceType }) {
-            newVideoDevice = device
-        } else if let device = devices.first(where: { $0.position == preferredPosition }) {
-            newVideoDevice = device
+        // Prefer virtual devices for the back camera, wide-angle for front.
+        let prioritizedTypes: [AVCaptureDevice.DeviceType] = preferredPosition == .back
+            ? [.builtInTripleCamera, .builtInDualWideCamera, .builtInDualCamera, .builtInWideAngleCamera]
+            : [.builtInWideAngleCamera]
+
+        for deviceType in prioritizedTypes {
+            if let device = devices.first(where: { $0.deviceType == deviceType }) {
+                newVideoDevice = device
+                break
+            }
+        }
+        if newVideoDevice == nil {
+            newVideoDevice = devices.first
         }
 
         guard let videoDevice = newVideoDevice else {
@@ -401,7 +410,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             return
         }
 
-        currentCameraDeviceType = preferredDeviceType
+        currentCameraDeviceType = videoDevice.deviceType
         currentCameraPosition = preferredPosition
 
         do {
