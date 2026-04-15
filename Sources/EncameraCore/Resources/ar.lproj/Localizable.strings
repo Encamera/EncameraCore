@@ -721,7 +721,6 @@
 "AppIcon.Clock" = "ساعة";
 "FeatureToggles.ShowDesignSystem" = "نظام التصميم 🎨";
 "AppIcon.Calculator" = "آلة حاسبة";
-"CreateAlbumModal.GiveItAName" = "أعطه اسماً";
 "ZipExport.ShareDecrypted" = "مشاركة بدون تشفير";
 "ZipExportError.BackgroundTimeExpired" = "تم إيقاف التصدير لأن التطبيق كان في الخلفية لفترة طويلة. يرجى العودة إلى التطبيق والمحاولة مرة أخرى.";
 "ZipExport.Continue" = "متابعة";
@@ -822,3 +821,14 @@
 "TryAgain" = "حاول مرة أخرى";
 "MediaInfo.MetadataNotAvailable" = "البيانات الوصفية غير متوفرة";
 "ICloudError.NotAvailableNoConnection" = "هذا الملف مخزن في iCloud ولم يتمكن من التنزيل. اتصل بالإنترنت وحاول مرة أخرى.";
+"CreateAlbumModal.HeaderText" = "قم بتسمية هذا الألبوم المشفر";
+"FileLoading.StepIndicatorGeneric" = "الخطوة %d من %d";
+"BackgroundTaskProgress.Editing" = "جارٍ التحرير...";
+"Lightbox.Edit.Encrypting" = "جارٍ التشفير...";
+"Lightbox.Edit" = "تعديل";
+"Lightbox.Edit.Rotating" = "جارٍ التدوير...";
+"BackgroundTaskProgress.EditCompleted" = "تم الانتهاء من التعديل";
+"BackgroundTaskProgress.EditCancelled" = "تم إلغاء التعديل";
+"BackgroundTaskProgress.EditStopped" = "تم إيقاف التعديل";
+"Lightbox.Edit.Decrypting" = "جارٍ فك التشفير...";
+"Lightbox.Edit.Completed" = "تم حفظ التعديل";

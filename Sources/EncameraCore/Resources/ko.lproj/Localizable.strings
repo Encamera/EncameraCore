@@ -740,7 +740,6 @@
 "AppIcon.Clock" = "시계";
 "FeatureToggles.ShowDesignSystem" = "🎨 디자인 시스템";
 "AppIcon.Calculator" = "계산기";
-"CreateAlbumModal.GiveItAName" = "이름을 입력하세요";
 "ZipExport.ShareDecrypted" = "복호화된 내용 공유";
 "ZipExportError.BackgroundTimeExpired" = "앱이 너무 오랫동안 백그라운드에 있어서 내보내기가 중단되었습니다. 앱으로 돌아가서 다시 시도해 주세요.";
 "ZipExport.Continue" = "계속하기";
@@ -841,3 +840,14 @@
 "TryAgain" = "다시 시도";
 "MediaInfo.MetadataNotAvailable" = "메타데이터를 사용할 수 없음";
 "ICloudError.NotAvailableNoConnection" = "이 파일은 iCloud에 저장되어 있으며 다운로드할 수 없습니다. 인터넷에 연결한 후 다시 시도하세요.";
+"CreateAlbumModal.HeaderText" = "이 암호화된 앨범의 이름을 지정하세요";
+"FileLoading.StepIndicatorGeneric" = "단계 %d / %d";
+"BackgroundTaskProgress.Editing" = "편집 중...";
+"Lightbox.Edit.Encrypting" = "암호화 중...";
+"Lightbox.Edit" = "편집";
+"Lightbox.Edit.Rotating" = "회전 중...";
+"BackgroundTaskProgress.EditCompleted" = "편집 완료";
+"BackgroundTaskProgress.EditCancelled" = "편집 취소됨";
+"BackgroundTaskProgress.EditStopped" = "편집 중지됨";
+"Lightbox.Edit.Decrypting" = "복호화 중...";
+"Lightbox.Edit.Completed" = "편집이 저장되었습니다";

@@ -752,7 +752,6 @@
 "AppIcon.Clock" = "時計";
 "FeatureToggles.ShowDesignSystem" = "🎨 デザインシステム";
 "AppIcon.Calculator" = "電卓";
-"CreateAlbumModal.GiveItAName" = "名前を付けてください";
 "ZipExport.ShareDecrypted" = "復号化して共有";
 "ZipExportError.BackgroundTimeExpired" = "アプリが長時間バックグラウンドにあったため、エクスポートが中断されました。アプリに戻って再度お試しください。";
 "ZipExport.Continue" = "続行";
@@ -853,3 +852,14 @@
 "TryAgain" = "再試行";
 "MediaInfo.MetadataNotAvailable" = "メタデータが利用できません";
 "ICloudError.NotAvailableNoConnection" = "このファイルはiCloudに保存されており、ダウンロードできませんでした。インターネットに接続して再試行してください。";
+"CreateAlbumModal.HeaderText" = "この暗号化されたアルバムに名前を付けてください";
+"FileLoading.StepIndicatorGeneric" = "ステップ %d / %d";
+"BackgroundTaskProgress.Editing" = "編集中...";
+"Lightbox.Edit.Encrypting" = "暗号化中...";
+"Lightbox.Edit" = "編集";
+"Lightbox.Edit.Rotating" = "回転中...";
+"BackgroundTaskProgress.EditCompleted" = "編集が完了しました";
+"BackgroundTaskProgress.EditCancelled" = "編集がキャンセルされました";
+"BackgroundTaskProgress.EditStopped" = "編集が停止されました";
+"Lightbox.Edit.Decrypting" = "復号中...";
+"Lightbox.Edit.Completed" = "編集が保存されました";

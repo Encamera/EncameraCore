@@ -42,7 +42,6 @@ public enum OnboardingFlowScreen: String, Identifiable {
     case setPinCode
     case confirmPinCode
     case showKeyPhrase
-    case finished
     public var id: Self { self }
 }
 

@@ -1023,7 +1023,7 @@
 "ZipExportError.DirectoryCreationFailed" = "Failed to create export directory: %@";
 "ZipExportError.BackgroundTimeExpired" = "Export was interrupted because the app was in the background too long. Please return to the app and try again.";
 /* ./Encamera/AlbumManagement/CreateAlbumModal.swift - Create Album Modal */
-"CreateAlbumModal.GiveItAName" = "Give it a name";
+"CreateAlbumModal.HeaderText" = "Name this encrypted album";
 "CreateAlbumModal.Placeholder" = "Your memories";
 "CreateAlbumModal.CreateAlbum" = "Create Album";
 

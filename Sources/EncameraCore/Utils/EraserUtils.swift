@@ -10,6 +10,15 @@ import Foundation
 public enum ErasureScope {
     case appData
     case allData
+
+    public var screenName: String {
+        switch self {
+        case .appData:
+            return "app_data"
+        case .allData:
+            return "all_data"
+        }
+    }
 }
 
 public struct EraserUtils {

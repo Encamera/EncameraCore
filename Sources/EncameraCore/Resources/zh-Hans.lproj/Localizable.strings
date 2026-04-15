@@ -717,7 +717,6 @@
 "AppIcon.Clock" = "时钟";
 "FeatureToggles.ShowDesignSystem" = "🎨 设计系统";
 "AppIcon.Calculator" = "计算器";
-"CreateAlbumModal.GiveItAName" = "给它起个名字";
 "ZipExport.ShareDecrypted" = "分享已解密";
 "ZipExportError.BackgroundTimeExpired" = "导出被中断，因为应用程序在后台停留时间过长。请返回应用并重试。";
 "ZipExport.Continue" = "继续";
@@ -818,3 +817,14 @@
 "TryAgain" = "重试";
 "MediaInfo.MetadataNotAvailable" = "元数据不可用";
 "ICloudError.NotAvailableNoConnection" = "此文件存储在iCloud中，无法下载。请连接互联网并重试。";
+"CreateAlbumModal.HeaderText" = "为此加密相册命名";
+"FileLoading.StepIndicatorGeneric" = "第 %d 步，共 %d 步";
+"BackgroundTaskProgress.Editing" = "正在编辑...";
+"Lightbox.Edit.Encrypting" = "正在加密...";
+"Lightbox.Edit" = "编辑";
+"Lightbox.Edit.Rotating" = "旋转中...";
+"BackgroundTaskProgress.EditCompleted" = "编辑已完成";
+"BackgroundTaskProgress.EditCancelled" = "编辑已取消";
+"BackgroundTaskProgress.EditStopped" = "编辑已停止";
+"Lightbox.Edit.Decrypting" = "解密中...";
+"Lightbox.Edit.Completed" = "编辑已保存";

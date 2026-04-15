@@ -1108,7 +1108,7 @@ public enum L10n {
     /// Create Album
     public static let createAlbum = L10n.tr("Localizable", "CreateAlbumModal.CreateAlbum", fallback: "Create Album")
     /// ./Encamera/AlbumManagement/CreateAlbumModal.swift - Create Album Modal
-    public static let giveItAName = L10n.tr("Localizable", "CreateAlbumModal.GiveItAName", fallback: "Give it a name")
+    public static let headerText = L10n.tr("Localizable", "CreateAlbumModal.HeaderText", fallback: "Name this encrypted album")
     /// Your memories
     public static let placeholder = L10n.tr("Localizable", "CreateAlbumModal.Placeholder", fallback: "Your memories")
   }

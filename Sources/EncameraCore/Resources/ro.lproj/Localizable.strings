@@ -736,7 +736,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "AppIcon.Clock" = "Ceas";
 "FeatureToggles.ShowDesignSystem" = "🎨 Sistem de Design";
 "AppIcon.Calculator" = "Calculator";
-"CreateAlbumModal.GiveItAName" = "Dă-i un nume";
 "ZipExport.ShareDecrypted" = "Partajează Decriptat";
 "ZipExportError.BackgroundTimeExpired" = "Exportul a fost întrerupt deoarece aplicația a stat prea mult timp în fundal. Te rugăm să revii la aplicație și să încerci din nou.";
 "ZipExport.Continue" = "Continuă";
@@ -837,3 +836,14 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "TryAgain" = "Încearcă din nou";
 "MediaInfo.MetadataNotAvailable" = "Metadate indisponibile";
 "ICloudError.NotAvailableNoConnection" = "Acest fișier este stocat în iCloud și nu a putut fi descărcat. Conectează-te la internet și încearcă din nou.";
+"CreateAlbumModal.HeaderText" = "Denumește acest album criptat";
+"FileLoading.StepIndicatorGeneric" = "PASUL %d DIN %d";
+"BackgroundTaskProgress.Editing" = "Se editează...";
+"Lightbox.Edit.Encrypting" = "Se criptează...";
+"Lightbox.Edit" = "Editează";
+"Lightbox.Edit.Rotating" = "Se rotește...";
+"BackgroundTaskProgress.EditCompleted" = "Editare finalizată";
+"BackgroundTaskProgress.EditCancelled" = "Editare anulată";
+"BackgroundTaskProgress.EditStopped" = "Editare oprită";
+"Lightbox.Edit.Decrypting" = "Se decriptează...";
+"Lightbox.Edit.Completed" = "Editare salvată";

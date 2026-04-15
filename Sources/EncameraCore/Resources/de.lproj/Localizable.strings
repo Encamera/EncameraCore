@@ -871,7 +871,6 @@
 "AppIcon.Clock" = "Uhr";
 "FeatureToggles.ShowDesignSystem" = "🎨 Design-System";
 "AppIcon.Calculator" = "Rechner";
-"CreateAlbumModal.GiveItAName" = "Gib ihm einen Namen";
 "ZipExport.ShareDecrypted" = "Entschlüsselt teilen";
 "ZipExportError.BackgroundTimeExpired" = "Der Export wurde unterbrochen, weil die App zu lange im Hintergrund war. Bitte kehre zur App zurück und versuche es erneut.";
 "ZipExport.Continue" = "Fortfahren";
@@ -972,3 +971,14 @@
 "TryAgain" = "Erneut versuchen";
 "MediaInfo.MetadataNotAvailable" = "Metadaten nicht verfügbar";
 "ICloudError.NotAvailableNoConnection" = "Diese Datei wird in iCloud gespeichert und konnte nicht heruntergeladen werden. Stellen Sie eine Internetverbindung her und versuchen Sie es erneut.";
+"CreateAlbumModal.HeaderText" = "Benennen Sie dieses verschlüsselte Album";
+"FileLoading.StepIndicatorGeneric" = "SCHRITT %d VON %d";
+"BackgroundTaskProgress.Editing" = "Wird bearbeitet...";
+"Lightbox.Edit.Encrypting" = "Wird verschlüsselt...";
+"Lightbox.Edit" = "Bearbeiten";
+"Lightbox.Edit.Rotating" = "Dreht...";
+"BackgroundTaskProgress.EditCompleted" = "Bearbeitung abgeschlossen";
+"BackgroundTaskProgress.EditCancelled" = "Bearbeitung abgebrochen";
+"BackgroundTaskProgress.EditStopped" = "Bearbeitung gestoppt";
+"Lightbox.Edit.Decrypting" = "Entschlüsseln...";
+"Lightbox.Edit.Completed" = "Bearbeitung gespeichert";
