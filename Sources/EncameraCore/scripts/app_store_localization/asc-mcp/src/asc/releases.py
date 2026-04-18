@@ -90,3 +90,43 @@ def get_version_localizations(
         f"/v1/appStoreVersions/{version_id}/appStoreVersionLocalizations"
     )
     return [AppStoreVersionLocalization.from_api(item) for item in items]
+
+
+def submit_for_review(client: ASCClient, app_id: str, version_id: str) -> dict:
+    # Step 1: Create a review submission for the app
+    submission = client.post("/v1/reviewSubmissions", {
+        "data": {
+            "type": "reviewSubmissions",
+            "relationships": {
+                "app": {
+                    "data": {"type": "apps", "id": app_id}
+                }
+            },
+        }
+    })
+    submission_id = submission["data"]["id"]
+
+    # Step 2: Add the app store version as a submission item
+    client.post("/v1/reviewSubmissionItems", {
+        "data": {
+            "type": "reviewSubmissionItems",
+            "relationships": {
+                "reviewSubmission": {
+                    "data": {"type": "reviewSubmissions", "id": submission_id}
+                },
+                "appStoreVersion": {
+                    "data": {"type": "appStoreVersions", "id": version_id}
+                },
+            },
+        }
+    })
+
+    # Step 3: Confirm the submission
+    result = client.patch(f"/v1/reviewSubmissions/{submission_id}", {
+        "data": {
+            "type": "reviewSubmissions",
+            "id": submission_id,
+            "attributes": {"submitted": True},
+        }
+    })
+    return result

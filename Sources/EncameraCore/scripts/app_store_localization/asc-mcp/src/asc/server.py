@@ -232,6 +232,16 @@ def get_version_localizations(version_id: str) -> list[dict]:
     return [asdict(loc) for loc in locs]
 
 
+@mcp.tool()
+def submit_for_review(version_id: str, app_id: Optional[str] = None) -> dict:
+    """Submit an App Store version for review.
+    The version must have a build attached and all required metadata filled in.
+    version_id: the App Store version ID from list_app_store_versions."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    return releases.submit_for_review(client, aid, version_id)
+
+
 def main():
     mcp.run()
 
