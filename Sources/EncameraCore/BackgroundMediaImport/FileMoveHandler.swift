@@ -124,10 +124,9 @@ public class FileMoveHandler: DebugPrintable {
     private func executeMoveTask(_ task: MoveTask, albumManager: AlbumManaging) async throws -> MoveResult {
         printDebug("Executing move task: \(task.id)")
         
-        // Reload albums to ensure we have current state
-        albumManager.loadAlbumsFromFilesystem()
-        
-        guard let targetAlbum = albumManager.albums.first(where: { $0.id == task.targetAlbumId }) else {
+        let availableAlbums = albumManager.fetchAlbumsFromFilesystem(includingHidden: true)
+
+        guard let targetAlbum = availableAlbums.first(where: { $0.id == task.targetAlbumId }) else {
             printDebug("Failed to find target album: \(task.targetAlbumId)")
             throw BackgroundImportError.configurationError
         }

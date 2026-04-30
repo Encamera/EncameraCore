@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import asdict
-from typing import Optional
+from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -10,6 +10,16 @@ from asc.auth import Credentials
 from asc.client import ASCClient
 from asc.pricing import iap, subscriptions
 from asc import releases
+from asc.xcode_cloud import (
+    artifacts as xc_artifacts,
+    build_actions as xc_build_actions,
+    build_runs as xc_build_runs,
+    environments as xc_environments,
+    issues as xc_issues,
+    products as xc_products,
+    test_results as xc_test_results,
+    workflows as xc_workflows,
+)
 
 mcp = FastMCP("App Store Connect")
 
@@ -240,6 +250,235 @@ def submit_for_review(version_id: str, app_id: Optional[str] = None) -> dict:
     client = _get_client()
     aid = app_id or client.resolve_app_id()
     return releases.submit_for_review(client, aid, version_id)
+
+
+# ---------------------------------------------------------------------------
+# Xcode Cloud tools
+#
+# Typical failure-diagnosis flow:
+#   1. list_ci_products (or get_ci_product_for_app) → find the product id
+#   2. list_ci_workflows → find the workflow id
+#   3. list_ci_build_runs → find the failed run (completion_status=FAILED/ERRORED)
+#   4. list_ci_build_actions → find which action failed
+#   5. list_ci_issues → read the actual error messages
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def list_ci_products() -> list[dict]:
+    """List all Xcode Cloud products visible to the API key.
+    A ciProduct is the Xcode Cloud record tied to one ASC app (or framework).
+    Returns id, name, product_type (APP or FRAMEWORK), and the linked app_id."""
+    return [asdict(p) for p in xc_products.list_products(_get_client())]
+
+
+@mcp.tool()
+def get_ci_product(product_id: str) -> dict:
+    """Get a single Xcode Cloud product by id."""
+    return asdict(xc_products.get_product(_get_client(), product_id))
+
+
+@mcp.tool()
+def get_ci_product_for_app(app_id: Optional[str] = None) -> Optional[dict]:
+    """Find the ciProduct tied to an ASC app. If app_id is omitted, uses
+    the configured app_id/bundle_id. Returns None if no Xcode Cloud product
+    exists for that app."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    product = xc_products.get_product_for_app(client, aid)
+    return asdict(product) if product else None
+
+
+@mcp.tool()
+def list_ci_workflows(product_id: str) -> list[dict]:
+    """List workflows under a ciProduct.
+    Returns id, name, description, is_enabled, clean, container_file_path, repository_id.
+    Use the id with list_ci_build_runs."""
+    return [asdict(w) for w in xc_workflows.list_workflows_for_product(_get_client(), product_id)]
+
+
+@mcp.tool()
+def get_ci_workflow(workflow_id: str) -> dict:
+    """Get a workflow by id. raw_attributes contains the full workflow config
+    (start conditions, actions, environment) as Apple returns it."""
+    return asdict(xc_workflows.get_workflow(_get_client(), workflow_id))
+
+
+@mcp.tool()
+def create_ci_workflow(
+    product_id: str,
+    repository_id: str,
+    attributes: dict[str, Any],
+    xcode_version_id: Optional[str] = None,
+    macos_version_id: Optional[str] = None,
+) -> dict:
+    """Create a new workflow. attributes is the full ciWorkflow attribute dict
+    (name, description, branchStartCondition, actions, containerFilePath, etc.)
+    Pass xcode_version_id and macos_version_id to pin the environment —
+    fetch them from list_ci_xcode_versions / list_ci_macos_versions."""
+    return asdict(xc_workflows.create_workflow(
+        _get_client(), product_id, repository_id, attributes, xcode_version_id, macos_version_id,
+    ))
+
+
+@mcp.tool()
+def update_ci_workflow(workflow_id: str, attributes: dict[str, Any]) -> dict:
+    """Patch workflow attributes. Only send the keys you want to change."""
+    return asdict(xc_workflows.update_workflow(_get_client(), workflow_id, attributes))
+
+
+@mcp.tool()
+def delete_ci_workflow(workflow_id: str) -> str:
+    """Delete a workflow. Irreversible."""
+    xc_workflows.delete_workflow(_get_client(), workflow_id)
+    return "Deleted"
+
+
+@mcp.tool()
+def list_ci_build_runs(
+    workflow_id: Optional[str] = None,
+    product_id: Optional[str] = None,
+    limit: Optional[int] = None,
+) -> list[dict]:
+    """List build runs, newest first. Pass workflow_id to scope to one workflow,
+    or product_id to see runs across all workflows in a product.
+    Returns number, execution_progress, completion_status, start_reason,
+    cancel_reason, created/started/finished dates, source_commit_sha, and
+    issue_counts. To investigate a failure, look for completion_status in
+    FAILED/ERRORED/CANCELED."""
+    client = _get_client()
+    if workflow_id:
+        runs = xc_build_runs.list_build_runs_for_workflow(client, workflow_id, limit)
+    elif product_id:
+        runs = xc_build_runs.list_build_runs_for_product(client, product_id, limit)
+    else:
+        raise ValueError("Must provide either workflow_id or product_id")
+    return [asdict(r) for r in runs]
+
+
+@mcp.tool()
+def get_ci_build_run(build_run_id: str) -> dict:
+    """Get full details for a specific build run."""
+    return asdict(xc_build_runs.get_build_run(_get_client(), build_run_id))
+
+
+@mcp.tool()
+def find_ci_build_runs_for_commit(
+    commit_sha: str,
+    workflow_id: Optional[str] = None,
+    product_id: Optional[str] = None,
+    limit: int = 200,
+) -> list[dict]:
+    """Find Xcode Cloud build runs whose source commit matches commit_sha.
+    Use this to map a PR head SHA (from `gh pr view --json headRefOid`) to the
+    Xcode Cloud runs Apple kicked off for it — typically one PR-validation run
+    plus a TestFlight archive run. Pass workflow_id to scope to one workflow
+    (faster), otherwise pass product_id to scan every workflow in the product.
+    Accepts full SHA or any prefix of >=7 chars. Each returned run's
+    builds_ids list points at the resulting App Store Connect builds — use
+    list_ci_build_run_builds to dereference them."""
+    runs = xc_build_runs.find_build_runs_by_commit(
+        _get_client(), commit_sha, product_id=product_id, workflow_id=workflow_id, limit=limit,
+    )
+    return [asdict(r) for r in runs]
+
+
+@mcp.tool()
+def list_ci_build_run_builds(build_run_id: str) -> list[dict]:
+    """List the App Store Connect builds (TestFlight uploads) produced by a
+    Xcode Cloud build run. Empty for runs that didn't archive — PR validation
+    runs, test-only runs, and failed runs that never reached the upload step.
+    Returns the same Build shape as list_builds (version, processing state,
+    upload date)."""
+    return [asdict(b) for b in xc_build_runs.list_builds_for_build_run(_get_client(), build_run_id)]
+
+
+@mcp.tool()
+def start_ci_build_run(
+    workflow_id: str,
+    source_branch_or_tag_id: Optional[str] = None,
+    pull_request_id: Optional[str] = None,
+) -> dict:
+    """Start a new build run for a workflow. Supply exactly one of
+    source_branch_or_tag_id (from scmGitReferences) or pull_request_id
+    (from scmPullRequests), unless the workflow is fully manual."""
+    return asdict(xc_build_runs.start_build_run(
+        _get_client(), workflow_id, source_branch_or_tag_id, pull_request_id,
+    ))
+
+
+@mcp.tool()
+def cancel_ci_build_run(build_run_id: str) -> dict:
+    """Cancel an in-flight build run."""
+    return asdict(xc_build_runs.cancel_build_run(_get_client(), build_run_id))
+
+
+@mcp.tool()
+def list_ci_build_actions(build_run_id: str) -> list[dict]:
+    """List actions for a build run (BUILD, TEST, ANALYZE, ARCHIVE).
+    Returns id, name, action_type, execution_progress, completion_status,
+    and issue_counts. A failed run will have at least one action with
+    completion_status=FAILED — drill into it with list_ci_issues."""
+    return [asdict(a) for a in xc_build_actions.list_build_actions_for_run(_get_client(), build_run_id)]
+
+
+@mcp.tool()
+def get_ci_build_action(build_action_id: str) -> dict:
+    """Get a single build action by id."""
+    return asdict(xc_build_actions.get_build_action(_get_client(), build_action_id))
+
+
+@mcp.tool()
+def list_ci_issues(build_action_id: str) -> list[dict]:
+    """List issues (errors, warnings, analyzer findings, test failures) for a
+    build action. issue_type is ERROR / WARNING / ANALYZER_WARNING / TEST_FAILURE.
+    message contains the compiler/runner output; file_path and line_number
+    point at the source. This is where the 'why did it fail' text lives."""
+    return [asdict(i) for i in xc_issues.list_issues_for_action(_get_client(), build_action_id)]
+
+
+@mcp.tool()
+def get_ci_issue(issue_id: str) -> dict:
+    """Get a single issue by id."""
+    return asdict(xc_issues.get_issue(_get_client(), issue_id))
+
+
+@mcp.tool()
+def list_ci_artifacts(build_action_id: str) -> list[dict]:
+    """List artifacts (archives, log bundles, result bundles) produced by a
+    build action. download_url is short-lived — fetch immediately if needed."""
+    return [asdict(a) for a in xc_artifacts.list_artifacts_for_action(_get_client(), build_action_id)]
+
+
+@mcp.tool()
+def get_ci_artifact(artifact_id: str) -> dict:
+    """Get a single artifact by id."""
+    return asdict(xc_artifacts.get_artifact(_get_client(), artifact_id))
+
+
+@mcp.tool()
+def list_ci_test_results(build_action_id: str) -> list[dict]:
+    """List test results for a TEST build action. Each entry has class_name,
+    name, status, and per-device destination_test_results."""
+    return [asdict(t) for t in xc_test_results.list_test_results_for_action(_get_client(), build_action_id)]
+
+
+@mcp.tool()
+def get_ci_test_result(test_result_id: str) -> dict:
+    """Get a single test result by id."""
+    return asdict(xc_test_results.get_test_result(_get_client(), test_result_id))
+
+
+@mcp.tool()
+def list_ci_macos_versions() -> list[dict]:
+    """Available macOS versions for Xcode Cloud workflows."""
+    return [asdict(v) for v in xc_environments.list_macos_versions(_get_client())]
+
+
+@mcp.tool()
+def list_ci_xcode_versions() -> list[dict]:
+    """Available Xcode versions for Xcode Cloud workflows."""
+    return [asdict(v) for v in xc_environments.list_xcode_versions(_get_client())]
 
 
 def main():

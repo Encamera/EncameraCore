@@ -200,8 +200,8 @@ public class MediaImportHandler: DebugPrintable {
             throw BackgroundImportError.configurationError
         }
         
-        albumManager.loadAlbumsFromFilesystem()
-        guard let album = albumManager.albums.first(where: { $0.id == albumId }) else {
+        let albums = albumManager.fetchAlbumsFromFilesystem(includingHidden: true)
+        guard let album = albums.first(where: { $0.id == albumId }) else {
             printDebug("Failed to start import - album not found: \(albumId)")
             throw BackgroundImportError.configurationError
         }

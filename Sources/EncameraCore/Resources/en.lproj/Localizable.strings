@@ -753,6 +753,8 @@
 "AlbumSelectionModal.Move" = "Move";
 "AlbumSelectionModal.NoAlbumsTitle" = "No Other Albums";
 "AlbumSelectionModal.NoAlbumsDescription" = "Create another album first to move media between albums.";
+"AlbumSelectionModal.NewOrHiddenAlbumTitle" = "New album or open hidden";
+"AlbumSelectionModal.NewOrHiddenAlbumSubtitle" = "Type a new name to create, or an existing hidden album's name to open it.";
 "StorageOption.Storage" = "%@ Storage";
 
 /* ./Encamera/AlbumManagement/MediaSelectionTray.swift */

@@ -50,9 +50,14 @@ public class DemoAlbumManager: AlbumManaging {
         return Album(name: "Name", storageOption: .local, creationDate: Date(), key: DemoPrivateKey.dummyKey())
     }
 
-    @Published public var albums: [Album]
-    public func loadAlbumsFromFilesystem() {
+    private var demoAlbums: [Album]
 
+    public func fetchAlbumsFromFilesystem(includingHidden _: Bool) -> [Album] {
+        demoAlbums
+    }
+
+    public func restoreCurrentAlbumFromUserDefaults() {
+        currentAlbum = demoAlbums.first
     }
 
     public var albumPublisher: AnyPublisher<[Album], Never> {
@@ -71,7 +76,7 @@ public class DemoAlbumManager: AlbumManaging {
         // Initialize demo data
         self.defaultStorageForAlbum = .local // Example storage type
         let key = DemoPrivateKey.dummyKey()
-        self.albums = [
+        self.demoAlbums = [
             // Populate with demo albums
             Album(name: "Personal", storageOption: .local, creationDate: Date(), key: key),
             Album(name: "Private", storageOption: .local, creationDate: Date(), key: key),
@@ -81,7 +86,7 @@ public class DemoAlbumManager: AlbumManaging {
             Album(name: "Demo Album 6", storageOption: .local, creationDate: Date(), key: key),
         ]
         self.keyManager = DemoKeyManager()
-        self.currentAlbum = albums.first
+        self.currentAlbum = demoAlbums.first
         // Note: syncedDataStore is ignored in demo implementation
     }
 

@@ -907,6 +907,10 @@ public enum L10n {
     }
     /// Move
     public static let move = L10n.tr("Localizable", "AlbumSelectionModal.Move", fallback: "Move")
+    /// Type a new name to create, or an existing hidden album's name to open it.
+    public static let newOrHiddenAlbumSubtitle = L10n.tr("Localizable", "AlbumSelectionModal.NewOrHiddenAlbumSubtitle", fallback: "Type a new name to create, or an existing hidden album's name to open it.")
+    /// New album or open hidden
+    public static let newOrHiddenAlbumTitle = L10n.tr("Localizable", "AlbumSelectionModal.NewOrHiddenAlbumTitle", fallback: "New album or open hidden")
     /// Create another album first to move media between albums.
     public static let noAlbumsDescription = L10n.tr("Localizable", "AlbumSelectionModal.NoAlbumsDescription", fallback: "Create another album first to move media between albums.")
     /// No Other Albums

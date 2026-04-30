@@ -43,12 +43,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     private var albumOperationSubject: PassthroughSubject<AlbumOperation, Never> = PassthroughSubject()
 
-    @Published public var albums: [Album] = [] {
-        didSet {
-            albumOperationSubject.send(.albumsUpdated(albums: albums))
-        }
-    }
-
     @Published public var currentAlbum: Album? {
         didSet {
             albumOperationSubject.send(.selectedAlbumChanged(album: currentAlbum))
@@ -70,19 +64,11 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     public private(set) var keyManager: KeyManager
-    
+
     /// The synced data store for album settings (optional, uses legacy UserDefaults if nil)
     private var albumsSyncedStore: AlbumsSyncedStore?
-    
-    private var syncedStoreCancellables = Set<AnyCancellable>()
 
-    private var albumSet: Set<Album> = [] {
-        didSet {
-            albums = Array(albumSet).filter({ album in
-                !isAlbumHidden(album)
-            }).sorted(by: { $0.creationDate < $1.creationDate })
-        }
-    }
+    private var syncedStoreCancellables = Set<AnyCancellable>()
 
     /// Sets the hidden state for an album
     /// Uses synced store if available, falls back to legacy UserDefaults
@@ -99,7 +85,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             // Legacy path
             UserDefaultUtils.set(isAlbumHidden, forKey: .isAlbumHidden(name: album.name))
         }
-        loadAlbumsFromFilesystem()
+        broadcastAlbumsUpdated()
     }
 
     /// Checks if an album is hidden
@@ -117,8 +103,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         return UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
     }
 
-    public func loadAlbumsFromFilesystem() {
-
+    public func fetchAlbumsFromFilesystem(includingHidden: Bool) -> [Album] {
         let fileManager = FileManager.default
         let mapToAlbum: (URL, StorageType) -> Album? = { url, storageType in
             let directoryName = url.lastPathComponent
@@ -143,16 +128,24 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                     return mapToAlbum(url, .icloud)
                 }
         }
-        self.albumSet = Set(localAlbums).union(Set(iCloudAlbums))
-        // Retrieve the current album ID from user defaults
-        // Only select non-hidden albums — hidden albums should not be accessible from the camera
+        return Set(localAlbums)
+            .union(Set(iCloudAlbums))
+            .filter { includingHidden || !isAlbumHidden($0) }
+            .sorted(by: { $0.creationDate < $1.creationDate })
+    }
+
+    public func restoreCurrentAlbumFromUserDefaults() {
+        let albums = fetchAlbumsFromFilesystem()
         if let currentAlbumID = UserDefaultUtils.string(forKey: .currentAlbumID),
-            let foundAlbum = albums.first(where: { $0.id == currentAlbumID }) {
-            // Find the album with the matching ID
-            self.currentAlbum = foundAlbum
+           let foundAlbum = albums.first(where: { $0.id == currentAlbumID }) {
+            currentAlbum = foundAlbum
         } else {
-            self.currentAlbum = albums.first
+            currentAlbum = albums.first
         }
+    }
+
+    private func broadcastAlbumsUpdated() {
+        albumOperationSubject.send(.albumsUpdated(albums: fetchAlbumsFromFilesystem()))
     }
 
     /// Creates a new AlbumManager
@@ -161,7 +154,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     ///   - syncedDataStore: Optional synced data store for iCloud sync (uses legacy UserDefaults if nil)
     required public init(keyManager: KeyManager, syncedDataStore: SyncedDataStore? = nil) {
         self.keyManager = keyManager
-        
+
         // Initialize defaultStorageForAlbum first (before any callbacks can fire)
         if let defaultStorageLocationValue = UserDefaultUtils.string(forKey: .defaultStorageLocation),
            let defaultStorageLocation = StorageType(rawValue: defaultStorageLocationValue) {
@@ -169,21 +162,23 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         } else {
             self.defaultStorageForAlbum = .local
         }
-        
+
         // Set up synced store if provided (after all properties are initialized)
         if let syncedDataStore = syncedDataStore {
             self.albumsSyncedStore = AlbumsSyncedStore(store: syncedDataStore)
-            
+
             // Subscribe to external changes
             albumsSyncedStore?.externalChangePublisher
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
-                    self?.loadAlbumsFromFilesystem()
+                    guard let self else { return }
+                    self.broadcastAlbumsUpdated()
+                    self.restoreCurrentAlbumFromUserDefaults()
                 }
                 .store(in: &syncedStoreCancellables)
         }
 
-        loadAlbumsFromFilesystem()
+        restoreCurrentAlbumFromUserDefaults()
     }
 
     public func delete(album: Album) {
@@ -196,14 +191,9 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             try? fileManager.removeItem(at: albumURL)
         }
 
-        // Remove album from albums collection
-        albumSet.remove(album)
         albumOperationSubject.send(.albumDeleted(album: album))
-        if albums.isEmpty {
-            currentAlbum = nil
-        } else {
-            currentAlbum = albums.first
-        }
+        broadcastAlbumsUpdated()
+        currentAlbum = fetchAlbumsFromFilesystem().first
     }
 
 
@@ -232,7 +222,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             throw AlbumError.noCurrentKeySet
         }
 
-        if let existingAlbum = albumSet.first(where: { $0.name == name }) {
+        if let existingAlbum = fetchAlbumsFromFilesystem(includingHidden: true).first(where: { $0.name == name }) {
             return existingAlbum
         }
 
@@ -243,13 +233,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         let albumURL = album.storageURL
 
         printDebug("File manager and album URL are set up")
-
-        defer {
-            // Add album to the albums collection
-            printDebug("Adding album to the collection")
-            albumSet.insert(album)
-            albumOperationSubject.send(.albumCreated(album: album))
-        }
 
         // Check if the directory already exists
         printDebug("Checking if the directory exists at path: \(albumURL.path)")
@@ -269,6 +252,9 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         )
 
         printDebug("Directory created successfully")
+        printDebug("Broadcasting album creation")
+        albumOperationSubject.send(.albumCreated(album: album))
+        broadcastAlbumsUpdated()
         return album
     }
 
@@ -320,34 +306,28 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
 
         // Update the album's storage option and URL if needed
-        if var movedAlbum = albums.first(where: { $0.id == album.id }) {
-            movedAlbum.storageOption = toStorage
-            albumSet.insert(movedAlbum)
-            albumOperationSubject.send(.albumMoved(album: movedAlbum))
-            printDebug("Updated album storage option for \(album.name)")
-            return movedAlbum
-            // Update the storageURL if your Album model has this property
-        } else {
-            printDebug("Could not update album, not found in the albums collection.")
-        }
-
-
+        var movedAlbum = album
+        movedAlbum.storageOption = toStorage
+        albumOperationSubject.send(.albumMoved(album: movedAlbum))
+        broadcastAlbumsUpdated()
         printDebug("Completed the move process for album: \(album.name)")
-        return album
+        return movedAlbum
     }
 
     public func renameAlbum(album: Album, to newName: String) throws -> Album {
         // Validate the new name
         try validateAlbumName(name: newName)
 
+        let existingAlbums = fetchAlbumsFromFilesystem(includingHidden: true)
+
         // Check if an album with the new name already exists
-        if albumSet.contains(where: { $0.name == newName }) {
+        if existingAlbums.contains(where: { $0.name == newName }) {
             throw AlbumError.albumExists
         }
-        guard var albumToUpdate = albumSet.first(where: { $0.id == album.id }) else {
+        guard var albumToUpdate = existingAlbums.first(where: { $0.id == album.id }) else {
             throw AlbumError.albumNotFoundAtSourceLocation
         }
-        
+
         albumToUpdate.name = newName
         // Rename the album in the file system
         let fileManager = FileManager.default
@@ -360,9 +340,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             throw AlbumError.albumNotFoundAtSourceLocation
         }
 
-        albumSet.remove(album)
-        albumSet.insert(albumToUpdate)
         albumOperationSubject.send(.albumRenamed(album: albumToUpdate))
+        broadcastAlbumsUpdated()
         if currentAlbum?.id == album.id {
             currentAlbum = albumToUpdate
         }
@@ -372,9 +351,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
 
     public func storageModel(for album: Album) -> DataStorageModel? {
-        albumSet.first(where: { albumInSet in
-            albumInSet.id == album.id
-        })?.storageOption.modelForType.init(album: album)
+        album.storageOption.modelForType.init(album: album)
     }
 
     public func validateAlbumName(name: String) throws {

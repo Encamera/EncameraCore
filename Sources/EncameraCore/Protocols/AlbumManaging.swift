@@ -12,7 +12,6 @@ import UIKit
 public protocol AlbumManaging {
 
     init(keyManager: KeyManager, syncedDataStore: SyncedDataStore?)
-    var albums: [Album] { get }
     var keyManager: KeyManager { get }
     var albumOperationPublisher: AnyPublisher<AlbumOperation, Never> { get }
     var defaultStorageForAlbum: StorageType { get set }
@@ -21,10 +20,11 @@ public protocol AlbumManaging {
     func delete(album: Album)
     func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>)
     func removeAlbumCover(album: Album)
-    func resetAlbumCover(album: Album) 
+    func resetAlbumCover(album: Album)
     func getAlbumCoverImageId(album: Album) -> String?
     func isAlbumCoverImageDisabled(album: Album) -> Bool
-    func loadAlbumsFromFilesystem()
+    func fetchAlbumsFromFilesystem(includingHidden: Bool) -> [Album]
+    func restoreCurrentAlbumFromUserDefaults()
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
     func storageModel(for album: Album) -> DataStorageModel?
     func moveAlbum(album: Album, toStorage: StorageType) throws -> Album
@@ -35,3 +35,8 @@ public protocol AlbumManaging {
     func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album)
 }
 
+public extension AlbumManaging {
+    func fetchAlbumsFromFilesystem() -> [Album] {
+        fetchAlbumsFromFilesystem(includingHidden: false)
+    }
+}
