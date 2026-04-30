@@ -12,6 +12,9 @@ protocol CameraConfigurationServicable {
     func setExposureTargetBias(_ bias: Float) async
     func resetExposureTargetBias() async
     func set(zoom: ZoomLevel) async
+    func setContinuousZoom(factor: CGFloat) async
+    func currentVideoZoomFactor() async -> CGFloat
+    func nearestAvailableZoomLevel(forVideoZoomFactor factor: CGFloat) async -> ZoomLevel?
     func set(rotationAngle: CGFloat) async
     func flipCameraDevice() async
     func configureForMode(targetMode: CameraMode) async

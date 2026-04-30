@@ -12,7 +12,16 @@ import Combine
 
 class DemoCameraService: CameraConfigurationServicable {
     func set(zoom: ZoomLevel) async {
-        
+
+    }
+    func setContinuousZoom(factor: CGFloat) async {
+
+    }
+    func currentVideoZoomFactor() async -> CGFloat {
+        return 1.0
+    }
+    func nearestAvailableZoomLevel(forVideoZoomFactor factor: CGFloat) async -> ZoomLevel? {
+        return .x1
     }
     func set(rotationAngle: CGFloat) async {
 

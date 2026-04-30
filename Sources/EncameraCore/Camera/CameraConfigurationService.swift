@@ -311,6 +311,31 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         candidates.min(by: { abs($0.rawValue - value) < abs($1.rawValue - value) })
     }
 
+    public func setContinuousZoom(factor: CGFloat) async {
+        guard let device = videoDeviceInput?.device else {
+            printDebug("No current camera device available for continuous zoom.")
+            return
+        }
+        do {
+            try device.lockForConfiguration()
+            let clamped = min(max(factor, device.minAvailableVideoZoomFactor),
+                              device.activeFormat.videoMaxZoomFactor)
+            device.videoZoomFactor = clamped
+            device.unlockForConfiguration()
+        } catch {
+            printDebug("Error setting continuous zoom factor: \(error)")
+        }
+    }
+
+    public func currentVideoZoomFactor() async -> CGFloat {
+        return videoDeviceInput?.device.videoZoomFactor ?? 1.0
+    }
+
+    public func nearestAvailableZoomLevel(forVideoZoomFactor factor: CGFloat) async -> ZoomLevel? {
+        guard !zoomFactorMap.isEmpty else { return nil }
+        return zoomFactorMap.min(by: { abs($0.value - factor) < abs($1.value - factor) })?.key
+    }
+
     public func set(rotationAngle: CGFloat) async {
         model.rotationAngle = rotationAngle
     }
