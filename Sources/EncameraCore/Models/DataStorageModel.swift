@@ -13,11 +13,12 @@ public protocol DataStorageModel {
     var album: Album { get }
     static var thumbnailDirectory: URL { get }
     var storageType: StorageType { get }
-    
+
     init(album: Album)
     func initializeDirectories() throws
     static var rootURL: URL { get }
-    static func enumerateRootDirectory() -> [URL]
+    static var albumsURL: URL { get }
+    static func enumerateAlbumsDirectory() -> [URL]
 }
 
 enum DataStorageModelError: Error {
@@ -87,11 +88,29 @@ extension DataStorageModel {
     }
 
 
-    public static func enumerateRootDirectory() -> [URL] {
-        return enumeratorForStorageDirectory(
+    public static var albumsURL: URL {
+        rootURL.appendingPathComponent("albums", isDirectory: true)
+    }
+
+    public static func enumerateAlbumsDirectory() -> [URL] {
+        var results = enumeratorForStorageDirectory(
+            at: albumsURL,
+            onlyDirectories: true
+        ).filter { $0.lastPathComponent.hasPrefix("Album_") }
+
+        // Also check rootURL for albums that haven't been migrated yet
+        // (e.g. partial migration failure leaves some albums at rootURL).
+        let legacyResults = enumeratorForStorageDirectory(
             at: rootURL,
-            exclude: [AppConstants.previewDirectory, "thumbs", "RevenueCat", "revenuecat"],
-            onlyDirectories: true)
+            onlyDirectories: true
+        ).filter { $0.lastPathComponent.hasPrefix("Album_") }
+
+        let migratedNames = Set(results.map { $0.lastPathComponent })
+        for url in legacyResults where !migratedNames.contains(url.lastPathComponent) {
+            results.append(url)
+        }
+
+        return results
     }
 
     public static var thumbnailDirectory: URL {
@@ -104,6 +123,7 @@ extension DataStorageModel {
     public func initializeDirectories() throws {
         let directories = [
             Self.thumbnailDirectory.path,
+            Self.albumsURL.path,
             URL.tempMediaDirectory.path,
             URL.tempRecordingDirectory.path,
             baseURL.path
@@ -187,7 +207,7 @@ extension DataStorageModel {
     }
 
     static func deleteAllFiles() throws {
-        for url in enumeratorForStorageDirectory(at: Self.rootURL) {
+        for url in enumeratorForStorageDirectory(at: Self.albumsURL) {
             do {
                 try FileManager.default.removeItem(at: url)
                 debugPrint("Deleted item at \(url)")

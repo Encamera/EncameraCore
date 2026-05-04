@@ -2,6 +2,9 @@ import Foundation
 public class DemoDirectoryModel: DataStorageModel {
     public static var rootURL: URL = URL(fileURLWithPath: "")
 
+    public static var albumsURL: URL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent("demo-albums", isDirectory: true)
+
 
     public var storageType: StorageType = .local
 

@@ -117,13 +117,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             }
         }
 
-        let localAlbums = LocalStorageModel.enumerateRootDirectory()
+        let localAlbums = LocalStorageModel.enumerateAlbumsDirectory()
             .compactMap { url -> Album? in
                 return mapToAlbum(url, .local)
             }
         var iCloudAlbums: [Album] = []
         if DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) == .available {
-            iCloudAlbums = iCloudStorageModel.enumerateRootDirectory()
+            iCloudAlbums = iCloudStorageModel.enumerateAlbumsDirectory()
                 .compactMap { url -> Album? in
                     return mapToAlbum(url, .icloud)
                 }

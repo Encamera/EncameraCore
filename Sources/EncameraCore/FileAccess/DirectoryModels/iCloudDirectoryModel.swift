@@ -36,7 +36,15 @@ public class iCloudStorageModel: DataStorageModel {
     private var activeQueries = [URL: (NSMetadataQuery, [NSObjectProtocol])]() // Track active queries for cleanup
 
     public var baseURL: URL {
-        return iCloudStorageModel.rootURL.appendingPathComponent(album.encryptedPathComponent)
+        let preferred = iCloudStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
+        if FileManager.default.fileExists(atPath: preferred.path) {
+            return preferred
+        }
+        let legacy = iCloudStorageModel.rootURL.appendingPathComponent(album.encryptedPathComponent)
+        if FileManager.default.fileExists(atPath: legacy.path) {
+            return legacy
+        }
+        return preferred
     }
 
     public func triggerDownloadOfAllFilesFromiCloud() {

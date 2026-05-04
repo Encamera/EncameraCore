@@ -21,8 +21,15 @@ struct LocalStorageModel: DataStorageModel {
     }
     
     var baseURL: URL {
-        let filesDirectory = Self.rootURL.appendingPathComponent(album.encryptedPathComponent)
-        return filesDirectory
+        let preferred = Self.albumsURL.appendingPathComponent(album.encryptedPathComponent)
+        if FileManager.default.fileExists(atPath: preferred.path) {
+            return preferred
+        }
+        let legacy = Self.rootURL.appendingPathComponent(album.encryptedPathComponent)
+        if FileManager.default.fileExists(atPath: legacy.path) {
+            return legacy
+        }
+        return preferred
     }
     
     var album: Album

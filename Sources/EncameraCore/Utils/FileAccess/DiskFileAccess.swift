@@ -120,22 +120,34 @@ public actor DiskFileAccess: DebugPrintable {
         let filter = [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]
         var allURLs: [URL] = []
         
-        // Enumerate local storage
-        let localURLs = LocalStorageModel.enumeratorForStorageDirectory(
+        // Enumerate local storage (both locations to handle partial migration)
+        let localAlbumsURLs = LocalStorageModel.enumeratorForStorageDirectory(
+            at: LocalStorageModel.albumsURL,
+            resourceKeys: resourceKeys,
+            fileExtensionFilter: filter
+        )
+        let localRootURLs = LocalStorageModel.enumeratorForStorageDirectory(
             at: LocalStorageModel.rootURL,
             resourceKeys: resourceKeys,
             fileExtensionFilter: filter
         )
-        allURLs.append(contentsOf: localURLs)
-        
-        // Enumerate iCloud storage if available
+        allURLs.append(contentsOf: localAlbumsURLs)
+        allURLs.append(contentsOf: localRootURLs)
+
+        // Enumerate iCloud storage if available (both locations to handle partial migration)
         if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
-            let iCloudURLs = iCloudStorageModel.enumeratorForStorageDirectory(
+            let iCloudAlbumsURLs = iCloudStorageModel.enumeratorForStorageDirectory(
+                at: iCloudStorageModel.albumsURL,
+                resourceKeys: resourceKeys,
+                fileExtensionFilter: filter
+            )
+            let iCloudRootURLs = iCloudStorageModel.enumeratorForStorageDirectory(
                 at: iCloudStorageModel.rootURL,
                 resourceKeys: resourceKeys,
                 fileExtensionFilter: filter
             )
-            allURLs.append(contentsOf: iCloudURLs)
+            allURLs.append(contentsOf: iCloudAlbumsURLs)
+            allURLs.append(contentsOf: iCloudRootURLs)
         }
         
         print("enumerateAllMedia found URLs:", allURLs.map { $0.path })
@@ -216,9 +228,11 @@ public actor DiskFileAccess: DebugPrintable {
             }
         }
 
+        collectMediaCount(at: LocalStorageModel.albumsURL)
         collectMediaCount(at: LocalStorageModel.rootURL)
 
         if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
+            collectMediaCount(at: iCloudStorageModel.albumsURL)
             collectMediaCount(at: iCloudStorageModel.rootURL)
         }
 

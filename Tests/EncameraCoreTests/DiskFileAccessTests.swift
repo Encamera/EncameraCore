@@ -4,7 +4,7 @@ import XCTest
 final class DiskFileAccessTests: XCTestCase {
     func testTotalStoredMediaCountCountsNormalPhoto() async throws {
         let fileManager = FileManager.default
-        let testRoot = LocalStorageModel.rootURL
+        let testRoot = LocalStorageModel.albumsURL
             .appendingPathComponent("EncameraCoreTests")
             .appendingPathComponent(UUID().uuidString)
         try fileManager.createDirectory(at: testRoot, withIntermediateDirectories: true)
@@ -23,7 +23,7 @@ final class DiskFileAccessTests: XCTestCase {
 
     func testTotalStoredMediaCountCountsLivePhotoOnce() async throws {
         let fileManager = FileManager.default
-        let testRoot = LocalStorageModel.rootURL
+        let testRoot = LocalStorageModel.albumsURL
             .appendingPathComponent("EncameraCoreTests")
             .appendingPathComponent(UUID().uuidString)
         try fileManager.createDirectory(at: testRoot, withIntermediateDirectories: true)
