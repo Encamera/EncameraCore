@@ -28,11 +28,9 @@ let package = Package(
             ],
             resources: [.process("Resources")]
         ),
-        /*
         .testTarget(
             name: "EncameraCoreTests",
             dependencies: ["EncameraCore"]
         )
-        */
     ]
 )
