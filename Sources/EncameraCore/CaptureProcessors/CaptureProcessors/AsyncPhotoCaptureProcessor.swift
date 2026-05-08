@@ -33,14 +33,18 @@ public class AsyncPhotoCaptureProcessor: NSObject {
             .appendingPathExtension("mov")
     }
 
-    init(output photoOutput: AVCapturePhotoOutput, livePhotoEnabled: Bool, flashMode: AVCaptureDevice.FlashMode) {
+    init(output photoOutput: AVCapturePhotoOutput, livePhotoEnabled: Bool, flashMode: AVCaptureDevice.FlashMode, maxPhotoDimensions: CMVideoDimensions? = nil) {
         self.photoOutput = photoOutput
         self.currentOutput = InteractableMedia<CleartextMedia>(emptyWithType: livePhotoEnabled ? .livePhoto : .stillPhoto, id: photoId)
         let photoSettings = AVCapturePhotoSettings()
 
-
         photoSettings.flashMode = flashMode
-        photoSettings.isHighResolutionPhotoEnabled = true
+
+        if let maxDimensions = maxPhotoDimensions {
+            photoSettings.maxPhotoDimensions = maxDimensions
+        } else {
+            photoSettings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
+        }
 
         self.requestedPhotoSettings = photoSettings
         super.init()

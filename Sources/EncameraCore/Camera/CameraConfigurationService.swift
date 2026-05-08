@@ -69,6 +69,14 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     nonisolated public var canCaptureLivePhoto: AnyPublisher<Bool, Never> {
         canCaptureLivePhotoSubject.eraseToAnyPublisher()
     }
+    nonisolated private let availableResolutionsSubject: CurrentValueSubject<[PhotoResolution], Never>
+    nonisolated public var availableResolutions: AnyPublisher<[PhotoResolution], Never> {
+        availableResolutionsSubject.eraseToAnyPublisher()
+    }
+    nonisolated private let availableVideoQualitiesSubject: CurrentValueSubject<[VideoQualityOption], Never>
+    nonisolated public var availableVideoQualities: AnyPublisher<[VideoQualityOption], Never> {
+        availableVideoQualitiesSubject.eraseToAnyPublisher()
+    }
     nonisolated public let session = AVCaptureSession()
     private let model: CameraConfigurationServiceModel
     var delegate: CameraConfigurationServicableDelegate?
@@ -98,6 +106,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     public init(model: CameraConfigurationServiceModel) {
         self.model = model
         self.canCaptureLivePhotoSubject = CurrentValueSubject(model.canCaptureLivePhoto)
+        self.availableResolutionsSubject = CurrentValueSubject([])
+        self.availableVideoQualitiesSubject = CurrentValueSubject([])
     }
 
     public func currentSetupResult() -> SessionSetupResult {
@@ -486,7 +496,7 @@ extension CameraConfigurationService {
     }
 
 
-    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode, livePhotoEnabled: Bool, captureRotationAngle: CGFloat? = nil) async throws -> AsyncPhotoCaptureProcessor {
+    public func createPhotoProcessor(flashMode: AVCaptureDevice.FlashMode, livePhotoEnabled: Bool, captureRotationAngle: CGFloat? = nil, maxPhotoDimensions: CMVideoDimensions? = nil) async throws -> AsyncPhotoCaptureProcessor {
         guard self.model.setupResult != .configurationFailed else {
             printDebug("Could not capture photo")
             throw MediaProcessorError.setupIncomplete
@@ -499,7 +509,17 @@ extension CameraConfigurationService {
         }
         configurePhotoOutput()
 
-        return AsyncPhotoCaptureProcessor(output: photoOutput, livePhotoEnabled: livePhotoEnabled, flashMode: flashMode)
+        var validatedDimensions = maxPhotoDimensions
+        if let requested = maxPhotoDimensions, let device = videoDeviceInput?.device {
+            let supported = device.activeFormat.supportedMaxPhotoDimensions
+            let isSupported = supported.contains(where: { $0.width == requested.width && $0.height == requested.height })
+            if !isSupported {
+                validatedDimensions = nil
+                printDebug("Requested maxPhotoDimensions \(requested.width)x\(requested.height) not supported by current device; falling back to photoOutput default")
+            }
+        }
+
+        return AsyncPhotoCaptureProcessor(output: photoOutput, livePhotoEnabled: livePhotoEnabled, flashMode: flashMode, maxPhotoDimensions: validatedDimensions)
     }
 
     public nonisolated func toggleTorch(on: Bool) {
@@ -541,23 +561,129 @@ private extension CameraConfigurationService {
             self.movieOutput = nil
         }
         session.sessionPreset = .photo
-        guard session.canAddOutput(photoOutput) else {
-            printDebug("Could not add photooutput to session")
-            return
+        if session.canAddOutput(photoOutput) {
+            printDebug("Calling addPhotoOutputToSession")
+            session.addOutput(photoOutput)
         }
-        printDebug("Calling addPhotoOutputToSession")
-
-        session.addOutput(photoOutput)
+        configurePhotoOutput()
     }
 
     private func configurePhotoOutput() {
         photoOutput.maxPhotoQualityPrioritization = .quality
-        photoOutput.isHighResolutionCaptureEnabled = true
+        // Set the photo output's maxPhotoDimensions to the largest supported value
+        // so that AVCapturePhotoSettings can request any supported resolution without crashing.
+        if let device = videoDeviceInput?.device {
+            let supportedDimensions = device.activeFormat.supportedMaxPhotoDimensions
+            if let largest = supportedDimensions.max(by: { Int($0.width) * Int($0.height) < Int($1.width) * Int($1.height) }) {
+                photoOutput.maxPhotoDimensions = largest
+                printDebug("Set photoOutput.maxPhotoDimensions to \(largest.width)x\(largest.height)")
+            }
+        }
         let canCaptureLivePhoto = photoOutput.isLivePhotoCaptureSupported
         printDebug("canCaptureLivePhoto \(canCaptureLivePhoto)")
         model.canCaptureLivePhoto = canCaptureLivePhoto
         canCaptureLivePhotoSubject.send(canCaptureLivePhoto)
         photoOutput.isLivePhotoCaptureEnabled = canCaptureLivePhoto
+        loadAvailablePhotoResolutions()
+    }
+
+    private func loadAvailablePhotoResolutions() {
+        guard let device = videoDeviceInput?.device else {
+            availableResolutionsSubject.send([])
+            return
+        }
+        let supportedDimensions = device.activeFormat.supportedMaxPhotoDimensions
+        let resolutions = supportedDimensions
+            .map { PhotoResolution(dimensions: $0) }
+            .sorted { $0.megapixels < $1.megapixels }
+        printDebug("Available photo resolutions: \(resolutions.map { $0.displayLabel })")
+        availableResolutionsSubject.send(resolutions)
+    }
+
+    private func loadAvailableVideoQualities() {
+        guard let device = videoDeviceInput?.device else {
+            availableVideoQualitiesSubject.send([])
+            return
+        }
+
+        var seen = Set<String>()
+        var options: [VideoQualityOption] = []
+
+        // Standard video resolutions we care about (height values)
+        let targetHeights: Set<Int32> = [720, 1080, 2160]
+
+        for format in device.formats {
+            let desc = format.formatDescription
+            let dimensions = CMVideoFormatDescriptionGetDimensions(desc)
+            let mediaSubType = CMFormatDescriptionGetMediaSubType(desc)
+
+            // Only consider video-range formats (420v = video range YCbCr)
+            guard mediaSubType == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange ||
+                  mediaSubType == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange ||
+                  mediaSubType == kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange else {
+                continue
+            }
+
+            guard targetHeights.contains(dimensions.height) else { continue }
+
+            for range in format.videoSupportedFrameRateRanges {
+                let maxFPS = Int(range.maxFrameRate)
+                // Only offer standard frame rates
+                for fps in [24, 30, 60, 120, 240] {
+                    if fps <= maxFPS {
+                        let key = "\(dimensions.width)x\(dimensions.height)@\(fps)"
+                        if !seen.contains(key) {
+                            seen.insert(key)
+                            options.append(VideoQualityOption(
+                                width: dimensions.width,
+                                height: dimensions.height,
+                                frameRate: fps
+                            ))
+                        }
+                    }
+                }
+            }
+        }
+
+        options.sort {
+            if $0.pixelCount != $1.pixelCount {
+                return $0.pixelCount < $1.pixelCount
+            }
+            return $0.frameRate < $1.frameRate
+        }
+
+        printDebug("Available video qualities: \(options.map { $0.displayLabel })")
+        availableVideoQualitiesSubject.send(options)
+    }
+
+    public func applyVideoQuality(_ option: VideoQualityOption?) {
+        guard let device = videoDeviceInput?.device, let option else { return }
+
+        // Find a matching format
+        let targetFormat = device.formats.first { format in
+            let desc = format.formatDescription
+            let dims = CMVideoFormatDescriptionGetDimensions(desc)
+            guard dims.width == option.width && dims.height == option.height else { return false }
+            return format.videoSupportedFrameRateRanges.contains { range in
+                Int(range.maxFrameRate) >= option.frameRate
+            }
+        }
+
+        guard let format = targetFormat else {
+            printDebug("No matching format found for \(option.displayLabel)")
+            return
+        }
+
+        do {
+            try device.lockForConfiguration()
+            device.activeFormat = format
+            device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(option.frameRate))
+            device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(option.frameRate))
+            device.unlockForConfiguration()
+            printDebug("Applied video quality: \(option.displayLabel)")
+        } catch {
+            printDebug("Failed to apply video quality: \(error)")
+        }
     }
 
     private func addVideoOutputToSession() throws {
@@ -577,6 +703,7 @@ private extension CameraConfigurationService {
         }
 
         self.movieOutput = movieOutput
+        loadAvailableVideoQualities()
     }
 
     private func stopCancellables() {

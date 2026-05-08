@@ -44,6 +44,8 @@ public enum UserDefaultKey {
     case dismissedBanners
     case hasSeenPhotoAccessUpgradePrompt
     case showPaywallOnAppear
+    case selectedPhotoResolution
+    case selectedVideoQuality
     case keyMigration
     case passphraseMigration
     case passwordHashMigration
@@ -118,6 +120,8 @@ public enum UserDefaultKey {
              .dismissedBanners,
              .hasSeenPhotoAccessUpgradePrompt,
              .showPaywallOnAppear,
+             .selectedPhotoResolution,
+             .selectedVideoQuality,
              .keyMigration,
              .passphraseMigration,
              .passwordHashMigration,

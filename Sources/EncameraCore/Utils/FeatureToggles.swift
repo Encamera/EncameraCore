@@ -16,6 +16,7 @@ public enum Feature: String, CaseIterable {
     case newPaywall
     case editRotation
     case detectDuplicates
+    case megapixelSettings
 
     var userDefaultsKey: String {
         return "feature_" +  rawValue
@@ -31,6 +32,7 @@ public enum Feature: String, CaseIterable {
         case .newPaywall: return L10n.FeatureToggles.newPaywall
         case .editRotation: return L10n.FeatureToggles.editRotation
         case .detectDuplicates: return L10n.FeatureToggles.detectDuplicates
+        case .megapixelSettings: return "Megapixel Settings"
         }
     }
 
@@ -44,6 +46,7 @@ public enum Feature: String, CaseIterable {
         case .newPaywall: return L10n.FeatureToggles.newPaywallDescription
         case .editRotation: return L10n.FeatureToggles.editRotationDescription
         case .detectDuplicates: return L10n.FeatureToggles.detectDuplicatesDescription
+        case .megapixelSettings: return "Allow selecting camera capture resolution (e.g. 12 MP, 48 MP)"
         }
     }
 
