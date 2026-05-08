@@ -93,6 +93,16 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             }
         }
     }
+    /// The videoZoomFactor that corresponds to marketing 1x on the current virtual device.
+    private var wideBaseZF: CGFloat = 1.0 {
+        didSet {
+            guard wideBaseZF != oldValue else { return }
+            let value = wideBaseZF
+            Task { @MainActor in
+                await delegate?.didUpdate(wideBaseZoomFactor: value)
+            }
+        }
+    }
     private let deviceTypes: [AVCaptureDevice.DeviceType] = [
         .builtInTripleCamera,
         .builtInDualWideCamera,
@@ -280,6 +290,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         default:
             wideBaseZF = 1.0
         }
+        self.wideBaseZF = wideBaseZF
         let hasUltraWide = constituents.contains { $0.deviceType == .builtInUltraWideCamera }
         let hasTelephoto = constituents.contains { $0.deviceType == .builtInTelephotoCamera }
         var teleMarketingZoom: CGFloat?
@@ -321,19 +332,23 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         candidates.min(by: { abs($0.rawValue - value) < abs($1.rawValue - value) })
     }
 
-    public func setContinuousZoom(factor: CGFloat) async {
+    @discardableResult
+    public func setContinuousZoom(factor: CGFloat) async -> CGFloat {
         guard let device = videoDeviceInput?.device else {
             printDebug("No current camera device available for continuous zoom.")
-            return
+            return 1.0
         }
+        let minFactor = zoomFactorMap.values.min() ?? device.minAvailableVideoZoomFactor
+        let maxFactor = zoomFactorMap.values.max() ?? device.activeFormat.videoMaxZoomFactor
         do {
             try device.lockForConfiguration()
-            let clamped = min(max(factor, device.minAvailableVideoZoomFactor),
-                              device.activeFormat.videoMaxZoomFactor)
+            let clamped = min(max(factor, minFactor), maxFactor)
             device.videoZoomFactor = clamped
             device.unlockForConfiguration()
+            return clamped
         } catch {
             printDebug("Error setting continuous zoom factor: \(error)")
+            return device.videoZoomFactor
         }
     }
 

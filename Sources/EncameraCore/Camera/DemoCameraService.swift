@@ -14,8 +14,9 @@ class DemoCameraService: CameraConfigurationServicable {
     func set(zoom: ZoomLevel) async {
 
     }
-    func setContinuousZoom(factor: CGFloat) async {
-
+    @discardableResult
+    func setContinuousZoom(factor: CGFloat) async -> CGFloat {
+        return 1.0
     }
     func currentVideoZoomFactor() async -> CGFloat {
         return 1.0
