@@ -47,14 +47,6 @@ public enum CaptureMode: Int {
     case movie = 1
 }
 
-public enum ZoomLevel: CGFloat {
-    case x05 = 0.5
-    case x1 = 1.0
-    case x2 = 2.0
-    case x3 = 3.0
-    case x5 = 5.0
-}
-
 public actor CameraConfigurationService: CameraConfigurationServicable, DebugPrintable {
 
     public var currentCameraDeviceType: AVCaptureDevice.DeviceType?
@@ -83,26 +75,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     private var movieOutput: AVCaptureMovieFileOutput?
     private let photoOutput = AVCapturePhotoOutput()
     private var videoDeviceInput: AVCaptureDeviceInput?
-    /// Maps each ZoomLevel to the videoZoomFactor to apply on the current virtual device
-    private var zoomFactorMap: [ZoomLevel: CGFloat] = [:] {
-        didSet {
-            guard Set(zoomFactorMap.keys) != Set(oldValue.keys) else { return }
-            let sorted = zoomFactorMap.keys.sorted(by: { $0.rawValue < $1.rawValue })
-            Task { @MainActor in
-                await delegate?.didUpdate(zoomLevels: sorted)
-            }
-        }
-    }
-    /// The videoZoomFactor that corresponds to marketing 1x on the current virtual device.
-    private var wideBaseZF: CGFloat = 1.0 {
-        didSet {
-            guard wideBaseZF != oldValue else { return }
-            let value = wideBaseZF
-            Task { @MainActor in
-                await delegate?.didUpdate(wideBaseZoomFactor: value)
-            }
-        }
-    }
+    private let zoomService = ZoomService()
     private let deviceTypes: [AVCaptureDevice.DeviceType] = [
         .builtInTripleCamera,
         .builtInDualWideCamera,
@@ -118,6 +91,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         self.canCaptureLivePhotoSubject = CurrentValueSubject(model.canCaptureLivePhoto)
         self.availableResolutionsSubject = CurrentValueSubject([])
         self.availableVideoQualitiesSubject = CurrentValueSubject([])
+        self.zoomService.delegate = self
     }
 
     public func currentSetupResult() -> SessionSetupResult {
@@ -199,8 +173,8 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         }
 
         NotificationUtils.cameraDidStartRunningPublisher.sink { value in
-            Task { @MainActor in
-                await self.loadAvailableZoomFactors()
+            Task {
+                await self.zoomService.loadAvailableZoomFactors()
             }
         }.store(in: &cancellables)
 
@@ -269,96 +243,17 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         await setExposureTargetBias(0)
     }
 
-    func loadAvailableZoomFactors() async {
-        guard let device = videoDeviceInput?.device else { return }
-
-        let constituents = device.constituentDevices
-        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat($0.doubleValue) }
-        let minZF = device.minAvailableVideoZoomFactor
-        let maxZF = device.activeFormat.videoMaxZoomFactor
-        let secondaryFactors = device.activeFormat.secondaryNativeResolutionZoomFactors
-
-        printDebug("Zoom discovery: \(device.localizedName) (\(device.deviceType.rawValue)), range: \(minZF)–\(maxZF), switchOvers: \(switchOverFactors)")
-
-        // Step 1: Determine wideBaseZF — the videoZoomFactor where the wide camera is at native 1x.
-        // On triple/dualWide cameras, 1.0 = ultra-wide, so wide is at the first switch-over factor.
-        // On dual/single cameras, 1.0 = wide already.
-        let wideBaseZF: CGFloat
-        switch device.deviceType {
-        case .builtInTripleCamera, .builtInDualWideCamera:
-            wideBaseZF = switchOverFactors.first ?? 1.0
-        default:
-            wideBaseZF = 1.0
-        }
-        self.wideBaseZF = wideBaseZF
-        let hasUltraWide = constituents.contains { $0.deviceType == .builtInUltraWideCamera }
-        let hasTelephoto = constituents.contains { $0.deviceType == .builtInTelephotoCamera }
-        var teleMarketingZoom: CGFloat?
-        if hasTelephoto, let lastSO = switchOverFactors.last {
-            teleMarketingZoom = lastSO / wideBaseZF
-        }
-
-        let closestTeleLevel = teleMarketingZoom.flatMap { closestZoomLevel(to: $0, from: [.x2, .x3, .x5]) }
-        var factorMap: [ZoomLevel: CGFloat] = [:]
-        let allLevels: [ZoomLevel] = [.x05, .x1, .x2, .x3, .x5]
-
-        for level in allLevels {
-            let videoZF = wideBaseZF * level.rawValue
-            let inRange = videoZF >= minZF && videoZF <= maxZF
-
-            let isNative: Bool
-            switch level {
-            case .x05:
-                isNative = hasUltraWide
-            case .x1:
-                isNative = true
-            case .x2, .x3, .x5:
-                let hasCenterCrop = secondaryFactors.contains { abs($0 - videoZF) < 0.5 }
-                isNative = closestTeleLevel == level || hasCenterCrop
-            }
-
-            printDebug("\(level.rawValue)x → videoZF=\(videoZF), inRange=\(inRange), isNative=\(isNative)")
-
-            if inRange && isNative {
-                factorMap[level] = videoZF
-            }
-        }
-
-        printDebug("Available zoom levels: \(factorMap.keys.sorted { $0.rawValue < $1.rawValue }.map { "\($0.rawValue)x" })")
-        self.zoomFactorMap = factorMap
-    }
-
-    private func closestZoomLevel(to value: CGFloat, from candidates: [ZoomLevel]) -> ZoomLevel? {
-        candidates.min(by: { abs($0.rawValue - value) < abs($1.rawValue - value) })
-    }
-
     @discardableResult
     public func setContinuousZoom(factor: CGFloat) async -> CGFloat {
-        guard let device = videoDeviceInput?.device else {
-            printDebug("No current camera device available for continuous zoom.")
-            return 1.0
-        }
-        let minFactor = zoomFactorMap.values.min() ?? device.minAvailableVideoZoomFactor
-        let maxFactor = zoomFactorMap.values.max() ?? device.activeFormat.videoMaxZoomFactor
-        do {
-            try device.lockForConfiguration()
-            let clamped = min(max(factor, minFactor), maxFactor)
-            device.videoZoomFactor = clamped
-            device.unlockForConfiguration()
-            return clamped
-        } catch {
-            printDebug("Error setting continuous zoom factor: \(error)")
-            return device.videoZoomFactor
-        }
+        zoomService.setContinuousZoom(factor: factor)
     }
 
     public func currentVideoZoomFactor() async -> CGFloat {
-        return videoDeviceInput?.device.videoZoomFactor ?? 1.0
+        zoomService.currentVideoZoomFactor()
     }
 
     public func nearestAvailableZoomLevel(forVideoZoomFactor factor: CGFloat) async -> ZoomLevel? {
-        guard !zoomFactorMap.isEmpty else { return nil }
-        return zoomFactorMap.min(by: { abs($0.value - factor) < abs($1.value - factor) })?.key
+        zoomService.nearestAvailableZoomLevel(forVideoZoomFactor: factor)
     }
 
     public func set(rotationAngle: CGFloat) async {
@@ -366,27 +261,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     }
 
     public func set(zoom: ZoomLevel) async {
-        guard let device = videoDeviceInput?.device else {
-            printDebug("No current camera device available.")
-            return
-        }
-        guard let targetFactor = zoomFactorMap[zoom] else {
-            printDebug("Zoom level \(zoom) not available")
-            return
-        }
-        printDebug("Setting zoom \(zoom.rawValue)x → videoZoomFactor=\(targetFactor)")
-        do {
-            try device.lockForConfiguration()
-            let clamped = min(max(targetFactor, device.minAvailableVideoZoomFactor),
-                              device.activeFormat.videoMaxZoomFactor)
-            if clamped != targetFactor {
-                printDebug("Clamped \(targetFactor) to \(clamped) (device range: \(device.minAvailableVideoZoomFactor)–\(device.activeFormat.videoMaxZoomFactor))")
-            }
-            device.videoZoomFactor = clamped
-            device.unlockForConfiguration()
-        } catch {
-            printDebug("Error occurred while setting video zoom factor: \(error)")
-        }
+        zoomService.set(zoom: zoom)
     }
 
     private func performCameraTransition(to newCamera: AVCaptureDevice) throws {
@@ -401,6 +276,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         if session.canAddInput(newVideoDeviceInput) {
             session.addInput(newVideoDeviceInput)
             videoDeviceInput = newVideoDeviceInput
+            zoomService.updateDevice(newVideoDeviceInput.device)
         } else if let videoDeviceInput = videoDeviceInput {
             // Re-add the old input if the new input can't be added.
             session.addInput(videoDeviceInput)
@@ -468,7 +344,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         } catch {
             printDebug("Error occurred while creating video device input: \(error)")
         }
-        await loadAvailableZoomFactors()
+        zoomService.loadAvailableZoomFactors()
         await configureForMode(targetMode: model.cameraMode)
     }
 
@@ -751,6 +627,7 @@ private extension CameraConfigurationService {
             if session.canAddInput(videoDeviceInput) {
                 session.addInput(videoDeviceInput)
                 self.videoDeviceInput = videoDeviceInput
+                zoomService.updateDevice(videoDevice)
             } else {
                 printDebug("Could not add input to session")
             }
@@ -796,6 +673,18 @@ private extension CameraConfigurationService {
         await start()
     }
 
+}
 
+extension CameraConfigurationService: ZoomServiceDelegate {
+    nonisolated public func zoomService(_ service: ZoomService, didUpdateZoomLevels levels: [ZoomLevel]) {
+        Task { @MainActor in
+            await self.delegate?.didUpdate(zoomLevels: levels)
+        }
+    }
 
+    nonisolated public func zoomService(_ service: ZoomService, didUpdateWideBaseZoomFactor factor: CGFloat) {
+        Task { @MainActor in
+            await self.delegate?.didUpdate(wideBaseZoomFactor: factor)
+        }
+    }
 }
