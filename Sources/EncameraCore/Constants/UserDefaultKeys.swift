@@ -37,6 +37,7 @@ public enum UserDefaultKey {
     case albumCoverImage(albumName: String)
     case passcodeType
     case gridZoomLevel
+    case showHiddenAlbumsInCameraPicker
     case hasCompletedFirstLockout
     case hasBeenShownHideAlbumTutorial
     case keyBackupPromptLastShown
@@ -122,6 +123,7 @@ public enum UserDefaultKey {
              .showPaywallOnAppear,
              .selectedPhotoResolution,
              .selectedVideoQuality,
+             .showHiddenAlbumsInCameraPicker,
              .keyMigration,
              .passphraseMigration,
              .passwordHashMigration,

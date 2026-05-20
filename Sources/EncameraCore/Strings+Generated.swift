@@ -15,6 +15,9 @@ public enum L10n {
   ///  icon on the top left of the screen.
   public static let iconOnTheTopLeftOfTheScreen = L10n.tr("Localizable", " icon on the top left of the screen.", fallback: " icon on the top left of the screen.")
   /// Plural format key: "%#@file_count@"
+  public static func fileS(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "%@ File(s)", p1, fallback: "Plural format key: \"%#@file_count@\"")
+  }
   /// Plural format key: "%#@image_count@"
   public static func imageS(_ p1: Int) -> String {
     return L10n.tr("Localizable", "%@ Image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")
@@ -1874,6 +1877,8 @@ public enum L10n {
     public static let purchasesRestoreFailedMessage = L10n.tr("Localizable", "Settings.PurchasesRestoreFailedMessage", fallback: "Could not restore your purchases. Please try again or contact support.")
     /// RevenueCat Customer ID
     public static let revenueCatCustomerId = L10n.tr("Localizable", "Settings.RevenueCatCustomerId", fallback: "RevenueCat Customer ID")
+    /// Show hidden albums in camera album selector
+    public static let showHiddenAlbumsInCameraPicker = L10n.tr("Localizable", "Settings.ShowHiddenAlbumsInCameraPicker", fallback: "Show hidden albums in camera album selector")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
     public enum HiddenAlbumsModal {
