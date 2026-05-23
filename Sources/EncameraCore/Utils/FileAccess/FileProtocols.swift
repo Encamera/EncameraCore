@@ -59,6 +59,28 @@ public enum MediaSortOption: Sendable {
     case dateEncrypted(ascending: Bool)
 }
 
+/// String-backed serialization so the chosen sort order can be persisted.
+extension MediaSortOption: RawRepresentable {
+    public init?(rawValue: String) {
+        switch rawValue {
+        case "dateTaken_ascending": self = .dateTaken(ascending: true)
+        case "dateTaken_descending": self = .dateTaken(ascending: false)
+        case "dateEncrypted_ascending": self = .dateEncrypted(ascending: true)
+        case "dateEncrypted_descending": self = .dateEncrypted(ascending: false)
+        default: return nil
+        }
+    }
+
+    public var rawValue: String {
+        switch self {
+        case .dateTaken(let ascending):
+            return ascending ? "dateTaken_ascending" : "dateTaken_descending"
+        case .dateEncrypted(let ascending):
+            return ascending ? "dateEncrypted_ascending" : "dateEncrypted_descending"
+        }
+    }
+}
+
 /// Filter options for media subtypes (OptionSet for multi-select)
 public struct MediaFilterOptions: OptionSet, Sendable {
     public let rawValue: Int

@@ -37,6 +37,7 @@ public enum UserDefaultKey {
     case albumCoverImage(albumName: String)
     case passcodeType
     case gridZoomLevel
+    case gridSortOption
     case showHiddenAlbumsInCameraPicker
     case hasCompletedFirstLockout
     case hasBeenShownHideAlbumTutorial
@@ -91,6 +92,7 @@ public enum UserDefaultKey {
              .defaultStorageLocation,
              .livePhotosActivated,
              .gridZoomLevel,
+             .gridSortOption,
              .currentKey,
              .hasCompletedFirstLockout,
              .hasBeenShownHideAlbumTutorial:
