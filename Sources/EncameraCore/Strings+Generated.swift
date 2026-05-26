@@ -910,12 +910,12 @@ public enum L10n {
     }
     /// Move
     public static let move = L10n.tr("Localizable", "AlbumSelectionModal.Move", fallback: "Move")
-    /// Type a new name to create, or an existing hidden album's name to open it.
-    public static let newOrHiddenAlbumSubtitle = L10n.tr("Localizable", "AlbumSelectionModal.NewOrHiddenAlbumSubtitle", fallback: "Type a new name to create, or an existing hidden album's name to open it.")
-    /// New album or open hidden
-    public static let newOrHiddenAlbumTitle = L10n.tr("Localizable", "AlbumSelectionModal.NewOrHiddenAlbumTitle", fallback: "New album or open hidden")
-    /// Create another album first to move media between albums.
-    public static let noAlbumsDescription = L10n.tr("Localizable", "AlbumSelectionModal.NoAlbumsDescription", fallback: "Create another album first to move media between albums.")
+    /// Type to create or open
+    public static let newOrHiddenAlbumSubtitle = L10n.tr("Localizable", "AlbumSelectionModal.NewOrHiddenAlbumSubtitle", fallback: "Type to create or open")
+    /// New or hidden album
+    public static let newOrHiddenAlbumTitle = L10n.tr("Localizable", "AlbumSelectionModal.NewOrHiddenAlbumTitle", fallback: "New or hidden album")
+    /// Create another album first.
+    public static let noAlbumsDescription = L10n.tr("Localizable", "AlbumSelectionModal.NoAlbumsDescription", fallback: "Create another album first.")
     /// No Other Albums
     public static let noAlbumsTitle = L10n.tr("Localizable", "AlbumSelectionModal.NoAlbumsTitle", fallback: "No Other Albums")
     /// ./Encamera/AlbumManagement/AlbumSelectionModal.swift
@@ -1034,6 +1034,8 @@ public enum L10n {
     public static let tooManyAttempts = L10n.tr("Localizable", "AuthenticationView.TooManyAttempts", fallback: "Too many attempts")
   }
   public enum BackgroundTaskProgress {
+    /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Index Build
+    public static let buildingIndex = L10n.tr("Localizable", "BackgroundTaskProgress.BuildingIndex", fallback: "Optimizing your photo library...")
     /// Edit cancelled
     public static let editCancelled = L10n.tr("Localizable", "BackgroundTaskProgress.EditCancelled", fallback: "Edit cancelled")
     /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Edit Operations
@@ -1042,6 +1044,8 @@ public enum L10n {
     public static let editing = L10n.tr("Localizable", "BackgroundTaskProgress.Editing", fallback: "Editing...")
     /// Edit stopped
     public static let editStopped = L10n.tr("Localizable", "BackgroundTaskProgress.EditStopped", fallback: "Edit stopped")
+    /// Photo library optimized
+    public static let indexCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.IndexCompleted", fallback: "Photo library optimized")
     /// Move canceled
     public static let moveCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCanceled", fallback: "Move canceled")
     /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations

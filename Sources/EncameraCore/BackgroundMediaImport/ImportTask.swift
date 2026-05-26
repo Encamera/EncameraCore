@@ -33,6 +33,7 @@ public enum FileTaskType: String {
     case moveMedia
     case exportMedia
     case editMedia
+    case buildIndex
 }
 
 public protocol BackgroundFileTask: Equatable  {
@@ -42,6 +43,15 @@ public protocol BackgroundFileTask: Equatable  {
     var progress: ImportProgressUpdate { get }
     var state: FileTaskState { get }
     var assetIdentifiers: [String] { get }
+    /// Whether the user can cancel this task from the progress card. Tasks
+    /// that have no cancellation handler (e.g. the startup index migration)
+    /// should return `false` so the UI doesn't expose a Cancel button that
+    /// stops the spinner without actually halting the work.
+    var isCancelable: Bool { get }
+}
+
+extension BackgroundFileTask {
+    public var isCancelable: Bool { true }
 }
 
 public struct ImportTask: BackgroundFileTask {

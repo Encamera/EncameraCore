@@ -73,114 +73,99 @@ public actor DiskFileAccess: DebugPrintable {
         guard let directoryModel = directoryModel else {
             return []
         }
-        let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
-
-        let filter = [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]
 
         let urls: [URL] = directoryModel.enumeratorForStorageDirectory(
-            resourceKeys: resourceKeys,
-            fileExtensionFilter: filter
+            resourceKeys: Self.enumerationResourceKeys,
+            fileExtensionFilter: Self.mediaFileExtensionFilter
         )
 
-        let imageItems: [T] = urls
-            .sorted { (url1: URL, url2: URL) in
-                guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
-                      let creationDate1 = resourceValues1.creationDate,
-                      let resourceValues2 = try? url2.resourceValues(forKeys: resourceKeys),
-                      let creationDate2 = resourceValues2.creationDate else {
-                    return false
-                }
-
-                // First, sort by creation date
-                let dateComparison = creationDate1.compare(creationDate2)
-                if dateComparison != .orderedSame {
-                    return dateComparison == .orderedDescending
-                }
-
-                // If dates are the same, prioritize photos over videos
-                let isPhoto1 = url1.pathExtension == MediaType.photo.encryptedFileExtension
-                let isPhoto2 = url2.pathExtension == MediaType.video.encryptedFileExtension
-
-                if isPhoto1 != isPhoto2 {
-                    return isPhoto1 && !isPhoto2
-                }
-
-                // If media types are the same, sort by filename
-                return url1.lastPathComponent < url2.lastPathComponent
-            }.compactMap { (itemUrl: URL) in
-                return T(source: .url(itemUrl), generateID: false)
-            }
-        return imageItems
+        return Self.sortedMediaURLs(urls).compactMap { itemURL in
+            T(source: .url(itemURL), generateID: false)
+        }
     }
 
     /// Enumerates all encrypted media files across all albums in both local and iCloud storage
     /// This is like running a `find` command at the base storage directories
     public func enumerateAllMedia<T: MediaDescribing>() async -> [T] {
-        let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
-        let filter = [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]
         var allURLs: [URL] = []
-        
+
         // Enumerate local storage (both locations to handle partial migration)
-        let localAlbumsURLs = LocalStorageModel.enumeratorForStorageDirectory(
+        allURLs.append(contentsOf: LocalStorageModel.enumeratorForStorageDirectory(
             at: LocalStorageModel.albumsURL,
-            resourceKeys: resourceKeys,
-            fileExtensionFilter: filter
-        )
-        let localRootURLs = LocalStorageModel.enumeratorForStorageDirectory(
+            resourceKeys: Self.enumerationResourceKeys,
+            fileExtensionFilter: Self.mediaFileExtensionFilter
+        ))
+        allURLs.append(contentsOf: LocalStorageModel.enumeratorForStorageDirectory(
             at: LocalStorageModel.rootURL,
-            resourceKeys: resourceKeys,
-            fileExtensionFilter: filter
-        )
-        allURLs.append(contentsOf: localAlbumsURLs)
-        allURLs.append(contentsOf: localRootURLs)
+            resourceKeys: Self.enumerationResourceKeys,
+            fileExtensionFilter: Self.mediaFileExtensionFilter
+        ))
 
         // Enumerate iCloud storage if available (both locations to handle partial migration)
         if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
-            let iCloudAlbumsURLs = iCloudStorageModel.enumeratorForStorageDirectory(
+            allURLs.append(contentsOf: iCloudStorageModel.enumeratorForStorageDirectory(
                 at: iCloudStorageModel.albumsURL,
-                resourceKeys: resourceKeys,
-                fileExtensionFilter: filter
-            )
-            let iCloudRootURLs = iCloudStorageModel.enumeratorForStorageDirectory(
+                resourceKeys: Self.enumerationResourceKeys,
+                fileExtensionFilter: Self.mediaFileExtensionFilter
+            ))
+            allURLs.append(contentsOf: iCloudStorageModel.enumeratorForStorageDirectory(
                 at: iCloudStorageModel.rootURL,
-                resourceKeys: resourceKeys,
-                fileExtensionFilter: filter
-            )
-            allURLs.append(contentsOf: iCloudAlbumsURLs)
-            allURLs.append(contentsOf: iCloudRootURLs)
+                resourceKeys: Self.enumerationResourceKeys,
+                fileExtensionFilter: Self.mediaFileExtensionFilter
+            ))
         }
-        
-        print("enumerateAllMedia found URLs:", allURLs.map { $0.path })
-        
-        let mediaItems: [T] = allURLs
-            .sorted { (url1: URL, url2: URL) in
-                guard let resourceValues1 = try? url1.resourceValues(forKeys: resourceKeys),
-                      let creationDate1 = resourceValues1.creationDate,
-                      let resourceValues2 = try? url2.resourceValues(forKeys: resourceKeys),
-                      let creationDate2 = resourceValues2.creationDate else {
-                    return false
-                }
 
-                // First, sort by creation date
-                let dateComparison = creationDate1.compare(creationDate2)
-                if dateComparison != .orderedSame {
-                    return dateComparison == .orderedDescending
-                }
+        return Self.sortedMediaURLs(allURLs).compactMap { itemURL in
+            T(source: .url(itemURL), generateID: false)
+        }
+    }
 
-                // If dates are the same, prioritize photos over videos
-                let isPhoto1 = url1.pathExtension == MediaType.photo.encryptedFileExtension
-                let isPhoto2 = url2.pathExtension == MediaType.video.encryptedFileExtension
+    // MARK: - Media URL Sorting
 
-                if isPhoto1 != isPhoto2 {
-                    return isPhoto1 && !isPhoto2
-                }
+    /// Resource keys prefetched by `contentsOfDirectory` so `sortedMediaURLs`
+    /// can read creation dates from cache instead of issuing fresh `stat` calls.
+    private static let enumerationResourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey, .creationDateKey])
 
-                // If media types are the same, sort by filename
-                return url1.lastPathComponent < url2.lastPathComponent
-            }.compactMap { (itemUrl: URL) in
-                return T(source: .url(itemUrl), generateID: false)
+    private static let mediaFileExtensionFilter = [
+        MediaType.photo.encryptedFileExtension,
+        MediaType.video.encryptedFileExtension
+    ]
+
+    /// Pre-fetched per-file info, read once so the sort comparator never
+    /// re-touches the filesystem.
+    private struct SortableMediaURL {
+        let url: URL
+        let creationDate: Date
+        let isPhoto: Bool
+        let name: String
+    }
+
+    /// Sorts media URLs newest-first. Reads each URL's creation date exactly
+    /// once — the value is already prefetched by `contentsOfDirectory` — instead
+    /// of the O(n log n) `resourceValues` calls a comparator-based sort makes.
+    /// Ties break photos before videos, then by filename.
+    private static func sortedMediaURLs(_ urls: [URL]) -> [URL] {
+        let photoExtension = MediaType.photo.encryptedFileExtension
+        let entries: [SortableMediaURL] = urls.map { url in
+            let creationDate = (try? url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
+            return SortableMediaURL(
+                url: url,
+                creationDate: creationDate ?? .distantPast,
+                isPhoto: url.pathExtension == photoExtension,
+                name: url.lastPathComponent
+            )
+        }
+
+        return entries.sorted { lhs, rhs in
+            let dateComparison = lhs.creationDate.compare(rhs.creationDate)
+            if dateComparison != .orderedSame {
+                return dateComparison == .orderedDescending
             }
-        return mediaItems
+            if lhs.isPhoto != rhs.isPhoto {
+                return lhs.isPhoto
+            }
+            return lhs.name < rhs.name
+        }.map { $0.url }
     }
 
     public func totalStoredMediaCount() async -> Int {
@@ -384,6 +369,52 @@ public actor DiskFileAccess: DebugPrintable {
         )
     }
     
+    /// Reads metadata for a specific set of media rather than the whole album.
+    /// Used for incremental index updates so only newly-added files are opened
+    /// and decrypted. Returned items are unsorted and unfiltered.
+    /// - Parameter onProgress: Optional `(completed, total)` callback forwarded
+    ///   to the underlying metadata batch read, for driving a progress bar.
+    public func encryptedMediaWithMetadata(
+        for media: [EncryptedMedia],
+        onProgress: (@Sendable (_ completed: Int, _ total: Int) async -> Void)? = nil
+    ) async -> [MediaWithMetadata<EncryptedMedia>] {
+        guard !media.isEmpty else { return [] }
+
+        guard let keyBytes = key?.keyBytes else {
+            return buildMediaWithMetadataArray(
+                media: media,
+                metadataMap: [:],
+                sortOption: .dateEncrypted(ascending: false),
+                filterOptions: .all
+            )
+        }
+
+        let urls: [URL] = media.compactMap { item in
+            if case .url(let url) = item.source { return url }
+            return nil
+        }
+        let metadataHandler = EncryptedMetadataHandler()
+        let metadataResults = await metadataHandler.readMetadataBatch(
+            from: urls,
+            keyBytes: keyBytes,
+            onProgress: onProgress
+        )
+
+        var metadataMap: [URL: EncryptedFileMetadata] = [:]
+        for (url, metadata) in metadataResults {
+            if let metadata = metadata {
+                metadataMap[url] = metadata
+            }
+        }
+
+        return buildMediaWithMetadataArray(
+            media: media,
+            metadataMap: metadataMap,
+            sortOption: .dateEncrypted(ascending: false),
+            filterOptions: .all
+        )
+    }
+
     /// Builds the MediaWithMetadata array with filtering and sorting applied
     private func buildMediaWithMetadataArray(
         media: [EncryptedMedia],

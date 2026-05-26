@@ -14,17 +14,34 @@ public actor InteractableMediaDiskAccess: FileAccess {
     private var album: Album?
     private var albumManager: AlbumManaging?
 
+    // MARK: - Media Index state
+
+    private var directoryModel: DataStorageModel?
+    private var indexStore: MediaIndexStore?
+    /// In-memory snapshot of the album's media index, loaded lazily.
+    private var cachedIndex: MediaIndex?
+    /// Timestamp when `cachedIndex` was last written (locally or from disk).
+    private var cacheTimestamp: Date?
+
     public init(for album: Album, albumManager: AlbumManaging) async {
-        await self.fileAccess = DiskFileAccess(for: album, albumManager: albumManager)
-        self.album = album
-        self.albumManager = albumManager
+        self.fileAccess = DiskFileAccess()
+        await configure(for: album, albumManager: albumManager)
     }
 
 
     public func configure(for album: Album, albumManager: AlbumManaging) async {
+        let albumChanged = self.album?.id != album.id
         await fileAccess.configure(for: album, albumManager: albumManager)
         self.album = album
         self.albumManager = albumManager
+        self.directoryModel = albumManager.storageModel(for: album)
+        // Only reset the index when switching albums — re-configuring for the
+        // same album (e.g. a gallery refresh) keeps the warm in-memory cache.
+        if albumChanged {
+            self.indexStore = MediaIndexStore(album: album)
+            self.cachedIndex = nil
+            self.cacheTimestamp = nil
+        }
     }
     
     public func enumerateMedia<T>() async -> [InteractableMedia<T>] where T : MediaDescribing {
@@ -284,8 +301,305 @@ public actor InteractableMediaDiskAccess: FileAccess {
         return await fileAccess.totalStoredMediaCount()
     }
 
+    // MARK: - Media Index
+
+    /// Returns the in-memory index, loading it from disk on first access or
+    /// when the on-disk file is newer than the cached copy (e.g. after a
+    /// migration rebuild on a separate actor). Returns `nil` if no index has
+    /// been built yet — building is the job of `reconcileIndex()`.
+    private func cachedOrLoadedIndex() async -> MediaIndex? {
+        if cachedIndex != nil, let store = indexStore {
+            let diskDate = store.fileModificationDate()
+            if let diskDate, let cacheDate = cacheTimestamp, diskDate > cacheDate {
+                if let reloaded = await store.load() {
+                    cachedIndex = reloaded
+                    cacheTimestamp = diskDate
+                    return reloaded
+                }
+            }
+            return cachedIndex
+        }
+        if let loaded = await indexStore?.load() {
+            cachedIndex = loaded
+            // Use the index file's modification date — not `Date()` — so
+            // `reconcileIndex` correctly flags any file edits that happened
+            // between the index save and this load as in-place modifications.
+            cacheTimestamp = indexStore?.fileModificationDate() ?? Date()
+            return loaded
+        }
+        return nil
+    }
+
+    /// Rebuilds the index from scratch by reconciling against an empty index —
+    /// every file on disk is treated as new and has its metadata read. Used by
+    /// the startup migration.
+    /// - Parameter onProgress: Optional `(filesRead, totalFiles)` callback for
+    ///   reporting how far the rebuild has progressed.
+    @discardableResult
+    public func rebuildIndex(
+        onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)? = nil
+    ) async -> MediaIndex {
+        cachedIndex = MediaIndex(entries: [])
+        await reconcileIndex(onProgress: onProgress)
+        return await cachedOrLoadedIndex() ?? MediaIndex(entries: [])
+    }
+
+    /// Brings the index in sync with the album's files. Lists the directory by
+    /// name only (no `stat`, no decryption), then incrementally drops entries
+    /// for removed files and reads metadata for *only* the newly-added files —
+    /// so this stays cheap even on a large album. Returns whether the index
+    /// changed.
+    /// - Parameter onProgress: Optional `(filesRead, totalFiles)` callback that
+    ///   fires while metadata is read for added/modified files.
+    @discardableResult
+    public func reconcileIndex(
+        onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)? = nil
+    ) async -> Bool {
+        let diskURLsByID = currentMediaURLsByID()
+        let diskIDs = Set(diskURLsByID.keys)
+        let existingEntries = (await cachedOrLoadedIndex())?.entries ?? []
+        let indexIDs = Set(existingEntries.map { $0.id })
+
+        let removedIDs = indexIDs.subtracting(diskIDs)
+        let addedIDs = diskIDs.subtracting(indexIDs)
+
+        // Detect in-place modifications for entries whose IDs still match.
+        let modifiedIDs: Set<String>
+        if let cacheDate = cacheTimestamp {
+            let unchanged = indexIDs.intersection(diskIDs)
+            modifiedIDs = Self.idsModifiedSince(cacheDate, among: unchanged, urlsByID: diskURLsByID)
+        } else {
+            modifiedIDs = []
+        }
+
+        guard !removedIDs.isEmpty || !addedIDs.isEmpty || !modifiedIDs.isEmpty else {
+            return false
+        }
+
+        var entries = existingEntries.filter {
+            !removedIDs.contains($0.id) && !modifiedIDs.contains($0.id)
+        }
+
+        let idsToRead = addedIDs.union(modifiedIDs)
+        if !idsToRead.isEmpty {
+            let mediaToRead: [EncryptedMedia] = idsToRead.flatMap { id in
+                (diskURLsByID[id] ?? []).compactMap {
+                    EncryptedMedia(source: .url($0), generateID: false)
+                }
+            }
+            let withMetadata = await fileAccess.encryptedMediaWithMetadata(
+                for: mediaToRead,
+                onProgress: onProgress
+            )
+            entries.append(contentsOf: Self.makeEntries(fromFileLevelMetadata: withMetadata))
+        }
+
+        let updated = MediaIndex(entries: entries)
+        do {
+            try await indexStore?.save(updated)
+        } catch {
+            debugPrint("[InteractableMediaDiskAccess] failed to persist reconciled index: \(error)")
+            return false
+        }
+        cachedIndex = updated
+        cacheTimestamp = indexStore?.fileModificationDate() ?? Date()
+        return true
+    }
+
+    /// Produces a page of media from the index. Pure in-memory work: filter and
+    /// sort the cached entries, then materialize the slice into `InteractableMedia`
+    /// without touching the filesystem or decrypting anything. Returns an empty
+    /// page if no index has been built yet — `reconcileIndex()` will build one.
+    public func mediaPage(
+        sortBy sortOption: MediaSortOption,
+        filterBy filterOptions: MediaFilterOptions,
+        offset: Int,
+        pageSize: Int
+    ) async -> MediaPageResult {
+        guard let index = await cachedOrLoadedIndex() else {
+            return MediaPageResult(media: [], totalCount: 0, nextOffset: 0)
+        }
+        /* begin fault injection hook */
+        // UI-test fault injection: widens the per-page window so a test can
+        // interleave a UI action between page loads. Inert in production.
+        let delayMs = MediaIndexTestHooks.pageLoadDelayMs
+        if delayMs > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
+        }
+        /* end fault injection hook */
+        let sorted = index.sortedFilteredEntries(sortBy: sortOption, filterBy: filterOptions)
+        let start = max(0, min(offset, sorted.count))
+        let limit = max(0, pageSize)
+        var media: [InteractableMedia<EncryptedMedia>] = []
+        var cursor = start
+        while media.count < limit, cursor < sorted.count {
+            if let item = materialize(sorted[cursor]) {
+                media.append(item)
+            }
+            cursor += 1
+        }
+        return MediaPageResult(media: media, totalCount: sorted.count, nextOffset: cursor)
+    }
+
+    /// Removes the given media ids from the index — a cheap incremental patch
+    /// for deletes and moves that avoids a full rebuild.
+    public func removeFromIndex(ids: Set<String>) async {
+        guard !ids.isEmpty, var index = await cachedOrLoadedIndex() else {
+            return
+        }
+        let originalCount = index.entries.count
+        index.entries.removeAll { ids.contains($0.id) }
+        guard index.entries.count != originalCount else {
+            return
+        }
+        do {
+            try await indexStore?.save(index)
+        } catch {
+            debugPrint("[InteractableMediaDiskAccess] failed to persist index after removal: \(error)")
+            return
+        }
+        cachedIndex = index
+        cacheTimestamp = indexStore?.fileModificationDate() ?? Date()
+    }
+
+    // MARK: - Media Index helpers
+
+    /// Builds an `InteractableMedia` for an index entry by reconstructing its
+    /// file URLs — no filesystem read, no decryption.
+    private func materialize(_ entry: MediaIndexEntry) -> InteractableMedia<EncryptedMedia>? {
+        /* begin fault injection hook */
+        let stride = MediaIndexTestHooks.failMaterializeStride
+        if stride > 0, abs(entry.id.hashValue) % stride == 0 {
+            return nil
+        }
+        /* end fault injection hook */
+        guard let directoryModel else { return nil }
+        var underlying: [EncryptedMedia] = []
+        if entry.hasPhotoComponent {
+            let url = directoryModel.driveURLForMedia(withID: entry.id, type: .photo)
+            underlying.append(EncryptedMedia(source: .url(url), mediaType: .photo, id: entry.id))
+        }
+        if entry.hasVideoComponent {
+            let url = directoryModel.driveURLForMedia(withID: entry.id, type: .video)
+            underlying.append(EncryptedMedia(source: .url(url), mediaType: .video, id: entry.id))
+        }
+        guard !underlying.isEmpty else { return nil }
+        return try? InteractableMedia(underlyingMedia: underlying)
+    }
+
+    /// Returns IDs whose files on disk have a modification date newer than the
+    /// given reference date — a lightweight way to detect in-place edits.
+    static func idsModifiedSince(
+        _ referenceDate: Date,
+        among ids: Set<String>,
+        urlsByID: [String: [URL]]
+    ) -> Set<String> {
+        var modified = Set<String>()
+        for id in ids {
+            guard let urls = urlsByID[id] else { continue }
+            for url in urls {
+                if let modDate = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
+                   modDate > referenceDate {
+                    modified.insert(id)
+                    break
+                }
+            }
+        }
+        return modified
+    }
+
+    /// Media file URLs currently on disk, grouped by media id, from a cheap
+    /// directory listing. The modification date is prefetched so the reconcile's
+    /// in-place-edit check reads it from cache rather than issuing a fresh
+    /// `stat` per file.
+    ///
+    /// iCloud placeholder stubs (`.<id>.<encext>.icloud`) ARE included here
+    /// even though their last path extension is `icloud`: the enumerator
+    /// matches on the middle extension (see
+    /// `DataStorageModel.enumeratorForStorageDirectory`) precisely so
+    /// `undownloadedMediaCount` can detect them via `pathExtension == "icloud"`.
+    private func currentMediaURLsByID() -> [String: [URL]] {
+        guard let directoryModel else { return [:] }
+        let urls = directoryModel.enumeratorForStorageDirectory(
+            resourceKeys: [.contentModificationDateKey],
+            fileExtensionFilter: [
+                MediaType.photo.encryptedFileExtension,
+                MediaType.video.encryptedFileExtension
+            ]
+        )
+        var grouped: [String: [URL]] = [:]
+        for url in urls {
+            guard let id = EncryptedMedia(source: .url(url), generateID: false)?.id else { continue }
+            grouped[id, default: []].append(url)
+        }
+        return grouped
+    }
+
+    /// Number of media items in the album not yet downloaded from iCloud, from
+    /// a cheap name-only directory scan — iCloud placeholders carry a `.icloud`
+    /// path extension. Counts unique media ids across the whole album,
+    /// independent of which pages the gallery has loaded.
+    public func undownloadedMediaCount() -> Int {
+        currentMediaURLsByID().values.reduce(into: 0) { count, urls in
+            if urls.contains(where: { $0.pathExtension == "icloud" }) {
+                count += 1
+            }
+        }
+    }
+
+    /// Groups file-level metadata by media id (a Live Photo's photo and video
+    /// components share an id) into one `MediaIndexEntry` per id.
+    private static func makeEntries(
+        fromFileLevelMetadata items: [MediaWithMetadata<EncryptedMedia>]
+    ) -> [MediaIndexEntry] {
+        var groupsByID: [String: [MediaWithMetadata<EncryptedMedia>]] = [:]
+        var idOrder: [String] = []
+        for item in items {
+            if groupsByID[item.media.id] == nil {
+                idOrder.append(item.media.id)
+            }
+            groupsByID[item.media.id, default: []].append(item)
+        }
+
+        return idOrder.compactMap { id in
+            guard let group = groupsByID[id], let primary = group.first else { return nil }
+            let types = Set(group.map { $0.media.mediaType })
+            // Prefer the photo component's metadata; fall back to the first.
+            let representative = group.first { $0.media.mediaType == .photo } ?? primary
+            return MediaIndexEntry(
+                id: id,
+                hasPhotoComponent: types.contains(.photo),
+                hasVideoComponent: types.contains(.video),
+                dateEncrypted: representative.dateEncrypted,
+                dateTaken: representative.dateTaken,
+                subtypeRawValue: representative.mediaSubtype.rawValue
+            )
+        }
+    }
+
     public static func deleteThumbnailDirectory() throws {
         try DiskFileAccess.deleteThumbnailDirectory()
+    }
+
+    // MARK: - Test hooks
+
+    /// Test-only: wire an explicit `MediaIndexStore` so a test can exercise
+    /// load behavior without a full `Album` + `AlbumManaging` graph.
+    internal func _testSetIndexStore(_ store: MediaIndexStore) {
+        self.indexStore = store
+    }
+
+    /// Test-only: forces a load from disk via `cachedOrLoadedIndex` and
+    /// returns the `cacheTimestamp` that was recorded.
+    internal func _testLoadAndReadCacheTimestamp() async -> Date? {
+        _ = await cachedOrLoadedIndex()
+        return cacheTimestamp
+    }
+
+    /// Test-only: returns the current in-memory `cachedIndex` so a test
+    /// can verify it is or isn't rolled back after a save failure.
+    internal func _testReadCachedIndex() -> MediaIndex? {
+        cachedIndex
     }
 }
 

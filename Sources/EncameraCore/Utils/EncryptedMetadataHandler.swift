@@ -178,20 +178,27 @@ public actor EncryptedMetadataHandler: DebugPrintable {
     ///   - urls: Array of file URLs to read
     ///   - keyBytes: Encryption key bytes
     ///   - concurrency: Maximum number of concurrent reads (default: 10)
+    ///   - onProgress: Optional callback reporting `(completed, total)` as files
+    ///     finish. Throttled to roughly 100 invocations so callers can drive a
+    ///     progress bar without flooding the main actor.
     /// - Returns: Array of tuples containing URL and optional metadata
     public func readMetadataBatch(
         from urls: [URL],
         keyBytes: [UInt8],
-        concurrency: Int = 10
+        concurrency: Int = 10,
+        onProgress: (@Sendable (_ completed: Int, _ total: Int) async -> Void)? = nil
     ) async -> [(URL, EncryptedFileMetadata?)] {
-        
+
+        let total = urls.count
+        let reportInterval = max(1, total / 100)
+
         return await withTaskGroup(of: (URL, EncryptedFileMetadata?).self) { group in
             var results: [(URL, EncryptedFileMetadata?)] = []
-            results.reserveCapacity(urls.count)
-            
+            results.reserveCapacity(total)
+
             var pending = urls.makeIterator()
             var inFlight = 0
-            
+
             // Start initial batch
             while inFlight < concurrency, let url = pending.next() {
                 group.addTask { [self] in
@@ -200,12 +207,17 @@ public actor EncryptedMetadataHandler: DebugPrintable {
                 }
                 inFlight += 1
             }
-            
+
             // Process results and add more tasks
             for await result in group {
                 results.append(result)
                 inFlight -= 1
-                
+
+                let completed = results.count
+                if completed % reportInterval == 0 || completed == total {
+                    await onProgress?(completed, total)
+                }
+
                 if let url = pending.next() {
                     group.addTask { [self] in
                         let metadata = try? await self.readMetadata(from: url, keyBytes: keyBytes)
@@ -214,7 +226,7 @@ public actor EncryptedMetadataHandler: DebugPrintable {
                     inFlight += 1
                 }
             }
-            
+
             return results
         }
     }

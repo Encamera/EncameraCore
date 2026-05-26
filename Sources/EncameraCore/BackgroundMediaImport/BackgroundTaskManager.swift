@@ -83,6 +83,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             editTask.progress = progress
             currentTasks[taskIndex] = editTask
             publishProgress(for: editTask)
+        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
+            indexTask.progress = progress
+            currentTasks[taskIndex] = indexTask
+            publishProgress(for: indexTask)
         }
     }
 
@@ -108,6 +112,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         } else if var editTask = currentTasks[taskIndex] as? EditTask {
             editTask.progress.state = .running
             currentTasks[taskIndex] = editTask
+            updateIsProcessing()
+        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
+            indexTask.progress.state = .running
+            currentTasks[taskIndex] = indexTask
             updateIsProcessing()
         }
     }
@@ -135,6 +143,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             editTask.progress.state = .paused
             currentTasks[taskIndex] = editTask
             publishProgress(for: editTask)
+        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
+            indexTask.progress.state = .paused
+            currentTasks[taskIndex] = indexTask
+            publishProgress(for: indexTask)
         }
     }
 
@@ -163,6 +175,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             editTask.progress.state = .cancelled
             currentTasks[taskIndex] = editTask
             publishProgress(for: editTask)
+        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
+            indexTask.progress.state = .cancelled
+            currentTasks[taskIndex] = indexTask
+            publishProgress(for: indexTask)
         }
 
         // Note: We intentionally do NOT call updateIsProcessing() here.
@@ -273,6 +289,11 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             currentTasks[taskIndex] = editTask
             publishProgress(for: editTask)
             printDebug("Task completed successfully: \(taskId)")
+        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
+            indexTask.progress = completedProgress
+            currentTasks[taskIndex] = indexTask
+            publishProgress(for: indexTask)
+            printDebug("Task completed successfully: \(taskId)")
         }
 
         updateOverallProgress()
@@ -338,6 +359,13 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             editTask.progress.state = state
             currentTasks[taskIndex] = editTask
             publishProgress(for: editTask)
+            if shouldRemove {
+                removeTaskAfterDelay(taskId: taskId)
+            }
+        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
+            indexTask.progress.state = state
+            currentTasks[taskIndex] = indexTask
+            publishProgress(for: indexTask)
             if shouldRemove {
                 removeTaskAfterDelay(taskId: taskId)
             }
