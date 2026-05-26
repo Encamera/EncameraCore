@@ -64,6 +64,7 @@ public enum AppConstants {
         // Social & Community
         case reddit = "https://www.reddit.com/r/encamera/"
         case telegram = "https://t.me/encamera_app"
+        case discord = "https://discord.encamera.app/"
         case twitter = "https://x.com/encamera_app"
 
         // Promotional Assets (seasonal — may not always be live)

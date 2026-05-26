@@ -23,7 +23,6 @@
 "Test" = "これは文字列翻訳のテストです";
 "Deletion Error" = "削除エラー";
 "iCloudStorageFeatureRowTitle" = "iCloudストレージとバックアップ";
-"Join Telegram Group" = "Telegramグループに参加";
 "AuthenticationMethod.TapToDisableBanner" = "タップして選択した方法を無効にする";
 "YourRecoveryPhrase" = "キーのバックアップ";
 "AuthenticationMethod.TextDescription.PinCode" = "暗証番号";

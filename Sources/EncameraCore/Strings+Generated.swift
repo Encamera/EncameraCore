@@ -376,8 +376,8 @@ public enum L10n {
   public static let invalidPassword = L10n.tr("Localizable", "Invalid Password", fallback: "Invalid Password")
   /// I Remember my Passcode
   public static let iRemember = L10n.tr("Localizable", "IRemember", fallback: "I Remember my Passcode")
-  /// Join Telegram Group
-  public static let joinTelegramGroup = L10n.tr("Localizable", "Join Telegram Group", fallback: "Join Telegram Group")
+  /// Join Discord
+  public static let joinDiscord = L10n.tr("Localizable", "Join Discord", fallback: "Join Discord")
   /// Keep your encrypted data safe by using %@.
   public static func keepYourEncryptedDataSafeByUsing(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Keep your encrypted data safe by using %@.", String(describing: p1), fallback: "Keep your encrypted data safe by using %@.")
