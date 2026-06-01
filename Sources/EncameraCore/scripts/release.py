@@ -3,12 +3,17 @@
 
 Run:
 
-    python release.py [--credentials PATH] [--skip-preflights] [--dry-run]
+    python release.py [--credentials PATH] [--skip-preflights] [--dry-run] [--interactive]
 
-Preflights:
-  1. app_store.yml has changed since the last git tag (what's new updated).
-  2. All .lproj files are in sync with en.lproj (no missing translations).
-  3. No TestFlight builds for the release version are still PROCESSING.
+Preflights (cheap/local checks first, network calls last):
+  1. HEAD is on the 'main' branch.
+  2. Working tree has no staged/unstaged changes.
+  3. Local main matches origin/main (no diverging commits).
+  4. app_store.yml has changed since the last git tag (what's new updated).
+  5. All .lproj files are in sync with en.lproj (no missing translations).
+  6. No TestFlight builds for the release version are still PROCESSING.
+  7. No active (PENDING/RUNNING) build runs on the "Build for TestFlight"
+     Xcode Cloud workflow.
 
 Release steps (after preflights pass):
   1. Run the Localizer (push translated metadata to ASC).
@@ -17,6 +22,10 @@ Release steps (after preflights pass):
      and attach it to the App Store version.
   4. Set releaseType=MANUAL on the version.
   5. Submit the version for review.
+
+With --interactive, the driver pauses for y/N confirmation on:
+  • the English whats_new text before running the Localizer
+  • the chosen TestFlight build before attaching it to the App Store version
 
 Requires the `asc` library: pip install -e scripts/asc
 """
@@ -36,6 +45,7 @@ try:
         submit_for_review,
     )
     from asc.testflight import list_builds_for_version
+    from asc.xcode_cloud.build_runs import list_build_runs_for_workflow
 except ImportError:
     print("Missing required package 'asc'. Install with: pip install -e scripts/asc")
     sys.exit(1)
@@ -46,8 +56,19 @@ APP_STORE_YML = SCRIPT_DIR / "app_store_localization" / "app_store.yml"
 EN_LPROJ = SCRIPT_DIR.parent / "Resources" / "en.lproj"
 LOCALIZATION_DIR = SCRIPT_DIR / "app_store_localization"
 
+# Xcode Cloud "Build for TestFlight" workflow — must be idle before we cut a
+# release, otherwise the build we're about to attach may be superseded by
+# whatever is mid-flight.
+TESTFLIGHT_WORKFLOW_ID = "0fe065ac-1630-4bd4-9158-c43af076cbd9"
+ACTIVE_BUILD_PROGRESS = {"PENDING", "RUNNING"}
+
 # Make Localizer importable
 sys.path.insert(0, str(LOCALIZATION_DIR))
+
+
+def confirm(prompt):
+    """Prompt y/N; return True on y/yes, False otherwise (default No)."""
+    return input(f"{prompt} (y/N): ").strip().lower() in ("y", "yes")
 
 
 def resolve_credentials_path(arg_path):
@@ -121,6 +142,62 @@ def preflight_clean_tree():
     return False
 
 
+def preflight_local_main_matches_remote():
+    """True if local main is at the same commit as origin/main.
+
+    Runs `git fetch origin main` first so the comparison reflects the current
+    remote state, not a stale FETCH_HEAD. Returns False if local is ahead,
+    behind, or diverged.
+    """
+    fetch = subprocess.run(
+        ["git", "fetch", "origin", "main"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if fetch.returncode != 0:
+        print(f"  git fetch origin main failed: {fetch.stderr.strip()}")
+        return False
+
+    local = subprocess.run(
+        ["git", "rev-parse", "main"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    remote = subprocess.run(
+        ["git", "rev-parse", "origin/main"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if local.returncode != 0 or remote.returncode != 0:
+        print("  could not resolve main / origin/main SHAs")
+        return False
+
+    local_sha = local.stdout.strip()
+    remote_sha = remote.stdout.strip()
+    if local_sha == remote_sha:
+        return True
+
+    counts = subprocess.run(
+        ["git", "rev-list", "--left-right", "--count", "main...origin/main"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if counts.returncode == 0:
+        ahead, behind = counts.stdout.strip().split()
+        print(f"  local main is ahead {ahead}, behind {behind} vs origin/main")
+    print(f"  local  {local_sha}")
+    print(f"  remote {remote_sha}")
+    return False
+
+
 def preflight_app_store_yml_changed(yml_path, last_tag):
     """True if app_store.yml differs from its content at ``last_tag``.
 
@@ -178,6 +255,27 @@ def preflight_no_pending_builds(client, app_id, version_string):
     return True
 
 
+def preflight_no_active_xcode_cloud_builds(client, workflow_id):
+    """True if the given Xcode Cloud workflow has no PENDING/RUNNING build runs.
+
+    Pulls the most recent runs (sorted by -number) and flags any whose
+    executionProgress is still in :data:`ACTIVE_BUILD_PROGRESS`. A small limit
+    is enough because completed runs are interleaved by start time, not by
+    completion — the newest active run will always be near the top.
+    """
+    runs = list_build_runs_for_workflow(client, workflow_id, limit=20)
+    active = [r for r in runs if r.execution_progress in ACTIVE_BUILD_PROGRESS]
+    if active:
+        print(f"  {len(active)} active build run(s) on workflow {workflow_id}:")
+        for r in active:
+            print(
+                f"    #{r.number} {r.execution_progress} "
+                f"started={r.started_date or '-'} sha={(r.source_commit_sha or '')[:8]}"
+            )
+        return False
+    return True
+
+
 # --- release steps ------------------------------------------------------------
 
 
@@ -186,6 +284,25 @@ def run_localize(config_path, credentials_path, version_id=None):
     result = Localizer(str(config_path), credentials_path, version_id=version_id).run()
     if not result:
         print("Localizer did not complete successfully. Aborting release.")
+        sys.exit(1)
+
+
+def confirm_whats_new(yml_path):
+    """Print the English whats_new from ``yml_path`` and prompt y/N to proceed."""
+    import yaml
+
+    with open(yml_path) as f:
+        data = yaml.safe_load(f)
+    whats_new = (data.get("listing") or {}).get("whats_new")
+    if not whats_new:
+        print(f"  No whats_new found in {yml_path}. Aborting.")
+        sys.exit(1)
+    print("  --- whats_new (English) ---")
+    for line in whats_new.rstrip().splitlines():
+        print(f"  {line}")
+    print("  --- end whats_new ---")
+    if not confirm("Use this whats_new for the release?"):
+        print("  Aborted by user — update whats_new in app_store.yml and re-run.")
         sys.exit(1)
 
 
@@ -224,7 +341,9 @@ def tag_release(version_string):
         print(f"  Skipped push — run 'git push origin {version_string}' when ready")
 
 
-def select_and_attach_build(client, app_id, version_id, version_string, *, dry_run=False):
+def select_and_attach_build(
+    client, app_id, version_id, version_string, *, dry_run=False, interactive=False
+):
     valid = list_builds_for_version(
         client, app_id, version_string, processing_state="VALID"
     )
@@ -246,6 +365,12 @@ def select_and_attach_build(client, app_id, version_id, version_string, *, dry_r
         print("  [dry-run] would attach this build to the version")
         return build_id
 
+    if interactive and not confirm(
+        f"Attach build {build_number} (uploaded {uploaded}) to v{version_string}?"
+    ):
+        print("  Aborted by user — re-run when the correct build is uploaded.")
+        sys.exit(1)
+
     set_build_for_version(client, version_id, build_id)
     print(f"  Attached build {build_number} to version {version_string}")
     return build_id
@@ -263,12 +388,17 @@ def main():
     parser.add_argument(
         "--skip-preflights",
         action="store_true",
-        help="Skip the three preflight checks (use with care)",
+        help="Skip all preflight checks (use with care)",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Run preflights and print planned actions, but do not localize/tag/attach/submit",
+    )
+    parser.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Prompt for confirmation on the whats_new text and the selected TestFlight build",
     )
     args = parser.parse_args()
 
@@ -277,8 +407,88 @@ def main():
     print("=== Release Driver ===")
     if args.dry_run:
         print("*** DRY RUN — no localize, tag, attach, release-type or submit will run ***")
+    if args.interactive:
+        print("*** INTERACTIVE — will prompt to confirm whats_new and selected build ***")
     print()
 
+    # --- cheap local preflights run first so we fail fast without hitting the API ---
+    try:
+        last_tag = subprocess.run(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    except subprocess.CalledProcessError:
+        print(
+            "Could not determine the last git tag (no tags in this repository?).\n"
+            "Tag the repo at least once before running preflights, or use --skip-preflights."
+        )
+        sys.exit(1)
+    print(f"Last git tag: {last_tag}")
+    print()
+
+    if not args.skip_preflights:
+        print("[1/7] On the main branch?")
+        if not preflight_on_main_branch():
+            print(
+                "  FAIL: releases must be cut from main. Merge to main and re-run, "
+                "or use --skip-preflights if you really know what you're doing."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print("[2/7] Working tree clean (no staged or unstaged changes)?")
+        if not preflight_clean_tree():
+            print(
+                "  FAIL: working tree has uncommitted changes. Commit or stash them "
+                "before releasing — the tag must capture exactly what's on HEAD."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print("[3/7] Local main matches origin/main?")
+        if not preflight_local_main_matches_remote():
+            print(
+                "  FAIL: local main has diverged from origin/main. Push or pull "
+                "so they match before releasing — the tag must point at what's on origin."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print(f"[4/7] app_store.yml changed since tag {last_tag}?")
+        yml_changed = preflight_app_store_yml_changed(APP_STORE_YML, last_tag)
+        if yml_changed is None:
+            print("  FAIL: could not run git diff — check REPO_ROOT and tag validity.")
+            sys.exit(1)
+        if not yml_changed:
+            print(
+                f"  FAIL: app_store.yml has no changes since {last_tag}. "
+                "Update the 'whats_new' (and any other release-relevant fields) "
+                "before releasing."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print("[5/7] All .lproj files in sync with en.lproj?")
+        if not preflight_strings_in_sync(EN_LPROJ):
+            print(
+                "  FAIL: missing translations. Run scripts/string_diff.py to "
+                "translate the missing keys."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+    else:
+        print("Skipping local preflights (--skip-preflights)")
+        print()
+
+    # --- ASC-dependent setup (needed for the remaining preflights + release) ---
     print(f"Loading credentials from: {credentials_path}")
     creds = Credentials.load(credentials_path)
     client = ASCClient(creds)
@@ -302,71 +512,8 @@ def main():
     )
     print()
 
-    try:
-        last_tag = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-    except subprocess.CalledProcessError:
-        print(
-            "Could not determine the last git tag (no tags in this repository?).\n"
-            "Tag the repo at least once before running preflights, or use --skip-preflights."
-        )
-        sys.exit(1)
-    print(f"Last git tag: {last_tag}")
-    print()
-
-    # --- preflights ---
     if not args.skip_preflights:
-        print("[1/5] On the main branch?")
-        if not preflight_on_main_branch():
-            print(
-                "  FAIL: releases must be cut from main. Merge to main and re-run, "
-                "or use --skip-preflights if you really know what you're doing."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-
-        print("[2/5] Working tree clean (no staged or unstaged changes)?")
-        if not preflight_clean_tree():
-            print(
-                "  FAIL: working tree has uncommitted changes. Commit or stash them "
-                "before releasing — the tag must capture exactly what's on HEAD."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-
-        print(f"[3/5] app_store.yml changed since tag {last_tag}?")
-        yml_changed = preflight_app_store_yml_changed(APP_STORE_YML, last_tag)
-        if yml_changed is None:
-            print("  FAIL: could not run git diff — check REPO_ROOT and tag validity.")
-            sys.exit(1)
-        if not yml_changed:
-            print(
-                f"  FAIL: app_store.yml has no changes since {last_tag}. "
-                "Update the 'whats_new' (and any other release-relevant fields) "
-                "before releasing."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-
-        print("[4/5] All .lproj files in sync with en.lproj?")
-        if not preflight_strings_in_sync(EN_LPROJ):
-            print(
-                "  FAIL: missing translations. Run scripts/string_diff.py to "
-                "translate the missing keys."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-
-        print(f"[5/5] No PROCESSING TestFlight builds for v{version_string}?")
+        print(f"[6/7] No PROCESSING TestFlight builds for v{version_string}?")
         if not preflight_no_pending_builds(client, app_id, version_string):
             print(
                 "  FAIL: there are TestFlight builds still being processed by Apple. "
@@ -375,8 +522,18 @@ def main():
             sys.exit(1)
         print("  OK")
         print()
+
+        print("[7/7] No active build runs on the TestFlight Xcode Cloud workflow?")
+        if not preflight_no_active_xcode_cloud_builds(client, TESTFLIGHT_WORKFLOW_ID):
+            print(
+                "  FAIL: an Xcode Cloud build is still running on the TestFlight "
+                "workflow. Wait for it to finish (or cancel it) before releasing."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
     else:
-        print("Skipping preflights (--skip-preflights)")
+        print("Skipping ASC preflights (--skip-preflights)")
         print()
 
     # --- release ---
@@ -386,13 +543,19 @@ def main():
         print(f"  2. git tag {version_string} (then prompt to push)")
         print(f"  3. attach latest VALID build:")
         select_and_attach_build(
-            client, app_id, version.id, version_string, dry_run=True
+            client, app_id, version.id, version_string,
+            dry_run=True, interactive=args.interactive,
         )
         print(f"  4. set releaseType=MANUAL on version {version.id}")
         print(f"  5. submit version {version.id} for review")
         print()
         print("Dry run complete — no changes made.")
         return
+
+    if args.interactive:
+        print("[release 0/5] Confirm whats_new (English)...")
+        confirm_whats_new(APP_STORE_YML)
+        print()
 
     print(f"[release 1/5] Pushing translated metadata via Localizer...")
     run_localize(APP_STORE_YML, credentials_path, version_id=version.id)
@@ -403,7 +566,9 @@ def main():
     print()
 
     print(f"[release 3/5] Selecting and attaching latest VALID build...")
-    select_and_attach_build(client, app_id, version.id, version_string)
+    select_and_attach_build(
+        client, app_id, version.id, version_string, interactive=args.interactive,
+    )
     print()
 
     print(f"[release 4/5] Setting releaseType=MANUAL...")
