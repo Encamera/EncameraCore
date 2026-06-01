@@ -17,6 +17,7 @@ public enum Feature: String, CaseIterable {
     case editRotation
     case detectDuplicates
     case megapixelSettings
+    case clearMediaIndex
 
     var userDefaultsKey: String {
         return "feature_" +  rawValue
@@ -33,6 +34,7 @@ public enum Feature: String, CaseIterable {
         case .editRotation: return L10n.FeatureToggles.editRotation
         case .detectDuplicates: return L10n.FeatureToggles.detectDuplicates
         case .megapixelSettings: return "Megapixel Settings"
+        case .clearMediaIndex: return "Clear Media Index"
         }
     }
 
@@ -47,6 +49,7 @@ public enum Feature: String, CaseIterable {
         case .editRotation: return L10n.FeatureToggles.editRotationDescription
         case .detectDuplicates: return L10n.FeatureToggles.detectDuplicatesDescription
         case .megapixelSettings: return "Allow selecting camera capture resolution (e.g. 12 MP, 48 MP)"
+        case .clearMediaIndex: return "Show a debug action in Settings to delete the on-disk media index so its rebuild can be tested"
         }
     }
 

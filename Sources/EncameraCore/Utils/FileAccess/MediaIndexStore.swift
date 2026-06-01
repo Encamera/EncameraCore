@@ -89,6 +89,16 @@ public actor MediaIndexStore {
         FileManager.default.fileExists(atPath: indexURL(for: album).path)
     }
 
+    /// Deletes the entire on-disk media index cache for all albums. The index
+    /// is a derived cache and will be rebuilt by `MediaIndexMigration` on the
+    /// next app launch. Debug-only; used to test the index build flow.
+    public static func clearAllIndexes() throws {
+        let dir = indexDirectoryURL()
+        if FileManager.default.fileExists(atPath: dir.path) {
+            try FileManager.default.removeItem(at: dir)
+        }
+    }
+
     /// Returns the modification date of the on-disk index file, or `nil` if
     /// the file does not exist.
     public nonisolated func fileModificationDate() -> Date? {
