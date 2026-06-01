@@ -1881,8 +1881,8 @@ public enum L10n {
     public static let purchasesRestoreFailedMessage = L10n.tr("Localizable", "Settings.PurchasesRestoreFailedMessage", fallback: "Could not restore your purchases. Please try again or contact support.")
     /// RevenueCat Customer ID
     public static let revenueCatCustomerId = L10n.tr("Localizable", "Settings.RevenueCatCustomerId", fallback: "RevenueCat Customer ID")
-    /// Hidden albums in camera
-    public static let showHiddenAlbumsInCameraPicker = L10n.tr("Localizable", "Settings.ShowHiddenAlbumsInCameraPicker", fallback: "Hidden albums in camera")
+    /// Hidden Albums in Camera
+    public static let showHiddenAlbumsInCameraPicker = L10n.tr("Localizable", "Settings.ShowHiddenAlbumsInCameraPicker", fallback: "Hidden Albums in Camera")
     /// Version
     public static let version = L10n.tr("Localizable", "Settings.Version", fallback: "Version")
     public enum HiddenAlbumsModal {

@@ -86,13 +86,17 @@ listing:
     EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
   whats_new: |
+
+    Join us on Discord! Find the link to our Discord community in the settings view!
+
     New in this update:
-       Camera exposure slider: adjust brightness with a smooth, iOS-style control right in the camera view
-       Tighter album grid: photos and videos now display edge-to-edge with rounded corners for a cleaner look
-       Smarter flash: the viewfinder no longer flashes when using the rear camera, only the front-facing camera
-       QR code features have been removed to streamline the app
+       Pinch to zoom in the camera: pinch the viewfinder to zoom smoothly in or out, with live magnification shown on the active zoom button
+       Hidden albums in the camera (opt-in): a new Settings toggle lets the camera album picker include hidden albums, and you can move media into or create a hidden album right from the Move sheet
+       Big albums load faster: thousands of photos now page in on demand instead of all at once, and your sort order sticks as you move between screens
+       Screen stays awake during imports: long media imports no longer get cut short by the screen going to sleep
+
     Bug fixes:
-       Hidden albums can no longer be accessed through the camera's album selector
+       Camera now opens at 1x instead of ultra-wide on multi-lens iPhones
        Various stability and performance improvements
 
 limits:
