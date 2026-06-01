@@ -6,6 +6,17 @@ from asc.client import ASCClient
 from asc.models import AppStoreVersion, AppStoreVersionLocalization, Build
 
 
+EDITABLE_VERSION_STATES = frozenset({
+    "PREPARE_FOR_SUBMISSION",
+    "READY_FOR_SUBMISSION",
+    "DEVELOPER_REJECTED",
+    "METADATA_REJECTED",
+    "REJECTED",
+    "INVALID_BINARY",
+    "WAITING_FOR_EXPORT_COMPLIANCE",
+})
+
+
 def list_app_store_versions(
     client: ASCClient, app_id: str, platform: Optional[str] = None
 ) -> list[AppStoreVersion]:
@@ -53,6 +64,43 @@ def create_app_store_version(
     return AppStoreVersion.from_api(result["data"])
 
 
+def find_editable_version(
+    client: ASCClient,
+    app_id: str,
+    platform: str = "IOS",
+) -> Optional[AppStoreVersion]:
+    """Return the most recently created appStoreVersion in an editable state, or None.
+
+    "Editable" means the developer can still modify metadata or attach a build —
+    see ``EDITABLE_VERSION_STATES`` for the full set.
+    """
+    versions = list_app_store_versions(client, app_id, platform=platform)
+    editable = [v for v in versions if v.state in EDITABLE_VERSION_STATES]
+    if not editable:
+        return None
+    editable.sort(key=lambda v: v.created_date or "", reverse=True)
+    return editable[0]
+
+
+def set_version_release_type(
+    client: ASCClient,
+    version_id: str,
+    release_type: str,
+) -> AppStoreVersion:
+    """Set ``releaseType`` on an appStoreVersion (MANUAL, AFTER_APPROVAL, SCHEDULED)."""
+    result = client.patch(
+        f"/v1/appStoreVersions/{version_id}",
+        {
+            "data": {
+                "type": "appStoreVersions",
+                "id": version_id,
+                "attributes": {"releaseType": release_type},
+            }
+        },
+    )
+    return AppStoreVersion.from_api(result["data"])
+
+
 def set_build_for_version(
     client: ASCClient, version_id: str, build_id: str
 ) -> AppStoreVersion:
@@ -90,6 +138,84 @@ def get_version_localizations(
         f"/v1/appStoreVersions/{version_id}/appStoreVersionLocalizations"
     )
     return [AppStoreVersionLocalization.from_api(item) for item in items]
+
+
+_LOCALIZATION_API_KEYS = {
+    "description": "description",
+    "promotional_text": "promotionalText",
+    "whats_new": "whatsNew",
+    "keywords": "keywords",
+}
+
+
+def _localization_attributes(**fields) -> dict:
+    return {
+        _LOCALIZATION_API_KEYS[k]: v
+        for k, v in fields.items()
+        if k in _LOCALIZATION_API_KEYS and v is not None
+    }
+
+
+def update_version_localization(
+    client: ASCClient,
+    localization_id: str,
+    *,
+    description: Optional[str] = None,
+    promotional_text: Optional[str] = None,
+    whats_new: Optional[str] = None,
+    keywords: Optional[str] = None,
+) -> dict:
+    """Update one or more fields on an existing appStoreVersionLocalization."""
+    attrs = _localization_attributes(
+        description=description,
+        promotional_text=promotional_text,
+        whats_new=whats_new,
+        keywords=keywords,
+    )
+    return client.patch(
+        f"/v1/appStoreVersionLocalizations/{localization_id}",
+        {
+            "data": {
+                "type": "appStoreVersionLocalizations",
+                "id": localization_id,
+                "attributes": attrs,
+            }
+        },
+    )
+
+
+def create_version_localization(
+    client: ASCClient,
+    version_id: str,
+    locale: str,
+    *,
+    description: Optional[str] = None,
+    promotional_text: Optional[str] = None,
+    whats_new: Optional[str] = None,
+    keywords: Optional[str] = None,
+) -> dict:
+    """Create a new appStoreVersionLocalization for the given locale."""
+    attrs: dict = {"locale": locale}
+    attrs.update(_localization_attributes(
+        description=description,
+        promotional_text=promotional_text,
+        whats_new=whats_new,
+        keywords=keywords,
+    ))
+    return client.post(
+        "/v1/appStoreVersionLocalizations",
+        {
+            "data": {
+                "type": "appStoreVersionLocalizations",
+                "attributes": attrs,
+                "relationships": {
+                    "appStoreVersion": {
+                        "data": {"type": "appStoreVersions", "id": version_id}
+                    }
+                },
+            }
+        },
+    )
 
 
 def submit_for_review(client: ASCClient, app_id: str, version_id: str) -> dict:

@@ -85,9 +85,9 @@ class ASCClient:
             raise RuntimeError(f"{resp.status_code} {resp.reason} for {url}: {error_body}")
         return resp.json()
 
-    def delete(self, path: str) -> None:
+    def delete(self, path: str, data: Optional[dict[str, Any]] = None) -> None:
         url = f"{self.BASE_URL}{path}"
-        resp = self._session.delete(url, headers=self._headers())
+        resp = self._session.delete(url, headers=self._headers(), json=data)
         resp.raise_for_status()
 
     def find_app_by_bundle_id(self, bundle_id: str) -> dict[str, Any]:

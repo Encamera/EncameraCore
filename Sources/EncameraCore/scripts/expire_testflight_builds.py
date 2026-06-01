@@ -2,237 +2,39 @@
 """
 Expire Old TestFlight Builds Script
 Expires all TestFlight builds older than a specified number of days and
-removes builds from their build groups. Uses the same credential setup as localize.py.
+removes builds from their build groups.
 
 Build groups in TestFlight are represented as betaGroups in the ASC API.
+
+Requires the `asc` library: pip install -e scripts/asc
 """
 
 import argparse
-import inspect
-import json
 import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-import jwt
-import requests
-import yaml
+try:
+    from asc.auth import Credentials
+    from asc.client import ASCClient
+    from asc.testflight import (
+        delete_beta_group,
+        expire_build,
+        get_build_beta_groups,
+        list_beta_groups,
+        list_builds_with_versions,
+        remove_build_from_beta_groups,
+    )
+except ImportError:
+    print("Missing required package 'asc'. Install with: pip install -e scripts/asc")
+    sys.exit(1)
 
 try:
     from tabulate import tabulate
 except ImportError:
     print("Missing required package 'tabulate'. Install with: pip install tabulate")
     sys.exit(1)
-
-
-class AppStoreConnectAPI:
-    """Handles App Store Connect API interactions with JWT authentication."""
-
-    BASE_URL = "https://api.appstoreconnect.apple.com/v1"
-
-    def __init__(self, key_id, issuer_id, private_key):
-        self.key_id = key_id
-        self.issuer_id = issuer_id
-        self.private_key = private_key
-        self.token = None
-        self.token_expires_at = 0
-
-    def _get_token(self):
-        now = int(time.time())
-        if self.token and now < self.token_expires_at:
-            return self.token
-
-        payload = {
-            "iss": self.issuer_id,
-            "iat": now,
-            "exp": now + 20 * 60,
-            "aud": "appstoreconnect-v1",
-        }
-
-        encode_params = inspect.signature(jwt.encode).parameters
-        if "additional_headers" in encode_params:
-            self.token = jwt.encode(
-                payload,
-                self.private_key,
-                algorithm="ES256",
-                additional_headers={"kid": self.key_id},
-            )
-        else:
-            self.token = jwt.encode(
-                payload,
-                self.private_key,
-                algorithm="ES256",
-                headers={"kid": self.key_id},
-            )
-
-        self.token_expires_at = now + 19 * 60
-        return self.token
-
-    def _headers(self):
-        return {
-            "Authorization": f"Bearer {self._get_token()}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-
-    def _get(self, url, params=None):
-        response = requests.get(url, headers=self._headers(), params=params)
-        if response.status_code != 200:
-            print(f"  API error {response.status_code}: {response.text[:300]}")
-        response.raise_for_status()
-        return response.json()
-
-    def _patch(self, url, data):
-        response = requests.patch(url, headers=self._headers(), json=data)
-        if response.status_code != 200:
-            print(f"  API error {response.status_code}: {response.text[:300]}")
-        response.raise_for_status()
-        return response.json()
-
-    def _delete(self, url, data=None):
-        response = requests.delete(url, headers=self._headers(), json=data)
-        if response.status_code not in (200, 204):
-            print(f"  API error {response.status_code}: {response.text[:300]}")
-        response.raise_for_status()
-
-    def find_app_by_bundle_id(self, bundle_id):
-        data = self._get(f"{self.BASE_URL}/apps", params={"filter[bundleId]": bundle_id})
-        apps = data.get("data", [])
-        if not apps:
-            raise ValueError(f"App with bundle ID '{bundle_id}' not found")
-        return apps[0]
-
-    def list_builds(self, app_id, limit=200):
-        """List all builds for an app, handling pagination."""
-        all_builds = []
-        url = f"{self.BASE_URL}/builds"
-        params = {
-            "filter[app]": app_id,
-            "limit": limit,
-            "sort": "-uploadedDate",
-            "fields[builds]": "version,uploadedDate,expired,processingState,buildAudienceType,minOsVersion",
-            "include": "preReleaseVersion",
-            "fields[preReleaseVersions]": "version",
-        }
-
-        while url:
-            data = self._get(url, params=params)
-            builds = data.get("data", [])
-            included = data.get("included", [])
-
-            # Build a map of preReleaseVersion id -> version string
-            version_map = {}
-            for item in included:
-                if item.get("type") == "preReleaseVersions":
-                    version_map[item["id"]] = item.get("attributes", {}).get("version", "?")
-
-            for build in builds:
-                pre_release_rel = build.get("relationships", {}).get("preReleaseVersion", {}).get("data")
-                if pre_release_rel:
-                    build["_app_version"] = version_map.get(pre_release_rel["id"], "?")
-                else:
-                    build["_app_version"] = "?"
-
-            all_builds.extend(builds)
-
-            next_url = data.get("links", {}).get("next")
-            if next_url:
-                url = next_url
-                params = None
-            else:
-                url = None
-
-        return all_builds
-
-    def expire_build(self, build_id):
-        """Set a build's expired attribute to true."""
-        url = f"{self.BASE_URL}/builds/{build_id}"
-        data = {
-            "data": {
-                "type": "builds",
-                "id": build_id,
-                "attributes": {"expired": True},
-            }
-        }
-        return self._patch(url, data)
-
-    def get_build_beta_groups(self, build_id):
-        """Get build groups (betaGroups) associated with a specific build."""
-        url = f"{self.BASE_URL}/builds/{build_id}/betaGroups"
-        try:
-            data = self._get(url)
-            return data.get("data", [])
-        except requests.exceptions.HTTPError:
-            return []
-
-    def remove_build_from_groups(self, build_id, group_ids):
-        """Remove a build from its build groups by deleting the relationship."""
-        if not group_ids:
-            return
-        url = f"{self.BASE_URL}/builds/{build_id}/relationships/betaGroups"
-        data = {"data": [{"type": "betaGroups", "id": gid} for gid in group_ids]}
-        self._delete(url, data=data)
-
-    def list_build_groups(self, app_id):
-        """List all build groups (betaGroups) for an app."""
-        all_groups = []
-        url = f"{self.BASE_URL}/apps/{app_id}/betaGroups"
-        params = {"limit": 200}
-
-        while url:
-            data = self._get(url, params=params)
-            all_groups.extend(data.get("data", []))
-            next_url = data.get("links", {}).get("next")
-            if next_url:
-                url = next_url
-                params = None
-            else:
-                url = None
-
-        return all_groups
-
-    def delete_build_group(self, group_id):
-        """Delete a build group."""
-        self._delete(f"{self.BASE_URL}/betaGroups/{group_id}")
-
-
-def load_credentials(credentials_path):
-    """Load credentials from YAML file (same format as localize.py)."""
-    with open(credentials_path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-
-    asc = config.get("app_store_connect", {})
-    app = config.get("app", {})
-
-    key_id = asc.get("key_id", "").strip()
-    issuer_id = asc.get("issuer_id", "").strip()
-    bundle_id = app.get("bundle_id", "").strip()
-
-    if not key_id or not issuer_id or not bundle_id:
-        print("Missing required fields in credentials.yml (key_id, issuer_id, bundle_id)")
-        sys.exit(1)
-
-    # Load private key
-    private_key_file = asc.get("private_key_file")
-    private_key_content = asc.get("private_key_content")
-
-    if private_key_file:
-        key_path = Path(private_key_file)
-        if not key_path.is_absolute():
-            key_path = Path(credentials_path).parent / key_path
-        if not key_path.exists():
-            print(f"Private key file not found: {key_path}")
-            sys.exit(1)
-        with open(key_path, "r") as f:
-            private_key = f.read()
-    elif private_key_content:
-        private_key = private_key_content
-    else:
-        print("No private key configured in credentials.yml")
-        sys.exit(1)
-
-    return key_id, issuer_id, private_key, bundle_id
 
 
 def parse_uploaded_date(date_str):
@@ -330,25 +132,31 @@ Examples:
         print("*** DRY RUN MODE - no changes will be made ***")
     print()
 
-    # Load credentials
+    # Load credentials and initialize client
     print(f"Loading credentials from: {credentials_path}")
-    key_id, issuer_id, private_key, bundle_id = load_credentials(credentials_path)
-    print(f"  Key ID: {key_id}")
-    print(f"  Bundle ID: {bundle_id}")
+    creds = Credentials.load(credentials_path)
+    if not creds.bundle_id and not creds.app_id:
+        print("credentials.yml must set app.bundle_id or app.app_id")
+        sys.exit(1)
+    print(f"  Key ID: {creds.key_id}")
+    print(f"  Bundle ID: {creds.bundle_id or '(not set)'}")
 
-    # Initialize API
-    api = AppStoreConnectAPI(key_id, issuer_id, private_key)
+    client = ASCClient(creds)
 
     # Find app
-    print(f"\nFinding app: {bundle_id}")
-    app = api.find_app_by_bundle_id(bundle_id)
-    app_id = app["id"]
-    app_name = app["attributes"]["name"]
-    print(f"  Found: {app_name} (ID: {app_id})")
+    if creds.bundle_id:
+        print(f"\nFinding app: {creds.bundle_id}")
+        app = client.find_app_by_bundle_id(creds.bundle_id)
+        app_id = app["id"]
+        app_name = app["attributes"]["name"]
+        print(f"  Found: {app_name} (ID: {app_id})")
+    else:
+        app_id = creds.app_id
+        print(f"\nUsing configured app ID: {app_id}")
 
     # List all builds
     print("\nFetching all builds...")
-    builds = api.list_builds(app_id)
+    builds = list_builds_with_versions(client, app_id)
     print(f"  Found {len(builds)} total build(s)")
 
     if not builds:
@@ -436,7 +244,7 @@ Examples:
     build_groups = []
     if args.delete_build_groups:
         print("\nFetching build groups...")
-        build_groups = api.list_build_groups(app_id)
+        build_groups = list_beta_groups(client, app_id)
         print(f"  Found {len(build_groups)} build group(s)")
 
         if build_groups:
@@ -499,11 +307,11 @@ Examples:
             # Remove from build groups first
             if args.remove_from_groups:
                 try:
-                    groups = api.get_build_beta_groups(build_id)
+                    groups = get_build_beta_groups(client, build_id)
                     if groups:
                         group_ids = [g["id"] for g in groups]
                         group_names = [g.get("attributes", {}).get("name", g["id"]) for g in groups]
-                        api.remove_build_from_groups(build_id, group_ids)
+                        remove_build_from_beta_groups(client, build_id, group_ids)
                         print(f"  Removed {label} from groups: {', '.join(group_names)}")
                         time.sleep(0.3)
                 except Exception as e:
@@ -512,7 +320,7 @@ Examples:
             # Expire the build (skip if already expired)
             if not b["expired"]:
                 try:
-                    api.expire_build(build_id)
+                    expire_build(client, build_id)
                     print(f"  Expired: {label}")
                     success_count += 1
                 except Exception as e:
@@ -537,7 +345,7 @@ Examples:
             group_id = group["id"]
             group_name = group.get("attributes", {}).get("name", "?")
             try:
-                api.delete_build_group(group_id)
+                delete_beta_group(client, group_id)
                 print(f"  Deleted: {group_name} ({group_id})")
                 success_count += 1
             except Exception as e:

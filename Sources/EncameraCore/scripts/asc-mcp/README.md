@@ -9,11 +9,13 @@ MCP server for the App Store Connect API. Exposes tools for managing subscriptio
 
 ## Setup
 
+The MCP server depends on the sibling [`asc`](../asc/) library — both are installed editable from `requirements.txt`:
+
 ```bash
 cd asc-mcp
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -r requirements.txt
 ```
 
 ## Configuration
@@ -69,7 +71,7 @@ asc-mcp
 Or directly:
 
 ```bash
-python -m asc.server
+python -m asc_mcp.server
 ```
 
 ## Using with Claude Code

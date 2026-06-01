@@ -2,6 +2,8 @@
 """
 App Store Localization Script
 Translates and updates App Store Connect metadata using OpenAI and the App Store Connect API.
+
+Requires the `asc` library: pip install -e scripts/asc
 """
 
 import argparse
@@ -9,14 +11,19 @@ import json
 import os
 import re
 import sys
-import time
 from itertools import islice
 from pathlib import Path
 
-import jwt
 import openai
-import requests
 import yaml
+
+try:
+    from asc.auth import Credentials
+    from asc.client import ASCClient
+    from asc.releases import create_version_localization, update_version_localization
+except ImportError:
+    print("Missing required package 'asc'. Install with: pip install -e ../asc")
+    sys.exit(1)
 
 try:
     import getpass
@@ -27,201 +34,38 @@ try:
     from tqdm import tqdm
 except ImportError:
     print("Missing required packages. Please install with:")
-    print("pip install inquirer tabulate keyring PyJWT pyyaml requests tqdm")
+    print("pip install inquirer tabulate keyring tqdm")
     sys.exit(1)
 
 
 class AppStoreConnectAPI:
-    """Handles App Store Connect API interactions with JWT authentication."""
-    
-    def __init__(self, key_id, issuer_id, private_key):
-        self.key_id = key_id
-        self.issuer_id = issuer_id
-        self.private_key = private_key
-        self.base_url = "https://api.appstoreconnect.apple.com/v1"
-        self.token = None
-        self.token_expires_at = 0
-    
-    def generate_jwt_token(self):
-        """Generate a JWT token for API authentication."""
-        now = int(time.time())
-        headers = {
-            "alg": "ES256",
-            "kid": self.key_id,
-            "typ": "JWT"
-        }
-        
-        payload = {
-            "iss": self.issuer_id,
-            "iat": now,
-            "exp": now + 20 * 60,  # Token valid for 20 minutes
-            "aud": "appstoreconnect-v1"
-        }
-        
-        print(f"🔐 Generating JWT token...")
-        print(f"  • Key ID: {self.key_id}")
-        print(f"  • Issuer ID: {self.issuer_id}")
-        print(f"  • Algorithm: ES256")
-        print(f"  • Private key length: {len(self.private_key)} characters")
-        print(f"  • Private key starts with: {self.private_key[:50]}...")
-        
-        try:
-            # PyJWT 2.x+ uses 'additional_headers' instead of 'headers'
-            # Try the newer parameter name first, fallback to older if needed
-            import inspect
-            encode_params = inspect.signature(jwt.encode).parameters
-            
-            if 'additional_headers' in encode_params:
-                print(f"  • Using PyJWT 2.x+ (additional_headers parameter)")
-                token = jwt.encode(payload, self.private_key, algorithm="ES256", additional_headers={"kid": self.key_id})
-            elif 'headers' in encode_params:
-                print(f"  • Using PyJWT 1.x (headers parameter)")
-                token = jwt.encode(payload, self.private_key, algorithm="ES256", headers={"kid": self.key_id})
-            else:
-                # Fallback: try additional_headers (most common in 2025)
-                print(f"  • Attempting with additional_headers parameter (default for modern PyJWT)")
-                token = jwt.encode(payload, self.private_key, algorithm="ES256", additional_headers={"kid": self.key_id})
-            
-            self.token = token
-            self.token_expires_at = now + 19 * 60  # Refresh 1 minute before expiration
-            print(f"  ✅ Token generated successfully")
-            print(f"  • Token preview: {token[:50]}...")
-            
-            # Verify the token structure by decoding header and payload (without verification)
-            try:
-                import base64
+    """Thin wrapper around the asc.ASCClient that returns raw API dicts.
 
-                # JWT format: header.payload.signature
-                parts = token.split('.')
-                
-                # Decode header
-                header_segment = parts[0]
-                header_segment += '=' * (4 - len(header_segment) % 4)
-                decoded_header = json.loads(base64.urlsafe_b64decode(header_segment))
-                print(f"  🔍 Decoded JWT Header: {json.dumps(decoded_header, indent=4)}")
-                
-                # Decode payload
-                payload_segment = parts[1]
-                payload_segment += '=' * (4 - len(payload_segment) % 4)
-                decoded_payload = json.loads(base64.urlsafe_b64decode(payload_segment))
-                print(f"  🔍 Decoded JWT Payload: {json.dumps(decoded_payload, indent=4)}")
-                
-                # Verify header
-                if 'kid' not in decoded_header:
-                    print(f"  ⚠️  WARNING: 'kid' is missing from JWT header!")
-                    print(f"  ⚠️  This will cause authentication to fail with Apple's API")
-                    raise ValueError("JWT 'kid' header is missing - this is required for App Store Connect API authentication")
-                else:
-                    print(f"  ✅ 'kid' is present in JWT header: {decoded_header['kid']}")
-                
-                # Verify payload required fields
-                required_fields = ['iss', 'iat', 'exp', 'aud']
-                for field in required_fields:
-                    if field not in decoded_payload:
-                        print(f"  ⚠️  WARNING: '{field}' is missing from JWT payload!")
-                    else:
-                        print(f"  ✅ '{field}' is present in JWT payload")
-                
-                # Verify expiration
-                if 'exp' in decoded_payload and 'iat' in decoded_payload:
-                    exp_time = decoded_payload['exp']
-                    iat_time = decoded_payload['iat']
-                    duration_minutes = (exp_time - iat_time) / 60
-                    print(f"  ✅ Token validity: {duration_minutes:.1f} minutes")
-                    
-                    if duration_minutes > 20:
-                        print(f"  ⚠️  WARNING: Token validity exceeds Apple's 20 minute maximum!")
-                
-                # Verify audience
-                if 'aud' in decoded_payload:
-                    if decoded_payload['aud'] != 'appstoreconnect-v1':
-                        print(f"  ⚠️  WARNING: Audience is '{decoded_payload['aud']}' (expected 'appstoreconnect-v1')")
-                    
-            except Exception as debug_error:
-                print(f"  ⚠️  Could not decode token for verification: {debug_error}")
-                if 'kid' in str(debug_error):
-                    raise  # Re-raise if it's the kid missing error
-            
-            return token
-        except Exception as e:
-            print(f"  ❌ Token generation failed: {e}")
-            raise
-    
-    def get_auth_headers(self):
-        """Get authorization headers with valid JWT token."""
-        now = int(time.time())
-        if not self.token or now >= self.token_expires_at:
-            self.generate_jwt_token()
-        
-        return {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-    
+    Exists so the rest of this script can keep using dict-style access on
+    responses (loc["attributes"]["locale"] etc.) without changes.
+    """
+
+    def __init__(self, credentials: Credentials):
+        self._client = ASCClient(credentials)
+
     def find_app_by_bundle_id(self, bundle_id):
-        """Find app by bundle identifier."""
-        url = f"{self.base_url}/apps"
-        params = {"filter[bundleId]": bundle_id}
-        
-        print(f"🌐 Making API request to App Store Connect...")
-        print(f"  • URL: {url}")
-        print(f"  • Bundle ID: {bundle_id}")
-        
-        headers = self.get_auth_headers()
-        print(f"  • Headers: {list(headers.keys())}")
-        
-        try:
-            response = requests.get(url, headers=headers, params=params)
-            print(f"  • Response status: {response.status_code}")
-            
-            if response.status_code != 200:
-                print(f"  ❌ API Error Response:")
-                print(f"     Status: {response.status_code}")
-                print(f"     Headers: {dict(response.headers)}")
-                try:
-                    error_data = response.json()
-                    print(f"     Error details: {json.dumps(error_data, indent=2)}")
-                except:
-                    print(f"     Response text: {response.text[:500]}")
-            
-            response.raise_for_status()
-            
-            data = response.json()
-            if not data.get("data"):
-                raise ValueError(f"App with bundle ID '{bundle_id}' not found")
-            
-            print(f"  ✅ Successfully found app")
-            return data["data"][0]
-            
-        except requests.exceptions.RequestException as e:
-            print(f"  ❌ Request failed: {e}")
-            raise
-    
+        print(f"🌐 Looking up app by bundle ID: {bundle_id}")
+        return self._client.find_app_by_bundle_id(bundle_id)
+
     def get_app_store_versions(self, app_id, include_all_states=False):
-        """Get app store versions for an app."""
-        url = f"{self.base_url}/apps/{app_id}/appStoreVersions"
-        
-        if include_all_states:
-            # Don't filter by state - get all versions
-            params = {}
-        else:
-            # Try with more common states first
-            params = {"filter[appStoreState]": "READY_FOR_SALE,PENDING_RELEASE,IN_REVIEW,WAITING_FOR_REVIEW"}
-        
-        response = requests.get(url, headers=self.get_auth_headers(), params=params)
-        
-        if response.status_code == 400 and not include_all_states:
-            print("⚠️  Filtered request failed, trying without state filter...")
-            return self.get_app_store_versions(app_id, include_all_states=True)
-        
-        if response.status_code != 200:
-            print(f"❌ API Error {response.status_code}: {response.text}")
-            response.raise_for_status()
-        
-        data = response.json()["data"]
-        
-        # Print available versions for debugging
+        params = (
+            None
+            if include_all_states
+            else {"filter[appStoreState]": "READY_FOR_SALE,PENDING_RELEASE,IN_REVIEW,WAITING_FOR_REVIEW"}
+        )
+        try:
+            data = self._client.get(f"/v1/apps/{app_id}/appStoreVersions", params=params).get("data", [])
+        except Exception as e:
+            if not include_all_states and "400" in str(e):
+                print("⚠️  Filtered request failed, trying without state filter...")
+                return self.get_app_store_versions(app_id, include_all_states=True)
+            raise
+
         if data:
             print(f"📋 Found {len(data)} version(s):")
             for version in data:
@@ -230,78 +74,18 @@ class AppStoreConnectAPI:
                 print(f"  • Version {version_string}: {state}")
         else:
             print("⚠️  No app store versions found")
-        
         return data
-    
+
     def get_version_localizations(self, version_id):
-        """Get localizations for an app store version."""
-        url = f"{self.base_url}/appStoreVersions/{version_id}/appStoreVersionLocalizations"
-        
-        response = requests.get(url, headers=self.get_auth_headers())
-        response.raise_for_status()
-        
-        return response.json()["data"]
-    
-    def update_localization(self, localization_id, description=None, promotional_text=None, whats_new=None, keywords=None):
-        """Update a localization with new metadata."""
-        url = f"{self.base_url}/appStoreVersionLocalizations/{localization_id}"
+        return self._client.get_all(
+            f"/v1/appStoreVersions/{version_id}/appStoreVersionLocalizations"
+        )
 
-        attributes = {}
-        if description is not None:
-            attributes["description"] = description
-        if promotional_text is not None:
-            attributes["promotionalText"] = promotional_text
-        if whats_new is not None:
-            attributes["whatsNew"] = whats_new
-        if keywords is not None:
-            attributes["keywords"] = keywords
-        
-        data = {
-            "data": {
-                "type": "appStoreVersionLocalizations",
-                "id": localization_id,
-                "attributes": attributes
-            }
-        }
-        
-        response = requests.patch(url, headers=self.get_auth_headers(), json=data)
-        response.raise_for_status()
-        
-        return response.json()
-    
-    def create_localization(self, version_id, locale, description=None, promotional_text=None, whats_new=None, keywords=None):
-        """Create a new localization for a version."""
-        url = f"{self.base_url}/appStoreVersionLocalizations"
+    def update_localization(self, localization_id, **fields):
+        return update_version_localization(self._client, localization_id, **fields)
 
-        attributes = {"locale": locale}
-        if description is not None:
-            attributes["description"] = description
-        if promotional_text is not None:
-            attributes["promotionalText"] = promotional_text
-        if whats_new is not None:
-            attributes["whatsNew"] = whats_new
-        if keywords is not None:
-            attributes["keywords"] = keywords
-        
-        data = {
-            "data": {
-                "type": "appStoreVersionLocalizations",
-                "attributes": attributes,
-                "relationships": {
-                    "appStoreVersion": {
-                        "data": {
-                            "type": "appStoreVersions",
-                            "id": version_id
-                        }
-                    }
-                }
-            }
-        }
-        
-        response = requests.post(url, headers=self.get_auth_headers(), json=data)
-        response.raise_for_status()
-        
-        return response.json()
+    def create_localization(self, version_id, locale, **fields):
+        return create_version_localization(self._client, version_id, locale, **fields)
 
 
 class LocalizationTranslator:
@@ -711,172 +495,6 @@ def get_openai_api_key(config):
     return api_key
 
 
-def validate_app_store_config(credentials_config):
-    """Validate required App Store Connect API configuration."""
-    app_store_config = credentials_config.get("app_store_connect", {})
-    app_config = credentials_config.get("app", {})
-    
-    # Check required App Store Connect fields
-    required_fields = {
-        "key_id": "App Store Connect API Key ID",
-        "issuer_id": "App Store Connect Issuer ID"
-    }
-    
-    missing_fields = []
-    for field, description in required_fields.items():
-        value = app_store_config.get(field)
-        if not value or not value.strip():
-            missing_fields.append(f"app_store_connect.{field} ({description})")
-    
-    # Check app bundle ID
-    bundle_id = app_config.get("bundle_id")
-    if not bundle_id or not bundle_id.strip():
-        missing_fields.append("app.bundle_id (App Bundle Identifier)")
-    
-    # Check private key
-    private_key_file = app_store_config.get("private_key_file")
-    private_key_content = app_store_config.get("private_key_content")
-    
-    if not private_key_file and not private_key_content:
-        missing_fields.append("app_store_connect.private_key_file or app_store_connect.private_key_content (Private Key)")
-    elif private_key_file and not Path(private_key_file).exists():
-        missing_fields.append(f"private key file '{private_key_file}' (file not found)")
-    
-    if missing_fields:
-        print("❌ Missing required configuration values:")
-        for field in missing_fields:
-            print(f"  • {field}")
-        return False
-    
-    return True
-
-
-def load_private_key(credentials_config, credentials_file_path=None):
-    """Load private key from file or config."""
-    app_store_config = credentials_config.get("app_store_connect", {})
-    
-    # Try to load from file first
-    private_key_file = app_store_config.get("private_key_file")
-    if private_key_file:
-        print(f"📂 Loading private key from file: {private_key_file}")
-        
-        # Convert to Path object
-        key_path = Path(private_key_file)
-        
-        # If path is relative and we have the credentials file path, resolve relative to that
-        if not key_path.is_absolute() and credentials_file_path:
-            credentials_dir = Path(credentials_file_path).parent
-            key_path = credentials_dir / key_path
-            print(f"  • Resolved to absolute path: {key_path}")
-        
-        # Check if file exists
-        if not key_path.exists():
-            raise ValueError(f"Private key file not found: {key_path}")
-        
-        try:
-            with open(key_path, 'r') as f:
-                key_content = f.read()
-                print(f"  ✅ Successfully loaded private key ({len(key_content)} characters)")
-                
-                # Validate key format
-                if "-----BEGIN PRIVATE KEY-----" not in key_content:
-                    # Check if it's an EC PRIVATE KEY format (also valid)
-                    if "-----BEGIN EC PRIVATE KEY-----" not in key_content:
-                        raise ValueError("Private key file doesn't appear to contain a valid private key (missing BEGIN marker)")
-                
-                if "-----END PRIVATE KEY-----" not in key_content and "-----END EC PRIVATE KEY-----" not in key_content:
-                    raise ValueError("Private key file doesn't appear to contain a valid private key (missing END marker)")
-                
-                # Detect key type from markers
-                if "-----BEGIN EC PRIVATE KEY-----" in key_content:
-                    print(f"  ✅ Private key format validated (EC PRIVATE KEY)")
-                elif "-----BEGIN PRIVATE KEY-----" in key_content:
-                    print(f"  ✅ Private key format validated (PKCS#8 PRIVATE KEY)")
-                    # Apple .p8 files should be PKCS#8 format
-                    print(f"  ℹ️  Note: Apple .p8 files use PKCS#8 format (this is correct)")
-                
-                # Additional validation: Try to load the key with cryptography library to verify it's EC
-                try:
-                    from cryptography.hazmat.backends import default_backend
-                    from cryptography.hazmat.primitives import serialization
-
-                    # Try to load as EC key
-                    try:
-                        key_bytes = key_content.encode() if isinstance(key_content, str) else key_content
-                        private_key_obj = serialization.load_pem_private_key(
-                            key_bytes,
-                            password=None,
-                            backend=default_backend()
-                        )
-                        
-                        # Check if it's an EC key
-                        from cryptography.hazmat.primitives.asymmetric import \
-                            ec
-                        if isinstance(private_key_obj, ec.EllipticCurvePrivateKey):
-                            curve_name = private_key_obj.curve.name
-                            print(f"  ✅ Verified as Elliptic Curve key (curve: {curve_name})")
-                            
-                            # ES256 requires P-256 curve (secp256r1)
-                            if curve_name != 'secp256r1':
-                                print(f"  ⚠️  WARNING: Expected secp256r1 (P-256) curve for ES256, got {curve_name}")
-                        else:
-                            print(f"  ⚠️  WARNING: Key is not an Elliptic Curve key (type: {type(private_key_obj).__name__})")
-                            print(f"  ⚠️  ES256 algorithm requires an EC key, not RSA or other types")
-                    except Exception as key_load_error:
-                        print(f"  ⚠️  Could not validate key type with cryptography library: {key_load_error}")
-                        
-                except ImportError:
-                    print(f"  ℹ️  cryptography library not available for detailed key validation")
-                
-                # Try to validate that JWT library can use this key
-                try:
-                    import inspect
-                    test_payload = {"test": "test"}
-                    test_kid = "test-kid"
-                    
-                    # Use the correct parameter based on PyJWT version
-                    encode_params = inspect.signature(jwt.encode).parameters
-                    if 'additional_headers' in encode_params:
-                        jwt.encode(test_payload, key_content, algorithm="ES256", additional_headers={"kid": test_kid})
-                    else:
-                        jwt.encode(test_payload, key_content, algorithm="ES256", headers={"kid": test_kid})
-                    
-                    print(f"  ✅ Private key is compatible with JWT ES256 signing")
-                except Exception as e:
-                    raise ValueError(f"Private key validation failed - JWT library cannot use this key: {e}")
-                
-                return key_content
-        except Exception as e:
-            raise ValueError(f"Could not load private key file '{key_path}': {e}")
-    
-    # Try to get from config content
-    private_key_content = app_store_config.get("private_key_content")
-    if private_key_content:
-        print(f"📂 Using private key from config content")
-        print(f"  ✅ Private key loaded ({len(private_key_content)} characters)")
-        
-        # Try to validate that JWT library can use this key
-        try:
-            import inspect
-            test_payload = {"test": "test"}
-            test_kid = "test-kid"
-            
-            # Use the correct parameter based on PyJWT version
-            encode_params = inspect.signature(jwt.encode).parameters
-            if 'additional_headers' in encode_params:
-                jwt.encode(test_payload, private_key_content, algorithm="ES256", additional_headers={"kid": test_kid})
-            else:
-                jwt.encode(test_payload, private_key_content, algorithm="ES256", headers={"kid": test_kid})
-            
-            print(f"  ✅ Private key is compatible with JWT ES256 signing")
-        except Exception as e:
-            raise ValueError(f"Private key validation failed - JWT library cannot use this key: {e}")
-        
-        return private_key_content
-    
-    raise ValueError("No private key found in configuration")
-
-
 def find_existing_localization(target_locale, existing_locales):
     """Find existing localization with flexible matching."""
     # Exact match first
@@ -931,7 +549,7 @@ def display_translation_preview(translations, all_languages):
             print(tabulate(table_data, headers=["Language", "Content"], tablefmt="grid"))
 
 
-def check_description_changed(api, app_id, base_language, local_description):
+def check_description_changed(api, app_id, base_language, local_description, version_id=None):
     """Check if the App Store description differs from the local config.
     
     Returns:
@@ -940,13 +558,14 @@ def check_description_changed(api, app_id, base_language, local_description):
     try:
         print("\n🔍 Checking if App Store description matches local config...")
         
-        # Get app store versions
-        versions = api.get_app_store_versions(app_id)
-        if not versions:
-            print("  ⚠️  No versions found, will proceed with translation")
-            return True, None
-        
-        version_id = versions[0]["id"]
+        if not version_id:
+            # Get app store versions
+            versions = api.get_app_store_versions(app_id)
+            if not versions:
+                print("  ⚠️  No versions found, will proceed with translation")
+                return True, None
+            
+            version_id = versions[0]["id"]
         
         # Get existing localizations
         existing_localizations = api.get_version_localizations(version_id)
@@ -985,116 +604,525 @@ def check_description_changed(api, app_id, base_language, local_description):
         return True, None
 
 
-def preflight_check(credentials_config, credentials_file_path=None):
+def _build_api(credentials_path):
+    """Load credentials and construct an AppStoreConnectAPI wrapper."""
+    creds = Credentials.load(credentials_path)
+    if not creds.bundle_id and not creds.app_id:
+        raise ValueError("credentials.yml must set app.bundle_id or app.app_id")
+    return AppStoreConnectAPI(creds), creds
+
+
+def _print_401_help(creds):
+    print("\n🔍 Troubleshooting 401 Unauthorized Error:")
+    print("=" * 80)
+    print("Apple rejected the API credentials. Common causes:")
+    print()
+    print(f"  • Key ID ({creds.key_id}) does not match the .p8 file (filename is AuthKey_<KEY_ID>.p8)")
+    print(f"  • Issuer ID ({creds.issuer_id}) is wrong — find it under Users and Access > Integrations")
+    print( "  • API key has been revoked, or lacks App Manager / Developer / Admin role")
+    print( "  • Private key file is corrupted (whitespace/newlines must be preserved)")
+    print()
+    print("Verify at: https://appstoreconnect.apple.com/access/integrations/api")
+    print("=" * 80)
+
+
+def preflight_check(credentials_path):
     """Perform preflight checks to ensure App Store Connect API access."""
     print("\n🔍 Performing preflight checks...")
-    
-    # Validate configuration first
-    if not validate_app_store_config(credentials_config):
-        return None, None
-    
+
     try:
-        # Initialize App Store Connect API
-        app_store_api_config = credentials_config.get("app_store_connect", {})
-        private_key = load_private_key(credentials_config, credentials_file_path)
-        
-        api = AppStoreConnectAPI(
-            key_id=app_store_api_config["key_id"],
-            issuer_id=app_store_api_config["issuer_id"],
-            private_key=private_key
-        )
-        
-        # Test API connection by finding the app
-        app_config = credentials_config.get("app", {})
-        bundle_id = app_config.get("bundle_id")
-        
-        print(f"🔍 Testing connection with bundle ID: {bundle_id}")
-        app = api.find_app_by_bundle_id(bundle_id)
-        app_id = app["id"]
-        print(f"✅ Successfully connected! Found app: {app['attributes']['name']} (ID: {app_id})")
-        
-        # Test getting versions
+        api, creds = _build_api(credentials_path)
+    except Exception as e:
+        print(f"❌ Could not load credentials: {e}")
+        return None, None
+
+    try:
+        client = api._client
+        app_id = client.resolve_app_id()
+        if creds.bundle_id:
+            print(f"🔍 Testing connection with bundle ID: {creds.bundle_id}")
+            app = api.find_app_by_bundle_id(creds.bundle_id)
+        else:
+            print(f"🔍 Testing connection with app ID: {app_id}")
+            app = client.get(f"/v1/apps/{app_id}").get("data", {})
+        print(f"✅ Successfully connected! App ID: {app_id}")
+
         print("🔍 Checking app store versions...")
         versions = api.get_app_store_versions(app_id)
         if not versions:
             print("❌ No app store versions found")
             return None, None
-        
         version = versions[0]
-        version_string = version["attributes"]["versionString"]
-        print(f"✅ Found {len(versions)} version(s). Latest: {version_string}")
-        
-        # Test getting localizations
+        print(f"✅ Found {len(versions)} version(s). Latest: {version['attributes']['versionString']}")
+
         print("🔍 Checking existing localizations...")
-        version_id = version["id"]
-        existing_localizations = api.get_version_localizations(version_id)
+        existing_localizations = api.get_version_localizations(version["id"])
         existing_locales = [loc["attributes"]["locale"] for loc in existing_localizations]
         print(f"✅ Found {len(existing_localizations)} existing localization(s): {', '.join(existing_locales)}")
-        
+
         print("🎉 Preflight check passed! App Store Connect API is accessible.\n")
         return api, app
-        
+
     except Exception as e:
         error_str = str(e)
         print(f"❌ Preflight check failed: {e}")
-        
-        # Provide specific troubleshooting help for 401 errors
         if "401" in error_str or "Unauthorized" in error_str or "NOT_AUTHORIZED" in error_str:
-            print("\n🔍 Troubleshooting 401 Unauthorized Error:")
-            print("=" * 80)
-            print("This error means Apple rejected your API credentials. Common causes:")
-            print()
-            print("1. ❌ Key ID doesn't match the private key file")
-            print(f"   Current Key ID: {app_store_api_config.get('key_id')}")
-            print(f"   Private key file: {app_store_api_config.get('private_key_file')}")
-            print("   → The Key ID MUST match the ID shown in App Store Connect for this .p8 file")
-            print("   → The .p8 filename format is: AuthKey_<KEY_ID>.p8")
-            print("   → Example: If file is AuthKey_C7MGZKX3NM.p8, Key ID must be C7MGZKX3NM")
-            print()
-            print("2. ❌ Issuer ID is incorrect")
-            print(f"   Current Issuer ID: {app_store_api_config.get('issuer_id')}")
-            print("   → This is your Team ID (UUID format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)")
-            print("   → Find it at: App Store Connect > Users and Access > Integrations")
-            print("   → It's shown at the top of the page as 'Issuer ID'")
-            print()
-            print("3. ❌ Wrong private key file for this Key ID")
-            print("   → Each Key ID has a unique .p8 file")
-            print("   → You cannot use a different .p8 file even if it's from the same account")
-            print("   → Download the correct .p8 file or generate a new key")
-            print()
-            print("4. ❌ API key has been revoked or expired")
-            print("   → Check App Store Connect > Users and Access > Integrations > API Keys")
-            print("   → Status must show 'Active' (not 'Revoked')")
-            print(f"   → Look for Key ID: {app_store_api_config.get('key_id')}")
-            print()
-            print("5. ❌ API key doesn't have proper permissions")
-            print("   → The API key needs 'App Manager', 'Developer', or 'Admin' role")
-            print("   → 'Read Only' role is NOT sufficient")
-            print("   → Check role in App Store Connect > Users and Access > Integrations")
-            print()
-            print("6. ❌ JWT signing failed (private key corruption)")
-            print("   → The private key might be corrupted or modified")
-            print("   → Whitespace/newlines must be preserved exactly as downloaded")
-            print("   → Try re-downloading the .p8 file (if available) or generate a new key")
-            print()
-            print("📖 How to verify your credentials:")
-            print("   1. Go to: https://appstoreconnect.apple.com/access/integrations/api")
-            print(f"   2. Look for Key ID: {app_store_api_config.get('key_id')}")
-            print("   3. Verify:")
-            print("      • Status is 'Active' (not 'Revoked')")
-            print("      • Role is 'App Manager', 'Developer', or 'Admin'")
-            print("      • The Issuer ID at top of page matches your config")
-            print(f"      • Current Issuer ID in config: {app_store_api_config.get('issuer_id')}")
-            print("   4. If the Key ID doesn't exist or was revoked:")
-            print("      • Generate a new API key")
-            print("      • Download the new .p8 file (can only download once!)")
-            print("      • Update credentials.yml with new Key ID and .p8 file path")
-            print()
-            print("⚠️  IMPORTANT: .p8 files can only be downloaded ONCE when created!")
-            print("   If you've lost the .p8 file, you must generate a new API key.")
-            print("=" * 80)
-        
+            _print_401_help(creds)
         return None, None
+
+
+class Localizer:
+    """Translate and push App Store metadata from app_store.yml to App Store Connect.
+
+    Importable from other scripts:
+
+        from app_store_localization.localize import Localizer
+        Localizer(config_path, credentials_path).run()
+    """
+
+    def __init__(
+        self,
+        config_path,
+        credentials_path,
+        *,
+        dry_run=False,
+        skip_preflight=False,
+        auto_create_strings=False,
+        force_retranslation=False,
+        version_id=None,
+    ):
+        self.config_path = config_path
+        self.credentials_path = credentials_path
+        self.dry_run = dry_run
+        self.skip_preflight = skip_preflight
+        self.auto_create_strings = auto_create_strings
+        self.force_retranslation = force_retranslation
+        self.version_id = version_id
+
+    def run(self):
+        print("🌍 App Store Localization Manager")
+        print("=" * 40)
+
+        if self.auto_create_strings:
+            print("⚙️  Auto-create strings mode enabled")
+
+        # Load configurations
+        print(f"📁 Loading config from: {self.config_path}")
+        app_store_config = load_yaml_config(self.config_path)
+        if not app_store_config:
+            return False
+
+        print(f"📁 Loading credentials from: {self.credentials_path}")
+        credentials_config = load_yaml_config(self.credentials_path)
+        if not credentials_config:
+            return False
+
+        # Perform preflight check unless skipped
+        if not self.skip_preflight:
+            api, app = preflight_check(self.credentials_path)
+            if not api or not app:
+                print("❌ Preflight check failed. Aborting.")
+                return False
+            app_id = app["id"]
+        else:
+            print("⚠️  Skipping preflight check as requested")
+            api = None
+            app = None
+            app_id = None
+
+        # Get configurations
+        listing = app_store_config.get("listing", {})
+        target_languages = app_store_config.get("target_languages", [])
+        base_language = app_store_config.get("base_language", "en-US")
+        translation_config = app_store_config.get("translation", {})
+        strings_path = app_store_config.get("strings_path")
+    
+        if not target_languages:
+            print("❌ No target languages specified in config")
+            return False
+    
+        # Extract base language code from locale (e.g., "en-US" -> "en")
+        base_language_code = base_language.split("-")[0] if "-" in base_language else base_language
+    
+        # Create combined list of all languages to process (base + targets)
+        all_languages = [base_language_code] + target_languages
+        print(f"📝 Base language: {base_language} (code: {base_language_code})")
+        print(f"🎯 Target languages: {', '.join(target_languages)}")
+        print(f"🌍 All languages to process: {', '.join(all_languages)}")
+    
+        # Get OpenAI API key
+        openai_config = credentials_config.get("openai", {})
+        api_key = get_openai_api_key(openai_config)
+        if not api_key:
+            return False
+    
+        # Initialize translator
+        translator = LocalizationTranslator(
+            api_key=api_key,
+            model=openai_config.get("model", "gpt-4"),
+            max_tokens=openai_config.get("max_tokens", 2000),
+            temperature=openai_config.get("temperature", 0.3)
+        )
+    
+        # Check and create missing string localizations if requested
+        if self.auto_create_strings:
+            if not self.skip_preflight:
+                # We have API and app info from preflight
+                version = api.get_app_store_versions(app_id)[0] if api else None
+                version_id = version["id"] if version else None
+            
+                if api and version_id and strings_path:
+                    created_localizations = check_and_create_missing_localizations(
+                        api, app_id, version_id, translator, strings_path
+                    )
+                else:
+                    print("⚠️  Cannot create string localizations: missing API connection or strings path")
+            else:
+                print("⚠️  Cannot create string localizations when skipping preflight check")
+    
+        print(f"📋 Fields to process: {', '.join(listing.keys())}")
+    
+        # Check if description needs retranslation (to save OpenAI API tokens)
+        skip_description_translation = False
+        if not self.skip_preflight and api and app_id:
+            local_description = listing.get("description", "")
+        
+            if self.force_retranslation:
+                print("\n🔄 Force retranslation flag set - will translate all content")
+            else:
+                needs_translation, _ = check_description_changed(api, app_id, base_language, local_description, version_id=self.version_id)
+                if not needs_translation:
+                    skip_description_translation = True
+                    print("  ⏭️  Will skip description translation to save API tokens")
+                    print("     (Use --force-retranslation to override)")
+    
+        # Process content for all languages (translate for targets, use original for base)
+        translations = {}
+        context_note = translation_config.get("context_note", "")
+    
+        for field_name, content in listing.items():
+            # Handle keywords specially - it's a dict keyed by locale
+            if field_name == "keywords":
+                if not content or not isinstance(content, dict):
+                    continue
+
+                print(f"\n🔄 Processing '{field_name}'...")
+                field_translations = {}
+
+                # Get base language keywords
+                base_keywords = content.get(base_language)
+                if not base_keywords:
+                    print(f"  ⚠️  No base language keywords found for {base_language}")
+                    continue
+
+                # Check for pre-defined locale keywords first, translate the rest
+                field_translations[base_language_code] = base_keywords
+                print(f"  → {base_language_code} (base): ✅ Using original keywords")
+
+                keywords_limit = app_store_config.get("limits", {}).get("keywords", 100)
+
+                for lang_code in target_languages:
+                    # Check if keywords are already defined for this locale in the config
+                    if lang_code in content:
+                        field_translations[lang_code] = content[lang_code]
+                        print(f"  → {lang_code}: ✅ Using pre-defined keywords from config")
+                    else:
+                        print(f"  → {lang_code}...", end=" ")
+                        keyword_context = (
+                            f"{context_note} "
+                            f"These are App Store keywords (comma-separated, max {keywords_limit} characters total including commas). "
+                            f"Return ONLY the translated comma-separated keywords, no extra text. "
+                            f"Keep the same number of keywords if possible. Do not add spaces after commas."
+                        )
+                        translated = translator.translate_content(
+                            content=base_keywords,
+                            from_lang="English",
+                            to_lang=lang_code,
+                            context_note=keyword_context
+                        )
+
+                        if translated:
+                            # Ensure keywords fit within the character limit
+                            if len(translated) > keywords_limit:
+                                # Trim keywords from the end until within limit
+                                parts = translated.split(",")
+                                while len(",".join(parts)) > keywords_limit and len(parts) > 1:
+                                    parts.pop()
+                                translated = ",".join(parts)
+                            field_translations[lang_code] = translated
+                            print("✅")
+                        else:
+                            print("❌")
+
+                if field_translations:
+                    translations[field_name] = field_translations
+                continue
+
+            if not content or not content.strip():
+                continue
+
+            # Skip description translation if App Store content matches local config
+            if field_name == "description" and skip_description_translation:
+                print(f"\n⏭️  Skipping '{field_name}' translation - App Store content matches local config")
+                continue
+
+            print(f"\n🔄 Processing '{field_name}'...")
+            field_translations = {}
+
+            # Add base language content (no translation needed)
+            field_translations[base_language_code] = content
+            print(f"  → {base_language_code} (base): ✅ Using original content")
+
+            # Translate for target languages
+            for lang_code in target_languages:
+                print(f"  → {lang_code}...", end=" ")
+
+                translated = translator.translate_content(
+                    content=content,
+                    from_lang="English",  # Assuming base language is English
+                    to_lang=lang_code,
+                    context_note=context_note
+                )
+
+                if translated:
+                    field_translations[lang_code] = translated
+                    print("✅")
+                else:
+                    print("❌")
+
+            if field_translations:
+                translations[field_name] = field_translations
+    
+        # Display translation preview
+        display_translation_preview(translations, all_languages)
+    
+        # Ask for confirmation unless dry run
+        if self.dry_run:
+            print("\n🔍 Dry run completed. No changes made to App Store.")
+            return True
+    
+        if not translations:
+            print("🎉 No translations to upload!")
+            return False
+    
+        # Confirm before updating
+        questions = [
+            inquirer.Confirm('proceed',
+                           message="Proceed with updating App Store Connect metadata?",
+                           default=True),
+        ]
+    
+        answers = inquirer.prompt(questions)
+        if not answers or not answers.get('proceed'):
+            print("⏭️  Operation cancelled")
+            return False
+    
+        print("\n🔄 Proceeding with App Store Connect API updates...")
+    
+        # Use API from preflight check or initialize new one if skipped
+        if not api:
+            try:
+                api, creds = _build_api(self.credentials_path)
+                app_id = api._client.resolve_app_id()
+                print(f"✅ Using app ID: {app_id}")
+            
+                # Check and create missing string localizations if requested and API was just initialized
+                if self.auto_create_strings:
+                    version = api.get_app_store_versions(app_id)[0] if api else None
+                    version_id = version["id"] if version else None
+                
+                    if version_id and strings_path:
+                        created_localizations = check_and_create_missing_localizations(
+                            api, app_id, version_id, translator, strings_path
+                        )
+                    else:
+                        print("⚠️  Cannot create string localizations: missing version or strings path")
+                    
+            except Exception as e:
+                print(f"❌ App Store Connect API error: {e}")
+                return False
+    
+        # Resolve target version
+        if self.version_id:
+            version_id = self.version_id
+            print(f"🔍 Using pre-resolved version ID: {version_id}")
+        else:
+            print("🔍 Getting app store versions...")
+            try:
+                versions = api.get_app_store_versions(app_id)
+                if not versions:
+                    print("❌ No app store versions found")
+                    return False
+
+                version = versions[0]
+                version_id = version["id"]
+                version_string = version["attributes"]["versionString"]
+                print(f"✅ Using version: {version_string} (ID: {version_id})")
+            except Exception as e:
+                print(f"❌ Error getting app store versions: {e}")
+                return False
+    
+        # Get existing localizations
+        print("🔍 Getting existing localizations...")
+        try:
+            existing_localizations = api.get_version_localizations(version_id)
+            existing_locales = {loc["attributes"]["locale"]: loc for loc in existing_localizations}
+        
+            print(f"📍 Found {len(existing_localizations)} existing localization(s):")
+            for locale_code, loc_data in existing_locales.items():
+                loc_id = loc_data.get("id", "unknown")
+                print(f"  • {locale_code} (ID: {loc_id})")
+        
+        except Exception as e:
+            print(f"❌ Error getting existing localizations: {e}")
+            return False
+        
+        # Update or create localizations
+        updated_count = 0
+        created_count = 0
+    
+        for lang_code in all_languages:
+            # Map language codes to App Store locales
+            locale_mapping = {
+                'en': base_language,  # Use the full base language locale (e.g., 'en-US')
+                'de': 'de-DE',
+                'ja': 'ja-JP', 
+                'ro': 'ro-RO',
+                'ko': 'ko-KR',
+                'es': 'es-ES',
+                'fr': 'fr-FR',
+                'it': 'it-IT',
+                'pt': 'pt-BR',
+                'ru': 'ru-RU',
+                'zh': 'zh-Hans'
+            }
+        
+            locale = locale_mapping.get(lang_code, lang_code)
+        
+            # Special handling for base language
+            is_base_language = lang_code == base_language_code
+        
+            if is_base_language:
+                print(f"\n📝 Processing {lang_code} ({locale}) - BASE LANGUAGE...")
+            else:
+                print(f"\n📝 Processing {lang_code} ({locale}) - TRANSLATED...")
+        
+            # Try to find existing localization with flexible matching
+            existing_loc = find_existing_localization(locale, existing_locales)
+        
+            if existing_loc:
+                print(f"  📍 Found existing localization in cache")
+            else:
+                print(f"  📍 No existing localization found, will create new one")
+                print(f"  🔍 Available locales: {list(existing_locales.keys())}")
+                print(f"  🎯 Looking for: {locale}")
+        
+            # Prepare update data
+            update_data = {}
+            for field_name, field_translations in translations.items():
+                if lang_code in field_translations:
+                    if field_name == "description":
+                        update_data["description"] = field_translations[lang_code]
+                    elif field_name == "promotional_text":
+                        update_data["promotional_text"] = field_translations[lang_code]
+                    elif field_name == "whats_new":
+                        update_data["whats_new"] = field_translations[lang_code]
+                    elif field_name == "keywords":
+                        update_data["keywords"] = field_translations[lang_code]
+        
+            if not update_data:
+                if is_base_language:
+                    print(f"  ⏭️  No content to update for base language {lang_code}")
+                else:
+                    print(f"  ⏭️  No translations for {lang_code}")
+                continue
+        
+            try:
+                if existing_loc:
+                    # Update existing localization
+                    localization_id = existing_loc["id"]
+                    if is_base_language:
+                        print(f"  🔄 Updating base language localization...")
+                    else:
+                        print(f"  🔄 Updating translated localization...")
+                
+                    result = api.update_localization(localization_id, **update_data)
+                    updated_count += 1
+                
+                    if is_base_language:
+                        print(f"  ✅ Updated base language localization for {locale}")
+                    else:
+                        print(f"  ✅ Updated translated localization for {locale}")
+            
+                else:
+                    # Create new localization
+                    if is_base_language:
+                        print(f"  📝 Creating base language localization...")
+                    else:
+                        print(f"  📝 Creating new translated localization...")
+                
+                    result = api.create_localization(version_id, locale, **update_data)
+                    created_count += 1
+                
+                    if is_base_language:
+                        print(f"  ✅ Created base language localization for {locale}")
+                    else:
+                        print(f"  ✅ Created translated localization for {locale}")
+        
+            except Exception as e:
+                # Handle 409 Conflict - localization already exists but wasn't in our list
+                if "409" in str(e) and "Conflict" in str(e):
+                    print(f"  ⚠️  Localization already exists (409 Conflict), refreshing and retrying...")
+                
+                    try:
+                        # Refresh the existing localizations list
+                        updated_localizations = api.get_version_localizations(version_id)
+                        updated_locales = {loc["attributes"]["locale"]: loc for loc in updated_localizations}
+                    
+                        # Try to find it with flexible matching in the refreshed list
+                        refreshed_loc = find_existing_localization(locale, updated_locales)
+                    
+                        if refreshed_loc:
+                            # Found it now, update it
+                            localization_id = refreshed_loc["id"]
+                            actual_locale = None
+                            for loc_key, loc_data in updated_locales.items():
+                                if loc_data["id"] == localization_id:
+                                    actual_locale = loc_key
+                                    break
+                        
+                            print(f"  🔄 Found existing localization ({actual_locale}), updating...")
+                        
+                            result = api.update_localization(localization_id, **update_data)
+                            updated_count += 1
+                        
+                            if is_base_language:
+                                print(f"  ✅ Updated base language localization for {actual_locale or locale}")
+                            else:
+                                print(f"  ✅ Updated translated localization for {actual_locale or locale}")
+                        
+                            # Update our local cache for future iterations
+                            if actual_locale:
+                                existing_locales[actual_locale] = refreshed_loc
+                        else:
+                            print(f"  ❌ Still can't find localization for {locale} after refresh")
+                            print(f"  🔍 Available after refresh: {list(updated_locales.keys())}")
+                            continue
+                        
+                    except Exception as retry_error:
+                        print(f"  ❌ Error on retry for {locale}: {retry_error}")
+                        continue
+                else:
+                    # Other error
+                    if is_base_language:
+                        print(f"  ❌ Error processing base language {locale}: {e}")
+                    else:
+                        print(f"  ❌ Error processing translated {locale}: {e}")
+                    continue
+    
+        print(f"\n🎉 Completed! Updated: {updated_count}, Created: {created_count} localizations")
+        return True
+
 
 
 def main():
@@ -1105,16 +1133,16 @@ def main():
 Examples:
   # Use specific config files
   python localize.py --config ./app_store.yml --credentials ./credentials.yml
-  
+
   # Auto-detect config files in current directory
   python localize.py
-  
+
   # Auto-create missing string localizations and update App Store metadata
   python localize.py --auto-create-strings
-  
+
   # Force retranslation even if App Store description matches local config
   python localize.py --force-retranslation
-    
+
     """
     )
     parser.add_argument('--config', type=str, help='Path to app_store.yml configuration file')
@@ -1125,458 +1153,32 @@ Examples:
     parser.add_argument('--force-retranslation', action='store_true', help='Force retranslation even if App Store description matches local config')
     args = parser.parse_args()
 
-    # Auto-detect config files if not provided
-    if not args.config:
-        app_store_yml = Path.cwd() / "app_store.yml"
-        if app_store_yml.exists():
-            args.config = str(app_store_yml)
+    config_path = args.config
+    if not config_path:
+        candidate = Path.cwd() / "app_store.yml"
+        if candidate.exists():
+            config_path = str(candidate)
         else:
             print("❌ Could not find app_store.yml. Please specify --config path.")
             return
-    
-    if not args.credentials:
-        credentials_yml = Path.cwd() / "credentials.yml"
-        if credentials_yml.exists():
-            args.credentials = str(credentials_yml)
+
+    credentials_path = args.credentials
+    if not credentials_path:
+        candidate = Path.cwd() / "credentials.yml"
+        if candidate.exists():
+            credentials_path = str(candidate)
         else:
             print("❌ Could not find credentials.yml. Please specify --credentials path.")
             return
 
-    print("🌍 App Store Localization Manager")
-    print("=" * 40)
-    
-    if args.auto_create_strings:
-        print("⚙️  Auto-create strings mode enabled")
-    
-    # Load configurations
-    print(f"📁 Loading config from: {args.config}")
-    app_store_config = load_yaml_config(args.config)
-    if not app_store_config:
-        return
-    
-    print(f"📁 Loading credentials from: {args.credentials}")
-    credentials_config = load_yaml_config(args.credentials)
-    if not credentials_config:
-        return
-    
-    # Perform preflight check unless skipped
-    if not args.skip_preflight:
-        api, app = preflight_check(credentials_config, args.credentials)
-        if not api or not app:
-            print("❌ Preflight check failed. Aborting.")
-            return
-        app_id = app["id"]
-    else:
-        print("⚠️  Skipping preflight check as requested")
-        api = None
-        app = None
-        app_id = None
-
-    # Get configurations
-    listing = app_store_config.get("listing", {})
-    target_languages = app_store_config.get("target_languages", [])
-    base_language = app_store_config.get("base_language", "en-US")
-    translation_config = app_store_config.get("translation", {})
-    strings_path = app_store_config.get("strings_path")
-    
-    if not target_languages:
-        print("❌ No target languages specified in config")
-        return
-    
-    # Extract base language code from locale (e.g., "en-US" -> "en")
-    base_language_code = base_language.split("-")[0] if "-" in base_language else base_language
-    
-    # Create combined list of all languages to process (base + targets)
-    all_languages = [base_language_code] + target_languages
-    print(f"📝 Base language: {base_language} (code: {base_language_code})")
-    print(f"🎯 Target languages: {', '.join(target_languages)}")
-    print(f"🌍 All languages to process: {', '.join(all_languages)}")
-    
-    # Get OpenAI API key
-    openai_config = credentials_config.get("openai", {})
-    api_key = get_openai_api_key(openai_config)
-    if not api_key:
-        return
-    
-    # Initialize translator
-    translator = LocalizationTranslator(
-        api_key=api_key,
-        model=openai_config.get("model", "gpt-4"),
-        max_tokens=openai_config.get("max_tokens", 2000),
-        temperature=openai_config.get("temperature", 0.3)
-    )
-    
-    # Check and create missing string localizations if requested
-    if args.auto_create_strings:
-        if not args.skip_preflight:
-            # We have API and app info from preflight
-            version = api.get_app_store_versions(app_id)[0] if api else None
-            version_id = version["id"] if version else None
-            
-            if api and version_id and strings_path:
-                created_localizations = check_and_create_missing_localizations(
-                    api, app_id, version_id, translator, strings_path
-                )
-            else:
-                print("⚠️  Cannot create string localizations: missing API connection or strings path")
-        else:
-            print("⚠️  Cannot create string localizations when skipping preflight check")
-    
-    print(f"📋 Fields to process: {', '.join(listing.keys())}")
-    
-    # Check if description needs retranslation (to save OpenAI API tokens)
-    skip_description_translation = False
-    if not args.skip_preflight and api and app_id:
-        local_description = listing.get("description", "")
-        
-        if args.force_retranslation:
-            print("\n🔄 Force retranslation flag set - will translate all content")
-        else:
-            needs_translation, _ = check_description_changed(api, app_id, base_language, local_description)
-            if not needs_translation:
-                skip_description_translation = True
-                print("  ⏭️  Will skip description translation to save API tokens")
-                print("     (Use --force-retranslation to override)")
-    
-    # Process content for all languages (translate for targets, use original for base)
-    translations = {}
-    context_note = translation_config.get("context_note", "")
-    
-    for field_name, content in listing.items():
-        # Handle keywords specially - it's a dict keyed by locale
-        if field_name == "keywords":
-            if not content or not isinstance(content, dict):
-                continue
-
-            print(f"\n🔄 Processing '{field_name}'...")
-            field_translations = {}
-
-            # Get base language keywords
-            base_keywords = content.get(base_language)
-            if not base_keywords:
-                print(f"  ⚠️  No base language keywords found for {base_language}")
-                continue
-
-            # Check for pre-defined locale keywords first, translate the rest
-            field_translations[base_language_code] = base_keywords
-            print(f"  → {base_language_code} (base): ✅ Using original keywords")
-
-            keywords_limit = app_store_config.get("limits", {}).get("keywords", 100)
-
-            for lang_code in target_languages:
-                # Check if keywords are already defined for this locale in the config
-                if lang_code in content:
-                    field_translations[lang_code] = content[lang_code]
-                    print(f"  → {lang_code}: ✅ Using pre-defined keywords from config")
-                else:
-                    print(f"  → {lang_code}...", end=" ")
-                    keyword_context = (
-                        f"{context_note} "
-                        f"These are App Store keywords (comma-separated, max {keywords_limit} characters total including commas). "
-                        f"Return ONLY the translated comma-separated keywords, no extra text. "
-                        f"Keep the same number of keywords if possible. Do not add spaces after commas."
-                    )
-                    translated = translator.translate_content(
-                        content=base_keywords,
-                        from_lang="English",
-                        to_lang=lang_code,
-                        context_note=keyword_context
-                    )
-
-                    if translated:
-                        # Ensure keywords fit within the character limit
-                        if len(translated) > keywords_limit:
-                            # Trim keywords from the end until within limit
-                            parts = translated.split(",")
-                            while len(",".join(parts)) > keywords_limit and len(parts) > 1:
-                                parts.pop()
-                            translated = ",".join(parts)
-                        field_translations[lang_code] = translated
-                        print("✅")
-                    else:
-                        print("❌")
-
-            if field_translations:
-                translations[field_name] = field_translations
-            continue
-
-        if not content or not content.strip():
-            continue
-
-        # Skip description translation if App Store content matches local config
-        if field_name == "description" and skip_description_translation:
-            print(f"\n⏭️  Skipping '{field_name}' translation - App Store content matches local config")
-            continue
-
-        print(f"\n🔄 Processing '{field_name}'...")
-        field_translations = {}
-
-        # Add base language content (no translation needed)
-        field_translations[base_language_code] = content
-        print(f"  → {base_language_code} (base): ✅ Using original content")
-
-        # Translate for target languages
-        for lang_code in target_languages:
-            print(f"  → {lang_code}...", end=" ")
-
-            translated = translator.translate_content(
-                content=content,
-                from_lang="English",  # Assuming base language is English
-                to_lang=lang_code,
-                context_note=context_note
-            )
-
-            if translated:
-                field_translations[lang_code] = translated
-                print("✅")
-            else:
-                print("❌")
-
-        if field_translations:
-            translations[field_name] = field_translations
-    
-    # Display translation preview
-    display_translation_preview(translations, all_languages)
-    
-    # Ask for confirmation unless dry run
-    if args.dry_run:
-        print("\n🔍 Dry run completed. No changes made to App Store.")
-        return
-    
-    if not translations:
-        print("🎉 No translations to upload!")
-        return
-    
-    # Confirm before updating
-    questions = [
-        inquirer.Confirm('proceed',
-                       message="Proceed with updating App Store Connect metadata?",
-                       default=True),
-    ]
-    
-    if not inquirer.prompt(questions)['proceed']:
-        print("⏭️  Operation cancelled")
-        return
-    
-    print("\n🔄 Proceeding with App Store Connect API updates...")
-    
-    # Use API from preflight check or initialize new one if skipped
-    if not api:
-        # Validate configuration first
-        if not validate_app_store_config(credentials_config):
-            return
-        
-        try:
-            app_store_api_config = credentials_config.get("app_store_connect", {})
-            private_key = load_private_key(credentials_config, args.credentials)
-            
-            api = AppStoreConnectAPI(
-                key_id=app_store_api_config["key_id"],
-                issuer_id=app_store_api_config["issuer_id"],
-                private_key=private_key
-            )
-            
-            # Find app
-            app_config = credentials_config.get("app", {})
-            bundle_id = app_config.get("bundle_id")
-            
-            print(f"🔍 Finding app with bundle ID: {bundle_id}")
-            app = api.find_app_by_bundle_id(bundle_id)
-            app_id = app["id"]
-            print(f"✅ Found app: {app['attributes']['name']} (ID: {app_id})")
-            
-            # Check and create missing string localizations if requested and API was just initialized
-            if args.auto_create_strings:
-                version = api.get_app_store_versions(app_id)[0] if api else None
-                version_id = version["id"] if version else None
-                
-                if version_id and strings_path:
-                    created_localizations = check_and_create_missing_localizations(
-                        api, app_id, version_id, translator, strings_path
-                    )
-                else:
-                    print("⚠️  Cannot create string localizations: missing version or strings path")
-                    
-        except Exception as e:
-            print(f"❌ App Store Connect API error: {e}")
-            return
-    
-    # Get versions
-    print("🔍 Getting app store versions...")
-    try:
-        versions = api.get_app_store_versions(app_id)
-        if not versions:
-            print("❌ No app store versions found")
-            return
-        
-        # Use the most recent version (first one returned)
-        version = versions[0]
-        version_id = version["id"]
-        version_string = version["attributes"]["versionString"]
-        print(f"✅ Using version: {version_string} (ID: {version_id})")
-    except Exception as e:
-        print(f"❌ Error getting app store versions: {e}")
-        return
-    
-    # Get existing localizations
-    print("🔍 Getting existing localizations...")
-    try:
-        existing_localizations = api.get_version_localizations(version_id)
-        existing_locales = {loc["attributes"]["locale"]: loc for loc in existing_localizations}
-        
-        print(f"📍 Found {len(existing_localizations)} existing localization(s):")
-        for locale_code, loc_data in existing_locales.items():
-            loc_id = loc_data.get("id", "unknown")
-            print(f"  • {locale_code} (ID: {loc_id})")
-        
-    except Exception as e:
-        print(f"❌ Error getting existing localizations: {e}")
-        return
-        
-    # Update or create localizations
-    updated_count = 0
-    created_count = 0
-    
-    for lang_code in all_languages:
-        # Map language codes to App Store locales
-        locale_mapping = {
-            'en': base_language,  # Use the full base language locale (e.g., 'en-US')
-            'de': 'de-DE',
-            'ja': 'ja-JP', 
-            'ro': 'ro-RO',
-            'ko': 'ko-KR',
-            'es': 'es-ES',
-            'fr': 'fr-FR',
-            'it': 'it-IT',
-            'pt': 'pt-BR',
-            'ru': 'ru-RU',
-            'zh': 'zh-Hans'
-        }
-        
-        locale = locale_mapping.get(lang_code, lang_code)
-        
-        # Special handling for base language
-        is_base_language = lang_code == base_language_code
-        
-        if is_base_language:
-            print(f"\n📝 Processing {lang_code} ({locale}) - BASE LANGUAGE...")
-        else:
-            print(f"\n📝 Processing {lang_code} ({locale}) - TRANSLATED...")
-        
-        # Try to find existing localization with flexible matching
-        existing_loc = find_existing_localization(locale, existing_locales)
-        
-        if existing_loc:
-            print(f"  📍 Found existing localization in cache")
-        else:
-            print(f"  📍 No existing localization found, will create new one")
-            print(f"  🔍 Available locales: {list(existing_locales.keys())}")
-            print(f"  🎯 Looking for: {locale}")
-        
-        # Prepare update data
-        update_data = {}
-        for field_name, field_translations in translations.items():
-            if lang_code in field_translations:
-                if field_name == "description":
-                    update_data["description"] = field_translations[lang_code]
-                elif field_name == "promotional_text":
-                    update_data["promotional_text"] = field_translations[lang_code]
-                elif field_name == "whats_new":
-                    update_data["whats_new"] = field_translations[lang_code]
-                elif field_name == "keywords":
-                    update_data["keywords"] = field_translations[lang_code]
-        
-        if not update_data:
-            if is_base_language:
-                print(f"  ⏭️  No content to update for base language {lang_code}")
-            else:
-                print(f"  ⏭️  No translations for {lang_code}")
-            continue
-        
-        try:
-            if existing_loc:
-                # Update existing localization
-                localization_id = existing_loc["id"]
-                if is_base_language:
-                    print(f"  🔄 Updating base language localization...")
-                else:
-                    print(f"  🔄 Updating translated localization...")
-                
-                result = api.update_localization(localization_id, **update_data)
-                updated_count += 1
-                
-                if is_base_language:
-                    print(f"  ✅ Updated base language localization for {locale}")
-                else:
-                    print(f"  ✅ Updated translated localization for {locale}")
-            
-            else:
-                # Create new localization
-                if is_base_language:
-                    print(f"  📝 Creating base language localization...")
-                else:
-                    print(f"  📝 Creating new translated localization...")
-                
-                result = api.create_localization(version_id, locale, **update_data)
-                created_count += 1
-                
-                if is_base_language:
-                    print(f"  ✅ Created base language localization for {locale}")
-                else:
-                    print(f"  ✅ Created translated localization for {locale}")
-        
-        except Exception as e:
-            # Handle 409 Conflict - localization already exists but wasn't in our list
-            if "409" in str(e) and "Conflict" in str(e):
-                print(f"  ⚠️  Localization already exists (409 Conflict), refreshing and retrying...")
-                
-                try:
-                    # Refresh the existing localizations list
-                    updated_localizations = api.get_version_localizations(version_id)
-                    updated_locales = {loc["attributes"]["locale"]: loc for loc in updated_localizations}
-                    
-                    # Try to find it with flexible matching in the refreshed list
-                    refreshed_loc = find_existing_localization(locale, updated_locales)
-                    
-                    if refreshed_loc:
-                        # Found it now, update it
-                        localization_id = refreshed_loc["id"]
-                        actual_locale = None
-                        for loc_key, loc_data in updated_locales.items():
-                            if loc_data["id"] == localization_id:
-                                actual_locale = loc_key
-                                break
-                        
-                        print(f"  🔄 Found existing localization ({actual_locale}), updating...")
-                        
-                        result = api.update_localization(localization_id, **update_data)
-                        updated_count += 1
-                        
-                        if is_base_language:
-                            print(f"  ✅ Updated base language localization for {actual_locale or locale}")
-                        else:
-                            print(f"  ✅ Updated translated localization for {actual_locale or locale}")
-                        
-                        # Update our local cache for future iterations
-                        if actual_locale:
-                            existing_locales[actual_locale] = refreshed_loc
-                    else:
-                        print(f"  ❌ Still can't find localization for {locale} after refresh")
-                        print(f"  🔍 Available after refresh: {list(updated_locales.keys())}")
-                        continue
-                        
-                except Exception as retry_error:
-                    print(f"  ❌ Error on retry for {locale}: {retry_error}")
-                    continue
-            else:
-                # Other error
-                if is_base_language:
-                    print(f"  ❌ Error processing base language {locale}: {e}")
-                else:
-                    print(f"  ❌ Error processing translated {locale}: {e}")
-                continue
-    
-    print(f"\n🎉 Completed! Updated: {updated_count}, Created: {created_count} localizations")
+    Localizer(
+        config_path,
+        credentials_path,
+        dry_run=args.dry_run,
+        skip_preflight=args.skip_preflight,
+        auto_create_strings=args.auto_create_strings,
+        force_retranslation=args.force_retranslation,
+    ).run()
 
 
 if __name__ == '__main__':
