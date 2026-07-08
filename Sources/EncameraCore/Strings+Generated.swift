@@ -1502,6 +1502,8 @@ public enum L10n {
     public static let encrypted = L10n.tr("Localizable", "MediaInfo.Encrypted", fallback: "Encrypted")
     /// Frame Rate
     public static let frameRate = L10n.tr("Localizable", "MediaInfo.FrameRate", fallback: "Frame Rate")
+    /// Key Fingerprint
+    public static let keyFingerprint = L10n.tr("Localizable", "MediaInfo.KeyFingerprint", fallback: "Key Fingerprint")
     /// Metadata Not Available
     public static let metadataNotAvailable = L10n.tr("Localizable", "MediaInfo.MetadataNotAvailable", fallback: "Metadata Not Available")
     /// Screenshot

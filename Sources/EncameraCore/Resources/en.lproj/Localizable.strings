@@ -985,6 +985,7 @@
 "MediaInfo.Screenshot" = "Screenshot";
 "MediaInfo.BurstPhoto" = "Burst Photo";
 "MediaInfo.Encrypted" = "Encrypted";
+"MediaInfo.KeyFingerprint" = "Key Fingerprint";
 /* ./Encamera/Settings/AppIconSelectionView.swift - App Icon Selection */
 "AppIconSelection.Title" = "App Icon";
 "AppIconSelection.SelectIcon" = "Select an icon";

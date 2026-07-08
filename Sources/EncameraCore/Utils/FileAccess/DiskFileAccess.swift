@@ -37,6 +37,14 @@ public actor DiskFileAccess: DebugPrintable {
     }
     var key: PrivateKey?
 
+    /// Per-process discovery memo: media id → resolved key uuid. The stamp is
+    /// the durable cache for local files, but iCloud files never get stamped,
+    /// so without this every open of an unstamped iCloud file would re-run
+    /// the full discovery sweep. Process-lifetime only and unbounded on
+    /// purpose: ~50 bytes/entry is low single-digit MBs even at 100k items,
+    /// so no LRU machinery is warranted.
+    private var discoveredKeyMemo: [String: UUID] = [:]
+
     private var cancellables = Set<AnyCancellable>()
     private var album: Album?
     public var directoryModel: DataStorageModel?
@@ -696,32 +704,88 @@ extension DiskFileAccess {
 
 
     private func decryptMediaToData(encrypted: EncryptedMedia, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
-        guard let keyManager else {
+        guard keyManager != nil else {
             throw FileAccessError.missingKeyManager
         }
         guard case .url(let sourceURL) = encrypted.source else {
             throw FileAccessError.couldNotLoadMedia
         }
 
-        // Try to get the key UUID from extended attributes
-        let keyToUse: PrivateKey
-        if let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL),
-           let matchingKey = await keyManager.keyWith(uuid: storedKeyUUID) {
-            keyToUse = matchingKey
-            printDebug("decryptMediaToData: Using key with UUID \(storedKeyUUID) for file \(encrypted.id)")
-        } else {
-            // Fall back to current key if no UUID found or key not available
-            guard let currentKey = key else {
-                throw FileAccessError.missingPrivateKey
-            }
-            keyToUse = currentKey
-            printDebug("decryptMediaToData: Using current key for file \(encrypted.id)")
-        }
+        let resolution = try await resolveKey(for: sourceURL, mediaID: encrypted.id)
 
-        let fileHandler = SecretFileHandler(keyBytes: keyToUse.keyBytes, source: encrypted)
+        let fileHandler = SecretFileHandler(keyBytes: resolution.key.keyBytes, source: encrypted)
 
         let decrypted: CleartextMedia = try await fileHandler.decryptInMemory()
+        // A successful full decrypt is definitive proof — seed the memo even
+        // when resolution came from the current-key fallback.
+        discoveredKeyMemo[encrypted.id] = resolution.key.uuid
         return decrypted
+    }
+
+    /// Shared key resolution for the open paths: discovery confirms the key
+    /// by authenticating the file's first block (stamp hint → xattr hint →
+    /// current key → stored-key sweep). When nothing decrypts, fall back to
+    /// the album key and preserve today's failure behavior exactly — the full
+    /// decrypt fails through the existing `decryptError` path.
+    private func resolveKey(for sourceURL: URL, mediaID: String) async throws -> (key: PrivateKey, stampMatched: Bool) {
+        guard let keyManager else {
+            throw FileAccessError.missingKeyManager
+        }
+
+        // Memo hit: one verification AEAD op, no candidate sweep. A stale
+        // entry (e.g. the file was replaced) is dropped and falls through to
+        // full discovery instead of failing the open.
+        if let memoizedUUID = discoveredKeyMemo[mediaID],
+           let memoizedKey = await keyManager.keyWith(uuid: memoizedUUID) {
+            if await KeyDiscovery.canDecryptFirstBlock(of: sourceURL, with: memoizedKey) {
+                let stampMatched = KeyStampSlot.readStamp(url: sourceURL) == memoizedKey.stampPrefix
+                if !stampMatched && shouldStampFile(at: sourceURL) {
+                    KeyStampSlot.writeStamp(memoizedKey.stampPrefix, url: sourceURL)
+                }
+                return (memoizedKey, stampMatched)
+            }
+            discoveredKeyMemo[mediaID] = nil
+        }
+
+        if let discovered = await KeyDiscovery.discoverKey(for: sourceURL, keyManager: keyManager) {
+            printDebug("resolveKey: Discovered key '\(discovered.key.name)' for file \(mediaID), stampMatched: \(discovered.stampMatched)")
+            discoveredKeyMemo[mediaID] = discovered.key.uuid
+            if !discovered.stampMatched && shouldStampFile(at: sourceURL) {
+                // First-block authentication is sufficient proof of the key
+                // association — a mid-file corruption failure later in the
+                // full decrypt doesn't invalidate it. Failures are swallowed
+                // inside writeStamp; a failed stamp never fails an open.
+                KeyStampSlot.writeStamp(discovered.key.stampPrefix, url: sourceURL)
+            }
+            return (discovered.key, discovered.stampMatched)
+        }
+        guard let currentKey = key else {
+            throw FileAccessError.missingPrivateKey
+        }
+        printDebug("resolveKey: Discovery found no key for file \(mediaID), falling back to current key")
+        return (currentKey, false)
+    }
+
+    /// The iCloud Documents root (`iCloudStorageModel.rootURL` without its
+    /// fatalError), resolved once. Nil when no ubiquity container exists.
+    private static let ubiquityDocumentsURL: URL? = FileManager.default
+        .url(forUbiquityContainerIdentifier: nil)?
+        .appendingPathComponent("Documents")
+
+    /// Local-only gate for in-file stamp writes: iCloud files still get
+    /// discovery but never an in-file write — a one-byte change re-uploads
+    /// the whole file (in-file stamping of iCloud files is a deferred chunk).
+    /// Belt-and-braces: require local storage AND that the URL is not under
+    /// the iCloud container.
+    private func shouldStampFile(at url: URL) -> Bool {
+        guard directoryModel is LocalStorageModel else {
+            return false
+        }
+        if let ubiquityDocuments = Self.ubiquityDocumentsURL,
+           url.standardizedFileURL.path.hasPrefix(ubiquityDocuments.standardizedFileURL.path) {
+            return false
+        }
+        return true
     }
 
     private func loadDefaultLeadingThumbnail() async throws -> UIImage? {
@@ -749,7 +813,7 @@ extension DiskFileAccess {
         printDebug("decryptMediaToURL: Starting decryption for \(encrypted.id)")
         printDebug("decryptMediaToURL: keyManager exists: \(keyManager != nil)")
         
-        guard let keyManager else {
+        guard keyManager != nil else {
             printDebug("decryptMediaToURL: ERROR - Missing keyManager")
             throw FileAccessError.missingKeyManager
         }
@@ -776,31 +840,9 @@ extension DiskFileAccess {
             return CleartextMedia(source: targetURL)
         }
 
-        // Try to get the key UUID from extended attributes
-        let keyToUse: PrivateKey
-        let storedKeyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL)
-        printDebug("decryptMediaToURL: Stored key UUID: \(storedKeyUUID?.uuidString ?? "nil")")
-        
-        if let storedKeyUUID,
-           let matchingKey = await keyManager.keyWith(uuid: storedKeyUUID) {
-            keyToUse = matchingKey
-            printDebug("decryptMediaToURL: Using key with UUID \(storedKeyUUID) for file \(encrypted.id)")
-            printDebug("decryptMediaToURL: Key name: \(keyToUse.name)")
-        } else {
-            // Fall back to current key if no UUID found or key not available
-            printDebug("decryptMediaToURL: No UUID match, checking current key")
-            printDebug("decryptMediaToURL: self.key exists: \(key != nil)")
-            guard let currentKey = key else {
-                printDebug("decryptMediaToURL: ERROR - No current key available")
-                throw FileAccessError.missingPrivateKey
-            }
-            keyToUse = currentKey
-            printDebug("decryptMediaToURL: Using current key '\(currentKey.name)' for file \(encrypted.id)")
-        }
-        
-        printDebug("decryptMediaToURL: Creating SecretFileHandler with key bytes length: \(keyToUse.keyBytes.count)")
+        let resolution = try await resolveKey(for: sourceURL, mediaID: encrypted.id)
 
-        let fileHandler = SecretFileHandler(keyBytes: keyToUse.keyBytes, source: encrypted, targetURL: targetURL)
+        let fileHandler = SecretFileHandler(keyBytes: resolution.key.keyBytes, source: encrypted, targetURL: targetURL)
 
         fileHandler.progress
             .receive(on: DispatchQueue.main)
@@ -813,6 +855,7 @@ extension DiskFileAccess {
         do {
             let decrypted = try await fileHandler.decryptToURL()
             printDebug("decryptMediaToURL: Decryption successful!")
+            discoveredKeyMemo[encrypted.id] = resolution.key.uuid
             return decrypted
         } catch {
             printDebug("decryptMediaToURL: ERROR - Decryption failed: \(error)")
@@ -919,7 +962,12 @@ extension DiskFileAccess {
         // Store the key UUID as an extended attribute
         if var encryptedURL = encrypted.url {
             try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
-            
+
+            // New local files are born stamped — they never need discovery.
+            if shouldStampFile(at: encryptedURL) {
+                KeyStampSlot.writeStamp(key.stampPrefix, url: encryptedURL)
+            }
+
             // Ensure local files are included in device backups for transfer to new devices
             if directoryModel.storageType == .local {
                 var resourceValues = URLResourceValues()
