@@ -30,8 +30,34 @@ public class DemoKeyManager: KeyManager {
 
 
     public func clearPassword() throws {
-        
+
     }
+
+    public func dumpAllKeychainEntries() -> [KeychainDumpEntry] {
+        [
+            KeychainDumpEntry(
+                itemClass: "Generic Password",
+                displayName: "encamera",
+                isSynchronizable: true,
+                attributes: [
+                    KeychainDumpAttribute(label: "Account", rawKey: "acct", value: "encamera"),
+                    KeychainDumpAttribute(label: "iCloud Sync", rawKey: "sync", value: "Yes"),
+                    KeychainDumpAttribute(label: "Value Data", rawKey: "v_Data", value: "$argon2id$…  (96 bytes)")
+                ]
+            ),
+            KeychainDumpEntry(
+                itemClass: "Key",
+                displayName: AppConstants.defaultKeyName,
+                isSynchronizable: true,
+                attributes: [
+                    KeychainDumpAttribute(label: "Label", rawKey: "labl", value: AppConstants.defaultKeyName),
+                    KeychainDumpAttribute(label: "iCloud Sync", rawKey: "sync", value: "Yes"),
+                    KeychainDumpAttribute(label: "Value Data", rawKey: "v_Data", value: "0x…  (32 bytes)")
+                ]
+            )
+        ]
+    }
+
     public var keyPublisher: AnyPublisher<PrivateKey?, Never>
 
 

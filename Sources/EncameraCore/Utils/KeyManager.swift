@@ -121,6 +121,7 @@ public protocol KeyManager {
     func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws
     func backupKeychainToiCloud(backupEnabled: Bool) throws
     func clearPassword() throws
+    func dumpAllKeychainEntries() -> [KeychainDumpEntry]
     func getAuthenticationConfiguration() -> AuthenticationConfiguration?
     func setAuthenticationConfiguration(config: AuthenticationConfiguration) throws
 }

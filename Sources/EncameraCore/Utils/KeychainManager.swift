@@ -61,7 +61,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     public var isAuthenticated: AnyPublisher<Bool, Never>
     private var cancellables = Set<AnyCancellable>()
     private var sodium = Sodium()
-    private let keychainWrapper: KeychainWrapperProtocol
+    let keychainWrapper: KeychainWrapperProtocol
 
     private var passwordValidator = PasswordValidator()
     private(set) public var currentKey: PrivateKey? {
@@ -897,6 +897,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         }
         printDebug("--- End Keychain Dump ---")
     }
+
     // Added private func for legacy migration
     public func migrateLegacyKeysIfNeeded() throws {
         
