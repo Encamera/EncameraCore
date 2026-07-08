@@ -18,6 +18,7 @@ private enum KeychainConstants {
     static let passPhraseKeyItem = "encamera_key_passphrase"
     static let passcodeTypeKeyItem = "encamera_passcode_type"
     static let backupStatusKeyItem = "com.encamera.backupStatus"
+    static let authenticationConfiguration = "com.encamera.authenticationConfiguration"
 }
 
 struct KeychainItem {
@@ -316,6 +317,68 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         }
     }
 
+    public func getAuthenticationConfiguration() -> AuthenticationConfiguration? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
+            kSecReturnData as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Find it regardless of its internal sync status
+        ]
+
+        var item: CFTypeRef?
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess else {
+            if status != errSecItemNotFound {
+                printDebug("getAuthenticationConfiguration: query failed with status \(status) (\(determineOSStatus(status: status)))")
+            }
+            return nil
+        }
+
+        guard let data = item as? Data,
+              let config = try? JSONDecoder().decode(AuthenticationConfiguration.self, from: data) else {
+            printDebug("getAuthenticationConfiguration: Could not decode authentication configuration")
+            return nil
+        }
+
+        return config
+    }
+
+    public func setAuthenticationConfiguration(config: AuthenticationConfiguration) throws {
+
+        guard let encoded = try? JSONEncoder().encode(config) else {
+            printDebug("setAuthenticationConfiguration: Could not encode authentication configuration")
+            throw KeyManagerError.dataError
+        }
+
+        let updateQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+
+        // NOTE: kSecAttrSynchronizable is ALWAYS true for this item
+        let attributes: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
+            kSecValueData as String: encoded,
+            kSecAttrSynchronizable as String: kCFBooleanTrue!, // Always sync this item itself
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Consistent accessibility
+        ]
+
+        // Try to add the item first; if it already exists, update it in place
+        var status = keychainWrapper.secItemAdd(attributes as CFDictionary, nil)
+        if status == errSecDuplicateItem {
+            let newAttributes: [String: Any] = [
+                kSecValueData as String: encoded
+            ]
+            status = keychainWrapper.secItemUpdate(updateQuery as CFDictionary, newAttributes as CFDictionary)
+        }
+
+        try checkStatus(status: status)
+
+        printDebug("setAuthenticationConfiguration: Authentication configuration set successfully")
+    }
+
     public func backupKeychainToiCloud(backupEnabled: Bool) throws {
         
         // --- Add/Update the centralized backup status flag ---
@@ -587,7 +650,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
             try checkStatus(status: passwordStatus)
         }
 
-        // Query for the passcode type item
+        // Query for the legacy passcode type item
         let passcodeTypeQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
@@ -597,6 +660,13 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         // Ignore item not found, throw on other errors
         if passcodeTypeStatus != errSecItemNotFound {
             try checkStatus(status: passcodeTypeStatus)
+        }
+
+        // Keep the AuthenticationConfiguration in sync — with the password
+        // gone, no passcode type is enabled anymore.
+        if var config = getAuthenticationConfiguration(), let type = config.passcodeType {
+            config.removeAuthenticationType(.passcode(type))
+            try setAuthenticationConfiguration(config: config)
         }
     }
     
@@ -1032,47 +1102,31 @@ private extension KeychainManager {
         return query as CFDictionary
     }
 
+    /// Persists the passcode type into the AuthenticationConfiguration. The
+    /// deprecated standalone item (`encamera_passcode_type`) is no longer
+    /// written — it remains only as a read fallback in
+    /// `retrieveLegacyPasscodeTypeFromKeychain`.
     private func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType) throws {
-        let encoder = JSONEncoder()
-        let data = try encoder.encode(passcodeType)
-
-        // Base query to find the item, regardless of sync status
-        let baseQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Match any existing item
-        ]
-
-        // Attributes for adding the item
-        let addQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-            kSecAttrSynchronizable as String: syncValueForWrites // Use helper
-        ]
-
-        // Attributes for updating the item
-        let updateAttributes: [String: Any] = [
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked, // Keep accessibility
-            kSecAttrSynchronizable as String: syncValueForWrites // Use helper
-        ]
-
-        // Try to update first
-        let updateStatus = keychainWrapper.secItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
-
-        if updateStatus == errSecItemNotFound {
-            // Item doesn't exist, add it
-            let addStatus = keychainWrapper.secItemAdd(addQuery as CFDictionary, nil)
-            try checkStatus(status: addStatus)
-        } else {
-            // Check update status for errors other than not found
-            try checkStatus(status: updateStatus)
-        }
+        var config = getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
+        config.addAuthenticationType(.passcode(passcodeType))
+        try setAuthenticationConfiguration(config: config)
     }
-    
+
     private func retrievePasscodeTypeFromKeychain() throws -> PasscodeType {
+        // The AuthenticationConfiguration is the source of truth for the
+        // passcode type. Fall back to the deprecated standalone item for
+        // installs whose configuration hasn't been written yet.
+        if let type = getAuthenticationConfiguration()?.passcodeType {
+            return type
+        }
+        return try retrieveLegacyPasscodeTypeFromKeychain()
+    }
+
+    /// Reads the deprecated standalone passcode-type item
+    /// (`encamera_passcode_type`). New writes go into the
+    /// AuthenticationConfiguration; this exists only as a read fallback until
+    /// the type has been written there.
+    private func retrieveLegacyPasscodeTypeFromKeychain() throws -> PasscodeType {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,

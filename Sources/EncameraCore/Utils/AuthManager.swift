@@ -67,15 +67,6 @@ public enum AuthManagerState: Equatable {
     case unauthenticated
 }
 
-struct AuthenticationPolicy: Codable {
-    var preferredAuthenticationMethod: AuthenticationMethod
-    var authenticationExpirySeconds: Int
-    
-    static var defaultPolicy: AuthenticationPolicy {
-        return AuthenticationPolicy(preferredAuthenticationMethod: .password, authenticationExpirySeconds: 60)
-    }
-}
-
 public protocol AuthManager {
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
     var isAuthenticated: Bool { get }
@@ -169,16 +160,31 @@ public class DeviceAuthManager: AuthManager {
             if let _useBiometricsForAuth = self._useBiometricsForAuth {
                 return _useBiometricsForAuth
             }
-            guard let settings = try? settingsManager.loadSettings(),
-                  let useBiometrics = settings.useBiometricsForAuth, deviceBiometryType != .none  else {
+            guard deviceBiometryType != .none else {
                 return false
             }
+            // A missing configuration is a fault state (e.g. keychain unreadable);
+            // fall back to false without caching so a later read can recover.
+            guard let configuration = keyManager.getAuthenticationConfiguration() else {
+                return false
+            }
+            let useBiometrics = configuration.isTypeEnabled(.biometrics)
             self._useBiometricsForAuth = useBiometrics
             return useBiometrics
         }
         set(value) {
             self._useBiometricsForAuth = value
-            try? settingsManager.saveSettings(SavedSettings(useBiometricsForAuth: value))
+            var configuration = keyManager.getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
+            if value {
+                configuration.addAuthenticationType(.biometrics)
+            } else {
+                configuration.removeAuthenticationType(.biometrics)
+            }
+            do {
+                try keyManager.setAuthenticationConfiguration(config: configuration)
+            } catch {
+                debugPrint("useBiometricsForAuth: could not persist authentication configuration: \(error)")
+            }
         }
     }
     
@@ -213,10 +219,11 @@ public class DeviceAuthManager: AuthManager {
 
     private var appStateCancellables = Set<AnyCancellable>()
     private var generalCancellables = Set<AnyCancellable>()
-    private var settingsManager: SettingsManager
-    
-    public init(settingsManager: SettingsManager) {
-        self.settingsManager = settingsManager
+    private var keyManager: KeyManager
+
+
+    public init(keyManager: KeyManager) {
+        self.keyManager = keyManager
         setupNotificationObservers()
     }
     
@@ -361,14 +368,7 @@ public class DeviceAuthManager: AuthManager {
 }
 
 private extension DeviceAuthManager {
-    
-    func loadAuthenticationPolicy() -> AuthenticationPolicy {
-        guard let settings = try? settingsManager.loadSettings() else {
-            return AuthenticationPolicy.defaultPolicy
-        }
-        let preferredAuth: AuthenticationMethod = settings.useBiometricsForAuth ?? false ? availableBiometric ?? .password : .password
-        return AuthenticationPolicy(preferredAuthenticationMethod: preferredAuth, authenticationExpirySeconds: 60)
-    }
+
     
     func reauthorizeForPassword() {
         authState = .unauthenticated

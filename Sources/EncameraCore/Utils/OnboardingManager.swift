@@ -58,14 +58,11 @@ public enum OnboardingManagerError: Error, Equatable {
             return true
         case (.unknownError, .unknownError):
             return true
-        case (.settingsManagerError(let error1), .settingsManagerError(let error2)):
-            return error1 == error2
         case (.couldNotSerialize, _), (_, .couldNotSerialize),
              (.couldNotDeserialize, _), (_, .couldNotDeserialize),
              (.couldNotGetFromUserDefaults, _), (_, .couldNotGetFromUserDefaults),
              (.incorrectStateForOperation, _), (_, .incorrectStateForOperation),
-             (.unknownError, _), (_, .unknownError),
-             (.settingsManagerError, _), (_, .settingsManagerError):
+             (.unknownError, _), (_, .unknownError):
             return false
         }
     }
@@ -74,13 +71,12 @@ public enum OnboardingManagerError: Error, Equatable {
     case couldNotDeserialize
     case couldNotGetFromUserDefaults
     case incorrectStateForOperation
-    case settingsManagerError(SettingsManagerError)
     case unknownError
 }
 
 public protocol OnboardingManaging {
-    init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager)
-    func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws
+    init(keyManager: KeyManager, authManager: AuthManager)
+    func saveOnboardingState(_ state: OnboardingState, authenticationConfiguration: AuthenticationConfiguration) async throws
 }
 
 public class OnboardingManagerObservable {
@@ -104,12 +100,10 @@ public class OnboardingManager: OnboardingManaging {
     
     private var keyManager: KeyManager
     private var authManager: AuthManager
-    private var settingsManager: SettingsManager
-    
-    public required init(keyManager: KeyManager, authManager: AuthManager, settingsManager: SettingsManager) {
+
+    public required init(keyManager: KeyManager, authManager: AuthManager) {
         self.keyManager = keyManager
         self.authManager = authManager
-        self.settingsManager = settingsManager
         self.observables = OnboardingManagerObservable()
     }
     
@@ -117,33 +111,12 @@ public class OnboardingManager: OnboardingManaging {
         UserDefaultUtils.removeObject(forKey: .onboardingState)
     }
     
-    func validate(state: OnboardingState, settings: SavedSettings) throws {
-
-        guard case .completed = state else {
-            throw OnboardingManagerError.incorrectStateForOperation
-        }
-        
-        do {
-            try settingsManager.validate(settings)
-        } catch let validationError as SettingsManagerError {
-            throw OnboardingManagerError.settingsManagerError(validationError)
-        }
-        
-    }
-    
-    public func saveOnboardingState(_ state: OnboardingState, settings: SavedSettings) async throws {
+    public func saveOnboardingState(_ state: OnboardingState, authenticationConfiguration: AuthenticationConfiguration) async throws {
 
         switch state {
         case .completed:
-            try validate(state: state, settings: settings)
-            do {
-                try settingsManager.saveSettings(settings)
-            } catch let settingsError as SettingsManagerError {
-                throw OnboardingManagerError.settingsManagerError(settingsError)
-            } catch {
-                throw OnboardingManagerError.unknownError
-            }
-            
+            try keyManager.setAuthenticationConfiguration(config: authenticationConfiguration)
+
         case .notStarted,
              .hasPasswordAndNotOnboarded,
              .hasOnboardingAndNoPassword:
@@ -168,7 +141,8 @@ public class OnboardingManager: OnboardingManaging {
 
         if state == .hasPasswordAndNotOnboarded {
             Task {
-                try await saveOnboardingState(.completed, settings: SavedSettings(useBiometricsForAuth: false))
+                let configuration = keyManager.getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [.passcode(.password)])
+                try await saveOnboardingState(.completed, authenticationConfiguration: configuration)
             }
 
             return .completed

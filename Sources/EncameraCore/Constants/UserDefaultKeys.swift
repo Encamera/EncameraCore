@@ -10,7 +10,6 @@ import Foundation
 public enum UserDefaultKey {
     
     
-    case authenticationPolicy
     case currentKey
     case onboardingState
     case directoryTypeKeyFor(album: Album)
@@ -82,8 +81,7 @@ public enum UserDefaultKey {
     var shouldSyncToiCloud: Bool {
         switch self {
         // MUST SYNC: Critical authentication and onboarding state
-        case .authenticationPolicy,
-             .onboardingState,
+        case .onboardingState,
              .savedSettings,
              .currentAlbumID,
              .showCurrentAlbumOnLaunch,

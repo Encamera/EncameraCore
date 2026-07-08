@@ -2,6 +2,14 @@ import Foundation
 import Combine
 
 public class DemoKeyManager: KeyManager {
+    public func getAuthenticationConfiguration() -> AuthenticationConfiguration? {
+        return AuthenticationConfiguration(enabledTypes: [.passcode(.password)])
+    }
+
+    public func setAuthenticationConfiguration(config: AuthenticationConfiguration) throws {
+
+    }
+
     public var isSyncEnabled: Bool = false
     
     public func setPassword(_ password: String, type: PasscodeType) throws {

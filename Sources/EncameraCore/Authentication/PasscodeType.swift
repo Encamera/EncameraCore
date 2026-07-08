@@ -2,7 +2,7 @@ import Foundation
 
 
 
-public enum PasscodeType: CaseIterable, Codable, Equatable, Identifiable {
+public enum PasscodeType: CaseIterable, Codable, Equatable, Identifiable, Hashable {
     public enum PasscodeLength: Int, Codable {
         case four = 4
         case six = 6
