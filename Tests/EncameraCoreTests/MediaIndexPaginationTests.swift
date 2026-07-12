@@ -62,7 +62,7 @@ final class MediaIndexPaginationTests: XCTestCase {
             .appendingPathComponent("index.encindex")
     }
 
-    /// Mirrors `InteractableMediaDiskAccess.materialize` — pure value construction.
+    /// Mirrors `InteractableMediaFileAccess.materialize` — pure value construction.
     private func materialize(_ entry: MediaIndexEntry, baseURL: URL) -> InteractableMedia<EncryptedMedia>? {
         var underlying: [EncryptedMedia] = []
         if entry.hasPhotoComponent {

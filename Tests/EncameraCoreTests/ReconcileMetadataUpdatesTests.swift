@@ -45,7 +45,7 @@ final class ReconcileMetadataUpdatesTests: XCTestCase {
         let reference = Date(timeIntervalSinceReferenceDate: 700_000_000)
         try setModificationDate(reference.addingTimeInterval(60), on: url)
 
-        let modified = InteractableMediaDiskAccess.idsModifiedSince(
+        let modified = DiskMediaBackend.idsModifiedSince(
             reference,
             among: [id],
             urlsByID: [id: [url]]
@@ -67,7 +67,7 @@ final class ReconcileMetadataUpdatesTests: XCTestCase {
         let reference = Date(timeIntervalSinceReferenceDate: 700_000_000)
         try setModificationDate(reference.addingTimeInterval(-60), on: url)
 
-        let modified = InteractableMediaDiskAccess.idsModifiedSince(
+        let modified = DiskMediaBackend.idsModifiedSince(
             reference,
             among: [id],
             urlsByID: [id: [url]]
@@ -93,7 +93,7 @@ final class ReconcileMetadataUpdatesTests: XCTestCase {
         try setModificationDate(reference.addingTimeInterval(-60), on: photo)
         try setModificationDate(reference.addingTimeInterval(60), on: video)
 
-        let modified = InteractableMediaDiskAccess.idsModifiedSince(
+        let modified = DiskMediaBackend.idsModifiedSince(
             reference,
             among: [id],
             urlsByID: [id: [photo, video]]
@@ -107,7 +107,7 @@ final class ReconcileMetadataUpdatesTests: XCTestCase {
     /// scan) is simply skipped — that branch belongs to the `removedIDs`
     /// path, not this one.
     func testIDWithNoURLsIsIgnored() {
-        let modified = InteractableMediaDiskAccess.idsModifiedSince(
+        let modified = DiskMediaBackend.idsModifiedSince(
             Date(timeIntervalSinceReferenceDate: 700_000_000),
             among: ["ghost-id"],
             urlsByID: [:]

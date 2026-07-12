@@ -38,7 +38,7 @@ public enum MediaIndexMigration {
         }
 
         for (index, album) in albumsNeedingIndex.enumerated() {
-            let access = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
+            let access = await InteractableMediaFileAccess(for: album, albumManager: albumManager)
             await access.rebuildIndex { filesRead, totalFiles in
                 await reporter.updateAlbumProgress(filesRead: filesRead, totalFiles: totalFiles)
             }

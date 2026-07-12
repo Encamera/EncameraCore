@@ -101,7 +101,7 @@ public class MediaEditHandler: DebugPrintable {
         taskManager.resetTimeEstimationState()
 
         currentEditTask = Task {
-            let fileAccess = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
+            let fileAccess = await InteractableMediaFileAccess(for: album, albumManager: albumManager)
             try await performEdit(task: task, fileAccess: fileAccess, progressHandler: progressHandler)
         }
 
@@ -131,7 +131,7 @@ public class MediaEditHandler: DebugPrintable {
 
     private func performEdit(
         task: EditTask,
-        fileAccess: InteractableMediaDiskAccess,
+        fileAccess: InteractableMediaFileAccess,
         progressHandler: ((EditProgressPhase) -> Void)?
     ) async throws {
         let media = task.mediaToEdit

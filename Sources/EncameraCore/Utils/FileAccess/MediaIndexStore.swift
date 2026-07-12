@@ -26,6 +26,19 @@ public actor MediaIndexStore {
     private let keyBytes: [UInt8]
     private let indexURL: URL
 
+    /// In-memory snapshot of the album's index, loaded lazily. The store is the
+    /// single owner of this cache: both backends mutate, persist, and read the
+    /// index exclusively through here.
+    private var cachedIndex: MediaIndex?
+    /// Timestamp the cached copy was written for (locally or read from disk), so a
+    /// newer on-disk write (e.g. a migration rebuild on another actor) is detected.
+    private var cacheTimestamp: Date?
+    /// Monotonic count of successful mutations (`apply`/`replace`) through this
+    /// store. A long-running reconcile captures it before scanning and passes it
+    /// to `replace(with:ifGenerationIs:)` so an incremental write that interleaved
+    /// with the scan is detected instead of clobbered.
+    private var generation: UInt64 = 0
+
     public init(album: Album) {
         self.keyBytes = album.key.keyBytes
         self.indexURL = Self.indexURL(for: album)
@@ -66,6 +79,121 @@ public actor MediaIndexStore {
         Self.excludeFromBackup(indexURL)
     }
 
+    // MARK: - Stateful cache + mutation envelope
+
+    /// Returns the in-memory index, loading it from disk on first access or when
+    /// the on-disk file is newer than the cached copy (e.g. after a migration
+    /// rebuild on a separate actor). Returns `nil` if no index has been built yet.
+    /// Moved verbatim from `DiskMediaBackend.mediaIndex()`.
+    public func current() -> MediaIndex? {
+        if cachedIndex != nil {
+            let diskDate = fileModificationDate()
+            if let diskDate, let cacheDate = cacheTimestamp, diskDate > cacheDate {
+                if let reloaded = load() {
+                    cachedIndex = reloaded
+                    cacheTimestamp = diskDate
+                    return reloaded
+                }
+            }
+            return cachedIndex
+        }
+        if let loaded = load() {
+            cachedIndex = loaded
+            // Use the index file's modification date — not `Date()` — so a newer
+            // on-disk write is correctly detected as such on the next read.
+            cacheTimestamp = fileModificationDate() ?? Date()
+            return loaded
+        }
+        return nil
+    }
+
+    /// Reads the authoritative on-disk index, refreshing the cache from it. Used by
+    /// the disk reconcile, which must diff against external writes rather than a
+    /// possibly-stale warm cache.
+    @discardableResult
+    public func reloadFromDisk() -> MediaIndex? {
+        guard let loaded = load() else { return nil }
+        cachedIndex = loaded
+        cacheTimestamp = fileModificationDate() ?? Date()
+        return loaded
+    }
+
+    /// The single mutation primitive: load the current index (or empty), apply
+    /// `body`, and save ONCE — but only when `body` actually changed the entries.
+    /// On a successful save the cache advances to the new state; if the save throws
+    /// the cache is left at its pre-mutation state (the Bug #14 rollback) and the
+    /// error propagates. A `body` that changes nothing skips the save and the
+    /// rewrite entirely (the no-op-save skip). Returns `body`'s result so callers
+    /// can drive their own side effects (e.g. the gallery bus).
+    @discardableResult
+    public func apply<R>(_ body: (inout [MediaIndexEntry]) -> R) throws -> R {
+        var index = current() ?? MediaIndex(entries: [])
+        let before = index.entries
+        let result = body(&index.entries)
+        guard index.entries != before else { return result }
+        try save(index)
+        cachedIndex = index
+        cacheTimestamp = fileModificationDate() ?? Date()
+        generation += 1
+        return result
+    }
+
+    /// Replace the whole index in one save (reconcile output / a full delta pass /
+    /// deleteAll). Updates the cache on success; on a save failure the cache is left
+    /// untouched and the error propagates.
+    public func replace(with entries: [MediaIndexEntry]) throws {
+        let index = MediaIndex(entries: entries)
+        try save(index)
+        cachedIndex = index
+        cacheTimestamp = fileModificationDate() ?? Date()
+        generation += 1
+    }
+
+    /// The mutation generation as of now — capture before a scan that will end in
+    /// `replace(with:ifGenerationIs:)`.
+    public func currentGeneration() -> UInt64 {
+        generation
+    }
+
+    /// `replace` guarded by a generation check: writes only if no other mutation
+    /// landed since the caller captured `expected`. Returns `false` — without
+    /// saving — when the index moved on, so the caller re-diffs against the
+    /// current state instead of clobbering the interleaved write.
+    @discardableResult
+    public func replace(with entries: [MediaIndexEntry], ifGenerationIs expected: UInt64) throws -> Bool {
+        guard generation == expected else { return false }
+        try replace(with: entries)
+        return true
+    }
+
+    /// Folds entries into the index through the shared `upsert` algebra. Returns
+    /// whether the index actually changed.
+    @discardableResult
+    public func upsert(_ entries: [MediaIndexEntry]) throws -> Bool {
+        try apply { current in
+            var changed = false
+            for entry in entries {
+                if current.upsert(entry) { changed = true }
+            }
+            return changed
+        }
+    }
+
+    /// Drops whole entries by id (the disk delete/move fast path). Returns whether
+    /// the index actually changed.
+    @discardableResult
+    public func remove(ids: Set<String>) throws -> Bool {
+        try apply { $0.removeEntries(ids: ids) }
+    }
+
+    /// Clears a single component by record name (the per-component cloud path).
+    /// Returns whether the whole entry was removed (`true`) versus a component
+    /// merely cleared (`false`) — matching the shared algebra's signal.
+    @discardableResult
+    public func removeComponent(recordName: String) throws -> Bool {
+        try apply { $0.removeComponent(recordName: recordName) }
+    }
+
     // MARK: - File location
 
     /// `~/Library/Application Support/MediaIndex/` — a local, never-synced
@@ -89,6 +217,19 @@ public actor MediaIndexStore {
         FileManager.default.fileExists(atPath: indexURL(for: album).path)
     }
 
+    /// Synchronous count of entries in the album's index, or 0 if there is none.
+    /// CloudKit albums keep authoritative membership in this index (not as files on
+    /// disk), so counts must come from here, not a directory scan.
+    public static func entryCount(for album: Album) -> Int {
+        let url = indexURL(for: album)
+        guard let data = try? Data(contentsOf: url),
+              let plaintext = try? decrypt(data, keyBytes: album.key.keyBytes),
+              let entries = try? MediaIndexCodec.decode(plaintext) else {
+            return 0
+        }
+        return entries.count
+    }
+
     /// Deletes the entire on-disk media index cache for all albums. The index
     /// is a derived cache and will be rebuilt by `MediaIndexMigration` on the
     /// next app launch. Debug-only; used to test the index build flow.
@@ -104,6 +245,16 @@ public actor MediaIndexStore {
     public nonisolated func fileModificationDate() -> Date? {
         try? FileManager.default.attributesOfItem(atPath: indexURL.path)[.modificationDate] as? Date
     }
+
+    // MARK: - Test hooks
+
+    /// Test-only: the timestamp the warm cache was recorded for, so cache/reload
+    /// tests can assert it tracks the on-disk mtime. Reachable via `@testable`.
+    func _testCacheTimestamp() -> Date? { cacheTimestamp }
+
+    /// Test-only: the warm in-memory cache, without triggering a load or reload,
+    /// so a test can verify it is or isn't rolled back after a save failure.
+    func _testCachedIndex() -> MediaIndex? { cachedIndex }
 
     private static func excludeFromBackup(_ url: URL) {
         var url = url

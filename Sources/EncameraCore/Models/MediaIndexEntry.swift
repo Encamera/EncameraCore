@@ -53,6 +53,116 @@ public struct MediaIndexEntry: Equatable, Sendable {
     }
 }
 
+public extension MediaIndexEntry {
+    /// Combines this entry with another for the same media id, OR-ing the
+    /// photo/video component flags so a Live Photo keeps both components, and
+    /// keeping the first non-nil dates. The receiver's subtype wins. Used when a
+    /// Live Photo's photo and video components are indexed separately (e.g. the
+    /// video arriving after the photo) and must collapse into one entry.
+    func merged(with other: MediaIndexEntry) -> MediaIndexEntry {
+        MediaIndexEntry(
+            id: id,
+            hasPhotoComponent: hasPhotoComponent || other.hasPhotoComponent,
+            hasVideoComponent: hasVideoComponent || other.hasVideoComponent,
+            dateEncrypted: dateEncrypted ?? other.dateEncrypted,
+            dateTaken: dateTaken ?? other.dateTaken,
+            subtypeRawValue: subtypeRawValue
+        )
+    }
+}
+
+/// Parsing for component record names of the form `"mediaID#type"`, where
+/// `type` is a `MediaType` raw value. A bare `"mediaID"` with no suffix names
+/// a whole logical item. Centralized so every backend parses record names
+/// identically.
+public enum MediaRecordName {
+
+    private static let separator = "#"
+
+    /// The grouping id for a component record name (`"mediaID#type"` -> `"mediaID"`).
+    public static func mediaID(from recordName: String) -> String {
+        recordName.components(separatedBy: separator).first ?? recordName
+    }
+
+    /// Splits a record name into its media id and, when a valid `"#type"` suffix
+    /// is present, the named component's `MediaType`. Anything that is not exactly
+    /// `"mediaID#<valid-MediaType-raw-value>"` parses as `(id, nil)` — i.e. a
+    /// whole-item reference.
+    static func parse(_ recordName: String) -> (id: String, type: MediaType?) {
+        let parts = recordName.components(separatedBy: separator)
+        let id = parts.first ?? recordName
+        guard parts.count == 2, let raw = Int(parts[1]), let type = MediaType(rawValue: raw) else {
+            return (id, nil)
+        }
+        return (id, type)
+    }
+}
+
+public extension Array where Element == MediaIndexEntry {
+    /// Inserts `entry`, or merges it into the existing entry that shares its id.
+    /// The single incremental-write primitive backends use to keep the
+    /// index current as media is added. Returns whether the array actually
+    /// changed — an idempotent re-upsert of an identical component reports `false`
+    /// so callers (the mutation envelope, the coordinator's bus) can skip a no-op
+    /// save or a redundant gallery refresh.
+    @discardableResult
+    mutating func upsert(_ entry: MediaIndexEntry) -> Bool {
+        if let index = firstIndex(where: { $0.id == entry.id }) {
+            let merged = self[index].merged(with: entry)
+            guard merged != self[index] else { return false }
+            self[index] = merged
+            return true
+        }
+        append(entry)
+        return true
+    }
+
+    /// Removes a single component identified by its record name (`"mediaID#type"`).
+    /// For a Live Photo, only the named component's flag is cleared and the entry
+    /// survives as long as the other component remains; the entry is removed once
+    /// no component is left. A bare `"mediaID"` (no `#type`) removes the whole
+    /// entry. Returns whether the entry was removed (`true`) versus merely having
+    /// a component cleared (`false`); a record name with no matching entry counts
+    /// as removed. The shared remove primitive for the per-component cloud path.
+    @discardableResult
+    mutating func removeComponent(recordName: String) -> Bool {
+        let (id, type) = MediaRecordName.parse(recordName)
+        guard let idx = firstIndex(where: { $0.id == id }) else { return true }
+
+        // No component suffix => whole-item delete.
+        guard let type else {
+            remove(at: idx)
+            return true
+        }
+
+        let existing = self[idx]
+        let hasPhoto = existing.hasPhotoComponent && type != .photo
+        let hasVideo = existing.hasVideoComponent && type != .video
+        guard hasPhoto || hasVideo else {
+            remove(at: idx)
+            return true
+        }
+        self[idx] = MediaIndexEntry(id: existing.id,
+                                    hasPhotoComponent: hasPhoto,
+                                    hasVideoComponent: hasVideo,
+                                    dateEncrypted: existing.dateEncrypted,
+                                    dateTaken: existing.dateTaken,
+                                    subtypeRawValue: existing.subtypeRawValue)
+        return false
+    }
+
+    /// Removes every entry whose id is in `ids` — the disk delete/move fast path,
+    /// where every component of a logical item is dropped together. Returns
+    /// whether the index actually changed.
+    @discardableResult
+    mutating func removeEntries(ids: Set<String>) -> Bool {
+        guard !ids.isEmpty else { return false }
+        let before = count
+        removeAll { ids.contains($0.id) }
+        return count != before
+    }
+}
+
 /// Compact binary serialization for a list of `MediaIndexEntry`. Decoding is a
 /// single linear pass over the byte buffer — for 2000 entries this is well
 /// under a millisecond, where `JSONDecoder` would take 5-30ms.

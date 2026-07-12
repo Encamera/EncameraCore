@@ -233,7 +233,7 @@ public class MediaImportHandler: DebugPrintable {
         var wasCancelled = false
         
         currentImportTask = Task {
-            let fileAccess = await InteractableMediaDiskAccess(for: album, albumManager: albumManager)
+            let fileAccess = await InteractableMediaFileAccess(for: album, albumManager: albumManager)
             
             switch mediaSource {
             case .preloaded(let media):

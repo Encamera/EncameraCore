@@ -140,7 +140,7 @@ public class FileMoveHandler: DebugPrintable {
         var result: MoveResult = MoveResult(successCount: 0, failureCount: 0, targetAlbumName: task.targetAlbumName)
         
         currentMoveTask = Task {
-            let fileAccess = await InteractableMediaDiskAccess(for: targetAlbum, albumManager: albumManager)
+            let fileAccess = await InteractableMediaFileAccess(for: targetAlbum, albumManager: albumManager)
             let counts = try await performMove(task: task, fileAccess: fileAccess)
             return MoveResult(
                 successCount: counts.success,

@@ -320,7 +320,7 @@ public actor DiskFileAccess: DebugPrintable {
     // MARK: - Enumeration with Metadata
     
     /// Enumerates encrypted media with metadata for sorting and filtering
-    /// This is the low-level implementation used by InteractableMediaDiskAccess
+    /// This is the low-level implementation used by InteractableMediaFileAccess
     /// - Parameters:
     ///   - sortOption: How to sort results (default: dateEncrypted descending)
     ///   - filterOptions: Media subtypes to include (default: all)
@@ -1164,15 +1164,6 @@ extension DiskFileAccess {
         operationBus.didDelete(deletedMedia)
     }
 
-    public func deleteMediaForKey() async throws {
-
-        guard let url = directoryModel?.baseURL else {
-            throw FileAccessError.missingPrivateKey
-        }
-
-        try FileManager.default.removeItem(at: url)
-        Self.previewCache.removeAllObjects()
-    }
     public func deleteAllMedia() async throws {
         for type in StorageType.allCases {
             guard case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: type) else {

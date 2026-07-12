@@ -135,61 +135,84 @@ public protocol FileEnumerator {
     func totalStoredMediaCount() async -> Int
 }
 
-// Default implementation for backwards compatibility
-public extension FileEnumerator {
-    func enumerateMediaWithMetadata(
-        sortBy: MediaSortOption = .dateEncrypted(ascending: false),
-        filterBy: MediaFilterOptions = .all
-    ) async -> [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] {
-        return [] // Default empty - concrete types implement
-    }
-
-    func totalStoredMediaCount() async -> Int {
-        return 0
-    }
-}
+// NOTE: the empty-returning default impls of `enumerateMediaWithMetadata` and
+// `totalStoredMediaCount` were intentionally removed. Silent stubs defeat the
+// compiler's conformance enforcement — every backend must implement them.
 
 public protocol FileReader: FileEnumerator {
-    
-    func configure(for album: Album, albumManager: AlbumManaging) async
-    func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> UIImage?
+
     func loadMediaPreview<T: MediaDescribing>(for media: InteractableMedia<T>) async throws -> PreviewModel
     func loadMedia<T: MediaDescribing>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia>
+    func loadMediaToURLs(
+        media: InteractableMedia<EncryptedMedia>,
+        progress: @escaping (FileLoadingStatus) -> Void) async throws -> [URL]
+    /// Backend-level: resolve the album's leading/cover thumbnail by id.
+    /// (The permission-gated variant lives on `FileAccess`, the facade.)
+    func loadLeadingThumbnail(coverImageId: String?) async throws -> UIImage?
 }
 
 public protocol FileWriter: FileEnumerator {
-        
+
     @discardableResult func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>?
     @discardableResult func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel
     func copy(media: InteractableMedia<EncryptedMedia>) async throws
     func move(media: InteractableMedia<EncryptedMedia>, progress: ((FileLoadingStatus) -> Void)?) async throws
     func delete(media: [InteractableMedia<EncryptedMedia>]) async throws
-    func deleteMediaForKey() async throws
     func deleteAllMedia() async throws
     func setKeyUUIDForExistingFiles() async throws
-    static func deleteThumbnailDirectory() throws
 }
 
-// Default implementation for backwards compatibility
+// Real convenience overloads (not silent stubs): default the metadata / progress
+// arguments so callers can omit them.
 public extension FileWriter {
     func save(media: InteractableMedia<CleartextMedia>, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
         return try await save(media: media, metadata: nil, progress: progress)
     }
-}
 
-// Default implementation for backwards compatibility
-public extension FileWriter {
     func move(media: InteractableMedia<EncryptedMedia>) async throws {
         try await move(media: media, progress: nil)
     }
 }
 
-public protocol FileAccess: FileEnumerator, FileReader, FileWriter {
+/// The per-album backend contract: everything a disk or cloud backend must do.
+/// Composed from the existing `FileReader` / `FileWriter` protocols plus the two
+/// genuinely-new backend responsibilities (`reconcile`, `sourceURL`). NOT a
+/// parallel stack.
+///
+/// (The `: Actor` refinement proposed by the migration plan was dropped: several
+/// conformers of `FileAccess` — `DemoFileEnumerator` and the test mocks — are
+/// plain classes, so constraining the protocol to actors would break them. All
+/// real backends are still actors regardless.)
+public protocol MediaBackend: FileReader, FileWriter {
+    /// Brings the album's media index in sync with its backing store. Disk does a
+    /// directory scan (driving `onProgress` as it reads metadata); CloudKit does a
+    /// delta sync and ignores `onProgress`. Returns whether the index changed.
+    @discardableResult
+    func reconcile(
+        onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)?
+    ) async -> Bool
+
+    /// The on-disk URL where a component's ciphertext lives for this backend —
+    /// `id.ext` for disk, the `id#type` blob-cache path for CloudKit. Lets the
+    /// facade materialize index entries without type-checking the backend.
+    func sourceURL(id: String, type: MediaType) async -> URL
+
+    /// The album's current media index — served warm from an in-memory cache
+    /// when possible, otherwise loaded from the backing store (reloading if the
+    /// on-disk file is newer than the cache). The backend owns its index: it is
+    /// written incrementally on every mutation and rebuilt by `reconcile`, so
+    /// this is the single read path the facade's pager draws from. Returns `nil`
+    /// when no index has been built yet.
+    func mediaIndex() async -> MediaIndex?
+}
+
+/// The facade contract (what app callers depend on): a full backend PLUS the
+/// orchestration-level extras that are not a backend's job.
+public protocol FileAccess: MediaBackend {
     init()
     init(for album: Album, albumManager: AlbumManaging) async
-    func loadMediaToURLs(
-        media: InteractableMedia<EncryptedMedia>,
-        progress: @escaping (FileLoadingStatus) -> Void) async throws -> [URL]
+    func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> UIImage?
+    static func deleteThumbnailDirectory() throws
 }
 
 extension FileAccess {

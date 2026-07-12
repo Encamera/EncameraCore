@@ -10,7 +10,7 @@
 
 import Foundation
 
-/// Test-only configuration that `InteractableMediaDiskAccess` and
+/// Test-only configuration that `InteractableMediaFileAccess` and
 /// `GalleryGridViewModel` consult so UI tests can deterministically
 /// reproduce edge cases (failed materializations, smaller page sizes, etc.).
 public enum MediaIndexTestHooks {
