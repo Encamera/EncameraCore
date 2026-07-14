@@ -11,6 +11,13 @@ public enum AlbumError: Error, CustomStringConvertible {
     case albumExists
     case albumNotFoundAtSourceLocation
     case noCurrentKeySet
+    /// iCloud Drive album storage is deprecated. Once the CloudKit feature flag is on,
+    /// no new `.icloud` albums may be created or moved into — CloudKit is the only
+    /// cloud-backed option going forward.
+    case iCloudDriveDeprecated
+    /// Moving an album to CloudKit is a resumable, long-running upload — it must go
+    /// through `CloudKitMigrationManager`, never the synchronous `moveAlbum`.
+    case migrationRequiredForCloudKit
 
     public var description: String {
         switch self {
@@ -22,6 +29,10 @@ public enum AlbumError: Error, CustomStringConvertible {
             return L10n.albumNotFoundAtSourceLocation
         case .noCurrentKeySet:
             return L10n.noKeyAvailable
+        case .iCloudDriveDeprecated:
+            return "iCloud Drive albums are no longer supported. Use CloudKit instead."
+        case .migrationRequiredForCloudKit:
+            return "Moving an album to iCloud must go through the migration flow."
         }
     }
 }
@@ -57,9 +68,24 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         return albumMediaCount(album: currentAlbum)
     }
 
-    public var defaultStorageForAlbum: StorageType {
+    private var _defaultStorageForAlbum: StorageType {
         didSet {
-            UserDefaultUtils.set(defaultStorageForAlbum.rawValue, forKey: .defaultStorageLocation)
+            UserDefaultUtils.set(_defaultStorageForAlbum.rawValue, forKey: .defaultStorageLocation)
+        }
+    }
+
+    public var defaultStorageForAlbum: StorageType {
+        get {
+            // iCloud Drive is deprecated once CloudKit is active. A `.icloud` default may
+            // still be persisted from before the flag flipped on — never hand it back, or
+            // the picker-less quick-create paths would attempt a deprecated album.
+            if _defaultStorageForAlbum == .icloud, FeatureToggle.isEnabled(feature: .cloudKitStorage) {
+                return .local
+            }
+            return _defaultStorageForAlbum
+        }
+        set {
+            _defaultStorageForAlbum = newValue
         }
     }
 
@@ -128,8 +154,17 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                     return mapToAlbum(url, .icloud)
                 }
         }
+        // CloudKit albums keep a discovery marker under the CloudKit albums root (their
+        // blobs live in CloudKit + a hashed cache). Scan unconditionally — the marker
+        // only exists if a CloudKit album was created — so they appear in the grid and
+        // get reconciled by the push fan-out.
+        let cloudKitAlbums = CloudKitStorageModel.enumerateAlbumsDirectory()
+            .compactMap { url -> Album? in
+                return mapToAlbum(url, .cloudKit)
+            }
         return Set(localAlbums)
             .union(Set(iCloudAlbums))
+            .union(Set(cloudKitAlbums))
             .filter { includingHidden || !isAlbumHidden($0) }
             .sorted(by: { $0.creationDate < $1.creationDate })
     }
@@ -158,9 +193,9 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // Initialize defaultStorageForAlbum first (before any callbacks can fire)
         if let defaultStorageLocationValue = UserDefaultUtils.string(forKey: .defaultStorageLocation),
            let defaultStorageLocation = StorageType(rawValue: defaultStorageLocationValue) {
-            self.defaultStorageForAlbum = defaultStorageLocation
+            self._defaultStorageForAlbum = defaultStorageLocation
         } else {
-            self.defaultStorageForAlbum = .local
+            self._defaultStorageForAlbum = .local
         }
 
         // Set up synced store if provided (after all properties are initialized)
@@ -196,12 +231,25 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // UserDefaults — e.g. the Settings "Hidden Albums" list.
         albumsSyncedStore?.deleteAlbum(name: album.name)
         UserDefaultUtils.set(nil, forKey: .isAlbumHidden(name: album.name))
+        // CloudKit albums: also remove the discovery marker + synced index.
+        // `.local` albums skip this entirely.
+        //
+        // KNOWN GAP (until album tombstoning lands in the EncAlbum-records chunk):
+        // this deletes only the LOCAL marker, cache, and index — the album's
+        // CloudKit records and blobs remain server-side. Recreating an album with
+        // the same name and key derives the same albumID hash, so the next sync
+        // (no on-disk index → token reset → full resync) resurrects every
+        // "deleted" photo. The EncAlbum tombstone + cascade delete closes this.
+        if album.storageOption == .cloudKit {
+            let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
+            try? fileManager.removeItem(at: marker)
+            try? fileManager.removeItem(at: MediaIndexStore.indexURL(for: album))
+        }
 
         albumOperationSubject.send(.albumDeleted(album: album))
         broadcastAlbumsUpdated()
         currentAlbum = fetchAlbumsFromFilesystem().first
     }
-
 
     public func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>) {
         UserDefaultUtils.set(image.id, forKey: .albumCoverImage(albumName: album.name))
@@ -224,6 +272,12 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album  {
+        // iCloud Drive album creation is deprecated. Once CloudKit is active no new
+        // `.icloud` albums may be created via any caller (UI pickers already hide the
+        // option via DataStorageAvailabilityUtil; this is the authoritative backstop).
+        if storageOption == .icloud, FeatureToggle.isEnabled(feature: .cloudKitStorage) {
+            throw AlbumError.iCloudDriveDeprecated
+        }
         guard let currentKey = keyManager.currentKey else {
             throw AlbumError.noCurrentKeySet
         }
@@ -257,6 +311,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             attributes: nil
         )
 
+        // CloudKit albums store blobs in CloudKit + a hashed cache (not an `Album_*`
+        // dir), so also write a discovery marker so the album appears in the grid and
+        // survives relaunch. `.local` albums never do this — they stay pure-local.
+        if storageOption == .cloudKit {
+            let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
+            try? fileManager.createDirectory(at: marker, withIntermediateDirectories: true)
+        }
+
         printDebug("Directory created successfully")
         printDebug("Broadcasting album creation")
         albumOperationSubject.send(.albumCreated(album: album))
@@ -266,6 +328,21 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     
     public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
+        // Moving an album into iCloud Drive creates a new iCloud Drive album, which is
+        // deprecated once CloudKit is active. The move picker already hides the option
+        // via DataStorageAvailabilityUtil, so this is only a developer backstop: throw
+        // in DEBUG to catch a forgotten call site, but stay lenient in release so a
+        // missed guard isn't catastrophic for shipped builds.
+        #if DEBUG
+        if toStorage == .icloud, FeatureToggle.isEnabled(feature: .cloudKitStorage) {
+            throw AlbumError.iCloudDriveDeprecated
+        }
+        #endif
+        // A CloudKit move is a resumable upload, never a synchronous file move — it has
+        // no correct path here, so funnel every caller through the migration engine.
+        if toStorage == .cloudKit {
+            throw AlbumError.migrationRequiredForCloudKit
+        }
         let fileManager = FileManager.default
         let currentStorage = album.storageOption.modelForType.init(album: album)
         if toStorage == .icloud {
@@ -367,6 +444,11 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     public func albumMediaCount(album: Album) -> Int {
+        // CloudKit albums keep membership in the synced index, not as on-disk files —
+        // a directory scan would report 0 on a metadata-only device.
+        if album.storageOption == .cloudKit {
+            return MediaIndexStore.entryCount(for: album)
+        }
         let storageModel = storageModel(for: album)
         return storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]) ?? 0
     }

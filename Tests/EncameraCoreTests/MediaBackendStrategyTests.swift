@@ -122,6 +122,19 @@ final class MediaBackendStrategyTests: XCTestCase {
         let access = await InteractableMediaFileAccess(for: album, albumManager: makeManager(for: album))
         let backend = await access._testBackend()
         XCTAssertTrue(backend is DiskMediaBackend, "A .local album must select DiskMediaBackend")
+        XCTAssertFalse(backend is CloudKitFileAccess, "A .local album must not construct a CloudKitFileAccess")
+    }
+
+    func testInteractableMediaFileAccessSelectsCloudBackendForCloudKitAlbum() async {
+        let previous = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in MockCloudKitMediaStore() }
+        defer { CloudKitStoreProvider.makeStore = previous }
+
+        let album = makeAlbum(storage: .cloudKit)
+        let access = await InteractableMediaFileAccess(for: album, albumManager: makeManager(for: album))
+        let backend = await access._testBackend()
+        XCTAssertTrue(backend is CloudKitFileAccess, "A .cloudKit album must select CloudKitFileAccess")
+        XCTAssertFalse(backend is DiskMediaBackend)
     }
 
     // MARK: - Disk backend behavior parity (grouping)
@@ -243,6 +256,30 @@ final class MediaBackendStrategyTests: XCTestCase {
         XCTAssertFalse(MediaIndexStore.hasIndex(for: album), "A cancelled reconcile must not write the index")
     }
 
+    // MARK: - Cloud-specific decisions (§6)
+
+    func testSetKeyUUIDForExistingFilesIsNoOpForCloudAlbum() async throws {
+        let album = makeAlbum(storage: .cloudKit)
+        let store = MockCloudKitMediaStore()
+        let access = await CloudKitFileAccess(album: album, albumManager: makeManager(for: album), store: store)
+
+        // Must not throw and must not touch CloudKit — key-UUID xattrs are a
+        // local-disk concern (decision §6.1).
+        try await access.setKeyUUIDForExistingFiles()
+        XCTAssertEqual(store.uploadCalls, [], "Cloud setKeyUUIDForExistingFiles must be a pure no-op")
+    }
+
+    func testCloudLeadingThumbnailUsesCloudPath() async throws {
+        let album = makeAlbum(storage: .cloudKit)
+        let store = MockCloudKitMediaStore()
+        let access = await CloudKitFileAccess(album: album, albumManager: makeManager(for: album), store: store)
+
+        // The cover must be resolved through the CloudKit eager-thumbnail fetch
+        // (decision §6.2), not a local disk read.
+        _ = try? await access.loadLeadingThumbnail(coverImageId: UUID().uuidString)
+        XCTAssertGreaterThan(store.fetchThumbnailCount, 0, "Cloud cover resolution must fetch the eager thumbnail from CloudKit")
+    }
+
     // MARK: - Conformance
 
     func testMediaBackendConformance() async {
@@ -251,7 +288,7 @@ final class MediaBackendStrategyTests: XCTestCase {
         let facade: any FileAccess = InteractableMediaFileAccess()
         // `any FileAccess` must also satisfy `any MediaBackend` (it refines it).
         let facadeAsBackend: any MediaBackend = facade
-        XCTAssertTrue(disk is DiskMediaBackend)
+        XCTAssertFalse(disk is CloudKitFileAccess)
         XCTAssertTrue(mock is MediaBackendMock)
         XCTAssertTrue(facadeAsBackend is InteractableMediaFileAccess)
     }

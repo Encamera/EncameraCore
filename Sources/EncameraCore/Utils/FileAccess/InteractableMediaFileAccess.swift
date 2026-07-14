@@ -8,9 +8,10 @@ public actor InteractableMediaFileAccess: FileAccess {
     public init() {
     }
 
-    /// The single per-album backend, chosen in `configure(for:)`. The facade
-    /// talks to it only through `MediaBackend` — no storage-specific branching
-    /// across the I/O methods.
+    /// The single per-album backend, chosen in `configure(for:)`. A `.cloudKit`
+    /// album gets a `CloudKitFileAccess`; everything else gets a `DiskMediaBackend`.
+    /// The facade talks to it only through `MediaBackend` — no `if cloudKit { … }`
+    /// branching across the I/O methods.
     private var backend: (any MediaBackend)?
     private var album: Album?
     private var albumManager: AlbumManaging?
@@ -32,11 +33,22 @@ public actor InteractableMediaFileAccess: FileAccess {
         self.directoryModel = albumManager.storageModel(for: album)
 
         // The single backend decision point. Pick exactly one backend for the
-        // album's storage option.
+        // album's storage option. The feature flag gates whether NEW cloudKit
+        // albums can be *created* (availability), not whether an existing one uses
+        // CloudKit — otherwise toggling the flag off would strand a cloudKit album.
         if albumChanged || backend == nil {
-            let disk = DiskMediaBackend()
-            await disk.configure(for: album, albumManager: albumManager)
-            self.backend = disk
+            if album.storageOption == .cloudKit {
+                // `start()` is CloudKit-concrete (intentionally not in the
+                // protocol); construct with the concrete type so we can warm it up
+                // without a type-check, then store it as `any MediaBackend`.
+                let cloud = await CloudKitFileAccess(album: album, albumManager: albumManager)
+                self.backend = cloud
+                Task { await cloud.start() }
+            } else {
+                let disk = DiskMediaBackend()
+                await disk.configure(for: album, albumManager: albumManager)
+                self.backend = disk
+            }
         } else {
             // Same album, refreshed: re-point the existing backend at the album's
             // (possibly updated) directory model.

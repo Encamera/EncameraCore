@@ -585,6 +585,19 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         try await first.value
     }
 
+    /// The registry hands back one coordinator per album id so the active album and
+    /// the push fan-out share in-memory state.
+    func testCoordinatorRegistryReturnsSameInstance() async {
+        let registry = CloudKitCoordinatorRegistry()
+        let make: () -> CloudKitSyncCoordinator = {
+            CloudKitSyncCoordinator(albumID: "a1", store: MockCloudKitMediaStore(),
+                                    cache: CloudKitBlobCache.shared, indexStore: self.makeIndexStore())
+        }
+        let c1 = await registry.coordinator(forAlbumID: "a1", make: make)
+        let c2 = await registry.coordinator(forAlbumID: "a1", make: make)
+        XCTAssertTrue(c1 === c2, "Same album id must reuse one coordinator")
+    }
+
     /// After an `upload`, reading the index must serve from the store's warm cache
     /// rather than re-decrypting the file on every access — the asymmetry that the
     /// cloud path used to have (no cache at all) is gone now that the coordinator

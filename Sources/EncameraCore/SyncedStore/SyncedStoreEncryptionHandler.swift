@@ -219,19 +219,25 @@ public class SyncedStoreEncryptionHandler {
         guard let keyBytes = keyBytes else {
             throw SyncedStoreEncryptionError.noEncryptionKeyAvailable
         }
-        
-        let messageBytes = Array(value.utf8)
-        
-        // Use BLAKE2b keyed hash (16 bytes output for compact keys)
-        guard let hash = sodium.genericHash.hash(
-            message: messageBytes,
+        guard let hash = Self.keyedHash(value, keyBytes: keyBytes) else {
+            throw SyncedStoreEncryptionError.encryptionFailed
+        }
+        return hash
+    }
+
+    /// The keyed-hash primitive behind `hashPrimaryKey`, usable directly from raw
+    /// key bytes (e.g. the CloudKit `albumID` derivation, which has an album key
+    /// but no `KeyManager`). BLAKE2b keyed, 16-byte digest, base64-encoded. This
+    /// is the single source of truth for the deterministic, non-reversible,
+    /// cross-device-stable id contract.
+    public static func keyedHash(_ value: String, keyBytes: [UInt8]) -> String? {
+        guard let hash = Sodium().genericHash.hash(
+            message: Array(value.utf8),
             key: keyBytes,
             outputLength: 16
         ) else {
-            throw SyncedStoreEncryptionError.encryptionFailed
+            return nil
         }
-        
-        // Convert to base64 for safe dictionary key usage
         return Data(hash).base64EncodedString()
     }
     
