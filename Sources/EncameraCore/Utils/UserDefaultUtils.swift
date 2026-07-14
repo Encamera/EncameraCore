@@ -183,8 +183,7 @@ public struct UserDefaultUtils {
         }
         return defaults.value(forKey: key.rawValue)
     }
-    
-    public static func bool(forKey key: UserDefaultKey) -> Bool {
+    public static func boolNullable(forKey key: UserDefaultKey) -> Bool? {
         // First try iCloud if key should sync, fallback to local
         if key.shouldSyncToiCloud {
             let cloudValue = cloudStore.bool(forKey: key.rawValue)
@@ -194,7 +193,14 @@ public struct UserDefaultUtils {
                 return cloudValue
             }
         }
+        if defaults.object(forKey: key.rawValue) == nil {
+            return nil
+        }
         return defaults.bool(forKey: key.rawValue)
+
+    }
+    public static func bool(forKey key: UserDefaultKey) -> Bool {
+        return boolNullable(forKey: key) ?? false
     }
     
     public static func removeObject(forKey key: UserDefaultKey) {

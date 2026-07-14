@@ -28,6 +28,11 @@ With --interactive, the driver pauses for y/N confirmation on:
   • the chosen TestFlight build before attaching it to the App Store version
 
 Requires the `asc` library: pip install -e scripts/asc
+
+CloudKit schema: before shipping any build that reads/writes the CloudKit
+`EncMedia` record type, the schema MUST be deployed to the Production CloudKit
+environment or it fails at runtime. See Documentation/cloudkit-schema-deploy.md.
+Wiring this as an automated release gate is chunk 08 of the CloudKit migration.
 """
 
 import argparse

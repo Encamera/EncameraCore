@@ -1,0 +1,82 @@
+//
+//  CloudKitSchema.swift
+//  EncameraCore
+//
+//  Single source of truth for the CloudKit record/field/zone names used by the
+//  CloudKit storage plane. This is the only place these literals are spelled —
+//  every later chunk imports them so a rename here can never orphan deployed
+//  schema. See plans/cloudkit-migration/01-cloudkit-foundations.md.
+//
+
+import Foundation
+
+/// Canonical names for the Encamera CloudKit schema.
+///
+/// Privacy contract (see `00-overview.md` §schema):
+/// - `albumID` is `SyncedStoreEncryptionHandler.hashPrimaryKey(albumName)` — a
+///   deterministic, non-reversible BLAKE2b keyed hash that is stable across
+///   devices. It is **not** the per-encryption `encryptedPathComponent`.
+/// - `encThumbnail` and `encBlob` are ciphertext only (the existing ENC2 files).
+///   No plaintext name, location, or content ever reaches CloudKit.
+public enum CloudKitSchema {
+    /// The single CloudKit container for the app, shared by both the debug
+    /// (`me.freas.encamera-debug`) and release (`me.freas.encamera`) bundle IDs —
+    /// a container is not bound 1:1 to a bundle ID, it just has to be listed in
+    /// each App ID's iCloud entitlement.
+    ///
+    /// Isolation between debug and production data comes from the CloudKit
+    /// **environment**, not the container: Xcode-run debug builds use the
+    /// Development environment, distribution (TestFlight/App Store) builds use
+    /// Production. Schema is authored in Development and promoted to Production via
+    /// the CloudKit Dashboard's "Deploy Schema Changes" — see
+    /// Documentation/cloudkit-schema-deploy.md.
+    public static let containerID = "iCloud.app.encamera.Encamera"
+
+    /// Custom record zone. A custom zone is mandatory for
+    /// `CKFetchRecordZoneChangesOperation` delta sync (chunk 03).
+    public static let zoneName = "EncameraZone"
+
+    /// The single record type holding both the index fields and the two assets
+    /// (Option A from the decision doc): one `CKRecord` per media item.
+    public enum EncMedia {
+        public static let recordType = "EncMedia"
+        // record name == mediaID (a UUID string)
+        public static let albumID        = "albumID"          // String, QUERYABLE + SORTABLE index
+        public static let mediaID        = "mediaID"          // String
+        public static let mediaType      = "mediaType"        // Int64
+        public static let createdAt      = "createdAt"        // Date, QUERYABLE + SORTABLE
+        public static let sizeBytes      = "sizeBytes"        // Int64
+        public static let creationDevice = "creationDeviceID" // String
+        public static let deletedAt      = "deletedAt"        // Date? (tombstone)
+        public static let schemaVersion  = "schemaVersion"    // Int64
+        public static let encThumbnail   = "encThumbnail"     // CKAsset (small, eager)
+        public static let encBlob        = "encBlob"          // CKAsset (full ENC2, lazy)
+        /// `CKRecord.Reference` to the owning `EncAlbum` record, with delete action
+        /// `.deleteSelf` — deleting the album cascades to its media. The record's
+        /// `parent` is set to the same reference for future record sharing. The
+        /// plaintext `albumID` field above is retained as the queryable join key.
+        public static let albumRef       = "albumRef"         // CKRecord.Reference(.deleteSelf)
+    }
+
+    /// The album record. Makes CloudKit the authoritative, cross-device source of
+    /// truth for which albums exist (chunk 13). The record name is the same keyed
+    /// hash used as `EncMedia.albumID`, so the album↔media join needs no new id and
+    /// `saveAlbum` is idempotent.
+    ///
+    /// Privacy: `encName` is the album-name ciphertext (the existing
+    /// `Album.encryptedPathComponent`, encrypted with the album's own key). The hash
+    /// record name is one-way; a device recovers the plaintext name by matching a
+    /// synced album key against the hash, then decrypts `encName`.
+    public enum EncAlbum {
+        public static let recordType = "EncAlbum"
+        // record name == albumID hash (SyncedStoreEncryptionHandler.keyedHash(name, key))
+        public static let encName        = "encName"          // String (album name ciphertext)
+        public static let createdAt      = "createdAt"        // Date
+        public static let isHidden       = "isHidden"         // Int64 (0/1)
+        public static let deletedAt      = "deletedAt"        // Date? (tombstone)
+        public static let schemaVersion  = "schemaVersion"    // Int64
+    }
+
+    /// Bumped when the record layout changes; written to `schemaVersion`.
+    public static let currentSchemaVersion: Int64 = 1
+}

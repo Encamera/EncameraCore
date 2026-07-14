@@ -920,6 +920,8 @@
 "FeatureToggles.EditRotationDescription" = "Enable the edit button in the lightbox to rotate media";
 "FeatureToggles.DetectDuplicates" = "Detect Duplicates";
 "FeatureToggles.DetectDuplicatesDescription" = "Enable the find duplicates option in album menus";
+"FeatureToggles.CloudKitStorage" = "CloudKit Storage";
+"FeatureToggles.CloudKitStorageDescription" = "Use CloudKit instead of iCloud Drive for cloud albums (in development)";
 "Common.Cancel" = "Cancel";
 "Common.Confirm" = "Confirm";
 

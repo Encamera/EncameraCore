@@ -1196,6 +1196,10 @@ public enum L10n {
     public static let appIconSelection = L10n.tr("Localizable", "FeatureToggles.AppIconSelection", fallback: "App Icon Selection")
     /// Enable custom app icon selection
     public static let appIconSelectionDescription = L10n.tr("Localizable", "FeatureToggles.AppIconSelectionDescription", fallback: "Enable custom app icon selection")
+    /// CloudKit Storage
+    public static let cloudKitStorage = L10n.tr("Localizable", "FeatureToggles.CloudKitStorage", fallback: "CloudKit Storage")
+    /// Use CloudKit instead of iCloud Drive for cloud albums (in development)
+    public static let cloudKitStorageDescription = L10n.tr("Localizable", "FeatureToggles.CloudKitStorageDescription", fallback: "Use CloudKit instead of iCloud Drive for cloud albums (in development)")
     /// Debug Remote Content
     public static let debugRemoteContent = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContent", fallback: "Debug Remote Content")
     /// Enable debugging for remote CMS content

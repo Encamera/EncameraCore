@@ -19,6 +19,7 @@ public enum Feature: String, CaseIterable {
     case megapixelSettings
     case clearMediaIndex
     case keychainInspector
+    case cloudKitStorage
 
     var userDefaultsKey: String {
         return "feature_" +  rawValue
@@ -37,6 +38,7 @@ public enum Feature: String, CaseIterable {
         case .megapixelSettings: return "Megapixel Settings"
         case .clearMediaIndex: return "Clear Media Index"
         case .keychainInspector: return "Keychain Inspector"
+        case .cloudKitStorage: return L10n.FeatureToggles.cloudKitStorage
         }
     }
 
@@ -53,6 +55,20 @@ public enum Feature: String, CaseIterable {
         case .megapixelSettings: return "Allow selecting camera capture resolution (e.g. 12 MP, 48 MP)"
         case .clearMediaIndex: return "Show a debug action in Settings to delete the on-disk media index so its rebuild can be tested"
         case .keychainInspector: return "Show a debug screen in Settings that dumps every keychain item the app has stored, including iCloud-synced copies"
+        case .cloudKitStorage: return L10n.FeatureToggles.cloudKitStorageDescription
+        }
+    }
+
+    public var defaultValue: Bool? {
+        switch self {
+        case .cloudKitStorage, .clearMediaIndex:
+            #if DEBUG
+            return true
+            #endif
+            return nil
+
+        default:
+            return nil
         }
     }
 
@@ -98,7 +114,11 @@ public struct FeatureToggle {
     }
 
     public static func isEnabled(feature: Feature) -> Bool {
-        return UserDefaultUtils.bool(forKey: .featureToggle(feature: feature))
+        if let value: Bool = UserDefaultUtils.boolNullable(forKey: .featureToggle(feature: feature)) {
+            return value
+        } else {
+            return feature.defaultValue ?? false
+        }
     }
 
 }
