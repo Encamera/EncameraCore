@@ -23,7 +23,7 @@ public protocol AlbumManaging {
     func resetAlbumCover(album: Album)
     func getAlbumCoverImageId(album: Album) -> String?
     func isAlbumCoverImageDisabled(album: Album) -> Bool
-    func fetchAlbumsFromFilesystem(includingHidden: Bool) -> [Album]
+    func fetchAlbumsFromSources(includingHidden: Bool) -> [Album]
     func restoreCurrentAlbumFromUserDefaults()
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
     func storageModel(for album: Album) -> DataStorageModel?
@@ -33,10 +33,18 @@ public protocol AlbumManaging {
     func albumMediaCount(album: Album) -> Int
     func isAlbumHidden(_ album: Album) -> Bool
     func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album)
+    /// Materializes a CloudKit album discovered by the album reconciler (marker,
+    /// hidden state, broadcasts) so remote discovery goes through the manager —
+    /// keeping `albumOperationPublisher` observers and `currentAlbum` consistent —
+    /// instead of mutating the filesystem behind its back.
+    func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool)
 }
 
 public extension AlbumManaging {
-    func fetchAlbumsFromFilesystem() -> [Album] {
-        fetchAlbumsFromFilesystem(includingHidden: false)
+    func fetchAlbumsFromSources() -> [Album] {
+        fetchAlbumsFromSources(includingHidden: false)
     }
+
+    /// Default no-op so lightweight test/demo conformers need not implement it.
+    func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool) {}
 }

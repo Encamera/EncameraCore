@@ -443,6 +443,122 @@ final class CloudKitFileAccessTests: XCTestCase {
         try? FileManager.default.removeItem(at: encURL(for: album, id: id))
     }
 
+    func testCloudKitAlbumsSyncReconcilesInactiveAlbums() async throws {
+        let shared = InMemoryCloudKitMediaStore()
+        let prev = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in shared }
+        defer { CloudKitStoreProvider.makeStore = prev }
+
+        let album = makeAlbum()
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = album.key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        albumManager.albumsOnDisk = [album]
+
+        // Upload a photo so the cloud has a record for this album.
+        let access = await CloudKitFileAccess(album: album, albumManager: albumManager, store: shared)
+        let id = UUID().uuidString
+        _ = try await access.save(media: try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .data(Self.tinyPNG()), mediaType: .photo, id: id)
+        ]), metadata: nil, progress: { _ in })
+
+        // Simulate a device that hasn't built this album's index yet.
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+        XCTAssertEqual(MediaIndexStore.entryCount(for: album), 0)
+
+        // The fan-out sync must rebuild it without the album being "active".
+        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false)
+        await sync.syncAll()
+
+        XCTAssertEqual(MediaIndexStore.entryCount(for: album), 1, "syncAll must reconcile inactive CloudKit albums")
+        try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).baseURL)
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+    }
+
+    /// The delete path must NOT be gated on the `cloudKitStorage` flag:
+    /// `CloudKitAlbumsSync` keeps reconciling existing `.cloudKit` albums with the
+    /// flag off, so a flag-gated delete would enqueue no tombstone and the reconciler
+    /// would resurrect the album on the very device that deleted it.
+    func testDeleteTombstonesCloudKitRecordEvenWhenFlagOff() async throws {
+        let shared = InMemoryCloudKitMediaStore()
+        let prev = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in shared }
+        defer { CloudKitStoreProvider.makeStore = prev }
+
+        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
+        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
+        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
+
+        let album = makeAlbum()
+        let hash = try XCTUnwrap(SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes))
+        try await shared.saveAlbum(CloudKitAlbumUpload(albumID: hash,
+                                                       encName: album.encryptedPathComponent,
+                                                       createdAt: album.creationDate,
+                                                       isHidden: false))
+
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = album.key
+        let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+        albumManager.delete(album: album)
+        defer { CloudKitAlbumTombstoneQueue().remove(hash) }
+
+        // The tombstone save is fire-and-forget; wait for it to land in the store.
+        for _ in 0..<100 {
+            if let record = try await shared.fetchAllAlbums().first(where: { $0.albumID == hash }),
+               record.deletedAt != nil { break }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        let record = try await shared.fetchAllAlbums().first { $0.albumID == hash }
+        XCTAssertNotNil(record?.deletedAt,
+                        "Deleting a .cloudKit album with the flag off must still tombstone its EncAlbum record")
+    }
+
+    /// A `syncAll` that joins an in-flight run may have missed the fetch/reconcile
+    /// already past — the join must flag a re-run so the change it carries is honored
+    /// by one extra pass instead of silently dropped until the next trigger.
+    func testSyncAllJoinerMidRunTriggersExtraPass() async throws {
+        final class Flag: @unchecked Sendable {
+            private let lock = NSLock()
+            private var value = false
+            func set() { lock.lock(); value = true; lock.unlock() }
+            func isSet() -> Bool { lock.lock(); defer { lock.unlock() }; return value }
+        }
+        let released = Flag()
+        let store = MockCloudKitMediaStore()
+        store.fetchAllAlbumsGate = { while !released.isSet() { await Task.yield() } }
+
+        let album = makeAlbum()
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = album.key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        albumManager.albumsOnDisk = [album]
+
+        let prev = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in InMemoryCloudKitMediaStore() }
+        defer { CloudKitStoreProvider.makeStore = prev }
+
+        let suite = "test.cloudkit.albumssync.join"
+        UserDefaults(suiteName: suite)!.removePersistentDomain(forName: suite)
+        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false) { manager in
+            CloudKitAlbumReconciler(store: store,
+                                    keyManager: manager.keyManager,
+                                    albumManager: manager,
+                                    tombstoneQueue: CloudKitAlbumTombstoneQueue(defaults: UserDefaults(suiteName: suite)!))
+        }
+
+        let first = Task { await sync.syncAll() }
+        while store.fetchAllAlbumsCount < 1 { await Task.yield() }   // first pass is mid-run, held by the gate
+
+        let second = Task { await sync.syncAll() }                    // joins the in-flight run
+        while !(await sync.resyncRequested) { await Task.yield() }    // the join has been recorded
+        released.set()
+
+        await first.value
+        await second.value
+        XCTAssertEqual(store.fetchAllAlbumsCount, 2,
+                       "A syncAll joining mid-run must be honored by exactly one extra pass")
+    }
+
     func testMaterializedSourceUsesCacheRecordPath() async throws {
         let album = makeAlbum()
         let store = MockCloudKitMediaStore()
@@ -531,7 +647,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         keyManager.currentKey = key
         let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
 
-        let albums = albumManager.fetchAlbumsFromFilesystem(includingHidden: true)
+        let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
         XCTAssertTrue(albums.contains { $0.storageOption == .cloudKit && $0.name == name },
                       "A CloudKit album marker must be discoverable in the album list")
     }

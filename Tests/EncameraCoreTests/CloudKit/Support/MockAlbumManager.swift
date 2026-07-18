@@ -19,6 +19,12 @@ final class MockAlbumManager: AlbumManaging {
     var currentAlbumMediaCount: Int? { nil }
     var albumsOnDisk: [Album] = []
 
+    // Instrumentation for reconciler tests
+    private(set) var deletedAlbums: [Album] = []
+    private(set) var adoptedAlbums: [(name: String, isHidden: Bool)] = []
+    private(set) var setHiddenCalls: [(name: String, isHidden: Bool)] = []
+    var hiddenAlbumNames: Set<String> = []
+
     init(keyManager: KeyManager) {
         self.keyManager = keyManager
     }
@@ -35,13 +41,20 @@ final class MockAlbumManager: AlbumManaging {
         album.storageOption.modelForType.init(album: album)
     }
 
-    func delete(album: Album) {}
+    func delete(album: Album) {
+        deletedAlbums.append(album)
+        albumsOnDisk.removeAll { $0.name == album.name }
+    }
+    func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool) {
+        adoptedAlbums.append((name: name, isHidden: isHidden))
+        albumsOnDisk.append(Album(name: name, storageOption: .cloudKit, creationDate: createdAt, key: key))
+    }
     func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>) {}
     func removeAlbumCover(album: Album) {}
     func resetAlbumCover(album: Album) {}
     func getAlbumCoverImageId(album: Album) -> String? { nil }
     func isAlbumCoverImageDisabled(album: Album) -> Bool { false }
-    func fetchAlbumsFromFilesystem(includingHidden: Bool) -> [Album] { albumsOnDisk }
+    func fetchAlbumsFromSources(includingHidden: Bool) -> [Album] { albumsOnDisk }
     func restoreCurrentAlbumFromUserDefaults() {}
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album {
         Album(name: name, storageOption: storageOption, creationDate: Date(), key: keyManager.currentKey!)
@@ -50,6 +63,9 @@ final class MockAlbumManager: AlbumManaging {
     func renameAlbum(album: Album, to newName: String) throws -> Album { album }
     func validateAlbumName(name: String) throws {}
     func albumMediaCount(album: Album) -> Int { 0 }
-    func isAlbumHidden(_ album: Album) -> Bool { false }
-    func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album) {}
+    func isAlbumHidden(_ album: Album) -> Bool { hiddenAlbumNames.contains(album.name) }
+    func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album) {
+        setHiddenCalls.append((name: album.name, isHidden: isAlbumHidden))
+        if isAlbumHidden { hiddenAlbumNames.insert(album.name) } else { hiddenAlbumNames.remove(album.name) }
+    }
 }

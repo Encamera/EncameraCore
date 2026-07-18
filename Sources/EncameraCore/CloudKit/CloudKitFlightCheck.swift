@@ -230,7 +230,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
     /// Returns how many albums were removed.
     @discardableResult
     public static func removeTestAlbums(albumManager: AlbumManaging) -> Int {
-        let testAlbums = albumManager.fetchAlbumsFromFilesystem(includingHidden: true)
+        let testAlbums = albumManager.fetchAlbumsFromSources(includingHidden: true)
             .filter { $0.name.hasPrefix(testAlbumNamePrefix) }
         for album in testAlbums {
             albumManager.delete(album: album)

@@ -111,6 +111,10 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             // Legacy path
             UserDefaultUtils.set(isAlbumHidden, forKey: .isAlbumHidden(name: album.name))
         }
+        // Keep the `EncAlbum` record's isHidden current (last-writer-wins) so a
+        // fresh device materializing the album picks up the latest state. The
+        // record is otherwise frozen at create-time. No-op for non-CloudKit albums.
+        pushCloudKitAlbumRecord(album)
         broadcastAlbumsUpdated()
     }
 
@@ -129,7 +133,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         return UserDefaultUtils.bool(forKey: .isAlbumHidden(name: album.name))
     }
 
-    public func fetchAlbumsFromFilesystem(includingHidden: Bool) -> [Album] {
+    public func fetchAlbumsFromSources(includingHidden: Bool) -> [Album] {
         let fileManager = FileManager.default
         let mapToAlbum: (URL, StorageType) -> Album? = { url, storageType in
             let directoryName = url.lastPathComponent
@@ -170,7 +174,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     public func restoreCurrentAlbumFromUserDefaults() {
-        let albums = fetchAlbumsFromFilesystem()
+        let albums = fetchAlbumsFromSources()
         if let currentAlbumID = UserDefaultUtils.string(forKey: .currentAlbumID),
            let foundAlbum = albums.first(where: { $0.id == currentAlbumID }) {
             currentAlbum = foundAlbum
@@ -180,7 +184,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     private func broadcastAlbumsUpdated() {
-        albumOperationSubject.send(.albumsUpdated(albums: fetchAlbumsFromFilesystem()))
+        albumOperationSubject.send(.albumsUpdated(albums: fetchAlbumsFromSources()))
     }
 
     /// Creates a new AlbumManager
@@ -231,24 +235,95 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // UserDefaults — e.g. the Settings "Hidden Albums" list.
         albumsSyncedStore?.deleteAlbum(name: album.name)
         UserDefaultUtils.set(nil, forKey: .isAlbumHidden(name: album.name))
-        // CloudKit albums: also remove the discovery marker + synced index.
-        // `.local` albums skip this entirely.
-        //
-        // KNOWN GAP (until album tombstoning lands in the EncAlbum-records chunk):
-        // this deletes only the LOCAL marker, cache, and index — the album's
-        // CloudKit records and blobs remain server-side. Recreating an album with
-        // the same name and key derives the same albumID hash, so the next sync
-        // (no on-disk index → token reset → full resync) resurrects every
-        // "deleted" photo. The EncAlbum tombstone + cascade delete closes this.
+        // CloudKit albums: also remove the discovery marker + synced index, and
+        // tombstone the `EncAlbum` record so the deletion propagates to other devices.
+        // KNOWN GAP: the tombstone only sets `deletedAt` — the record, its `EncMedia`
+        // records, and their blobs stay in the zone (`.deleteSelf` cascades only on a
+        // real record delete, which never happens here). Re-creating an album with the
+        // same name + key derives the same albumID, revives the record (`saveAlbum`
+        // clears `deletedAt`), and a fresh index + full resync then resurrects the
+        // "deleted" photos. Hard-delete/purge of the record and its media is a later
+        // chunk. `.local` albums skip this entirely. (chunk 13)
         if album.storageOption == .cloudKit {
             let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
             try? fileManager.removeItem(at: marker)
             try? fileManager.removeItem(at: MediaIndexStore.indexURL(for: album))
+            tombstoneCloudKitAlbumRecord(album)
         }
 
         albumOperationSubject.send(.albumDeleted(album: album))
         broadcastAlbumsUpdated()
-        currentAlbum = fetchAlbumsFromFilesystem().first
+        currentAlbum = fetchAlbumsFromSources().first
+    }
+
+    // MARK: - CloudKit album record sync (chunk 13)
+
+    /// Upsert the album's `EncAlbum` record so it syncs across devices. Fire-and-forget:
+    /// the on-disk marker already makes the album usable locally, and
+    /// `CloudKitAlbumReconciler` self-heals a failed/offline upload on the next sync.
+    /// No-op for non-CloudKit albums and when CloudKit is unavailable (the store guards
+    /// on account status, so the `try?` simply discards the unavailable error).
+    ///
+    /// Gated on the `cloudKitStorage` feature: `EncAlbum` records only matter when the
+    /// CloudKit plane is active, and the gate keeps a real `CloudKitMediaStore` (which
+    /// touches the live container) from being constructed in flag-off contexts.
+    private func pushCloudKitAlbumRecord(_ album: Album) {
+        guard FeatureToggle.isEnabled(feature: .cloudKitStorage),
+              album.storageOption == .cloudKit,
+              let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) else { return }
+        let upload = CloudKitAlbumUpload(albumID: hash,
+                                         encName: album.encryptedPathComponent,
+                                         createdAt: album.creationDate,
+                                         isHidden: isAlbumHidden(album))
+        let store = CloudKitStoreProvider.makeStore(hash)
+        Task { try? await store.saveAlbum(upload) }
+    }
+
+    /// Tombstone the album's `EncAlbum` record (cross-device delete). The durable
+    /// intent is persisted FIRST: a fire-and-forget save alone loses the delete when
+    /// the device is offline, the app is killed before the task runs, or the save
+    /// conflicts — and a live remote record with no local marker would then be
+    /// re-materialized by the album reconciler, resurrecting the "deleted" album on
+    /// this device and every other. The reconciler drains the queue and refuses to
+    /// re-materialize pending albums until the tombstone is confirmed.
+    ///
+    /// Deliberately NOT gated on the `cloudKitStorage` feature: a `.cloudKit` album
+    /// only exists from a flag-on period, and `CloudKitAlbumsSync.performSyncAll`
+    /// keeps reconciling such albums with the flag off — a flag gate here would let
+    /// the reconciler resurrect a flag-off delete (no tombstone queued, record still
+    /// live). Both paths share the same predicate: `.cloudKit` albums always sync.
+    private func tombstoneCloudKitAlbumRecord(_ album: Album) {
+        guard album.storageOption == .cloudKit,
+              let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) else { return }
+        let queue = CloudKitAlbumTombstoneQueue()
+        queue.enqueue(hash)
+        let store = CloudKitStoreProvider.makeStore(hash)
+        Task {
+            do {
+                try await store.tombstoneAlbum(albumID: hash)
+                queue.remove(hash)
+            } catch {
+                // Left queued — the album reconciler retries on its next pass.
+            }
+        }
+    }
+
+    /// `AlbumManaging.adoptCloudKitAlbum`: materialize an album the reconciler
+    /// discovered in CloudKit through the manager, so observers receive the same
+    /// broadcasts a locally created album produces (grid refresh, current-album
+    /// consistency) instead of the marker appearing behind everyone's back.
+    public func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool) {
+        let album = Album(name: name, storageOption: .cloudKit, creationDate: createdAt, key: key)
+        let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
+        try? FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
+        if isAlbumHidden(album) != isHidden {
+            setIsAlbumHidden(isHidden, album: album)
+        }
+        albumOperationSubject.send(.albumCreated(album: album))
+        broadcastAlbumsUpdated()
+        if currentAlbum == nil {
+            currentAlbum = album
+        }
     }
 
     public func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>) {
@@ -282,7 +357,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             throw AlbumError.noCurrentKeySet
         }
 
-        if let existingAlbum = fetchAlbumsFromFilesystem(includingHidden: true).first(where: { $0.name == name }) {
+        if let existingAlbum = fetchAlbumsFromSources(includingHidden: true).first(where: { $0.name == name }) {
             return existingAlbum
         }
 
@@ -313,10 +388,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
         // CloudKit albums store blobs in CloudKit + a hashed cache (not an `Album_*`
         // dir), so also write a discovery marker so the album appears in the grid and
-        // survives relaunch. `.local` albums never do this — they stay pure-local.
+        // survives relaunch. Then push the `EncAlbum` record so the album syncs to the
+        // user's other devices (chunk 13). `.local` albums never do either — they stay
+        // pure-local and never reach CloudKit.
         if storageOption == .cloudKit {
             let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
             try? fileManager.createDirectory(at: marker, withIntermediateDirectories: true)
+            pushCloudKitAlbumRecord(album)
         }
 
         printDebug("Directory created successfully")
@@ -401,7 +479,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // Validate the new name
         try validateAlbumName(name: newName)
 
-        let existingAlbums = fetchAlbumsFromFilesystem(includingHidden: true)
+        let existingAlbums = fetchAlbumsFromSources(includingHidden: true)
 
         // Check if an album with the new name already exists
         if existingAlbums.contains(where: { $0.name == newName }) {

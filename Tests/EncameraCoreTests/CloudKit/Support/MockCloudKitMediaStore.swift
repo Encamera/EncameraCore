@@ -131,8 +131,15 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         }
     }
 
+    private var _fetchAllAlbumsCount = 0
+    var fetchAllAlbumsCount: Int { locked { _fetchAllAlbumsCount } }
+    /// Awaited (when set) before returning, so a test can hold a sync pass open mid-run.
+    var fetchAllAlbumsGate: (@Sendable () async -> Void)?
+
     func fetchAllAlbums() async throws -> [CloudKitAlbumMetadata] {
-        locked { Array(_albums.values) }
+        locked { _fetchAllAlbumsCount += 1 }
+        if let gate = fetchAllAlbumsGate { await gate() }
+        return locked { Array(_albums.values) }
     }
 
     func tombstoneAlbum(albumID: String) async throws {

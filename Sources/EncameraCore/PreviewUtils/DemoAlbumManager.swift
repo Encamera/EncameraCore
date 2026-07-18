@@ -52,7 +52,7 @@ public class DemoAlbumManager: AlbumManaging {
 
     private var demoAlbums: [Album]
 
-    public func fetchAlbumsFromFilesystem(includingHidden _: Bool) -> [Album] {
+    public func fetchAlbumsFromSources(includingHidden _: Bool) -> [Album] {
         demoAlbums
     }
 

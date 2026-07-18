@@ -20,7 +20,7 @@ public enum MediaIndexMigration {
     /// albums that already have an index are skipped, and if none need building
     /// no work is done and no progress UI is shown.
     public static func run(albumManager: AlbumManaging) async {
-        let albums = albumManager.fetchAlbumsFromFilesystem(includingHidden: true)
+        let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
         let albumsNeedingIndex = albums.filter { !MediaIndexStore.hasIndex(for: $0) }
         guard !albumsNeedingIndex.isEmpty else {
             return

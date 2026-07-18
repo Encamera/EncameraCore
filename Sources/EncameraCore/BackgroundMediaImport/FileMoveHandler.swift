@@ -124,7 +124,7 @@ public class FileMoveHandler: DebugPrintable {
     private func executeMoveTask(_ task: MoveTask, albumManager: AlbumManaging) async throws -> MoveResult {
         printDebug("Executing move task: \(task.id)")
         
-        let availableAlbums = albumManager.fetchAlbumsFromFilesystem(includingHidden: true)
+        let availableAlbums = albumManager.fetchAlbumsFromSources(includingHidden: true)
 
         guard let targetAlbum = availableAlbums.first(where: { $0.id == task.targetAlbumId }) else {
             printDebug("Failed to find target album: \(task.targetAlbumId)")
