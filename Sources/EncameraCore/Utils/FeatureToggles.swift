@@ -21,9 +21,21 @@ public enum Feature: String, CaseIterable {
     case keychainInspector
     case cloudKitStorage
     case iCloudFlightCheck
+    case showDebugLogs
 
     var userDefaultsKey: String {
         return "feature_" +  rawValue
+    }
+
+    /// Cases shown in the feature toggles UI. The test RevenueCat key is a
+    /// simulated-store key the SDK hard-asserts against in release builds, so
+    /// that toggle only appears in DEBUG builds.
+    public static var displayedCases: [Feature] {
+        #if DEBUG
+        return allCases
+        #else
+        return allCases.filter { $0 != .enableTestRevenueCat }
+        #endif
     }
 
     public var title: String {
@@ -41,6 +53,7 @@ public enum Feature: String, CaseIterable {
         case .keychainInspector: return "Keychain Inspector"
         case .cloudKitStorage: return L10n.FeatureToggles.cloudKitStorage
         case .iCloudFlightCheck: return "iCloud Flight Check"
+        case .showDebugLogs: return "Debug Logs"
         }
     }
 
@@ -59,6 +72,7 @@ public enum Feature: String, CaseIterable {
         case .keychainInspector: return "Show a debug screen in Settings that dumps every keychain item the app has stored, including iCloud-synced copies"
         case .cloudKitStorage: return L10n.FeatureToggles.cloudKitStorageDescription
         case .iCloudFlightCheck: return "Show a Settings workbench that runs the real CloudKit save/read path end-to-end with dummy data to verify the iCloud container is working"
+        case .showDebugLogs: return "Capture every printDebug line in memory and show a floating button that opens a viewer to search, copy, or share them"
         }
     }
 
@@ -77,7 +91,7 @@ public enum Feature: String, CaseIterable {
 
     public var requiresConfirmation: Bool {
         switch self {
-        case .debugTracking, .enableTestRevenueCat:
+        case .debugTracking, .enableTestRevenueCat, .showDebugLogs:
             return true
         default:
             return false
@@ -88,6 +102,7 @@ public enum Feature: String, CaseIterable {
         switch self {
         case .debugTracking: return "Enable Debug Tracking"
         case .enableTestRevenueCat: return L10n.FeatureToggles.revenuecatToggleTitle
+        case .showDebugLogs: return "Enable Debug Logs"
         default: return nil
         }
     }
@@ -96,6 +111,7 @@ public enum Feature: String, CaseIterable {
         switch self {
         case .debugTracking: return "Analytics events will be captured in-app instead of sent to services. Continue?"
         case .enableTestRevenueCat: return L10n.FeatureToggles.revenuecatToggleMessage
+        case .showDebugLogs: return "Verbose internal log lines — including album names, file names and error details — will be held in memory until you disable this or quit the app, and can be copied or shared. Continue?"
         default: return nil
         }
     }
@@ -103,8 +119,10 @@ public enum Feature: String, CaseIterable {
 
 public struct FeatureToggle {
 
+    /// Routed through `setEnabled` rather than writing UserDefaults directly, so
+    /// `featureDidChange` stays a single choke point for in-memory mirrors.
     public static func enable(feature: Feature) {
-        UserDefaultUtils.set(true, forKey: .featureToggle(feature: feature))
+        setEnabled(feature: feature, enabled: true)
     }
 
     public static func toggle(feature: Feature) {
@@ -114,6 +132,24 @@ public struct FeatureToggle {
 
     public static func setEnabled(feature: Feature, enabled: Bool) {
         UserDefaultUtils.set(enabled, forKey: .featureToggle(feature: feature))
+        featureDidChange(feature, enabled: enabled)
+    }
+
+    /// Mirrors toggles that are cached in memory, so hot paths never have to read
+    /// UserDefaults.
+    ///
+    /// Every mutation funnels through `setEnabled` — the Feature Toggles screen,
+    /// the `encamera://featureToggle` deep link, and the UI-test launch
+    /// arguments all call it — so hooking here covers all of them at once.
+    private static func featureDidChange(_ feature: Feature, enabled: Bool) {
+        switch feature {
+        case .showDebugLogs:
+            // `printDebug` is on essentially every code path; it must not pay a
+            // UserDefaults read per line.
+            DebugLogBuffer.shared.setCapturing(enabled)
+        default:
+            break
+        }
     }
 
     public static func isEnabled(feature: Feature) -> Bool {
