@@ -30,12 +30,18 @@ public struct ZoneChangesResult {
 
 /// Everything the store needs from a CloudKit database, expressed at a level that
 /// is trivial to fake. The store stays free of `CKOperation` wiring.
+///
+/// Deliberately offers no long-lived-operation surface. Long-lived `CKOperation`s
+/// outlive the process and must be re-enqueued at most once per launch; adding one
+/// that the daemon already considers running raises an `NSException` that Swift
+/// cannot catch, so a second `add` is a guaranteed process kill. Since the store is
+/// constructed many times per launch (one per album namespace) there is no safe
+/// place to do that re-enqueue, and the durable `MigrationPlan` already provides the
+/// resumability it would have bought. See ENC-133.
 public protocol CloudKitDatabaseAdapter: AnyObject {
     func save(records: [CKRecord],
               savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
-              isLongLived: Bool,
-              perRecordProgress: @escaping (CKRecord.ID, Double) -> Void,
-              operationIDHandler: @escaping (CKOperation.ID?) -> Void) async throws -> [CKRecord]
+              perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord]
 
     func delete(recordIDs: [CKRecord.ID]) async throws -> [CKRecord.ID]
 
@@ -54,24 +60,20 @@ public protocol CloudKitDatabaseAdapter: AnyObject {
 
     func saveSubscription(_ subscription: CKSubscription) async throws
 
-    func allLongLivedOperationIDs() async -> [CKOperation.ID]
-    func reattachLongLivedOperation(id: CKOperation.ID) async
     func cancelAll()
 }
 
 // MARK: - Production implementation
 
-/// Wraps a real `CKDatabase`/`CKContainer`, executing each call as a `CKOperation`.
-public final class CKDatabaseAdapter: CloudKitDatabaseAdapter {
+/// Wraps a real `CKDatabase`, executing each call as a `CKOperation`.
+public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
 
-    private let container: CKContainer
     private let database: CKDatabase
 
     private let lock = NSLock()
     private var inFlight: [CKOperation] = []
 
-    public init(container: CKContainer, database: CKDatabase) {
-        self.container = container
+    public init(database: CKDatabase) {
         self.database = database
     }
 
@@ -79,33 +81,70 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter {
 
     public func save(records: [CKRecord],
                      savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
-                     isLongLived: Bool,
-                     perRecordProgress: @escaping (CKRecord.ID, Double) -> Void,
-                     operationIDHandler: @escaping (CKOperation.ID?) -> Void) async throws -> [CKRecord] {
+                     perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord] {
         try await withCheckedThrowingContinuation { continuation in
             let operation = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: nil)
             operation.savePolicy = savePolicy
             operation.qualityOfService = .userInitiated
-            operation.configuration.isLongLived = isLongLived
-            operationIDHandler(operation.operationID)
+            // `configuration.isLongLived` stays at its default (false) on purpose —
+            // see the protocol's note and ENC-133. A long-lived save survives app
+            // termination in the daemon, but re-attaching to it on the next launch is
+            // what crashed the app, and the migration checkpoint re-verifies and
+            // re-drives an interrupted item anyway.
 
             var saved: [CKRecord] = []
+            var perRecordFailures: [CKRecord.ID: Error] = [:]
             operation.perRecordProgressBlock = { record, fraction in
                 perRecordProgress(record.recordID, fraction)
             }
-            operation.perRecordSaveBlock = { _, result in
-                if case .success(let record) = result { saved.append(record) }
+            // A per-record failure used to be dropped on the floor here, leaving an
+            // empty `saved` and no error — the caller then could not tell a record that
+            // failed to save from one that saved and returned nothing. `referenceViolation`
+            // (a dangling `parent`) lands exactly here.
+            operation.perRecordSaveBlock = { recordID, result in
+                switch result {
+                case .success(let record):
+                    saved.append(record)
+                case .failure(let error):
+                    perRecordFailures[recordID] = error
+                    Self.printDebug("save per-record FAILED recordName=\(recordID.recordName) error=\(error)")
+                }
             }
             operation.modifyRecordsResultBlock = { [weak self] result in
                 self?.untrack(operation)
                 switch result {
-                case .success: continuation.resume(returning: saved)
-                case .failure(let error): continuation.resume(throwing: error)
+                case .success:
+                    // The operation as a whole succeeded but individual records did not:
+                    // surface the per-record failures rather than reporting success
+                    // with nothing saved.
+                    if !perRecordFailures.isEmpty {
+                        Self.printDebug("save reported success with \(perRecordFailures.count) per-record failure(s): \(perRecordFailures.keys.map(\.recordName))")
+                        continuation.resume(throwing: Self.perRecordSaveFailureError(perRecordFailures))
+                    } else {
+                        Self.printDebug("save ok records=\(saved.count)")
+                        continuation.resume(returning: saved)
+                    }
+                case .failure(let error):
+                    Self.printDebug("save FAILED records=\(records.map(\.recordID.recordName)) error=\(error) perRecordFailures=\(perRecordFailures.mapValues { "\($0)" })")
+                    continuation.resume(throwing: error)
                 }
             }
             self.track(operation)
             self.database.add(operation)
         }
+    }
+
+    /// The error surfaced when a `CKModifyRecordsOperation` reports overall
+    /// success while individual records failed. Synthesized as `.partialFailure`
+    /// carrying EVERY per-record error — the same shape a failed operation
+    /// produces — so `mapCKError` yields a `.partial` that callers (the migration
+    /// manager's `unwrapPartial`) resolve deterministically. Throwing one raw
+    /// error via `Dictionary.first` would make quota-vs-conflict handling a coin
+    /// flip on multi-record saves.
+    static func perRecordSaveFailureError(_ failures: [CKRecord.ID: Error]) -> Error {
+        NSError(domain: CKError.errorDomain,
+                code: CKError.Code.partialFailure.rawValue,
+                userInfo: [CKPartialErrorsByItemIDKey: failures])
     }
 
     public func delete(recordIDs: [CKRecord.ID]) async throws -> [CKRecord.ID] {
@@ -116,7 +155,10 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter {
 
             var deleted: [CKRecord.ID] = []
             operation.perRecordDeleteBlock = { recordID, result in
-                if case .success = result { deleted.append(recordID) }
+                switch result {
+                case .success: deleted.append(recordID)
+                case .failure(let error): Self.printDebug("delete per-record FAILED recordName=\(recordID.recordName) error=\(error)")
+                }
             }
             operation.modifyRecordsResultBlock = { [weak self] result in
                 self?.untrack(operation)
@@ -290,28 +332,6 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter {
             }
             self.track(operation)
             self.database.add(operation)
-        }
-    }
-
-    // MARK: Long-lived recovery
-
-    public func allLongLivedOperationIDs() async -> [CKOperation.ID] {
-        await withCheckedContinuation { continuation in
-            container.fetchAllLongLivedOperationIDs { ids, _ in
-                continuation.resume(returning: ids ?? [])
-            }
-        }
-    }
-
-    public func reattachLongLivedOperation(id: CKOperation.ID) async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            container.fetchLongLivedOperation(withID: id) { [weak self] operation, _ in
-                if let databaseOperation = operation as? CKDatabaseOperation {
-                    self?.track(databaseOperation)
-                    self?.database.add(databaseOperation)
-                }
-                continuation.resume()
-            }
         }
     }
 

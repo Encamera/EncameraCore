@@ -10,10 +10,19 @@ import Sodium
 import Combine
 
 /// Handler for v2 encrypted files with embedded metadata
-/// 
+///
 /// This class provides encryption and decryption for the v2 file format,
 /// which includes an encrypted metadata header at the beginning of each file.
-/// It maintains backwards compatibility with v1 files during decryption.
+///
+/// - Important: This handler is **v2-only**. It has NO backwards compatibility with
+///   v1 files: `skipMetadataIfV2` consumes the first 4 bytes to test for the v2 magic
+///   and, because `FileLikeHandler` cannot seek back, it *throws*
+///   `SecretFilesError.decryptError` when those bytes are not the magic.
+///   Use it for decryption only when the file is known to be v2 — e.g. one this class
+///   just wrote. **For decrypting a file of unknown or mixed provenance, use
+///   `SecretFileHandler`**, which sniffs the magic and reads both v1 and v2.
+///   (An earlier version of this comment falsely claimed v1 compatibility; that claim
+///   caused ENC-135, where migrated v1 media became undecryptable in CloudKit albums.)
 public class SecretFileHandlerV2<T: MediaDescribing> {
     
     let sourceMedia: T
@@ -257,16 +266,12 @@ public class SecretFileHandlerV2<T: MediaDescribing> {
             
             // Now positioned at v1-format content
         } else {
-            // V1 file - we already consumed 4 bytes that are part of the stream header
-            // This is a problem because FileLikeHandler doesn't support seeking back
-            // We need to handle this differently - either:
-            // 1. Use a seekable file handle
-            // 2. Prepend the read bytes to the next read
-            // 3. Use a buffered reader
-            
-            // For now, the simplest solution is to note that the first 4 bytes
-            // we read are part of the 24-byte header, so we need to read 20 more
-            // This requires modifying the caller to handle this case
+            // V1 file. The 4 bytes just consumed are the first 4 of the 24-byte stream
+            // header, and `FileLikeHandler` cannot seek back to recover them, so this
+            // handler cannot decrypt V1 — by design, not as a temporary limitation.
+            // `SecretFileHandler.setupDecryption` handles exactly this case by reading
+            // the remaining 20 bytes and reassembling the header; callers that may see
+            // either format must use that handler instead.
             throw SecretFilesError.decryptError("V1 file detected - use SecretFileHandler for backwards compatibility")
         }
     }

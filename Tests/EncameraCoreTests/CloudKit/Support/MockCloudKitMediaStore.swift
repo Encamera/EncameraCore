@@ -43,6 +43,13 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var uploadCalls: [String] { locked { _uploadCalls } }
 
     var uploadErrorOnce: Error?
+    /// Opt-in (default off): model CloudKit's parent-reference requirement. Every
+    /// `EncMedia` record parents to its `EncAlbum` record, and the server rejects a
+    /// save whose `parent` target does not already exist with `CKError 31`
+    /// (reference violation), wrapped per-record in `.partial` by the real adapter.
+    /// When set, `upload` fails that way unless `saveAlbum` ran first for the
+    /// item's albumID.
+    var enforceParentAlbumExists = false
     /// Opt-in (default off, so existing coordinator tests are unaffected): when set,
     /// each successful `upload` is reflected back from `fetchMetadata`, so a migration
     /// verify step sees what it just uploaded — modeling server truth.
@@ -52,6 +59,11 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
                 progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
         locked { _uploadCalls.append(item.mediaID); _uploadedItems.append(item) }
         if let error = uploadErrorOnce { uploadErrorOnce = nil; throw error }
+        if enforceParentAlbumExists, locked({ _albums[item.albumID] == nil || _albums[item.albumID]?.deletedAt != nil }) {
+            throw CloudKitMediaStoreError.partial(
+                failed: [item.recordName: CKErrorFactory.error(.referenceViolation)]
+            )
+        }
         if reflectUploadsInMetadata {
             locked {
                 _reflected.removeAll { $0.recordName == item.recordName }
@@ -120,8 +132,10 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// Seed album records as if they came from another device.
     func seedAlbum(_ album: CloudKitAlbumMetadata) { locked { _albums[album.albumID] = album } }
 
+    var saveAlbumError: Error?
     func saveAlbum(_ album: CloudKitAlbumUpload) async throws {
         guard accountAvailableValue else { throw CloudKitMediaStoreError.accountUnavailable }
+        if let saveAlbumError { throw saveAlbumError }
         locked {
             _savedAlbumCalls.append(album)
             _albums[album.albumID] = CloudKitAlbumMetadata(
@@ -181,12 +195,22 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         locked { ensureZoneCalls += 1 }
     }
 
+    var registerSubscriptionError: Error?
     func registerZoneSubscription() async throws {
         guard accountAvailableValue else { return }
+        if let registerSubscriptionError { throw registerSubscriptionError }
         locked { _registerSubscriptionCount += 1 }
     }
 
     func cancelAll() {}
 
-    func accountAvailable() async -> Bool { accountAvailableValue }
+    /// Awaited (when set) before returning, so a test can inject work — e.g. a
+    /// user cancel — into the pre-run preflight window between planning and the
+    /// item loop.
+    var accountAvailableGate: (@Sendable () async -> Void)?
+
+    func accountAvailable() async -> Bool {
+        if let gate = accountAvailableGate { await gate() }
+        return accountAvailableValue
+    }
 }

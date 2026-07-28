@@ -9,7 +9,7 @@ from mcp.server.fastmcp import FastMCP
 from asc.auth import Credentials
 from asc.client import ASCClient
 from asc.pricing import iap, subscriptions
-from asc import releases
+from asc import beta_feedback, releases
 from asc.xcode_cloud import (
     artifacts as xc_artifacts,
     build_actions as xc_build_actions,
@@ -250,6 +250,83 @@ def submit_for_review(version_id: str, app_id: Optional[str] = None) -> dict:
     client = _get_client()
     aid = app_id or client.resolve_app_id()
     return releases.submit_for_review(client, aid, version_id)
+
+
+# ---------------------------------------------------------------------------
+# TestFlight crash feedback tools
+#
+# Typical flow:
+#   1. list_crash_reports (optionally filtered by build number) → pick a submission id
+#   2. get_crash_report → full metadata + symbolicated crash log text
+# Or just get_latest_crash_report to grab the newest one in a single call.
+# ---------------------------------------------------------------------------
+
+
+def _resolve_build_ids(client: ASCClient, app_id: str, build_number: str) -> list[str]:
+    builds = beta_feedback.find_builds_by_build_number(client, app_id, build_number)
+    if not builds:
+        raise ValueError(f"No build found with build number {build_number}")
+    return [b["id"] for b in builds]
+
+
+@mcp.tool()
+def list_crash_reports(
+    build_number: Optional[str] = None,
+    device_model: Optional[str] = None,
+    os_version: Optional[str] = None,
+    limit: int = 25,
+    app_id: Optional[str] = None,
+) -> list[dict]:
+    """List TestFlight crash feedback submissions, newest first.
+    Returns id, created_date, build_number, device_model, os_version, app_platform,
+    architecture, locale, app_uptime_ms, and the tester's comment/email when provided.
+    build_number is the TestFlight build number from list_builds (e.g. '1234'), NOT the
+    marketing version. device_model uses Apple identifiers (e.g. 'iPhone17,2').
+    Use the returned id with get_crash_report to pull the full crash log."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    build_ids = _resolve_build_ids(client, aid, build_number) if build_number else None
+    subs = beta_feedback.list_crash_submissions(
+        client, aid,
+        build_ids=build_ids,
+        device_model=device_model,
+        os_version=os_version,
+        limit=limit,
+    )
+    return [asdict(s) for s in subs]
+
+
+@mcp.tool()
+def get_crash_report(submission_id: str) -> dict:
+    """Get one TestFlight crash feedback submission with its full crash log text.
+    submission_id comes from list_crash_reports. The crash_log field contains the
+    complete symbolicated crash report — read it to diagnose the crash."""
+    client = _get_client()
+    submission = beta_feedback.get_crash_submission(client, submission_id)
+    result = asdict(submission)
+    result["crash_log"] = beta_feedback.get_crash_log_text(client, submission_id)
+    return result
+
+
+@mcp.tool()
+def get_latest_crash_report(
+    build_number: Optional[str] = None,
+    app_id: Optional[str] = None,
+) -> dict:
+    """Get the most recent TestFlight crash feedback submission, including the full
+    crash log text in the crash_log field. Optionally scope to one build by passing
+    build_number (the TestFlight build number from list_builds, e.g. '1234').
+    Returns {"message": ...} if there are no crash submissions."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    build_ids = _resolve_build_ids(client, aid, build_number) if build_number else None
+    subs = beta_feedback.list_crash_submissions(client, aid, build_ids=build_ids, limit=1)
+    if not subs:
+        scope = f" for build {build_number}" if build_number else ""
+        return {"message": f"No TestFlight crash feedback submissions found{scope}."}
+    result = asdict(subs[0])
+    result["crash_log"] = beta_feedback.get_crash_log_text(client, subs[0].id)
+    return result
 
 
 # ---------------------------------------------------------------------------

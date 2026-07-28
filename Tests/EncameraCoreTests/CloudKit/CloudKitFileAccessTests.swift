@@ -54,13 +54,35 @@ final class CloudKitFileAccessTests: XCTestCase {
 
     /// Produce a valid ENC2 ciphertext for `data` so a load can be tested as a
     /// pure cloud fetch (no prior local save that would warm the coordinator cache).
-    private func makeENC2(album: Album, id: String, data: Data) async throws -> Data {
+    private func makeENC2(album: Album, id: String, data: Data, mediaType: MediaType = .photo) async throws -> Data {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("\(id)-\(UUID().uuidString).enc")
-        let cleartext = CleartextMedia(source: .data(data), mediaType: .photo, id: id)
+        let cleartext = CleartextMedia(source: .data(data), mediaType: mediaType, id: id)
         let handler = SecretFileHandlerV2(keyBytes: album.key.keyBytes, source: cleartext, targetURL: tmp)
         _ = try await handler.encryptWithMetadata(EncryptedFileMetadata())
         defer { try? FileManager.default.removeItem(at: tmp) }
-        return try Data(contentsOf: tmp)
+        let bytes = try Data(contentsOf: tmp)
+        XCTAssertEqual(Array(bytes.prefix(4)), EncryptedFileFormat.magic, "Fixture must be a genuine V2 file")
+        return bytes
+    }
+
+    /// Produce a **genuine V1** ciphertext with the exact call the app's own no-metadata save
+    /// makes: `DiskFileAccess.save(metadata: nil)` takes the `SecretFileHandler.encrypt()`
+    /// branch, which writes the older format with no ENC2 magic. (Going through
+    /// `DiskFileAccess.save` itself would also drag in `createPreview`, which needs decodable
+    /// image bytes; `testDiskSaveWithoutMetadataProducesV1Ciphertext` pins that the app path
+    /// really does produce this format.) This is what a legacy local library is full of, and
+    /// migration uploads those bytes to CloudKit verbatim — no re-encryption (ENC-135).
+    private func makeV1(key: PrivateKey, id: String, data: Data, mediaType: MediaType = .photo) async throws -> Data {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("\(id)-\(UUID().uuidString).enc")
+        let cleartext = CleartextMedia(source: .data(data), mediaType: mediaType, id: id)
+        let handler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartext, targetURL: tmp)
+        _ = try await handler.encrypt()
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let bytes = try Data(contentsOf: tmp)
+        XCTAssertNotEqual(Array(bytes.prefix(4)), EncryptedFileFormat.magic,
+                          "Fixture must be a genuine V1 file — V1 carries no ENC2 magic")
+        return bytes
     }
 
     // MARK: - Save
@@ -650,6 +672,193 @@ final class CloudKitFileAccessTests: XCTestCase {
         let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
         XCTAssertTrue(albums.contains { $0.storageOption == .cloudKit && $0.name == name },
                       "A CloudKit album marker must be discoverable in the album list")
+    }
+
+    // MARK: - Mixed on-disk format support (ENC-135)
+    //
+    // Migration is a move of ciphertext, not a re-encode: whatever format the bytes had
+    // on disk is the format that lands in CloudKit. A legacy library holds V1 files, so
+    // the CloudKit read path must decrypt V1 as well as V2 — the reader adapts to the
+    // data, the data is never rewritten to suit the reader.
+
+    /// Why V1 blobs exist at all: the app's own local save writes V1 whenever no metadata is
+    /// supplied. Anchors the `makeV1` fixture to the real production path.
+    func testDiskSaveWithoutMetadataProducesV1Ciphertext() async throws {
+        let key = PrivateKey(name: "v1-disk-key", keyBytes: Array(repeating: UInt8(3), count: 32), creationDate: Date())
+        let album = Album(name: "V1Source-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: key)
+        let keyManager = DemoKeyManager(keys: [key])
+        keyManager.currentKey = key
+        let albumManager = DemoAlbumManager()
+        albumManager.keyManager = keyManager
+        let disk = DiskFileAccess()
+        await disk.configure(for: album, albumManager: albumManager)
+
+        // Real image bytes so the preview pipeline inside save() succeeds — the point of the
+        // test is the ciphertext format, not thumbnailing.
+        let imageData = Self.tinyPNG()
+
+        let v1 = try await disk.save(media: CleartextMedia(source: .data(imageData), mediaType: .photo, id: UUID().uuidString),
+                                     metadata: nil, progress: { _ in })
+        let v1URL = try XCTUnwrap(v1?.url)
+        defer { try? FileManager.default.removeItem(at: v1URL) }
+        XCTAssertNotEqual(Array(try Data(contentsOf: v1URL).prefix(4)), EncryptedFileFormat.magic,
+                          "A save without metadata must produce a V1 file — this is why legacy libraries hold V1")
+
+        // The metadata-bearing branch must still produce V2: the fix must not have changed writes.
+        let v2 = try await disk.save(media: CleartextMedia(source: .data(imageData), mediaType: .photo, id: UUID().uuidString),
+                                     metadata: EncryptedFileMetadata(), progress: { _ in })
+        let v2URL = try XCTUnwrap(v2?.url)
+        defer { try? FileManager.default.removeItem(at: v2URL) }
+        XCTAssertEqual(Array(try Data(contentsOf: v2URL).prefix(4)), EncryptedFileFormat.magic,
+                       "A save with metadata must still produce V2")
+    }
+
+    /// The regression itself: a V1 blob through `loadMedia`'s photo branch (`decryptInMemory`).
+    /// Before the fix this threw "V1 file detected" and the item was unreadable on every device.
+    func testLoadDecryptsV1CiphertextInMemory() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+
+        let id = UUID().uuidString
+        let cleartext = Data("legacy v1 photo cleartext".utf8)
+        let localURL = encURL(for: album, id: id)
+        try? FileManager.default.removeItem(at: localURL)
+        defer { try? FileManager.default.removeItem(at: localURL) }
+
+        // Exactly the bytes migration would have uploaded, untouched.
+        store.blobContents = try await makeV1(key: album.key, id: id, data: cleartext)
+
+        let encrypted = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(localURL), mediaType: .photo, id: id)
+        ])
+        let decrypted = try await access.loadMedia(media: encrypted, progress: { _ in })
+
+        XCTAssertEqual(decrypted.underlyingMedia.first?.data, cleartext,
+                       "A V1 blob migrated into a CloudKit album must decrypt to its original cleartext")
+    }
+
+    /// The same V1 blob through `loadMedia`'s non-photo branch (`decryptToURL`).
+    func testLoadDecryptsV1CiphertextToURL() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+
+        let id = UUID().uuidString
+        let cleartext = Data((0..<40000).map { UInt8($0 % 251) })   // spans several blocks
+        let localURL = CloudKitStorageModel(album: album).driveURLForMedia(withID: id, type: .video)
+        try? FileManager.default.removeItem(at: localURL)
+        defer { try? FileManager.default.removeItem(at: localURL) }
+
+        store.blobContents = try await makeV1(key: album.key, id: id, data: cleartext, mediaType: .video)
+
+        let encrypted = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(localURL), mediaType: .video, id: id)
+        ])
+        let decrypted = try await access.loadMedia(media: encrypted, progress: { _ in })
+
+        let outURL = try XCTUnwrap(decrypted.underlyingMedia.first?.url)
+        defer { try? FileManager.default.removeItem(at: outURL) }
+        XCTAssertEqual(try Data(contentsOf: outURL), cleartext)
+    }
+
+    /// `loadMediaToURLs` is a separate decrypt site and needed the same fix.
+    func testLoadMediaToURLsDecryptsV1Ciphertext() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+
+        let id = UUID().uuidString
+        let cleartext = Data("legacy v1 export cleartext".utf8)
+        let localURL = encURL(for: album, id: id)
+        try? FileManager.default.removeItem(at: localURL)
+        defer { try? FileManager.default.removeItem(at: localURL) }
+
+        store.blobContents = try await makeV1(key: album.key, id: id, data: cleartext)
+
+        let encrypted = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(localURL), mediaType: .photo, id: id)
+        ])
+        let urls = try await access.loadMediaToURLs(media: encrypted, progress: { _ in })
+
+        let outURL = try XCTUnwrap(urls.first)
+        defer { try? FileManager.default.removeItem(at: outURL) }
+        XCTAssertEqual(try Data(contentsOf: outURL), cleartext)
+    }
+
+    /// V2 must keep working through every site the fix touched — the format-agnostic
+    /// handler is a superset, not a swap.
+    func testLoadDecryptsV2CiphertextToURL() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+
+        let id = UUID().uuidString
+        let cleartext = Data((0..<40000).map { UInt8($0 % 241) })
+        let localURL = CloudKitStorageModel(album: album).driveURLForMedia(withID: id, type: .video)
+        try? FileManager.default.removeItem(at: localURL)
+        defer { try? FileManager.default.removeItem(at: localURL) }
+
+        store.blobContents = try await makeENC2(album: album, id: id, data: cleartext, mediaType: .video)
+
+        let encrypted = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(localURL), mediaType: .video, id: id)
+        ])
+        let decrypted = try await access.loadMedia(media: encrypted, progress: { _ in })
+
+        let outURL = try XCTUnwrap(decrypted.underlyingMedia.first?.url)
+        defer { try? FileManager.default.removeItem(at: outURL) }
+        XCTAssertEqual(try Data(contentsOf: outURL), cleartext)
+    }
+
+    func testLoadMediaToURLsDecryptsV2Ciphertext() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+
+        let id = UUID().uuidString
+        let cleartext = Data("v2 export cleartext".utf8)
+        let localURL = encURL(for: album, id: id)
+        try? FileManager.default.removeItem(at: localURL)
+        defer { try? FileManager.default.removeItem(at: localURL) }
+
+        store.blobContents = try await makeENC2(album: album, id: id, data: cleartext)
+
+        let encrypted = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(localURL), mediaType: .photo, id: id)
+        ])
+        let urls = try await access.loadMediaToURLs(media: encrypted, progress: { _ in })
+
+        let outURL = try XCTUnwrap(urls.first)
+        defer { try? FileManager.default.removeItem(at: outURL) }
+        XCTAssertEqual(try Data(contentsOf: outURL), cleartext)
+    }
+
+    /// Pins the corrected doc comment on `SecretFileHandlerV2`: it is V2-only and *throws*
+    /// on V1. If someone ever teaches it V1 compatibility this test should be deleted along
+    /// with the comment — but until then the comment must not claim otherwise.
+    func testSecretFileHandlerV2ThrowsOnV1WhileSecretFileHandlerReadsIt() async throws {
+        let key = PrivateKey(name: "v1-key", keyBytes: Array(repeating: UInt8(7), count: 32), creationDate: Date())
+        let id = UUID().uuidString
+        let cleartext = Data("format sniffing cleartext".utf8)
+        let v1Bytes = try await makeV1(key: key, id: id, data: cleartext)
+
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(id)-v1.\(MediaType.photo.encryptedFileExtension)")
+        try v1Bytes.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let encMedia = EncryptedMedia(source: .url(url), mediaType: .photo, id: id)
+
+        do {
+            _ = try await SecretFileHandlerV2(keyBytes: key.keyBytes, source: encMedia).decryptInMemory()
+            XCTFail("SecretFileHandlerV2 is V2-only and must throw on a V1 file")
+        } catch let error as SecretFilesError {
+            guard case .decryptError = error else {
+                return XCTFail("Expected a decryptError, got \(error)")
+            }
+        }
+
+        let readable = try await SecretFileHandler(keyBytes: key.keyBytes, source: encMedia).decryptInMemory()
+        XCTAssertEqual(readable.data, cleartext, "SecretFileHandler must read the same V1 file")
     }
 
     func testStorageTypeCodableRoundTripsCloudKit() throws {

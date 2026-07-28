@@ -181,6 +181,8 @@
 "AlbumDetailView.ImportPartialSkipToast" = "Imported %@ of %@ files. %@ skipped (%@).";
 "AlbumDetailView.ImportFailedAlertTitle" = "Import Failed";
 "AlbumDetailView.ImportFailedAlertMessage" = "None of the selected files could be imported (%@).";
+"AlbumDetailView.MoveFailedAlertTitle" = "Couldn't Move Album";
+"AlbumDetailView.MoveFailedAlertMessage" = "The album was not moved and stays where it is. %@";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "unsupported format";
 "AlbumDetailView.ImportReasonTranscodeFailed" = "could not be converted";
 "AlbumDetailView.ImportReasonReadError" = "file could not be read";
@@ -624,6 +626,8 @@
 "Settings.ClearDismissedBanners" = "Reset Banners";
 "Settings.BannersCleared" = "Banners Cleared";
 "Settings.BannersClearedMessage" = "All dismissed banners have been reset and will appear again.";
+"Settings.IcloudDataMayRemainTitle" = "iCloud data may not be deleted";
+"Settings.IcloudDataMayRemainMessage" = "Your data on this device was erased, but we couldn't remove your data from iCloud. Reconnect to the internet (and make sure you're signed in to iCloud), then run Erase All Data again.";
 "Settings.HiddenAlbums" = "Hidden Albums";
 "Settings.HiddenAlbumsModal.Title" = "Your hidden albums";
 "Settings.HiddenAlbumsModal.Subtitle" = "Access them by creating a new album with the exact same name";
@@ -798,6 +802,57 @@
 /* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Index Build */
 "BackgroundTaskProgress.BuildingIndex" = "Optimizing your photo library...";
 "BackgroundTaskProgress.IndexCompleted" = "Photo library optimized";
+
+/* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - CloudKit Migration */
+"BackgroundTaskProgress.MigrateCompleted" = "Moved to iCloud";
+"BackgroundTaskProgress.MigrateStopped" = "Move to iCloud stopped";
+"BackgroundTaskProgress.MigrateCanceled" = "Move to iCloud canceled";
+"BackgroundTaskProgress.MigrateToLocalCompleted" = "Moved to this device";
+"BackgroundTaskProgress.MigrateToLocalStopped" = "Move to this device stopped";
+"BackgroundTaskProgress.MigrateToLocalCanceled" = "Move to this device canceled";
+"BackgroundTaskProgress.MigratingProgress" = "Moving %@ of %@ to iCloud";
+"BackgroundTaskProgress.MigratingBatches" = "Moving %@ albums to iCloud";
+
+/* ./Encamera/AlbumManagement/AlbumDetailView.swift - Move a local album to iCloud (CloudKit) */
+"CloudKitMigration.AlertTitle" = "Move this album to iCloud?";
+"CloudKitMigration.AlertMessage" = "This uploads %@ items (%@) to iCloud and can take about %@. Stay on Wi-Fi and keep Encamera open — you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.";
+"CloudKitMigration.AlertConfirm" = "Move to iCloud";
+"CloudKitMigration.AlertCancel" = "Not now";
+"CloudKitMigration.EstimateLessThanAMinute" = "less than a minute";
+"CloudKitMigration.EstimateMinutes" = "%@ minutes";
+"CloudKitMigration.EstimateOverAnHour" = "more than an hour";
+"CloudKitMigration.QuotaTitle" = "iCloud storage is full";
+"CloudKitMigration.QuotaMessage" = "Free up space in iCloud, then resume the move.";
+"CloudKitMigration.AccountUnavailableTitle" = "iCloud is unavailable";
+"CloudKitMigration.AccountUnavailableMessage" = "Sign in to iCloud in Settings, then resume the move.";
+"CloudKitMigration.SchemaNotDeployedTitle" = "iCloud can't accept this album yet";
+"CloudKitMigration.SchemaNotDeployedMessage" = "iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.";
+"CloudKitMigration.FailedTitle" = "The move to iCloud didn't finish";
+"CloudKitMigration.FailedMessage" = "Something went wrong: %@. You may need to be connected to Wi-Fi to continue. You can resume the move.";
+"CloudKitMigration.Resume" = "Resume";
+"CloudKitMigration.PartialTitle" = "Album partially moved";
+"CloudKitMigration.PartialMessage" = "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.";
+
+/* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud */
+"CloudKitMigration.BannerMessage" = "This album is split between this device and iCloud.";
+"CloudKitMigration.BannerCounts" = "%@ moved, %@ still on this device";
+
+/* ./Encamera/AlbumManagement/MigrationStatusOverlay.swift - Blocking status view shown for the duration of a move to iCloud */
+"CloudKitMigration.OverlayTitle" = "Moving to iCloud";
+"CloudKitMigration.OverlayTitleToLocal" = "Moving to This Device";
+"CloudKitMigration.OverlayPhasePreparing" = "Preparing";
+"CloudKitMigration.OverlayPhaseUploading" = "Uploading";
+"CloudKitMigration.OverlayPhaseVerifying" = "Verifying in iCloud";
+"CloudKitMigration.OverlayPhaseRemovingLocalCopy" = "Removing local copy";
+"CloudKitMigration.OverlayPhaseDownloading" = "Downloading from iCloud";
+"CloudKitMigration.OverlayPhaseRemovingRemoteCopy" = "Removing iCloud copy";
+"CloudKitMigration.OverlayPhaseRetrying" = "Retrying";
+"CloudKitMigration.OverlayItemProgress" = "%@ of %@ items";
+"CloudKitMigration.OverlayTotalSize" = "%@ total";
+"CloudKitMigration.OverlayTimeRemaining" = "About %@ remaining";
+"CloudKitMigration.OverlayFailedItems" = "%@ couldn't be moved yet";
+"CloudKitMigration.OverlayKeepOpen" = "Keep Encamera open. You can switch apps, but don't force-quit.";
+"CloudKitMigration.OverlayCancel" = "Stop the move";
 
 /* ./Encamera/Lightbox/LightboxController.swift - Edit Mode */
 "Lightbox.Edit" = "Edit";

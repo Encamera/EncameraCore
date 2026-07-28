@@ -216,6 +216,49 @@ class Build:
 
 
 @dataclass
+class CrashSubmission:
+    id: str
+    created_date: Optional[str]
+    comment: Optional[str]
+    email: Optional[str]
+    device_model: Optional[str]
+    os_version: Optional[str]
+    app_platform: Optional[str]
+    architecture: Optional[str]
+    locale: Optional[str]
+    app_uptime_ms: Optional[int]
+    build_id: Optional[str]
+    build_number: Optional[str]
+
+    @classmethod
+    def from_api(cls, data: dict, included: Optional[list] = None) -> "CrashSubmission":
+        attrs = data.get("attributes", {})
+        build_id = None
+        build_number = None
+        build_rel = data.get("relationships", {}).get("build", {}).get("data")
+        if build_rel:
+            build_id = build_rel.get("id")
+            included_map = {inc["id"]: inc for inc in (included or [])}
+            build_obj = included_map.get(build_id)
+            if build_obj:
+                build_number = build_obj.get("attributes", {}).get("version")
+        return cls(
+            id=data["id"],
+            created_date=attrs.get("createdDate"),
+            comment=attrs.get("comment"),
+            email=attrs.get("email"),
+            device_model=attrs.get("deviceModel"),
+            os_version=attrs.get("osVersion"),
+            app_platform=attrs.get("appPlatform"),
+            architecture=attrs.get("architecture"),
+            locale=attrs.get("locale"),
+            app_uptime_ms=attrs.get("appUptimeInMilliseconds"),
+            build_id=build_id,
+            build_number=build_number,
+        )
+
+
+@dataclass
 class AppStoreVersionLocalization:
     id: str
     locale: str

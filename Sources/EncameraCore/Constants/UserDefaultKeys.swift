@@ -51,6 +51,10 @@ public enum UserDefaultKey {
     case passphraseMigration
     case passwordHashMigration
     case completedMigration
+    /// An "Erase All Data" completed locally but the CloudKit zone deletion failed
+    /// (offline / transient error). Written AFTER the defaults wipe so it survives
+    /// it; the app retries the cloud wipe on launch until it succeeds.
+    case pendingCloudDataWipe
 
     var rawValue: String {
         switch self {
@@ -127,7 +131,8 @@ public enum UserDefaultKey {
              .keyMigration,
              .passphraseMigration,
              .passwordHashMigration,
-             .completedMigration:
+             .completedMigration,
+             .pendingCloudDataWipe:
             return false
         }
     }

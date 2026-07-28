@@ -17,11 +17,22 @@ final class MediaTranscoderTests: XCTestCase {
 
     private let transcoder = MediaTranscoder()
 
+    /// The two hosts stage `Fixtures/` differently, so resolve against both.
+    ///
+    /// `swift test` honours the package's `.copy("Fixtures")` and reaches it through
+    /// `Bundle.module`. The Xcode `EncameraCoreTests` target compiles these same
+    /// sources into an app-hosted bundle that flattens the fixtures to its root — and
+    /// there `Bundle.module` resolves to EncameraCore's OWN resource bundle, which
+    /// holds no fixtures at all. Picking either one alone leaves the suite red in the
+    /// other host.
     private func fixture(_ name: String, _ ext: String) throws -> URL {
-        try XCTUnwrap(
-            Bundle.module.url(forResource: name, withExtension: ext, subdirectory: "Fixtures"),
-            "Missing fixture \(name).\(ext)"
-        )
+        let testBundle = Bundle(for: Self.self)
+        let candidates = [
+            testBundle.url(forResource: name, withExtension: ext),
+            testBundle.url(forResource: name, withExtension: ext, subdirectory: "Fixtures"),
+            Bundle.module.url(forResource: name, withExtension: ext, subdirectory: "Fixtures")
+        ]
+        return try XCTUnwrap(candidates.compactMap { $0 }.first, "Missing fixture \(name).\(ext)")
     }
 
     // MARK: - Pass-through

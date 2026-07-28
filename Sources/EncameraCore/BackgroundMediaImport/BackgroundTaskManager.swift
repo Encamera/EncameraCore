@@ -65,29 +65,8 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             return
         }
         
-        // We need to update the task - since BackgroundFileTask is a protocol,
-        // we need to handle this through the concrete type
-        if var importTask = currentTasks[taskIndex] as? ImportTask {
-            importTask.progress = progress
-            currentTasks[taskIndex] = importTask
-            publishProgress(for: importTask)
-        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
-            moveTask.progress = progress
-            currentTasks[taskIndex] = moveTask
-            publishProgress(for: moveTask)
-        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
-            exportTask.progress = progress
-            currentTasks[taskIndex] = exportTask
-            publishProgress(for: exportTask)
-        } else if var editTask = currentTasks[taskIndex] as? EditTask {
-            editTask.progress = progress
-            currentTasks[taskIndex] = editTask
-            publishProgress(for: editTask)
-        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
-            indexTask.progress = progress
-            currentTasks[taskIndex] = indexTask
-            publishProgress(for: indexTask)
-        }
+        currentTasks[taskIndex].progress = progress
+        publishProgress(for: currentTasks[taskIndex])
     }
 
     /// Updates a task's state to running
@@ -97,27 +76,8 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             return
         }
         
-        if var importTask = currentTasks[taskIndex] as? ImportTask {
-            importTask.progress.state = .running
-            currentTasks[taskIndex] = importTask
-            updateIsProcessing()
-        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
-            moveTask.progress.state = .running
-            currentTasks[taskIndex] = moveTask
-            updateIsProcessing()
-        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
-            exportTask.progress.state = .running
-            currentTasks[taskIndex] = exportTask
-            updateIsProcessing()
-        } else if var editTask = currentTasks[taskIndex] as? EditTask {
-            editTask.progress.state = .running
-            currentTasks[taskIndex] = editTask
-            updateIsProcessing()
-        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
-            indexTask.progress.state = .running
-            currentTasks[taskIndex] = indexTask
-            updateIsProcessing()
-        }
+        currentTasks[taskIndex].progress.state = .running
+        updateIsProcessing()
     }
 
     /// Updates a task's state to paused
@@ -127,27 +87,8 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             return
         }
         
-        if var importTask = currentTasks[taskIndex] as? ImportTask {
-            importTask.progress.state = .paused
-            currentTasks[taskIndex] = importTask
-            publishProgress(for: importTask)
-        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
-            moveTask.progress.state = .paused
-            currentTasks[taskIndex] = moveTask
-            publishProgress(for: moveTask)
-        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
-            exportTask.progress.state = .paused
-            currentTasks[taskIndex] = exportTask
-            publishProgress(for: exportTask)
-        } else if var editTask = currentTasks[taskIndex] as? EditTask {
-            editTask.progress.state = .paused
-            currentTasks[taskIndex] = editTask
-            publishProgress(for: editTask)
-        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
-            indexTask.progress.state = .paused
-            currentTasks[taskIndex] = indexTask
-            publishProgress(for: indexTask)
-        }
+        currentTasks[taskIndex].progress.state = .paused
+        publishProgress(for: currentTasks[taskIndex])
     }
 
     /// Updates a task's state to cancelled (internal use - prefer cancelTask for external callers)
@@ -159,27 +100,8 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             return
         }
         
-        if var importTask = currentTasks[taskIndex] as? ImportTask {
-            importTask.progress.state = .cancelled
-            currentTasks[taskIndex] = importTask
-            publishProgress(for: importTask)
-        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
-            moveTask.progress.state = .cancelled
-            currentTasks[taskIndex] = moveTask
-            publishProgress(for: moveTask)
-        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
-            exportTask.progress.state = .cancelled
-            currentTasks[taskIndex] = exportTask
-            publishProgress(for: exportTask)
-        } else if var editTask = currentTasks[taskIndex] as? EditTask {
-            editTask.progress.state = .cancelled
-            currentTasks[taskIndex] = editTask
-            publishProgress(for: editTask)
-        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
-            indexTask.progress.state = .cancelled
-            currentTasks[taskIndex] = indexTask
-            publishProgress(for: indexTask)
-        }
+        currentTasks[taskIndex].progress.state = .cancelled
+        publishProgress(for: currentTasks[taskIndex])
 
         // Note: We intentionally do NOT call updateIsProcessing() here.
         // The task is still "in progress" until finalizeTaskCancelled is called,
@@ -264,37 +186,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             estimatedTimeRemaining: 0
         )
         
-        if var importTask = currentTasks[taskIndex] as? ImportTask {
-            importTask.progress = completedProgress
-            // Update asset identifiers if provided (for streaming imports)
-            if !assetIdentifiers.isEmpty {
-                importTask = importTask.withAssetIdentifiers(assetIdentifiers)
-                printDebug("Updated task \(taskId) with \(assetIdentifiers.count) asset identifiers")
-            }
-            currentTasks[taskIndex] = importTask
-            publishProgress(for: importTask)
-            printDebug("Task completed successfully: \(taskId)")
-        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
-            moveTask.progress = completedProgress
-            currentTasks[taskIndex] = moveTask
-            publishProgress(for: moveTask)
-            printDebug("Task completed successfully: \(taskId)")
-        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
-            exportTask.progress = completedProgress
-            currentTasks[taskIndex] = exportTask
-            publishProgress(for: exportTask)
-            printDebug("Task completed successfully: \(taskId)")
-        } else if var editTask = currentTasks[taskIndex] as? EditTask {
-            editTask.progress = completedProgress
-            currentTasks[taskIndex] = editTask
-            publishProgress(for: editTask)
-            printDebug("Task completed successfully: \(taskId)")
-        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
-            indexTask.progress = completedProgress
-            currentTasks[taskIndex] = indexTask
-            publishProgress(for: indexTask)
-            printDebug("Task completed successfully: \(taskId)")
-        }
+        currentTasks[taskIndex].progress = completedProgress
+        applyAssetIdentifiers(assetIdentifiers, at: taskIndex)
+        publishProgress(for: currentTasks[taskIndex])
+        printDebug("Task completed successfully: \(taskId)")
 
         updateOverallProgress()
         updateIsProcessing()
@@ -327,54 +222,31 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             return
         }
         
-        if var importTask = currentTasks[taskIndex] as? ImportTask {
-            importTask.progress.state = state
-            // Update asset identifiers if provided (for cancelled tasks with partial results)
-            if !assetIdentifiers.isEmpty {
-                importTask = importTask.withAssetIdentifiers(assetIdentifiers)
-            }
-            currentTasks[taskIndex] = importTask
-            publishProgress(for: importTask)
-            
-            if shouldRemove {
-                removeTaskAfterDelay(taskId: taskId)
-            }
-        } else if var moveTask = currentTasks[taskIndex] as? MoveTask {
-            moveTask.progress.state = state
-            currentTasks[taskIndex] = moveTask
-            publishProgress(for: moveTask)
-            // Move tasks don't have partial results concept, always remove if requested
-            if shouldRemove {
-                removeTaskAfterDelay(taskId: taskId)
-            }
-        } else if var exportTask = currentTasks[taskIndex] as? ExportTask {
-            exportTask.progress.state = state
-            currentTasks[taskIndex] = exportTask
-            publishProgress(for: exportTask)
-            // Export tasks don't have partial results concept, always remove if requested
-            if shouldRemove {
-                removeTaskAfterDelay(taskId: taskId)
-            }
-        } else if var editTask = currentTasks[taskIndex] as? EditTask {
-            editTask.progress.state = state
-            currentTasks[taskIndex] = editTask
-            publishProgress(for: editTask)
-            if shouldRemove {
-                removeTaskAfterDelay(taskId: taskId)
-            }
-        } else if var indexTask = currentTasks[taskIndex] as? IndexBuildTask {
-            indexTask.progress.state = state
-            currentTasks[taskIndex] = indexTask
-            publishProgress(for: indexTask)
-            if shouldRemove {
-                removeTaskAfterDelay(taskId: taskId)
-            }
+        currentTasks[taskIndex].progress.state = state
+        // Update asset identifiers if provided (for cancelled tasks with partial results)
+        applyAssetIdentifiers(assetIdentifiers, at: taskIndex)
+        publishProgress(for: currentTasks[taskIndex])
+
+        if shouldRemove {
+            removeTaskAfterDelay(taskId: taskId)
         }
 
         updateOverallProgress()
         updateIsProcessing()
     }
-    
+
+    /// Stores partial-import asset identifiers on the task at `taskIndex`.
+    /// Only `ImportTask` tracks them — every other task type imports nothing from
+    /// the photo library, so this is a no-op for them, exactly as before.
+    private func applyAssetIdentifiers(_ assetIdentifiers: [String], at taskIndex: Int) {
+        guard !assetIdentifiers.isEmpty,
+              let importTask = currentTasks[taskIndex] as? ImportTask else {
+            return
+        }
+        currentTasks[taskIndex] = importTask.withAssetIdentifiers(assetIdentifiers)
+        printDebug("Updated task \(importTask.id) with \(assetIdentifiers.count) asset identifiers")
+    }
+
     /// Removes a specific task by ID
     public func removeTask(taskId: String) {
         printDebug("Removing task: \(taskId)")

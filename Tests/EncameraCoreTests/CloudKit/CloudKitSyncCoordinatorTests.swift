@@ -270,6 +270,39 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(store.registerSubscriptionCount, 1)
     }
 
+    func testSyncRetriesFailedSubscriptionRegistration() async throws {
+        let store = MockCloudKitMediaStore()
+        store.registerSubscriptionError = CloudKitMediaStoreError.retry(after: 0)
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        await coord.startObserving()
+        XCTAssertEqual(store.registerSubscriptionCount, 0, "registration failed and was not recorded")
+
+        store.registerSubscriptionError = nil
+        try await coord.sync(albumID: "a1")
+        XCTAssertEqual(store.registerSubscriptionCount, 1,
+                       "a sync self-heals a previously failed push registration")
+    }
+
+    func testEverySyncReattemptsRegistrationSoStoreInvalidationSelfHeals() async throws {
+        // `CloudKitMediaStore.mapAndRecord` clears its persisted subscription flag
+        // on `.zoneNotFound` (zone deleted in iCloud Settings, account wiped)
+        // precisely so the next registration attempt re-creates the subscription.
+        // The coordinator must therefore hand the store that chance on EVERY sync:
+        // a cached in-memory "already registered" bool goes stale-true the moment
+        // the store invalidates, silently killing push-driven sync for the life of
+        // the process. Dedup belongs to the store, whose persisted-flag check makes
+        // a genuinely-registered attempt a cheap no-op.
+        let store = MockCloudKitMediaStore()
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        try await coord.sync(albumID: "a1")
+        try await coord.sync(albumID: "a1")
+
+        XCTAssertEqual(store.registerSubscriptionCount, 2,
+                       "each sync must delegate the register-or-no-op decision to the store")
+    }
+
     func testRemoteNotificationTriggersSync() async {
         let store = MockCloudKitMediaStore()
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)

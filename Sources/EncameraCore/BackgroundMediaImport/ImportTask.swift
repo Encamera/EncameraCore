@@ -28,19 +28,23 @@ public enum ImportSource: String, Codable, CaseIterable {
 }
 
 /// Identifies the type of background file task
-public enum FileTaskType: String {
+public enum FileTaskType: String, CaseIterable {
     case importMedia
     case moveMedia
     case exportMedia
     case editMedia
     case buildIndex
+    case migrateStorage
 }
 
 public protocol BackgroundFileTask: Equatable  {
     var id: String { get }
     var taskType: FileTaskType { get }
     var createdAt: Date { get }
-    var progress: ImportProgressUpdate { get }
+    /// Settable so `BackgroundTaskManager` can write through the existential.
+    /// If this ever goes back to `get`-only, the manager has to hand-roll a cast
+    /// per conformer again and new task types silently stop receiving updates.
+    var progress: ImportProgressUpdate { get set }
     var state: FileTaskState { get }
     var assetIdentifiers: [String] { get }
     /// Whether the user can cancel this task from the progress card. Tasks

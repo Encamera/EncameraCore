@@ -408,7 +408,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
         guard let cloud, let saved = savedMedia else {
             throw FlightCheckError.internalState("no upload to preview from step 7")
         }
-        await cloud.evictThumbnail(for: saved.id)
+        try await cloud.evictThumbnail(for: saved.id)
         let preview = try await retrying("cold thumbnail fetch") {
             try await cloud.loadMediaPreview(for: saved)
         }

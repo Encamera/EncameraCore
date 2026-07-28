@@ -18,6 +18,20 @@ public enum AlbumError: Error, CustomStringConvertible {
     /// Moving an album to CloudKit is a resumable, long-running upload — it must go
     /// through `CloudKitMigrationManager`, never the synchronous `moveAlbum`.
     case migrationRequiredForCloudKit
+    /// Moving a CloudKit album to another storage means downloading its blobs and
+    /// cleaning up the remote records — `moveCloudKitAlbumToLocal`, never the
+    /// synchronous `moveAlbum` (which would move raw record-named cache files
+    /// into a layout that cannot read them, and leave a live cloud copy behind).
+    case downloadRequiredFromCloudKit
+    /// The CloudKit discovery marker could not be written after a migration — the
+    /// album's bytes are safe in CloudKit but the album would be undiscoverable on
+    /// this device, so finalize must fail (and be retried) rather than proceed.
+    case cloudKitMarkerWriteFailed
+    /// The pre-move index reconcile failed, so the local index may be stale or
+    /// empty. The CloudKit -> local move enumerates every destructive step from
+    /// that index, so proceeding would orphan any record it doesn't know about;
+    /// the move aborts and the album stays fully usable in CloudKit.
+    case cloudReconcileFailed
 
     public var description: String {
         switch self {
@@ -33,6 +47,12 @@ public enum AlbumError: Error, CustomStringConvertible {
             return "iCloud Drive albums are no longer supported. Use CloudKit instead."
         case .migrationRequiredForCloudKit:
             return "Moving an album to iCloud must go through the migration flow."
+        case .downloadRequiredFromCloudKit:
+            return "Moving an album out of iCloud must go through the download flow."
+        case .cloudKitMarkerWriteFailed:
+            return "Could not finish moving the album — its files are safe in iCloud. Try again."
+        case .cloudReconcileFailed:
+            return "Could not check iCloud for the album's latest contents — nothing was moved. Try again."
         }
     }
 }
@@ -421,6 +441,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         if toStorage == .cloudKit {
             throw AlbumError.migrationRequiredForCloudKit
         }
+        // The reverse is equally wrong here: this generic path would move raw
+        // record-named blob-cache files into a layout that cannot read them, skip
+        // anything evicted from the cache, and leave the discovery marker and the
+        // live CloudKit records behind. Funnel through `moveCloudKitAlbumToLocal`.
+        if album.storageOption == .cloudKit {
+            throw AlbumError.downloadRequiredFromCloudKit
+        }
         let fileManager = FileManager.default
         let currentStorage = album.storageOption.modelForType.init(album: album)
         if toStorage == .icloud {
@@ -473,6 +500,126 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         broadcastAlbumsUpdated()
         printDebug("Completed the move process for album: \(album.name)")
         return movedAlbum
+    }
+
+    /// Completes a resumable local/iCloud -> CloudKit migration by flipping the
+    /// album's storage *identity* (the bytes are already in CloudKit + its on-device
+    /// cache; the migration engine uploaded and deleted every file). Writes the
+    /// CloudKit discovery marker so the album is found as a CloudKit album, drops the
+    /// drained source directory so it isn't also discovered as an empty source-storage
+    /// album, and broadcasts the change so the grid refreshes.
+    @discardableResult
+    public func finalizeMigrationToCloudKit(album: Album) throws -> Album {
+        let cloudKitAlbum = Album.cloudKitTwin(of: album)
+
+        // The marker is the ONLY way this device discovers a CloudKit album — if it
+        // can't be written, the migrated album would vanish from the grid with all
+        // its bytes safe but unreachable. Verify it exists before reporting success;
+        // the caller keeps the migration checkpoint on failure so finalize retries.
+        let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(cloudKitAlbum.encryptedPathComponent)
+        try FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
+        guard FileManager.default.fileExists(atPath: marker.path) else {
+            throw AlbumError.cloudKitMarkerWriteFailed
+        }
+        // Push the album record so the migrated album appears on the user's other devices.
+        pushCloudKitAlbumRecord(cloudKitAlbum)
+
+        // Only drop the source dir if the engine drained it; a non-enumerated leftover
+        // file is preserved rather than destroyed (no last-copy data loss).
+        if album.storageOption != .cloudKit {
+            let sourceModel = album.storageOption.modelForType.init(album: album)
+            Album.removeDrainedSourceDirectory(at: sourceModel.baseURL)
+        }
+
+        if currentAlbum?.id == album.id { currentAlbum = cloudKitAlbum }
+        albumOperationSubject.send(.albumMoved(album: cloudKitAlbum))
+        broadcastAlbumsUpdated()
+        return cloudKitAlbum
+    }
+
+    /// Moves a CloudKit album's contents back to local storage — the reverse of the
+    /// migration engine, in one sitting: materialize every ciphertext locally
+    /// (downloading anything evicted from the blob cache), verify the copies, and
+    /// only THEN remove the cloud plane (media records, album record, discovery
+    /// marker, blob cache, stale indexes). Any failure before the verification
+    /// point leaves the album fully usable in CloudKit; a move is not a copy, so a
+    /// completed move leaves no live remote records to rematerialize elsewhere.
+    public func moveCloudKitAlbumToLocal(album: Album) async throws -> Album {
+        try await moveCloudKitAlbumToLocal(album: album, onProgress: nil)
+    }
+
+    public func moveCloudKitAlbumToLocal(album: Album,
+                                         onProgress: (@Sendable (CloudToLocalMoveProgress) async -> Void)?) async throws -> Album {
+        guard album.storageOption == .cloudKit else {
+            throw AlbumError.albumNotFoundAtSourceLocation
+        }
+        var localAlbum = album
+        localAlbum.storageOption = .local
+        let localModel = LocalStorageModel(album: localAlbum)
+        try localModel.initializeDirectories()
+
+        await onProgress?(CloudToLocalMoveProgress(phase: .preparing, exportedCount: 0, totalCount: 0))
+        let access = await CloudKitFileAccess(album: album, albumManager: self)
+        // Bring the index current first so a record uploaded from another device
+        // moments ago is included rather than silently left in the cloud. A FAILED
+        // reconcile must abort: every destructive step below enumerates from the
+        // local index, so a stale/empty index (fresh device, transient CloudKit
+        // error) would export nothing yet still tombstone the album — orphaning
+        // every un-indexed record on every device.
+        guard await access.reconcile() else {
+            throw AlbumError.cloudReconcileFailed
+        }
+        let exported = try await access.exportCiphertext(to: localModel) { exportedCount, totalCount in
+            await onProgress?(CloudToLocalMoveProgress(phase: .downloading,
+                                                       exportedCount: exportedCount,
+                                                       totalCount: totalCount))
+        }
+        printDebug("moveCloudKitAlbumToLocal exported=\(exported) album=\(album.name)")
+
+        // The point of no return. A cancel that arrives during the export aborts
+        // cleanly here (local copies are just redundant bytes; the album is still
+        // whole in CloudKit) — but past this check the cloud plane starts coming
+        // down, and aborting mid-teardown would strand tombstoned records while
+        // the album still reads as CloudKit.
+        try Task.checkCancellation()
+
+        // Local copies are verified — now remove the cloud plane. Media first
+        // (each tombstone is awaited), then the album record. The album tombstone
+        // is ALSO awaited (not fire-and-forget like delete): the durable retry
+        // queue is device-local, so relying on it here would let a fresh install
+        // rematerialize the album before this device retries.
+        await onProgress?(CloudToLocalMoveProgress(phase: .removingRemoteCopy,
+                                                   exportedCount: exported,
+                                                   totalCount: exported))
+        try await access.deleteAllMedia()
+        if let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) {
+            let queue = CloudKitAlbumTombstoneQueue()
+            queue.enqueue(hash)
+            do {
+                try await CloudKitStoreProvider.makeStore(hash).tombstoneAlbum(albumID: hash)
+                queue.remove(hash)
+            } catch {
+                // Left queued — the reconciler retries from this device. The local
+                // move still completes; the worst interim state elsewhere is an
+                // empty album, never data loss.
+                printDebug("moveCloudKitAlbumToLocal album tombstone FAILED album=\(album.name) — left queued for retry raw=\(error)")
+            }
+        }
+
+        // Drop the CloudKit identity on this device: discovery marker, blob cache
+        // dir, the cloud album's index, and any stale index under the local
+        // identity (the disk scan rebuilds it from the exported files).
+        let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
+        try? FileManager.default.removeItem(at: marker)
+        try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).baseURL)
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: localAlbum))
+
+        if currentAlbum?.id == album.id { currentAlbum = localAlbum }
+        albumOperationSubject.send(.albumMoved(album: localAlbum))
+        broadcastAlbumsUpdated()
+        printDebug("moveCloudKitAlbumToLocal completed album=\(album.name) items=\(exported)")
+        return localAlbum
     }
 
     public func renameAlbum(album: Album, to newName: String) throws -> Album {

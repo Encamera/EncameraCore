@@ -12,13 +12,18 @@ public struct DataStorageAvailabilityUtil {
     public static var preselectedStorageSetting: StorageAvailabilityModel? {
         storageAvailabilities().filter({$0.availability == .available}).first
     }
-    
+
+    /// Whether the storage backend is usable on this device *right now* — i.e. whether
+    /// existing albums there can be enumerated, read, and deleted.
+    ///
+    /// This is deliberately NOT the same question as "may a new album be put here":
+    /// iCloud Drive is deprecated as a destination once CloudKit is on, but the albums
+    /// a user already has in iCloud Drive must keep showing up in the album list until
+    /// they migrate them. Destination eligibility lives in
+    /// `isStorageTypeOfferedForNewAlbums` and the pickers that read it.
     public static func isStorageTypeAvailable(type: StorageType) -> StorageType.Availability {
         switch type {
         case .icloud:
-            guard !FeatureToggle.isEnabled(feature: .cloudKitStorage) else {
-                return .unavailable(reason: "iCloud Drive storage is not enabled")
-            }
             if FileManager.default.ubiquityIdentityToken == nil {
                 return .unavailable(reason: L10n.noICloudAccountFoundOnThisDevice)
             } else {
@@ -49,10 +54,25 @@ public struct DataStorageAvailabilityUtil {
         }
     }
     
+    /// Whether a *new* album may be created in (or moved into) this storage type.
+    ///
+    /// Narrower than `isStorageTypeAvailable`: iCloud Drive is a dead end once
+    /// CloudKit is active, so it is never offered as a destination even though its
+    /// existing albums stay fully readable. `AlbumManager.create`/`moveAlbum` enforce
+    /// the same rule as the authoritative backstop.
+    public static func isStorageTypeOfferedForNewAlbums(type: StorageType) -> StorageType.Availability {
+        if type == .icloud, FeatureToggle.isEnabled(feature: .cloudKitStorage) {
+            return .unavailable(reason: "iCloud Drive storage is not enabled")
+        }
+        return isStorageTypeAvailable(type: type)
+    }
+
+    /// The destination options shown by the storage pickers, so every picker inherits
+    /// the iCloud Drive deprecation rule from one place.
     public static func storageAvailabilities() -> [StorageAvailabilityModel] {
         var availabilites = [StorageAvailabilityModel]()
         for type in StorageType.allCases {
-            let result = isStorageTypeAvailable(type: type)
+            let result = isStorageTypeOfferedForNewAlbums(type: type)
             availabilites += [StorageAvailabilityModel(storageType: type, availability: result)]
         }
         return availabilites

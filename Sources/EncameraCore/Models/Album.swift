@@ -46,6 +46,35 @@ public struct Album: Codable, Identifiable, Hashable {
         storageOption.modelForType.init(album: self).baseURL
     }
 
+    /// The same album (same name + key) re-pointed at CloudKit storage — the single
+    /// owner of "make the `.cloudKit` twin of this album", used by the migration engine
+    /// and the album flip so the semantics live in one place.
+    public static func cloudKitTwin(of album: Album) -> Album {
+        var twin = album
+        twin.storageOption = .cloudKit
+        return twin
+    }
+
+    /// Removes a migrated album's drained source directory, but ONLY when it holds no
+    /// regular files — so a ciphertext the migration plan never enumerated (an orphaned
+    /// or partially-written file) is preserved rather than silently destroyed. A
+    /// not-fully-drained directory is left in place (the album simply remains
+    /// discoverable in its source storage). Returns whether the directory is now gone.
+    @discardableResult
+    public static func removeDrainedSourceDirectory(at baseURL: URL) -> Bool {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: baseURL.path) else { return true }
+        if let enumerator = fileManager.enumerator(at: baseURL,
+                                                   includingPropertiesForKeys: [.isRegularFileKey]) {
+            for case let url as URL in enumerator {
+                let isRegularFile = (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) ?? false
+                if isRegularFile { return false }   // leftover data — never delete
+            }
+        }
+        try? fileManager.removeItem(at: baseURL)
+        return true
+    }
+
     // MARK: - Encrypt Album Name
     public var encryptedPathComponent: String {
         if let encryptedName = encryptedName {

@@ -21,40 +21,247 @@ public enum ErasureScope {
     }
 }
 
+/// The CloudKit teardown EraserUtils needs, expressed as a seam so tests can
+/// verify "Erase All Data" without touching a live iCloud account.
+public protocol CloudDataErasing {
+    func deleteAllCloudData() async throws
+    /// Whether the user could actually have CloudKit data — this device provisioned
+    /// the zone, or an iCloud account is currently signed in. Gates the "iCloud data
+    /// may remain" warning so a purely local, signed-out user never sees an
+    /// unactionable false positive after a failed (irrelevant) zone delete.
+    func mayHaveCloudKitData() async -> Bool
+}
+
+extension CloudKitContainer: CloudDataErasing {
+    public func mayHaveCloudKitData() async -> Bool {
+        if hasEverProvisionedZone { return true }
+        return await isCloudKitAvailable()
+    }
+}
+
+/// The local wipe steps, expressed as a seam so tests can verify the erase
+/// sequence — each step independent, all steps running even when the cloud
+/// delete fails — without wiping the test process's real defaults, keychain,
+/// and filesystem.
+public protocol LocalDataErasing {
+    /// Halts in-flight CloudKit migrations (no further checkpoints or CloudKit
+    /// ops) and removes the on-disk migration checkpoints.
+    func eraseMigrationState() async
+    /// Active backend cleanup (also clears that backend's in-memory caches).
+    func eraseActiveBackendMedia() async
+    /// Global sweep across every storage type, independent of the active album.
+    func eraseAllLocalMediaFiles()
+    /// Per-album encrypted media indexes.
+    func eraseMediaIndexes()
+    /// Local CloudKit blob cache (encrypted, evictable copies).
+    func eraseBlobCache() async
+    /// Decrypted preview thumbnails.
+    func eraseThumbnails()
+    /// Temp directories that can hold decrypted cleartext.
+    func eraseTempDirectories()
+    func eraseKeychain()
+    func eraseUserDefaults()
+    /// Durably records that a cloud wipe is still owed (written AFTER the defaults
+    /// wipe so it survives it); the app retries on launch until it succeeds.
+    func recordPendingCloudWipe()
+}
+
+/// Production implementation of the local wipe steps.
+struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
+
+    let keyManager: KeyManager
+    let fileAccess: FileAccess
+
+    func eraseMigrationState() async {
+        await MainActor.run { CloudKitMigrationManager.requestAbortAll() }
+        do {
+            try MigrationPlanStore.clearAllPlans()
+        } catch {
+            printDebug("EraserUtils: could not clear migration plans: \(error)")
+        }
+    }
+
+    func eraseActiveBackendMedia() async {
+        do {
+            try await fileAccess.deleteAllMedia()
+        } catch {
+            printDebug("EraserUtils: could not delete active backend media: \(error)")
+        }
+    }
+
+    /// Deletes every local album tree across all storage types, regardless of which
+    /// album's backend is currently configured. Mirrors `DiskFileAccess.deleteAllMedia`.
+    func eraseAllLocalMediaFiles() {
+        for type in StorageType.allCases {
+            guard case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: type) else {
+                continue
+            }
+            do {
+                try type.modelForType.deleteAllFiles()
+            } catch {
+                printDebug("EraserUtils: could not delete all files for \(type): \(error)")
+            }
+        }
+    }
+
+    func eraseMediaIndexes() {
+        do {
+            try MediaIndexStore.clearAllIndexes()
+        } catch {
+            printDebug("EraserUtils: could not clear media indexes: \(error)")
+        }
+    }
+
+    func eraseBlobCache() async {
+        do {
+            try await CloudKitBlobCache.shared.clearAll()
+        } catch {
+            printDebug("EraserUtils: could not clear blob cache: \(error)")
+        }
+    }
+
+    func eraseThumbnails() {
+        do {
+            try DiskFileAccess.deleteThumbnailDirectory()
+        } catch {
+            printDebug("EraserUtils: could not delete thumbnail directory: \(error)")
+        }
+    }
+
+    func eraseTempDirectories() {
+        for url in [URL.tempMediaDirectory, URL.tempRecordingDirectory, URL.tempExportDirectory] {
+            do {
+                try FileManager.default.removeItem(at: url)
+            } catch {
+                printDebug("EraserUtils: could not remove temp directory \(url.lastPathComponent): \(error)")
+            }
+        }
+    }
+
+    func eraseKeychain() {
+        keyManager.clearKeychainData()
+    }
+
+    func eraseUserDefaults() {
+        UserDefaultUtils.removeAll()
+    }
+
+    func recordPendingCloudWipe() {
+        UserDefaultUtils.set(true, forKey: .pendingCloudDataWipe)
+    }
+}
+
+/// Outcome of an erase. `cloudKitDeletionFailed` is true only when an `.allData`
+/// wipe could not remove the user's CloudKit data (offline, transient error) AND
+/// the user could actually have data there — the local wipe still completed, so
+/// the caller should warn that iCloud data may remain rather than report a clean
+/// reset. A pending-wipe marker is persisted in that case and retried on launch.
+public struct ErasureResult {
+    public let cloudKitDeletionFailed: Bool
+
+    public init(cloudKitDeletionFailed: Bool) {
+        self.cloudKitDeletionFailed = cloudKitDeletionFailed
+    }
+}
+
 public struct EraserUtils {
-    
+
     public var keyManager: KeyManager
     public var fileAccess: FileAccess
     public var erasureScope: ErasureScope
-    
-    public init(keyManager: KeyManager, fileAccess: FileAccess, erasureScope: ErasureScope) {
+    private let cloudKitEraser: CloudDataErasing
+    private let localEraser: LocalDataErasing
+
+    public init(keyManager: KeyManager,
+                fileAccess: FileAccess,
+                erasureScope: ErasureScope,
+                cloudKitEraser: CloudDataErasing = CloudKitContainer.shared,
+                localEraser: LocalDataErasing? = nil) {
         self.keyManager = keyManager
         self.fileAccess = fileAccess
         self.erasureScope = erasureScope
+        self.cloudKitEraser = cloudKitEraser
+        self.localEraser = localEraser ?? DefaultLocalDataEraser(keyManager: keyManager, fileAccess: fileAccess)
     }
-    
-    public func erase() async throws {
+
+    @discardableResult
+    public func erase() async throws -> ErasureResult {
         switch erasureScope {
         case .appData:
             await eraseAppData()
+            return ErasureResult(cloudKitDeletionFailed: false)
         case .allData:
-            await eraseAllData()
+            return await eraseAllData()
         }
     }
-    
-    private func eraseAllData() async {
-        try? await fileAccess.deleteAllMedia()
-        keyManager.clearKeychainData()
-        eraseUserDefaults()
+
+    /// Full reset: removes everything the user generated — their CloudKit data
+    /// (across all devices), every local album regardless of which one is active,
+    /// the media index, on-disk caches/thumbnails, cleartext temp dirs, migration
+    /// checkpoints, the encryption keys, and all UserDefaults / iCloud key-value
+    /// state. Each step is independent so a single failure never skips the rest.
+    /// In-flight migrations are halted FIRST so nothing keeps writing checkpoints
+    /// or issuing CloudKit operations after the zone delete; the keychain wipe
+    /// runs last (deleting the keys orphans nothing once the cloud records are gone).
+    private func eraseAllData() async -> ErasureResult {
+        await localEraser.eraseMigrationState()
+
+        var cloudKitDeletionFailed = false
+        var cloudWipeOwed = false
+        do {
+            try await cloudKitEraser.deleteAllCloudData()
+        } catch {
+            print("EraserUtils: CloudKit deletion failed: \(error)")
+            // Warn only when there could actually be CloudKit data: a signed-out
+            // purely-local user would otherwise get an unactionable "iCloud data
+            // may remain" alert over data that never existed. The heuristic gates
+            // ONLY the alert — `hasEverProvisionedZone` lives in defaults that an
+            // `.appData` reset or reinstall destroys, so a false negative here is
+            // entirely possible with a vault full of photos still in the private
+            // database. The durable retry marker is persisted on every non-benign
+            // failure: the launch retry is free and self-clearing (a missing zone
+            // is treated as benign success, which clears it).
+            cloudKitDeletionFailed = await cloudKitEraser.mayHaveCloudKitData()
+            cloudWipeOwed = true
+        }
+
+        await localEraser.eraseActiveBackendMedia()
+        localEraser.eraseAllLocalMediaFiles()
+        localEraser.eraseMediaIndexes()
+        await localEraser.eraseBlobCache()
+        localEraser.eraseThumbnails()
+        localEraser.eraseTempDirectories()
+
+        localEraser.eraseKeychain()
+        localEraser.eraseUserDefaults()
+
+        if cloudWipeOwed {
+            // After the defaults wipe, so the marker survives it. The alert the
+            // caller shows is transient (the app exits right after); this durable
+            // marker is what actually gets the zone deleted, on a later launch.
+            localEraser.recordPendingCloudWipe()
+        }
+
+        return ErasureResult(cloudKitDeletionFailed: cloudKitDeletionFailed)
     }
-    
+
+    /// Forgot-passcode / start-over reset: destroys the keys and app state, plus
+    /// every DERIVED cache of the now-undecryptable data (decrypted thumbnails,
+    /// media indexes, blob cache, cleartext temp files, migration checkpoints) so
+    /// no readable artifacts survive into the new install.
+    ///
+    /// Intentionally KEEPS the encrypted originals and the CloudKit zone: the same
+    /// album keys may still exist on the user's other devices (iCloud Keychain),
+    /// so the remote records — and local ciphertext re-paired with a recovered
+    /// key — can remain usable there. Destroying them is exclusively the
+    /// `.allData` scope's contract.
     private func eraseAppData() async {
-        keyManager.clearKeychainData()
-        eraseUserDefaults()
+        await localEraser.eraseMigrationState()
+        localEraser.eraseMediaIndexes()
+        await localEraser.eraseBlobCache()
+        localEraser.eraseThumbnails()
+        localEraser.eraseTempDirectories()
+        localEraser.eraseKeychain()
+        localEraser.eraseUserDefaults()
     }
-    
-    private func eraseUserDefaults() {
-        UserDefaultUtils.removeAll()
-    }
-    
 }

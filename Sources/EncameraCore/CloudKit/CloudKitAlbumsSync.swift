@@ -10,7 +10,7 @@
 
 import Foundation
 
-public actor CloudKitAlbumsSync {
+public actor CloudKitAlbumsSync: DebugPrintable {
 
     private let albumManager: AlbumManaging
     /// Builds the album-existence reconciler (chunk 13). Injectable so tests can
@@ -47,6 +47,9 @@ public actor CloudKitAlbumsSync {
             observer = NotificationCenter.default.addObserver(
                 forName: .cloudKitZoneChanged, object: nil, queue: nil
             ) { [weak self] _ in
+                // Static form: this closure is non-isolated and escaping, so it
+                // cannot touch the actor-isolated instance method.
+                Self.printDebug("cloudKitZoneChanged received; scheduling syncAll")
                 Task { await self?.syncAll() }
             }
         }
@@ -64,9 +67,12 @@ public actor CloudKitAlbumsSync {
     public func syncAll() async {
         if let active = activeSync {
             resyncRequested = true
+            printDebug("syncAll join reason=syncInFlight resyncRequested=true")
             await active.value
+            printDebug("syncAll join done")
             return
         }
+        printDebug("syncAll start")
         let task = Task {
             // Cleared inside the task, in the same synchronous stretch as
             // drainSyncAll's final `resyncRequested` check — a joiner either sees
@@ -76,13 +82,18 @@ public actor CloudKitAlbumsSync {
         }
         activeSync = task
         await task.value
+        printDebug("syncAll ok")
     }
 
     private func drainSyncAll() async {
+        var pass = 0
         repeat {
             resyncRequested = false
+            pass += 1
+            printDebug("drainSyncAll pass=\(pass)")
             await performSyncAll()
         } while resyncRequested
+        printDebug("drainSyncAll ok passes=\(pass)")
     }
 
     private func performSyncAll() async {
@@ -93,16 +104,24 @@ public actor CloudKitAlbumsSync {
         // push has no flag check of its own.
         let hasCloudKitAlbums = albumManager.fetchAlbumsFromSources(includingHidden: true)
             .contains { $0.storageOption == .cloudKit }
-        guard FeatureToggle.isEnabled(feature: .cloudKitStorage) || hasCloudKitAlbums else { return }
+        let featureEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
+        guard featureEnabled || hasCloudKitAlbums else {
+            printDebug("performSyncAll skip reason=cloudKitPlaneInactive featureEnabled=\(featureEnabled) hasCloudKitAlbums=\(hasCloudKitAlbums)")
+            return
+        }
+        printDebug("performSyncAll start featureEnabled=\(featureEnabled) hasCloudKitAlbums=\(hasCloudKitAlbums)")
 
         albumsNeedingKey = await makeReconciler(albumManager).reconcileAlbums()
+        printDebug("performSyncAll reconcileAlbums done albumsNeedingKey=\(albumsNeedingKey)")
 
         // Re-fetch: the reconciler may have materialized or removed albums.
         let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
             .filter { $0.storageOption == .cloudKit }
+        printDebug("performSyncAll mediaReconcile start albumCount=\(albums.count)")
         for album in albums {
             let access = await CloudKitFileAccess(album: album, albumManager: albumManager)
             _ = await access.reconcile()
         }
+        printDebug("performSyncAll ok albumCount=\(albums.count) albumsNeedingKey=\(albumsNeedingKey)")
     }
 }

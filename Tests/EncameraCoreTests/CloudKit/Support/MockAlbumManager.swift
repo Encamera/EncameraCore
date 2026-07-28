@@ -60,6 +60,35 @@ final class MockAlbumManager: AlbumManaging {
         Album(name: name, storageOption: storageOption, creationDate: Date(), key: keyManager.currentKey!)
     }
     func moveAlbum(album: Album, toStorage: StorageType) throws -> Album { album }
+
+    private(set) var moveToLocalCallCount = 0
+    func moveCloudKitAlbumToLocal(album: Album) async throws -> Album {
+        moveToLocalCallCount += 1
+        var moved = album
+        moved.storageOption = .local
+        return moved
+    }
+
+    private(set) var finalizeCallCount = 0
+    private(set) var finalizedAlbums: [Album] = []
+    /// Set to make `finalizeMigrationToCloudKit` throw (e.g. the marker write
+    /// failing), so tests can exercise the kept-checkpoint retry path.
+    var finalizeError: Error?
+    func finalizeMigrationToCloudKit(album: Album) throws -> Album {
+        finalizeCallCount += 1
+        if let finalizeError { throw finalizeError }
+        var cloudKitAlbum = album
+        cloudKitAlbum.storageOption = .cloudKit
+        finalizedAlbums.append(cloudKitAlbum)
+        // Mirror the real AlbumManager: finalize writes the CloudKit discovery
+        // marker (the engine's already-finalized detection keys on its presence)
+        // and drops the drained source dir.
+        let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(cloudKitAlbum.encryptedPathComponent)
+        try? FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
+        let sourceModel = album.storageOption.modelForType.init(album: album)
+        Album.removeDrainedSourceDirectory(at: sourceModel.baseURL)
+        return cloudKitAlbum
+    }
     func renameAlbum(album: Album, to newName: String) throws -> Album { album }
     func validateAlbumName(name: String) throws {}
     func albumMediaCount(album: Album) -> Int { 0 }

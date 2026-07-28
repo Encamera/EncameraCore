@@ -864,6 +864,12 @@ public enum L10n {
     public static func moveErrorToast(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MoveErrorToast", String(describing: p1), String(describing: p2), fallback: "Failed to move %@ %@")
     }
+    /// The album was not moved and stays where it is. %@
+    public static func moveFailedAlertMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertMessage", String(describing: p1), fallback: "The album was not moved and stays where it is. %@")
+    }
+    /// Couldn't Move Album
+    public static let moveFailedAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertTitle", fallback: "Couldn't Move Album")
     /// Move Media
     public static let moveMedia = L10n.tr("Localizable", "AlbumDetailView.MoveMedia", fallback: "Move Media")
     /// Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.
@@ -1062,6 +1068,26 @@ public enum L10n {
     public static let editStopped = L10n.tr("Localizable", "BackgroundTaskProgress.EditStopped", fallback: "Edit stopped")
     /// Photo library optimized
     public static let indexCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.IndexCompleted", fallback: "Photo library optimized")
+    /// Move to iCloud canceled
+    public static let migrateCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateCanceled", fallback: "Move to iCloud canceled")
+    /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - CloudKit Migration
+    public static let migrateCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateCompleted", fallback: "Moved to iCloud")
+    /// Move to iCloud stopped
+    public static let migrateStopped = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateStopped", fallback: "Move to iCloud stopped")
+    /// Move to this device canceled
+    public static let migrateToLocalCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateToLocalCanceled", fallback: "Move to this device canceled")
+    /// Moved to this device
+    public static let migrateToLocalCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateToLocalCompleted", fallback: "Moved to this device")
+    /// Move to this device stopped
+    public static let migrateToLocalStopped = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateToLocalStopped", fallback: "Move to this device stopped")
+    /// Moving %@ albums to iCloud
+    public static func migratingBatches(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "BackgroundTaskProgress.MigratingBatches", String(describing: p1), fallback: "Moving %@ albums to iCloud")
+    }
+    /// Moving %@ of %@ to iCloud
+    public static func migratingProgress(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "BackgroundTaskProgress.MigratingProgress", String(describing: p1), String(describing: p2), fallback: "Moving %@ of %@ to iCloud")
+    }
     /// Move canceled
     public static let moveCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCanceled", fallback: "Move canceled")
     /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations
@@ -1102,6 +1128,94 @@ public enum L10n {
   public enum ChangingYourAuthenticationMethodWillRequireSettingUpANewPINOrPassword {
     /// Changing your authentication method will require setting up a new PIN or password. Would you like to continue?
     public static let wouldYouLikeToContinue = L10n.tr("Localizable", "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?", fallback: "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?")
+  }
+  public enum CloudKitMigration {
+    /// Sign in to iCloud in Settings, then resume the move.
+    public static let accountUnavailableMessage = L10n.tr("Localizable", "CloudKitMigration.AccountUnavailableMessage", fallback: "Sign in to iCloud in Settings, then resume the move.")
+    /// iCloud is unavailable
+    public static let accountUnavailableTitle = L10n.tr("Localizable", "CloudKitMigration.AccountUnavailableTitle", fallback: "iCloud is unavailable")
+    /// Not now
+    public static let alertCancel = L10n.tr("Localizable", "CloudKitMigration.AlertCancel", fallback: "Not now")
+    /// Move to iCloud
+    public static let alertConfirm = L10n.tr("Localizable", "CloudKitMigration.AlertConfirm", fallback: "Move to iCloud")
+    /// This uploads %@ items (%@) to iCloud and can take about %@. Stay on Wi-Fi and keep Encamera open — you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.
+    public static func alertMessage(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.AlertMessage", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "This uploads %@ items (%@) to iCloud and can take about %@. Stay on Wi-Fi and keep Encamera open — you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.")
+    }
+    /// ./Encamera/AlbumManagement/AlbumDetailView.swift - Move a local album to iCloud (CloudKit)
+    public static let alertTitle = L10n.tr("Localizable", "CloudKitMigration.AlertTitle", fallback: "Move this album to iCloud?")
+    /// %@ moved, %@ still on this device
+    public static func bannerCounts(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.BannerCounts", String(describing: p1), String(describing: p2), fallback: "%@ moved, %@ still on this device")
+    }
+    /// ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud
+    public static let bannerMessage = L10n.tr("Localizable", "CloudKitMigration.BannerMessage", fallback: "This album is split between this device and iCloud.")
+    /// less than a minute
+    public static let estimateLessThanAMinute = L10n.tr("Localizable", "CloudKitMigration.EstimateLessThanAMinute", fallback: "less than a minute")
+    /// %@ minutes
+    public static func estimateMinutes(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.EstimateMinutes", String(describing: p1), fallback: "%@ minutes")
+    }
+    /// more than an hour
+    public static let estimateOverAnHour = L10n.tr("Localizable", "CloudKitMigration.EstimateOverAnHour", fallback: "more than an hour")
+    /// Something went wrong: %@. You may need to be connected to Wi-Fi to continue. You can resume the move.
+    public static func failedMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.FailedMessage", String(describing: p1), fallback: "Something went wrong: %@. You may need to be connected to Wi-Fi to continue. You can resume the move.")
+    }
+    /// The move to iCloud didn't finish
+    public static let failedTitle = L10n.tr("Localizable", "CloudKitMigration.FailedTitle", fallback: "The move to iCloud didn't finish")
+    /// Stop the move
+    public static let overlayCancel = L10n.tr("Localizable", "CloudKitMigration.OverlayCancel", fallback: "Stop the move")
+    /// %@ couldn't be moved yet
+    public static func overlayFailedItems(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.OverlayFailedItems", String(describing: p1), fallback: "%@ couldn't be moved yet")
+    }
+    /// %@ of %@ items
+    public static func overlayItemProgress(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.OverlayItemProgress", String(describing: p1), String(describing: p2), fallback: "%@ of %@ items")
+    }
+    /// Keep Encamera open. You can switch apps, but don't force-quit.
+    public static let overlayKeepOpen = L10n.tr("Localizable", "CloudKitMigration.OverlayKeepOpen", fallback: "Keep Encamera open. You can switch apps, but don't force-quit.")
+    /// Downloading from iCloud
+    public static let overlayPhaseDownloading = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseDownloading", fallback: "Downloading from iCloud")
+    /// Preparing
+    public static let overlayPhasePreparing = L10n.tr("Localizable", "CloudKitMigration.OverlayPhasePreparing", fallback: "Preparing")
+    /// Removing local copy
+    public static let overlayPhaseRemovingLocalCopy = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseRemovingLocalCopy", fallback: "Removing local copy")
+    /// Removing iCloud copy
+    public static let overlayPhaseRemovingRemoteCopy = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseRemovingRemoteCopy", fallback: "Removing iCloud copy")
+    /// Retrying
+    public static let overlayPhaseRetrying = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseRetrying", fallback: "Retrying")
+    /// Uploading
+    public static let overlayPhaseUploading = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseUploading", fallback: "Uploading")
+    /// Verifying in iCloud
+    public static let overlayPhaseVerifying = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseVerifying", fallback: "Verifying in iCloud")
+    /// About %@ remaining
+    public static func overlayTimeRemaining(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.OverlayTimeRemaining", String(describing: p1), fallback: "About %@ remaining")
+    }
+    /// ./Encamera/AlbumManagement/MigrationStatusOverlay.swift - Blocking status view shown for the duration of a move to iCloud
+    public static let overlayTitle = L10n.tr("Localizable", "CloudKitMigration.OverlayTitle", fallback: "Moving to iCloud")
+    /// Moving to This Device
+    public static let overlayTitleToLocal = L10n.tr("Localizable", "CloudKitMigration.OverlayTitleToLocal", fallback: "Moving to This Device")
+    /// %@ total
+    public static func overlayTotalSize(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.OverlayTotalSize", String(describing: p1), fallback: "%@ total")
+    }
+    /// Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.
+    public static let partialMessage = L10n.tr("Localizable", "CloudKitMigration.PartialMessage", fallback: "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.")
+    /// Album partially moved
+    public static let partialTitle = L10n.tr("Localizable", "CloudKitMigration.PartialTitle", fallback: "Album partially moved")
+    /// Free up space in iCloud, then resume the move.
+    public static let quotaMessage = L10n.tr("Localizable", "CloudKitMigration.QuotaMessage", fallback: "Free up space in iCloud, then resume the move.")
+    /// iCloud storage is full
+    public static let quotaTitle = L10n.tr("Localizable", "CloudKitMigration.QuotaTitle", fallback: "iCloud storage is full")
+    /// Resume
+    public static let resume = L10n.tr("Localizable", "CloudKitMigration.Resume", fallback: "Resume")
+    /// iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.
+    public static let schemaNotDeployedMessage = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedMessage", fallback: "iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.")
+    /// iCloud can't accept this album yet
+    public static let schemaNotDeployedTitle = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedTitle", fallback: "iCloud can't accept this album yet")
   }
   public enum Common {
     /// Cancel
@@ -1891,6 +2005,10 @@ public enum L10n {
     public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
     /// Hidden Albums
     public static let hiddenAlbums = L10n.tr("Localizable", "Settings.HiddenAlbums", fallback: "Hidden Albums")
+    /// Your data on this device was erased, but we couldn't remove your data from iCloud. Reconnect to the internet (and make sure you're signed in to iCloud), then run Erase All Data again.
+    public static let icloudDataMayRemainMessage = L10n.tr("Localizable", "Settings.IcloudDataMayRemainMessage", fallback: "Your data on this device was erased, but we couldn't remove your data from iCloud. Reconnect to the internet (and make sure you're signed in to iCloud), then run Erase All Data again.")
+    /// iCloud data may not be deleted
+    public static let icloudDataMayRemainTitle = L10n.tr("Localizable", "Settings.IcloudDataMayRemainTitle", fallback: "iCloud data may not be deleted")
     /// Import Key Phrase
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
     /// Purchases restored!

@@ -49,7 +49,7 @@ extension CKDatabase: RecordZoneProvisioning {
 /// (which checks `ubiquityIdentityToken`): if there is no usable iCloud account,
 /// CloudKit is reported unavailable and the app stays on local-only. We never
 /// crash and never block on a missing account.
-public final class CloudKitContainer {
+public final class CloudKitContainer: DebugPrintable {
 
     /// Shared instance wired to the real container.
     public static let shared = CloudKitContainer()
@@ -93,8 +93,13 @@ public final class CloudKitContainer {
     /// `.couldNotDetermine` (treated as unavailable).
     public func accountStatus() async -> CKAccountStatus {
         do {
-            return try await accountStatusProvider.currentAccountStatus()
+            let status = try await accountStatusProvider.currentAccountStatus()
+            printDebug("accountStatus ok status=\(status.rawValue)")
+            return status
         } catch {
+            // `.couldNotDetermine` is also a legitimate server answer, so without
+            // this log an error and a genuine "unknown" are indistinguishable.
+            printDebug("accountStatus FAILED error=\(error); collapsing to couldNotDetermine")
             return .couldNotDetermine
         }
     }
@@ -102,7 +107,12 @@ public final class CloudKitContainer {
     /// CloudKit is usable only when an account is fully available. `.noAccount`,
     /// `.restricted`, and `.couldNotDetermine` all mean "stay local-only".
     public func isCloudKitAvailable() async -> Bool {
-        await accountStatus() == .available
+        let status = await accountStatus()
+        let available = status == .available
+        if !available {
+            printDebug("isCloudKitAvailable MISS status=\(status.rawValue)")
+        }
+        return available
     }
 
     // MARK: Zone bootstrap
@@ -111,20 +121,38 @@ public final class CloudKitContainer {
     /// first success (guarded by a persisted flag). Tolerates "already exists"
     /// races so concurrent launches don't surface a spurious error.
     public func ensureZoneExists() async throws {
-        if defaults.bool(forKey: zoneCreatedKey) { return }
+        if defaults.bool(forKey: zoneCreatedKey) {
+            printDebug("ensureZoneExists skip reason=alreadyCreatedFlag zone=\(CloudKitSchema.zoneName) container=\(CloudKitSchema.containerID)")
+            return
+        }
 
         let zone = CKRecordZone(zoneName: CloudKitSchema.zoneName)
+        printDebug("ensureZoneExists start zone=\(CloudKitSchema.zoneName) container=\(CloudKitSchema.containerID)")
         do {
             try await zoneProvisioner.saveZone(zone)
+            printDebug("ensureZoneExists ok zone=\(CloudKitSchema.zoneName)")
         } catch {
-            guard Self.isBenignZoneError(error) else { throw error }
+            guard Self.isBenignZoneError(error) else {
+                printDebug("ensureZoneExists FAILED zone=\(CloudKitSchema.zoneName) error=\(error)")
+                throw error
+            }
+            // Benign means "already exists"; we still set the flag below.
+            printDebug("ensureZoneExists ok zone=\(CloudKitSchema.zoneName) benignError=\(error)")
         }
         defaults.set(true, forKey: zoneCreatedKey)
     }
 
     /// Resets the cached "zone created" flag (used by migration/teardown paths).
     public func resetZoneCreatedFlag() {
+        printDebug("resetZoneCreatedFlag ok container=\(CloudKitSchema.containerID)")
         defaults.set(false, forKey: zoneCreatedKey)
+    }
+
+    /// Whether this device ever provisioned the CloudKit zone — i.e. CloudKit
+    /// storage was actually used. Read by the eraser to suppress the "iCloud data
+    /// may remain" warning for users who never had anything in CloudKit.
+    public var hasEverProvisionedZone: Bool {
+        defaults.bool(forKey: zoneCreatedKey)
     }
 
     // MARK: Teardown
@@ -139,10 +167,17 @@ public final class CloudKitContainer {
     /// other failure (e.g. offline, no account) is surfaced so the caller can warn
     /// that iCloud data may remain.
     public func deleteAllCloudData() async throws {
+        printDebug("deleteAllCloudData start zone=\(zoneID.zoneName) container=\(CloudKitSchema.containerID)")
         do {
             try await zoneProvisioner.deleteZone(zoneID)
+            printDebug("deleteAllCloudData ok zone=\(zoneID.zoneName)")
         } catch {
-            guard Self.isBenignDeleteError(error) else { throw error }
+            guard Self.isBenignDeleteError(error) else {
+                printDebug("deleteAllCloudData FAILED zone=\(zoneID.zoneName) error=\(error)")
+                throw error
+            }
+            // The zone was already gone — nothing to remove, so this is success.
+            printDebug("deleteAllCloudData ok zone=\(zoneID.zoneName) benignError=\(error)")
         }
         resetZoneCreatedFlag()
     }
@@ -150,14 +185,23 @@ public final class CloudKitContainer {
     /// Deleting a zone that is already gone is harmless; treat the corresponding
     /// CloudKit errors as success.
     static func isBenignDeleteError(_ error: Error) -> Bool {
-        guard let ckError = error as? CKError else { return false }
+        guard let ckError = error as? CKError else {
+            // A non-CKError here means the failure came from somewhere other than
+            // CloudKit, which is never classifiable as "already gone".
+            Self.printDebug("isBenignDeleteError MISS reason=notCKError error=\(error)")
+            return false
+        }
         switch ckError.code {
         case .zoneNotFound, .userDeletedZone:
+            Self.printDebug("isBenignDeleteError hit code=\(ckError.code.rawValue)")
             return true
         case .partialFailure:
             let perItem: [AnyHashable: Error] = ckError.partialErrorsByItemID ?? [:]
-            return !perItem.isEmpty && perItem.values.allSatisfy { isBenignDeleteError($0) }
+            let benign = !perItem.isEmpty && perItem.values.allSatisfy { isBenignDeleteError($0) }
+            Self.printDebug("isBenignDeleteError partialFailure benign=\(benign) perItemCount=\(perItem.count)")
+            return benign
         default:
+            Self.printDebug("isBenignDeleteError MISS code=\(ckError.code.rawValue) error=\(ckError)")
             return false
         }
     }
@@ -165,16 +209,23 @@ public final class CloudKitContainer {
     /// Creating a zone that already exists is harmless; treat the corresponding
     /// CloudKit errors as success so the flag still gets set.
     static func isBenignZoneError(_ error: Error) -> Bool {
-        guard let ckError = error as? CKError else { return false }
+        guard let ckError = error as? CKError else {
+            Self.printDebug("isBenignZoneError MISS reason=notCKError error=\(error)")
+            return false
+        }
         switch ckError.code {
         case .serverRecordChanged:
+            Self.printDebug("isBenignZoneError hit code=\(ckError.code.rawValue)")
             return true
         case .partialFailure:
             let perItem: [AnyHashable: Error] = ckError.partialErrorsByItemID ?? [:]
             // Benign only if there is at least one underlying failure and every
             // one of them is itself benign.
-            return !perItem.isEmpty && perItem.values.allSatisfy { isBenignZoneError($0) }
+            let benign = !perItem.isEmpty && perItem.values.allSatisfy { isBenignZoneError($0) }
+            Self.printDebug("isBenignZoneError partialFailure benign=\(benign) perItemCount=\(perItem.count)")
+            return benign
         default:
+            Self.printDebug("isBenignZoneError MISS code=\(ckError.code.rawValue) error=\(ckError)")
             return false
         }
     }

@@ -31,7 +31,7 @@ final class CloudKitMediaStoreTests: XCTestCase {
         let container = CloudKitContainer(accountStatusProvider: StubAccountStatusProvider(status: account),
                                           zoneProvisioner: StubZoneProvisioner(),
                                           defaults: defaults)
-        return CloudKitMediaStore(container: container, adapter: adapter, defaults: defaults, recoverOnInit: false)
+        return CloudKitMediaStore(container: container, adapter: adapter, defaults: defaults)
     }
 
     private func makeUpload(mediaID: String = "media-1",
@@ -73,7 +73,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
         XCTAssertEqual(mock.lastSavePolicy?.rawValue,
                        CKModifyRecordsOperation.RecordSavePolicy.ifServerRecordUnchanged.rawValue)
-        XCTAssertEqual(mock.lastSaveLongLived, true)
     }
 
     func testUploadReportsProgressMonotonic0to1() async throws {
@@ -306,6 +305,20 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.savedSubscriptions.count, 1)
     }
 
+    func testRegisterZoneSubscriptionNoOpsWhenFlagAlreadySet() async throws {
+        // The coordinator retries registration on every sync and relies on THIS
+        // persisted-flag check to make the genuinely-registered case free.
+        let defaults = freshDefaults()
+        defaults.set(true, forKey: "cloudkit_zone_subscription_v1_" + CloudKitSchema.containerID)
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: defaults)
+
+        try await store.registerZoneSubscription()
+
+        XCTAssertTrue(mock.savedSubscriptions.isEmpty,
+                      "an already-registered subscription must not be saved again")
+    }
+
     func testCancelledErrorMaps() {
         guard case .cancelled = mapCKError(CKErrorFactory.error(.operationCancelled)) else {
             return XCTFail("Expected cancelled")
@@ -364,17 +377,90 @@ final class CloudKitMediaStoreTests: XCTestCase {
                        "A failed fetch must not advance the persisted change token")
     }
 
-    // MARK: - Long-lived recovery
+    // MARK: - Interrupted uploads / legacy long-lived state (ENC-133)
 
-    func testLongLivedRecoveryReattachesFromOurMap() async {
+    /// The crash was armed by *persisted* long-lived operation IDs that a later store
+    /// construction handed back to CloudKit. Constructing a store must clear the map
+    /// an older build left behind, so there is nothing left to hand back.
+    func testConstructingAStoreClearsTheLegacyLongLivedOperationMap() {
         let defaults = freshDefaults()
-        defaults.set(["m1": "opA", "m2": "opB"], forKey: longLivedMapKey)
+        // Exactly what a kill mid-upload used to leave behind.
+        defaults.set(["m1": "3090886DAE392CF7", "m2": "opB"], forKey: longLivedMapKey)
 
+        _ = makeStore(adapter: MockCloudKitDatabase(), defaults: defaults)
+
+        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
+                     "A stale long-lived operation map must not survive store construction")
+    }
+
+    /// Store construction used to kick off a CloudKit round-trip (fetch all
+    /// long-lived operation IDs, then re-enqueue each). It must now be inert: the
+    /// app builds one store per album namespace on launch, and every one of those
+    /// re-enqueues was a chance to raise the uncatchable `CKException`.
+    func testConstructingManyStoresIssuesNoCloudKitWork() async {
+        let defaults = freshDefaults()
+        defaults.set(["m1": "opA"], forKey: longLivedMapKey)
+        let mock = MockCloudKitDatabase()
+
+        for _ in 0..<5 {
+            _ = makeStore(adapter: mock, defaults: defaults)
+        }
+        // Give any stray init-time Task a chance to run before asserting.
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        XCTAssertEqual(mock.saveCount, 0)
+        XCTAssertEqual(mock.fetchCount, 0)
+        XCTAssertEqual(mock.deleteCount, 0)
+        XCTAssertNil(defaults.object(forKey: longLivedMapKey))
+    }
+
+    /// An upload killed part-way (here: the save fails, standing in for the process
+    /// dying between issuing and completing it) must leave nothing behind that makes
+    /// the next attempt at the same record misbehave — the retry is an ordinary save.
+    func testInterruptedUploadLeavesNoStateThatBreaksTheNextSave() async throws {
+        let defaults = freshDefaults()
         let mock = MockCloudKitDatabase()
         let store = makeStore(adapter: mock, defaults: defaults)
 
-        await store.recoverLongLivedOperations()
+        mock.saveError = CKErrorFactory.error(.networkFailure)
+        do {
+            _ = try await store.upload(makeUpload(), progress: { _ in })
+            XCTFail("Expected the interrupted upload to fail")
+        } catch {
+            // expected
+        }
+        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
+                     "An interrupted upload must not record a long-lived operation")
 
-        XCTAssertEqual(Set(mock.reattachedIDs), Set(["opA", "opB"]))
+        // The resumed migration re-drives the same record.
+        mock.saveError = nil
+        let ref = try await store.upload(makeUpload(), progress: { _ in })
+
+        XCTAssertEqual(ref.recordName, "media-1")
+        XCTAssertEqual(mock.saveCount, 2, "The retry is a fresh, ordinary save")
+        XCTAssertNil(defaults.object(forKey: longLivedMapKey))
+    }
+
+    /// The full repro shape: an upload is interrupted, the app is "relaunched"
+    /// (fresh stores over the same app-group defaults), and the migration resumes.
+    /// Nothing is re-enqueued and the resumed upload succeeds.
+    func testRelaunchAfterAnInterruptedUploadResumesWithoutReattachingAnything() async throws {
+        let defaults = freshDefaults()
+        let firstMock = MockCloudKitDatabase()
+        let firstStore = makeStore(adapter: firstMock, defaults: defaults)
+        firstMock.saveError = CKErrorFactory.error(.networkFailure)
+        _ = try? await firstStore.upload(makeUpload(), progress: { _ in })
+
+        // Relaunch: the album list, albums sync and the migration each build a store.
+        let secondMock = MockCloudKitDatabase()
+        var stores: [CloudKitMediaStore] = []
+        for _ in 0..<3 { stores.append(makeStore(adapter: secondMock, defaults: defaults)) }
+        XCTAssertEqual(secondMock.saveCount, 0, "No store construction may issue a CloudKit operation")
+
+        let ref = try await XCTUnwrap(stores.last).upload(makeUpload(), progress: { _ in })
+
+        XCTAssertEqual(ref.recordName, "media-1")
+        XCTAssertEqual(secondMock.saveCount, 1)
+        XCTAssertNil(defaults.object(forKey: longLivedMapKey))
     }
 }

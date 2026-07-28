@@ -28,6 +28,15 @@ public protocol AlbumManaging {
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
     func storageModel(for album: Album) -> DataStorageModel?
     func moveAlbum(album: Album, toStorage: StorageType) throws -> Album
+    /// Downloads a CloudKit album's contents into local storage and removes the
+    /// remote records — the reverse of the migration engine. See `AlbumManager`.
+    func moveCloudKitAlbumToLocal(album: Album) async throws -> Album
+    /// Progress-reporting variant of the above: `onProgress` is awaited between
+    /// items, so the app can mirror the move into the same blocking overlay the
+    /// forward migration shows.
+    func moveCloudKitAlbumToLocal(album: Album,
+                                  onProgress: (@Sendable (CloudToLocalMoveProgress) async -> Void)?) async throws -> Album
+    @discardableResult func finalizeMigrationToCloudKit(album: Album) throws -> Album
     func renameAlbum(album: Album, to newName: String) throws -> Album
     func validateAlbumName(name: String) throws
     func albumMediaCount(album: Album) -> Int
@@ -43,6 +52,42 @@ public protocol AlbumManaging {
 public extension AlbumManaging {
     func fetchAlbumsFromSources() -> [Album] {
         fetchAlbumsFromSources(includingHidden: false)
+    }
+
+    /// Default for non-CloudKit conformers (previews/test doubles): flip the
+    /// storage only. `AlbumManager` overrides this with the real download +
+    /// remote cleanup.
+    func moveCloudKitAlbumToLocal(album: Album) async throws -> Album {
+        var moved = album
+        moved.storageOption = .local
+        return moved
+    }
+
+    /// Default for conformers that don't report progress: run the plain move and
+    /// drop the callback. `AlbumManager` overrides this with real reporting.
+    func moveCloudKitAlbumToLocal(album: Album,
+                                  onProgress: (@Sendable (CloudToLocalMoveProgress) async -> Void)?) async throws -> Album {
+        try await moveCloudKitAlbumToLocal(album: album)
+    }
+
+    /// Default flip used by non-broadcasting conformers (previews/test doubles):
+    /// write the CloudKit discovery marker and drop the drained source directory.
+    /// `AlbumManager` overrides this to also broadcast the change.
+    @discardableResult
+    func finalizeMigrationToCloudKit(album: Album) throws -> Album {
+        let cloudKitAlbum = Album.cloudKitTwin(of: album)
+        let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(cloudKitAlbum.encryptedPathComponent)
+        // The marker is the only discovery mechanism for CloudKit albums — surface
+        // a write failure instead of silently finishing with an unreachable album.
+        try FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
+        guard FileManager.default.fileExists(atPath: marker.path) else {
+            throw AlbumError.cloudKitMarkerWriteFailed
+        }
+        if album.storageOption != .cloudKit {
+            let sourceModel = album.storageOption.modelForType.init(album: album)
+            Album.removeDrainedSourceDirectory(at: sourceModel.baseURL)
+        }
+        return cloudKitAlbum
     }
 
     /// Default no-op so lightweight test/demo conformers need not implement it.

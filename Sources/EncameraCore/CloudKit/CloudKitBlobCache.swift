@@ -12,7 +12,7 @@
 import Foundation
 import CryptoKit
 
-public actor CloudKitBlobCache {
+public actor CloudKitBlobCache: DebugPrintable {
 
     /// Per-album residency policy for fetched blobs.
     public enum Mode: Sendable {
@@ -73,15 +73,26 @@ public actor CloudKitBlobCache {
     /// persisted entry rather than re-downloading everything; the next sync
     /// supplies a real tag and evicts genuinely stale copies via the mismatch.
     public func cachedURL(recordName: String, changeTag: String?) -> URL? {
-        guard var entry = index[recordName] else { return nil }
-        if let changeTag, entry.changeTag != changeTag { return nil }
+        // Three very different causes used to collapse into a bare `nil` here:
+        // never cached, cached-but-stale, and cached-but-file-vanished. Each gets
+        // its own message so a spurious re-download is attributable.
+        guard var entry = index[recordName] else {
+            printDebug("cachedURL MISS recordName=\(recordName) reason=notIndexed indexCount=\(index.count)")
+            return nil
+        }
+        if let changeTag, entry.changeTag != changeTag {
+            printDebug("cachedURL MISS recordName=\(recordName) reason=staleTag cachedTag=\(entry.changeTag ?? "nil") wantTag=\(changeTag)")
+            return nil
+        }
         let fileURL = url(for: entry)
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            printDebug("cachedURL MISS recordName=\(recordName) reason=fileMissingOnDisk file=\(fileURL.lastPathComponent) sizeBytes=\(entry.size); dropping index entry")
             index[recordName] = nil
             return nil
         }
         entry.lastAccess = Date()
         index[recordName] = entry
+        printDebug("cachedURL hit recordName=\(recordName) sizeBytes=\(entry.size) changeTag=\(entry.changeTag ?? "nil")")
         return fileURL
     }
 
@@ -96,25 +107,55 @@ public actor CloudKitBlobCache {
                       from sourceURL: URL) throws -> URL {
         let albumFolder = Self.albumFolderName(albumID)
         let albumDir = baseDir.appendingPathComponent(albumFolder, isDirectory: true)
-        try FileManager.default.createDirectory(at: albumDir, withIntermediateDirectories: true)
+        printDebug("store start recordName=\(recordName) changeTag=\(changeTag ?? "nil") albumFolder=\(albumFolder) source=\(sourceURL.lastPathComponent)")
+        do {
+            try FileManager.default.createDirectory(at: albumDir, withIntermediateDirectories: true)
+        } catch {
+            printDebug("store FAILED recordName=\(recordName) stage=createAlbumDir albumFolder=\(albumFolder) raw=\(error)")
+            throw error
+        }
 
         if let existing = index[recordName] {
-            try? FileManager.default.removeItem(at: url(for: existing))
+            // Swallowed by design (a missing prior copy is fine), but a real
+            // failure here leaves an orphan file outside the byte cap.
+            do {
+                try FileManager.default.removeItem(at: url(for: existing))
+                printDebug("store replace recordName=\(recordName) removedPriorSizeBytes=\(existing.size) priorTag=\(existing.changeTag ?? "nil")")
+            } catch {
+                printDebug("store WARNING recordName=\(recordName) could not remove prior cached copy file=\(url(for: existing).lastPathComponent) raw=\(error)")
+            }
         }
         var destURL = albumDir.appendingPathComponent(recordName)
         if FileManager.default.fileExists(atPath: destURL.path) {
-            try FileManager.default.removeItem(at: destURL)
+            do {
+                try FileManager.default.removeItem(at: destURL)
+            } catch {
+                printDebug("store FAILED recordName=\(recordName) stage=removeExistingDest file=\(destURL.lastPathComponent) raw=\(error)")
+                throw error
+            }
         }
-        try FileManager.default.copyItem(at: sourceURL, to: destURL)
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: destURL)
+        } catch {
+            printDebug("store FAILED recordName=\(recordName) stage=copyIn source=\(sourceURL.lastPathComponent) raw=\(error)")
+            throw error
+        }
         excludeFromBackup(&destURL)
 
         let attributes = try? FileManager.default.attributesOfItem(atPath: destURL.path)
+        if attributes == nil {
+            // The copy above succeeded, so an unreadable destination means the file
+            // is gone/inaccessible already — the entry would then record size 0 and
+            // escape the byte cap forever.
+            printDebug("store WARNING recordName=\(recordName) could not read attributes of just-copied file=\(destURL.lastPathComponent); recording sizeBytes=0")
+        }
         let size = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
         index[recordName] = Entry(changeTag: changeTag,
                                   relativePath: "\(albumFolder)/\(recordName)",
                                   size: size,
                                   lastAccess: Date())
-        enforceCap()
+        printDebug("store ok recordName=\(recordName) sizeBytes=\(size) changeTag=\(changeTag ?? "nil") cacheTotalBytes=\(totalBytes()) entries=\(index.count)")
+        enforceCap(protecting: recordName)
         persist()
         return destURL
     }
@@ -122,16 +163,35 @@ public actor CloudKitBlobCache {
     // MARK: - Eviction
 
     public func evict(recordName: String) {
-        guard let entry = index.removeValue(forKey: recordName) else { return }
-        try? FileManager.default.removeItem(at: url(for: entry))
+        guard let entry = index.removeValue(forKey: recordName) else {
+            printDebug("evict skip recordName=\(recordName) reason=notIndexed")
+            return
+        }
+        do {
+            try FileManager.default.removeItem(at: url(for: entry))
+            printDebug("evict ok recordName=\(recordName) sizeBytes=\(entry.size) remainingEntries=\(index.count)")
+        } catch {
+            // The index entry is already dropped, so a failure here leaks the file
+            // on disk with nothing left tracking it against the byte cap.
+            printDebug("evict WARNING recordName=\(recordName) index entry dropped but file remove failed file=\(url(for: entry).lastPathComponent) raw=\(error)")
+        }
         persist()
     }
 
     public func evictAll(olderThan date: Date) {
+        var evicted = 0
+        var freedBytes: Int64 = 0
         for (recordName, entry) in index where entry.lastAccess < date {
-            try? FileManager.default.removeItem(at: url(for: entry))
+            do {
+                try FileManager.default.removeItem(at: url(for: entry))
+            } catch {
+                printDebug("evictAll WARNING recordName=\(recordName) file remove failed file=\(url(for: entry).lastPathComponent) raw=\(error)")
+            }
             index[recordName] = nil
+            evicted += 1
+            freedBytes += entry.size
         }
+        printDebug("evictAll ok olderThan=\(date) evicted=\(evicted) freedBytes=\(freedBytes) remainingEntries=\(index.count) cacheTotalBytes=\(totalBytes())")
         persist()
     }
 
@@ -142,31 +202,78 @@ public actor CloudKitBlobCache {
     /// Wipes the entire on-disk cache (every album folder and the `.cacheindex.json`
     /// sidecar) and clears the in-memory index. Used by "Erase All Data" so no
     /// cached ciphertext blobs survive a full reset.
-    public func clearAll() {
-        try? FileManager.default.removeItem(at: baseDir)
+    ///
+    /// Throws on failure: a swallowed error here meant "Erase All Data" could leave
+    /// cached ciphertext blobs on disk while the in-memory index reported them gone.
+    /// The index is cleared only after the on-disk removal actually succeeded, so it
+    /// keeps tracking whatever survived a failed erase.
+    public func clearAll() throws {
+        let entryCount = index.count
+        let bytes = totalBytes()
+        guard FileManager.default.fileExists(atPath: baseDir.path) else {
+            index.removeAll()
+            printDebug("clearAll ok (nothing on disk) entries=\(entryCount)")
+            return
+        }
+        do {
+            try FileManager.default.removeItem(at: baseDir)
+            printDebug("clearAll ok entries=\(entryCount) bytes=\(bytes)")
+        } catch {
+            printDebug("clearAll FAILED entries=\(entryCount) bytes=\(bytes) dir=\(baseDir.lastPathComponent) raw=\(error)")
+            throw error
+        }
         index.removeAll()
     }
 
     // MARK: - Internals
 
-    private func enforceCap() {
+    /// `protecting` names the entry `store` just wrote and is about to return a
+    /// URL for. A blob larger than the whole cap would otherwise be evicted by
+    /// its own store's pass (it has the newest `lastAccess`, but the loop only
+    /// stops when the total fits), handing the caller a dead URL — which breaks
+    /// viewing any oversized item and permanently blocks the CloudKit -> local
+    /// move for its album. The cache may briefly exceed the cap by that one
+    /// entry; the next store's pass evicts it once it is no longer the newest.
+    private func enforceCap(protecting protected: String? = nil) {
         guard maxBytes > 0 else { return }
         var total = totalBytes()
         guard total > maxBytes else { return }
         // Evict least-recently-used first.
         let ordered = index.sorted { $0.value.lastAccess < $1.value.lastAccess }
+        printDebug("enforceCap start totalBytes=\(total) maxBytes=\(maxBytes) entries=\(index.count)")
         for (recordName, entry) in ordered {
             if total <= maxBytes { break }
-            try? FileManager.default.removeItem(at: url(for: entry))
+            if recordName == protected { continue }
+            let fileURL = url(for: entry)
+            do {
+                try FileManager.default.removeItem(at: fileURL)
+                printDebug("enforceCap evict recordName=\(recordName) sizeBytes=\(entry.size) lastAccess=\(entry.lastAccess)")
+            } catch {
+                // A file that still exists after a failed remove keeps its index
+                // entry and its bytes in the running total — dropping either would
+                // make the accounting optimistic and let the cache exceed maxBytes
+                // on disk indefinitely. An already-missing file is safe to untrack.
+                if FileManager.default.fileExists(atPath: fileURL.path) {
+                    printDebug("enforceCap WARNING recordName=\(recordName) file remove failed, keeping entry file=\(fileURL.lastPathComponent) raw=\(error)")
+                    continue
+                }
+                printDebug("enforceCap evict recordName=\(recordName) file already missing, dropping entry")
+            }
             index[recordName] = nil
             total -= entry.size
         }
+        printDebug("enforceCap ok totalBytes=\(total) entries=\(index.count)")
     }
 
     private func excludeFromBackup(_ url: inout URL) {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
-        try? url.setResourceValues(values)
+        do {
+            try url.setResourceValues(values)
+        } catch {
+            // Non-fatal, but it means re-fetchable ciphertext is being backed up.
+            printDebug("excludeFromBackup WARNING file=\(url.lastPathComponent) raw=\(error)")
+        }
     }
 
     // MARK: - Persistence (survive relaunch)
@@ -175,16 +282,39 @@ public actor CloudKitBlobCache {
     /// file no longer exists. Without this, a relaunch re-downloads everything and
     /// orphans on-disk files outside the byte cap.
     private func loadIndex() {
-        guard let data = try? Data(contentsOf: indexFileURL),
-              let decoded = try? JSONDecoder().decode([String: Entry].self, from: data) else {
+        guard let data = try? Data(contentsOf: indexFileURL) else {
+            // Absent sidecar is normal on first launch; a read failure on an
+            // existing file is not, and costs a full re-download of the album.
+            let exists = FileManager.default.fileExists(atPath: indexFileURL.path)
+            printDebug("loadIndex \(exists ? "FAILED" : "skip") reason=\(exists ? "sidecarUnreadable" : "noSidecar") file=\(indexFileURL.lastPathComponent)")
+            return
+        }
+        guard let decoded = try? JSONDecoder().decode([String: Entry].self, from: data) else {
+            printDebug("loadIndex FAILED reason=decodeError bytes=\(data.count) file=\(indexFileURL.lastPathComponent); starting with an empty cache index")
             return
         }
         index = decoded.filter { FileManager.default.fileExists(atPath: url(for: $0.value).path) }
+        // A large gap between decoded and kept means files were reaped underneath
+        // us (Caches purge) and everything in the gap will be re-downloaded.
+        printDebug("loadIndex ok decoded=\(decoded.count) kept=\(index.count) droppedMissingFiles=\(decoded.count - index.count) cacheTotalBytes=\(totalBytes())")
     }
 
     private func persist() {
-        guard let data = try? JSONEncoder().encode(index) else { return }
-        try? FileManager.default.createDirectory(at: baseDir, withIntermediateDirectories: true)
-        try? data.write(to: indexFileURL)
+        guard let data = try? JSONEncoder().encode(index) else {
+            printDebug("persist FAILED reason=encodeError entries=\(index.count)")
+            return
+        }
+        do {
+            try FileManager.default.createDirectory(at: baseDir, withIntermediateDirectories: true)
+        } catch {
+            printDebug("persist WARNING could not create cache dir=\(baseDir.lastPathComponent) raw=\(error); attempting the write anyway")
+        }
+        do {
+            try data.write(to: indexFileURL)
+        } catch {
+            // A failed write means the next launch reads a stale sidecar: entries
+            // stored since the last good persist look uncached and re-download.
+            printDebug("persist FAILED entries=\(index.count) bytes=\(data.count) file=\(indexFileURL.lastPathComponent) raw=\(error)")
+        }
     }
 }

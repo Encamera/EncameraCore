@@ -76,6 +76,7 @@ for iap in list_in_app_purchases(client, app_id):
 | `asc.pricing.iap` | One-time IAP price points and schedules |
 | `asc.pricing.subscriptions` | Subscription groups, subscriptions, prices |
 | `asc.testflight` | Build expiration, beta groups, build/group relationships |
+| `asc.beta_feedback` | TestFlight crash feedback submissions and crash log download (`betaFeedbackCrashSubmissions`) |
 | `asc.xcode_cloud` | Xcode Cloud products, workflows, build runs, actions, issues, artifacts, test results, environments |
 
 ## Extending

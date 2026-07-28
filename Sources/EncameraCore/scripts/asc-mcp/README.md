@@ -104,6 +104,14 @@ Add to your Claude Code MCP config (`~/.claude.json` or project settings):
 | `list_builds` | List uploaded builds, optionally filtered by processing state |
 | `get_version_localizations` | Get localized metadata (description, keywords, what's new) for a version |
 
+### TestFlight crash feedback
+
+| Tool | Description |
+|---|---|
+| `list_crash_reports` | List TestFlight crash feedback submissions, newest first, optionally filtered by build number, device model, or OS version |
+| `get_crash_report` | Get one crash submission with its full symbolicated crash log text |
+| `get_latest_crash_report` | Get the newest crash submission (optionally scoped to a build) with its crash log |
+
 ### Subscription pricing
 
 | Tool | Description |

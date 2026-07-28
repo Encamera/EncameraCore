@@ -11,7 +11,7 @@
 
 import Foundation
 
-public actor CloudKitCoordinatorRegistry {
+public actor CloudKitCoordinatorRegistry: DebugPrintable {
 
     public static let shared = CloudKitCoordinatorRegistry()
 
@@ -23,9 +23,16 @@ public actor CloudKitCoordinatorRegistry {
     /// reusing the same instance thereafter.
     public func coordinator(forAlbumID albumID: String,
                             make: () -> CloudKitSyncCoordinator) -> CloudKitSyncCoordinator {
-        if let existing = coordinators[albumID] { return existing }
+        if let existing = coordinators[albumID] {
+            printDebug("coordinator hit albumID=\(albumID) registrySize=\(coordinators.count)")
+            return existing
+        }
+        // A miss means a brand-new coordinator with empty in-memory changeTags /
+        // deletedRecordNames; an unexpected miss for an active album is exactly the
+        // stale-blob bug this registry exists to prevent.
         let created = make()
         coordinators[albumID] = created
+        printDebug("coordinator MISS albumID=\(albumID) created registrySize=\(coordinators.count)")
         return created
     }
 }

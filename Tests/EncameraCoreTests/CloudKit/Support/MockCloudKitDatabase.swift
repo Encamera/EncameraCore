@@ -30,10 +30,8 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
     private(set) var savedRecordBatches: [[CKRecord]] = []
     private(set) var deletedRecordIDBatches: [[CKRecord.ID]] = []
     private(set) var lastSavePolicy: CKModifyRecordsOperation.RecordSavePolicy?
-    private(set) var lastSaveLongLived: Bool?
     private(set) var lastQueryDesiredKeys: [CKRecord.FieldKey]?
     private(set) var lastFetchDesiredKeys: [CKRecord.FieldKey]?
-    private(set) var reattachedIDs: [CKOperation.ID] = []
     private(set) var cancelAllCalled = false
 
     private(set) var saveCount = 0
@@ -52,19 +50,13 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
     var stubbedZoneChanges: ZoneChangesResult?
     var saveProgressValues: [Double] = []
     var fetchProgressValues: [Double] = []
-    var longLivedIDs: [CKOperation.ID] = []
-    var operationIDToReport: CKOperation.ID? = "mock-op"
 
     func save(records: [CKRecord],
               savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
-              isLongLived: Bool,
-              perRecordProgress: @escaping (CKRecord.ID, Double) -> Void,
-              operationIDHandler: @escaping (CKOperation.ID?) -> Void) async throws -> [CKRecord] {
+              perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord] {
         saveCount += 1
         lastSavePolicy = savePolicy
-        lastSaveLongLived = isLongLived
         savedRecordBatches.append(records)
-        operationIDHandler(operationIDToReport)
         for record in records {
             for value in saveProgressValues { perRecordProgress(record.recordID, value) }
         }
@@ -120,10 +112,6 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
         if let saveSubscriptionError { throw saveSubscriptionError }
         savedSubscriptions.append(subscription)
     }
-
-    func allLongLivedOperationIDs() async -> [CKOperation.ID] { longLivedIDs }
-
-    func reattachLongLivedOperation(id: CKOperation.ID) async { reattachedIDs.append(id) }
 
     func cancelAll() { cancelAllCalled = true }
 }

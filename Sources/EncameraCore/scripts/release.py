@@ -43,9 +43,12 @@ With --interactive, the driver also pauses for y/N confirmation on:
 Requires the `asc` library: pip install -e scripts/asc
 
 CloudKit schema: before shipping any build that reads/writes the CloudKit
-`EncMedia` record type, the schema MUST be deployed to the Production CloudKit
-environment or it fails at runtime. See Documentation/cloudkit-schema-deploy.md.
-Wiring this as an automated release gate is chunk 08 of the CloudKit migration.
+`EncMedia` or `EncAlbum` record types, the schema MUST be deployed to the
+Production CloudKit environment or it fails at runtime (a release build's very
+first `saveAlbum` dies with CKError 12/2006 "Cannot create new type EncAlbum in
+production schema"). See Documentation/cloudkit-schema-deploy.md.
+`preflight_cloudkit_schema_deployed` gates this: an interactive prompt that
+defaults to NOT deployed, so a distracted release cannot silently pass.
 """
 
 import argparse
@@ -244,6 +247,25 @@ def preflight_clean_tree():
     for line in dirty:
         print(f"  {line}")
     return False
+
+
+def preflight_cloudkit_schema_deployed(input_fn=input):
+    """True only if the operator explicitly confirms the CloudKit Production schema deploy.
+
+    CloudKit auto-creates record types in the Development environment but never
+    in Production, so a release build whose schema was not promoted fails at
+    runtime (`CKError` 12/2006 "Cannot create new type EncAlbum in production
+    schema" on the very first `saveAlbum`). This is the #1 silent-failure risk
+    called out in plans/cloudkit-migration/08-release-rollout-tests.md §1, so
+    the prompt defaults to No — anything except an explicit yes fails the gate.
+    """
+    print("  A release build writes the EncMedia and EncAlbum record types to the")
+    print("  CloudKit Production environment, which only receives schema via the")
+    print("  Dashboard's 'Deploy Schema Changes'. Runbook: Documentation/cloudkit-schema-deploy.md")
+    answer = input_fn(
+        "  Deployed the EncMedia + EncAlbum schema (incl. queryable indexes) to Production? [y/N] "
+    )
+    return answer.strip().lower() in ("y", "yes")
 
 
 def preflight_local_release_matches_remote():
@@ -631,7 +653,7 @@ def main():
     print()
 
     if not args.skip_preflights:
-        print(f"[1/8] On the {RELEASE_BRANCH} branch?")
+        print(f"[1/9] On the {RELEASE_BRANCH} branch?")
         if not preflight_on_release_branch():
             print(
                 f"  FAIL: releases must be cut from {RELEASE_BRANCH}. "
@@ -642,7 +664,7 @@ def main():
         print("  OK")
         print()
 
-        print("[2/8] Working tree clean (no staged or unstaged changes)?")
+        print("[2/9] Working tree clean (no staged or unstaged changes)?")
         if not preflight_clean_tree():
             print(
                 "  FAIL: working tree has uncommitted changes. Commit or stash them "
@@ -652,7 +674,7 @@ def main():
         print("  OK")
         print()
 
-        print(f"[3/8] Local {RELEASE_BRANCH} matches {ORIGIN_RELEASE_BRANCH}?")
+        print(f"[3/9] Local {RELEASE_BRANCH} matches {ORIGIN_RELEASE_BRANCH}?")
         if not preflight_local_release_matches_remote():
             print(
                 f"  FAIL: local {RELEASE_BRANCH} has diverged from {ORIGIN_RELEASE_BRANCH}. "
@@ -662,7 +684,7 @@ def main():
         print("  OK")
         print()
 
-        print(f"[4/8] app_store.yml changed since tag {last_tag}?")
+        print(f"[4/9] app_store.yml changed since tag {last_tag}?")
         yml_changed = preflight_app_store_yml_changed(APP_STORE_YML, last_tag)
         if yml_changed is None:
             print("  FAIL: could not run git diff — check REPO_ROOT and tag validity.")
@@ -677,11 +699,22 @@ def main():
         print("  OK")
         print()
 
-        print("[5/8] All .lproj files in sync with en.lproj?")
+        print("[5/9] All .lproj files in sync with en.lproj?")
         if not preflight_strings_in_sync(EN_LPROJ):
             print(
                 "  FAIL: missing translations. Run scripts/string_diff.py to "
                 "translate the missing keys."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print("[6/9] CloudKit Production schema deployed?")
+        if not preflight_cloudkit_schema_deployed():
+            print(
+                "  FAIL: deploy the schema to Production first "
+                "(Documentation/cloudkit-schema-deploy.md), then re-run. "
+                "A build shipped without it fails every CloudKit write at runtime."
             )
             sys.exit(1)
         print("  OK")
@@ -717,7 +750,7 @@ def main():
     if not args.skip_preflights:
         marketing_version = read_marketing_version()
         print(
-            f"[6/8] Target version matches everywhere "
+            f"[7/9] Target version matches everywhere "
             f"(project.yml {marketing_version or '?'} == ASC {version_string} == a VALID build)?"
         )
         if not preflight_target_version_matches(
@@ -732,7 +765,7 @@ def main():
         print("  OK")
         print()
 
-        print(f"[7/8] No PROCESSING TestFlight builds for v{version_string}?")
+        print(f"[8/9] No PROCESSING TestFlight builds for v{version_string}?")
         if not preflight_no_pending_builds(client, app_id, version_string):
             print(
                 "  FAIL: there are TestFlight builds still being processed by Apple. "
@@ -742,7 +775,7 @@ def main():
         print("  OK")
         print()
 
-        print("[8/8] No active build runs on the TestFlight Xcode Cloud workflow?")
+        print("[9/9] No active build runs on the TestFlight Xcode Cloud workflow?")
         if not preflight_no_active_xcode_cloud_builds(client, TESTFLIGHT_WORKFLOW_ID):
             print(
                 "  FAIL: an Xcode Cloud build is still running on the TestFlight "

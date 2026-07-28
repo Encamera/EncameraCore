@@ -5,14 +5,14 @@
 //  The concrete Option-A record store: one `EncMedia` record per media item
 //  carrying the index fields plus the eager thumbnail and lazy blob assets.
 //  All CloudKit I/O goes through an injected `CloudKitDatabaseAdapter`, and the
-//  account gate / change token / long-lived recovery state live in app-group
-//  defaults. See plans/cloudkit-migration/02-cloudkit-media-store.md.
+//  account gate / change token live in app-group defaults.
+//  See plans/cloudkit-migration/02-cloudkit-media-store.md.
 //
 
 import Foundation
 import CloudKit
 
-public final class CloudKitMediaStore: CloudKitMediaStoring {
+public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
 
     private let container: CloudKitContainer
     private let adapter: CloudKitDatabaseAdapter
@@ -23,14 +23,14 @@ public final class CloudKitMediaStore: CloudKitMediaStoring {
     /// album keeps its own independent cursor into the zone — otherwise syncing one
     /// album would advance the token for all the others and they'd miss changes.
     private let tokenKey: String
+    /// Written only by builds that issued uploads as long-lived operations; read now
+    /// solely so it can be deleted. See `purgeLegacyLongLivedState()`.
     private let longLivedMapKey = "cloudkit_longlived_ops_v1"
     /// Keyed by container id for the same reason as `CloudKitContainer`'s
     /// zone-created flag: the subscription lives in a specific container, so a
     /// flag set for one container must not suppress registration in another.
     private let subscriptionCreatedKey = "cloudkit_zone_subscription_v1_" + CloudKitSchema.containerID
     private let zoneSubscriptionID = "EncameraZoneSubscription"
-
-    private let mapLock = NSLock()
 
     /// Index (non-asset) fields, used as `desiredKeys` for the cheap metadata sync.
     private static let metadataKeys: [CKRecord.FieldKey] = [
@@ -47,19 +47,15 @@ public final class CloudKitMediaStore: CloudKitMediaStoring {
     public init(container: CloudKitContainer = .shared,
                 adapter: CloudKitDatabaseAdapter? = nil,
                 defaults: UserDefaults = UserDefaults(suiteName: UserDefaultUtils.appGroup) ?? .standard,
-                tokenNamespace: String = "",
-                recoverOnInit: Bool = true) {
+                tokenNamespace: String = "") {
         self.container = container
         self.defaults = defaults
         self.zoneID = container.zoneID
         self.tokenKey = tokenNamespace.isEmpty
             ? "cloudkit_zone_change_token_v1"
             : "cloudkit_zone_change_token_v1_\(tokenNamespace)"
-        self.adapter = adapter ?? CKDatabaseAdapter(container: container.container,
-                                                    database: container.privateDB)
-        if recoverOnInit {
-            Task { [weak self] in await self?.recoverLongLivedOperations() }
-        }
+        self.adapter = adapter ?? CKDatabaseAdapter(database: container.privateDB)
+        purgeLegacyLongLivedState()
     }
 
     // MARK: - Account
@@ -75,26 +71,33 @@ public final class CloudKitMediaStore: CloudKitMediaStoring {
         guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
 
         let record = makeRecord(for: item)
-        // Key long-lived tracking by recordName: a Live Photo's two components share
-        // a mediaID but are distinct records, so keying by mediaID would collide.
         let recordName = item.recordName
+        printDebug("upload start recordName=\(recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes) zone=\(zoneID.zoneName) hasThumb=\(item.encryptedThumbURL != nil)")
         do {
+            // An ordinary (non-long-lived) save: an upload interrupted by app
+            // termination is re-driven from the durable `MigrationPlan` checkpoint,
+            // which re-verifies the item with a cheap fetch-by-id before re-uploading.
+            // Nothing about this call survives the process, and nothing has to be
+            // re-attached on the next launch — see ENC-133.
             let saved = try await adapter.save(
                 records: [record],
                 savePolicy: .ifServerRecordUnchanged,
-                isLongLived: true,
-                perRecordProgress: { _, fraction in progress(fraction) },
-                operationIDHandler: { [weak self] operationID in
-                    if let operationID = operationID { self?.rememberLongLived(recordName: recordName, operationID: operationID) }
-                }
+                perRecordProgress: { _, fraction in progress(fraction) }
             )
-            forgetLongLived(recordName: recordName)
+            // `saved` empty means the operation reported success without returning the
+            // record — falling back to the local copy would report a recordName that
+            // was never confirmed by the server, so say so loudly.
+            if saved.isEmpty {
+                printDebug("upload WARNING recordName=\(recordName) save returned no records; reporting the unconfirmed local record")
+            }
             let result = saved.first ?? record
+            printDebug("upload ok recordName=\(result.recordID.recordName) changeTag=\(result.recordChangeTag ?? "nil") confirmedByServer=\(!saved.isEmpty)")
             return CloudKitMediaRef(recordName: result.recordID.recordName,
                                     recordChangeTag: result.recordChangeTag)
         } catch {
-            forgetLongLived(recordName: recordName)
-            throw mapAndRecord(error)
+            let mapped = mapAndRecord(error)
+            printDebug("upload FAILED recordName=\(recordName) mapped=\(mapped) raw=\(error)")
+            throw mapped
         }
     }
 
@@ -141,9 +144,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring {
             record[CloudKitSchema.EncAlbum.schemaVersion] = album.schemaVersion as CKRecordValue
             _ = try await adapter.save(records: [record],
                                        savePolicy: .ifServerRecordUnchanged,
-                                       isLongLived: false,
-                                       perRecordProgress: { _, _ in },
-                                       operationIDHandler: { _ in })
+                                       perRecordProgress: { _, _ in })
         } catch {
             throw mapAndRecord(error)
         }
@@ -171,9 +172,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring {
             record[CloudKitSchema.EncAlbum.deletedAt] = Date() as CKRecordValue
             _ = try await adapter.save(records: [record],
                                        savePolicy: .ifServerRecordUnchanged,
-                                       isLongLived: false,
-                                       perRecordProgress: { _, _ in },
-                                       operationIDHandler: { _ in })
+                                       perRecordProgress: { _, _ in })
         } catch {
             throw mapAndRecord(error)
         }
@@ -225,14 +224,26 @@ public final class CloudKitMediaStore: CloudKitMediaStoring {
             let fetched = try await adapter.fetch(recordIDs: [recordID],
                                                   desiredKeys: Self.metadataKeys,
                                                   perRecordProgress: { _, _ in })
-            guard let record = fetched[recordID],
-                  let meta = metadata(from: record),
-                  meta.deletedAt == nil else {
+            // Each miss below is a distinct cause with a very different fix, and all
+            // three used to collapse into a bare `nil` at the call site.
+            guard let record = fetched[recordID] else {
+                printDebug("fetchRecordMetadata MISS recordName=\(recordName) zone=\(zoneID.zoneName) — no record returned by fetch-by-id")
                 return nil
             }
+            guard let meta = metadata(from: record) else {
+                printDebug("fetchRecordMetadata MISS recordName=\(recordName) — record exists but required fields are absent (albumID/mediaID/createdAt); keys present: \(record.allKeys())")
+                return nil
+            }
+            guard meta.deletedAt == nil else {
+                printDebug("fetchRecordMetadata MISS recordName=\(recordName) — record is tombstoned, deletedAt=\(String(describing: meta.deletedAt))")
+                return nil
+            }
+            printDebug("fetchRecordMetadata hit recordName=\(recordName) sizeBytes=\(meta.sizeBytes) changeTag=\(meta.recordChangeTag ?? "nil")")
             return meta
         } catch {
-            throw mapAndRecord(error)
+            let mapped = mapAndRecord(error)
+            printDebug("fetchRecordMetadata FAILED recordName=\(recordName) mapped=\(mapped) raw=\(error)")
+            throw mapped
         }
     }
 
@@ -303,9 +314,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring {
             record[CloudKitSchema.EncMedia.deletedAt] = Date() as CKRecordValue
             _ = try await adapter.save(records: [record],
                                        savePolicy: .ifServerRecordUnchanged,
-                                       isLongLived: false,
-                                       perRecordProgress: { _, _ in },
-                                       operationIDHandler: { _ in })
+                                       perRecordProgress: { _, _ in })
         } catch let error as CloudKitMediaStoreError {
             throw error
         } catch {
@@ -400,16 +409,29 @@ public final class CloudKitMediaStore: CloudKitMediaStoring {
         adapter.cancelAll()
     }
 
-    // MARK: - Long-lived recovery
+    // MARK: - Legacy long-lived state
 
-    /// Re-attach any long-lived operations (our persisted map ∪ CloudKit's own list)
-    /// so an upload interrupted by app termination resumes and reports completion.
-    public func recoverLongLivedOperations() async {
-        var ids = Set(loadLongLivedMap().values)
-        for id in await adapter.allLongLivedOperationIDs() { ids.insert(id) }
-        for id in ids {
-            await adapter.reattachLongLivedOperation(id: id)
-        }
+    /// Drops the operation-ID map older builds persisted for long-lived uploads.
+    ///
+    /// Those builds saved with `isLongLived: true` and re-enqueued the recorded
+    /// operations on every store construction. That re-enqueue was itself the crash:
+    /// `CloudKitStoreProvider.makeStore` builds a store per album namespace (album
+    /// list, albums sync, per-album migration, flight check), each one fetched the
+    /// same *container-wide* long-lived operation IDs, and the second
+    /// `CKDatabase.add` of an operation the daemon already considers running raises
+    /// an Objective-C `NSException` ("another instance of it is already running").
+    /// An `NSException` is not catchable from Swift, so it killed the process during
+    /// launch — every launch, until the operation aged out. See ENC-133.
+    ///
+    /// Uploads are no longer long-lived and nothing re-enqueues anything, so the only
+    /// thing left to do is delete the stale map. Operations still outstanding in the
+    /// daemon from an older build run to completion there on their own; the durable
+    /// `MigrationPlan` — not CloudKit's deprecated long-lived ops — is what makes an
+    /// interrupted upload resumable.
+    func purgeLegacyLongLivedState() {
+        guard defaults.object(forKey: longLivedMapKey) != nil else { return }
+        printDebug("purgeLegacyLongLivedState clearing \(longLivedMapKey)")
+        defaults.removeObject(forKey: longLivedMapKey)
     }
 
     // MARK: - Record <-> metadata mapping
@@ -451,24 +473,4 @@ public final class CloudKitMediaStore: CloudKitMediaStoring {
         defaults.set(data, forKey: tokenKey)
     }
 
-    // MARK: - Long-lived map persistence
-
-    private func loadLongLivedMap() -> [String: String] {
-        mapLock.lock(); defer { mapLock.unlock() }
-        return (defaults.dictionary(forKey: longLivedMapKey) as? [String: String]) ?? [:]
-    }
-
-    private func rememberLongLived(recordName: String, operationID: CKOperation.ID) {
-        mapLock.lock(); defer { mapLock.unlock() }
-        var map = (defaults.dictionary(forKey: longLivedMapKey) as? [String: String]) ?? [:]
-        map[recordName] = operationID
-        defaults.set(map, forKey: longLivedMapKey)
-    }
-
-    private func forgetLongLived(recordName: String) {
-        mapLock.lock(); defer { mapLock.unlock() }
-        var map = (defaults.dictionary(forKey: longLivedMapKey) as? [String: String]) ?? [:]
-        map.removeValue(forKey: recordName)
-        defaults.set(map, forKey: longLivedMapKey)
-    }
 }

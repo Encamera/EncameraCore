@@ -13,7 +13,7 @@
 
 import Foundation
 
-public struct CloudKitAlbumTombstoneQueue {
+public struct CloudKitAlbumTombstoneQueue: DebugPrintable {
 
     private static let storageKey = "cloudkit_pending_album_tombstones_v1"
 
@@ -33,22 +33,35 @@ public struct CloudKitAlbumTombstoneQueue {
 
     /// Album-id hashes with an unconfirmed tombstone.
     public func pending() -> Set<String> {
-        Self.lock.withLock { read() }
+        let set = Self.lock.withLock { read() }
+        printDebug("pending ok count=\(set.count) albumIDs=\(set.sorted())")
+        return set
     }
 
     public func enqueue(_ albumID: String) {
         Self.lock.withLock {
             var set = read()
-            guard set.insert(albumID).inserted else { return }
+            guard set.insert(albumID).inserted else {
+                // Already queued: an idempotent re-enqueue, not a lost write.
+                printDebug("enqueue skip albumID=\(albumID) reason=alreadyQueued pending=\(set.count)")
+                return
+            }
             defaults.set(Array(set), forKey: Self.storageKey)
+            printDebug("enqueue ok albumID=\(albumID) pending=\(set.count)")
         }
     }
 
     public func remove(_ albumID: String) {
         Self.lock.withLock {
             var set = read()
-            guard set.remove(albumID) != nil else { return }
+            guard set.remove(albumID) != nil else {
+                // Removing an entry that isn't there means someone confirmed a
+                // tombstone we never recorded — benign, but it hides double-drains.
+                printDebug("remove skip albumID=\(albumID) reason=notQueued pending=\(set.count)")
+                return
+            }
             defaults.set(Array(set), forKey: Self.storageKey)
+            printDebug("remove ok albumID=\(albumID) pending=\(set.count)")
         }
     }
 

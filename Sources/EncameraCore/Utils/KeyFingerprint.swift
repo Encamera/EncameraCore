@@ -67,14 +67,20 @@ public enum KeyFingerprintDisplay {
 
     /// The label for the file's stamp, or nil when the file is unstamped or
     /// unreadable. Exactly one stored key matching the stamp yields
-    /// "54E0-7B52"
+    /// "keyA (54E0-7B52)"; anything else yields the bare "54E0-7B52".
     public static func label(for url: URL, storedKeys: [PrivateKey]) -> String? {
         guard let stamp = KeyStampSlot.readStamp(url: url) else {
             return nil
         }
         let hex = KeyFingerprint.displayLabel(stampPrefix: stamp)
         let matches = storedKeys.filter { $0.stampPrefix == stamp }
-        return hex
+        // Only an UNAMBIGUOUS match may be named. The stamp is a 4-byte routing
+        // hint, not proof of ownership, so two stored keys can share one — and
+        // naming a key the file may not actually belong to is worse than naming
+        // none, because the label is what a user reaches for when deciding which
+        // key to keep.
+        guard matches.count == 1 else { return hex }
+        return "\(matches[0].name) (\(hex))"
     }
 }
 

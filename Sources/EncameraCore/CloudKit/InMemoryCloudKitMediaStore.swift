@@ -23,10 +23,22 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     private var albums: [String: CloudKitAlbumMetadata] = [:]
     private func locked<T>(_ body: () -> T) -> T { lock.lock(); defer { lock.unlock() }; return body() }
 
+    /// Artificial per-upload delay, for UI tests that need a migration to stay in
+    /// flight long enough to observe. Defaults to zero, so every existing caller —
+    /// including all the unit tests — is unaffected.
+    public var uploadDelay: Duration = .zero
+
     public init() {}
+
+    public init(uploadDelay: Duration) {
+        self.uploadDelay = uploadDelay
+    }
 
     public func upload(_ item: CloudKitMediaUpload,
                        progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
+        if uploadDelay > .zero {
+            try await Task.sleep(for: uploadDelay)
+        }
         let blob = (try? Data(contentsOf: item.encryptedFileURL)) ?? Data()
         let thumb = item.encryptedThumbURL.flatMap { try? Data(contentsOf: $0) } ?? Data()
         let tag = "tag-\(item.recordName)"
