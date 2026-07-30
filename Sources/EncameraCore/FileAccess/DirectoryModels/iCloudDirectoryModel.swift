@@ -9,7 +9,22 @@ public enum iCloudDownloadStatus {
 }
 
 public class iCloudStorageModel: DataStorageModel {
+
+    /// Test seam substituting the ubiquity container root, so the deprecated
+    /// iCloud Drive storage can be exercised where no real container exists — unit
+    /// tests and simulator UI tests, neither of which has one (`rootURL` would
+    /// otherwise `fatalError`). Nil in production: the real container is the only
+    /// source there, and nothing in the app sets this outside a `UITestMode` hook.
+    ///
+    /// Setting it also makes `DataStorageAvailabilityUtil.isStorageTypeAvailable(.icloud)`
+    /// report `.available`, since the ubiquity token is the production signal for
+    /// exactly the same question ("is there a container to read from").
+    nonisolated(unsafe) public static var testContainerRootOverride: URL?
+
     public static var rootURL: URL {
+        if let testContainerRootOverride {
+            return testContainerRootOverride
+        }
         guard let driveURL = FileManager.default
             .url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
             fatalError("Could not get drive url")

@@ -42,6 +42,10 @@ public enum MigrationState: Equatable, Sendable {
 /// persisted to the checkpoint, where it would be a lie after a crash.
 public enum MigrationPhase: String, Equatable, Sendable {
     case preparing
+    /// Downloading evicted iCloud Drive files back onto the device so they can be
+    /// uploaded. Only ever reached by an `.icloud` source; a local album's files are
+    /// already where the uploader needs them.
+    case materializing
     case uploading
     case verifying
     case removingLocalCopy
@@ -111,9 +115,8 @@ public struct CloudToLocalMoveProgress: Equatable, Sendable {
 }
 
 public enum MigrationError: Error, Equatable {
-    /// Only `.local` albums can be migrated. `.icloud` is refused too: evicted
-    /// files enumerate as placeholders with no materialized ciphertext, which the
-    /// engine would terminally skip — see the guard in `plan(album:)`.
+    /// Only `.local` and `.icloud` albums can be migrated. `.cloudKit` is already at
+    /// the destination; the reverse direction is `moveCloudKitAlbumToLocal`.
     case invalidSourceStorage(StorageType)
     /// The record did not appear in CloudKit after upload (verification failed); the
     /// source is never deleted in this case.
@@ -169,11 +172,17 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// Production reads `CloudKitStoreProvider.makeStore` at call time (so a UI-test
     /// mock installed there still wins); tests inject a fixed mock here.
     private let storeFactoryOverride: (@Sendable (String) -> CloudKitMediaStoring)?
+    /// Brings evicted iCloud Drive files back onto disk. Injected so the engine can
+    /// be tested off-device: a simulator has no ubiquity container, so the real one
+    /// can never download anything there.
+    private let materializer: ICloudDriveMaterializing
 
     public init(albumManager: AlbumManaging,
-                storeFactory: (@Sendable (String) -> CloudKitMediaStoring)? = nil) {
+                storeFactory: (@Sendable (String) -> CloudKitMediaStoring)? = nil,
+                materializer: ICloudDriveMaterializing? = nil) {
         self.albumManager = albumManager
         self.storeFactoryOverride = storeFactory
+        self.materializer = materializer ?? ICloudDriveMaterializer()
     }
 
     private func makeStore(_ namespace: String) -> CloudKitMediaStoring {
@@ -199,15 +208,12 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// progress, so nothing is re-uploaded or lost. Never touches a `.cloudKit` album.
     @discardableResult
     public func plan(album: Album) async throws -> MigrationPlan {
-        // .local ONLY. An .icloud source is deliberately refused for now:
-        // enumeration sees evicted files via their `.icloud` placeholders, but the
-        // materialized path `driveURLForMedia` returns does not exist for them, so
-        // the engine would terminally skip each one and then finalize — silently
-        // stranding those items in an iCloud Drive directory the flipped album no
-        // longer surfaces. Until the migration materializes evicted files
-        // (`startDownloadingUbiquitousItem`) and verifies them locally before
-        // uploading, .icloud -> .cloudKit is not offered through this engine.
-        guard album.storageOption == .local else {
+        // `.local` and `.icloud` only. An iCloud Drive source is legal because
+        // `run()` materializes each batch of evicted files before touching them —
+        // without that step the engine would see nothing but `.icloud` placeholders,
+        // terminally skip every one, and then finalize, stranding the user's photos
+        // in a directory the flipped album no longer surfaces.
+        guard album.storageOption == .local || album.storageOption == .icloud else {
             throw MigrationError.invalidSourceStorage(album.storageOption)
         }
 
@@ -446,7 +452,16 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         // request from that window survives to this check — and it must run even
         // for a zero-item plan, which skips the loop and would otherwise finalize
         // (flip the album to CloudKit) straight past an explicit cancel.
-        if await honorPendingControl(&plan, planStore: planStore, store: store) { return }
+        if await honorPendingControl(&plan, planStore: planStore, store: store,
+                                    sourceModel: sourceModel) { return }
+
+        // Read once per run so changing the setting mid-migration can't produce a
+        // ragged mix of batch sizes that is impossible to reason about afterwards.
+        let batchSize = ICloudDriveMigrationBatchSize.current
+        /// Exclusive upper bound of the item indices already materialized. Only
+        /// meaningful for an `.icloud` source; a local album needs no download step,
+        /// so its loop is byte-for-byte what it was before batching existed.
+        var materializedThrough = 0
 
         for index in plan.items.indices where !plan.items[index].state.isDone {
             // An erase is wiping everything: stop issuing CloudKit operations and
@@ -457,7 +472,30 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                 return
             }
             // Honor a pause/cancel requested between items.
-            if await honorPendingControl(&plan, planStore: planStore, store: store) { return }
+            if await honorPendingControl(&plan, planStore: planStore, store: store,
+                                        sourceModel: sourceModel) { return }
+
+            // Bring the next batch of evicted iCloud Drive files back onto disk. This
+            // is what lets everything below treat a Drive album exactly like a local
+            // one. Batching bounds the cost: the loop deletes each source once
+            // CloudKit has verified it, so batch k+1 downloads into the space batch k
+            // just freed, and peak extra disk stays near one batch rather than one
+            // album.
+            if plan.sourceStorage == .icloud, index >= materializedThrough {
+                materializedThrough = await materializeBatch(startingAt: index,
+                                                             in: &plan,
+                                                             planStore: planStore,
+                                                             sourceModel: sourceModel,
+                                                             batchSize: batchSize)
+                // A download batch is long enough that a pause or cancel very
+                // plausibly lands during it; honor it before spending an upload.
+                if await honorPendingControl(&plan, planStore: planStore, store: store,
+                                            sourceModel: sourceModel) { return }
+                // A file this batch could not materialize is left `pending` with its
+                // error recorded; `migrateItem`'s source check is the single place
+                // that decides whether a missing source is a retryable failure or a
+                // terminal skip, so it stays the only decision point.
+            }
 
             publishProgress(plan, currentItemName: plan.items[index].mediaID)
             do {
@@ -515,6 +553,14 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                     // auto-resume won't silently restart it; a system-aborted op stays
                     // freely resumable.
                     Self.revertInFlight(&plan)
+                    // Reclaim the batch here too, not just in `honorPendingControl`.
+                    // A cancel almost always lands while an upload is in flight, so
+                    // this — not the between-items check — is the path a real cancel
+                    // takes; without it the downloaded batch stays on disk, which is
+                    // precisely the outcome batching exists to prevent. Found by
+                    // `testCancelMidBatchEvictsWhatWasDownloaded` on the rig.
+                    // After `revertInFlight`, so the aborted item counts as unuploaded.
+                    evictUnuploadedMaterializedFiles(plan, sourceModel: sourceModel)
                     if control == .cancelRequested { plan.cancelledAt = Date() }
                     try? await planStore.save(plan)
                     state = .idle
@@ -594,6 +640,85 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         publishProgress(plan)
     }
 
+    // MARK: - Materialization (iCloud Drive sources)
+
+    /// Downloads the next `batchSize` not-yet-done files back onto the device and
+    /// returns the exclusive upper bound of the item indices it covered.
+    ///
+    /// Failures are recorded as `lastError` and the item is left `pending` — never
+    /// marked done here. `migrateItem` owns the skip-versus-fail decision, and it is
+    /// the one that can tell "the file is genuinely gone" from "the file is still a
+    /// placeholder", which is the difference between finishing an album and silently
+    /// abandoning someone's photos in iCloud Drive.
+    private func materializeBatch(startingAt startIndex: Int,
+                                  in plan: inout MigrationPlan,
+                                  planStore: MigrationPlanStore,
+                                  sourceModel: DataStorageModel?,
+                                  batchSize: Int) async -> Int {
+        guard let sourceModel else { return startIndex + batchSize }
+
+        var indices: [Int] = []
+        var index = startIndex
+        while index < plan.items.count, indices.count < batchSize {
+            if !plan.items[index].state.isDone { indices.append(index) }
+            index += 1
+        }
+        guard !indices.isEmpty else { return index }
+
+        var urlByIndex: [Int: URL] = [:]
+        for i in indices {
+            urlByIndex[i] = sourceModel.driveURLForMedia(withID: plan.items[i].mediaID,
+                                                         type: plan.items[i].mediaType)
+        }
+
+        let snapshot = plan
+        setPhase(.materializing, plan: snapshot,
+                 currentItemName: plan.items[indices[0]].mediaID)
+        // Count every source file in the ALBUM that is currently on disk, not just
+        // this batch's: the disk bound rests on the previous batch's files having
+        // been verified in CloudKit and deleted before this one is requested, so a
+        // leftover from batch k is exactly what this must catch. The on-device tests
+        // assert on the peak.
+        let alreadyMaterialized = plan.items
+            .map { sourceModel.driveURLForMedia(withID: $0.mediaID, type: $0.mediaType) }
+            .filter { ICloudPlaceholderName.isMaterialized($0) }.count
+        ICloudDriveMigrationObserver.shared.recordBatch(size: indices.count,
+                                                       alreadyMaterialized: alreadyMaterialized)
+        printDebug("materializing batch of \(indices.count) starting at index \(startIndex) (batchSize=\(batchSize), alreadyOnDisk=\(alreadyMaterialized))")
+
+        let results = await materializer.materialize(
+            Array(urlByIndex.values),
+            inAlbumDirectory: sourceModel.baseURL,
+            onProgress: { [weak self] fraction in
+                // Downloading is real work with no CloudKit record to show for it, so
+                // without this the ring would sit frozen for the whole batch.
+                guard let self, self.currentPhase == .materializing else { return }
+                self.publishProgress(snapshot,
+                                     currentItemName: "\(Int(fraction * 100))%")
+            })
+
+        for (i, url) in urlByIndex {
+            switch results[url] {
+            case .success:
+                // Re-stat: the plan's size for an evicted file came from iCloud's
+                // metadata index, and the verification gate compares the CloudKit
+                // record's size against this number. Trust the bytes on disk now
+                // that they exist.
+                if let size = Self.fileSize(at: url) {
+                    plan.items[i].sizeBytes = size
+                }
+                plan.items[i].lastError = nil
+            case .failure(let error):
+                plan.items[i].lastError = "\(error)"
+                printDebug("materialize FAILED \(url.lastPathComponent) error=\(error)")
+            case .none:
+                plan.items[i].lastError = "iCloud Drive did not report a result for this file"
+            }
+        }
+        try? await planStore.save(plan)
+        return index
+    }
+
     /// Honors a pending pause/cancel request at a safe boundary (between items, or
     /// before the run's first item). Returns `true` when the run must stop; the
     /// plan is checkpointed and the terminal snapshot published in either case.
@@ -601,9 +726,11 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// the plan, while an on-demand resume can still finish it.
     private func honorPendingControl(_ plan: inout MigrationPlan,
                                      planStore: MigrationPlanStore,
-                                     store: CloudKitMediaStoring) async -> Bool {
+                                     store: CloudKitMediaStoring,
+                                     sourceModel: DataStorageModel? = nil) async -> Bool {
         switch control {
         case .pauseRequested:
+            evictUnuploadedMaterializedFiles(plan, sourceModel: sourceModel)
             state = .paused
             try? await planStore.save(plan)
             currentPhase = nil
@@ -612,6 +739,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         case .cancelRequested:
             store.cancelAll()
             Self.revertInFlight(&plan)
+            evictUnuploadedMaterializedFiles(plan, sourceModel: sourceModel)
             plan.cancelledAt = Date()   // durable cancel: kept on disk, but auto-resume skips it
             try? await planStore.save(plan)
             state = .idle
@@ -621,6 +749,27 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         case .running:
             return false
         }
+    }
+
+    /// Pushes back to iCloud the files this run downloaded but never got to upload.
+    ///
+    /// Stopping a migration mid-batch would otherwise leave exactly the pile of
+    /// materialized files that batching exists to prevent — a user who cancels
+    /// because their phone is full would find it fuller. Only items with no CloudKit
+    /// copy yet are evicted; anything `uploaded` or beyond is about to be deleted
+    /// outright, and evicting it would only cost a re-download on the next run.
+    /// Called AFTER `revertInFlight`, so an aborted upload counts as unuploaded.
+    private func evictUnuploadedMaterializedFiles(_ plan: MigrationPlan,
+                                                  sourceModel: DataStorageModel?) {
+        guard plan.sourceStorage == .icloud, let sourceModel else { return }
+        let urls = plan.items
+            .filter { $0.state == .pending || $0.state == .failed }
+            .map { sourceModel.driveURLForMedia(withID: $0.mediaID, type: $0.mediaType) }
+        guard !urls.isEmpty else { return }
+        let onDisk = urls.filter { FileManager.default.fileExists(atPath: $0.path) }.count
+        printDebug("evicting \(onDisk) materialized-but-unuploaded file(s) after stop")
+        ICloudDriveMigrationObserver.shared.recordEviction(count: onDisk)
+        materializer.evict(urls)
     }
 
     private func markFailed(_ plan: inout MigrationPlan, _ index: Int, _ error: Error) {
@@ -701,7 +850,35 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             // No source ciphertext means a stale index entry with nothing to migrate.
             // Skip it terminally rather than failing it forever — a single missing file
             // must never wedge the whole album short of completion.
-            guard let encURL, FileManager.default.fileExists(atPath: encURL.path) else {
+            //
+            // EXCEPT when the file is still sitting there as an iCloud Drive
+            // placeholder: then the bytes exist, they just aren't on this device yet,
+            // and this batch's download did not finish. `.skipped` is terminal and
+            // counts as done, so skipping it would let the album finalize, flip to
+            // CloudKit and drop the source directory reference while the user's photo
+            // is still only in iCloud Drive. That is data loss. Fail it instead —
+            // retryable, and it blocks finalize until it really does move.
+            // `isMaterialized`, not `fileExists`: an evicted iCloud Drive file keeps
+            // its path, so `fileExists` would wave a placeholder straight through to
+            // `CKAsset(fileURL:)`. On the rig that produced nine identical
+            // "Retry after 3.0s" upload failures and no useful diagnosis.
+            // Same scoping as enumeration: only an iCloud Drive source can present a
+            // file whose path resolves while its bytes are elsewhere, and the
+            // ubiquity lookup is too expensive to run per item on a local migration.
+            let sourceIsPresent = plan.sourceStorage == .icloud
+                ? encURL.map(ICloudPlaceholderName.isMaterialized) ?? false
+                : encURL.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+            guard let encURL, sourceIsPresent else {
+                if let encURL, ICloudPlaceholderName.existsInAnyForm(encURL) {
+                    printDebug("item FAILED recordName=\(item.recordName) — still an iCloud Drive placeholder")
+                    plan.items[index].state = .failed
+                    // Keep the materializer's reason if it recorded one; it says why.
+                    if plan.items[index].lastError == nil {
+                        plan.items[index].lastError = "iCloud Drive file has not been downloaded yet"
+                    }
+                    try await planStore.save(plan)
+                    return
+                }
                 printDebug("item SKIPPED recordName=\(item.recordName) — source ciphertext missing at \(encURL?.lastPathComponent ?? "<no url>")")
                 plan.items[index].state = .skipped
                 plan.items[index].lastError = "source ciphertext missing"
@@ -866,7 +1043,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// merely previewing — then cancelling — never leaves a plan that would
     /// auto-resume on the next launch.
     public func estimate(album: Album) async -> (itemCount: Int, totalBytes: Int64) {
-        guard album.storageOption == .local else { return (0, 0) }
+        guard album.storageOption == .local || album.storageOption == .icloud else { return (0, 0) }
         let items = await enumerateItems(album: album)
         return (items.count, items.reduce(0) { $0 + $1.sizeBytes })
     }
@@ -883,12 +1060,43 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         await backend.configure(for: album, albumManager: albumManager)
         let mediaWithMetadata = await backend.enumerateMediaWithMetadata()
 
+        // An evicted iCloud Drive file has no materialized ciphertext to stat, and
+        // the placeholder brick's own size is a few hundred bytes — nothing like the
+        // photo. Ask iCloud's metadata index for the real sizes instead. Getting this
+        // wrong is not cosmetic: `isPresentInCloudKit` refuses to delete a source
+        // unless the uploaded record's size matches the planned size, so a bogus
+        // size at plan time would fail verification on every single item.
+        var logicalSizes: [String: Int64] = [:]
+        if album.storageOption == .icloud, let baseURL = directoryModel?.baseURL {
+            logicalSizes = await materializer.logicalSizes(inAlbumDirectory: baseURL)
+        }
+
         var items: [MigrationItem] = []
         for entry in mediaWithMetadata {
             let createdAt = entry.dateTaken ?? entry.dateEncrypted ?? album.creationDate
             for component in entry.media.underlyingMedia {
                 let url = directoryModel?.driveURLForMedia(withID: component.id, type: component.mediaType)
-                let size = url.flatMap(Self.fileSize(at:)) ?? 0
+                // On-disk size wins ONLY when the bytes are really here — it is then
+                // the exact count the uploader will send, and the count verification
+                // compares against. For an evicted file the path still resolves, so
+                // statting it measures the placeholder, not the photo; iCloud's
+                // metadata index is the only honest source there.
+                //
+                // Scoped to `.icloud`: `isMaterialized` reads ubiquity resource keys,
+                // which is a per-file round trip to the ubiquity machinery. A local
+                // album has no evicted files and no metadata index to consult, so
+                // asking is both meaningless and expensive — and this runs on the
+                // main actor inside `estimate()`, which the confirmation alert
+                // awaits. Doing it for local albums stalled the main thread long
+                // enough that the alert never appeared.
+                let size: Int64
+                if let url, album.storageOption == .icloud {
+                    size = ICloudPlaceholderName.isMaterialized(url)
+                        ? (Self.fileSize(at: url) ?? logicalSizes[url.lastPathComponent] ?? 0)
+                        : (logicalSizes[url.lastPathComponent] ?? Self.fileSize(at: url) ?? 0)
+                } else {
+                    size = url.flatMap(Self.fileSize(at:)) ?? 0
+                }
                 items.append(MigrationItem(
                     mediaID: component.id,
                     recordName: CloudKitFileAccess.componentRecordName(mediaID: component.id, type: component.mediaType),

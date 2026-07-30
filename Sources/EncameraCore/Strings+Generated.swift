@@ -1150,6 +1150,22 @@ public enum L10n {
     }
     /// ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud
     public static let bannerMessage = L10n.tr("Localizable", "CloudKitMigration.BannerMessage", fallback: "This album is split between this device and iCloud.")
+    /// Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.
+    public static func driveAlertMessage(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.DriveAlertMessage", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.")
+    }
+    /// Not now
+    public static let drivePromptDismiss = L10n.tr("Localizable", "CloudKitMigration.DrivePromptDismiss", fallback: "Not now")
+    /// iCloud Drive storage is no longer supported. Move your albums to iCloud to keep them syncing across your devices.
+    public static let drivePromptMessage = L10n.tr("Localizable", "CloudKitMigration.DrivePromptMessage", fallback: "iCloud Drive storage is no longer supported. Move your albums to iCloud to keep them syncing across your devices.")
+    /// Move to iCloud
+    public static let drivePromptMove = L10n.tr("Localizable", "CloudKitMigration.DrivePromptMove", fallback: "Move to iCloud")
+    /// %@ albums are still on iCloud Drive
+    public static func drivePromptTitleMany(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.DrivePromptTitleMany", String(describing: p1), fallback: "%@ albums are still on iCloud Drive")
+    }
+    /// ./Encamera/AlbumManagement/ICloudDriveMigrationPrompt.swift - placeholder prompt offering to move deprecated iCloud Drive albums to CloudKit (design pending)
+    public static let drivePromptTitleOne = L10n.tr("Localizable", "CloudKitMigration.DrivePromptTitleOne", fallback: "1 album is still on iCloud Drive")
     /// less than a minute
     public static let estimateLessThanAMinute = L10n.tr("Localizable", "CloudKitMigration.EstimateLessThanAMinute", fallback: "less than a minute")
     /// %@ minutes
@@ -1178,6 +1194,8 @@ public enum L10n {
     public static let overlayKeepOpen = L10n.tr("Localizable", "CloudKitMigration.OverlayKeepOpen", fallback: "Keep Encamera open. You can switch apps, but don't force-quit.")
     /// Downloading from iCloud
     public static let overlayPhaseDownloading = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseDownloading", fallback: "Downloading from iCloud")
+    /// Downloading from iCloud Drive
+    public static let overlayPhaseMaterializing = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseMaterializing", fallback: "Downloading from iCloud Drive")
     /// Preparing
     public static let overlayPhasePreparing = L10n.tr("Localizable", "CloudKitMigration.OverlayPhasePreparing", fallback: "Preparing")
     /// Removing local copy
@@ -2075,6 +2093,14 @@ public enum L10n {
     public static func storage(_ p1: Any) -> String {
       return L10n.tr("Localizable", "StorageOption.Storage", String(describing: p1), fallback: "%@ Storage")
     }
+  }
+  public enum StorageType {
+    /// iCloud Drive
+    public static let iCloudDriveLegacyLocationName = L10n.tr("Localizable", "StorageType.ICloudDriveLegacyLocationName", fallback: "iCloud Drive")
+    /// iCloud Drive (Legacy)
+    public static let iCloudDriveLegacyTitle = L10n.tr("Localizable", "StorageType.ICloudDriveLegacyTitle", fallback: "iCloud Drive (Legacy)")
+    /// Save to iCloud
+    public static let saveToICloud = L10n.tr("Localizable", "StorageType.SaveToICloud", fallback: "Save to iCloud")
   }
   public enum TaskDetailCard {
     /// Created: %@

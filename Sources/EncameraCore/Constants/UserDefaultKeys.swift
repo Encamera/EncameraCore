@@ -52,6 +52,16 @@ public enum UserDefaultKey {
     case passphraseMigration
     case passwordHashMigration
     case completedMigration
+    /// Sticky, device-local dismissal of the iCloud Drive -> CloudKit migration
+    /// prompt. Someone with a large Drive album may reasonably defer forever, so
+    /// once dismissed the prompt never reappears on this device.
+    case dismissediCloudDriveMigrationPrompt
+    /// How many evicted iCloud Drive files the migration materializes before
+    /// uploading them. Tunable rather than a constant because the right value is an
+    /// empirical trade-off between free disk on the device and how often the
+    /// migration has to stop and wait on downloads — and the only way to find it is
+    /// to run real albums on real hardware. `0`/unset means the engine default.
+    case iCloudDriveMigrationBatchSize
     /// An "Erase All Data" completed locally but the CloudKit zone deletion failed
     /// (offline / transient error). Written AFTER the defaults wipe so it survives
     /// it; the app retries the cloud wipe on launch until it succeeds.
@@ -134,6 +144,13 @@ public enum UserDefaultKey {
              .passphraseMigration,
              .passwordHashMigration,
              .completedMigration,
+             // Deferring the migration prompt is a per-device decision: another
+             // device may not even have the legacy albums, and syncing the
+             // dismissal would silently suppress the prompt where it still applies.
+             .dismissediCloudDriveMigrationPrompt,
+             // A debug tunable measured against one device's free space and network;
+             // syncing it would push one phone's experiment onto every other.
+             .iCloudDriveMigrationBatchSize,
              .pendingCloudDataWipe:
             return false
         }

@@ -6,7 +6,6 @@
 
 */
 
-
 /* ./EncameraCore/Constants/AppConstants.swift */
 "DefaultAlbumName" = "My Album";
 /* ./EncameraCore/Utils/KeyManager.swift */
@@ -44,9 +43,11 @@
 "LocalDevice" = "local device";
 "SaveToiCloudDrive" = "Save to iCloud Drive";
 "SaveLocally" = "Save to this device";
+"StorageType.ICloudDriveLegacyTitle" = "iCloud Drive (Legacy)";
+"StorageType.ICloudDriveLegacyLocationName" = "iCloud Drive";
+"StorageType.SaveToICloud" = "Save to iCloud";
 "ChangePasscode" = "Change Passcode";
 
-/* Encamera App */
 /* ./Encamera/CameraView/CameraView.swift */
 "Missing camera access" = "Missing camera access";
 "OpenSettings" = "Open Settings";
@@ -104,8 +105,6 @@
 "See the photos that belong to a key by tapping the " = "See the photos that belong to a key by tapping the ";
 " icon on the top left of the screen." = " icon on the top left of the screen.";
 "ConfirmStorage" = "Confirm Storage";
-/* ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift */
-/* ./Encamera/Camera/CameraConfigurationService.swift */
 /* ./Encamera/Camera/AlertError.swift */
 "Accept" = "Accept";
 /* ./Encamera/KeyManagement/AlbumGridItem.swift */
@@ -211,7 +210,6 @@
 "Key Entry" = "Key Entry";
 "Cancel" = "Cancel";
 "Save Key" = "Save Key";
-/* ./Encamera/KeyManagement/KeyGeneration.swift */
 "" = "";
 "StorageSettingsSubheading" = "Where do you want to store media for files encrypted with this key?\nEach key will store data in its own directory.\n";
 
@@ -280,7 +278,6 @@
 "Check that the same key that was used to encrypt this media is set as the active key." = "Check that the same key that was used to encrypt this media is set as the active key.";
 "Tap the " = "Tap the ";
 " icon in the camera view to change the active key." = " icon in the camera view to change the active key.";
-/* ./Encamera/ImageViewing/GalleryScrollViewItem.swift */
 /* ./Encamera/ImageViewing/GalleryGridView.swift */
 "Hide" = "Hide";
 /* ./Encamera/ImageViewing/ImageViewing.swift */
@@ -302,7 +299,6 @@
 "OnboardingCarousel.HeadingText3" = "No accounts. No profiling. No ads.";
 "OnboardingCarousel.SubheadingText3" = "Encamera never collects your data. Your private moments stay completely yours.";
 "GetStartedButtonText" = "Let's Start";
-
 
 "You have an existing password for this device." = "You have an existing password for this device.";
 
@@ -817,6 +813,7 @@
 /* ./Encamera/AlbumManagement/AlbumDetailView.swift - Move a local album to iCloud (CloudKit) */
 "CloudKitMigration.AlertTitle" = "Move this album to iCloud?";
 "CloudKitMigration.AlertMessage" = "This uploads %@ items (%@) to iCloud and can take about %@. Stay on Wi-Fi and keep Encamera open — you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.";
+"CloudKitMigration.DriveAlertMessage" = "Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.";
 "CloudKitMigration.AlertConfirm" = "Move to iCloud";
 "CloudKitMigration.AlertCancel" = "Not now";
 "CloudKitMigration.EstimateLessThanAMinute" = "less than a minute";
@@ -834,6 +831,13 @@
 "CloudKitMigration.PartialTitle" = "Album partially moved";
 "CloudKitMigration.PartialMessage" = "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.";
 
+/* ./Encamera/AlbumManagement/ICloudDriveMigrationPrompt.swift - placeholder prompt offering to move deprecated iCloud Drive albums to CloudKit (design pending) */
+"CloudKitMigration.DrivePromptTitleOne" = "1 album is still on iCloud Drive";
+"CloudKitMigration.DrivePromptTitleMany" = "%@ albums are still on iCloud Drive";
+"CloudKitMigration.DrivePromptMessage" = "iCloud Drive storage is no longer supported. Move your albums to iCloud to keep them syncing across your devices.";
+"CloudKitMigration.DrivePromptMove" = "Move to iCloud";
+"CloudKitMigration.DrivePromptDismiss" = "Not now";
+
 /* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud */
 "CloudKitMigration.BannerMessage" = "This album is split between this device and iCloud.";
 "CloudKitMigration.BannerCounts" = "%@ moved, %@ still on this device";
@@ -842,6 +846,7 @@
 "CloudKitMigration.OverlayTitle" = "Moving to iCloud";
 "CloudKitMigration.OverlayTitleToLocal" = "Moving to This Device";
 "CloudKitMigration.OverlayPhasePreparing" = "Preparing";
+"CloudKitMigration.OverlayPhaseMaterializing" = "Downloading from iCloud Drive";
 "CloudKitMigration.OverlayPhaseUploading" = "Uploading";
 "CloudKitMigration.OverlayPhaseVerifying" = "Verifying in iCloud";
 "CloudKitMigration.OverlayPhaseRemovingLocalCopy" = "Removing local copy";

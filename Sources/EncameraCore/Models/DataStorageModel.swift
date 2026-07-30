@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-public protocol DataStorageModel {
+public protocol DataStorageModel: DebugPrintable {
     var baseURL: URL { get }
     var album: Album { get }
     static var thumbnailDirectory: URL { get }
@@ -120,6 +120,24 @@ extension DataStorageModel {
         return thumbnailDirectory
     }
     
+    /// Whether this album has already been migrated to CloudKit, i.e. its discovery
+    /// marker exists. `finalizeMigrationToCloudKit` writes that marker last, so it is
+    /// the signal that the source copy is drained and must not be revived. Always
+    /// false for a `.cloudKit` model, which IS the destination.
+    var hasMigratedToCloudKit: Bool {
+        // `.icloud` only, deliberately. A `.local` directory is also created while a
+        // CloudKit marker exists — that is exactly what `moveCloudKitAlbumToLocal`
+        // does on the way back — so applying this to local storage blocks the
+        // reverse move from creating its destination. (Caught by
+        // `testMoveCloudKitAlbumToLocalReportsPhasesAndMonotonicCounts`.) The
+        // local -> CloudKit twin-entry behaviour is older and separate; this is
+        // scoped to the iCloud Drive resurrection it was written for.
+        guard storageType == .icloud else { return false }
+        let marker = CloudKitStorageModel.albumsURL
+            .appendingPathComponent(Album.cloudKitTwin(of: album).encryptedPathComponent)
+        return FileManager.default.fileExists(atPath: marker.path)
+    }
+
     public func initializeDirectories() throws {
         let directories = [
             Self.thumbnailDirectory.path,
@@ -131,6 +149,27 @@ extension DataStorageModel {
 
         for directory in directories {
             if FileManager.default.fileExists(atPath: directory) == false {
+                if directory == baseURL.path {
+                    // Never RE-create the drained source directory of an album that
+                    // has already moved to CloudKit.
+                    //
+                    // `DiskFileAccess.configure` initializes directories for any
+                    // album it is pointed at, including a stale reference held by a
+                    // view model that has not yet adopted the migrated twin. On the
+                    // rig that resurrected the iCloud Drive directory seconds after
+                    // a successful migration, and the empty directory made the album
+                    // reappear in the grid a second time — one real CloudKit album
+                    // and one phantom still claiming to be on iCloud Drive.
+                    //
+                    // Only creation is blocked, and only once the CloudKit marker
+                    // exists (which finalize writes last), so an album mid-migration
+                    // and an album that never migrated are both untouched.
+                    if hasMigratedToCloudKit {
+                        printDebug("refusing to re-create drained source directory storage=\(storageType.rawValue) dir=\(baseURL.lastPathComponent)")
+                        continue
+                    }
+                    printDebug("creating album directory storage=\(storageType.rawValue) dir=\(baseURL.lastPathComponent)")
+                }
                 try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
             }
         }

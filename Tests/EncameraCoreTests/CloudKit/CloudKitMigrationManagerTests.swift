@@ -123,30 +123,10 @@ final class CloudKitMigrationManagerTests: XCTestCase {
 
     // MARK: - Planning
 
-    func testPlanRejectsICloudAlbum() async throws {
-        // .icloud sources are deliberately out of scope: enumeration sees evicted
-        // `.icloud` placeholders whose materialized path does not exist, so the
-        // engine would terminally skip them and finalize an album with files
-        // stranded in iCloud Drive. Until the engine materializes evicted files
-        // first, it must refuse the source outright.
-        let album = makeAlbum(storage: .icloud)
-        let (manager, _) = makeManager(for: album)
-        do {
-            _ = try await manager.plan(album: album)
-            XCTFail("planning an .icloud album must throw")
-        } catch let MigrationError.invalidSourceStorage(storage) {
-            XCTAssertEqual(storage, .icloud)
-        }
-        XCTAssertFalse(MigrationPlanStore.hasPlan(for: album))
-    }
-
-    func testEstimateIsZeroForICloudAlbum() async {
-        let album = makeAlbum(storage: .icloud)
-        let (manager, _, _) = makeExecutableManager(for: album)
-        let estimate = await manager.estimate(album: album)
-        XCTAssertEqual(estimate.itemCount, 0)
-        XCTAssertEqual(estimate.totalBytes, 0)
-    }
+    // `.icloud` sources are accepted — the engine materializes each batch of evicted
+    // files before uploading it. That path lives in `ICloudDriveMigrationTests`,
+    // which needs a substituted ubiquity container; only `.cloudKit` is refused
+    // outright, and `testPlanRejectsCloudKitAlbum` above covers it.
 
     func testPlanCreatesPendingItemPerComponent() async throws {
         let album = makeAlbum()

@@ -73,12 +73,25 @@ final class DataStorageAvailabilityUtilTests: XCTestCase {
         XCTAssertTrue(offered.contains(.local))
     }
 
-    func testICloudDriveDestinationTracksReadabilityWhenCloudKitIsOff() {
+    /// The deprecation is unconditional, not gated on `cloudKitStorage`. The flag
+    /// governs whether CloudKit is *offered*; letting it govern the deprecation too
+    /// would keep release builds minting new iCloud Drive albums for as long as the
+    /// replacement sits behind the flag.
+    func testICloudDriveIsNotOfferedAsADestinationEvenWhenCloudKitIsOff() {
         FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
 
-        XCTAssertEqual(
+        XCTAssertNotEqual(
             DataStorageAvailabilityUtil.isStorageTypeOfferedForNewAlbums(type: .icloud),
-            DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud)
+            .available
+        )
+    }
+
+    func testLocalStorageStaysOfferedAsADestination() {
+        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
+
+        XCTAssertEqual(
+            DataStorageAvailabilityUtil.isStorageTypeOfferedForNewAlbums(type: .local),
+            .available
         )
     }
 }

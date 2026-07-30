@@ -44,15 +44,21 @@ public enum StorageType: String, Codable {
 
 extension StorageType: Identifiable, CaseIterable {
     public var id: Self { self }
+    /// Labels for `.icloud` and `.cloudKit` must stay distinct for as long as the two
+    /// coexist: they are simultaneously visible during migration, and a user (or a UI
+    /// test) has to be able to tell them apart. `.cloudKit` keeps the plain "iCloud"
+    /// wording because it is the destination; deprecated iCloud Drive carries the
+    /// "(Legacy)" qualifier. `StorageTypeTests.testStorageTypeLabelsAreUnique` locks
+    /// this closed over every case.
     public var title: String {
         switch self {
         case .icloud:
-            return "iCloud"
+            return L10n.StorageType.iCloudDriveLegacyTitle
         case .local:
             return L10n.local
         case .cloudKit:
-            // To the user this is simply "iCloud"; legacy `.icloud` is distinguished
-            // only in debug/migration surfaces during coexistence.
+            // To the user this is simply "iCloud"; once iCloud Drive is removed
+            // entirely the `.icloud` case goes with it and this stays as-is.
             return "iCloud"
         }
     }
@@ -60,7 +66,7 @@ extension StorageType: Identifiable, CaseIterable {
     public var iconName: String {
         switch self {
         case .icloud:
-            return "lock.icloud"
+            return "externaldrive.badge.icloud"
         case .local:
             return "lock.iphone"
         case .cloudKit:
@@ -75,7 +81,7 @@ extension StorageType: Identifiable, CaseIterable {
         case .local:
             return L10n.saveLocally
         case .cloudKit:
-            return L10n.saveToiCloudDrive
+            return L10n.StorageType.saveToICloud
         }
     }
 
@@ -83,7 +89,7 @@ extension StorageType: Identifiable, CaseIterable {
     public var locationName: String {
         switch self {
         case .icloud:
-            return "iCloud"
+            return L10n.StorageType.iCloudDriveLegacyLocationName
         case .local:
             return L10n.localDevice
         case .cloudKit:

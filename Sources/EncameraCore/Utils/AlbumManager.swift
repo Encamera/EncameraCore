@@ -96,10 +96,10 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     public var defaultStorageForAlbum: StorageType {
         get {
-            // iCloud Drive is deprecated once CloudKit is active. A `.icloud` default may
-            // still be persisted from before the flag flipped on — never hand it back, or
-            // the picker-less quick-create paths would attempt a deprecated album.
-            if _defaultStorageForAlbum == .icloud, FeatureToggle.isEnabled(feature: .cloudKitStorage) {
+            // iCloud Drive is deprecated. A `.icloud` default may still be persisted from
+            // before the deprecation — never hand it back, or the picker-less
+            // quick-create paths would attempt a deprecated album.
+            if _defaultStorageForAlbum == .icloud {
                 return .local
             }
             return _defaultStorageForAlbum
@@ -367,10 +367,12 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album  {
-        // iCloud Drive album creation is deprecated. Once CloudKit is active no new
-        // `.icloud` albums may be created via any caller (UI pickers already hide the
-        // option via DataStorageAvailabilityUtil; this is the authoritative backstop).
-        if storageOption == .icloud, FeatureToggle.isEnabled(feature: .cloudKitStorage) {
+        // iCloud Drive album creation is deprecated. No new `.icloud` albums may be
+        // created via any caller, in any build configuration (UI pickers already hide
+        // the option via DataStorageAvailabilityUtil; this is the authoritative
+        // backstop). Not gated on `cloudKitStorage`: the flag governs whether CloudKit
+        // is offered, not whether iCloud Drive is deprecated.
+        if storageOption == .icloud {
             throw AlbumError.iCloudDriveDeprecated
         }
         guard let currentKey = keyManager.currentKey else {
@@ -427,15 +429,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     
     public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
         // Moving an album into iCloud Drive creates a new iCloud Drive album, which is
-        // deprecated once CloudKit is active. The move picker already hides the option
-        // via DataStorageAvailabilityUtil, so this is only a developer backstop: throw
-        // in DEBUG to catch a forgotten call site, but stay lenient in release so a
-        // missed guard isn't catastrophic for shipped builds.
-        #if DEBUG
-        if toStorage == .icloud, FeatureToggle.isEnabled(feature: .cloudKitStorage) {
+        // deprecated. This used to throw only under `#if DEBUG`, on the reasoning that
+        // a missed call site should stay lenient in shipped builds — but leniency here
+        // means the release build silently creates exactly the album the deprecation
+        // exists to prevent, and then walks into `iCloudStorageModel.rootURL`, which
+        // `fatalError`s with no ubiquity container. Throwing is the lenient option.
+        if toStorage == .icloud {
             throw AlbumError.iCloudDriveDeprecated
         }
-        #endif
         // A CloudKit move is a resumable upload, never a synchronous file move — it has
         // no correct path here, so funnel every caller through the migration engine.
         if toStorage == .cloudKit {
@@ -450,22 +451,28 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
         let fileManager = FileManager.default
         let currentStorage = album.storageOption.modelForType.init(album: album)
-        if toStorage == .icloud {
-            try? self.keyManager.backupKeychainToiCloud(backupEnabled: true)
-        }
+        // Deliberately does NOT touch key sync. Moving an album used to call
+        // `backupKeychainToiCloud(backupEnabled: true)` here, silently pushing the
+        // user's key to iCloud Keychain with no prompt and the error swallowed.
+        // Enabling key sync is exclusively user-initiated (Settings toggle or the
+        // onboarding opt-in); no storage operation may enable it as a side effect.
         printDebug("Starting the move process for album: \(album.name)")
-
-        // Determine the new storage URL based on the destination storage type
-        let newStorage: DataStorageModel = toStorage == .local ? LocalStorageModel(album: album) : iCloudStorageModel(album: album)
-
         printDebug("Current storage URL: \(currentStorage.baseURL)")
-        printDebug("New storage URL: \(newStorage.baseURL)")
 
-        // Check if the album exists at the current location
+        // Check the source before resolving the destination: resolving an iCloud
+        // Drive URL requires a ubiquity container, so there is no reason to reach
+        // for one on a move that cannot happen.
         guard fileManager.fileExists(atPath: currentStorage.baseURL.path) else {
             printDebug("Album not found at the source location.")
             throw AlbumError.albumNotFoundAtSourceLocation
         }
+
+        // `.local` is the only destination this generic path can still reach — `.icloud`
+        // is deprecated and `.cloudKit` requires the migration engine, both rejected
+        // above. Constructing the destination explicitly rather than via an `.icloud`
+        // fallback keeps `iCloudStorageModel.rootURL`'s `fatalError` off this path.
+        let newStorage: DataStorageModel = LocalStorageModel(album: album)
+        printDebug("New storage URL: \(newStorage.baseURL)")
 
         // Ensure the destination directory exists
         if !fileManager.fileExists(atPath: newStorage.baseURL.path) {
