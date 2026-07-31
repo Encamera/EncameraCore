@@ -21,6 +21,7 @@ public enum Feature: String, CaseIterable {
     case keychainInspector
     case cloudKitStorage
     case iCloudFlightCheck
+    case iCloudDiagnostics
     case showDebugLogs
 
     var userDefaultsKey: String {
@@ -42,6 +43,7 @@ public enum Feature: String, CaseIterable {
         case .keychainInspector: return "Keychain Inspector"
         case .cloudKitStorage: return L10n.FeatureToggles.cloudKitStorage
         case .iCloudFlightCheck: return "iCloud Flight Check"
+        case .iCloudDiagnostics: return "iCloud Diagnostics"
         case .showDebugLogs: return "Debug Logs"
         }
     }
@@ -61,13 +63,14 @@ public enum Feature: String, CaseIterable {
         case .keychainInspector: return "Show a debug screen in Settings that dumps every keychain item the app has stored, including iCloud-synced copies"
         case .cloudKitStorage: return L10n.FeatureToggles.cloudKitStorageDescription
         case .iCloudFlightCheck: return "Show a Settings workbench that runs the real CloudKit save/read path end-to-end with dummy data to verify the iCloud container is working"
+        case .iCloudDiagnostics: return "Show a Settings workbench that reports the status of EVERYTHING iCloud saving depends on — account, network, container, schema and a live write probe — without stopping at the first failure"
         case .showDebugLogs: return "Capture every printDebug line in memory and show a floating button that opens a viewer to search, copy, or share them"
         }
     }
 
     public var defaultValue: Bool? {
         switch self {
-        case .cloudKitStorage, .iCloudFlightCheck, .clearMediaIndex:
+        case .cloudKitStorage, .iCloudFlightCheck, .iCloudDiagnostics, .clearMediaIndex:
             #if DEBUG
             return true
             #endif
