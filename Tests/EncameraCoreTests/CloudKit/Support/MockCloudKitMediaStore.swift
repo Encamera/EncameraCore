@@ -94,11 +94,35 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
             .first { $0.recordName == recordName && $0.deletedAt == nil } }
     }
 
+    /// Fractions reported, in order, before the fetch completes — each one
+    /// `fetchBlobStepNanos` after the last. Models CloudKit's incremental
+    /// `perRecordProgressBlock` so a test can act on a fetch it knows is
+    /// genuinely mid-flight instead of guessing with sleeps.
+    var fetchBlobProgressSteps: [Double] = []
+    var fetchBlobStepNanos: UInt64 = 20_000_000
+    /// Called (every time) as soon as a fetch reports its first fraction.
+    var onFirstProgress: (@Sendable () -> Void)?
+    private var _fetchBlobCancelledCount = 0
+    /// How many fetches were stopped by task cancellation rather than finishing.
+    var fetchBlobCancelledCount: Int { locked { _fetchBlobCancelledCount } }
+
     func fetchBlob(recordName: String,
                    to destination: URL,
                    progress: @escaping @Sendable (Double) -> Void) async throws {
         locked { _fetchBlobCount += 1 }
-        if fetchBlobDelayNanos > 0 { try? await Task.sleep(nanoseconds: fetchBlobDelayNanos) }
+        do {
+            for (index, fraction) in fetchBlobProgressSteps.enumerated() {
+                try await Task.sleep(nanoseconds: fetchBlobStepNanos)
+                progress(fraction)
+                if index == 0 { onFirstProgress?() }
+            }
+            // Cancellation is honored here, unlike the old `try?` swallow: a
+            // cancelled download must stop, not run to completion in the dark.
+            if fetchBlobDelayNanos > 0 { try await Task.sleep(nanoseconds: fetchBlobDelayNanos) }
+        } catch is CancellationError {
+            locked { _fetchBlobCancelledCount += 1 }
+            throw CancellationError()
+        }
         if let fetchBlobError { throw fetchBlobError }
         try blobContents.write(to: destination)
         progress(1.0)

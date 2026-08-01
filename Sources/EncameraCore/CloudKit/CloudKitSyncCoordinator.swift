@@ -18,6 +18,75 @@ public extension Notification.Name {
     static let cloudKitZoneChanged = Notification.Name("EncameraCloudKitZoneChanged")
 }
 
+/// One caller waiting on a shared blob download.
+///
+/// `@unchecked Sendable` because it is only ever read or mutated inside
+/// `CloudKitSyncCoordinator`'s actor isolation; it crosses into the cancellation
+/// handler as an opaque identity, never as shared mutable state.
+private final class BlobWaiter: @unchecked Sendable {
+
+    private enum State {
+        /// Created, but the continuation hasn't been installed yet — the
+        /// cancellation handler can land in this window.
+        case pending
+        case waiting(CheckedContinuation<URL, Error>)
+        case done
+    }
+
+    /// This waiter's own progress sink. Every waiter gets its own, which is the
+    /// whole point: a joiner used to inherit silence.
+    let progress: @Sendable (Double) -> Void
+    private var state: State = .pending
+
+    init(progress: @escaping @Sendable (Double) -> Void) {
+        self.progress = progress
+    }
+
+    /// Installs the continuation. Returns false when the caller was already
+    /// cancelled (in which case the continuation is resolved here), so the
+    /// registration must be abandoned.
+    func attach(_ continuation: CheckedContinuation<URL, Error>) -> Bool {
+        switch state {
+        case .pending:
+            state = .waiting(continuation)
+            return true
+        case .waiting:
+            // Unreachable: one continuation per waiter.
+            return false
+        case .done:
+            continuation.resume(throwing: CancellationError())
+            return false
+        }
+    }
+
+    /// Resolves the waiter exactly once. Returns false when it was already
+    /// resolved (or cancelled before it ever attached).
+    @discardableResult
+    func deliver(_ result: Result<URL, Error>) -> Bool {
+        switch state {
+        case .pending:
+            // Cancelled before `attach` — mark it so registration bails out.
+            state = .done
+            return false
+        case .waiting(let continuation):
+            state = .done
+            continuation.resume(with: result)
+            return true
+        case .done:
+            return false
+        }
+    }
+}
+
+/// One shared `fetchBlob`, plus everyone waiting on it.
+private final class BlobDownload {
+    let id = UUID()
+    var task: Task<Void, Never>?
+    var waiters: [BlobWaiter] = []
+    /// Highest fraction the fetch has reported, replayed to late joiners.
+    var lastFraction: Double = 0
+}
+
 public actor CloudKitSyncCoordinator: DebugPrintable {
 
     private let albumID: String
@@ -26,9 +95,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private let indexStore: MediaIndexStore
     private let bus: FileOperationBus
 
-    /// In-flight blob fetches, so concurrent callers for the same record share one
-    /// `fetchBlob` instead of issuing duplicates.
-    private var inFlight: [String: Task<URL, Error>] = [:]
+    /// In-flight blob fetches keyed by record name, so concurrent callers for the
+    /// same record share one `fetchBlob` instead of issuing duplicates — while
+    /// each keeps its own progress stream and its own right to walk away.
+    private var downloads: [String: BlobDownload] = [:]
     /// Records known-deleted locally (tombstoned) — a delete that lands mid-fetch wins.
     private var deletedRecordNames: Set<String> = []
     /// Latest server change tag per record, used to invalidate stale cache copies.
@@ -270,6 +340,25 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
     // MARK: - Blob residency
 
+    /// Downloads the record's ciphertext into the blob cache, or returns the copy
+    /// already there.
+    ///
+    /// Callers for the same record share ONE fetch, and every one of them is a
+    /// first-class waiter: each gets its own progress stream (a late joiner is
+    /// first replayed the fraction the download has already reached), and each can
+    /// walk away independently. The fetch is cancelled only when the LAST waiter
+    /// goes away.
+    ///
+    /// Both halves of that matter — together they are the reported "cancel a
+    /// download, start it again, watch it freeze" bug. This used to
+    /// await the shared `Task.value` directly, which:
+    ///   - ignored the *caller's* cancellation — awaiting an unstructured task is
+    ///     not a cancellation point, so tapping Cancel neither stopped the download
+    ///     nor released the caller; and
+    ///   - fed progress only to the closure of whoever started the fetch, so the
+    ///     retry after a cancel joined a download it could not hear, and its
+    ///     progress bar sat frozen at whatever it last displayed until the whole
+    ///     (in the report: 552 MB) transfer finished.
     public func ensureBlobLocal(recordName: String,
                                 albumID: String,
                                 progress: @escaping @Sendable (Double) -> Void) async throws -> URL {
@@ -284,52 +373,150 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             progress(1.0)
             return cached
         }
-        if let existing = inFlight[recordName] {
-            printDebug("ensureBlobLocal join recordName=\(recordName) — an identical fetch is already in flight")
-            return try await existing.value
-        }
+        try Task.checkCancellation()
 
+        let waiter = BlobWaiter(progress: progress)
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, Error>) in
+                register(waiter: waiter,
+                         continuation: continuation,
+                         recordName: recordName,
+                         albumID: albumID,
+                         expectedTag: expectedTag)
+            }
+        } onCancel: {
+            // The handler runs off the actor, so hop back on to unregister. It can
+            // beat `register` — `BlobWaiter.state` is what makes that race safe.
+            Task { await self.cancel(waiter: waiter, recordName: recordName) }
+        }
+    }
+
+    /// Attaches `waiter` to the record's download, starting one if this is the
+    /// first interested caller. Runs on the actor, synchronously, from inside the
+    /// continuation body.
+    private func register(waiter: BlobWaiter,
+                          continuation: CheckedContinuation<URL, Error>,
+                          recordName: String,
+                          albumID: String,
+                          expectedTag: String?) {
+        guard waiter.attach(continuation) else {
+            // Cancelled while we were getting here.
+            return
+        }
+        let download: BlobDownload
+        if let existing = downloads[recordName] {
+            download = existing
+            printDebug("ensureBlobLocal join recordName=\(recordName) waiters=\(existing.waiters.count + 1) atFraction=\(existing.lastFraction) — an identical fetch is already in flight")
+        } else {
+            download = BlobDownload()
+            downloads[recordName] = download
+            printDebug("ensureBlobLocal MISS recordName=\(recordName) albumID=\(albumID) expectedTag=\(expectedTag ?? "nil") — downloading from CloudKit")
+            download.task = fetchTask(downloadID: download.id,
+                                      recordName: recordName,
+                                      albumID: albumID,
+                                      expectedTag: expectedTag)
+        }
+        download.waiters.append(waiter)
+        // Replay where the download actually is, so a joiner's UI starts there
+        // instead of sitting at 0% until the next tick.
+        if download.lastFraction > 0 {
+            waiter.progress(download.lastFraction)
+        }
+    }
+
+    /// Drives one shared fetch. Reports progress and its result back onto the
+    /// actor, which fans both out to the download's waiters.
+    private func fetchTask(downloadID: UUID,
+                           recordName: String,
+                           albumID: String,
+                           expectedTag: String?) -> Task<Void, Never> {
         let store = self.store
         let cache = self.cache
         let destination = FileManager.default.temporaryDirectory
             .appendingPathComponent("ckdl-\(recordName)-\(UUID().uuidString)")
 
-        printDebug("ensureBlobLocal MISS recordName=\(recordName) albumID=\(albumID) expectedTag=\(expectedTag ?? "nil") — downloading from CloudKit")
-
-        let task = Task { () throws -> URL in
-            // Inside an escaping Task closure, so the static form is required.
-            try await store.fetchBlob(recordName: recordName, to: destination, progress: progress)
-            let cachedURL = try await cache.store(recordName: recordName,
-                                                  changeTag: expectedTag,
-                                                  albumID: albumID,
-                                                  from: destination)
+        return Task { [weak self] in
+            let result: Result<URL, Error>
             do {
-                try FileManager.default.removeItem(at: destination)
+                try await store.fetchBlob(recordName: recordName, to: destination) { fraction in
+                    Task { await self?.report(fraction: fraction, recordName: recordName, downloadID: downloadID) }
+                }
+                let cachedURL = try await cache.store(recordName: recordName,
+                                                      changeTag: expectedTag,
+                                                      albumID: albumID,
+                                                      from: destination)
+                result = .success(cachedURL)
             } catch {
-                // Non-fatal: the blob is already cached. But a leaked temp file per
-                // download adds up, so it should be visible.
-                Self.printDebug("ensureBlobLocal WARNING recordName=\(recordName) could not remove download temp file=\(destination.lastPathComponent) raw=\(error)")
+                result = .failure(error)
             }
-            return cachedURL
+            if FileManager.default.fileExists(atPath: destination.path) {
+                do {
+                    try FileManager.default.removeItem(at: destination)
+                } catch {
+                    // Non-fatal: the blob is already cached. But a leaked temp file per
+                    // download adds up, so it should be visible.
+                    Self.printDebug("ensureBlobLocal WARNING recordName=\(recordName) could not remove download temp file=\(destination.lastPathComponent) raw=\(error)")
+                }
+            }
+            await self?.finish(downloadID: downloadID, recordName: recordName, result: result)
         }
-        inFlight[recordName] = task
+    }
 
-        do {
-            let url = try await task.value
-            inFlight[recordName] = nil
+    /// Fans a progress tick out to every waiter on the download.
+    private func report(fraction: Double, recordName: String, downloadID: UUID) {
+        guard let download = downloads[recordName], download.id == downloadID else { return }
+        // Never go backwards: CloudKit can repeat a fraction, and a joiner that was
+        // just replayed the current position must not see the bar jump back.
+        guard fraction > download.lastFraction else { return }
+        download.lastFraction = fraction
+        for waiter in download.waiters {
+            waiter.progress(fraction)
+        }
+    }
+
+    /// Resolves every waiter on the download and retires it.
+    private func finish(downloadID: UUID, recordName: String, result: Result<URL, Error>) async {
+        guard let download = downloads[recordName], download.id == downloadID else {
+            // Superseded: every waiter walked away (the fetch was cancelled) or a
+            // newer download replaced this one. Nothing left to notify.
+            return
+        }
+        downloads[recordName] = nil
+
+        switch result {
+        case .success(let url):
             // A delete that landed mid-fetch wins: discard the fetched copy.
             if deletedRecordNames.contains(recordName) {
                 printDebug("ensureBlobLocal FAILED recordName=\(recordName) reason=deletedDuringFetch — evicting the just-fetched copy")
                 await cache.evict(recordName: recordName)
-                throw CloudKitMediaStoreError.notFound
+                download.waiters.forEach { $0.deliver(.failure(CloudKitMediaStoreError.notFound)) }
+                return
             }
-            printDebug("ensureBlobLocal ok recordName=\(recordName) source=network file=\(url.lastPathComponent)")
-            return url
-        } catch {
-            inFlight[recordName] = nil
-            printDebug("ensureBlobLocal FAILED recordName=\(recordName) albumID=\(albumID) raw=\(error)")
-            throw error
+            printDebug("ensureBlobLocal ok recordName=\(recordName) source=network waiters=\(download.waiters.count) file=\(url.lastPathComponent)")
+            for waiter in download.waiters {
+                waiter.progress(1.0)
+                waiter.deliver(.success(url))
+            }
+        case .failure(let error):
+            printDebug("ensureBlobLocal FAILED recordName=\(recordName) albumID=\(albumID) waiters=\(download.waiters.count) raw=\(error)")
+            download.waiters.forEach { $0.deliver(.failure(error)) }
         }
+    }
+
+    /// Releases one waiter. The shared fetch is stopped only once nobody is left
+    /// waiting on it, so one view walking away never strands another.
+    private func cancel(waiter: BlobWaiter, recordName: String) {
+        guard waiter.deliver(.failure(CancellationError())) else { return }
+        guard let download = downloads[recordName],
+              download.waiters.contains(where: { $0 === waiter }) else { return }
+        download.waiters.removeAll { $0 === waiter }
+        guard download.waiters.isEmpty else {
+            printDebug("ensureBlobLocal waiter cancelled recordName=\(recordName) remainingWaiters=\(download.waiters.count) — download continues")
+            return
+        }
+        printDebug("ensureBlobLocal cancelled recordName=\(recordName) — last waiter went away; cancelling the CloudKit fetch")
+        downloads[recordName] = nil
+        download.task?.cancel()
     }
 
     // MARK: - Upload
@@ -415,6 +602,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         } else {
             bus.didCreate(media)
         }
+    }
+
+    /// Whether the record's ciphertext is resident in the blob cache right now.
+    /// Used by the flight check to assert that a cancelled download really stopped
+    /// — a timing-free statement of it, unlike watching the clock on a fast link.
+    public func isBlobCached(recordName: String) async -> Bool {
+        await cache.cachedURL(recordName: recordName, changeTag: changeTags[recordName]) != nil
     }
 
     public func evict(recordName: String) async throws {

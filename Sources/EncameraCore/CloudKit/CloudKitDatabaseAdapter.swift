@@ -174,14 +174,18 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
 
     // MARK: Fetch
 
+    /// Fetches records, honoring task cancellation: a blob download the user
+    /// cancelled must stop transferring, not keep running invisibly (which is
+    /// exactly what happened before — the "cancelled" download finished anyway and
+    /// the retry silently attached to it).
     public func fetch(recordIDs: [CKRecord.ID],
                       desiredKeys: [CKRecord.FieldKey]?,
                       perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord.ID: CKRecord] {
-        try await withCheckedThrowingContinuation { continuation in
-            let operation = CKFetchRecordsOperation(recordIDs: recordIDs)
-            operation.desiredKeys = desiredKeys
-            operation.qualityOfService = .userInitiated
+        let operation = CKFetchRecordsOperation(recordIDs: recordIDs)
+        operation.desiredKeys = desiredKeys
+        operation.qualityOfService = .userInitiated
 
+        return try await Self.runCancellable(operation) { continuation in
             var fetched: [CKRecord.ID: CKRecord] = [:]
             operation.perRecordProgressBlock = { recordID, fraction in
                 perRecordProgress(recordID, fraction)
@@ -198,6 +202,24 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
             }
             self.track(operation)
             self.database.add(operation)
+        }
+    }
+
+    /// Bridges a `CKOperation` into async/await *with* cancellation: when the
+    /// awaiting task is cancelled the operation is cancelled too, and CloudKit
+    /// completes it with `.operationCancelled` — which resumes `start`'s
+    /// continuation through the operation's own result block.
+    ///
+    /// `start` must configure the operation's result block to resume the
+    /// continuation exactly once, then dispatch it.
+    static func runCancellable<T>(_ operation: CKOperation,
+                                  start: @escaping (CheckedContinuation<T, Error>) -> Void) async throws -> T {
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T, Error>) in
+                start(continuation)
+            }
+        } onCancel: {
+            operation.cancel()
         }
     }
 

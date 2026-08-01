@@ -78,6 +78,37 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         (await store.load()?.entries ?? []).map { $0.id }.sorted()
     }
 
+    /// Collects every fraction a caller's progress closure was handed.
+    private final class ProgressRecorder: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _values: [Double] = []
+
+        var values: [Double] { lock.lock(); defer { lock.unlock() }; return _values }
+
+        var record: @Sendable (Double) -> Void {
+            { [self] fraction in
+                lock.lock(); _values.append(fraction); lock.unlock()
+            }
+        }
+    }
+
+    private struct TestTimeout: Error {}
+
+    /// Fails fast instead of hanging the suite: every download assertion here is
+    /// about a caller being released, so a wedged `await` is the failure.
+    private func withTimeout<T: Sendable>(seconds: Double,
+                                          _ operation: @escaping @Sendable () async throws -> T) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await operation() }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TestTimeout()
+            }
+            defer { group.cancelAll() }
+            return try await group.next()!
+        }
+    }
+
     // MARK: - Sync reconciliation
 
     func testSyncUpsertsChangedRecordsIntoIndex() async throws {
@@ -186,6 +217,147 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
 
         XCTAssertEqual(store.fetchBlobCount, 2)
+    }
+
+    // MARK: - Download cancel / retry
+
+    /// A cancelled download must actually stop. Awaiting an unstructured
+    /// `Task.value` ignores the awaiting task's cancellation, so tapping Cancel
+    /// left the caller parked for the full remaining download AND left the
+    /// CloudKit fetch running.
+    func testCancellingTheOnlyWaiterStopsTheFetchAndThrowsCancellation() async throws {
+        let store = MockCloudKitMediaStore()
+        store.fetchBlobProgressSteps = [0.2, 0.4, 0.6, 0.8]
+        store.fetchBlobStepNanos = 150_000_000
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        let inFlight = expectation(description: "the download reported its first fraction")
+        inFlight.assertForOverFulfill = false
+        store.onFirstProgress = { inFlight.fulfill() }
+
+        let download = Task { try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in }) }
+        await fulfillment(of: [inFlight], timeout: 5)
+        download.cancel()
+
+        do {
+            _ = try await withTimeout(seconds: 3) { try await download.value }
+            XCTFail("A cancelled download must not resolve — the caller has to be released immediately")
+        } catch is CancellationError {
+            // expected
+        }
+        XCTAssertEqual(store.fetchBlobCancelledCount, 1,
+                       "The CloudKit fetch itself must be cancelled once its last waiter goes away")
+    }
+
+    /// A cancelled download must leave nothing behind. This is the timing-free
+    /// statement of "the transfer really stopped" — and the property the on-device
+    /// probe asserts, because a rig's link is far too fast to judge by the clock.
+    func testCancelledDownloadLeavesNothingInTheBlobCache() async throws {
+        let store = MockCloudKitMediaStore()
+        store.fetchBlobProgressSteps = [0.2, 0.4, 0.6, 0.8]
+        store.fetchBlobStepNanos = 150_000_000
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        let inFlight = expectation(description: "the download reported its first fraction")
+        inFlight.assertForOverFulfill = false
+        store.onFirstProgress = { inFlight.fulfill() }
+
+        let download = Task { try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in }) }
+        await fulfillment(of: [inFlight], timeout: 5)
+        download.cancel()
+        _ = try? await withTimeout(seconds: 3) { try await download.value }
+
+        // Well past when the abandoned fetch would have finished.
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        let cached = await coord.isBlobCached(recordName: "m1")
+        XCTAssertFalse(cached, "A cancelled download must not go on to finish and cache its blob")
+    }
+
+    /// The reported bug: start a download, cancel it, start it again — the second
+    /// attempt froze at 0% (or at whatever the first attempt last showed) because
+    /// it joined the abandoned fetch, whose progress closure belonged to the
+    /// cancelled caller.
+    func testDownloadRestartedAfterACancelReportsProgressAndCompletes() async throws {
+        let store = MockCloudKitMediaStore()
+        store.fetchBlobProgressSteps = [0.2, 0.4, 0.6, 0.8]
+        store.fetchBlobStepNanos = 150_000_000
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        let inFlight = expectation(description: "the first download reported its first fraction")
+        inFlight.assertForOverFulfill = false
+        store.onFirstProgress = { inFlight.fulfill() }
+
+        let abandoned = Task { try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in }) }
+        await fulfillment(of: [inFlight], timeout: 5)
+        abandoned.cancel()
+
+        let retry = ProgressRecorder()
+        let url = try await withTimeout(seconds: 15) {
+            try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: retry.record)
+        }
+
+        XCTAssertFalse(retry.values.isEmpty,
+                       "The restarted download must report progress; a silent one is the frozen bar the user sees")
+        XCTAssertEqual(retry.values.last, 1.0, "The restarted download must finish at 100%")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path), "The retry must produce a readable blob")
+    }
+
+    /// Two callers for the same record still share one fetch — but the joiner has
+    /// to be fed progress too, and to start from where the download actually is.
+    func testJoiningCallerReceivesProgressFromTheSharedFetch() async throws {
+        let store = MockCloudKitMediaStore()
+        store.fetchBlobProgressSteps = [0.2, 0.4, 0.6, 0.8]
+        store.fetchBlobStepNanos = 150_000_000
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        let inFlight = expectation(description: "the download reported its first fraction")
+        inFlight.assertForOverFulfill = false
+        store.onFirstProgress = { inFlight.fulfill() }
+
+        let first = ProgressRecorder()
+        let joiner = ProgressRecorder()
+        let leader = Task { try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: first.record) }
+        await fulfillment(of: [inFlight], timeout: 5)
+
+        let joinedURL = try await withTimeout(seconds: 15) {
+            try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: joiner.record)
+        }
+        let leaderURL = try await leader.value
+
+        XCTAssertEqual(store.fetchBlobCount, 1, "Concurrent callers must still share one fetch")
+        XCTAssertEqual(joinedURL, leaderURL)
+        XCTAssertFalse(joiner.values.isEmpty, "A joiner must see the shared download's progress")
+        XCTAssertEqual(joiner.values.last, 1.0)
+        XCTAssertGreaterThanOrEqual(joiner.values.first ?? 0, 0.2,
+                                    "A joiner must start from the fraction already reached, not from zero")
+    }
+
+    /// Cancelling one caller must not strand the others: the fetch is cancelled
+    /// only when the LAST interested caller goes away.
+    func testCancellingOneWaiterLeavesTheSharedDownloadRunningForTheOther() async throws {
+        let store = MockCloudKitMediaStore()
+        store.fetchBlobProgressSteps = [0.2, 0.4, 0.6, 0.8]
+        store.fetchBlobStepNanos = 150_000_000
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        let inFlight = expectation(description: "the download reported its first fraction")
+        inFlight.assertForOverFulfill = false
+        store.onFirstProgress = { inFlight.fulfill() }
+
+        let stayer = ProgressRecorder()
+        let leaving = Task { try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in }) }
+        await fulfillment(of: [inFlight], timeout: 5)
+        let staying = Task { try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: stayer.record) }
+        // Let the second caller register before the first one walks away.
+        try await Task.sleep(nanoseconds: 100_000_000)
+        leaving.cancel()
+
+        let url = try await withTimeout(seconds: 15) { try await staying.value }
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertEqual(store.fetchBlobCancelledCount, 0,
+                       "A fetch with a remaining waiter must not be cancelled")
+        XCTAssertEqual(store.fetchBlobCount, 1, "The remaining waiter keeps the original fetch, it does not restart it")
     }
 
     // MARK: - Cross-device delete

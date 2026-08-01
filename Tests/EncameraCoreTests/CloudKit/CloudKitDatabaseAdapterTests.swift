@@ -48,4 +48,51 @@ final class CloudKitDatabaseAdapterTests: XCTestCase {
             return XCTFail("a single-record partial must unwrap to its underlying error")
         }
     }
+
+    /// Swift task cancellation has to reach the CKOperation. Without this, a
+    /// cancelled blob download kept transferring in the background — the user's
+    /// Cancel stopped nothing, it only stopped them watching.
+    func testCancellingTheAwaitingTaskCancelsTheCloudKitOperation() async throws {
+        let operation = CKFetchRecordsOperation(recordIDs: [CKRecord.ID(recordName: "m1")])
+        let held = ContinuationBox()
+        let started = expectation(description: "the operation was dispatched")
+
+        let task = Task {
+            try await CKDatabaseAdapter.runCancellable(operation) { continuation in
+                held.store(continuation)
+                started.fulfill()
+            }
+        }
+        await fulfillment(of: [started], timeout: 5)
+
+        task.cancel()
+        // The cancellation handler runs off this task; give it a beat to land.
+        try await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertTrue(operation.isCancelled,
+                      "Cancelling the awaiting task must cancel the CKOperation, not just abandon it")
+
+        // CloudKit would now complete the cancelled operation with an error; stand in
+        // for it so the task unwinds instead of leaking a continuation.
+        held.resume(throwing: CKErrorFactory.error(.operationCancelled))
+        _ = try? await task.value
+    }
+}
+
+/// Holds a continuation the test resumes by hand, standing in for CloudKit's
+/// completion block.
+private final class ContinuationBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<[CKRecord.ID: CKRecord], Error>?
+
+    func store(_ continuation: CheckedContinuation<[CKRecord.ID: CKRecord], Error>) {
+        lock.lock(); self.continuation = continuation; lock.unlock()
+    }
+
+    func resume(throwing error: Error) {
+        lock.lock()
+        let pending = continuation
+        continuation = nil
+        lock.unlock()
+        pending?.resume(throwing: error)
+    }
 }

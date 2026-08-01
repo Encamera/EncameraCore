@@ -59,6 +59,10 @@ public enum FlightCheckError: Error {
     case emptyThumbnail
     case stillListedAfterDelete(id: String)
     case imageEncodingFailed
+    case cancelIgnored(detail: String)
+    case restartReportedNoProgress
+    case cancelledDownloadStillCompleted(seconds: TimeInterval)
+    case downloadTooFastToCatch(bytes: Int, seconds: TimeInterval?)
     case internalState(String)
 
     var message: String {
@@ -85,6 +89,14 @@ public enum FlightCheckError: Error {
             return "Record was still in the index after delete"
         case .imageEncodingFailed:
             return "Could not build the dummy test image"
+        case .cancelIgnored:
+            return "A cancelled download did not stop"
+        case .restartReportedNoProgress:
+            return "A download restarted after a cancel reported no progress"
+        case .cancelledDownloadStillCompleted:
+            return "A cancelled download finished anyway and cached its blob"
+        case .downloadTooFastToCatch:
+            return "Could not catch the probe download in flight"
         case .internalState(let what):
             return "Internal flight-check state error: \(what)"
         }
@@ -120,8 +132,60 @@ public enum FlightCheckError: Error {
             return "After delete + reconcile, record id \(id) is still present in the synced index — the tombstone did not propagate."
         case .imageEncodingFailed:
             return "UIGraphicsImageRenderer / jpegData produced no data for the synthetic test image."
+        case .cancelIgnored(let detail):
+            return "The probe cancelled an in-flight CloudKit download and \(detail). "
+                + "Cancelling must release the caller immediately and stop the transfer — otherwise the user's "
+                + "Cancel only stops them watching, and the next attempt attaches to the abandoned download."
+        case .restartReportedNoProgress:
+            return "After cancelling, the download was started again and its progress closure was never called with "
+                + "a fraction above 0. That is the frozen progress bar users report: the restart joined an in-flight "
+                + "fetch whose progress was wired to the caller that already walked away."
+        case .cancelledDownloadStillCompleted(let seconds):
+            return "The probe cancelled a download and then waited \(String(format: "%.1f", seconds * 3 + 1))s — several times "
+                + "the \(String(format: "%.2f", seconds))s a cold download of this payload takes — and the blob was in the cache "
+                + "anyway. The transfer ignored the cancel and ran to completion, which burns the user's data after they "
+                + "explicitly asked it to stop, and leaves the next attempt attaching to a download nobody is listening to."
+        case .downloadTooFastToCatch(let bytes, let seconds):
+            let measured = seconds.map { "A full cold download of it took only \(String(format: "%.2f", $0))s. " } ?? ""
+            return "The \(bytes)-byte probe payload downloads too fast on this link to test cancellation. \(measured)"
+                + "A cancel that released nobody would have looked instant here, so the step cannot tell a working "
+                + "cancel from a broken one. Not a product failure — but reported as a failure rather than a silent "
+                + "pass. Raise `makeIncompressibleJPEG`'s pixelsPerSide until a cold download takes longer than "
+                + "`minimumUsefulDownloadSeconds`."
         case .internalState(let what):
             return what
+        }
+    }
+}
+
+/// Collects the download fractions one `loadMedia` call was handed, so the
+/// cancel/restart step can tell "the bar moved" from "the bar sat there".
+final class DownloadProgressRecorder: @unchecked Sendable {
+
+    private let lock = NSLock()
+    private var fractions: [Double] = []
+    private var leftDownloading = false
+
+    var downloadFractions: [Double] { lock.lock(); defer { lock.unlock() }; return fractions }
+
+    /// True once any fraction beyond the initial 0 arrived.
+    var sawDownloadProgress: Bool { downloadFractions.contains { $0 > 0 } }
+
+    /// The first fraction that proves bytes are moving: not 0 (nothing yet) and
+    /// not 1 (already done).
+    var midFlightFraction: Double? { downloadFractions.first { $0 > 0 && $0 < 1 } }
+
+    /// The load moved past downloading (decrypting/loaded) — there is nothing
+    /// left to catch mid-flight.
+    var isPastDownloading: Bool { lock.lock(); defer { lock.unlock() }; return leftDownloading }
+
+    func record(_ status: FileLoadingStatus) {
+        lock.lock()
+        defer { lock.unlock() }
+        switch status {
+        case .downloading(let fraction): fractions.append(fraction)
+        case .decrypting, .loaded: leftDownloading = true
+        case .notLoaded: break
         }
     }
 }
@@ -146,7 +210,8 @@ public final class CloudKitFlightCheck: DebugPrintable {
         .init(id: 8,  title: "Sync & list uploaded item"),
         .init(id: 9,  title: "Download blob from server (cold cache)"),
         .init(id: 10, title: "Thumbnail from server (cold cache)"),
-        .init(id: 11, title: "Delete & tombstone propagation"),
+        .init(id: 11, title: "Cancel & restart a download"),
+        .init(id: 12, title: "Delete & tombstone propagation"),
     ]
 
     private let keyManager: KeyManager
@@ -158,6 +223,9 @@ public final class CloudKitFlightCheck: DebugPrintable {
     private var cloud: CloudKitFileAccess?
     private var savedMedia: InteractableMedia<EncryptedMedia>?
     private var originalJPEG: Data?
+    /// The multi-megabyte record the cancel/restart step uploads. Held so a halted
+    /// run reclaims it — it is far too big to leak into the user's iCloud quota.
+    private var cancelProbeMedia: InteractableMedia<EncryptedMedia>?
 
     public init(keyManager: KeyManager,
                 albumManager: AlbumManaging,
@@ -207,11 +275,15 @@ public final class CloudKitFlightCheck: DebugPrintable {
     private func scheduleCleanup() {
         let cloud = self.cloud
         let saved = self.savedMedia
+        let probe = self.cancelProbeMedia
         let album = self.testAlbum
         let albumManager = self.albumManager
         Task.detached {
             if let cloud, let saved {
                 try? await cloud.delete(media: [saved])
+            }
+            if let cloud, let probe {
+                try? await cloud.delete(media: [probe])
             }
             if let album {
                 albumManager.delete(album: album)
@@ -251,7 +323,8 @@ public final class CloudKitFlightCheck: DebugPrintable {
         case 8:  return try await checkSyncAndList()
         case 9:  return try await checkColdDownload()
         case 10: return try await checkColdThumbnail()
-        case 11: return try await checkDelete()
+        case 11: return try await checkCancelAndRestartDownload()
+        case 12: return try await checkDelete()
         default: return nil
         }
     }
@@ -418,6 +491,156 @@ public final class CloudKitFlightCheck: DebugPrintable {
         return "Fetched + decoded \(bytes.count)-byte thumbnail from CloudKit"
     }
 
+    /// The user-visible download loop this branch exists for: start a download,
+    /// cancel it mid-transfer, start it again.
+    ///
+    /// Both halves are regressions we have shipped:
+    ///   1. Cancel used to release nobody — awaiting the shared fetch task is not a
+    ///      cancellation point, so the caller stayed parked for the whole transfer
+    ///      (and CloudKit kept downloading).
+    ///   2. The restart attached to that abandoned fetch, whose progress closure
+    ///      belonged to the cancelled caller, so its progress bar never moved.
+    ///
+    /// Uses its own multi-megabyte payload: the flight check's dummy photo arrives
+    /// too fast to ever be caught mid-flight, and only a genuinely in-flight
+    /// download proves anything here.
+    private func checkCancelAndRestartDownload() async throws -> String? {
+        guard let cloud else { throw FlightCheckError.internalState("no CloudKit album from step 6") }
+
+        let payload = try Self.makeIncompressibleJPEG()
+        let cleartext = CleartextMedia(source: payload, mediaType: .photo, id: NSUUID().uuidString)
+        let interactable = try InteractableMedia(underlyingMedia: [cleartext])
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = Date()
+        metadata.encryptionDate = Date()
+        metadata.originalMediaType = "photo"
+        metadata.originalExtension = "jpg"
+        metadata.originalFileSize = UInt64(payload.count)
+
+        guard let probe = try await cloud.save(media: interactable, metadata: metadata, progress: { _ in }) else {
+            throw FlightCheckError.uploadReturnedNil
+        }
+        cancelProbeMedia = probe
+        _ = await cloud.reconcile()
+
+        // 1. Time a full cold download of this exact payload. Everything below is
+        //    scaled off it: the rig's link does tens of MB/s, so any hard-coded
+        //    "cancel after N seconds" either misses the transfer entirely or waits
+        //    long enough that a broken cancel looks instant too.
+        try await cloud.evictCachedBlob(for: probe.id, type: .photo)
+        let baselineStarted = Date()
+        _ = try await cloud.loadMedia(media: probe, progress: { _ in })
+        let coldSeconds = Date().timeIntervalSince(baselineStarted)
+        guard coldSeconds >= Self.minimumUsefulDownloadSeconds else {
+            throw FlightCheckError.downloadTooFastToCatch(bytes: payload.count, seconds: coldSeconds)
+        }
+
+        // 2. Start it again and cancel a fraction of the way in, so the cancel
+        //    lands with most of the transfer still to go.
+        try await cloud.evictCachedBlob(for: probe.id, type: .photo)
+        let firstAttempt = DownloadProgressRecorder()
+        let cancelled = Task {
+            try await cloud.loadMedia(media: probe, progress: { firstAttempt.record($0) })
+        }
+        let graceSeconds = coldSeconds * Self.cancelAfterFractionOfDownload
+        try await Task.sleep(nanoseconds: UInt64(graceSeconds * 1_000_000_000))
+
+        let caughtAt = firstAttempt.downloadFractions.last ?? 0
+        let cancelledAt = Date()
+        cancelled.cancel()
+        // A working cancel releases its caller in milliseconds. Allow it the whole
+        // remaining transfer plus slack, so the only way to exceed this is to have
+        // sat out the download — which is the defect.
+        let released = await Self.outcome(of: cancelled, timeout: coldSeconds * 3 + 1)
+        let releaseSeconds = Date().timeIntervalSince(cancelledAt)
+        switch released {
+        case .cancelled:
+            break
+        case .stillRunning:
+            throw FlightCheckError.cancelIgnored(detail: "the cancelled download was still parked \(String(format: "%.1f", releaseSeconds))s later")
+        case .finishedAnyway:
+            throw FlightCheckError.cancelIgnored(detail: "the cancelled download ran to completion and returned the media anyway (\(String(format: "%.2f", releaseSeconds))s after the cancel)")
+        case .failed(let error):
+            throw error
+        }
+
+        // 3. The timing-free proof that the transfer really stopped: give the
+        //    abandoned fetch several times as long as it needed, then check the
+        //    blob cache. A download that secretly ran on to completion stores its
+        //    blob there — on any link, however fast.
+        try await Task.sleep(nanoseconds: UInt64((coldSeconds * 3 + 1) * 1_000_000_000))
+        if await cloud.isBlobCached(for: probe.id, type: .photo) {
+            throw FlightCheckError.cancelledDownloadStillCompleted(seconds: coldSeconds)
+        }
+
+        // 4. Restart it. This is the download the user watches after tapping
+        //    Cancel — and the one that used to sit frozen at its last percentage.
+        let restart = DownloadProgressRecorder()
+        let restartStarted = Date()
+        let decrypted = try await cloud.loadMedia(media: probe, progress: { restart.record($0) })
+        let restartSeconds = Date().timeIntervalSince(restartStarted)
+        guard restart.sawDownloadProgress else {
+            throw FlightCheckError.restartReportedNoProgress
+        }
+        guard let bytes = decrypted.underlyingMedia.first?.data, !bytes.isEmpty else {
+            throw FlightCheckError.emptyDownload
+        }
+        guard bytes == payload else {
+            throw FlightCheckError.byteMismatch(expected: payload.count, got: bytes.count)
+        }
+
+        // Reclaim the probe's quota now — it is an order of magnitude bigger than
+        // the flight check's own test record.
+        try? await cloud.delete(media: [probe])
+        cancelProbeMedia = nil
+
+        return "\(payload.count)-byte payload downloads cold in \(String(format: "%.2f", coldSeconds))s; "
+            + "cancelled \(String(format: "%.2f", graceSeconds))s in (at \(Int(caughtAt * 100))%) — released in "
+            + "\(String(format: "%.2f", releaseSeconds))s, nothing cached afterwards; the restart reported "
+            + "\(restart.downloadFractions.count) progress updates and returned all \(bytes.count) bytes in "
+            + "\(String(format: "%.2f", restartSeconds))s"
+    }
+
+    /// How far into the (measured) transfer the probe cancels.
+    private static let cancelAfterFractionOfDownload: Double = 0.25
+    /// Below this, a cold download is over before anything could meaningfully be
+    /// cancelled and the step cannot judge anything.
+    private static let minimumUsefulDownloadSeconds: TimeInterval = 0.25
+
+    private enum CancelOutcome {
+        /// Stopped, as asked.
+        case cancelled
+        /// Ignored the cancel and delivered the media anyway.
+        case finishedAnyway
+        /// Still hadn't returned when the wait expired.
+        case stillRunning
+        case failed(Error)
+    }
+
+    /// Waits — with a ceiling — for a cancelled download to unwind, so a build that
+    /// ignores cancellation fails this step instead of hanging the workbench.
+    private static func outcome<T>(of task: Task<T, Error>, timeout: TimeInterval) async -> CancelOutcome {
+        await withTaskGroup(of: CancelOutcome.self) { group in
+            group.addTask {
+                do {
+                    _ = try await task.value
+                    return .finishedAnyway
+                } catch is CancellationError {
+                    return .cancelled
+                } catch {
+                    return .failed(error)
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                return .stillRunning
+            }
+            let first = await group.next() ?? .stillRunning
+            group.cancelAll()
+            return first
+        }
+    }
+
     /// Retries `op` on transient failures (e.g. a just-created record/asset that hasn't
     /// propagated yet) with a fixed backoff. Re-throws the last error if all attempts
     /// fail. Logs each attempt so a persistent failure is distinguishable from a race.
@@ -504,6 +727,39 @@ public final class CloudKitFlightCheck: DebugPrintable {
             context.fill(CGRect(origin: .zero, size: size))
         }
         guard let data = image.jpegData(compressionQuality: 0.9) else {
+            throw FlightCheckError.imageEncodingFailed
+        }
+        return data
+        #else
+        throw FlightCheckError.imageEncodingFailed
+        #endif
+    }
+
+    /// A random-noise JPEG — noise so JPEG cannot compress it away, leaving a
+    /// payload of a few tens of megabytes. The cancel/restart step needs a download
+    /// that is still transferring a moment after it starts; the solid-colour dummy
+    /// photo above compresses to a few kilobytes and is gone instantly.
+    static func makeIncompressibleJPEG(pixelsPerSide: Int = 2600) throws -> Data {
+        #if canImport(UIKit)
+        let bytesPerRow = pixelsPerSide * 4
+        var pixels = [UInt8](repeating: 0, count: bytesPerRow * pixelsPerSide)
+        pixels.withUnsafeMutableBytes { buffer in
+            guard let base = buffer.baseAddress else { return }
+            arc4random_buf(base, buffer.count)
+        }
+        guard let provider = CGDataProvider(data: Data(pixels) as CFData),
+              let cgImage = CGImage(width: pixelsPerSide,
+                                    height: pixelsPerSide,
+                                    bitsPerComponent: 8,
+                                    bitsPerPixel: 32,
+                                    bytesPerRow: bytesPerRow,
+                                    space: CGColorSpaceCreateDeviceRGB(),
+                                    bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                                    provider: provider,
+                                    decode: nil,
+                                    shouldInterpolate: false,
+                                    intent: .defaultIntent),
+              let data = UIImage(cgImage: cgImage).jpegData(compressionQuality: 1.0) else {
             throw FlightCheckError.imageEncodingFailed
         }
         return data

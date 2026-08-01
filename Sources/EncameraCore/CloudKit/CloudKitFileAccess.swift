@@ -544,6 +544,14 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         try await coordinator.evict(recordName: Self.componentRecordName(mediaID: id, type: type))
     }
 
+    /// Whether the component's ciphertext is in the blob cache right now. The
+    /// flight check's cancel probe asserts on this: a cancelled download that
+    /// secretly ran to completion caches its blob, and that shows up here no
+    /// matter how fast the link is.
+    public func isBlobCached(for id: String, type: MediaType) async -> Bool {
+        await coordinator.isBlobCached(recordName: Self.componentRecordName(mediaID: id, type: type))
+    }
+
     /// Removes the local thumbnail copy + its cached change-tag so the next
     /// `loadMediaPreview` re-fetches the eager thumbnail asset from CloudKit.
     ///
