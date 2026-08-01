@@ -9,7 +9,7 @@ from mcp.server.fastmcp import FastMCP
 from asc.auth import Credentials
 from asc.client import ASCClient
 from asc.pricing import iap, subscriptions
-from asc import beta_feedback, releases
+from asc import beta_feedback, releases, testflight
 from asc.xcode_cloud import (
     artifacts as xc_artifacts,
     build_actions as xc_build_actions,
@@ -327,6 +327,244 @@ def get_latest_crash_report(
     result = asdict(subs[0])
     result["crash_log"] = beta_feedback.get_crash_log_text(client, subs[0].id)
     return result
+
+
+# ---------------------------------------------------------------------------
+# TestFlight distribution tools
+#
+# Two things decide whether a person can actually install a build:
+#   1. Does the build reach them? Internal groups with hasAccessToAllBuilds get
+#      every build automatically; external groups need the build attached AND
+#      the build must have cleared beta app review.
+#   2. Have they accepted their invitation? A tester at state=INVITED sees
+#      nothing no matter how many groups they're in — resend_tester_invitation.
+#
+# Typical "share the latest build with someone" flow:
+#   1. list_testflight_builds(latest_only=True) → build id + beta states
+#   2. list_beta_testers(email=...) → do they exist, and what state are they in?
+#   3. add_beta_tester / add_tester_to_build / add_build_to_beta_group as needed
+#   4. resend_tester_invitation if they're still INVITED
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def list_testflight_builds(
+    latest_only: bool = False,
+    version: Optional[str] = None,
+    processing_state: Optional[str] = "VALID",
+    limit: int = 25,
+    app_id: Optional[str] = None,
+) -> list[dict]:
+    """List TestFlight builds with their marketing version attached.
+    Returns build id, build number, marketing version, upload date, processing state, expired.
+    latest_only returns just the newest build that finished processing — use this to answer
+    "what is the current latest build". version filters to one marketing version like '2.9.0'.
+    processing_state defaults to VALID (installable); pass null to include PROCESSING builds.
+    Use get_build_beta_status on a returned id to find out whether testers can actually install it."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    if latest_only:
+        build = testflight.find_latest_build(client, aid, processing_state)
+        builds = [build] if build else []
+    elif version:
+        builds = testflight.list_builds_for_version(client, aid, version, processing_state)
+    else:
+        builds = testflight.list_builds_with_versions(client, aid)
+        if processing_state:
+            builds = [
+                b for b in builds
+                if b.get("attributes", {}).get("processingState") == processing_state
+            ]
+    return [
+        {
+            "id": b["id"],
+            "build_number": b["attributes"].get("version"),
+            "app_version": b.get("_app_version"),
+            "uploaded_date": b["attributes"].get("uploadedDate"),
+            "processing_state": b["attributes"].get("processingState"),
+            "expired": b["attributes"].get("expired", False),
+        }
+        for b in builds[:limit]
+    ]
+
+
+@mcp.tool()
+def get_build_beta_status(build_id: str, app_id: Optional[str] = None) -> dict:
+    """Whether a build is actually distributable, and to whom.
+    Returns internal_build_state, external_build_state, auto_notify_enabled, the beta review
+    submission state, and the beta groups the build is attached to.
+    external_build_state must be IN_BETA_TESTING before external testers can install —
+    WAITING_FOR_BETA_REVIEW or IN_BETA_REVIEW means Apple hasn't approved it yet, and
+    NOT_APPLICABLE means it was never submitted (use submit_build_for_beta_review).
+    Internal testers are unaffected by beta review."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    detail = testflight.get_build_beta_detail(client, build_id)
+    review = testflight.get_beta_review_submission(client, build_id)
+    groups = testflight.get_build_beta_groups(client, build_id, aid)
+    result = asdict(detail)
+    result["beta_review"] = asdict(review) if review else None
+    result["beta_groups"] = [
+        {"id": g["id"], "name": g.get("attributes", {}).get("name")} for g in groups
+    ]
+    return result
+
+
+@mcp.tool()
+def list_beta_groups(app_id: Optional[str] = None) -> list[dict]:
+    """List TestFlight beta groups for the app.
+    Returns id, name, is_internal, has_access_to_all_builds, public_link_enabled, feedback_enabled.
+    Internal groups with has_access_to_all_builds=true receive every new build automatically
+    and skip beta app review; external groups need builds attached explicitly."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    return [asdict(g) for g in testflight.list_beta_groups_typed(client, aid)]
+
+
+@mcp.tool()
+def add_build_to_beta_group(build_id: str, group_id: str) -> str:
+    """Attach a build to a beta group so that group's testers can install it.
+    For external groups the build must have passed beta app review first — the attachment
+    will succeed regardless, but testers won't see the build until it's approved.
+    Check with get_build_beta_status."""
+    testflight.add_build_to_beta_groups(_get_client(), build_id, [group_id])
+    return f"Added build {build_id} to beta group {group_id}"
+
+
+@mcp.tool()
+def remove_build_from_beta_group(build_id: str, group_id: str) -> str:
+    """Detach a build from a beta group, revoking access for that group's testers."""
+    testflight.remove_build_from_beta_groups(_get_client(), build_id, [group_id])
+    return f"Removed build {build_id} from beta group {group_id}"
+
+
+@mcp.tool()
+def list_beta_testers(
+    email: Optional[str] = None,
+    group_id: Optional[str] = None,
+    build_id: Optional[str] = None,
+    app_id: Optional[str] = None,
+) -> list[dict]:
+    """List TestFlight beta testers, by email, by group, or assigned to a specific build.
+    Returns id, email, name, state, invite_type, and beta group membership.
+    state is the key field: INVITED means they were added but never accepted the emailed
+    invitation and therefore see nothing in TestFlight — fix with resend_tester_invitation.
+    ACCEPTED/INSTALLED means they're active.
+    Email lookups are automatically scoped to this app; an unscoped ASC search can return
+    stale duplicate records belonging to other apps.
+    Note: group and build lookups return empty beta_group_ids — the API rejects the
+    relationship include on those paths."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    if email:
+        testers = testflight.find_testers_by_email(client, email, app_id=aid)
+    elif group_id:
+        testers = testflight.list_testers_in_group(client, group_id)
+    elif build_id:
+        testers = testflight.list_individual_testers(client, build_id)
+    else:
+        raise ValueError("Provide one of email, group_id, or build_id")
+    return [asdict(t) for t in testers]
+
+
+@mcp.tool()
+def add_beta_tester(
+    email: str,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    group_id: Optional[str] = None,
+    build_id: Optional[str] = None,
+    app_id: Optional[str] = None,
+) -> dict:
+    """Add someone to TestFlight by email, creating the tester if they don't exist yet.
+    Idempotent — if a tester with that email already exists on this app it is reused rather
+    than duplicated. Names are optional and only affect how they appear in App Store Connect.
+    Pass group_id to put them in a beta group, and/or build_id to give them access to one
+    specific build. Both are optional, but a tester attached to neither can't install anything.
+    Returns the tester plus a 'created' flag and what was attached."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    tester, created = testflight.ensure_tester(
+        client, email, aid,
+        first_name=first_name, last_name=last_name,
+        group_ids=[group_id] if group_id else None,
+        build_ids=[build_id] if build_id else None,
+    )
+    actions = []
+    if not created:
+        # ensure_tester only attaches relationships when it creates the record.
+        if group_id and group_id not in tester.beta_group_ids:
+            testflight.add_testers_to_groups(client, tester.id, [group_id])
+            actions.append(f"added to group {group_id}")
+        if build_id:
+            already = any(
+                t.id == tester.id
+                for t in testflight.list_individual_testers(client, build_id)
+            )
+            if not already:
+                testflight.add_individual_testers_to_build(client, build_id, [tester.id])
+                actions.append(f"added to build {build_id}")
+    result = asdict(tester)
+    result["created"] = created
+    result["actions"] = actions
+    return result
+
+
+@mcp.tool()
+def add_tester_to_build(build_id: str, tester_id: str) -> str:
+    """Give one existing tester access to one specific build, without adding them to a group.
+    This is App Store Connect's "individual testers" mechanism. Access is scoped to that build
+    only. External testers still can't install until the build clears beta app review.
+    tester_id comes from list_beta_testers."""
+    testflight.add_individual_testers_to_build(_get_client(), build_id, [tester_id])
+    return f"Added tester {tester_id} as an individual tester on build {build_id}"
+
+
+@mcp.tool()
+def remove_tester_from_build(build_id: str, tester_id: str) -> str:
+    """Revoke a tester's individual access to a specific build.
+    Does not affect access they have through a beta group."""
+    testflight.remove_individual_testers_from_build(_get_client(), build_id, [tester_id])
+    return f"Removed tester {tester_id} from build {build_id}"
+
+
+@mcp.tool()
+def resend_tester_invitation(tester_id: str, app_id: Optional[str] = None) -> str:
+    """Resend the TestFlight invitation email to a tester.
+    This is the fix when a tester's state is INVITED: they already have whatever group and
+    build access was granted, they just never accepted, so TestFlight shows them nothing.
+    Adding them to more groups will not help. tester_id comes from list_beta_testers."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    testflight.resend_invitation(client, aid, tester_id)
+    return f"Sent TestFlight invitation to tester {tester_id}"
+
+
+@mcp.tool()
+def submit_build_for_beta_review(build_id: str) -> dict:
+    """Submit a build for Apple's beta app review, required before external TestFlight
+    groups can install it. Internal testers never need this.
+    Fails if the build was already submitted — check get_build_beta_status first.
+    Requires the app's beta app review contact details to be filled in.
+    After submission, beta_review_state goes WAITING_FOR_REVIEW → IN_REVIEW → APPROVED."""
+    return asdict(testflight.submit_build_for_beta_review(_get_client(), build_id))
+
+
+@mcp.tool()
+def set_build_whats_new(build_id: str, whats_new: str, locale: str = "en-US") -> dict:
+    """Set the "What to Test" release notes testers see for a build in TestFlight.
+    Updates the existing localization for the locale, or creates it if absent.
+    This is TestFlight-only — App Store release notes are set with the version
+    localization tools instead."""
+    return testflight.set_build_whats_new(_get_client(), build_id, whats_new, locale)
+
+
+@mcp.tool()
+def notify_testers_of_build(build_id: str) -> dict:
+    """Send the "new build available" TestFlight push/email for a build.
+    Only needed when the build's auto_notify_enabled is false, or to re-ping testers.
+    Fails if the build isn't in a distributable state."""
+    return testflight.notify_testers_of_build(_get_client(), build_id)
 
 
 # ---------------------------------------------------------------------------

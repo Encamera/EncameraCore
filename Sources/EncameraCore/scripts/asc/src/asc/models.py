@@ -216,6 +216,137 @@ class Build:
 
 
 @dataclass
+class BetaGroup:
+    """A TestFlight group. Internal groups are limited to App Store Connect
+    users and get builds automatically when ``has_access_to_all_builds`` is set;
+    external groups need each build added explicitly and gated on beta review."""
+
+    id: str
+    name: str
+    is_internal: bool
+    has_access_to_all_builds: bool
+    public_link_enabled: bool
+    public_link: Optional[str]
+    feedback_enabled: bool
+    created_date: Optional[str]
+
+    @classmethod
+    def from_api(cls, data: dict) -> "BetaGroup":
+        attrs = data.get("attributes", {})
+        return cls(
+            id=data["id"],
+            name=attrs.get("name", ""),
+            is_internal=bool(attrs.get("isInternalGroup")),
+            has_access_to_all_builds=bool(attrs.get("hasAccessToAllBuilds")),
+            public_link_enabled=bool(attrs.get("publicLinkEnabled")),
+            public_link=attrs.get("publicLink"),
+            feedback_enabled=bool(attrs.get("feedbackEnabled")),
+            created_date=attrs.get("createdDate"),
+        )
+
+
+@dataclass
+class BetaTester:
+    """A TestFlight tester. ``state`` is INVITED until they accept the emailed
+    invitation, then ACCEPTED / INSTALLED."""
+
+    id: str
+    email: Optional[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
+    state: Optional[str]
+    invite_type: Optional[str]
+    beta_group_ids: list[str]
+    beta_group_names: list[str]
+
+    @classmethod
+    def from_api(cls, data: dict, included: Optional[list] = None) -> "BetaTester":
+        """``beta_group_ids`` is only populated when the request asked for
+        ``include=betaGroups`` — the collection endpoint returns relationship
+        links but no ``data`` otherwise. ``beta_group_names`` additionally needs
+        the ``included`` resources passed through."""
+        attrs = data.get("attributes", {})
+        groups = data.get("relationships", {}).get("betaGroups", {}).get("data") or []
+        included_map = {inc["id"]: inc for inc in (included or [])}
+        return cls(
+            id=data["id"],
+            email=attrs.get("email"),
+            first_name=attrs.get("firstName"),
+            last_name=attrs.get("lastName"),
+            state=attrs.get("state"),
+            invite_type=attrs.get("inviteType"),
+            beta_group_ids=[g["id"] for g in groups],
+            beta_group_names=[
+                included_map.get(g["id"], {}).get("attributes", {}).get("name", g["id"])
+                for g in groups
+            ],
+        )
+
+
+@dataclass
+class BuildBetaDetail:
+    """TestFlight distribution state for one build.
+
+    ``external_build_state`` walks WAITING_FOR_BETA_REVIEW → IN_BETA_REVIEW →
+    IN_BETA_TESTING (or BETA_REJECTED); NOT_APPLICABLE means the build was never
+    submitted for beta review. ``internal_build_state`` is independent — internal
+    testers get builds without review.
+    """
+
+    id: str
+    internal_build_state: Optional[str]
+    external_build_state: Optional[str]
+    auto_notify_enabled: bool
+
+    @classmethod
+    def from_api(cls, data: dict) -> "BuildBetaDetail":
+        attrs = data.get("attributes", {})
+        return cls(
+            id=data["id"],
+            internal_build_state=attrs.get("internalBuildState"),
+            external_build_state=attrs.get("externalBuildState"),
+            auto_notify_enabled=bool(attrs.get("autoNotifyEnabled")),
+        )
+
+
+@dataclass
+class BetaAppReviewSubmission:
+    """A build's submission to Apple's beta app review, required before any
+    external group can install it. The resource id equals the build id."""
+
+    id: str
+    beta_review_state: Optional[str]
+    submitted_date: Optional[str]
+
+    @classmethod
+    def from_api(cls, data: dict) -> "BetaAppReviewSubmission":
+        attrs = data.get("attributes", {})
+        return cls(
+            id=data["id"],
+            beta_review_state=attrs.get("betaReviewState"),
+            submitted_date=attrs.get("submittedDate"),
+        )
+
+
+@dataclass
+class BetaBuildLocalization:
+    """Per-build, per-locale "What to Test" text."""
+
+    id: str
+    locale: str
+    whats_new: Optional[str]
+
+    @classmethod
+    def from_api(cls, data: dict) -> "BetaBuildLocalization":
+        attrs = data.get("attributes", {})
+        return cls(
+            id=data["id"],
+            locale=attrs.get("locale", ""),
+            whats_new=attrs.get("whatsNew"),
+        )
+
+
+@dataclass
 class CrashSubmission:
     id: str
     created_date: Optional[str]

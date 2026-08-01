@@ -1,6 +1,6 @@
 # asc-mcp
 
-MCP server for the App Store Connect API. Exposes tools for managing subscription and in-app purchase pricing.
+MCP server for the App Store Connect API. Exposes tools for TestFlight distribution, releases and builds, crash feedback, Xcode Cloud, and subscription / in-app purchase pricing.
 
 ## Prerequisites
 
@@ -103,6 +103,28 @@ Add to your Claude Code MCP config (`~/.claude.json` or project settings):
 | `set_build_for_version` | Attach a build to a version |
 | `list_builds` | List uploaded builds, optionally filtered by processing state |
 | `get_version_localizations` | Get localized metadata (description, keywords, what's new) for a version |
+
+### TestFlight distribution
+
+Whether someone can install a build comes down to two things: does the build reach them (internal groups with "all builds" get everything automatically; external groups need the build attached *and* beta review approval), and have they accepted their invitation (a tester at `state = INVITED` sees nothing regardless of group membership).
+
+| Tool | Description |
+|---|---|
+| `list_testflight_builds` | List builds with marketing version; `latest_only` returns just the newest processed build |
+| `get_build_beta_status` | Internal/external build state, beta review state, and attached groups for one build |
+| `list_beta_groups` | Beta groups with internal/external, all-builds access, and public link settings |
+| `add_build_to_beta_group` | Attach a build to a group so its testers can install it |
+| `remove_build_from_beta_group` | Detach a build from a group |
+| `list_beta_testers` | Find testers by email (app-scoped), by group, or assigned to a build |
+| `add_beta_tester` | Add someone by email, creating the tester if needed; optionally attach to a group and/or build |
+| `add_tester_to_build` | Give one tester access to one specific build ("individual testers") |
+| `remove_tester_from_build` | Revoke individual access to a build |
+| `resend_tester_invitation` | Resend the TestFlight invite — the fix for a tester stuck at `INVITED` |
+| `submit_build_for_beta_review` | Submit a build for beta app review (required for external testing) |
+| `set_build_whats_new` | Set the "What to Test" notes testers see for a build |
+| `notify_testers_of_build` | Send the "new build available" notification |
+
+The same operations are available from the command line via [`scripts/testflight_admin.py`](../testflight_admin.py).
 
 ### TestFlight crash feedback
 

@@ -21,10 +21,27 @@ class ASCClient:
             "Content-Type": "application/json",
         }
 
+    @staticmethod
+    def _check(resp: requests.Response, url: str) -> None:
+        """Raise with Apple's error body attached.
+
+        ASC puts the only useful text — ``errors[].detail``, e.g. "The
+        relationship 'betaGroups' does not allow 'GET_RELATED'" — in the
+        response body. A bare ``raise_for_status()`` throws it away and leaves
+        you staring at "403 Forbidden".
+        """
+        if resp.ok:
+            return
+        try:
+            error_body = resp.json()
+        except Exception:
+            error_body = resp.text
+        raise RuntimeError(f"{resp.status_code} {resp.reason} for {url}: {error_body}")
+
     def get(self, path: str, params: Optional[dict] = None) -> dict[str, Any]:
         url = f"{self.BASE_URL}{path}"
         resp = self._session.get(url, headers=self._headers(), params=params)
-        resp.raise_for_status()
+        self._check(resp, url)
         return resp.json()
 
     def get_all(self, path: str, params: Optional[dict] = None) -> list[dict[str, Any]]:
@@ -32,7 +49,7 @@ class ASCClient:
         url = f"{self.BASE_URL}{path}"
         while url:
             resp = self._session.get(url, headers=self._headers(), params=params)
-            resp.raise_for_status()
+            self._check(resp, url)
             data = resp.json()
             results.extend(data.get("data", []))
             url = data.get("links", {}).get("next")
@@ -49,7 +66,7 @@ class ASCClient:
         url = f"{self.BASE_URL}{path}"
         while url:
             resp = self._session.get(url, headers=self._headers(), params=params)
-            resp.raise_for_status()
+            self._check(resp, url)
             body = resp.json()
             all_data.extend(body.get("data", []))
             for inc in body.get("included", []):
@@ -64,12 +81,7 @@ class ASCClient:
     def post(self, path: str, data: dict[str, Any]) -> dict[str, Any]:
         url = f"{self.BASE_URL}{path}"
         resp = self._session.post(url, headers=self._headers(), json=data)
-        if not resp.ok:
-            try:
-                error_body = resp.json()
-            except Exception:
-                error_body = resp.text
-            raise RuntimeError(f"{resp.status_code} {resp.reason} for {url}: {error_body}")
+        self._check(resp, url)
         if resp.status_code == 204:
             return {}
         return resp.json()
@@ -77,18 +89,13 @@ class ASCClient:
     def patch(self, path: str, data: dict[str, Any]) -> dict[str, Any]:
         url = f"{self.BASE_URL}{path}"
         resp = self._session.patch(url, headers=self._headers(), json=data)
-        if not resp.ok:
-            try:
-                error_body = resp.json()
-            except Exception:
-                error_body = resp.text
-            raise RuntimeError(f"{resp.status_code} {resp.reason} for {url}: {error_body}")
+        self._check(resp, url)
         return resp.json()
 
     def delete(self, path: str, data: Optional[dict[str, Any]] = None) -> None:
         url = f"{self.BASE_URL}{path}"
         resp = self._session.delete(url, headers=self._headers(), json=data)
-        resp.raise_for_status()
+        self._check(resp, url)
 
     def find_app_by_bundle_id(self, bundle_id: str) -> dict[str, Any]:
         data = self.get("/v1/apps", params={"filter[bundleId]": bundle_id})

@@ -22,11 +22,16 @@ app_id = client.resolve_app_id()                  # honors app.bundle_id or app.
 
 | You're adding... | Put it in |
 |---|---|
-| A new ASC HTTP capability with no good home | a new `asc/<area>.py` module (see `asc/testflight.py` for the pattern) |
+| A new ASC HTTP capability with no good home | a new `asc/<area>.py` module (see `asc/beta_feedback.py` for the pattern) |
 | A subscription/IAP pricing call | `asc/pricing/iap.py` or `asc/pricing/subscriptions.py` |
 | An app store version / build / localization call | `asc/releases.py` |
-| A TestFlight build or beta-group call | `asc/testflight.py` |
+| A TestFlight build, "What to Test", or notification call | `asc/testflight/builds.py` |
+| A beta-group call, or anything about build↔group membership | `asc/testflight/groups.py` |
+| A beta-tester call — lookup, creation, group/build assignment, invitations | `asc/testflight/testers.py` |
+| A beta app review call | `asc/testflight/review.py` |
 | An Xcode Cloud call | one of the `asc/xcode_cloud/*.py` modules |
+
+Anything added under `asc/testflight/` must also be re-exported from `asc/testflight/__init__.py` (both the import and `__all__`) — callers and the MCP server import from the package root, not the submodules.
 | A new dataclass | `asc/models.py` (or `asc/xcode_cloud/models.py` for that subpackage) |
 
 **Do not add MCP-specific code to `asc`.** The `asc` library must not import from `mcp`. MCP wrappers live in `../asc-mcp/src/asc_mcp/server.py`. If you add a library function that should be MCP-exposed, also add a `@mcp.tool()` in `server.py` that calls it.
@@ -53,7 +58,28 @@ params = {
 }
 ```
 
-`asc.testflight.list_builds_with_versions` currently has this bug (pre-existing — preserved during the refactor); fix when you next touch it.
+## Relationships you can write but not read
+
+Not every JSON:API relationship is readable. `builds → betaGroups` allows only CREATE and DELETE:
+
+```
+GET /v1/builds/{id}/betaGroups                → 403 "does not allow 'GET_RELATED'"
+GET /v1/builds/{id}/relationships/betaGroups  → 403 "does not allow 'GET_RELATIONSHIP'"
+```
+
+Read it from the other side instead — `GET /v1/builds?filter[betaGroups]=<group_id>` — which is what `asc.testflight.get_build_beta_groups` does, and why it needs an `app_id` to know which groups to check.
+
+Similarly, `include` is rejected outright (400) on `/v1/betaGroups/{id}/betaTesters` and `/v1/builds/{id}/individualTesters`, so tester records from those paths come back with empty group membership. See `_tester_params` in `asc/testflight/testers.py`.
+
+## betaTesters is team-wide, not app-scoped
+
+`GET /v1/betaTesters?filter[email]=…` searches the whole team and will happily return stale records left behind by other apps — same email, same name, zero groups. **Always pass `filter[apps]=<app_id>`.** `find_testers_by_email` takes an optional `app_id` for this; `ensure_tester` requires one.
+
+Related: a tester's `state` (INVITED / ACCEPTED / INSTALLED) is per-app, so it comes back `None` from an unscoped single-resource `GET /v1/betaTesters/{id}`.
+
+## Relationship data needs an explicit `include`
+
+Distinct from the sparse-fieldset gotcha above: on collection endpoints, `relationships.<name>.data` is omitted entirely — you get only `links` — unless the request asks for `include=<name>`. Listing `<name>` in `fields[<resource>]` is not enough. Symptom: a relationship id list that is always empty with no error.
 
 ## DELETE with a body
 

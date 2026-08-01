@@ -10,7 +10,10 @@ requires-python = ">=3.10"
 # Note: the `asc` library is a path dependency installed via requirements.txt
 # (pip can't resolve relative path deps from pyproject.toml directly).
 dependencies = [
-    "mcp>=1.0.0",
+    # Capped below 2.0: mcp 2.x removed mcp.server.fastmcp (FastMCP moved to a
+    # separate `fastmcp` distribution), so a fresh unpinned install breaks the
+    # server at import time.
+    "mcp>=1.0.0,<2.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]

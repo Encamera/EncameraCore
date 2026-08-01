@@ -4,6 +4,7 @@ Python client library for the [App Store Connect API](https://developer.apple.co
 
 Used by:
 - [`asc-mcp`](../asc-mcp/) — exposes the library as Model Context Protocol tools
+- [`scripts/testflight_admin.py`](../testflight_admin.py) — manages TestFlight builds, beta groups, and testers
 - [`scripts/expire_testflight_builds.py`](../expire_testflight_builds.py) — expires old TestFlight builds
 - [`scripts/app_store_localization/localize.py`](../app_store_localization/localize.py) — translates App Store metadata
 
@@ -75,7 +76,7 @@ for iap in list_in_app_purchases(client, app_id):
 | `asc.releases` | App Store versions, builds, version localizations, review submissions |
 | `asc.pricing.iap` | One-time IAP price points and schedules |
 | `asc.pricing.subscriptions` | Subscription groups, subscriptions, prices |
-| `asc.testflight` | Build expiration, beta groups, build/group relationships |
+| `asc.testflight` | TestFlight distribution. `builds` (listing, expiration, beta state, "What to Test", notifications), `groups` (beta groups, build↔group membership), `testers` (lookup, creation, group and per-build assignment, invitations), `review` (beta app review). Everything is re-exported from the package root. |
 | `asc.beta_feedback` | TestFlight crash feedback submissions and crash log download (`betaFeedbackCrashSubmissions`) |
 | `asc.xcode_cloud` | Xcode Cloud products, workflows, build runs, actions, issues, artifacts, test results, environments |
 

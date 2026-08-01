@@ -307,7 +307,7 @@ Examples:
             # Remove from build groups first
             if args.remove_from_groups:
                 try:
-                    groups = get_build_beta_groups(client, build_id)
+                    groups = get_build_beta_groups(client, build_id, app_id)
                     if groups:
                         group_ids = [g["id"] for g in groups]
                         group_names = [g.get("attributes", {}).get("name", g["id"]) for g in groups]
