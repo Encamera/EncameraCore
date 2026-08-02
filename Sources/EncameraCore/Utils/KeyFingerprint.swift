@@ -56,6 +56,22 @@ public enum KeyFingerprint {
         }
         return "\(hex.prefix(4))-\(hex.suffix(4))"
     }
+
+    /// The same short label derived from a full fingerprint hex string
+    /// (`PrivateKey.keychainLabel`). Used where only the fingerprint is known
+    /// and the key bytes are not — e.g. a fingerprint read from the synced
+    /// `MultiDeviceState` record, which by design never carries key material.
+    ///
+    /// `keychainLabel` is lowercase hex of the fingerprint bytes in order, and
+    /// `displayLabel(stampPrefix:)` renders bytes 0–3 in that same order, so
+    /// taking the first eight hex characters produces an identical label.
+    public static func displayLabel(fingerprintHex: String) -> String? {
+        let hex = fingerprintHex.prefix(8).uppercased()
+        guard hex.count == 8, hex.allSatisfy(\.isHexDigit) else {
+            return nil
+        }
+        return "\(hex.prefix(4))-\(hex.suffix(4))"
+    }
 }
 
 /// Resolves the human-readable key identity shown in the media info sheet.
@@ -67,7 +83,11 @@ public enum KeyFingerprintDisplay {
 
     /// The label for the file's stamp, or nil when the file is unstamped or
     /// unreadable. Exactly one stored key matching the stamp yields
-    /// "keyA (54E0-7B52)"; anything else yields the bare "54E0-7B52".
+    /// "keyA (54E0-7B52)"; zero or several matches yield bare "54E0-7B52".
+    ///
+    /// The stamp is only a 4-byte prefix, so two distinct keys can collide on it.
+    /// Naming one of them would assert an identity the stamp cannot prove, so an
+    /// ambiguous match deliberately falls back to bare hex.
     public static func label(for url: URL, storedKeys: [PrivateKey]) -> String? {
         guard let stamp = KeyStampSlot.readStamp(url: url) else {
             return nil
@@ -79,8 +99,10 @@ public enum KeyFingerprintDisplay {
         // naming a key the file may not actually belong to is worse than naming
         // none, because the label is what a user reaches for when deciding which
         // key to keep.
-        guard matches.count == 1 else { return hex }
-        return "\(matches[0].name) (\(hex))"
+        guard matches.count == 1, let match = matches.first else {
+            return hex
+        }
+        return "\(match.name) (\(hex))"
     }
 }
 

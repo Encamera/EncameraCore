@@ -2065,6 +2065,18 @@ public enum L10n {
       /// Your hidden albums
       public static let title = L10n.tr("Localizable", "Settings.HiddenAlbumsModal.Title", fallback: "Your hidden albums")
     }
+    public enum MultiDeviceMode {
+      /// Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.
+      public static func disableDevicesWarning(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableDevicesWarning", String(describing: p1), fallback: "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.")
+      }
+      /// Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.
+      public static let disableGenericWarning = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableGenericWarning", fallback: "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.")
+      /// Turn off iCloud Multi-Device Mode?
+      public static let disableTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableTitle", fallback: "Turn off iCloud Multi-Device Mode?")
+      /// Multi-Device Mode could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.
+      public static let flipFailed = L10n.tr("Localizable", "Settings.MultiDeviceMode.FlipFailed", fallback: "Multi-Device Mode could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.")
+    }
   }
   public enum SettingsView {
     /// ./Encamera/Settings/SettingsView.swift

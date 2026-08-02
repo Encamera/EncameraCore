@@ -61,6 +61,25 @@ public struct PrivateKey: Codable, Hashable {
         return try! JSONEncoder().encode(self.keyCore)
     }
 
+    /// Stable keychain identity: lowercase hex of the 16-byte key fingerprint.
+    ///
+    /// Deliberately not `uuid`, which is minted fresh in
+    /// `init(name:keyBytes:creationDate:)` and so differs between two
+    /// re-derivations of the same key phrase. The fingerprint is a pure
+    /// function of the key bytes, so the same key yields the same label on
+    /// every device and across imports.
+    public var keychainLabel: String {
+        KeyFingerprint.fingerprint(keyBytes: keyBytes)
+            .map { String(format: "%02x", $0) }
+            .joined()
+    }
+
+    /// True when `label` looks like a fingerprint hex string rather than a
+    /// legacy display name — used to decide whether an item needs relabelling.
+    static func isFingerprintLabel(_ label: String) -> Bool {
+        label.count == 32 && label.allSatisfy { $0.isHexDigit && ($0.isNumber || $0.isLowercase) }
+    }
+
     public init(name: String, keyData: Data, creationDate: Date) throws {
         self.name = name
         self.creationDate = creationDate
@@ -83,11 +102,15 @@ public struct PrivateKey: Codable, Hashable {
     init(keychainItem: [String: Any]) throws {
         guard
             let keyData = keychainItem[kSecValueData as String] as? Data,
-            let nameData = keychainItem[kSecAttrLabel as String] as? Data,
+            let labelData = keychainItem[kSecAttrLabel as String] as? Data,
             let creationDate = keychainItem[kSecAttrCreationDate as String] as? Date else {
             throw ImageKeyEncodingError.invalidKeychainItemData
         }
-        let name = PrivateKey.keyName(from: nameData)
+        // Post-migration the display name lives in kSecAttrApplicationTag and
+        // kSecAttrLabel holds the fingerprint. Pre-migration items carry the
+        // name in kSecAttrLabel, so fall back to it.
+        let name = PrivateKey.displayName(from: keychainItem)
+            ?? PrivateKey.keyName(from: labelData)
         do {
             try self.init(name: name, keyData: keyData, creationDate: creationDate)
         } catch {
@@ -105,6 +128,21 @@ public struct PrivateKey: Codable, Hashable {
         let name = String(data: entry, encoding: .utf8)!
 
         return name.replacingOccurrences(of: keyPrefix, with: "")
+    }
+
+    /// Reads the display name out of `kSecAttrApplicationTag`. The Security
+    /// framework hands key attributes back as `Data`, but the in-memory test
+    /// wrapper stores whatever it was given, so accept both representations.
+    private static func displayName(from keychainItem: [String: Any]) -> String? {
+        let raw = keychainItem[kSecAttrApplicationTag as String]
+        let string: String?
+        if let data = raw as? Data {
+            string = String(data: data, encoding: .utf8)
+        } else {
+            string = raw as? String
+        }
+        guard let string, !string.isEmpty else { return nil }
+        return string.replacingOccurrences(of: keyPrefix, with: "")
     }
 
     public var base64String: String? {

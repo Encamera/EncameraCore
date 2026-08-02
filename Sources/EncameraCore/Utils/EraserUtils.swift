@@ -71,6 +71,10 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
 
     let keyManager: KeyManager
     let fileAccess: FileAccess
+    /// How far the keychain wipe reaches. Defaults to `.deviceLocal`: "erase this
+    /// device" must never tombstone the account's keys on devices the user still
+    /// owns. `.accountWide` is a separate, explicitly-labelled action (ENC-72).
+    let keyDeletionScope: KeyDeletionScope
 
     func eraseMigrationState() async {
         await MainActor.run { CloudKitMigrationManager.requestAbortAll() }
@@ -139,7 +143,7 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
     }
 
     func eraseKeychain() {
-        keyManager.clearKeychainData()
+        keyManager.clearKeychainData(scope: keyDeletionScope)
     }
 
     func eraseUserDefaults() {
@@ -169,19 +173,25 @@ public struct EraserUtils {
     public var keyManager: KeyManager
     public var fileAccess: FileAccess
     public var erasureScope: ErasureScope
+    /// How far the keychain wipe reaches. Defaults to `.deviceLocal`: "erase this
+    /// device" must never tombstone the account's keys on devices the user still
+    /// owns. `.accountWide` is a separate, explicitly-labelled action (ENC-72).
+    public var keyDeletionScope: KeyDeletionScope
     private let cloudKitEraser: CloudDataErasing
     private let localEraser: LocalDataErasing
 
     public init(keyManager: KeyManager,
                 fileAccess: FileAccess,
                 erasureScope: ErasureScope,
+                keyDeletionScope: KeyDeletionScope = .deviceLocal,
                 cloudKitEraser: CloudDataErasing = CloudKitContainer.shared,
                 localEraser: LocalDataErasing? = nil) {
         self.keyManager = keyManager
         self.fileAccess = fileAccess
         self.erasureScope = erasureScope
+        self.keyDeletionScope = keyDeletionScope
         self.cloudKitEraser = cloudKitEraser
-        self.localEraser = localEraser ?? DefaultLocalDataEraser(keyManager: keyManager, fileAccess: fileAccess)
+        self.localEraser = localEraser ?? DefaultLocalDataEraser(keyManager: keyManager, fileAccess: fileAccess, keyDeletionScope: keyDeletionScope)
     }
 
     @discardableResult

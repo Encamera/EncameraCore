@@ -75,36 +75,43 @@ protocol DeviceIDStorage {
 
 struct KeychainDeviceIDStorage: DeviceIDStorage {
 
-    private static let service = "com.encamera.device"
+    static let service = "com.encamera.device"
+
+    /// The attributes every query for the device-ID item shares. Extracted so
+    /// `MultiDeviceStateTests` can assert, as a regression guard, that this
+    /// item is never synchronizable: the roster is the synced structure device
+    /// IDs are copied into, and the identity itself must not migrate.
+    static func baseQuery(account: String) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecAttrSynchronizable as String: false
+        ]
+    }
+
+    /// The attributes used to write the item, including its accessibility.
+    static func saveAttributes(value: Data, account: String) -> [String: Any] {
+        var attributes = baseQuery(account: account)
+        attributes[kSecValueData as String] = value
+        // ThisDeviceOnly: never migrates to another device via backup restore
+        // or device transfer, and can never be marked synchronizable.
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        return attributes
+    }
 
     func save(_ value: String, account: String) {
         guard let data = value.data(using: .utf8) else { return }
 
         delete(account: account)
 
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
-            kSecAttrAccount as String: account,
-            kSecValueData as String: data,
-            // ThisDeviceOnly: never migrates to another device via backup
-            // restore or device transfer, and can never be marked synchronizable.
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-            kSecAttrSynchronizable as String: false
-        ]
-
-        SecItemAdd(query as CFDictionary, nil)
+        SecItemAdd(Self.saveAttributes(value: data, account: account) as CFDictionary, nil)
     }
 
     func load(account: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
-            kSecAttrAccount as String: account,
-            kSecAttrSynchronizable as String: false,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
+        var query = Self.baseQuery(account: account)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
@@ -118,12 +125,6 @@ struct KeychainDeviceIDStorage: DeviceIDStorage {
     }
 
     func delete(account: String) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
-            kSecAttrAccount as String: account,
-            kSecAttrSynchronizable as String: false
-        ]
-        SecItemDelete(query as CFDictionary)
+        SecItemDelete(Self.baseQuery(account: account) as CFDictionary)
     }
 }

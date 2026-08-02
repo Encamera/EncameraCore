@@ -616,6 +616,10 @@
 "Settings.DefaultStorageOption" = "Default Storage Option";
 "Settings.BackupKeyToiCloud" = "Sync Key to iCloud";
 "Settings.BackupKeyToiCloudDescription" = "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.";
+"Settings.MultiDeviceMode.FlipFailed" = "Multi-Device Mode could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.";
+"Settings.MultiDeviceMode.DisableTitle" = "Turn off iCloud Multi-Device Mode?";
+"Settings.MultiDeviceMode.DisableGenericWarning" = "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.";
+"Settings.MultiDeviceMode.DisableDevicesWarning" = "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.";
 "Settings.BackupKeyChangeFailed" = "Couldn't Change Key Backup";
 "Settings.BackupKeyChangeFailedMessage" = "Your iCloud Keychain refused the change, so this setting was left as it was. Make sure you're signed in to iCloud with Keychain turned on, then try again.";
 "Settings.GiveInstantFeedback" = "Give Instant Feedback";
