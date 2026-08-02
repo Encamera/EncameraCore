@@ -30,6 +30,10 @@ struct KeychainItem {
 
 public struct KeyPassphrase: Codable {
     public let words: [String]
+
+    public init(words: [String]) {
+        self.words = words
+    }
 }
 
 
@@ -379,107 +383,212 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         printDebug("setAuthenticationConfiguration: Authentication configuration set successfully")
     }
 
+    /// Moves every secret the app owns on or off the iCloud keychain, then
+    /// records the new state in the central backup flag.
+    ///
+    /// Items first, flag last, and deliberately so: the flag is what
+    /// `isSyncEnabled` — and therefore the Settings toggle — reads, so writing
+    /// it before the items can leave the app reporting "backup off" over
+    /// secrets that are still syncing. If any item cannot be moved this throws
+    /// with the flag untouched, and the toggle reverts to the truth.
     public func backupKeychainToiCloud(backupEnabled: Bool) throws {
-        
-        // --- Add/Update the centralized backup status flag ---
+
+        // Every key item, found by label rather than by parsing into
+        // PrivateKey: a key blob this version cannot decode still syncs, and
+        // leaving it behind would leave key material on iCloud after the user
+        // asked for it to come off.
+        for label in try storedKeyLabels() {
+            try setSynchronizable(backupEnabled, forItemMatching: [
+                kSecClass as String: kSecClassKey,
+                kSecAttrLabel as String: label
+            ], description: "key")
+        }
+
+        try setSynchronizable(backupEnabled, forItemMatching: [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem
+        ], description: "key passphrase")
+
+        try setSynchronizable(backupEnabled, forItemMatching: [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem
+        ], description: "passcode type")
+
+        try setSynchronizable(backupEnabled, forItemMatching: [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account
+        ], description: "password hash")
+
+        try writeBackupFlag(backupEnabled)
+    }
+
+    /// Writes the central backup status flag. The flag item itself is ALWAYS
+    /// synchronizable, so turning backup off on one device reaches the others.
+    private func writeBackupFlag(_ backupEnabled: Bool) throws {
         let backupStatusQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
 
-        // Attributes for the backup status item
-        // NOTE: kSecAttrSynchronizable is ALWAYS true for this item
         let backupStatusAttributes: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-            kSecValueData as String: backupEnabled.data, // Store the actual boolean value
-            kSecAttrSynchronizable as String: kCFBooleanTrue!, // Always sync this flag itself
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Consistent accessibility
+            kSecValueData as String: backupEnabled.data,
+            kSecAttrSynchronizable as String: kCFBooleanTrue!,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
         ]
-        
-        // Try to add the item first
+
         var status = keychainWrapper.secItemAdd(backupStatusAttributes as CFDictionary, nil)
-        
-        // If it already exists, update it
         if status == errSecDuplicateItem {
             let newAttributes: [String: Any] = [
-                kSecValueData as String: backupEnabled.data, // Store the actual boolean value
+                kSecValueData as String: backupEnabled.data
             ]
             status = keychainWrapper.secItemUpdate(backupStatusQuery as CFDictionary, newAttributes as CFDictionary)
         }
-        
-        // Check status after add or update attempt
         try checkStatus(status: status)
-        
-        // --- Update existing items based on backupEnabled ---
-        let keys = try storedKeys()
-        for key in keys {
-            // Pass backupEnabled to update individual key sync status
-            try update(key: key, backupToiCloud: backupEnabled)
-        }
-        
-        // Update Passphrase sync status based on backupEnabled
-        let updateQuery = [
-            kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Maintain accessibility
-        ] as [String : Any]
-        let updateStatus = keychainWrapper.secItemUpdate(queryForPassphrase() as CFDictionary, updateQuery as CFDictionary)
-        
-        // We can ignore ItemNotFound errors here, as the passphrase might not exist
-        if updateStatus != errSecItemNotFound {
-            try checkStatus(status: updateStatus)
-        }
-
-        // Also update the PasscodeType item's synchronizable attribute based on backupEnabled
-        let passcodeTypeUpdateQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Ensure we find it regardless of sync status
-        ]
-        let passcodeTypeUpdateDict: [String: Any] = [
-            kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Keep it accessible
-        ]
-        let passcodeTypeUpdateStatus = keychainWrapper.secItemUpdate(passcodeTypeUpdateQuery as CFDictionary, passcodeTypeUpdateDict as CFDictionary)
-        // We can ignore ItemNotFound errors here, as the passcode type might not exist yet
-        if passcodeTypeUpdateStatus != errSecItemNotFound {
-            try checkStatus(status: passcodeTypeUpdateStatus)
-        }
-
-        // Also update the Password Hash item's synchronizable attribute based on backupEnabled
-        let passwordQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny // Ensure we find it regardless of sync status
-        ]
-        let passwordUpdateDict: [String: Any] = [
-            kSecAttrSynchronizable as String: backupEnabled ? kCFBooleanTrue! : kCFBooleanFalse as Any,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked // Keep it accessible
-        ]
-        let passwordUpdateStatus = keychainWrapper.secItemUpdate(passwordQuery as CFDictionary, passwordUpdateDict as CFDictionary)
-        // We can ignore ItemNotFound errors here, as the password might not exist yet
-        if passwordUpdateStatus != errSecItemNotFound {
-            try checkStatus(status: passwordUpdateStatus)
-        }
-
     }
 
-    public func update(key: PrivateKey, backupToiCloud: Bool) throws {
-        
-        var updateDict: [String: Any] = [
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+    /// The `kSecAttrLabel` of every key item the app can see, synced copies
+    /// included, deduplicated — one label can have both a local and an
+    /// iCloud-delivered copy.
+    private func storedKeyLabels() throws -> [Data] {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
-        if backupToiCloud {
-            updateDict[kSecAttrSynchronizable as String] = kCFBooleanTrue
-        } else {
-            updateDict[kSecAttrSynchronizable as String] = kCFBooleanFalse
+        var item: CFTypeRef?
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecItemNotFound {
+            return []
         }
-        let query = try updateKeyQuery(for: key.name)
-        
-        let status = keychainWrapper.secItemUpdate(query, updateDict as CFDictionary)
         try checkStatus(status: status)
-        printDebug("Key updated: \(key.name), iCloud: \(backupToiCloud)")
+        guard let items = item as? [[String: Any]] else {
+            return []
+        }
+
+        var labels: [Data] = []
+        for attributes in items {
+            guard let label = attributes[kSecAttrLabel as String] as? Data else { continue }
+            if !labels.contains(label) {
+                labels.append(label)
+            }
+        }
+        return labels
+    }
+
+    /// Leaves exactly one copy of the matched item behind, carrying the data
+    /// that was in use, marked `synchronizable == enabled`.
+    ///
+    /// It cannot be done with a single `SecItemUpdate`. Once a device holds
+    /// both a local and an iCloud-delivered copy of an item — the normal state
+    /// of any second device, since the key label and password account are
+    /// fixed constants — an update that would collapse the two onto one sync
+    /// value collides, and the keychain refuses it with `errSecDuplicateItem`
+    /// without changing anything. That refusal, swallowed by the toggle, is
+    /// why key backup could not be turned off.
+    /// `KeychainSyncFlipPlatformContractTests` pins the behavior.
+    ///
+    /// So: write the target copy FIRST, then delete the other. Never the
+    /// reverse — a delete-then-add that is interrupted (backgrounded, killed,
+    /// device locked) between the two steps would destroy the only copy of the
+    /// user's key and with it every encrypted file.
+    ///
+    /// Deleting the synchronizable copy is what takes the secret off iCloud:
+    /// the deletion propagates, so the other devices drop their copies too.
+    /// That is precisely what turning key backup off means.
+    private func setSynchronizable(_ enabled: Bool,
+                                   forItemMatching baseQuery: [String: Any],
+                                   description: String) throws {
+        var readQuery = baseQuery
+        readQuery[kSecReturnData as String] = true
+        readQuery[kSecReturnAttributes as String] = true
+        readQuery[kSecMatchLimit as String] = kSecMatchLimitAll
+        readQuery[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
+
+        var result: CFTypeRef?
+        let readStatus = keychainWrapper.secItemCopyMatching(readQuery as CFDictionary, &result)
+        if readStatus == errSecItemNotFound {
+            return
+        }
+        try checkStatus(status: readStatus)
+        guard let copies = result as? [[String: Any]], !copies.isEmpty else {
+            return
+        }
+
+        let target = enabled ? kCFBooleanTrue! : kCFBooleanFalse!
+        let other = enabled ? kCFBooleanFalse! : kCFBooleanTrue!
+        let copiesInTargetState = copies.filter { syncFlag(of: $0) == enabled }
+
+        // Nothing to do when the item is already the single copy it should be.
+        if copies.count == 1 && copiesInTargetState.count == 1 {
+            return
+        }
+
+        // The copy whose bytes survive: the one the app has been reading, i.e.
+        // the one whose sync flag matches the state we are leaving. Falls back
+        // to any copy, so a keychain in an unexpected shape still converges.
+        let winner = copies.first { syncFlag(of: $0) != enabled } ?? copies[0]
+        guard let winningData = winner[kSecValueData as String] as? Data else {
+            throw KeyManagerError.dataError
+        }
+
+        // 1. Make sure a copy with the target flag exists, holding those bytes.
+        if copiesInTargetState.isEmpty {
+            var addQuery = baseQuery
+            addQuery[kSecValueData as String] = winningData
+            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
+            addQuery[kSecAttrSynchronizable as String] = target
+            if let creationDate = winner[kSecAttrCreationDate as String] {
+                addQuery[kSecAttrCreationDate as String] = creationDate
+            }
+            if let applicationLabel = winner[kSecAttrApplicationLabel as String] {
+                addQuery[kSecAttrApplicationLabel as String] = applicationLabel
+            }
+            try checkStatus(status: keychainWrapper.secItemAdd(addQuery as CFDictionary, nil))
+        } else {
+            var updateQuery = baseQuery
+            updateQuery[kSecAttrSynchronizable as String] = target
+            let attributes: [String: Any] = [
+                kSecValueData as String: winningData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
+            try checkStatus(status: keychainWrapper.secItemUpdate(updateQuery as CFDictionary,
+                                                                  attributes as CFDictionary))
+        }
+
+        // 2. Drop the copies on the other side. Only now is it safe.
+        var deleteQuery = baseQuery
+        deleteQuery[kSecAttrSynchronizable as String] = other
+        let deleteStatus = keychainWrapper.secItemDelete(deleteQuery as CFDictionary)
+        if deleteStatus != errSecItemNotFound {
+            try checkStatus(status: deleteStatus)
+        }
+
+        printDebug("Set \(description) synchronizable=\(enabled)")
+    }
+
+    private func syncFlag(of attributes: [String: Any]) -> Bool {
+        let value = attributes[kSecAttrSynchronizable as String]
+        if let bool = value as? Bool { return bool }
+        if let number = value as? NSNumber { return number.boolValue }
+        return false
+    }
+
+    /// Moves a single key on or off the iCloud keychain. Routed through
+    /// `setSynchronizable` like everything else — the one-shot `SecItemUpdate`
+    /// this used to do cannot flip a key that has both a local and an
+    /// iCloud-delivered copy.
+    public func update(key: PrivateKey, backupToiCloud: Bool) throws {
+        guard let label = key.name.data(using: .utf8) else {
+            throw KeyManagerError.dataError
+        }
+        try setSynchronizable(backupToiCloud, forItemMatching: [
+            kSecClass as String: kSecClassKey,
+            kSecAttrLabel as String: label
+        ], description: "key \(key.name)")
     }
 
     public func keyWith(name: String) -> PrivateKey? {
@@ -1093,15 +1202,6 @@ private extension KeychainManager {
         return query as CFDictionary
     }
     
-    private func createKeychainQueryForWrite(with key: PrivateKey, backupToiCloud: Bool) -> CFDictionary {
-        var query = key.keychainQueryDictForKeychain
-        if backupToiCloud {
-            query[kSecAttrSynchronizable as String] = kCFBooleanTrue
-        } else {
-            query[kSecAttrSynchronizable as String] = kCFBooleanFalse
-        }
-        return query as CFDictionary
-    }
 
     /// Persists the passcode type into the AuthenticationConfiguration. The
     /// deprecated standalone item (`encamera_passcode_type`) is no longer
@@ -1182,13 +1282,23 @@ private extension KeychainManager {
         }
     }
 
-    /// Provides the correct value for kSecAttrSynchronizable in read queries.
+    /// The value for `kSecAttrSynchronizable` in READ queries: always "either".
+    ///
+    /// This used to narrow to the backup flag's value — synced items when
+    /// backup was on, local ones when off — which meant any disagreement
+    /// between the flag and an item made that item invisible to the app. Not a
+    /// theoretical state: build 1087 wrote the flag and then failed to move the
+    /// items, and the on-device rig reproduced the consequence directly — the
+    /// flag read ON, `encamera_default_key` existed only as a local copy, and
+    /// the app could not load its own key ("Error during initial key setup:
+    /// notFound") even though `storedKeys()`, which always queried both, could
+    /// see it perfectly well.
+    ///
+    /// Reading both makes the app find its key whatever state a previous
+    /// version left behind. Ambiguity is bounded: `setSynchronizable` collapses
+    /// an item to a single copy whenever backup is toggled.
     private var syncQueryValueForReads: CFTypeRef {
-        switch getBackupFlagState() {
-        case .enabled: return kCFBooleanTrue!
-        case .disabled: return kCFBooleanFalse!
-        case .notSet: return kSecAttrSynchronizableAny
-        }
+        kSecAttrSynchronizableAny
     }
 
     /// Provides the correct value for kSecAttrSynchronizable in write/update operations.

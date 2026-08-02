@@ -2001,6 +2001,10 @@ public enum L10n {
     }
   }
   public enum Settings {
+    /// Couldn't Change Key Backup
+    public static let backupKeyChangeFailed = L10n.tr("Localizable", "Settings.BackupKeyChangeFailed", fallback: "Couldn't Change Key Backup")
+    /// Your iCloud Keychain refused the change, so this setting was left as it was. Make sure you're signed in to iCloud with Keychain turned on, then try again.
+    public static let backupKeyChangeFailedMessage = L10n.tr("Localizable", "Settings.BackupKeyChangeFailedMessage", fallback: "Your iCloud Keychain refused the change, so this setting was left as it was. Make sure you're signed in to iCloud with Keychain turned on, then try again.")
     /// Backup Key Phrase
     public static let backupKeyPhrase = L10n.tr("Localizable", "Settings.BackupKeyPhrase", fallback: "Backup Key Phrase")
     /// Sync Key to iCloud

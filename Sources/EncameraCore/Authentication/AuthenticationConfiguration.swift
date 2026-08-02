@@ -45,4 +45,36 @@ public struct AuthenticationConfiguration: Codable, Equatable {
     public func isTypeEnabled(_ type: AuthenticationType) -> Bool {
         return enabledTypes.contains(type)
     }
+
+    // MARK: - Decoding
+
+    /// Drops individual entries this build cannot represent instead of failing
+    /// the whole configuration.
+    ///
+    /// This item ALWAYS syncs, so a device running a newer build can put a
+    /// passcode type (or an authentication type) in here that an older build
+    /// has never heard of. With the synthesised decoder one such entry threw,
+    /// `getAuthenticationConfiguration()` returned nil, and the device behaved
+    /// as if no authentication had ever been configured. Skipping the unknown
+    /// entry keeps the rest — notably the biometrics flag — readable.
+    ///
+    /// Encoding stays synthesised, so the on-disk shape is unchanged and an
+    /// entry this build dropped is only lost if this device rewrites the item.
+    private enum CodingKeys: String, CodingKey {
+        case enabledTypes
+    }
+
+    private struct LenientAuthenticationType: Decodable {
+        let value: AuthenticationType?
+
+        init(from decoder: Decoder) throws {
+            value = try? AuthenticationType(from: decoder)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let decoded = try container.decode([LenientAuthenticationType].self, forKey: .enabledTypes)
+        self.enabledTypes = Set(decoded.compactMap(\.value))
+    }
 }

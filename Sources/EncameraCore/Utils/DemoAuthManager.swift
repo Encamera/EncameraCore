@@ -22,7 +22,9 @@ public class DemoAuthManager: AuthManager {
     }
     
     public var availableBiometric: AuthenticationMethod? = .faceID
-    
+
+    public var biometricAvailability: BiometricAvailability = .available(.faceID)
+
     public var isAuthenticatedPublisher: AnyPublisher<Bool, Never> = PassthroughSubject<Bool, Never>().eraseToAnyPublisher()
     
     public var isAuthenticated: Bool = false

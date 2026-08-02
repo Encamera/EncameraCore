@@ -614,6 +614,8 @@
 "Settings.DefaultStorageOption" = "Default Storage Option";
 "Settings.BackupKeyToiCloud" = "Sync Key to iCloud";
 "Settings.BackupKeyToiCloudDescription" = "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.";
+"Settings.BackupKeyChangeFailed" = "Couldn't Change Key Backup";
+"Settings.BackupKeyChangeFailedMessage" = "Your iCloud Keychain refused the change, so this setting was left as it was. Make sure you're signed in to iCloud with Keychain turned on, then try again.";
 "Settings.GiveInstantFeedback" = "Give Instant Feedback";
 "Settings.PurchasesRestored" = "Purchases restored!";
 "Settings.PurchasesRestoredMessage" = "Any valid purchases you made have been restored.";

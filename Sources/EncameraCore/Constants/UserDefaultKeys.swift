@@ -52,6 +52,13 @@ public enum UserDefaultKey {
     case passphraseMigration
     case passwordHashMigration
     case completedMigration
+    case biometricsConfirmedOnThisDevice
+    /// The one-launch upgrade-seeding window for `biometricsConfirmedOnThisDevice`
+    /// has been evaluated, whether or not it seeded. Without this marker the
+    /// fresh-device decline is not sticky: the caller records the launch right
+    /// after, so the re-derived "has launched before" bit reads true on launch 2
+    /// and the seed would adopt another device's synced intent after all.
+    case biometricsSeedWindowClosed
     /// Sticky, device-local dismissal of the iCloud Drive -> CloudKit migration
     /// prompt. Someone with a large Drive album may reasonably defer forever, so
     /// once dismissed the prompt never reappears on this device.
@@ -144,6 +151,14 @@ public enum UserDefaultKey {
              .passphraseMigration,
              .passwordHashMigration,
              .completedMigration,
+             // Biometric consent is per-device: the enrolled face/finger is
+             // this device's hardware. The account-wide intent lives in the
+             // always-synced AuthenticationConfiguration; this flag is the
+             // confirmation that the user opted in ON THIS DEVICE.
+             .biometricsConfirmedOnThisDevice,
+             // The seed window is per-install by definition: it exists to stop
+             // one device's intent from leaking onto another.
+             .biometricsSeedWindowClosed,
              // Deferring the migration prompt is a per-device decision: another
              // device may not even have the legacy albums, and syncing the
              // dismissal would silently suppress the prompt where it still applies.

@@ -67,10 +67,47 @@ public enum AuthManagerState: Equatable {
     case unauthenticated
 }
 
+/// Why biometric unlock can or cannot run on this device right now, from a
+/// silent `canEvaluatePolicy` probe. Reading this NEVER asks the user
+/// anything: the system Face ID consent prompt only ever comes from
+/// `evaluatePolicy`.
+public enum BiometricAvailability: Equatable {
+    case available(AuthenticationMethod)
+    /// Biometric hardware is present and set up, but the app's own Face ID
+    /// permission is switched off in the system Settings app — the one
+    /// failure the user can undo per-app, so the UI should say how.
+    case deniedBySystemSettings
+    case notEnrolled
+    case lockedOut
+    case passcodeNotSet
+    case noHardware
+    case unavailable(code: Int)
+
+    /// Whether the Settings biometrics row should exist at all. It shows
+    /// when the user could plausibly act from inside the app: biometrics is
+    /// usable, a system-settings denial they can undo (the row's hint says
+    /// how), or a transient lockout that clears on the next passcode unlock.
+    /// States the app can do nothing about hide the row entirely.
+    public var showsToggleRow: Bool {
+        switch self {
+        case .available, .deniedBySystemSettings, .lockedOut:
+            return true
+        case .notEnrolled, .passcodeNotSet, .noHardware, .unavailable:
+            return false
+        }
+    }
+
+    /// Whether to show the "enable it in Settings" hint under the row.
+    public var showsSystemSettingsHint: Bool {
+        self == .deniedBySystemSettings
+    }
+}
+
 public protocol AuthManager {
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
     var isAuthenticated: Bool { get }
     var availableBiometric: AuthenticationMethod? { get }
+    var biometricAvailability: BiometricAvailability { get }
     var useBiometricsForAuth: Bool { get set }
     var canAuthenticateWithBiometrics: Bool { get }
     var deviceBiometryType: AuthenticationMethod? { get }
@@ -130,22 +167,56 @@ public class DeviceAuthManager: AuthManager {
     /// Flag to track if biometric authentication is currently in progress
     private var isBiometricAuthInProgress = false
     
+    public var biometricAvailability: BiometricAvailability {
+        // Probe on a throwaway context, not the long-lived cached one: a stale
+        // LAContext can report biometry unavailable even though a fresh
+        // evaluation would prompt fine. canEvaluatePolicy is silent — the
+        // consent prompt only ever comes from evaluatePolicy.
+        let probe = LAContext()
+        var probeError: NSError?
+        if probe.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &probeError) {
+            guard let method = AuthenticationMethod.methodFrom(biometryType: probe.biometryType) else {
+                // canEvaluatePolicy passed but the biometry type is one the
+                // app does not support (e.g. Optic ID).
+                return .noHardware
+            }
+            return .available(method)
+        }
+        debugPrint("biometricAvailability: canEvaluatePolicy failed, code=\(probeError?.code ?? 0) (\(probeError?.localizedDescription ?? "no error")) biometryType=\(probe.biometryType.rawValue)")
+        switch probeError?.code {
+        case LAError.biometryNotEnrolled.rawValue:
+            return .notEnrolled
+        case LAError.biometryNotAvailable.rawValue:
+            // The same code covers "no biometric hardware" and "the user
+            // switched Face ID off for this app"; the reported biometry type
+            // separates them.
+            return probe.biometryType == .none ? .noHardware : .deniedBySystemSettings
+        case LAError.biometryLockout.rawValue:
+            return .lockedOut
+        case LAError.passcodeNotSet.rawValue:
+            return .passcodeNotSet
+        default:
+            return .unavailable(code: probeError?.code ?? 0)
+        }
+    }
+
     public var availableBiometric: AuthenticationMethod? {
         // Return cached result if we've already checked
         if _biometricAvailabilityChecked {
             return _cachedAvailableBiometric
         }
-        
-        // Perform the check and cache the result
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
-            _biometricAvailabilityChecked = true
-            _cachedAvailableBiometric = nil
+
+        guard case .available(let method) = biometricAvailability else {
+            // Only cache a positive. A failure here can be transient (device
+            // lockout, context timing); caching it would keep reporting
+            // "Face ID is disabled" for the rest of the foreground session
+            // even after the condition clears.
             return nil
         }
-        
-        _cachedAvailableBiometric = deviceBiometryType
+
+        _cachedAvailableBiometric = method
         _biometricAvailabilityChecked = true
-        return _cachedAvailableBiometric
+        return method
     }
 
     public var deviceBiometryType: AuthenticationMethod? {
@@ -160,26 +231,40 @@ public class DeviceAuthManager: AuthManager {
             if let _useBiometricsForAuth = self._useBiometricsForAuth {
                 return _useBiometricsForAuth
             }
-            guard deviceBiometryType != .none else {
-                return false
-            }
-            // A missing configuration is a fault state (e.g. keychain unreadable);
-            // fall back to false without caching so a later read can recover.
-            guard let configuration = keyManager.getAuthenticationConfiguration() else {
-                return false
-            }
-            let useBiometrics = configuration.isTypeEnabled(.biometrics)
-            self._useBiometricsForAuth = useBiometrics
-            return useBiometrics
+            // The REAL per-device capability, not a hardcoded `true`. It used to be
+            // hardcoded with a separate `deviceBiometryType != .none` guard above
+            // doing the actual gating, which made `isActive`'s hardware check dead
+            // at its only production call site, and made the unit tests that
+            // exercise `isActive(hasBiometricHardware: false, ...)` cover a
+            // configuration production never produced. `BiometricsDeviceConfirmation`'s
+            // header states this hardware check as a design property; now it is one.
+            let isActive = BiometricUnlockDecision.isActive(
+                hasBiometricHardware: deviceBiometryType != .none,
+                confirmedOnThisDevice: BiometricsDeviceConfirmation.isConfirmed
+            )
+            // Only cache a positive: an unconfirmed device must pick up the
+            // confirmation as soon as the user gives it, without a relaunch.
+            guard isActive else { return false }
+            self._useBiometricsForAuth = isActive
+            return isActive
         }
         set(value) {
             self._useBiometricsForAuth = value
+            // Answering the toggle anywhere is consent on the device it was
+            // answered on.
+            BiometricsDeviceConfirmation.setConfirmed(value)
+            // Turning biometrics off is a device-specific setting: it clears
+            // only the local consent above. Stripping .biometrics from the
+            // always-synced configuration would disable unlock on every other
+            // device that confirmed it for itself.
+            guard value else { return }
             var configuration = keyManager.getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
-            if value {
-                configuration.addAuthenticationType(.biometrics)
-            } else {
-                configuration.removeAuthenticationType(.biometrics)
-            }
+            // .biometrics goes into the always-synced configuration only when
+            // it is the only way to auth into the app — a fresh device has to
+            // know there is no pin to ask for. With a pin present, biometrics
+            // is a per-device convenience and stays out of account state.
+            guard configuration.passcodeType == nil else { return }
+            configuration.addAuthenticationType(.biometrics)
             do {
                 try keyManager.setAuthenticationConfiguration(config: configuration)
             } catch {
@@ -292,6 +377,12 @@ public class DeviceAuthManager: AuthManager {
         do {
             debugPrint("Attempting LA auth")
             cancelNotificationObservers()
+            // Evaluate on a fresh context. A context cached since launch can
+            // silently fail to present the system UI (the documented
+            // global-LAContext failure mode), and Apple advises against
+            // reusing a context across evaluations in any case. The cached
+            // context stays for the cheap biometry-type reads.
+            invalidateContext()
             let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: L10n.keepYourEncryptedDataSafeByUsing(method.nameForMethod))
             // Successful auth - invalidate context to get fresh one next time
             // (LAContext should not be reused after successful evaluation)
