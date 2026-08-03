@@ -94,6 +94,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private let cache: CloudKitBlobCache
     private let indexStore: MediaIndexStore
     private let bus: FileOperationBus
+    /// Captures written to this device but not yet in CloudKit. Consulted before
+    /// the cache on every read, so a just-taken photo opens immediately.
+    private let uploadQueue: CloudKitUploadQueue
 
     /// In-flight blob fetches keyed by record name, so concurrent callers for the
     /// same record share one `fetchBlob` instead of issuing duplicates — while
@@ -110,12 +113,14 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 store: CloudKitMediaStoring,
                 cache: CloudKitBlobCache,
                 indexStore: MediaIndexStore,
-                bus: FileOperationBus = .shared) {
+                bus: FileOperationBus = .shared,
+                uploadQueue: CloudKitUploadQueue = .shared) {
         self.albumID = albumID
         self.store = store
         self.cache = cache
         self.indexStore = indexStore
         self.bus = bus
+        self.uploadQueue = uploadQueue
     }
 
     // MARK: - Sync
@@ -367,6 +372,16 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             throw CloudKitMediaStoreError.notFound
         }
 
+        // Before anything else: a capture that has not uploaded yet exists ONLY
+        // in the holding folder. It is absent from the cache and absent from
+        // CloudKit, so without this the read would go to the network and come
+        // back "record not found" for a photo sitting on the device.
+        if let waiting = await uploadQueue.pendingFileURL(recordName: recordName) {
+            printDebug("ensureBlobLocal hit recordName=\(recordName) source=uploadQueue file=\(waiting.lastPathComponent)")
+            progress(1.0)
+            return waiting
+        }
+
         let expectedTag = changeTags[recordName]
         if let cached = await cache.cachedURL(recordName: recordName, changeTag: expectedTag) {
             printDebug("ensureBlobLocal hit recordName=\(recordName) source=cache expectedTag=\(expectedTag ?? "nil") file=\(cached.lastPathComponent)")
@@ -521,16 +536,63 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
     // MARK: - Upload
 
+    /// Puts a capture into the local index and announces it, without touching
+    /// CloudKit — the photo becomes visible in the album straight away and the
+    /// upload follows behind it (`CloudKitUploader`).
+    ///
+    /// Split out of `upload` deliberately: while CloudKit gated this step, a
+    /// refused record meant the capture never entered the index and was lost
+    /// even though its ciphertext was already on disk.
+    public func registerLocally(_ item: CloudKitMediaUpload) async throws {
+        do {
+            try await indexStore.upsert([Self.indexEntry(fromUpload: item)])
+        } catch {
+            printDebug("registerLocally indexUpsert FAILED recordName=\(item.recordName) mediaID=\(item.mediaID) raw=\(error)")
+            throw error
+        }
+        bus.didCreate(Self.media(forRecordName: item.mediaID, albumID: item.albumID, mediaType: item.mediaType))
+        printDebug("registerLocally ok recordName=\(item.recordName) mediaID=\(item.mediaID)")
+    }
+
+    /// - Parameter alreadyVisibleLocally: true when `registerLocally` has already
+    ///   indexed and announced this item (the capture path). The index upsert
+    ///   still runs — it is idempotent, and the migration path relies on it — but
+    ///   the gallery is not told twice about the same photo.
     public func upload(_ item: CloudKitMediaUpload,
-                       progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
+                       progress: @escaping @Sendable (Double) -> Void,
+                       alreadyVisibleLocally: Bool = false) async throws -> CloudKitMediaRef {
         printDebug("upload start recordName=\(item.recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes)")
         let ref: CloudKitMediaRef
         do {
-            ref = try await store.upload(item, progress: progress)
+            do {
+                ref = try await store.upload(item, progress: progress)
+            } catch CloudKitMediaStoreError.zoneNotFound {
+                // The zone was removed server-side (cleared iCloud data) while our
+                // local flag said it existed. Recreate it and retry once — the
+                // behaviour the old synchronous save path had; without it a queued
+                // capture retries against a nonexistent zone forever.
+                printDebug("upload zoneNotFound recordName=\(item.recordName) — recreating the zone and retrying once")
+                try await store.recreateZone()
+                ref = try await store.upload(item, progress: progress)
+            }
         } catch {
             printDebug("upload FAILED recordName=\(item.recordName) albumID=\(item.albumID) raw=\(error)")
             throw error
         }
+
+        // A delete that raced this upload wins: the user removed the item while
+        // its bytes were in flight, so the record that just landed must not be
+        // indexed, cached, or announced — and the server copy is reclaimed.
+        // Without this check the success path below would re-upsert the entry and
+        // clear the deletion marker, resurrecting a deleted photo locally AND on
+        // every other device.
+        if deletedRecordNames.contains(item.recordName) {
+            printDebug("upload landed after delete recordName=\(item.recordName) — tombstoning the fresh record and discarding the result")
+            try? await store.tombstone(recordName: item.recordName)
+            pendingPurge.insert(item.recordName)
+            throw CloudKitMediaStoreError.cancelled
+        }
+
         if let tag = ref.recordChangeTag { changeTags[ref.recordName] = tag }
         deletedRecordNames.remove(ref.recordName)
         // Cache the just-uploaded encrypted file (the authoring device keeps its copy).
@@ -554,8 +616,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             throw error
         }
         printDebug("upload ok recordName=\(ref.recordName) changeTag=\(ref.recordChangeTag ?? "nil")")
-        // Surface the new item on the same bus the gallery already listens to.
-        bus.didCreate(Self.media(forRecordName: item.mediaID, albumID: item.albumID, mediaType: item.mediaType))
+        if !alreadyVisibleLocally {
+            // Surface the new item on the same bus the gallery already listens to.
+            bus.didCreate(Self.media(forRecordName: item.mediaID, albumID: item.albumID, mediaType: item.mediaType))
+        }
         return ref
     }
 
@@ -564,13 +628,29 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// Tombstone first (propagates by push), clear local state, then purge hard on
     /// the next `sync`. Preserves the tombstone-beats-blob safety property across
     /// devices (decision doc §1).
-    public func remove(recordName: String, albumID: String) async throws {
-        printDebug("remove start recordName=\(recordName) albumID=\(albumID)")
-        do {
-            try await store.tombstone(recordName: recordName)
-        } catch {
-            printDebug("remove tombstone FAILED recordName=\(recordName) albumID=\(albumID) — nothing cleared locally raw=\(error)")
-            throw error
+    ///
+    /// - Parameter wasPending: true when the item was still in the upload queue,
+    ///   i.e. it (almost certainly) never reached CloudKit. The tombstone is
+    ///   skipped — `tombstone` throws `.notFound` for a record the server has
+    ///   never seen, which used to abort this method before ANY local cleanup ran,
+    ///   leaving a permanent ghost entry in the index. "Almost": an upload may
+    ///   land while this delete runs, so the record is still marked in
+    ///   `deletedRecordNames` (which `upload` checks after its store call) and
+    ///   queued for the idempotent hard purge.
+    public func remove(recordName: String, albumID: String, wasPending: Bool = false) async throws {
+        printDebug("remove start recordName=\(recordName) albumID=\(albumID) wasPending=\(wasPending)")
+        if !wasPending {
+            do {
+                try await store.tombstone(recordName: recordName)
+            } catch CloudKitMediaStoreError.notFound {
+                // Already absent from the zone — deleted from another device, or a
+                // record that never uploaded. Nothing to tombstone is success for
+                // a delete; the local cleanup below must still run.
+                printDebug("remove tombstone skip recordName=\(recordName) — record already absent from the zone")
+            } catch {
+                printDebug("remove tombstone FAILED recordName=\(recordName) albumID=\(albumID) — nothing cleared locally raw=\(error)")
+                throw error
+            }
         }
         deletedRecordNames.insert(recordName)
         changeTags[recordName] = nil

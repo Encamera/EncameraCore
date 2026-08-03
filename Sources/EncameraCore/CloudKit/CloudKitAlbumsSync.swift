@@ -122,6 +122,11 @@ public actor CloudKitAlbumsSync: DebugPrintable {
             let access = await CloudKitFileAccess(album: album, albumManager: albumManager)
             _ = await access.reconcile()
         }
+        // Building those accesses registered a coordinator for every CloudKit
+        // album — the uploader can now reach backlogs for albums the user has not
+        // opened this launch. The scene-active kick races this method (it fires
+        // before the coordinators exist), so kick again now that they do.
+        await CloudKitUploader.shared.kick()
         printDebug("performSyncAll ok albumCount=\(albums.count) albumsNeedingKey=\(albumsNeedingKey)")
     }
 }

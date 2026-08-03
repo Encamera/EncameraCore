@@ -34,6 +34,11 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     private var _uploadCalls: [String] = []
     private var _uploadedItems: [CloudKitMediaUpload] = []
     var uploadedItems: [CloudKitMediaUpload] { locked { _uploadedItems } }
+    /// Blob bytes read at upload time, keyed by record name — the moment CloudKit
+    /// would read the file. The holding-folder copy is deleted once the upload
+    /// completes, so asserting on the file afterwards is impossible.
+    private var _uploadedBlobBytes: [String: Data] = [:]
+    var uploadedBlobBytes: [String: Data] { locked { _uploadedBlobBytes } }
 
     var fetchBlobCount: Int { locked { _fetchBlobCount } }
     var fetchChangesCount: Int { locked { _fetchChangesCount } }
@@ -57,7 +62,12 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     private var _reflected: [CloudKitMediaMetadata] = []
     func upload(_ item: CloudKitMediaUpload,
                 progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
-        locked { _uploadCalls.append(item.mediaID); _uploadedItems.append(item) }
+        let blobBytes = (try? Data(contentsOf: item.encryptedFileURL)) ?? Data()
+        locked {
+            _uploadCalls.append(item.mediaID)
+            _uploadedItems.append(item)
+            _uploadedBlobBytes[item.recordName] = blobBytes
+        }
         if let error = uploadErrorOnce { uploadErrorOnce = nil; throw error }
         if enforceParentAlbumExists, locked({ _albums[item.albumID] == nil || _albums[item.albumID]?.deletedAt != nil }) {
             throw CloudKitMediaStoreError.partial(

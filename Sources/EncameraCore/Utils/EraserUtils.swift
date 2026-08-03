@@ -122,6 +122,15 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
         } catch {
             printDebug("EraserUtils: could not clear blob cache: \(error)")
         }
+        // Captures that never made it to CloudKit live outside the cache, in the
+        // durable holding folder. An erase that skipped them would leave the
+        // user's most recent photos on the device after they asked for
+        // everything to be wiped.
+        do {
+            try await CloudKitUploadQueue.shared.clearAll()
+        } catch {
+            printDebug("EraserUtils: could not clear the pending upload queue: \(error)")
+        }
     }
 
     func eraseThumbnails() {

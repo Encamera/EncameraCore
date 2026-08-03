@@ -70,7 +70,23 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                        progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
         guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
 
-        let record = makeRecord(for: item)
+        // Upload the preview from a private snapshot, never the live file.
+        //
+        // CloudKit fingerprints an asset when the operation is submitted and
+        // reads it again while uploading; if the bytes change in between it
+        // rejects the record with "Asset File Modified" (17/3003). The preview
+        // file is shared — a Live Photo's photo and video components are keyed by
+        // the same media id, so both records point at ONE `<id>.preview` — and it
+        // is rewritten whenever a preview is regenerated or re-fetched. That is
+        // exactly how a Live Photo lost its video half: the preview was deleted
+        // and re-downloaded while the second component was uploading it.
+        // Copying first makes the upload immune to whatever else touches it.
+        let snapshot = item.encryptedThumbURL.flatMap { Self.snapshotForUpload($0) }
+        defer {
+            if let snapshot { try? FileManager.default.removeItem(at: snapshot) }
+        }
+
+        let record = makeRecord(for: item, thumbnailURL: snapshot ?? item.encryptedThumbURL)
         let recordName = item.recordName
         printDebug("upload start recordName=\(recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes) zone=\(zoneID.zoneName) hasThumb=\(item.encryptedThumbURL != nil)")
         do {
@@ -101,7 +117,23 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         }
     }
 
-    private func makeRecord(for item: CloudKitMediaUpload) -> CKRecord {
+    /// Copies `source` somewhere only this upload knows about. Returns nil if the
+    /// copy fails, in which case the caller falls back to the live file — an
+    /// upload that might hit the modified-asset race is still better than
+    /// silently dropping the thumbnail.
+    private static func snapshotForUpload(_ source: URL) -> URL? {
+        let destination = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ckupload-\(UUID().uuidString)-\(source.lastPathComponent)")
+        do {
+            try FileManager.default.copyItem(at: source, to: destination)
+            return destination
+        } catch {
+            printDebug("snapshotForUpload FAILED source=\(source.lastPathComponent) raw=\(error) — uploading the live file instead")
+            return nil
+        }
+    }
+
+    private func makeRecord(for item: CloudKitMediaUpload, thumbnailURL: URL?) -> CKRecord {
         let recordID = CKRecord.ID(recordName: item.recordName, zoneID: zoneID)
         let record = CKRecord(recordType: CloudKitSchema.EncMedia.recordType, recordID: recordID)
         record[CloudKitSchema.EncMedia.albumID] = item.albumID as CKRecordValue
@@ -111,8 +143,8 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         record[CloudKitSchema.EncMedia.sizeBytes] = item.sizeBytes as CKRecordValue
         record[CloudKitSchema.EncMedia.creationDevice] = DeviceIdentity.currentID(defaults: defaults) as CKRecordValue
         record[CloudKitSchema.EncMedia.schemaVersion] = item.schemaVersion as CKRecordValue
-        if let thumbURL = item.encryptedThumbURL {
-            record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: thumbURL)
+        if let thumbnailURL {
+            record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: thumbnailURL)
         }
         record[CloudKitSchema.EncMedia.encBlob] = CKAsset(fileURL: item.encryptedFileURL)
         // Relational link to the owning EncAlbum (record name == albumID hash). The

@@ -95,12 +95,17 @@ final class CloudKitFileAccessTests: XCTestCase {
         let id = UUID().uuidString
         let cleartext = Data("super secret cleartext".utf8)
         _ = try await access.save(media: photo(id: id, data: cleartext), metadata: nil, progress: { _ in })
+        // Saves are local-first: the upload happens in the background. Drain it
+        // so the store has been given the record before asserting.
+        await access.drainUploads()
 
         XCTAssertEqual(store.uploadCalls, [id])
         let upload = try XCTUnwrap(store.uploadedItems.first)
 
-        // Uploaded bytes are ciphertext: the on-disk file is an ENC2 file.
-        let bytes = try Data(contentsOf: upload.encryptedFileURL)
+        // Uploaded bytes are ciphertext: the file CloudKit read is an ENC2 file.
+        // (Asserted on the bytes captured at upload time — the holding-folder
+        // copy is deleted once the upload completes.)
+        let bytes = try XCTUnwrap(store.uploadedBlobBytes[upload.recordName])
         XCTAssertEqual(Array(bytes.prefix(4)), EncryptedFileFormat.magic, "Uploaded file must be ENC2 ciphertext")
         XCTAssertFalse(bytes.contains(Data("super secret cleartext".utf8)), "No plaintext may appear in the uploaded file")
 
@@ -221,6 +226,39 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(store.tombstoneCalls, [CloudKitFileAccess.componentRecordName(mediaID: "m1", type: .photo)])
     }
 
+    /// Deleting a photo that has NOT uploaded yet (offline, or before the drain
+    /// ran) must remove it from the album. Regression: the remote tombstone
+    /// throws `.notFound` for a record the zone has never seen, and that error
+    /// used to abort `remove` before any local cleanup ran — the queue entry and
+    /// ciphertext were already gone, but the index entry survived as a permanent,
+    /// unopenable ghost the user could never delete.
+    func testDeletingAPendingItemRemovesItFromTheAlbum() async throws {
+        let album = makeAlbum()
+        // A long upload delay pins the capture in the pending state: the
+        // background drain cannot complete before the delete runs.
+        let store = InMemoryCloudKitMediaStore(uploadDelay: .seconds(30))
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = album.key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        let access = await CloudKitFileAccess(album: album, albumManager: albumManager, store: store)
+
+        let id = UUID().uuidString
+        let saved = try await access.save(media: try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .data(Self.tinyPNG()), mediaType: .photo, id: id)
+        ]), metadata: nil, progress: { _ in })
+
+        let visible = await access.enumerate()
+        XCTAssertEqual(visible.count, 1, "A pending capture must be visible before it uploads")
+
+        try await access.delete(media: [try XCTUnwrap(saved)])
+
+        let after = await access.enumerate()
+        XCTAssertEqual(after.count, 0, "Deleting a pending item must remove it from the album, not leave a ghost")
+
+        try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).baseURL)
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+    }
+
     // MARK: - Availability / regression guards
 
     func testCloudKitUnavailableWhenFlagOff() {
@@ -256,6 +294,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(live.mediaType, .livePhoto)
 
         _ = try await access.save(media: live, metadata: nil, progress: { _ in })
+        await access.drainUploads()
 
         XCTAssertEqual(store.uploadedItems.count, 2)
         let recordNames = Set(store.uploadedItems.map { $0.recordName })
@@ -292,6 +331,9 @@ final class CloudKitFileAccessTests: XCTestCase {
             CleartextMedia(source: .data(imageData), mediaType: .photo, id: id)
         ])
         _ = try await access.save(media: photo, metadata: nil, progress: { _ in })
+        // The facade uses the production path (shared registry + shared uploader);
+        // drain the shared uploader so the background upload reaches the store.
+        await CloudKitUploader.shared.drainNow()
 
         let albumHash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes)!
         let metadata = try await shared.fetchMetadata(albumID: albumHash, includeThumbnail: false)
@@ -337,6 +379,7 @@ final class CloudKitFileAccessTests: XCTestCase {
             ])
             _ = try await access.save(media: photo, metadata: nil, progress: { _ in })
         }
+        await access.drainUploads()
 
         let albumHash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes)!
         let before = try await store.fetchMetadata(albumID: albumHash, includeThumbnail: false)
@@ -402,6 +445,7 @@ final class CloudKitFileAccessTests: XCTestCase {
 
         let id = UUID().uuidString
         _ = try await access.save(media: try photo(id: id, data: Data("z".utf8)), metadata: nil, progress: { _ in })
+        await access.drainUploads()
 
         XCTAssertEqual(store.recreateZoneCount, 1, "A zoneNotFound upload must recreate the zone")
         XCTAssertEqual(store.uploadCalls.count, 2, "Upload should retry once after recreating the zone")
@@ -459,6 +503,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let id = UUID().uuidString
         // Non-image bytes => preview generation fails => no preview file on disk.
         _ = try await access.save(media: try photo(id: id, data: Data("not an image".utf8)), metadata: nil, progress: { _ in })
+        await access.drainUploads()
 
         let upload = try XCTUnwrap(store.uploadedItems.first)
         XCTAssertNil(upload.encryptedThumbURL, "A missing preview must not be uploaded as a thumbnail asset")
@@ -483,6 +528,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         _ = try await access.save(media: try InteractableMedia(underlyingMedia: [
             CleartextMedia(source: .data(Self.tinyPNG()), mediaType: .photo, id: id)
         ]), metadata: nil, progress: { _ in })
+        await access.drainUploads()
 
         // Simulate a device that hasn't built this album's index yet.
         try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))

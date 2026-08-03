@@ -80,18 +80,23 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     }
 
     public func tombstone(recordName: String) async throws {
-        locked {
-            if var stored = records[recordName] {
-                stored.metadata = CloudKitMediaMetadata(
-                    recordName: stored.metadata.recordName, albumID: stored.metadata.albumID,
-                    mediaID: stored.metadata.mediaID, mediaType: stored.metadata.mediaType,
-                    createdAt: stored.metadata.createdAt, sizeBytes: stored.metadata.sizeBytes,
-                    creationDeviceID: stored.metadata.creationDeviceID, deletedAt: Date(),
-                    schemaVersion: stored.metadata.schemaVersion, recordChangeTag: stored.metadata.recordChangeTag
-                )
-                records[recordName] = stored
-            }
+        // Parity with `CloudKitMediaStore.tombstone`: the real store fetches the
+        // record first and throws `.notFound` when the zone has never seen it. A
+        // silent no-op here masked exactly the pending-delete path that depends
+        // on that behaviour.
+        let found: Bool = locked {
+            guard var stored = records[recordName] else { return false }
+            stored.metadata = CloudKitMediaMetadata(
+                recordName: stored.metadata.recordName, albumID: stored.metadata.albumID,
+                mediaID: stored.metadata.mediaID, mediaType: stored.metadata.mediaType,
+                createdAt: stored.metadata.createdAt, sizeBytes: stored.metadata.sizeBytes,
+                creationDeviceID: stored.metadata.creationDeviceID, deletedAt: Date(),
+                schemaVersion: stored.metadata.schemaVersion, recordChangeTag: stored.metadata.recordChangeTag
+            )
+            records[recordName] = stored
+            return true
         }
+        guard found else { throw CloudKitMediaStoreError.notFound }
     }
 
     // MARK: Albums (chunk 13)

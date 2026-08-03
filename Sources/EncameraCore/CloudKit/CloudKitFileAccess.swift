@@ -42,6 +42,9 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     private let indexStore: MediaIndexStore
     /// Reused solely for the existing preview-generation pipeline.
     private let previewAccess: DiskFileAccess
+    /// Durable home for captures that have not reached CloudKit yet.
+    private let uploadQueue: CloudKitUploadQueue
+    private let uploader: CloudKitUploader
     /// Change tag the local thumbnail file was fetched for, so a remote re-upload
     /// (new tag) forces a refresh instead of showing stale content. Persisted as a
     /// sidecar next to the album's blob cache: the facade constructs a fresh
@@ -109,19 +112,37 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let index = MediaIndexStore(album: album)
         self.indexStore = index
         if store != nil {
-            // Explicit store (tests): own coordinator + fresh cache, fully isolated.
-            self.coordinator = CloudKitSyncCoordinator(albumID: albumIDHash,
-                                                       store: resolvedStore,
-                                                       cache: CloudKitBlobCache(),
-                                                       indexStore: index)
+            // Explicit store (tests): own coordinator + fresh cache + a throwaway
+            // upload queue in a temp directory, so a test never writes into (or
+            // reads from) the real holding folder. The coordinator is registered
+            // in an equally isolated registry handed to the uploader — otherwise
+            // the uploader would look in the SHARED registry, never find this
+            // coordinator, and the queue could never drain in tests.
+            let isolatedQueue = CloudKitUploadQueue(
+                baseDir: FileManager.default.temporaryDirectory
+                    .appendingPathComponent("CloudKitUploads-test-\(UUID().uuidString)", isDirectory: true)
+            )
+            self.uploadQueue = isolatedQueue
+            let isolatedRegistry = CloudKitCoordinatorRegistry()
+            self.coordinator = await isolatedRegistry.coordinator(forAlbumID: albumIDHash) {
+                CloudKitSyncCoordinator(albumID: albumIDHash,
+                                        store: resolvedStore,
+                                        cache: CloudKitBlobCache(),
+                                        indexStore: index,
+                                        uploadQueue: isolatedQueue)
+            }
+            self.uploader = CloudKitUploader(queue: isolatedQueue, registry: isolatedRegistry)
         } else {
             // Production: share ONE coordinator per album so the active album and the
             // push fan-out keep the same in-memory state.
+            self.uploadQueue = .shared
+            self.uploader = .shared
             self.coordinator = await CloudKitCoordinatorRegistry.shared.coordinator(forAlbumID: albumIDHash) {
                 CloudKitSyncCoordinator(albumID: albumIDHash,
                                         store: resolvedStore,
                                         cache: CloudKitBlobCache.shared,
-                                        indexStore: index)
+                                        indexStore: index,
+                                        uploadQueue: .shared)
             }
         }
         let preview = DiskFileAccess()
@@ -160,6 +181,11 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             printDebug("start skip albumID=\(albumIDHash) reason=accountUnavailable — zone not ensured")
         }
         await coordinator.startObserving()
+        // Opening an album is the moment its backlog becomes uploadable: the
+        // uploader can only work through a coordinator that exists, and this is
+        // where one is guaranteed to. Covers captures made in a previous launch
+        // that never got their chance.
+        await uploader.kick()
         do {
             try await coordinator.sync(albumID: albumIDHash)
             printDebug("start ok albumID=\(albumIDHash)")
@@ -234,7 +260,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             printDebug("saveSingle thumbnail WARNING mediaID=\(item.id) — no preview file on disk; uploading the record without an eager thumbnail")
         }
 
-        // 3. Upload the single Option-A record (index fields + thumbnail + blob).
+        // 3. Describe the record that will eventually be uploaded.
         let size = (try? FileManager.default.attributesOfItem(atPath: encURL.path)[.size] as? NSNumber)?.int64Value ?? 0
         if size == 0 {
             // Size 0 usually means the ciphertext is missing or unreadable — the
@@ -251,21 +277,31 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             encryptedThumbURL: thumbURL,
             recordName: Self.componentRecordName(mediaID: item.id, type: item.mediaType)
         )
-        printDebug("saveSingle upload start mediaID=\(item.id) recordName=\(upload.recordName) mediaType=\(item.mediaType) sizeBytes=\(size) hasThumb=\(thumbURL != nil)")
+        // 4. Hand the ciphertext to the durable holding folder. This MOVES the
+        // file out of the album's cache directory, which lives under
+        // `Library/Caches` and can be reclaimed by iOS — not somewhere the only
+        // copy of a photo may sit while it waits for CloudKit.
+        //
+        // A failure here is the one case that genuinely loses the capture, so it
+        // propagates: the camera has nowhere to put the photo.
+        let queued: CloudKitMediaUpload
         do {
-            _ = try await coordinator.upload(upload, progress: progress)
-        } catch CloudKitMediaStoreError.zoneNotFound {
-            // The zone was removed server-side but our flag said it existed. Recreate
-            // it and retry the upload once.
-            printDebug("saveSingle upload FAILED recordName=\(upload.recordName) reason=zoneNotFound — recreating the zone and retrying once")
-            try await store.recreateZone()
-            _ = try await coordinator.upload(upload, progress: progress)
+            queued = try await uploadQueue.enqueue(upload)
         } catch {
-            printDebug("saveSingle upload FAILED recordName=\(upload.recordName) mediaID=\(item.id) raw=\(error)")
+            printDebug("saveSingle enqueue FAILED recordName=\(upload.recordName) mediaID=\(item.id) raw=\(error)")
             throw error
         }
-        printDebug("saveSingle ok mediaID=\(item.id) recordName=\(upload.recordName)")
-        return EncryptedMedia(source: .url(encURL), mediaType: item.mediaType, id: item.id)
+
+        // 5. Put it in the album now. From here the photo is visible, openable
+        // and durable regardless of what CloudKit does — the upload is a
+        // background errand, not a precondition.
+        try await coordinator.registerLocally(queued)
+
+        // 6. Nudge the uploader. Fire-and-forget: the capture is already saved.
+        await uploader.kick()
+
+        printDebug("saveSingle ok mediaID=\(item.id) recordName=\(upload.recordName) state=queuedForUpload")
+        return EncryptedMedia(source: .url(queued.encryptedFileURL), mediaType: item.mediaType, id: item.id)
     }
 
     // MARK: - Load (lazy fetch then decrypt)
@@ -429,7 +465,18 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             for item in interactable.underlyingMedia {
                 let recordName = Self.componentRecordName(mediaID: item.id, type: item.mediaType)
                 printDebug("delete start recordName=\(recordName) albumID=\(albumIDHash)")
-                try await coordinator.remove(recordName: recordName, albumID: albumIDHash)
+
+                // Drop any durable copy still waiting to upload first, so a
+                // delete cannot leave an orphan in the holding folder that the
+                // uploader would later push to CloudKit — resurrecting the photo
+                // the user just deleted.
+                let wasPending = await uploadQueue.cancel(recordName: recordName)
+
+                // A pending item skips the remote tombstone (nothing is up there)
+                // but still gets the full local cleanup and the deletion marker —
+                // see `remove`. Errors propagate: a swallowed failure here used to
+                // leave the index entry behind as a permanent ghost.
+                try await coordinator.remove(recordName: recordName, albumID: albumIDHash, wasPending: wasPending)
                 let localURL = directoryModel.driveURLForMedia(withID: item.id, type: item.mediaType)
                 do {
                     try FileManager.default.removeItem(at: localURL)
@@ -442,6 +489,13 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                 }
             }
         }
+    }
+
+    /// Runs the background uploader until the queue has had a full chance to
+    /// empty, and waits for it. The app itself relies on `kick()`s; this is for
+    /// tests and for callers that must observe upload completion.
+    public func drainUploads() async {
+        await uploader.drainNow()
     }
 
     // MARK: - Enumeration (from the synced index, never the network)

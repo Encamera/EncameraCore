@@ -210,8 +210,14 @@ extension DataStorageModel {
     }
 
     func previewURLForMedia(withID id: String) -> URL {
-        let thumbnailPath = Self.thumbnailDirectory.appendingPathComponent("\(id).\(MediaType.preview.encryptedFileExtension)")
-        return thumbnailPath
+        Self.previewURL(forMediaID: id)
+    }
+
+    /// Preview location without needing an album instance. Previews are keyed by
+    /// media id and live in one storage-agnostic directory, so callers that only
+    /// know the id — such as the upload queue draining a backlog — can find them.
+    static func previewURL(forMediaID id: String) -> URL {
+        Self.thumbnailDirectory.appendingPathComponent("\(id).\(MediaType.preview.encryptedFileExtension)")
     }
 
     func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
