@@ -259,7 +259,15 @@ public actor DiskMediaBackend: MediaBackend {
     }
 
     public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
-        let allMediaItems = media.flatMap { $0.underlyingMedia }
+        // Delete by id off a fresh directory listing rather than trusting the
+        // components the caller carries: those come from the index, and an index
+        // that lost a Live Photo's video component would leave the `.encvideo`
+        // behind for the next reconcile to resurface as a standalone 1–2 second
+        // video. Whatever shares the id goes with it.
+        let allMediaItems = Self.componentsOnDisk(
+            forIDs: Set(media.map { $0.id }),
+            urlsByID: currentMediaURLsByID()
+        )
         try await fileAccess.delete(media: allMediaItems)
         // Disk delete removes every component of a logical item, so drop whole ids.
         do {
@@ -334,17 +342,34 @@ public actor DiskMediaBackend: MediaBackend {
             let removedIDs = indexIDs.subtracting(diskIDs)
             let addedIDs = diskIDs.subtracting(indexIDs)
 
+            let unchangedIDs = indexIDs.intersection(diskIDs)
+
             // Detect in-place modifications for entries whose IDs still match, relative
             // to when the index file was last written.
             let modifiedIDs: Set<String>
             if let referenceDate = indexStore.fileModificationDate() {
-                let unchanged = indexIDs.intersection(diskIDs)
-                modifiedIDs = Self.idsModifiedSince(referenceDate, among: unchanged, urlsByID: diskURLsByID)
+                modifiedIDs = Self.idsModifiedSince(referenceDate, among: unchangedIDs, urlsByID: diskURLsByID)
             } else {
                 modifiedIDs = []
             }
 
-            guard !removedIDs.isEmpty || !addedIDs.isEmpty || !modifiedIDs.isEmpty else {
+            // Detect entries whose recorded components no longer describe the files
+            // on disk. The id-level diff above is blind to this — the id is in both
+            // sets — and the mtime check misses it whenever the index file has been
+            // rewritten since the component landed, which a busy album does on every
+            // save. Without this, a Live Photo that was only half-recorded (a
+            // component that threw after writing its file, or a gallery refresh that
+            // indexed the item between its photo and video writes) is stuck as a
+            // still photo forever, with an invisible `.encvideo` beside it.
+            let mismatchedIDs = Self.idsWithComponentMismatch(
+                among: unchangedIDs,
+                urlsByID: diskURLsByID,
+                entries: existingEntries
+            )
+
+            let staleIDs = modifiedIDs.union(mismatchedIDs)
+
+            guard !removedIDs.isEmpty || !addedIDs.isEmpty || !staleIDs.isEmpty else {
                 return false
             }
 
@@ -352,10 +377,10 @@ public actor DiskMediaBackend: MediaBackend {
             if Task.isCancelled { return false }
 
             var entries = existingEntries.filter {
-                !removedIDs.contains($0.id) && !modifiedIDs.contains($0.id)
+                !removedIDs.contains($0.id) && !staleIDs.contains($0.id)
             }
 
-            let idsToRead = addedIDs.union(modifiedIDs)
+            let idsToRead = addedIDs.union(staleIDs)
             if !idsToRead.isEmpty {
                 let mediaToRead: [EncryptedMedia] = idsToRead.flatMap { id in
                     (diskURLsByID[id] ?? []).compactMap {
@@ -406,6 +431,58 @@ public actor DiskMediaBackend: MediaBackend {
             }
         }
         return modified
+    }
+
+    /// Every component file currently on disk for the given ids, as deletable
+    /// `EncryptedMedia`. Sourcing the delete list from disk rather than from the
+    /// index means an unrecorded component is still removed, and a component the
+    /// index claims but disk has already lost is skipped instead of throwing
+    /// mid-loop and stranding the components after it.
+    static func componentsOnDisk(
+        forIDs ids: Set<String>,
+        urlsByID: [String: [URL]]
+    ) -> [EncryptedMedia] {
+        ids.sorted().flatMap { id in
+            (urlsByID[id] ?? []).compactMap { EncryptedMedia(source: .url($0), generateID: false) }
+        }
+    }
+
+    /// IDs whose components on disk disagree with what the index records for them —
+    /// an entry missing a component whose file is present, or claiming one whose
+    /// file is gone. Re-reading these is what repairs a half-recorded Live Photo.
+    ///
+    /// Component classification here goes through the same
+    /// `EncryptedMedia(source:generateID:)` derivation that `reconcile` feeds into
+    /// `makeEntries`, so a re-read always produces the flags this check expects —
+    /// an id can never be reported mismatched twice in a row.
+    static func idsWithComponentMismatch(
+        among ids: Set<String>,
+        urlsByID: [String: [URL]],
+        entries: [MediaIndexEntry]
+    ) -> Set<String> {
+        guard !ids.isEmpty else { return [] }
+        var entriesByID: [String: MediaIndexEntry] = [:]
+        for entry in entries where ids.contains(entry.id) {
+            entriesByID[entry.id] = entry
+        }
+
+        var mismatched = Set<String>()
+        for id in ids {
+            guard let entry = entriesByID[id] else { continue }
+            var hasPhoto = false
+            var hasVideo = false
+            for url in urlsByID[id] ?? [] {
+                switch EncryptedMedia(source: .url(url), generateID: false)?.mediaType {
+                case .photo: hasPhoto = true
+                case .video: hasVideo = true
+                default: break
+                }
+            }
+            if hasPhoto != entry.hasPhotoComponent || hasVideo != entry.hasVideoComponent {
+                mismatched.insert(id)
+            }
+        }
+        return mismatched
     }
 
     /// Media file URLs currently on disk, grouped by media id, from a cheap
