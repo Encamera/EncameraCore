@@ -71,12 +71,6 @@ public enum UserDefaultKey {
     /// it; the app retries the cloud wipe on launch until it succeeds.
     case pendingCloudDataWipe
     case pendingDefaultsWipe
-    /// Which typeface `EncameraFont` renders body text in. Debug-only, driven by
-    /// the Font Configuration screen behind the `showFontConfig` toggle.
-    case fontFamily
-    /// Points added to every body-text `EncameraFont` size. Debug-only, same
-    /// screen; unset means the shipped default.
-    case fontSizeOffset
 
     var rawValue: String {
         switch self {
@@ -166,11 +160,7 @@ public enum UserDefaultKey {
              // The defaults-wipe tombstone describes this device's own erase. Synced,
              // it would make every other device on the account wipe its settings at
              // its next launch.
-             .pendingDefaultsWipe,
-             // A typography experiment run against one device's screen. Syncing
-             // it would push one phone's experiment onto every other.
-             .fontFamily,
-             .fontSizeOffset:
+             .pendingDefaultsWipe:
             return false
         }
     }
