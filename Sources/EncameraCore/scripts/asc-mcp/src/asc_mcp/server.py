@@ -2,6 +2,7 @@
 
 import os
 from dataclasses import asdict
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -437,6 +438,65 @@ def remove_build_from_beta_group(build_id: str, group_id: str) -> str:
     """Detach a build from a beta group, revoking access for that group's testers."""
     testflight.remove_build_from_beta_groups(_get_client(), build_id, [group_id])
     return f"Removed build {build_id} from beta group {group_id}"
+
+
+@mcp.tool()
+def expire_build(build_id: str) -> dict:
+    """Expire a TestFlight build so testers can no longer see or install it.
+    Irreversible: an expired build cannot be un-expired."""
+    data = testflight.expire_build(_get_client(), build_id).get("data", {})
+    attrs = data.get("attributes", {})
+    return {"id": build_id, "build_number": attrs.get("version"), "expired": attrs.get("expired")}
+
+
+@mcp.tool()
+def expire_builds_older_than(
+    days: int,
+    dry_run: bool = True,
+    app_id: Optional[str] = None,
+) -> dict:
+    """Expire every unexpired TestFlight build uploaded more than `days` days ago.
+    dry_run defaults to true and only reports what would be expired; pass false to expire.
+    Irreversible. Returns the cutoff, the affected builds, any failures, and how many
+    builds were kept or already expired."""
+    client = _get_client()
+    aid = app_id or client.resolve_app_id()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    targets: list[dict] = []
+    kept = 0
+    already_expired = 0
+    for b in testflight.list_builds_with_versions(client, aid):
+        attrs = b.get("attributes", {})
+        if attrs.get("expired"):
+            already_expired += 1
+            continue
+        uploaded = attrs.get("uploadedDate")
+        if not uploaded or datetime.fromisoformat(uploaded.replace("Z", "+00:00")) >= cutoff:
+            kept += 1
+            continue
+        targets.append({
+            "id": b["id"],
+            "build_number": attrs.get("version"),
+            "app_version": b.get("_app_version"),
+            "uploaded_date": uploaded,
+        })
+
+    failed: list[dict] = []
+    if not dry_run:
+        for t in targets:
+            try:
+                testflight.expire_build(client, t["id"])
+            except Exception as e:
+                failed.append({**t, "error": str(e)})
+    failed_ids = {f["id"] for f in failed}
+    return {
+        "cutoff": cutoff.isoformat(),
+        "dry_run": dry_run,
+        "would_expire" if dry_run else "expired": [t for t in targets if t["id"] not in failed_ids],
+        "failed": failed,
+        "kept_count": kept,
+        "already_expired_count": already_expired,
+    }
 
 
 @mcp.tool()

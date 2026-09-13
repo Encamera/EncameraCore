@@ -115,6 +115,8 @@ Whether someone can install a build comes down to two things: does the build rea
 | `list_beta_groups` | Beta groups with internal/external, all-builds access, and public link settings |
 | `add_build_to_beta_group` | Attach a build to a group so its testers can install it |
 | `remove_build_from_beta_group` | Detach a build from a group |
+| `expire_build` | Expire one build so testers can no longer see or install it (irreversible) |
+| `expire_builds_older_than` | Expire every build uploaded more than N days ago; dry run by default |
 | `list_beta_testers` | Find testers by email (app-scoped), by group, or assigned to a build |
 | `add_beta_tester` | Add someone by email, creating the tester if needed; optionally attach to a group and/or build |
 | `add_tester_to_build` | Give one tester access to one specific build ("individual testers") |
