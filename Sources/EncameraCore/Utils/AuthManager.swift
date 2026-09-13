@@ -140,6 +140,7 @@ public enum BiometricAvailability: Equatable {
     }
 }
 
+@MainActor
 public protocol AuthManager {
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
     var isAuthenticated: Bool { get }
@@ -155,6 +156,7 @@ public protocol AuthManager {
     func waitForAuthResponse() async -> AuthManagerState
 }
 
+@MainActor
 public class DeviceAuthManager: AuthManager {
     
     // MARK: - LAContext Caching
@@ -163,6 +165,10 @@ public class DeviceAuthManager: AuthManager {
     /// Creating a new LAContext and calling canEvaluatePolicy involves significant
     /// system security framework overhead, which can cause delays during authentication.
     private var _cachedContext: LAContext?
+
+    /// Every `LAContext` this manager uses comes from here, so tests can
+    /// substitute a fake and observe how the manager treats it.
+    private let makeContext: () -> LAContext
     
     /// Returns a cached LAContext, creating one only if needed.
     /// The context is invalidated on background or after certain auth events.
@@ -170,7 +176,7 @@ public class DeviceAuthManager: AuthManager {
         if let existing = _cachedContext {
             return existing
         }
-        let newContext = LAContext()
+        let newContext = makeContext()
         newContext.localizedCancelTitle = L10n.cancel
         _cachedContext = newContext
         return newContext
@@ -209,7 +215,7 @@ public class DeviceAuthManager: AuthManager {
         // LAContext can report biometry unavailable even though a fresh
         // evaluation would prompt fine. canEvaluatePolicy is silent — the
         // consent prompt only ever comes from evaluatePolicy.
-        let probe = LAContext()
+        let probe = makeContext()
         var probeError: NSError?
         if probe.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &probeError) {
             guard let method = AuthenticationMethod.methodFrom(biometryType: probe.biometryType) else {
@@ -344,8 +350,9 @@ public class DeviceAuthManager: AuthManager {
     private var keyManager: KeyManager
 
 
-    public init(keyManager: KeyManager) {
+    public init(keyManager: KeyManager, makeContext: @escaping () -> LAContext = { LAContext() }) {
         self.keyManager = keyManager
+        self.makeContext = makeContext
         setupNotificationObservers()
     }
     
@@ -503,16 +510,20 @@ private extension DeviceAuthManager {
     }
     
     func cancelNotificationObservers() {
-        appStateCancellables.forEach({$0.cancel()})
+        appStateCancellables.removeAll()
     }
     
     func setupNotificationObservers() {
         NotificationUtils.didEnterBackgroundPublisher
             .sink { _ in
-                // Invalidate cached LAContext when going to background
-                // This ensures fresh context on next foreground, avoiding stale state
-                self.invalidateContext()
-                self.deauthorize()
+                // UIKit posts this on the main thread. Everything that touches
+                // the cached LAContext has to stay on the main actor: the
+                // evaluation path invalidates it too, and invalidating one
+                // context from two threads at once over-releases it.
+                MainActor.assumeIsolated {
+                    self.invalidateContext()
+                    self.deauthorize()
+                }
             }.store(in: &appStateCancellables)
     }
     

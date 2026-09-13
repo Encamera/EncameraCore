@@ -178,6 +178,7 @@ public class OnboardingManager: OnboardingManaging {
 
     }
     
+    @MainActor
     @discardableResult public func loadOnboardingState() throws -> OnboardingState {
         let state = try getOnboardingStateFromDefaults()
 
@@ -195,6 +196,7 @@ public class OnboardingManager: OnboardingManaging {
 }
 
 private extension OnboardingManager {
+    @MainActor
     func getOnboardingStateFromDefaults() throws -> OnboardingState {
         let passwordExists = keyManager.passwordExists()
         

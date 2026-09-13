@@ -17,9 +17,7 @@ public class DemoAuthManager: AuthManager {
     public func waitForAuthResponse() async -> AuthManagerState {
         return .unauthenticated
     }
-    public init() {
-        
-    }
+    nonisolated public init() {}
     
     public var availableBiometric: AuthenticationMethod? = .faceID
 
