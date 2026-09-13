@@ -40,7 +40,6 @@
 "OpenSettings" = "Einstellungen öffnen";
 "FinishImportingMedia" = "Medienimport abschließen";
 "TakeYourFirstPicture" = "NEHMEN SIE IHR ERSTES FOTO";
-"ImageSavedToAlbum" = "BILD IM ALBUM GESPEICHERT";
 "NoAlbum" = "Kein Album";
 "NoAlbumSelected" = "Kein Album ausgewählt. Sie müssen ein Album auswählen, um Fotos zu speichern."; 
 
@@ -87,7 +86,6 @@
 /* ./Encamera/Tutorial/ChooseStorageModal.swift */
 "Congratulations!" = "Herzlichen Glückwunsch!";
 "ChooseYourStorage" = "Wählen Sie Ihren Speicher";
-"ChooseYourStorageDescription" = "Wählen Sie, wo Sie Ihre Bilder ab jetzt sicher speichern möchten.";
 "You took your first photo! 📸 🥳" = "Du hast dein erstes Foto gemacht! 📸 🥳";
 "See the photos that belong to a key by tapping the " = "Sehen Sie die Fotos, die zu einem Schlüssel gehören, indem Sie auf das ";
 " icon on the top left of the screen." = "-Symbol oben links auf dem Bildschirm tippen.";
@@ -472,8 +470,6 @@
 "NotificationBanner.LeaveAReview.Body" = "Wenn Ihnen Encamera gefällt, helfen Sie uns mit einer Bewertung!";
 "NotificationBanner.Reddit.Button" = "Subreddit beitreten";
 "AlbumDetailView.ImportButton" = "Bilder importieren";
-"AlbumDetailView.AddFirstImage" = "Fügen Sie Ihr erstes Bild hinzu";
-"AlbumDetailView.AddFirstImageSubtitle" = "Importieren Sie ein Bild aus Ihrem Album oder öffnen Sie die Kamera und machen Sie ein neues Bild für dieses Album";
 "NotificationBanner.Reddit.Body" = "Treten Sie dem Encamera-Subreddit bei, um das Neueste zu verfolgen und Feedback zu geben";
 "AlbumDetailView.OpenCamera" = "Machen Sie ein neues Bild";
 "NotificationBanner.LeaveAReview.Title" = "Wir brauchen Ihre Hilfe!";
@@ -495,8 +491,6 @@
 "CopyPhrase" = "Phrase in die Zwischenablage kopieren";
 
 "AlbumDetailView.PhotoAccessAlertTitle" = "Nach dem Import löschen?";
-"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Da Sie keine kostenpflichtige Lizenz für Encamera haben, können Sie in der App nur 10 Bilder anzeigen. Wenn Sie Bilder aus Ihrer Fotobibliothek löschen, können Sie sie möglicherweise ohne eine kostenpflichtige Lizenz nicht anzeigen.";
-"AlbumDetailView.PhotoAccessAlertMessage" = "Möchten Sie die Bilder nach dem Import aus Ihrer Fotobibliothek löschen? Encamera benötigt hierfür die Berechtigung zu Ihrer Fotobibliothek.";
 "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Nicht jetzt";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Ich verstehe";
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Wichtig ⚠️";
@@ -558,9 +552,7 @@
 "AlbumDetailView.RemoveCoverImage" = "Albumcover deaktivieren";
 "AlbumDetailView.AlbumCoverMenuTitle" = "Albumcover";
 "AlbumDetailView.DeleteSelectedMedia" = "Möchten Sie %@ löschen?";
-"AlbumDetailView.CoverImageResetToast" = "Das Titelbild wird standardmäßig auf das zuletzt aufgenommene Bild gesetzt";
 
-"AlbumDetailView.ResetCoverImage" = "Standardmäßig auf das neueste Bild";
 
 "AuthenticationMethod.TextDescription.PinCode" = "PIN-Code";
 "AuthenticationMethod.SecurityLevel.pinCode4Digit" = "Schnell, aber weniger sicher";
@@ -707,7 +699,6 @@
 "Settings.BackupKeyToiCloudDescription" = "Wenn aktiviert, wird Ihr Schlüssel automatisch in Ihrem iCloud-Schlüsselbund gesichert. Wenn Sie Ihr Gerät verlieren, haben Sie immer noch Zugriff auf Dateien, die auf iCloud gespeichert sind, wenn Sie diese Option wählen.";
 "KeyPhrase.ContinueButton" = "Mein Schlüssel wurde gespeichert";
 "MainHomeView.BackupEncryptionKey" = "Sichern Sie Ihren Verschlüsselungsschlüssel";
-"MainHomeView.KeyBackupExplanation" = "Ihre Fotos sind mit einem einzigartigen Verschlüsselungsschlüssel geschützt. Dies ist der einzige Weg, um Ihre Bilder zu entschlüsseln, wenn Sie das Gerät wechseln oder die App neu installieren.";
 "KeyPhrase.Subtitle" = "Dies ist Ihre einzigartige Verschlüsselungsschlüsselphrase. Wenn Sie diese verlieren und ein neues Telefon bekommen, werden Sie niemals wieder auf Ihre verschlüsselten Fotos und Videos zugreifen können. Bitte speichern Sie es an einem sicheren Ort.";
 "KeyPhrase.Title" = "Ihr Verschlüsselungsschlüsselphrase";
 "KeyPhrase.CopyButton" = "Schlüsselphrase kopieren";

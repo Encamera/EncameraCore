@@ -40,7 +40,6 @@
 "OpenSettings" = "Abrir Ajustes";
 "FinishImportingMedia" = "Finalizar Importación de Medios";
 "TakeYourFirstPicture" = "TOMA TU PRIMERA FOTO";
-"ImageSavedToAlbum" = "IMAGEN GUARDADA EN EL ÁLBUM";
 "NoAlbum" = "Sin Álbum";
 "NoAlbumSelected" = "Ningún Álbum Seleccionado. Debes seleccionar un álbum para guardar las fotos."; 
 
@@ -87,7 +86,6 @@
 /* ./Encamera/Tutorial/ChooseStorageModal.swift */
 "Congratulations!" = "¡Felicidades!";
 "ChooseYourStorage" = "Elige tu almacenamiento";
-"ChooseYourStorageDescription" = "Elige dónde guardar de forma segura tus imágenes a partir de ahora.";
 "You took your first photo! 📸 🥳" = "¡Tomaste tu primera foto! 📸 🥳";
 "See the photos that belong to a key by tapping the " = "Ve las fotos que pertenecen a una llave tocando el ";
 " icon on the top left of the screen." = " icono en la parte superior izquierda de la pantalla.";
@@ -472,8 +470,6 @@
 "NotificationBanner.LeaveAReview.Body" = "Si te gusta Encamera, ¡ayúdanos con una reseña!";
 "NotificationBanner.Reddit.Button" = "Únete al Subreddit";
 "AlbumDetailView.ImportButton" = "Importar Imágenes";
-"AlbumDetailView.AddFirstImage" = "Añade tu primera imagen";
-"AlbumDetailView.AddFirstImageSubtitle" = "Importa una imagen de tu álbum o abre la cámara y toma una nueva foto para este álbum";
 "NotificationBanner.Reddit.Body" = "Únete al subreddit de Encamera para seguir lo último y dar tu opinión";
 "AlbumDetailView.OpenCamera" = "Tomar una nueva foto";
 "NotificationBanner.LeaveAReview.Title" = "¡Necesitamos tu ayuda!";
@@ -494,8 +490,6 @@
 "CopyPhrase" = "Copiar frase al portapapeles";
 
 "AlbumDetailView.PhotoAccessAlertTitle" = "¿Eliminar después de importar?";
-"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Debido a que no tienes una licencia paga para Encamera, solo podrás ver 10 imágenes en la aplicación. Si eliminas imágenes de tu biblioteca de fotos, es posible que no puedas verlas sin una licencia paga.";
-"AlbumDetailView.PhotoAccessAlertMessage" = "¿Quieres eliminar las imágenes de tu biblioteca de fotos después de importarlas? Encamera requiere permiso a tu biblioteca de fotos para hacer esto.";
 "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "No ahora";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Entiendo";
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Importante ⚠️";
@@ -556,9 +550,7 @@
 "AlbumDetailView.RemoveCoverImage" = "Desactivar portada del álbum";
 "AlbumDetailView.AlbumCoverMenuTitle" = "Portada del álbum";
 "AlbumDetailView.DeleteSelectedMedia" = "¿Quieres eliminar %@?";
-"AlbumDetailView.CoverImageResetToast" = "La imagen de portada por defecto es la última imagen tomada";
 
-"AlbumDetailView.ResetCoverImage" = "Predeterminar a la Imagen Más Reciente";
 
 "AuthenticationMethod.TextDescription.PinCode" = "Código PIN";
 "AuthenticationMethod.SecurityLevel.pinCode4Digit" = "Rápido pero menos seguro";
@@ -705,7 +697,6 @@
 "Settings.BackupKeyToiCloudDescription" = "Si está habilitado, su clave se respaldará automáticamente en su iCloud Keychain. Si pierde su dispositivo, aún tendrá acceso a los archivos almacenados en iCloud si elige esta opción.";
 "KeyPhrase.ContinueButton" = "Mi clave ha sido almacenada";
 "MainHomeView.BackupEncryptionKey" = "Haga una copia de seguridad de su clave de cifrado";
-"MainHomeView.KeyBackupExplanation" = "Sus fotos están protegidas con una clave de cifrado única. Esta es la única manera de descifrar sus imágenes si cambia de dispositivo o reinstala la aplicación.";
 "KeyPhrase.Subtitle" = "Esta es su frase de clave de cifrado única. Si la pierde y obtiene un nuevo teléfono, nunca podrá acceder a sus fotos y videos cifrados nuevamente. Por favor, guárdela en un lugar seguro.";
 "KeyPhrase.Title" = "Tu frase de clave de cifrado";
 "KeyPhrase.CopyButton" = "Copiar frase de clave";

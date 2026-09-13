@@ -38,13 +38,11 @@
 "DoYouWantToDeleteNotImported" = "画像のインポートは完了しましたか？";
 "ImportTaskDetailsView.Done" = "完了";
 "Encrypting" = "暗号化中";
-"AlbumDetailView.ResetCoverImage" = "最新の画像をデフォルトにする";
 "FooterView.MediaDetails" = "メディアの詳細";
 "Notification.InactiveUserReminder.Body" = "画像をアルバムに追加して、さらに多くの画像を確保するのをお忘れなく。今すぐインポート！";
 "EmptyAlbumTakeAPictureHeading" = "新しいメモリーを作成";
 "Key name is invalid, must be more than two characters" = "キー名が無効です。2文字以上で入力してください。";
 "AuthenticationMethod.SecurityLevel.password" = "最も安全なオプション";
-"AlbumDetailView.PhotoAccessAlertMessage" = "インポート後に写真ライブラリから画像を削除しますか？この操作にはEncameraが写真ライブラリへのアクセス許可を必要とします。";
 "Delete Album question" = "アルバムを削除しますか？";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "理解しました";
 "TelegramGroupJoinButtonText" = "グループに参加";
@@ -100,7 +98,6 @@
 "TakeSurveyTitle" = "3か月無料で利用しますか？";
 "FinishedOnboardingSubtitle" = "メディアを安全に保護しましょう";
 "Notification.ImageSecurityReminder.Body" = "画像だけでなく、動画もアルバムに保存できます。今すぐ試して、いくつか保存しましょう！";
-"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Encameraの有料ライセンスをお持ちでないため、アプリで閲覧できる画像は10枚までとなります。フォトライブラリから画像を削除すると、有料ライセンスがない場合は閲覧できなくなることがあります。";
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ 重要 ⚠️";
 "Notification.PremiumReminder.Body" = "コード『ENCAMERA20』を使うと、どのプランでも20％割引になります。お早めに！";
 "Skip for now" = "今はスキップ";
@@ -124,12 +121,10 @@
 "MoveAlbumStorage" = "ストレージを変更";
 "MediaSelectionTray.SelectMedia" = "メディアを選択";
 "EmptyAlbumImportPhotosActionTitle" = "写真をインポート";
-"MainHomeView.KeyBackupExplanation" = "あなたの写真は固有の暗号鍵で保護されています。デバイスを変更したりアプリを再インストールした場合、画像を復号できる唯一の方法です。";
 "TaskProgressRow.Processing" = "処理中: %@";
 "OnboardingCarousel.HeadingText1" = "あなたの思い出を完全に保護";
 "Select a place to keep media for this key." = "この鍵のメディアを保存する場所を選択してください。";
 "AlbumDetailView.PhotoAccessRequired" = "写真へのアクセスが必要です";
-"AlbumDetailView.AddFirstImage" = "最初の画像を追加";
 "CreateFirstAlbum" = "最初のアルバムを作成";
 "ErrorImportingKeyPhrase" = "キーフレーズのインポート中にエラーが発生しました";
 "" = "";
@@ -197,7 +192,6 @@
 "Key Name: %@" = "キー名: %@";
 "ViewInFiles" = "ファイルアプリで表示";
 "TelegramGroupJoinTitle" = "Telegramグループに参加";
-"ImageSavedToAlbum" = "画像がアルバムに保存されました";
 "DoYouRememberYourPin" = "パスコードを覚えていますか？";
 "PasswordSetSuccessMessage" = "新しいパスワードが保存されました";
 "Add Key" = "キーを追加";
@@ -438,7 +432,6 @@
 "Change Key Album" = "別の保存先アルバムを選択したい";
 "Delete this image?" = "この画像を削除しますか？";
 "Password is too long, >%@" = "パスワードが長すぎます（>%@）";
-"AlbumDetailView.AddFirstImageSubtitle" = "アルバムから画像をインポートするか、カメラを開いて新しい写真をこのアルバム用に撮影してください";
 "CustomPhotoPicker.SelectPhotos" = "写真を選択";
 "AlbumSelectionModal.Description" = "%@個のアイテムを移動するアルバムを選択";
 "ImportTaskDetailsView.Title" = "タスクをインポート";
@@ -556,7 +549,6 @@
 "Add Existing Key" = "既存のキーを追加";
 "Could not delete keychain items." = "キーチェーンの項目を削除できませんでした。";
 "ChooseYourStorage" = "保存場所を選択";
-"ChooseYourStorageDescription" = "今後、画像を安全に保存する場所を選んでください。";
 "TaskDetailCard.Created" = "作成日: %@";
 "Unlock" = "ロック解除";
 "BackUpKeysExplanation" = "キーを紛失するとデータの復元は不可能です。キーを作成した後はパスワードマネージャーにバックアップするか、iCloudに保存してください。";
@@ -591,7 +583,6 @@
 "FinishedOnboardingTitle" = "Encameraの使用準備ができました！";
 "Share Key" = "キーを共有";
 "Your Keys" = "あなたのキー";
-"AlbumDetailView.CoverImageResetToast" = "カバー画像は最新の画像がデフォルトになります";
 "Notification.Scheduling.Error" = "通知のスケジューリング中にエラーが発生しました: %@";
 "New Album Subheading" = "この暗号化された写真アルバムの名前を設定してください。";
 "Settings.CopiedToClipboard" = "クリップボードにコピーしました";

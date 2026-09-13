@@ -33,7 +33,6 @@
   "OpenSettings" = "Ouvrir les paramètres";
   "FinishImportingMedia" = "Terminer l'importation des médias";
   "TakeYourFirstPicture" = "PRENEZ VOTRE PREMIÈRE PHOTO";
-  "ImageSavedToAlbum" = "IMAGE ENREGISTRÉE DANS L'ALBUM";
   "NoAlbum" = "Aucun album";
   "NoAlbumSelected" = "Aucun album sélectionné. Vous devez sélectionner un album pour enregistrer des photos.";
   "OpenSystemSettings" = "Aller aux paramètres";
@@ -95,7 +94,6 @@
   "Erasing in %@" = "Effacement dans %@";
   "Congratulations!" = "Félicitations !";
   "ChooseYourStorage" = "Choisissez votre stockage";
-  "ChooseYourStorageDescription" = "Choisissez où enregistrer vos images en toute sécurité à partir de maintenant.";
   "You took your first photo! 📸 🥳" = "Vous avez pris votre première photo ! 📸 🥳";
   "See the photos that belong to a key by tapping the " = "Voyez les photos associées à une clé en appuyant sur l’icône ";
   " icon on the top left of the screen." = " en haut à gauche de l’écran.";
@@ -151,9 +149,7 @@
   "AlbumDetailView.DeleteSelectedMedia" = "Voulez-vous supprimer %@ ?";
   "AlbumDetailView.AlbumCoverMenuTitle" = "Couverture d’album";
   "AlbumDetailView.RemoveCoverImage" = "Désactiver la couverture d’album";
-  "AlbumDetailView.ResetCoverImage" = "Par défaut à la dernière image";
   "AlbumDetailView.CoverImageRemovedToast" = "Image de couverture désactivée";
-  "AlbumDetailView.CoverImageResetToast" = "L'image de couverture par défaut est la dernière image";
   "AlbumDetailView.MoveMedia" = "Déplacer le média";
   "AlbumDetailView.MoveMediaConfirm" = "Déplacer %@ élément%@ vers %@ ?";
   "AlbumDetailView.MovedToast" = "%@ élément%@ déplacé(s) vers %@";
@@ -337,16 +333,12 @@
   Encamera !";
   "FinishedSubtitle" = "Créons votre premier album";
   "CreateFirstAlbum" = "Créer le premier album";
-  "AlbumDetailView.AddFirstImage" = "Ajoutez votre première image";
-  "AlbumDetailView.AddFirstImageSubtitle" = "Importer une image depuis votre album ou ouvrir l'appareil photo et prendre une nouvelle photo pour cet album";
   "AlbumDetailView.ImportButton" = "Importer des images";
   "AlbumDetailView.OpenCamera" = "Prendre une nouvelle photo";
   "AlbumDetailView.PhotoAccessAlertTitle" = "Supprimer après l'importation ?";
-  "AlbumDetailView.PhotoAccessAlertMessage" = "Voulez-vous supprimer les images de votre photothèque après les avoir importées ? Encamera nécessite l'autorisation d'accéder à votre photothèque pour effectuer cette opération.";
   "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Supprimer";
   "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Pas maintenant";
   "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Important ⚠️";
-  "AlbumDetailView.NoLicenseDeletionWarningMessage" = "Parce que vous n'avez pas de licence payante pour Encamera, vous ne pourrez visualiser que 10 images dans l'application. Si vous supprimez des images de votre photothèque, il se peut que vous ne puissiez plus les voir sans licence payante.";
   "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Je comprends";
   "AlbumDetailView.Select" = "Sélectionner un média";
   "AlbumDetailView.RenameAlbum" = "Renommer l’album";
@@ -591,7 +583,6 @@
   "AuthenticationView.ForgotPassword" = "Mot de passe oublié ? Réinitialiser l'application";
   "SettingsView.UnknownError" = "Erreur inconnue";
   "MainHomeView.BackupEncryptionKey" = "Sauvegardez votre clé de chiffrement";
-  "MainHomeView.KeyBackupExplanation" = "Vos photos sont protégées par une clé de chiffrement unique. C'est le seul moyen de déchiffrer vos images si vous changez d'appareil ou réinstallez l'application.";
   "MainHomeView.KeyBackupWarning" = "Vous ne pourrez pas consulter vos médias sans cette clé.";
   "MainHomeView.ViewTheKey" = "Afficher la clé";
 

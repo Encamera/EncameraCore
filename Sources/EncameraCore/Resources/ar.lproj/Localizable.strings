@@ -38,13 +38,11 @@
 "DoYouWantToDeleteNotImported" = "هل انتهيت من استيراد الصور؟";
 "ImportTaskDetailsView.Done" = "تم";
 "Encrypting" = "يتم التشفير";
-"AlbumDetailView.ResetCoverImage" = "الافتراضي إلى أحدث صورة";
 "FooterView.MediaDetails" = "تفاصيل الوسائط";
 "Notification.InactiveUserReminder.Body" = "لا تنسَ تأمين المزيد من الصور عن طريق إضافتها إلى ألبومك. قم بالاستيراد الآن!";
 "EmptyAlbumTakeAPictureHeading" = "أنشئ ذكرى جديدة";
 "Key name is invalid, must be more than two characters" = "اسم المفتاح غير صالح، يجب أن يكون أكثر من حرفين";
 "AuthenticationMethod.SecurityLevel.password" = "الخيار الأكثر أمانًا";
-"AlbumDetailView.PhotoAccessAlertMessage" = "هل تريد حذف الصور من مكتبة الصور الخاصة بك بعد استيرادها؟ يتطلب تطبيق إنكاميرا إذن الوصول إلى مكتبة الصور الخاصة بك للقيام بذلك.";
 "Delete Album question" = "حذف الألبوم؟";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "أنا أفهم";
 "TelegramGroupJoinButtonText" = "انضم إلى المجموعة";
@@ -100,7 +98,6 @@
 "TakeSurveyTitle" = "تريد 3 أشهر مجانًا؟";
 "FinishedOnboardingSubtitle" = "لنؤمّن بعض الوسائط";
 "Notification.ImageSecurityReminder.Body" = "يمكنك أيضًا حفظ مقاطع الفيديو في ألبوماتك، وليس الصور فقط. جرّب ذلك الآن واحتفظ ببعضها!";
-"AlbumDetailView.NoLicenseDeletionWarningMessage" = "نظرًا لعدم امتلاكك ترخيصًا مدفوعًا لـ Encamera، ستتمكن فقط من عرض 10 صور في التطبيق. إذا قمت بحذف الصور من مكتبة الصور الخاصة بك، قد لا تتمكن من عرضها بدون ترخيص مدفوع.";
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ هام ⚠️";
 "Notification.PremiumReminder.Body" = "استخدم الرمز 'ENCAMERA20' للحصول على خصم 20٪ على أي خطة. سارع الآن!";
 "Skip for now" = "تخطي الآن";
@@ -113,12 +110,10 @@
 "MoveAlbumStorage" = "تغيير وحدة التخزين";
 "MediaSelectionTray.SelectMedia" = "اختر الوسائط";
 "EmptyAlbumImportPhotosActionTitle" = "استيراد الصور";
-"MainHomeView.KeyBackupExplanation" = "صورك محمية بمفتاح تشفير فريد. هذا هو السبيل الوحيد لفك تشفير صورك إذا قمت بتبديل الأجهزة أو إعادة تثبيت التطبيق.";
 "TaskProgressRow.Processing" = "جارٍ المعالجة: %@";
 "OnboardingCarousel.HeadingText1" = "ذكرياتك، محمية بالكامل";
 "Select a place to keep media for this key." = "اختر مكانًا للاحتفاظ بالوسائط لهذا المفتاح.";
 "AlbumDetailView.PhotoAccessRequired" = "مطلوب إذن الوصول إلى الصور";
-"AlbumDetailView.AddFirstImage" = "أضف صورتك الأولى";
 "CreateFirstAlbum" = "إنشاء الألبوم الأول";
 "ErrorImportingKeyPhrase" = "خطأ في استيراد العبارة الرئيسية";
 "AuthenticationMethod.ConfirmDisableFaceID" = "هل تريد فعلاً تعطيل %@؟";
@@ -183,7 +178,6 @@
 "Key Name: %@" = "اسم المفتاح: %@";
 "ViewInFiles" = "عرض في تطبيق الملفات";
 "TelegramGroupJoinTitle" = "انضم إلى مجموعة تيليجرام";
-"ImageSavedToAlbum" = "تم حفظ الصورة في الألبوم";
 "DoYouRememberYourPin" = "هل تتذكر رمز المرور الخاص بك؟";
 "PasswordSetSuccessMessage" = "تم حفظ كلمة المرور الجديدة الخاصة بك";
 "Add Key" = "إضافة مفتاح";
@@ -406,7 +400,6 @@
 "Change Key Album" = "أريد اختيار ألبوم وجهة آخر";
 "Delete this image?" = "هل تريد حذف هذه الصورة؟";
 "Password is too long, >%@" = "كلمة المرور طويلة جدًا، >%@";
-"AlbumDetailView.AddFirstImageSubtitle" = "استورد صورة من ألبومك أو افتح الكاميرا والتقط صورة جديدة لهذا الألبوم";
 "CustomPhotoPicker.SelectPhotos" = "اختر الصور";
 "AlbumSelectionModal.Description" = "حدد ألبومًا لنقل %@ عناصر إليه";
 "ImportTaskDetailsView.Title" = "مهام الاستيراد";
@@ -524,7 +517,6 @@
 "Add Existing Key" = "إضافة مفتاح موجود";
 "Could not delete keychain items." = "تعذر حذف عناصر سلسلة المفاتيح.";
 "ChooseYourStorage" = "اختر التخزين الخاص بك";
-"ChooseYourStorageDescription" = "اختر المكان الذي تريد حفظ صورك فيه بأمان من الآن فصاعدًا.";
 "TaskDetailCard.Created" = "تم الإنشاء: %@";
 "Unlock" = "فتح القفل";
 "BackUpKeysExplanation" = "إذا فقدت مفتاحك، سيكون من المستحيل استعادة بياناتك. احتفظ بنسخة احتياطية من مفاتيحك في مدير كلمات المرور بعد إنشائها، أو احفظها في iCloud.";
@@ -559,7 +551,6 @@
 "FinishedOnboardingTitle" = "أنت جاهز لاستخدام إنكاميرا!";
 "Share Key" = "مشاركة المفتاح";
 "Your Keys" = "مفاتيحك";
-"AlbumDetailView.CoverImageResetToast" = "صورة الغلاف الافتراضية هي أحدث صورة";
 "Notification.Scheduling.Error" = "حدث خطأ أثناء جدولة الإشعار: %@";
 "New Album Subheading" = "قم بتعيين اسم لهذا الألبوم المشفر للصور.";
 "Settings.CopiedToClipboard" = "تم النسخ إلى الحافظة";

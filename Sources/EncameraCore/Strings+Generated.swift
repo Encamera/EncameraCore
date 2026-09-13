@@ -18,10 +18,6 @@ public enum L10n {
   public static func fileS(_ p1: Int) -> String {
     return L10n.tr("Localizable", "%@ File(s)", p1, fallback: "Plural format key: \"%#@file_count@\"")
   }
-  /// Plural format key: "%#@image_count@"
-  public static func imageS(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "%@ Image(s)", p1, fallback: "Plural format key: \"%#@image_count@\"")
-  }
   /// Plural format key: "%#@item_count@"
   public static func itemS(_ p1: Int) -> String {
     return L10n.tr("Localizable", "%@ Item(s)", p1, fallback: "Plural format key: \"%#@item_count@\"")
@@ -130,8 +126,8 @@ public enum L10n {
   public static let chooseYourLoginMethod = L10n.tr("Localizable", "Choose your login method", fallback: "Choose your login method")
   /// Choose your storage
   public static let chooseYourStorage = L10n.tr("Localizable", "ChooseYourStorage", fallback: "Choose your storage")
-  /// Choose where to securely save your images from now on.
-  public static let chooseYourStorageDescription = L10n.tr("Localizable", "ChooseYourStorageDescription", fallback: "Choose where to securely save your images from now on.")
+  /// Choose where to securely save your media from now on.
+  public static let chooseYourStorageDescription = L10n.tr("Localizable", "ChooseYourStorageDescription", fallback: "Choose where to securely save your media from now on.")
   /// Clear
   public static let clear = L10n.tr("Localizable", "Clear", fallback: "Clear")
   /// Authentication Method View
@@ -335,8 +331,6 @@ public enum L10n {
   public static let iCloudStorageFeatureRowTitle = L10n.tr("Localizable", "iCloudStorageFeatureRowTitle", fallback: "iCloud storage & backup")
   /// I Forgot
   public static let iForgot = L10n.tr("Localizable", "IForgot", fallback: "I Forgot")
-  /// IMAGE SAVED TO ALBUM
-  public static let imageSavedToAlbum = L10n.tr("Localizable", "ImageSavedToAlbum", fallback: "IMAGE SAVED TO ALBUM")
   /// Import
   public static let `import` = L10n.tr("Localizable", "Import", fallback: "Import")
   /// Import from Files
@@ -408,6 +402,8 @@ public enum L10n {
   public static let loginMethodDescription = L10n.tr("Localizable", "LoginMethodDescription", fallback: "Choose how you want to access your private albums.")
   /// Make sure you remember your pin code!
   public static let makeSureYouRememberYourPin = L10n.tr("Localizable", "MakeSureYouRememberYourPin", fallback: "Make sure you remember your pin code!")
+  /// MEDIA SAVED TO ALBUM
+  public static let mediaSavedToAlbum = L10n.tr("Localizable", "MediaSavedToAlbum", fallback: "MEDIA SAVED TO ALBUM")
   /// ./Encamera/CameraView/CameraView.swift
   public static let missingCameraAccess = L10n.tr("Localizable", "Missing camera access", fallback: "Missing camera access")
   /// ./Encamera/AuthenticationView/AuthenticationView.swift
@@ -789,10 +785,10 @@ public enum L10n {
     public static let renameAlbumTitle = L10n.tr("Localizable", "AddAlbumModal.RenameAlbumTitle", fallback: "Let's rename your\nalbum")
   }
   public enum AlbumDetailView {
-    /// Add your first image
-    public static let addFirstImage = L10n.tr("Localizable", "AlbumDetailView.AddFirstImage", fallback: "Add your first image")
-    /// Import an image from your album or open the camera and take a new picture for this album
-    public static let addFirstImageSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstImageSubtitle", fallback: "Import an image from your album or open the camera and take a new picture for this album")
+    /// Add media to this album
+    public static let addFirstMedia = L10n.tr("Localizable", "AlbumDetailView.AddFirstMedia", fallback: "Add media to this album")
+    /// Import media from your photo library or open the camera to take a new photo or video for this album
+    public static let addFirstMediaSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstMediaSubtitle", fallback: "Import media from your photo library or open the camera to take a new photo or video for this album")
     /// Album Cover
     public static let albumCoverMenuTitle = L10n.tr("Localizable", "AlbumDetailView.AlbumCoverMenuTitle", fallback: "Album Cover")
     /// Album is now hidden
@@ -809,8 +805,8 @@ public enum L10n {
     public static let confirmDeletion = L10n.tr("Localizable", "AlbumDetailView.ConfirmDeletion", fallback: "Confirm Delete")
     /// Cover image disabled
     public static let coverImageRemovedToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageRemovedToast", fallback: "Cover image disabled")
-    /// Cover image defaults to latest image
-    public static let coverImageResetToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageResetToast", fallback: "Cover image defaults to latest image")
+    /// Cover image defaults to latest item
+    public static let coverImageResetToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageResetToast", fallback: "Cover image defaults to latest item")
     /// Do you want to delete %@ %@?
     public static func deleteSelectedMedia(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", String(describing: p1), String(describing: p2), fallback: "Do you want to delete %@ %@?")
@@ -881,8 +877,8 @@ public enum L10n {
     public static let moveFailedAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertTitle", fallback: "Couldn't Move Album")
     /// Move Media
     public static let moveMedia = L10n.tr("Localizable", "AlbumDetailView.MoveMedia", fallback: "Move Media")
-    /// Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.
-    public static let noLicenseDeletionWarningMessage = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningMessage", fallback: "Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.")
+    /// Because you don't have a paid license to Encamera, you will only be able to view 10 items in the app. If you delete items from your photo library, you may not be able to view them without a paid license.
+    public static let noLicenseDeletionWarningMessage = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningMessage", fallback: "Because you don't have a paid license to Encamera, you will only be able to view 10 items in the app. If you delete items from your photo library, you may not be able to view them without a paid license.")
     /// I Understand
     public static let noLicenseDeletionWarningPrimaryButton = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton", fallback: "I Understand")
     /// ⚠️ Important ⚠️
@@ -893,8 +889,8 @@ public enum L10n {
     public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Take a New Picture")
     /// Open Settings
     public static let openSettings = L10n.tr("Localizable", "AlbumDetailView.OpenSettings", fallback: "Open Settings")
-    /// Do you want to delete the images from your photo library after importing them? Encamera requires permission to your photo library to do this.
-    public static let photoAccessAlertMessage = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertMessage", fallback: "Do you want to delete the images from your photo library after importing them? Encamera requires permission to your photo library to do this.")
+    /// Do you want to delete these items from your photo library after importing them? Encamera requires permission to your photo library to do this.
+    public static let photoAccessAlertMessage = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertMessage", fallback: "Do you want to delete these items from your photo library after importing them? Encamera requires permission to your photo library to do this.")
     /// Delete
     public static let photoAccessAlertPrimaryButton = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertPrimaryButton", fallback: "Delete")
     /// Not Now
@@ -909,8 +905,8 @@ public enum L10n {
     public static let removeCoverImage = L10n.tr("Localizable", "AlbumDetailView.RemoveCoverImage", fallback: "Disable Album Cover")
     /// Rename Album
     public static let renameAlbum = L10n.tr("Localizable", "AlbumDetailView.RenameAlbum", fallback: "Rename Album")
-    /// Default to Latest Image
-    public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to Latest Image")
+    /// Default to Latest Item
+    public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to Latest Item")
     /// Select Media
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select Media")
     /// this device
@@ -1867,8 +1863,8 @@ public enum L10n {
   public enum MainHomeView {
     /// ./Encamera/MainHomeView/MainHomeView.swift
     public static let backupEncryptionKey = L10n.tr("Localizable", "MainHomeView.BackupEncryptionKey", fallback: "Back up your Encryption Key")
-    /// Your photos are protected with a unique encryption key. This is the only way to decrypt your images if you switch devices or reinstall the app.
-    public static let keyBackupExplanation = L10n.tr("Localizable", "MainHomeView.KeyBackupExplanation", fallback: "Your photos are protected with a unique encryption key. This is the only way to decrypt your images if you switch devices or reinstall the app.")
+    /// Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.
+    public static let keyBackupExplanation = L10n.tr("Localizable", "MainHomeView.KeyBackupExplanation", fallback: "Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.")
     /// You will not be able to view your media without this key.
     public static let keyBackupWarning = L10n.tr("Localizable", "MainHomeView.KeyBackupWarning", fallback: "You will not be able to view your media without this key.")
     /// View the Key

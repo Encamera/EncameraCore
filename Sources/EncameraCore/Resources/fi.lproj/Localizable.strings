@@ -1,7 +1,6 @@
 /* Fi Localization */
 
 
-"AlbumDetailView.PhotoAccessAlertMessage" = "Haluatko poistaa kuvat kuvakirjastostasi tuonnin jälkeen? Encamera tarvitsee luvan kuvakirjastoosi tämän tekemiseksi.";
 "AlbumDetailView.HideAlbumAlertTitle" = "Piilotetaanko tämä albumi?";
 "Saved to iCloud" = "Tallennettu iCloudiin";
 "KeyPhrase.CopyButton" = "Kopioi avainlause";
@@ -128,7 +127,6 @@
 "Password is too short, <%@" = "Salasana on liian lyhyt, <%@";
 "No iCloud account found on this device." = "Tältä laitteelta ei löytynyt iCloud-tiliä.";
 "CustomPhotoPicker.SwipeInstruction" = "Paina pitkään ja pyyhkäise valitaksesi useita kuvia";
-"ChooseYourStorageDescription" = "Valitse, mihin tallennat kuvasi turvallisesti jatkossa.";
 "Change Password" = "Vaihda salasana";
 "Family Shareable" = "Perheen kanssa jaettavissa";
 "SelectProduct" = "Valitse tuote";
@@ -181,9 +179,7 @@
 "Free Trial" = "Ilmainen kokeilu";
 "QuicklyTakePictures" = "Ota nopeasti kuvia ja videoita.";
 "Set as Active Key" = "Aseta aktiiviseksi näppäimeksi";
-"AlbumDetailView.ResetCoverImage" = "Oletusarvona uusin kuva";
 "Password is too long, >%@" = "Salasana on liian pitkä, >%@";
-"ImageSavedToAlbum" = "KUVA TALLENNETTU ALBUMIIN";
 "FaceIDOnlyAlert.Title" = "Tyhjennä PIN/salasana?";
 "Clear" = "Tyhjennä";
 "No info available" = "Ei tietoja saatavilla";
@@ -431,7 +427,6 @@ On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "Erasing in %@" = "Poistetaan %@:ssa";
 "GlobalImportProgress.DeleteFromPhotoLibraryMessage" = "Tämä poistaa kaikki tuodut valokuvat kuvakirjastostasi.";
 "Create an unlimited number of keys." = "Luo rajaton määrä avaimia.";
-"AlbumDetailView.CoverImageResetToast" = "Kansikuva oletuksena viimeisin kuva";
 "BackUpKeysHeader" = "Varmuuskopioi avaimet!";
 "This will save the media to your library." = "Tämä tallentaa median kirjastoon.";
 "PhotoPickerWrapper.SwipeDescription" = "Valitse useita kuvia yhdellä pyyhkäisyllä";
@@ -443,7 +438,6 @@ On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "AuthenticationMethod" = "Pääsykoodin asetukset";
 "Where do you want to save this key's media?" = "Mihin haluat tallentaa tämän avaimen median?";
 "Choose your login method" = "Valitse kirjautumistapa";
-"AlbumDetailView.AddFirstImageSubtitle" = "Tuo kuva albumistasi tai avaa kamera ja ota uusi kuva tähän albumiin";
 "Settings.PurchasesRestoredMessage" = "Kaikki voimassa olevat ostoksesi on palautettu.";
 "appDataExplanation" = "Haluatko varmasti poistaa KAIKKI sovelluksen tiedot?
 
@@ -499,7 +493,6 @@ Sovellus sulkeutuu, kun poisto on valmis.
 "PleaseEnterAnAlbumName" = "Anna albumille nimi";
 "Delete this image?" = "Poistetaanko tämä kuva?";
 "Key Entry" = "Avaimen syöttö";
-"MainHomeView.KeyBackupExplanation" = "Kuvasi on suojattu ainutlaatuisella salausavaimella. Tämä on ainoa tapa purkaa kuviesi salaus, jos vaihdat laitetta tai asennat sovelluksen uudelleen.";
 "Confirm adding key" = "Vahvista avaimen lisääminen";
 "TaskDetailCard.DeleteMessage" = "Tämä poistaa %@ kuva(a) Kuvakirjastostasi, jotka tuotiin Encameraan.";
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = " Tärkeää ";
@@ -520,7 +513,6 @@ Sovellus sulkeutuu, kun poisto on valmis.
 "AlbumDetailView.Select" = "Valitse media";
 "VIDEO" = "VIDEO";
 "BackUpKeysExplanation" = "Jos kadotat avaimen, tietojasi ei voi palauttaa. Varmuuskopioi avaimesi salasananhallintaan niiden luomisen jälkeen tai tallenna ne iCloudiin.";
-"AlbumDetailView.AddFirstImage" = "Lisää ensimmäinen kuvasi";
 "Not authenticated for this operation." = "Ei todennusta tähän toimintaan.";
 "Settings.DefaultStorageOption" = "Oletustallennusvaihtoehto";
 "TaskDetailCard.PhotoLibraryAccessRequired" = "Valokirjaston käyttöoikeus vaaditaan";
@@ -533,7 +525,6 @@ Sovellus sulkeutuu, kun poisto on valmis.
 "HideAlbumsTutorial.Heading2" = "Siirry piilotettuihin albumeihin";
 "LetsGiveYourAlbumAName" = "Annetaan albumillesi nimi";
 "AlbumDetailView.CoverImageRemovedToast" = "Kansikuva poistettu käytöstä";
-"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Koska sinulla ei ole maksullista Encamera-lisenssiä, voit katsella sovelluksessa vain 10 kuvaa. Jos poistat kuvia kuvakirjastostasi, et välttämättä pysty katsomaan niitä ilman maksullista lisenssiä.";
 "AlbumDetailView.RenameAlbum" = "Nimeä albumi uudelleen";
 "SelectAnOption" = "Valitse vaihtoehto";
 "SetPinCode" = "Aseta PIN-koodi";

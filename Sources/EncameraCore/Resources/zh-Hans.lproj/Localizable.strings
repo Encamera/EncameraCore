@@ -33,7 +33,6 @@
 "OpenSettings" = "打开设置";
 "FinishImportingMedia" = "完成导入媒体";
 "TakeYourFirstPicture" = "拍摄你的第一张照片";
-"ImageSavedToAlbum" = "图像已保存到相册";
 "NoAlbum" = "没有相册";
 "NoAlbumSelected" = "未选择相册。您必须选择一个相册来保存照片。";
 "OpenSystemSettings" = "前往设置";
@@ -68,7 +67,6 @@
 "Erasing in %@" = "正在擦除%@";
 "Congratulations!" = "恭喜！";
 "ChooseYourStorage" = "选择您的存储";
-"ChooseYourStorageDescription" = "选择从现在起安全保存图像的位置。";
 "You took your first photo! 📸 🥳" = "你拍了第一张照片！📸 🥳";
 "See the photos that belong to a key by tapping the " = "点击屏幕左上角的";
 " icon on the top left of the screen." = "图标查看属于某个密钥的照片。";
@@ -122,9 +120,7 @@
 "AlbumDetailView.DeleteSelectedMedia" = "您想删除%@吗？";
 "AlbumDetailView.AlbumCoverMenuTitle" = "专辑封面";
 "AlbumDetailView.RemoveCoverImage" = "禁用专辑封面";
-"AlbumDetailView.ResetCoverImage" = "默认使用最新图片";
 "AlbumDetailView.CoverImageRemovedToast" = "封面图片已禁用";
-"AlbumDetailView.CoverImageResetToast" = "封面图片默认为最新图片";
 "AlbumDetailView.MoveMedia" = "移动媒体";
 "AlbumDetailView.MoveMediaConfirm" = "将 %@ 项目%@ 移动到 %@?";
 "AlbumDetailView.MovedToast" = "已将 %@ 项目%@ 移动到 %@";
@@ -305,16 +301,12 @@
 "FinishedReadyToUseEncamera" = "您已准备好使用\nEncamera！";
 "FinishedSubtitle" = "让我们创建您的第一个相册";
 "CreateFirstAlbum" = "创建第一个相册";
-"AlbumDetailView.AddFirstImage" = "添加您的第一张图片";
-"AlbumDetailView.AddFirstImageSubtitle" = "从相册中导入图片或打开相机为此相册拍摄新照片";
 "AlbumDetailView.ImportButton" = "导入图片";
 "AlbumDetailView.OpenCamera" = "拍摄新照片";
 "AlbumDetailView.PhotoAccessAlertTitle" = "导入后删除？";
-"AlbumDetailView.PhotoAccessAlertMessage" = "导入后是否要从照片库中删除图片？Encamera 需要访问您的照片库权限才能执行此操作。";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "删除";
 "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "暂不";
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ 重要 ⚠️";
-"AlbumDetailView.NoLicenseDeletionWarningMessage" = "由于您没有 Encamera 的付费许可证，您在应用中只能查看 10 张图片。如果您从照片库中删除图片，可能在没有付费许可证的情况下无法查看。";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "我明白了";
 "AlbumDetailView.Select" = "选择媒体";
 "AlbumDetailView.RenameAlbum" = "重命名相册";
@@ -555,7 +547,6 @@
 "AuthenticationView.ForgotPassword" = "忘记密码？重置应用";
 "SettingsView.UnknownError" = "未知错误";
 "MainHomeView.BackupEncryptionKey" = "备份您的加密密钥";
-"MainHomeView.KeyBackupExplanation" = "您的照片受到唯一加密密钥的保护。如果您更换设备或重新安装应用程序，这是解密图像的唯一方法。";
 "MainHomeView.KeyBackupWarning" = "没有这个密钥，您将无法查看您的媒体。";
 "MainHomeView.ViewTheKey" = "查看密钥";
 

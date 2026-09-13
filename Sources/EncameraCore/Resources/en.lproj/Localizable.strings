@@ -55,7 +55,7 @@
 "OpenSettings" = "Open Settings";
 "FinishImportingMedia" = "Finish Importing Media";
 "TakeYourFirstPicture" = "TAKE YOUR FIRST PICTURE";
-"ImageSavedToAlbum" = "IMAGE SAVED TO ALBUM";
+"MediaSavedToAlbum" = "MEDIA SAVED TO ALBUM";
 "NoAlbum" = "No Album";
 "NoAlbumSelected" = "No Album Selected. You must select an album to save photos to.";
 "OpenSystemSettings" = "Go to Settings";
@@ -155,7 +155,7 @@
 /* ./Encamera/Tutorial/ChooseStorageModal.swift */
 "Congratulations!" = "Congratulations!";
 "ChooseYourStorage" = "Choose your storage";
-"ChooseYourStorageDescription" = "Choose where to securely save your images from now on.";
+"ChooseYourStorageDescription" = "Choose where to securely save your media from now on.";
 "You took your first photo! 📸 🥳"= "You took your first photo! 📸 🥳";
 "See the photos that belong to a key by tapping the " = "See the photos that belong to a key by tapping the ";
 " icon on the top left of the screen." = " icon on the top left of the screen.";
@@ -221,9 +221,9 @@
 "AlbumDetailView.DeleteSelectedMedia" = "Do you want to delete %@ %@?";
 "AlbumDetailView.AlbumCoverMenuTitle" = "Album Cover";
 "AlbumDetailView.RemoveCoverImage" = "Disable Album Cover";
-"AlbumDetailView.ResetCoverImage" = "Default to Latest Image";
+"AlbumDetailView.ResetCoverImage" = "Default to Latest Item";
 "AlbumDetailView.CoverImageRemovedToast" = "Cover image disabled";
-"AlbumDetailView.CoverImageResetToast" = "Cover image defaults to latest image";
+"AlbumDetailView.CoverImageResetToast" = "Cover image defaults to latest item";
 "AlbumDetailView.MoveMedia" = "Move Media";
 "AlbumDetailView.MovedToast" = "Moved %@ %@ to %@";
 "AlbumDetailView.MoveErrorToast" = "Failed to move %@ %@";
@@ -512,16 +512,16 @@
 "FinishedReadyToUseEncamera" = "You are ready to use\nEncamera!";
 "FinishedSubtitle" = "Let's create your first album";
 "CreateFirstAlbum" = "Create First Album";
-"AlbumDetailView.AddFirstImage" = "Add your first image";
-"AlbumDetailView.AddFirstImageSubtitle" = "Import an image from your album or open the camera and take a new picture for this album";
+"AlbumDetailView.AddFirstMedia" = "Add media to this album";
+"AlbumDetailView.AddFirstMediaSubtitle" = "Import media from your photo library or open the camera to take a new photo or video for this album";
 "AlbumDetailView.ImportButton" = "Import Pictures";
 "AlbumDetailView.OpenCamera" = "Take a New Picture";
 "AlbumDetailView.PhotoAccessAlertTitle" = "Delete After Import?";
-"AlbumDetailView.PhotoAccessAlertMessage" = "Do you want to delete the images from your photo library after importing them? Encamera requires permission to your photo library to do this.";
+"AlbumDetailView.PhotoAccessAlertMessage" = "Do you want to delete these items from your photo library after importing them? Encamera requires permission to your photo library to do this.";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Delete";
 "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Not Now";
 "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Important ⚠️";
-"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Because you don't have a paid license to Encamera, you will only be able to view 10 images in the app. If you delete images from your photo library, you may not be able to view them without a paid license.";
+"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Because you don't have a paid license to Encamera, you will only be able to view 10 items in the app. If you delete items from your photo library, you may not be able to view them without a paid license.";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "I Understand";
 "AlbumDetailView.Select" = "Select Media";
 "AlbumDetailView.RenameAlbum" = "Rename Album";
@@ -1049,7 +1049,7 @@
 
 /* ./Encamera/MainHomeView/MainHomeView.swift */
 "MainHomeView.BackupEncryptionKey" = "Back up your Encryption Key";
-"MainHomeView.KeyBackupExplanation" = "Your photos are protected with a unique encryption key. This is the only way to decrypt your images if you switch devices or reinstall the app.";
+"MainHomeView.KeyBackupExplanation" = "Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.";
 "MainHomeView.KeyBackupWarning" = "You will not be able to view your media without this key.";
 "MainHomeView.ViewTheKey" = "View the Key";
 "MainHomeView.TabBar.Camera" = "Camera";
