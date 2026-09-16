@@ -84,6 +84,13 @@ public enum OnboardingFlowScreen: String, Identifiable {
     /// Screen 3 — hold-to-delete (reusing `HoldToConfirmButton`), gated on being
     /// online. On success: fresh key + normal auth. On partial failure: honest report.
     case returningUserDestructiveHold
+    /// One-time upgrade of every remaining iCloud Drive album to CloudKit,
+    /// presented outside the onboarding navigation stack. The raw values are the
+    /// `onboardingScreen` marker text; the screens are hosted by their own flow,
+    /// not `handleNavigationFor`.
+    case cloudKitUpgradeIntro
+    case cloudKitUpgradeProgress
+    case cloudKitUpgradeComplete
     public var id: Self { self }
 }
 

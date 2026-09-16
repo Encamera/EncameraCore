@@ -1264,6 +1264,74 @@ public enum L10n {
     /// iCloud can't accept this album yet
     public static let schemaNotDeployedTitle = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedTitle", fallback: "iCloud can't accept this album yet")
   }
+  public enum CloudKitUpgrade {
+    /// Update it now for faster, more reliable syncing
+    public static let albumCardBody = L10n.tr("Localizable", "CloudKitUpgrade.AlbumCardBody", fallback: "Update it now for faster, more reliable syncing")
+    /// Get better syncing for this album
+    public static let albumCardTitle = L10n.tr("Localizable", "CloudKitUpgrade.AlbumCardTitle", fallback: "Get better syncing for this album")
+    /// Plural format key: "%#@item_count@"
+    public static func albumItemCount(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "CloudKitUpgrade.AlbumItemCount", p1, fallback: "Plural format key: \"%#@item_count@\"")
+    }
+    /// Albums included
+    public static let albumsIncludedTitle = L10n.tr("Localizable", "CloudKitUpgrade.AlbumsIncludedTitle", fallback: "Albums included")
+    /// Almost done
+    public static let almostDone = L10n.tr("Localizable", "CloudKitUpgrade.AlmostDone", fallback: "Almost done")
+    /// Your photos will now sync faster and more reliably across your devices.
+    public static let completeBody = L10n.tr("Localizable", "CloudKitUpgrade.CompleteBody", fallback: "Your photos will now sync faster and more reliably across your devices.")
+    /// Upgrade complete
+    public static let completeTitle = L10n.tr("Localizable", "CloudKitUpgrade.CompleteTitle", fallback: "Upgrade complete")
+    /// Continue
+    public static let `continue` = L10n.tr("Localizable", "CloudKitUpgrade.Continue", fallback: "Continue")
+    /// Estimated time
+    public static let estimatedTime = L10n.tr("Localizable", "CloudKitUpgrade.EstimatedTime", fallback: "Estimated time")
+    /// Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.
+    public static let howItWorksBody = L10n.tr("Localizable", "CloudKitUpgrade.HowItWorksBody", fallback: "Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.")
+    /// How the upgrade works
+    public static let howItWorksTitle = L10n.tr("Localizable", "CloudKitUpgrade.HowItWorksTitle", fallback: "How the upgrade works")
+    /// To start using the new syncing experience, your photo library needs a one-time upgrade.
+    public static let introBody = L10n.tr("Localizable", "CloudKitUpgrade.IntroBody", fallback: "To start using the new syncing experience, your photo library needs a one-time upgrade.")
+    /// Plural format key: "This update includes %#@album_count@"
+    public static func introIncludes(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "CloudKitUpgrade.IntroIncludes", p1, fallback: "Plural format key: \"This update includes %#@album_count@\"")
+    }
+    /// Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.
+    public static let introSecurity = L10n.tr("Localizable", "CloudKitUpgrade.IntroSecurity", fallback: "Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.")
+    /// ./Encamera/Onboarding/CloudKitUpgrade - One-time upgrade of all iCloud Drive albums to CloudKit
+    public static let introTitle = L10n.tr("Localizable", "CloudKitUpgrade.IntroTitle", fallback: "Faster, more reliable iCloud sync")
+    /// Keep Encamera open until the upgrade finishes. You can switch apps, but don't force quit.
+    public static let keepOpen = L10n.tr("Localizable", "CloudKitUpgrade.KeepOpen", fallback: "Keep Encamera open until the upgrade finishes. You can switch apps, but don't force quit.")
+    /// Maybe later
+    public static let laterMaybeLater = L10n.tr("Localizable", "CloudKitUpgrade.LaterMaybeLater", fallback: "Maybe later")
+    /// You'll still be able to use Encamera, but your existing library won't benefit from the improved sync experience until you complete the upgrade.
+    public static let laterMessage = L10n.tr("Localizable", "CloudKitUpgrade.LaterMessage", fallback: "You'll still be able to use Encamera, but your existing library won't benefit from the improved sync experience until you complete the upgrade.")
+    /// Upgrade later?
+    public static let laterTitle = L10n.tr("Localizable", "CloudKitUpgrade.LaterTitle", fallback: "Upgrade later?")
+    /// Update now
+    public static let laterUpdateNow = L10n.tr("Localizable", "CloudKitUpgrade.LaterUpdateNow", fallback: "Update now")
+    /// Continue upgrading
+    public static let pauseContinue = L10n.tr("Localizable", "CloudKitUpgrade.PauseContinue", fallback: "Continue upgrading")
+    /// You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.
+    public static let pauseMessage = L10n.tr("Localizable", "CloudKitUpgrade.PauseMessage", fallback: "You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.")
+    /// Pause Update
+    public static let pausePause = L10n.tr("Localizable", "CloudKitUpgrade.PausePause", fallback: "Pause Update")
+    /// Pause the upgrade?
+    public static let pauseTitle = L10n.tr("Localizable", "CloudKitUpgrade.PauseTitle", fallback: "Pause the upgrade?")
+    /// Upgrading album %@ of %@
+    public static func progressTitle(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitUpgrade.ProgressTitle", String(describing: p1), String(describing: p2), fallback: "Upgrading album %@ of %@")
+    }
+    /// See how it works
+    public static let seeHowItWorks = L10n.tr("Localizable", "CloudKitUpgrade.SeeHowItWorks", fallback: "See how it works")
+    /// About %@ left
+    public static func timeLeft(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitUpgrade.TimeLeft", String(describing: p1), fallback: "About %@ left")
+    }
+    /// Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.
+    public static let wifiBody = L10n.tr("Localizable", "CloudKitUpgrade.WifiBody", fallback: "Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.")
+    /// We recommend using Wi‑Fi
+    public static let wifiTitle = L10n.tr("Localizable", "CloudKitUpgrade.WifiTitle", fallback: "We recommend using Wi‑Fi")
+  }
   public enum Common {
     /// Cancel
     public static let cancel = L10n.tr("Localizable", "Common.Cancel", fallback: "Cancel")
@@ -2438,6 +2506,8 @@ public enum L10n {
     public static let bannersClearedMessage = L10n.tr("Localizable", "Settings.BannersClearedMessage", fallback: "All dismissed banners have been reset and will appear again.")
     /// Reset Banners
     public static let clearDismissedBanners = L10n.tr("Localizable", "Settings.ClearDismissedBanners", fallback: "Reset Banners")
+    /// Upgrade iCloud albums
+    public static let cloudKitUpgradeRow = L10n.tr("Localizable", "Settings.CloudKitUpgradeRow", fallback: "Upgrade iCloud albums")
     /// Contact Support
     public static let contact = L10n.tr("Localizable", "Settings.Contact", fallback: "Contact Support")
     /// Copied to clipboard
