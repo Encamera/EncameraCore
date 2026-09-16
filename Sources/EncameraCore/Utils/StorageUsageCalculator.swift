@@ -3,22 +3,27 @@
 //  EncameraCore
 //
 //  The single entry point behind the Storage Insights screen: walks every root
-//  Encamera writes to and returns a `StorageUsageBreakdown`. See
-//  `Documentation/storage-accounting-model.md` for what each bucket means.
+//  Encamera writes to and returns a `StorageUsageBreakdown`, tabulated per album
+//  and per media type. See `Documentation/storage-accounting-model.md` for what
+//  each bucket means.
 //
 
 import Foundation
+import CryptoKit
 
 public actor StorageUsageCalculator: DebugPrintable {
 
     private let albumManager: AlbumManaging
     private let cache: CloudKitBlobCache
-    private let backfill: AlbumSizeBackfill
+    private let driveSizing: ICloudDriveSizing
     private let thumbnailDirectory: URL
     private let indexDirectory: URL
     /// Test seam: production reads the real per-album sidecar, a fixture supplies its
     /// own so the walk can be exercised without an Application Support directory.
     private let makeSidecar: @Sendable (Album) -> AlbumSizeSidecar
+    /// Test seam: how many media components the album's index holds. Decides whether
+    /// a CloudKit album with no sidecar is genuinely empty or has never been measured.
+    private let indexComponentCount: @Sendable (Album) async -> Int
 
     /// Whether the last run's disk walk executed on the main thread. Nothing in the
     /// app reads this; `StorageUsageCalculatorTests` does, because "does not block
@@ -29,16 +34,21 @@ public actor StorageUsageCalculator: DebugPrintable {
     ///   instance would report a divergent snapshot of the same directory.
     public init(albumManager: AlbumManaging,
                 cache: CloudKitBlobCache = .shared,
-                backfill: AlbumSizeBackfill = AlbumSizeBackfill(),
+                driveSizing: ICloudDriveSizing = ICloudDriveSizer(),
                 thumbnailDirectory: URL = MediaPreviewStorage.directory,
                 indexDirectory: URL = MediaIndexStore.indexDirectoryURL(),
-                makeSidecar: @escaping @Sendable (Album) -> AlbumSizeSidecar = { AlbumSizeSidecar(album: $0) }) {
+                makeSidecar: @escaping @Sendable (Album) -> AlbumSizeSidecar = { AlbumSizeSidecar(album: $0) },
+                indexComponentCount: @escaping @Sendable (Album) async -> Int = { album in
+                    let entries = await MediaIndexStore(album: album).current()?.entries ?? []
+                    return entries.reduce(0) { $0 + ($1.hasPhotoComponent ? 1 : 0) + ($1.hasVideoComponent ? 1 : 0) }
+                }) {
         self.albumManager = albumManager
         self.cache = cache
-        self.backfill = backfill
+        self.driveSizing = driveSizing
         self.thumbnailDirectory = thumbnailDirectory
         self.indexDirectory = indexDirectory
         self.makeSidecar = makeSidecar
+        self.indexComponentCount = indexComponentCount
     }
 
     /// Measures every bucket.
@@ -55,35 +65,82 @@ public actor StorageUsageCalculator: DebugPrintable {
         lastRunTouchedMainThread = Thread.isMainThread
         let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
 
-        var localMediaBytes: Int64 = 0
+        // Allocated size, not the in-memory index: the point of the disk-truth
+        // accessor is that orphaned files still occupy the user's storage.
+        let cacheFiles = await cache.allocatedFiles()
+        var cacheComponentsByFolder: [String: [MediaComponentBytes]] = [:]
+        for file in cacheFiles {
+            cacheComponentsByFolder[file.albumFolder, default: []]
+                .append(MediaComponentBytes(recordName: file.recordName, bytes: file.allocatedBytes))
+        }
+
+        var localMedia = MediaTypeBytes.zero
+        var cloudKitMedia: MediaTypeBytes? = .zero
+        var iCloudDriveMedia: MediaTypeBytes? = .zero
         var legacyICloudDriveAlbums = 0
-        var cloudBytes: Int64 = 0
-        var cloudBytesKnown = true
+        var albumBreakdowns: [AlbumStorageBreakdown] = []
+        let driveReachable = driveSizing.isReachable
 
         for album in albums {
             try Task.checkCancellation()
+            let indexBytes = try allocatedIndexBytes(for: album)
+
             switch album.storageOption {
             case .local:
-                localMediaBytes += try allocatedBytes(under: album.storageURL)
-            case .icloud:
-                // Excluded from every bucket by the accounting model; counted only so
-                // the screen can say so rather than silently under-reporting.
-                legacyICloudDriveAlbums += 1
+                let media = MediaTypeBytes.tabulate(try mediaComponents(under: album.storageURL))
+                localMedia = localMedia + media
+                albumBreakdowns.append(AlbumStorageBreakdown(albumID: album.id,
+                                                             storageOption: .local,
+                                                             mediaBytes: media,
+                                                             indexBytes: indexBytes))
             case .cloudKit:
-                if let bytes = try await backfill.cloudBytes(for: album, sidecar: makeSidecar(album)) {
-                    cloudBytes += bytes
-                } else {
-                    // One unknowable album makes the whole cloud figure unknowable: a
-                    // partial sum rendered as a total is a lie, not an approximation.
-                    cloudBytesKnown = false
+                // The sidecar is the only source. The sync path never writes one for
+                // an album with no media, so no sidecar and an empty index is a known
+                // zero; no sidecar beside an index with media is an album that has
+                // never been measured, and one such album makes the whole method
+                // unknowable.
+                let sidecar = makeSidecar(album)
+                var media: MediaTypeBytes?
+                if await sidecar.existsOnDisk() {
+                    let sizes = await sidecar.sizesByRecordName()
+                    media = MediaTypeBytes.tabulate(sizes.map { MediaComponentBytes(recordName: $0.key, bytes: $0.value) })
+                } else if await indexComponentCount(album) == 0 {
+                    media = .zero
                 }
+                cloudKitMedia = media.flatMap { m in cloudKitMedia.map { $0 + m } }
+                // The blob cache keeps one folder per album, named the same way the
+                // album's storage URL is; the getter does no filesystem I/O.
+                let cached = MediaTypeBytes.tabulate(cacheComponentsByFolder[album.storageURL.lastPathComponent] ?? [])
+                albumBreakdowns.append(AlbumStorageBreakdown(albumID: album.id,
+                                                             storageOption: .cloudKit,
+                                                             mediaBytes: media,
+                                                             cachedBytes: cached,
+                                                             indexBytes: indexBytes))
+            case .icloud:
+                // Measured in the cloud at logical size; its on-device copies are
+                // excluded from every device bucket by the accounting model. The
+                // album URL is only built once iCloud Drive is known to be reachable.
+                legacyICloudDriveAlbums += 1
+                var media: MediaTypeBytes?
+                if driveReachable, let sizes = await driveSizing.logicalSizes(inAlbumDirectory: album.storageURL) {
+                    // The metadata query also lists the directory itself and anything
+                    // nested; only names that name a media type are media.
+                    let components = sizes
+                        .map { MediaComponentBytes(filename: $0.key, bytes: $0.value) }
+                        .filter { $0.type == .photo || $0.type == .video }
+                    media = MediaTypeBytes.tabulate(components)
+                }
+                iCloudDriveMedia = media.flatMap { m in iCloudDriveMedia.map { $0 + m } }
+                albumBreakdowns.append(AlbumStorageBreakdown(albumID: album.id,
+                                                             storageOption: .icloud,
+                                                             mediaBytes: media,
+                                                             indexBytes: indexBytes))
             }
         }
 
         try Task.checkCancellation()
-        // Allocated size, not the in-memory index: the point of the disk-truth
-        // accessor is that orphaned files still occupy the user's storage.
-        let cachedCloudBytes = await cache.allocatedDiskBytes()
+        // Every cache file, including any in a folder no album claims.
+        let cachedCloud = MediaTypeBytes.tabulate(cacheComponentsByFolder.values.flatMap { $0 })
 
         try Task.checkCancellation()
         let thumbnailBytes = try allocatedBytes(under: thumbnailDirectory)
@@ -92,17 +149,21 @@ public actor StorageUsageCalculator: DebugPrintable {
         let indexBytes = try allocatedBytes(under: indexDirectory)
 
         let breakdown = StorageUsageBreakdown(
-            localMediaBytes: localMediaBytes,
-            cachedCloudBytes: cachedCloudBytes,
+            localMedia: localMedia,
+            cachedCloud: cachedCloud,
             thumbnailBytes: thumbnailBytes,
             indexBytes: indexBytes,
-            cloudBytes: cloudBytesKnown ? cloudBytes : nil,
+            cloudKitMedia: cloudKitMedia,
+            iCloudDriveMedia: iCloudDriveMedia,
+            albums: albumBreakdowns,
             legacyICloudDriveAlbumCount: legacyICloudDriveAlbums
         )
-        // Byte counts only — never an album name, which would put cleartext in the logs.
-        printDebug("breakdown ok albums=\(albums.count) device=\(breakdown.totalDeviceBytes) reclaimable=\(breakdown.reclaimableBytes) cloud=\(breakdown.cloudBytes.map(String.init) ?? "unavailable") legacyAlbums=\(legacyICloudDriveAlbums)")
+        // Byte counts only — never an album name or id, which would put cleartext in the logs.
+        printDebug("breakdown ok albums=\(albums.count) device=\(breakdown.totalDeviceBytes) reclaimable=\(breakdown.reclaimableBytes) ck=\(cloudKitMedia.map { String($0.totalBytes) } ?? "unavailable") drive=\(iCloudDriveMedia.map { String($0.totalBytes) } ?? "unavailable") legacyAlbums=\(legacyICloudDriveAlbums)")
         return breakdown
     }
+
+    private static let sizeKeys: [URLResourceKey] = [.isRegularFileKey, .totalFileAllocatedSizeKey, .fileSizeKey]
 
     /// Bytes a directory tree occupies as the filesystem allocates them.
     ///
@@ -112,20 +173,48 @@ public actor StorageUsageCalculator: DebugPrintable {
     /// zero rather than throwing: `CloudKitStorageModel.baseURL` is a pure getter and
     /// may name a directory that was never created.
     private func allocatedBytes(under directory: URL) throws -> Int64 {
-        let keys: [URLResourceKey] = [.isRegularFileKey, .totalFileAllocatedSizeKey, .fileSizeKey]
+        var total: Int64 = 0
+        try forEachRegularFile(under: directory) { _, bytes in total += bytes }
+        return total
+    }
+
+    /// Every regular file under a local album directory, classified by name.
+    private func mediaComponents(under directory: URL) throws -> [MediaComponentBytes] {
+        var components: [MediaComponentBytes] = []
+        try forEachRegularFile(under: directory) { url, bytes in
+            components.append(MediaComponentBytes(filename: url.lastPathComponent, bytes: bytes))
+        }
+        return components
+    }
+
+    private func forEachRegularFile(under directory: URL, _ body: (URL, Int64) -> Void) throws {
         guard FileManager.default.fileExists(atPath: directory.path),
               let enumerator = FileManager.default.enumerator(at: directory,
-                                                              includingPropertiesForKeys: keys) else {
-            return 0
+                                                              includingPropertiesForKeys: Self.sizeKeys) else {
+            return
         }
-        var total: Int64 = 0
         var seen = 0
         for case let url as URL in enumerator {
             // Checked periodically rather than per file: a large album is tens of
             // thousands of files, and the check is not free.
             seen += 1
             if seen % 128 == 0 { try Task.checkCancellation() }
-            guard let values = try? url.resourceValues(forKeys: Set(keys)),
+            guard let values = try? url.resourceValues(forKeys: Set(Self.sizeKeys)),
+                  values.isRegularFile == true else { continue }
+            body(url, Int64(values.totalFileAllocatedSize ?? values.fileSize ?? 0))
+        }
+    }
+
+    /// The album's index, size sidecar and cover sidecar, which share one hashed
+    /// stem in the index directory (see `MediaIndexStore.indexURL(for:)`,
+    /// `AlbumSizeSidecar.sidecarURL(for:)`, `AlbumCoverSidecar.sidecarURL(for:)`).
+    private func allocatedIndexBytes(for album: Album) throws -> Int64 {
+        let digest = SHA256.hash(data: Data(album.id.utf8))
+        let stem = digest.map { String(format: "%02x", $0) }.joined()
+        var total: Int64 = 0
+        for ext in ["encindex", "encsizes", "enccover"] {
+            let url = indexDirectory.appendingPathComponent("\(stem).\(ext)")
+            guard let values = try? url.resourceValues(forKeys: Set(Self.sizeKeys)),
                   values.isRegularFile == true else { continue }
             total += Int64(values.totalFileAllocatedSize ?? values.fileSize ?? 0)
         }

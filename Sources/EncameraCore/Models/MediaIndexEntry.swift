@@ -110,6 +110,16 @@ public enum MediaRecordName {
         }
         return (id, type)
     }
+
+    /// `parse`, over a blob-cache filename: a record name optionally followed by
+    /// the `#c<n>` suffix a chunked blob's pieces carry (`ChunkedBlobStore`).
+    static func parseCachedFileName(_ fileName: String) -> (id: String, type: MediaType?) {
+        var base = fileName
+        if let chunkSuffix = base.range(of: "#c[0-9]+$", options: .regularExpression) {
+            base.removeSubrange(chunkSuffix)
+        }
+        return parse(base)
+    }
 }
 
 public extension Array where Element == MediaIndexEntry {

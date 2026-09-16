@@ -2572,6 +2572,14 @@ public enum L10n {
     public static func canBeFreed(_ p1: Any) -> String {
       return L10n.tr("Localizable", "StorageInsights.CanBeFreed", String(describing: p1), fallback: "%@ can be freed")
     }
+    /// Clear up %@
+    public static func clearUp(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "StorageInsights.ClearUp", String(describing: p1), fallback: "Clear up %@")
+    }
+    /// Photos and videos in iCloud albums will show up here.
+    public static let cloudEmptySubtitle = L10n.tr("Localizable", "StorageInsights.CloudEmptySubtitle", fallback: "Photos and videos in iCloud albums will show up here.")
+    /// Nothing in iCloud yet
+    public static let cloudEmptyTitle = L10n.tr("Localizable", "StorageInsights.CloudEmptyTitle", fallback: "Nothing in iCloud yet")
     /// Photos you take or import will show up here.
     public static let emptySubtitle = L10n.tr("Localizable", "StorageInsights.EmptySubtitle", fallback: "Photos you take or import will show up here.")
     /// Nothing stored on this device yet
@@ -2612,20 +2620,20 @@ public enum L10n {
     public static let indexes = L10n.tr("Localizable", "StorageInsights.Indexes", fallback: "Album indexes")
     /// In iCloud
     public static let inICloud = L10n.tr("Localizable", "StorageInsights.InICloud", fallback: "In iCloud")
-    /// %d legacy iCloud Drive album(s) are managed by iOS and aren't included here.
+    /// %d legacy iCloud Drive album(s) are managed by iOS; their downloaded copies aren't included here.
     public static func legacyFootnote(_ p1: Int) -> String {
-      return L10n.tr("Localizable", "StorageInsights.LegacyFootnote", p1, fallback: "%d legacy iCloud Drive album(s) are managed by iOS and aren't included here.")
+      return L10n.tr("Localizable", "StorageInsights.LegacyFootnote", p1, fallback: "%d legacy iCloud Drive album(s) are managed by iOS; their downloaded copies aren't included here.")
     }
-    /// Photos & videos on this device
-    public static let localMedia = L10n.tr("Localizable", "StorageInsights.LocalMedia", fallback: "Photos & videos on this device")
     /// Measuring…
     public static let measuring = L10n.tr("Localizable", "StorageInsights.Measuring", fallback: "Measuring…")
-    /// Nothing to free up
-    public static let nothingToFree = L10n.tr("Localizable", "StorageInsights.NothingToFree", fallback: "Nothing to free up")
+    /// None can be freed
+    public static let nothingToFree = L10n.tr("Localizable", "StorageInsights.NothingToFree", fallback: "None can be freed")
     /// On this device
     public static let onThisDevice = L10n.tr("Localizable", "StorageInsights.OnThisDevice", fallback: "On this device")
-    /// Can be freed
-    public static let reclaimable = L10n.tr("Localizable", "StorageInsights.Reclaimable", fallback: "Can be freed")
+    /// Photos
+    public static let photos = L10n.tr("Localizable", "StorageInsights.Photos", fallback: "Photos")
+    /// Clearable
+    public static let reclaimable = L10n.tr("Localizable", "StorageInsights.Reclaimable", fallback: "Clearable")
     /// Try again
     public static let retry = L10n.tr("Localizable", "StorageInsights.Retry", fallback: "Try again")
     /// Storage
@@ -2634,6 +2642,8 @@ public enum L10n {
     public static let thumbnails = L10n.tr("Localizable", "StorageInsights.Thumbnails", fallback: "Previews")
     /// ./Encamera/Settings/StorageInsightsView.swift - Storage Insights screen
     public static let title = L10n.tr("Localizable", "StorageInsights.Title", fallback: "Storage")
+    /// Videos
+    public static let videos = L10n.tr("Localizable", "StorageInsights.Videos", fallback: "Videos")
   }
   public enum StorageOption {
     /// %@ Storage

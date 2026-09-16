@@ -313,6 +313,27 @@ public actor CloudKitBlobCache: DebugPrintable {
         enumerateCacheFiles().reduce(0) { $0 + $1.allocatedSize }
     }
 
+    /// One cached file as the storage screen attributes it: the album folder it
+    /// sits in and the record name it was stored under.
+    public struct AllocatedFile: Sendable, Equatable {
+        /// The first path component under the cache root, `albumFolderName(_:)` for
+        /// a blob the cache wrote. Empty for a file at the root.
+        public let albumFolder: String
+        public let recordName: String
+        public let allocatedBytes: Int64
+    }
+
+    /// Every cached file with its allocated size, so bytes can be attributed per
+    /// album and per media type. Sums to `allocatedDiskBytes()`.
+    public func allocatedFiles() -> [AllocatedFile] {
+        enumerateCacheFiles().map { file in
+            let parts = file.relativePath.split(separator: "/")
+            return AllocatedFile(albumFolder: parts.count > 1 ? String(parts[0]) : "",
+                                 recordName: file.recordName,
+                                 allocatedBytes: file.allocatedSize)
+        }
+    }
+
     /// Adopts files under `baseDir` that no index entry claims, so their bytes count
     /// against the cap and LRU eviction can eventually reclaim them.
     ///

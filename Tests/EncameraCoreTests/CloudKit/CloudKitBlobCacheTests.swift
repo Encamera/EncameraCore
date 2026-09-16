@@ -200,6 +200,27 @@ final class CloudKitBlobCacheTests: XCTestCase {
                        "And matches an independent measurement of the directory")
     }
 
+    /// What the storage screen attributes per album: every file, index entry or
+    /// not, named by its folder and record name.
+    func testAllocatedFilesListsEveryFileByAlbumFolder() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        _ = try await cache.store(recordName: "x#0", changeTag: nil, albumID: "album-a",
+                                  from: sourceFile(bytes: 40))
+        try plantOrphan(albumID: "album-b", recordName: "y#1", bytes: 60)
+        try plantOrphan(albumID: "album-b", recordName: "y#1#c0", bytes: 30)
+
+        let files = await cache.allocatedFiles()
+        let allocatedTotal = await cache.allocatedDiskBytes()
+
+        let byName = Dictionary(uniqueKeysWithValues: files.map { ($0.recordName, $0) })
+        XCTAssertEqual(files.count, 3)
+        XCTAssertEqual(byName["x#0"]?.albumFolder, CloudKitBlobCache.albumFolderName("album-a"))
+        XCTAssertEqual(byName["y#1"]?.albumFolder, CloudKitBlobCache.albumFolderName("album-b"))
+        XCTAssertEqual(byName["y#1#c0"]?.albumFolder, CloudKitBlobCache.albumFolderName("album-b"))
+        XCTAssertEqual(files.reduce(0) { $0 + $1.allocatedBytes }, allocatedTotal)
+        XCTAssertFalse(files.contains { $0.recordName == ".cacheindex.json" })
+    }
+
     func testReconcileReportsOrphanedFiles() async throws {
         let cache = makeCache(maxBytes: 10_000)
         _ = try await cache.store(recordName: "tracked", changeTag: nil, albumID: "album",

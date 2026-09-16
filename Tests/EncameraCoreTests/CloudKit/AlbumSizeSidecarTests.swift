@@ -75,6 +75,18 @@ final class AlbumSizeSidecarTests: XCTestCase {
     /// The headline correctness test: a Live Photo is two CloudKit records that
     /// collapse into one index entry, and both components' bytes must survive that
     /// collapse. Keying by `mediaID` would report only one of these sizes.
+    func testSizesByRecordNameReturnsTheWholeMap() async throws {
+        let sidecar = AlbumSizeSidecar(fileURL: sidecarURL())
+        try await sidecar.replace(with: ["a#0": 10, "a#1": 20])
+        try await sidecar.apply(updates: ["b#1": 5], removals: ["a#1"])
+
+        let sizes = await sidecar.sizesByRecordName()
+        let total = await sidecar.totalBytes()
+
+        XCTAssertEqual(sizes, ["a#0": 10, "b#1": 5])
+        XCTAssertEqual(sizes.values.reduce(0, +), total)
+    }
+
     func testLivePhotoComponentsBothCountTowardTotal() async throws {
         let store = MockCloudKitMediaStore()
         store.changeSet = CloudKitChangeSet(

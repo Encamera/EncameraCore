@@ -66,6 +66,66 @@ final class StorageUsageBreakdownTests: XCTestCase {
         XCTAssertEqual(StorageUsageBreakdown(cloudBytes: 0).cloudBytes, 0)
     }
 
+    // MARK: - Two cloud methods
+
+    func testCloudBytesSumsCloudKitAndICloudDrive() {
+        let breakdown = StorageUsageBreakdown(
+            cloudKitMedia: MediaTypeBytes(photoBytes: 600, videoBytes: 400),
+            iCloudDriveMedia: MediaTypeBytes(photoBytes: 50, videoBytes: 950)
+        )
+
+        XCTAssertEqual(breakdown.cloudBytes, 2_000)
+        XCTAssertEqual(breakdown.cloudMedia, MediaTypeBytes(photoBytes: 650, videoBytes: 1_350))
+        XCTAssertEqual(breakdown.totalDeviceBytes, 0, "Neither method is on this device")
+    }
+
+    /// One unknowable method makes the whole cloud figure unknowable: a partial sum
+    /// rendered as a total is a lie, not an approximation.
+    func testCloudBytesIsNilWhenEitherMethodIsUnknowable() {
+        XCTAssertNil(StorageUsageBreakdown(cloudKitMedia: nil, iCloudDriveMedia: .zero).cloudBytes)
+        XCTAssertNil(StorageUsageBreakdown(cloudKitMedia: .zero, iCloudDriveMedia: nil).cloudBytes)
+        XCTAssertEqual(StorageUsageBreakdown(cloudKitMedia: .zero, iCloudDriveMedia: .zero).cloudBytes, 0)
+    }
+
+    func testCloudKitShareOfCloud() {
+        let mixed = StorageUsageBreakdown(cloudKitMedia: MediaTypeBytes(photoBytes: 750),
+                                          iCloudDriveMedia: MediaTypeBytes(videoBytes: 250))
+        XCTAssertEqual(mixed.cloudKitShareOfCloud, 0.75)
+
+        let allCloudKit = StorageUsageBreakdown(cloudKitMedia: MediaTypeBytes(photoBytes: 10), iCloudDriveMedia: .zero)
+        XCTAssertEqual(allCloudKit.cloudKitShareOfCloud, 1)
+
+        XCTAssertNil(StorageUsageBreakdown(cloudKitMedia: nil, iCloudDriveMedia: .zero).cloudKitShareOfCloud)
+        XCTAssertNil(StorageUsageBreakdown(cloudKitMedia: .zero, iCloudDriveMedia: .zero).cloudKitShareOfCloud,
+                     "A share of nothing is not a number")
+    }
+
+    // MARK: - Typed and scalar views agree
+
+    func testScalarAccessorsEqualTheTypedTotals() {
+        let breakdown = StorageUsageBreakdown(
+            localMedia: MediaTypeBytes(photoBytes: 100, videoBytes: 200, otherBytes: 3),
+            cachedCloud: MediaTypeBytes(photoBytes: 10, videoBytes: 20, otherBytes: 1),
+            thumbnailBytes: 5,
+            indexBytes: 2
+        )
+
+        XCTAssertEqual(breakdown.localMediaBytes, 303)
+        XCTAssertEqual(breakdown.cachedCloudBytes, 31)
+        XCTAssertEqual(breakdown.totalDeviceBytes, 341)
+        XCTAssertEqual(breakdown.reclaimableBytes, 38)
+    }
+
+    func testScalarInitializerMapsOntoTheTypedModel() {
+        let breakdown = StorageUsageBreakdown(localMediaBytes: 7, cachedCloudBytes: 8, cloudBytes: 9)
+
+        XCTAssertEqual(breakdown.localMedia, MediaTypeBytes(photoBytes: 7))
+        XCTAssertEqual(breakdown.cachedCloud, MediaTypeBytes(otherBytes: 8))
+        XCTAssertEqual(breakdown.cloudKitMedia?.totalBytes, 9)
+        XCTAssertEqual(breakdown.iCloudDriveMedia, .zero)
+        XCTAssertEqual(breakdown.cloudBytes, 9)
+    }
+
     func testNegativeBucketsAreClampedToZero() {
         let breakdown = StorageUsageBreakdown(
             localMediaBytes: -1,

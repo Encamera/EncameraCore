@@ -20,28 +20,22 @@ import CryptoKit
 ///
 /// A derived cache, like the media index it sits beside: it lives in the local,
 /// never-synced `MediaIndex` directory, is excluded from backup, and a loss of it
-/// costs a backfill rather than data. Contents are record names and integers — both
+/// costs a resync rather than data. Contents are record names and integers — both
 /// already exist in plaintext as CloudKit record names — so the file is not
 /// encrypted; the album name never appears in it, and the filename is a hash.
 public actor AlbumSizeSidecar {
 
     /// The on-disk shape. Versioned so a later field can be added without the
-    /// unreadable-file fallback (which costs a backfill) firing on every album.
+    /// unreadable-file fallback firing on every album.
     private struct Payload: Codable {
         var version: Int = 1
-        /// Set once a backfill has read every record for the album from CloudKit.
-        /// Without it, an album whose index claims more components than the zone
-        /// actually holds would look permanently under-covered and re-fetch its
-        /// metadata on every visit to the storage screen.
-        var backfilled: Bool = false
         var sizes: [String: Int64]
     }
 
     private let fileURL: URL
     private var sizes: [String: Int64]
-    private var backfilled: Bool
     /// Whether the album has a sidecar on disk at all, which is what distinguishes
-    /// "never captured" from "captured and genuinely empty" for the backfill.
+    /// "never captured" from "captured and genuinely empty" for the storage screen.
     private var loadedFromDisk: Bool
 
     /// The sidecar file for an album, named by the same SHA-256 hash of the album id
@@ -62,11 +56,9 @@ public actor AlbumSizeSidecar {
         if let data = try? Data(contentsOf: fileURL),
            let decoded = try? JSONDecoder().decode(Payload.self, from: data) {
             self.sizes = decoded.sizes
-            self.backfilled = decoded.backfilled
             self.loadedFromDisk = true
         } else {
             self.sizes = [:]
-            self.backfilled = false
             self.loadedFromDisk = false
         }
     }
@@ -78,8 +70,7 @@ public actor AlbumSizeSidecar {
         sizes.values.reduce(0, +)
     }
 
-    /// How many records have a recorded size. The backfill compares this against the
-    /// media index's component count to spot an album that predates the sidecar.
+    /// How many records have a recorded size.
     public func recordCount() -> Int {
         sizes.count
     }
@@ -88,17 +79,17 @@ public actor AlbumSizeSidecar {
         sizes[recordName]
     }
 
+    /// Every record's size, keyed by record name. The record name carries the
+    /// component's media type, so this is what a per-type breakdown reads.
+    public func sizesByRecordName() -> [String: Int64] {
+        sizes
+    }
+
     /// True when a sidecar file existed when this instance loaded. A file that
     /// exists and records nothing is a genuinely empty album; no file at all is an
     /// album that has never been measured.
     public func existsOnDisk() -> Bool {
         loadedFromDisk
-    }
-
-    /// True once a backfill has read the album's records straight from CloudKit, so
-    /// the map is authoritative rather than whatever sync happened to observe.
-    public func isBackfilled() -> Bool {
-        backfilled
     }
 
     // MARK: - Write
@@ -118,25 +109,24 @@ public actor AlbumSizeSidecar {
         for recordName in removals {
             merged[recordName] = nil
         }
-        try commit(merged, backfilled: backfilled)
+        try commit(merged)
     }
 
-    /// Replaces the whole map — used by the backfill, which reads every record's
-    /// size in one authoritative pass.
-    public func replace(with newSizes: [String: Int64], markBackfilled: Bool = false) throws {
-        try commit(newSizes.mapValues { max(0, $0) }, backfilled: backfilled || markBackfilled)
+    /// Replaces the whole map.
+    public func replace(with newSizes: [String: Int64]) throws {
+        try commit(newSizes.mapValues { max(0, $0) })
     }
 
     public func removeAll() throws {
-        try commit([:], backfilled: false)
+        try commit([:])
     }
 
     /// Persists first and adopts second, so a failed write leaves the in-memory map
     /// exactly as it was on disk. Keeping an unpersisted mutation would make
     /// `totalBytes()` report a figure that disappears on relaunch — the same reason
     /// `MediaIndexStore` rolls its warm cache back after a save failure.
-    private func commit(_ newSizes: [String: Int64], backfilled newBackfilled: Bool) throws {
-        let data = try JSONEncoder().encode(Payload(backfilled: newBackfilled, sizes: newSizes))
+    private func commit(_ newSizes: [String: Int64]) throws {
+        let data = try JSONEncoder().encode(Payload(sizes: newSizes))
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -144,7 +134,6 @@ public actor AlbumSizeSidecar {
         try data.write(to: fileURL, options: .atomic)
         excludeFromBackup()
         sizes = newSizes
-        backfilled = newBackfilled
         loadedFromDisk = true
     }
 
