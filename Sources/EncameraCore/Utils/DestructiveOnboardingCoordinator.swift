@@ -69,11 +69,11 @@ public struct DestructiveOnboardingReport: Equatable, Sendable {
     /// minted, and the census's media left in CloudKit permanently undecryptable
     /// with nothing left to warn the next install.
     public var censusShortfall: Int?
-    /// Set when clearing the has-used marker failed. The one write that
+    /// Set when clearing the marker fingerprints failed. The one write that
     /// `isCompleteSuccess` claims happened, so swallowing it (it was a `try?`) let
-    /// the run mint a key over a record still saying `hasUsedEncamera: true` with
-    /// the old fingerprints — sending the user back to the returning-user branch on
-    /// the next launch, for data they had already deleted.
+    /// the run mint a key over a record still holding old fingerprints — sending the
+    /// user back to the returning-user branch on the next launch, for data they had
+    /// already deleted.
     public var markerClearError: String?
     /// True only when a fresh key was generated — which happens only on a clean run.
     public var freshKeyGenerated: Bool = false
@@ -230,20 +230,18 @@ public struct DestructiveOnboardingCoordinator {
         // achieve.
         guard report.isCompleteSuccess else { return report }
 
-        // Step 6: clear `hasUsedEncamera` and the fingerprints, PRESERVE the roster.
-        // A direct overwrite, NOT the OR-merging setter/recorder (which can only ever
-        // *set* the marker). An update, not a delete — so the synchronizable record
-        // is not tombstoned account-wide.
+        // Step 6: clear the fingerprints, PRESERVE the roster. A direct overwrite,
+        // NOT the merging setter/recorder. An update, not a delete — so the
+        // synchronizable record is not tombstoned account-wide.
         //
         // A failure here stops the run exactly like the other failure paths: the
-        // marker is the returning-user warning for the next install, and minting a
-        // key over one that still says `hasUsedEncamera: true` strands the user in
-        // the returning-user branch describing data they already erased.
+        // fingerprints are the returning-user signal for the next install, and
+        // minting a key over a record that still holds old fingerprints strands the
+        // user in the returning-user branch describing data they already erased.
         let existing = keyManager.getMultiDeviceState()
         do {
             try keyManager.overwriteMultiDeviceState(
-                MultiDeviceState(hasUsedEncamera: false,
-                                 devices: existing?.devices ?? [],
+                MultiDeviceState(devices: existing?.devices ?? [],
                                  keyFingerprints: [])
             )
         } catch {

@@ -165,6 +165,8 @@ public protocol KeyManager {
     func setPassword(_ password: String, type: PasscodeType) throws
     func setOrUpdatePassword(_ password: String, type: PasscodeType) throws
     func passwordExists() -> Bool
+    func hasResolvedCredentialsBefore() -> Bool
+    @discardableResult func setResolvedCredentialsBefore() -> Bool
     func credentialSnapshot() -> KeychainCredentialSnapshot
     func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws
     func backupKeychainToiCloud(backupEnabled: Bool) throws
@@ -189,22 +191,21 @@ public protocol KeyManager {
     /// Merges into the stored record rather than replacing it, so concurrent
     /// writers don't drop each other's device entries.
     func setMultiDeviceState(_ state: MultiDeviceState) throws
-    /// Replaces the stored record WITHOUT the sticky-OR merge that
-    /// `setMultiDeviceState` applies. The destructive delete-my-iCloud-data path
-    /// (ENC-94) needs this to clear `hasUsedEncamera` and the fingerprints while
-    /// carrying the existing device roster over — the merge can only ever set the
-    /// marker, never clear it. This is an update, not a delete: the item stays
-    /// synchronizable, so nothing is tombstoned. Use `setMultiDeviceState` for
-    /// every additive write; this is only for the deliberate reset.
+    /// Replaces the stored record WITHOUT the merge that `setMultiDeviceState`
+    /// applies. The destructive delete-my-iCloud-data path (ENC-94) needs this to
+    /// clear the fingerprints while carrying the existing device roster over — the
+    /// merge unions fingerprints, so it can never shrink the list. This is an
+    /// update, not a delete: the item stays synchronizable, so nothing is
+    /// tombstoned. Use `setMultiDeviceState` for every additive write; this is
+    /// only for the deliberate reset.
     ///
-    /// Deliberately has NO protocol-extension default. The obvious one — forward to
-    /// `setMultiDeviceState` — inverts this method's entire contract: the merge ORs
-    /// `hasUsedEncamera` back to `true` and re-unions the fingerprints, so a
-    /// conformer that didn't override got exactly the opposite of what its one
-    /// caller needs, with no compiler error and no runtime signal (the destructive
-    /// path calls it through this protocol behind a `try?`, so the no-op merge was
-    /// completely invisible and the report still claimed success). A missing
-    /// implementation must be a build failure.
+    /// Deliberately has NO protocol-extension default. The obvious one — forward
+    /// to `setMultiDeviceState` — inverts this method's entire contract: the merge
+    /// re-unions the fingerprints, so a conformer that didn't override got exactly
+    /// the opposite of what its one caller needs, with no compiler error and no
+    /// runtime signal (the destructive path calls it through this protocol behind
+    /// a `try?`, so the no-op merge was completely invisible and the report still
+    /// claimed success). A missing implementation must be a build failure.
     func overwriteMultiDeviceState(_ state: MultiDeviceState) throws
 }
 

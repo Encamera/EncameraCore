@@ -34,6 +34,11 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     /// including all the unit tests — is unaffected.
     public var uploadDelay: Duration = .zero
 
+    /// Album IDs whose next upload throws `quotaExceeded` instead of storing,
+    /// once each. Lets a UI test halt a migration on a recoverable failure and
+    /// resume it against the same store; see `failNextUpload(forAlbumID:)`.
+    private var albumIDsFailingNextUpload: Set<String> = []
+
     /// Transport for chunked blobs. When an upload carries `chunkCount > 0` the
     /// ciphertext is split into chunks via this store instead of being held as a
     /// monolithic blob — mirroring what `CloudKitMediaStore` does in production.
@@ -51,8 +56,17 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         self.chunkStore = chunkStore
     }
 
+    /// Rejects the next upload for `albumID` with `CloudKitMediaStoreError.quotaExceeded`
+    /// — the recoverable, run-halting classification — then behaves normally.
+    public func failNextUpload(forAlbumID albumID: String) {
+        locked { _ = albumIDsFailingNextUpload.insert(albumID) }
+    }
+
     public func upload(_ item: CloudKitMediaUpload,
                        progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
+        if locked({ albumIDsFailingNextUpload.remove(item.descriptor.albumID) }) != nil {
+            throw CloudKitMediaStoreError.quotaExceeded
+        }
         if uploadDelay > .zero {
             try await Task.sleep(for: uploadDelay)
         }

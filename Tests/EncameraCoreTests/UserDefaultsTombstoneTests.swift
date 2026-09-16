@@ -17,12 +17,13 @@ final class UserDefaultsTombstoneTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        UserDefaultUtils.current = UserDefaultUtils()
         savedGroupDomain = groupDefaults.persistentDomain(forName: UserDefaultUtils.appGroup)
         savedStandardDomain = UserDefaults.standard.persistentDomain(forName: bundleID)
     }
 
     override func tearDown() {
-        UserDefaultUtils.writesQuiescedForErase = false
+        UserDefaultUtils.current = UserDefaultUtils()
         groupDefaults.removePersistentDomain(forName: UserDefaultUtils.appGroup)
         if let savedGroupDomain { groupDefaults.setPersistentDomain(savedGroupDomain, forName: UserDefaultUtils.appGroup) }
         UserDefaults.standard.removePersistentDomain(forName: bundleID)
@@ -45,6 +46,7 @@ final class UserDefaultsTombstoneTests: XCTestCase {
     }
 
     func testNoTombstoneLeavesEverythingAlone() {
+        groupDefaults.removeObject(forKey: UserDefaultKey.pendingDefaultsWipe.rawValue)
         groupDefaults.set("kept", forKey: "ordinarySetting")
         UserDefaults.standard.set(3, forKey: "standardDomainValue")
 
@@ -60,8 +62,8 @@ final class UserDefaultsTombstoneTests: XCTestCase {
         XCTAssertTrue(UserDefaultUtils.localOnlyMarkerKeys.contains(UserDefaultKey.pendingDefaultsWipe.rawValue))
     }
 
-    func testQuiescedWritesRefuseSettingsButKeepTheEraseMarkers() {
-        UserDefaultUtils.quiesceWritesForErase()
+    func testBlockedWritesRefuseSettingsButKeepTheEraseMarkers() {
+        UserDefaultUtils.blockWritesForErase()
 
         UserDefaultUtils.set(true, forKey: .hasOpenedAlbum)
         UserDefaultUtils.set(true, forKey: .pendingCloudDataWipe)

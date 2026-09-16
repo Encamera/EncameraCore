@@ -45,20 +45,16 @@ public struct MultiDeviceState: Codable, Equatable {
         }
     }
 
-    /// Set once a device completes onboarding. The signal that makes the
-    /// returning-user warning fire even when a probe of iCloud storage finds
-    /// nothing, e.g. for a user whose media was local-only.
-    public var hasUsedEncamera: Bool
-
     /// Every device known to have run Encamera on this account.
     public var devices: [DeviceRecord]
 
     /// Lowercase fingerprint hex (`PrivateKey.keychainLabel`). Never key bytes.
     public var keyFingerprints: [String]
 
-    public var hasEvidence: Bool {
-        hasUsedEncamera || !devices.isEmpty || !keyFingerprints.isEmpty
-    }
+    /// True when the roster or fingerprint list carries evidence that this
+    /// account has been set up before — the concrete replacement for the
+    /// retired `hasUsedEncamera` boolean.
+    public var hasEvidence: Bool { !devices.isEmpty || !keyFingerprints.isEmpty }
 
     /// Upper bound on the roster, enforced by `merging`. The record lives in a
     /// keychain item that syncs on every write, so it cannot be allowed to grow
@@ -79,11 +75,9 @@ public struct MultiDeviceState: Codable, Equatable {
     public static let maxKeyFingerprints = 32
 
     public init(
-        hasUsedEncamera: Bool = false,
         devices: [DeviceRecord] = [],
         keyFingerprints: [String] = []
     ) {
-        self.hasUsedEncamera = hasUsedEncamera
         self.devices = devices
         self.keyFingerprints = keyFingerprints
     }
@@ -91,7 +85,6 @@ public struct MultiDeviceState: Codable, Equatable {
     /// Combines a record already in the keychain with one a device wants to
     /// write, so two devices writing concurrently don't clobber each other.
     ///
-    /// - `hasUsedEncamera` is sticky: once true on either side it stays true.
     /// - `devices` is a union deduplicated by `deviceID`, keeping the newer
     ///   `lastSeen` (and the name that came with it) for a device present in
     ///   both.
@@ -143,7 +136,6 @@ public struct MultiDeviceState: Codable, Equatable {
         }
 
         return MultiDeviceState(
-            hasUsedEncamera: (existing?.hasUsedEncamera ?? false) || incoming.hasUsedEncamera,
             devices: devices,
             keyFingerprints: fingerprints
         )

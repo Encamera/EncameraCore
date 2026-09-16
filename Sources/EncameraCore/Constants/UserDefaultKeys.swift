@@ -56,10 +56,6 @@ public enum UserDefaultKey {
     /// after, so the re-derived "has launched before" bit reads true on launch 2
     /// and the seed would adopt another device's synced intent after all.
     case biometricsSeedWindowClosed
-    /// Sticky, device-local dismissal of the iCloud Drive -> CloudKit migration
-    /// prompt. Someone with a large Drive album may reasonably defer forever, so
-    /// once dismissed the prompt never reappears on this device.
-    case dismissediCloudDriveMigrationPrompt
     /// How many evicted iCloud Drive files the migration materializes before
     /// uploading them. Tunable rather than a constant because the right value is an
     /// empirical trade-off between free disk on the device and how often the
@@ -71,6 +67,10 @@ public enum UserDefaultKey {
     /// it; the app retries the cloud wipe on launch until it succeeds.
     case pendingCloudDataWipe
     case pendingDefaultsWipe
+    /// When the user last chose "Maybe later" on the CloudKit upgrade intro. Only
+    /// the deferral is stored; whether an upgrade is needed is derived from
+    /// whether any `.icloud` album still exists.
+    case cloudKitUpgradeDeferredAt
 
     var rawValue: String {
         switch self {
@@ -86,6 +86,8 @@ public enum UserDefaultKey {
             return "passwordHashMigration"
         case .completedMigration:
             return "completedMigration"
+        case .cloudKitUpgradeDeferredAt:
+            return "cloudKitUpgradeDeferredAt"
         default:
             return String(describing: self)
 
@@ -149,10 +151,6 @@ public enum UserDefaultKey {
              // The seed window is per-install by definition: it exists to stop
              // one device's intent from leaking onto another.
              .biometricsSeedWindowClosed,
-             // Deferring the migration prompt is a per-device decision: another
-             // device may not even have the legacy albums, and syncing the
-             // dismissal would silently suppress the prompt where it still applies.
-             .dismissediCloudDriveMigrationPrompt,
              // A debug tunable measured against one device's free space and network;
              // syncing it would push one phone's experiment onto every other.
              .iCloudDriveMigrationBatchSize,
@@ -160,7 +158,11 @@ public enum UserDefaultKey {
              // The defaults-wipe tombstone describes this device's own erase. Synced,
              // it would make every other device on the account wipe its settings at
              // its next launch.
-             .pendingDefaultsWipe:
+             .pendingDefaultsWipe,
+             // A deferral records that THIS device declined the upgrade prompt;
+             // synced, one phone's "Maybe later" would silence the prompt on
+             // every other device on the account.
+             .cloudKitUpgradeDeferredAt:
             return false
         }
     }

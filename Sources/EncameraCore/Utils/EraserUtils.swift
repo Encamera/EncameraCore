@@ -342,7 +342,7 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
         if let bundleID = Bundle.main.bundleIdentifier {
             UserDefaults.standard.removePersistentDomain(forName: bundleID)
         }
-        UserDefaultUtils.quiesceWritesForErase()
+        UserDefaultUtils.blockWritesForErase()
         UserDefaultUtils.flushPendingWrites()
     }
 

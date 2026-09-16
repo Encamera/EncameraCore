@@ -20,6 +20,7 @@ private enum KeychainConstants {
     static let backupStatusKeyItem = "com.encamera.backupStatus"
     static let authenticationConfiguration = "com.encamera.authenticationConfiguration"
     static let multiDeviceState = "com.encamera.multiDeviceState"
+    static let credentialResolutionMarker = "com.encamera.credentialResolved"
 }
 
 struct KeychainItem {
@@ -860,10 +861,10 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         try writeMultiDeviceStateRecord(merged)
     }
 
-    /// Replaces the record with exactly `state`, bypassing the sticky-OR merge, so
-    /// the destructive path (ENC-94) can clear `hasUsedEncamera` and the
-    /// fingerprints while keeping the roster the caller carried over. Still an
-    /// update (never a delete), so the synchronizable item is not tombstoned.
+    /// Replaces the record with exactly `state`, bypassing the merge, so the
+    /// destructive path (ENC-94) can clear the fingerprints while keeping the
+    /// roster the caller carried over. Still an update (never a delete), so the
+    /// synchronizable item is not tombstoned.
     public func overwriteMultiDeviceState(_ state: MultiDeviceState) throws {
         try writeMultiDeviceStateRecord(state)
     }
@@ -1594,65 +1595,68 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         return key
     }
 
-    public func keyPassphraseExists() ->  Bool  {
-        let passphraseStatus = keychainWrapper.secItemCopyMatching(queryForPassphrase() as CFDictionary, nil)
-        do {
-            try checkStatus(status: passphraseStatus)
-        } catch {
-            printDebug("keyPassphraseExists: unexpected passphrase query status \(passphraseStatus) (\(determineOSStatus(status: passphraseStatus)))")
-
+    public func keyPassphraseExists() -> Bool {
+        let query = queryForPassphrase(additionalQuery: [
+            kSecReturnData as String: true
+        ])
+        var item: CFTypeRef?
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess,
+              let data = item as? Data,
+              !data.isEmpty else {
+            if status != errSecItemNotFound {
+                printDebug("keyPassphraseExists: status \(status) (\(determineOSStatus(status: status)))")
+            }
             return false
         }
         return true
     }
 
     public func passwordExists() -> Bool {
-
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
             kSecReturnData as String: true,
-            kSecReturnAttributes as String: true, // Added to retrieve attributes
-            // Use helper computed property for query value
+            kSecReturnAttributes as String: true,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         var item: CFTypeRef?
         let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        
-        // Print details if successful
-        if status == errSecSuccess, let existingItem = item as? [String: Any] {
 
-            
-            if let syncStatus = existingItem[kSecAttrSynchronizable as String] as? Bool {
-                 printDebug("iCloud Sync Status:", syncStatus ? "Enabled" : "Disabled")
-             } else {
-                 // If kSecAttrSynchronizable is not present, it defaults to false (not synced)
-                 // Sometimes kCFBooleanFalse might be returned as NSNumber 0
-                 if let syncNum = existingItem[kSecAttrSynchronizable as String] as? NSNumber, syncNum.boolValue == false {
-                     printDebug("iCloud Sync Status: Disabled (default or explicit)")
-                 } else {
-                     printDebug("Could not determine iCloud Sync Status or it's set to default (Disabled). Attribute value:", existingItem[kSecAttrSynchronizable as String] ?? "Not Present")
-                 }
-             }
-        } else if status != errSecItemNotFound {
-             printDebug("Keychain access error:", status)
-         }
-
-        do {
-            try checkStatus(status: status)
-        } catch is KeyManagerError {
-            // Item not found is expected, don't log as an error here
-             if status != errSecItemNotFound {
-                 printDebug("KeyManagerError checking password existence:", status)
-             }
-        } catch {
-            printDebug("Unexpected error checking password existence:", error)
+        guard status == errSecSuccess,
+              let existingItem = item as? [String: Any],
+              let data = existingItem[kSecValueData as String] as? Data,
+              !data.isEmpty else {
+            if status != errSecItemNotFound {
+                printDebug("passwordExists: status \(status) (\(determineOSStatus(status: status)))")
+            }
+            return false
         }
-        
-        // The function still returns true if an item was found, regardless of printing success
-        return status == errSecSuccess
+        return true
     }
-    
+
+    public func hasResolvedCredentialsBefore() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.credentialResolutionMarker,
+            kSecAttrSynchronizable as String: kCFBooleanFalse!
+        ]
+        return keychainWrapper.secItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    }
+
+    @discardableResult
+    public func setResolvedCredentialsBefore() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.credentialResolutionMarker,
+            kSecAttrSynchronizable as String: kCFBooleanFalse!
+        ]
+        guard keychainWrapper.secItemCopyMatching(query as CFDictionary, nil) != errSecSuccess else { return true }
+        var add = query
+        add[kSecValueData as String] = Data([1])
+        return keychainWrapper.secItemAdd(add as CFDictionary, nil) == errSecSuccess
+    }
+
     public func clearPassword() throws {
         // Query for the password hash item
         let passwordQuery: [String: Any] = [

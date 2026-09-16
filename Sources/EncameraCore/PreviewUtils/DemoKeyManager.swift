@@ -113,6 +113,8 @@ public class DemoKeyManager: KeyManager {
     public func passwordExists() -> Bool {
         return hasExistingPassword
     }
+    public func hasResolvedCredentialsBefore() -> Bool { false }
+    @discardableResult public func setResolvedCredentialsBefore() -> Bool { true }
     public func credentialSnapshot() -> KeychainCredentialSnapshot {
         return KeychainCredentialSnapshot(
             passwordExists: hasExistingPassword,

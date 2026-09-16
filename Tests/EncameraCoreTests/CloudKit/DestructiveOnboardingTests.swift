@@ -129,8 +129,6 @@ final class DestructiveOnboardingTests: XCTestCase {
         XCTAssertTrue(report.isCompleteSuccess)
 
         let state = try XCTUnwrap(keyManager.getMultiDeviceState())
-        XCTAssertFalse(state.hasEvidence,
-                       "The has-used marker must be cleared — proving the non-merging overwrite, not the OR-merge, was used")
         XCTAssertTrue(state.keyFingerprints.isEmpty,
                       "This account's fingerprints must be cleared")
         XCTAssertEqual(state.devices.map(\.deviceID), ["other-device"],

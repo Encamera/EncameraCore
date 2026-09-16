@@ -5,9 +5,10 @@
 //  Drives the first-launch decision between onboarding and the authenticated
 //  app. iCloud Keychain syncs credentials out-of-band at the system level, but
 //  offers no API to force, await, or observe a sync — polling the keychain is
-//  the only signal. This coordinator bounds that wait so a second device lands
-//  on the PIN screen instead of onboarding whenever credentials have arrived
-//  (or arrive within the grace window).
+//  the only signal. On a first install, the coordinator polls behind the splash
+//  screen for a bounded grace window; if credentials arrive after the window
+//  expires and onboarding has begun, `credentialsMayHaveChanged()` interrupts
+//  onboarding and redirects to main.
 //
 
 import Foundation
@@ -19,8 +20,6 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
     public enum LaunchState: Equatable {
         /// Initial probe + quiet poll, hidden behind the splash screen.
         case evaluating
-        /// Strong hint of an existing account; showing "Restoring from iCloud…".
-        case waitingForRestore
         /// Credentials found but the default key is missing; re-deriving it.
         case restoringKeyMaterial
         /// The account was set up before, but backup is off and no key material
@@ -46,7 +45,7 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
         /// reconciler is allowed to run and report its locked-out count.
         public var allowsCloudKitSync: Bool {
             switch self {
-            case .evaluating, .waitingForRestore, .restoringKeyMaterial:
+            case .evaluating, .restoringKeyMaterial:
                 return false
             case .keyMissing, .passcodeSetup, .onboarding, .main:
                 return true
@@ -72,14 +71,11 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
 
     public struct Timeouts {
         public let quietGrace: TimeInterval
-        public let restoreWait: TimeInterval
         public let pollDelays: [TimeInterval]
 
         public init(quietGrace: TimeInterval = AppConstants.keychainRestoreQuietGrace,
-                    restoreWait: TimeInterval = AppConstants.keychainRestoreWaitTimeout,
                     pollDelays: [TimeInterval] = [0.25, 0.5, 1.0, 2.0]) {
             self.quietGrace = quietGrace
-            self.restoreWait = restoreWait
             self.pollDelays = pollDelays
         }
     }
@@ -130,7 +126,7 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
         }
 
         let startedAt = Date()
-        printDebug("start() — quietGrace=\(timeouts.quietGrace)s, restoreWait=\(timeouts.restoreWait)s, pollDelays=\(timeouts.pollDelays)")
+        printDebug("start() — quietGrace=\(timeouts.quietGrace)s, pollDelays=\(timeouts.pollDelays)")
 
         var snapshot = keyManager.credentialSnapshot()
         printDebug("initial snapshot: \(snapshot)")
@@ -141,8 +137,6 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
             return
         }
 
-        // A synced "backup disabled" flag or no iCloud account means nothing
-        // will ever arrive — don't make a new user wait.
         let iCloudAvailable = isiCloudAvailable()
         printDebug("no password at first probe — iCloudAvailable=\(iCloudAvailable), backupFlag=\(snapshot.backupFlagState)")
         if snapshot.backupFlagState == .disabled {
@@ -155,21 +149,12 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
             return
         }
 
-        let kvsHint = kvsOnboardingCompleted()
-        var strongHint = kvsHint || snapshot.backupFlagState == .enabled || snapshot.hasAnyCredential
-        printDebug("hints: kvsOnboardingCompleted=\(kvsHint), backupFlagEnabled=\(snapshot.backupFlagState == .enabled), hasAnyCredential=\(snapshot.hasAnyCredential) → strongHint=\(strongHint)")
-        if strongHint {
-            printDebug("strong hint → showing waitingForRestore, extending deadline to \(timeouts.restoreWait)s")
-            state = .waitingForRestore
-        }
-
-        var deadline = strongHint ? timeouts.restoreWait : timeouts.quietGrace
         var elapsed: TimeInterval = 0
         var delayIndex = 0
 
-        while elapsed < deadline {
+        while elapsed < timeouts.quietGrace {
             let baseDelay = timeouts.pollDelays[min(delayIndex, timeouts.pollDelays.count - 1)]
-            let delay = min(baseDelay, deadline - elapsed)
+            let delay = min(baseDelay, timeouts.quietGrace - elapsed)
             delayIndex += 1
             await sleep(delay)
             elapsed += delay
@@ -180,7 +165,7 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
             }
 
             snapshot = keyManager.credentialSnapshot()
-            printDebug("poll #\(delayIndex) (elapsed \(String(format: "%.2f", elapsed))s/\(deadline)s): \(snapshot)")
+            printDebug("poll #\(delayIndex) (elapsed \(String(format: "%.2f", elapsed))s/\(timeouts.quietGrace)s): \(snapshot)")
 
             if snapshot.passwordExists {
                 printDebug("password arrived after \(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s → resolving with credentials")
@@ -192,15 +177,9 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
                 resolveForDisabledBackup(snapshot)
                 return
             }
-            if !strongHint && (kvsOnboardingCompleted() || snapshot.backupFlagState == .enabled || snapshot.hasAnyCredential) {
-                strongHint = true
-                state = .waitingForRestore
-                deadline = timeouts.restoreWait
-                printDebug("hint appeared mid-poll → upgrading to waitingForRestore, deadline now \(deadline)s")
-            }
         }
 
-        printDebug("deadline reached after \(String(format: "%.2f", elapsed))s with no credentials → onboarding")
+        printDebug("grace period reached after \(String(format: "%.2f", elapsed))s with no credentials → onboarding")
         resolve(.onboarding)
     }
 
@@ -219,7 +198,7 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
         }
     }
 
-    /// User tapped "Set up as a new device" on the restore screen.
+    /// User tapped "Set up as a new device" on the key-missing screen.
     public func userChoseSetUpAsNew() {
         printDebug("user chose 'Set up as a new device'")
         resolved = true
@@ -229,21 +208,23 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
 
     /// External signal (e.g. a KVS key arrived) that credentials may now be
     /// present. Safe to call at any time; no-op once resolved — except from
-    /// keyMissing, which un-resolves when credentials arrive (the user
-    /// re-enabled backup on another device while the screen was up).
+    /// `.onboarding` and `.keyMissing`, which re-resolve when credentials
+    /// arrive after the grace period (the keychain sync was slow, or the user
+    /// re-enabled backup on another device).
     public func credentialsMayHaveChanged() {
         if resolved, state == .keyMissing, keyManager.credentialSnapshot().passwordExists {
             printDebug("credentials arrived while on keyMissing → re-resolving")
             resolved = false
         }
-        // A key can arrive without its password hash (backup was on for keys
-        // but the hash predates it, or the hash was never synchronizable). The
-        // key-missing screen is then simply wrong.
         if resolved, state == .keyMissing, keyManager.needsPasscodeSetup {
             printDebug("key arrived while on keyMissing but no password hash → passcodeSetup")
             resolved = true
             state = .passcodeSetup
             return
+        }
+        if resolved, state == .onboarding, keyManager.credentialSnapshot().passwordExists {
+            printDebug("credentials arrived while on onboarding → interrupting")
+            resolved = false
         }
         guard !resolved else {
             printDebug("credentialsMayHaveChanged() ignored — already resolved (state=\(state))")

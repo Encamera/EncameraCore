@@ -290,6 +290,9 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         } catch is CancellationError {
             // expected
         }
+        for _ in 0..<50 where store.fetchBlobCancelledCount == 0 {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
         XCTAssertEqual(store.fetchBlobCancelledCount, 1,
                        "The CloudKit fetch itself must be cancelled once its last waiter goes away")
     }

@@ -37,10 +37,6 @@ public enum ExistingDataProbeResult: Equatable, Sendable {
 }
 
 public struct ExistingDataSummary: Equatable, Sendable {
-    /// `MultiDeviceState.hasUsedEncamera` — set only after a completed onboarding
-    /// or a successful auth, so it is never true for an abandoned first run.
-    public var hasUsedMarker: Bool
-
     /// Live `EncMedia` records in the CloudKit zone. Zero with other evidence
     /// present is the local-only returning user.
     public var cloudKitMediaCount: Int
@@ -48,6 +44,9 @@ public struct ExistingDataSummary: Equatable, Sendable {
     /// Files seen in the legacy iCloud Drive container. Resolves late (see
     /// `refineWithLegacyICloudDrive`); zero until it does.
     public var iCloudDriveFileCount: Int
+
+    /// Last-path-component names of items the iCloud Drive sweep found (up to 5).
+    public var iCloudDriveItemNames: [String]
 
     /// Fingerprints of keys the existing data needs, most-used first, followed by
     /// any extra fingerprints the synced roster knows about.
@@ -67,15 +66,15 @@ public struct ExistingDataSummary: Equatable, Sendable {
     /// never manufacture a `.found`. See `ExistingDataProbe.recordRestoredPurchase`.
     public var hasRestoredPurchase: Bool
 
-    public init(hasUsedMarker: Bool = false,
-                cloudKitMediaCount: Int = 0,
+    public init(cloudKitMediaCount: Int = 0,
                 iCloudDriveFileCount: Int = 0,
+                iCloudDriveItemNames: [String] = [],
                 requiredFingerprints: [String] = [],
                 knownDevices: [MultiDeviceState.DeviceRecord] = [],
                 hasRestoredPurchase: Bool = false) {
-        self.hasUsedMarker = hasUsedMarker
         self.cloudKitMediaCount = cloudKitMediaCount
         self.iCloudDriveFileCount = iCloudDriveFileCount
+        self.iCloudDriveItemNames = iCloudDriveItemNames
         self.requiredFingerprints = requiredFingerprints
         self.knownDevices = knownDevices
         self.hasRestoredPurchase = hasRestoredPurchase
@@ -277,7 +276,6 @@ public actor ExistingDataProbe {
         // its own, producing a `.found` (and therefore incapable of gating fresh
         // setup or reaching the destructive path).
         let summary = ExistingDataSummary(
-            hasUsedMarker: state?.hasUsedEncamera ?? false,
             cloudKitMediaCount: census.mediaCount,
             iCloudDriveFileCount: 0,
             requiredFingerprints: Self.orderedFingerprints(cloudKit: census.fingerprints,
@@ -298,7 +296,7 @@ public actor ExistingDataProbe {
             let devices = (ExistingDataProbeTestHooks.stubbedDeviceNames ?? []).enumerated().map {
                 MultiDeviceState.DeviceRecord(deviceID: "stub-device-\($0.offset)", name: $0.element, lastSeen: Date())
             }
-            return MultiDeviceState(hasUsedEncamera: true, devices: devices)
+            return MultiDeviceState(devices: devices)
         }
         return stateProvider()
     }
@@ -309,7 +307,7 @@ public actor ExistingDataProbe {
     /// wrote it and had nothing to report.
     static func markerSignal(_ state: MultiDeviceState?) -> ProbeSignalOutcome {
         guard let state else { return .unresolved }
-        if state.hasUsedEncamera || !state.devices.isEmpty || !state.keyFingerprints.isEmpty {
+        if state.hasEvidence {
             return .evidence
         }
         return .negative
@@ -389,18 +387,20 @@ public actor ExistingDataProbe {
     private func applyLegacyCount(_ count: Int,
                                   to base: ExistingDataProbeResult,
                                   generation: Int) -> ExistingDataProbeResult {
+        let itemNames = LegacyICloudDriveSweep.lastItemNames
         let refined: ExistingDataProbeResult
         switch base {
         case .found(var summary):
             summary.iCloudDriveFileCount = count
+            summary.iCloudDriveItemNames = itemNames
             refined = .found(summary)
         case .none, .unknown:
             guard count > 0 else { return base }
             let state = markerState()
             refined = .found(ExistingDataSummary(
-                hasUsedMarker: state?.hasUsedEncamera ?? false,
                 cloudKitMediaCount: 0,
                 iCloudDriveFileCount: count,
+                iCloudDriveItemNames: itemNames,
                 requiredFingerprints: state?.keyFingerprints ?? [],
                 knownDevices: state?.devices ?? []
             ))
@@ -439,6 +439,9 @@ public actor ExistingDataProbe {
 /// never on the blocking path.
 enum LegacyICloudDriveSweep {
 
+    /// Names of items the last sweep found, for diagnostic reporting.
+    nonisolated(unsafe) public static var lastItemNames: [String] = []
+
     /// Number of files under the legacy container, or `nil` when the answer could
     /// not be obtained (no ubiquity container, or the query did not finish inside
     /// `budget`). `nil` is unresolved, NOT zero.
@@ -448,8 +451,9 @@ enum LegacyICloudDriveSweep {
         return await withCheckedContinuation { continuation in
             Task { @MainActor in
                 let monitor = MetadataCounter(directoryURL: root)
-                let count = await monitor.count(timeout: budget)
-                continuation.resume(returning: count)
+                let result = await monitor.count(timeout: budget)
+                LegacyICloudDriveSweep.lastItemNames = result?.firstItemPaths ?? []
+                continuation.resume(returning: result?.count)
             }
         }
     }
@@ -473,6 +477,11 @@ enum LegacyICloudDriveSweep {
     }
 }
 
+struct MetadataCountResult {
+    let count: Int
+    let firstItemPaths: [String]
+}
+
 /// One-shot `NSMetadataQuery` that reports how many items it gathered, then stops.
 /// Modelled on `iCloudDirectoryMonitor`, but terminating instead of observing.
 @MainActor
@@ -480,13 +489,13 @@ private final class MetadataCounter {
     private let directoryURL: URL
     private var query: NSMetadataQuery?
     private var observer: NSObjectProtocol?
-    private var continuation: CheckedContinuation<Int?, Never>?
+    private var continuation: CheckedContinuation<MetadataCountResult?, Never>?
 
     init(directoryURL: URL) {
         self.directoryURL = directoryURL
     }
 
-    func count(timeout: TimeInterval) async -> Int? {
+    func count(timeout: TimeInterval) async -> MetadataCountResult? {
         await withCheckedContinuation { continuation in
             self.continuation = continuation
 
@@ -494,12 +503,29 @@ private final class MetadataCounter {
             query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
             query.predicate = NSPredicate(format: "%K BEGINSWITH %@",
                                           NSMetadataItemPathKey, directoryURL.path)
+            query.valueListAttributes = [NSMetadataItemContentTypeKey]
             observer = NotificationCenter.default.addObserver(
                 forName: .NSMetadataQueryDidFinishGathering,
                 object: query,
                 queue: .main
             ) { [weak self] _ in
-                MainActor.assumeIsolated { self?.finish(with: query.resultCount) }
+                MainActor.assumeIsolated {
+                    query.disableUpdates()
+                    var fileCount = 0
+                    var paths: [String] = []
+                    for i in 0..<query.resultCount {
+                        guard let item = query.result(at: i) as? NSMetadataItem else { continue }
+                        let uti = item.value(forAttribute: NSMetadataItemContentTypeKey) as? String ?? ""
+                        if uti == "public.folder" { continue }
+                        fileCount += 1
+                        if let path = item.value(forAttribute: NSMetadataItemPathKey) as? String,
+                           paths.count < 5 {
+                            paths.append(URL(fileURLWithPath: path).lastPathComponent)
+                        }
+                    }
+                    query.enableUpdates()
+                    self?.finish(with: MetadataCountResult(count: fileCount, firstItemPaths: paths))
+                }
             }
             self.query = query
             query.start()
@@ -511,7 +537,7 @@ private final class MetadataCounter {
         }
     }
 
-    private func finish(with value: Int?) {
+    private func finish(with value: MetadataCountResult?) {
         guard let continuation else { return }
         self.continuation = nil
         if let observer {
