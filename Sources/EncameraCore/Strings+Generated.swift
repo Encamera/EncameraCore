@@ -2159,6 +2159,136 @@ public enum L10n {
       /// Not signed in to the App Store
       public static let notSignedInTitle = L10n.tr("Localizable", "Onboarding.RestorePurchases.NotSignedInTitle", fallback: "Not signed in to the App Store")
     }
+    public enum Premium {
+      /// %d items, always free
+      public static func title(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "Onboarding.Premium.Title", p1, fallback: "%d items, always free")
+      }
+      /// Store up to %d photos and videos in Encamera at no cost.
+      public static func body1(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "Onboarding.Premium.Body1", p1, fallback: "Store up to %d photos and videos in Encamera at no cost.")
+      }
+      /// Upgrade to Premium when you need more.
+      public static let body2 = L10n.tr("Localizable", "Onboarding.Premium.Body2", fallback: "Upgrade to Premium when you need more.")
+    }
+    public enum Story {
+      /// Welcome to Encamera
+      public static let welcome = L10n.tr("Localizable", "Onboarding.Story.welcome", fallback: "Welcome to Encamera")
+      /// iPhone's first truly encrypted camera
+      public static let title1 = L10n.tr("Localizable", "Onboarding.Story.title1", fallback: "iPhone's first truly encrypted camera")
+      /// Encrypted as soon as you capture
+      public static let title2 = L10n.tr("Localizable", "Onboarding.Story.title2", fallback: "Encrypted as soon as you capture")
+      /// No account. No ads. No notifications. Ever.
+      public static let title3 = L10n.tr("Localizable", "Onboarding.Story.title3", fallback: "No account. No ads. No notifications. Ever.")
+      /// Only you hold the encryption key
+      public static let title4 = L10n.tr("Localizable", "Onboarding.Story.title4", fallback: "Only you hold the encryption key")
+      /// Let's start
+      public static let letsStart = L10n.tr("Localizable", "Onboarding.Story.letsStart", fallback: "Let's start")
+    }
+    public enum UnlockMethod {
+      /// How should you unlock Encamera?
+      public static let title = L10n.tr("Localizable", "Onboarding.UnlockMethod.title", fallback: "How should you unlock Encamera?")
+      /// Choose how you'd like to unlock your encrypted files
+      public static let subtitle = L10n.tr("Localizable", "Onboarding.UnlockMethod.subtitle", fallback: "Choose how you'd like to unlock your encrypted files")
+      /// Password (Recommended)
+      public static let passwordTitle = L10n.tr("Localizable", "Onboarding.UnlockMethod.passwordTitle", fallback: "Password (Recommended)")
+      /// More characters for added security
+      public static let passwordLabel = L10n.tr("Localizable", "Onboarding.UnlockMethod.passwordLabel", fallback: "More characters for added security")
+      /// PIN Code
+      public static let pinTitle = L10n.tr("Localizable", "Onboarding.UnlockMethod.pinTitle", fallback: "PIN Code")
+      /// Quick and easy to enter
+      public static let pinLabel = L10n.tr("Localizable", "Onboarding.UnlockMethod.pinLabel", fallback: "Quick and easy to enter")
+      /// You can change this anytime in Settings
+      public static let changeAnytime = L10n.tr("Localizable", "Onboarding.UnlockMethod.changeAnytime", fallback: "You can change this anytime in Settings")
+    }
+    public enum Pin {
+      /// Create your PIN
+      public static let title = L10n.tr("Localizable", "Onboarding.Pin.title", fallback: "Create your PIN")
+      /// Choose a PIN you'll use to unlock your encrypted files
+      public static let subtitle = L10n.tr("Localizable", "Onboarding.Pin.subtitle", fallback: "Choose a PIN you'll use to unlock your encrypted files")
+      /// Confirm your PIN
+      public static let confirmTitle = L10n.tr("Localizable", "Onboarding.Pin.confirmTitle", fallback: "Confirm your PIN")
+      /// Set PIN Code
+      public static let setButton = L10n.tr("Localizable", "Onboarding.Pin.setButton", fallback: "Set PIN Code")
+    }
+    public enum Password {
+      /// Create your password
+      public static let title = L10n.tr("Localizable", "Onboarding.Password.title", fallback: "Create your password")
+      /// Use a longer password for added security
+      public static let subtitle = L10n.tr("Localizable", "Onboarding.Password.subtitle", fallback: "Use a longer password for added security")
+      /// Confirm your password
+      public static let confirmTitle = L10n.tr("Localizable", "Onboarding.Password.confirmTitle", fallback: "Confirm your password")
+      /// Your password
+      public static let field = L10n.tr("Localizable", "Onboarding.Password.field", fallback: "Your password")
+      /// Set Password
+      public static let setButton = L10n.tr("Localizable", "Onboarding.Password.setButton", fallback: "Set Password")
+    }
+    public enum PasscodeSet {
+      /// You're all set
+      public static let title = L10n.tr("Localizable", "Onboarding.PasscodeSet.title", fallback: "You're all set")
+      /// Your PIN is ready. You'll need it to unlock your encrypted files.
+      public static let pinBody = L10n.tr("Localizable", "Onboarding.PasscodeSet.pinBody", fallback: "Your PIN is ready. You'll need it to unlock your encrypted files.")
+      /// Your password is ready. You'll need it to unlock your encrypted files.
+      public static let passwordBody = L10n.tr("Localizable", "Onboarding.PasscodeSet.passwordBody", fallback: "Your password is ready. You'll need it to unlock your encrypted files.")
+    }
+    public enum Encryption {
+      /// Every file you add is encrypted
+      public static let title = L10n.tr("Localizable", "Onboarding.Encryption.title", fallback: "Every file you add is encrypted")
+      /// Before it's stored on your device or in iCloud
+      public static let row1 = L10n.tr("Localizable", "Onboarding.Encryption.row1", fallback: "Before it's stored on your device or in iCloud")
+      /// Only you can unlock your encrypted files
+      public static let row2 = L10n.tr("Localizable", "Onboarding.Encryption.row2", fallback: "Only you can unlock your encrypted files")
+      /// Your recovery key is the only way to recover them if you lose access
+      public static let row3 = L10n.tr("Localizable", "Onboarding.Encryption.row3", fallback: "Your recovery key is the only way to recover them if you lose access")
+    }
+    public enum Storage {
+      /// Where should your files be stored?
+      public static let title = L10n.tr("Localizable", "Onboarding.Storage.title", fallback: "Where should your files be stored?")
+      /// Choose where your encrypted photos and videos live
+      public static let subtitle = L10n.tr("Localizable", "Onboarding.Storage.subtitle", fallback: "Choose where your encrypted photos and videos live")
+      /// Synced across your Apple devices
+      public static let iCloudLabel = L10n.tr("Localizable", "Onboarding.Storage.iCloudLabel", fallback: "Synced across your Apple devices")
+      /// This iPhone
+      public static let thisIPhoneTitle = L10n.tr("Localizable", "Onboarding.Storage.thisIPhoneTitle", fallback: "This iPhone")
+      /// Stored only on this device
+      public static let thisIPhoneLabel = L10n.tr("Localizable", "Onboarding.Storage.thisIPhoneLabel", fallback: "Stored only on this device")
+    }
+    public enum Ready {
+      /// You're ready to use Encamera
+      public static let title = L10n.tr("Localizable", "Onboarding.Ready.title", fallback: "You're ready to use Encamera")
+      /// Your first private album is ready
+      public static let subtitle = L10n.tr("Localizable", "Onboarding.Ready.subtitle", fallback: "Your first private album is ready")
+      /// Go to my album
+      public static let goToAlbum = L10n.tr("Localizable", "Onboarding.Ready.goToAlbum", fallback: "Go to my album")
+    }
+    public enum WelcomeBack {
+      /// Welcome back to Encamera
+      public static let title = L10n.tr("Localizable", "Onboarding.WelcomeBack.title", fallback: "Welcome back to Encamera")
+      /// We found that you've used Encamera on %@. Import your encryption key from that device to keep your encrypted library in sync.
+      public static func bodyWithDevice(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "Onboarding.WelcomeBack.bodyWithDevice", String(describing: p1), fallback: "We found that you've used Encamera on %@. Import your encryption key from that device to keep your encrypted library in sync.")
+      }
+      /// We found that you've used Encamera on your other device. Import your encryption key from that device to keep your encrypted library in sync.
+      public static let bodyGeneric = L10n.tr("Localizable", "Onboarding.WelcomeBack.bodyGeneric", fallback: "We found that you've used Encamera on your other device. Import your encryption key from that device to keep your encrypted library in sync.")
+      /// Import key
+      public static let importKey = L10n.tr("Localizable", "Onboarding.WelcomeBack.importKey", fallback: "Import key")
+      /// I don't have my key
+      public static let noKey = L10n.tr("Localizable", "Onboarding.WelcomeBack.noKey", fallback: "I don't have my key")
+    }
+    public enum NeedKey {
+      /// You'll need your encryption key
+      public static let title = L10n.tr("Localizable", "Onboarding.NeedKey.title", fallback: "You'll need your encryption key")
+      /// Without your encryption key, you won't be able to access your existing encrypted files on this device. You can import your key later if you get access to it.
+      public static let body = L10n.tr("Localizable", "Onboarding.NeedKey.body", fallback: "Without your encryption key, you won't be able to access your existing encrypted files on this device. You can import your key later if you get access to it.")
+      /// Continue without key
+      public static let continueWithoutKey = L10n.tr("Localizable", "Onboarding.NeedKey.continueWithoutKey", fallback: "Continue without key")
+      /// Continue without your key?
+      public static let drawerTitle = L10n.tr("Localizable", "Onboarding.NeedKey.drawerTitle", fallback: "Continue without your key?")
+      /// Your existing encrypted files won't be accessible on this device until you import your encryption key.
+      public static let drawerBody = L10n.tr("Localizable", "Onboarding.NeedKey.drawerBody", fallback: "Your existing encrypted files won't be accessible on this device until you import your encryption key.")
+      /// Go Back
+      public static let goBack = L10n.tr("Localizable", "Onboarding.NeedKey.goBack", fallback: "Go Back")
+    }
   }
   public enum OnboardingCarousel {
     /// Your memories, fully protected
@@ -2872,6 +3002,24 @@ public enum L10n {
     public static func zipCreationFailed(_ p1: Any) -> String {
       return L10n.tr("Localizable", "ZipExportError.ZipCreationFailed", String(describing: p1), fallback: "Failed to create zip file: %@")
     }
+  }
+  public enum VerticalPaywall {
+    /// Billed monthly
+    public static let billedMonthly = L10n.tr("Localizable", "VerticalPaywall.billedMonthly", fallback: "Billed monthly")
+    /// %@ / month
+    public static func monthlyPriceSubtext(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "VerticalPaywall.monthlyPriceSubtext", String(describing: p1), fallback: "%@ / month")
+    }
+    /// No payment due now
+    public static let noPaymentDueNow = L10n.tr("Localizable", "VerticalPaywall.noPaymentDueNow", fallback: "No payment due now")
+    /// Pay once, access forever
+    public static let payOnceAccessForever = L10n.tr("Localizable", "VerticalPaywall.payOnceAccessForever", fallback: "Pay once, access forever")
+    /// Start Free Trial
+    public static let startFreeTrial = L10n.tr("Localizable", "VerticalPaywall.startFreeTrial", fallback: "Start Free Trial")
+    /// Keep your entire private library in Encamera with unlimited, automatic encryption.
+    public static let subtitle = L10n.tr("Localizable", "VerticalPaywall.subtitle", fallback: "Keep your entire private library in Encamera with unlimited, automatic encryption.")
+    /// Get Unlimited Storage
+    public static let title = L10n.tr("Localizable", "VerticalPaywall.title", fallback: "Get Unlimited Storage")
   }
 }
 // swiftlint:enable explicit_type_interface function_parameter_count identifier_name line_length

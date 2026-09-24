@@ -91,6 +91,15 @@ public enum OnboardingFlowScreen: String, Identifiable {
     case cloudKitUpgradeIntro
     case cloudKitUpgradeProgress
     case cloudKitUpgradeComplete
+    // MARK: - Multi-Device Onboarding (ENC-264)
+    case loginMethod
+    case unlockMethod
+    case encryptionExplainer
+    case defaultStorage
+    case premiumExplainer
+    case ready
+    case welcomeBack
+    case needYourKey
     public var id: Self { self }
 }
 

@@ -8,6 +8,12 @@
 import Foundation
 
 public struct StorageAvailabilityModel: Identifiable, Equatable {
+
+    public init(storageType: StorageType, availability: StorageType.Availability) {
+        self.storageType = storageType
+        self.availability = availability
+    }
+    
     public let storageType: StorageType
     public let availability: StorageType.Availability
     public var id: StorageType {

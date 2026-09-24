@@ -1404,3 +1404,89 @@
 "CloudKitUpgrade.CompleteBody" = "Your photos will now sync faster and more reliably across your devices.";
 "CloudKitUpgrade.AlbumCardTitle" = "Get better syncing for this album";
 "CloudKitUpgrade.AlbumCardBody" = "Update it now for faster, more reliable syncing";
+
+/* ./Encamera/Onboarding/OnboardingStoryCarousel.swift - Story carousel welcome label (ENC-277) */
+"Onboarding.Story.welcome" = "Welcome to Encamera";
+
+/* ./Encamera/Onboarding - New onboarding flow strings (ENC-276) */
+
+/* Story carousel */
+"Onboarding.Story.title1" = "iPhone's first truly encrypted camera";
+"Onboarding.Story.title2" = "Encrypted as soon as you capture";
+"Onboarding.Story.title3" = "No account. No ads. No notifications. Ever.";
+"Onboarding.Story.title4" = "Only you hold the encryption key";
+"Onboarding.Story.letsStart" = "Let's start";
+
+/* Unlock method */
+"Onboarding.UnlockMethod.title" = "How should you unlock Encamera?";
+"Onboarding.UnlockMethod.subtitle" = "Choose how you'd like to unlock your encrypted files";
+"Onboarding.UnlockMethod.passwordTitle" = "Password (Recommended)";
+"Onboarding.UnlockMethod.passwordLabel" = "More characters for added security";
+"Onboarding.UnlockMethod.pinTitle" = "PIN Code";
+"Onboarding.UnlockMethod.pinLabel" = "Quick and easy to enter";
+"Onboarding.UnlockMethod.changeAnytime" = "You can change this anytime in Settings";
+
+/* PIN */
+"Onboarding.Pin.title" = "Create your PIN";
+"Onboarding.Pin.subtitle" = "Choose a PIN you'll use to unlock your encrypted files";
+"Onboarding.Pin.confirmTitle" = "Confirm your PIN";
+"Onboarding.Pin.setButton" = "Set PIN Code";
+
+/* Password */
+"Onboarding.Password.title" = "Create your password";
+"Onboarding.Password.subtitle" = "Use a longer password for added security";
+"Onboarding.Password.confirmTitle" = "Confirm your password";
+"Onboarding.Password.field" = "Your password";
+"Onboarding.Password.setButton" = "Set Password";
+
+/* Passcode set drawer */
+"Onboarding.PasscodeSet.title" = "You're all set";
+"Onboarding.PasscodeSet.pinBody" = "Your PIN is ready. You'll need it to unlock your encrypted files.";
+"Onboarding.PasscodeSet.passwordBody" = "Your password is ready. You'll need it to unlock your encrypted files.";
+
+/* Encryption explainer */
+"Onboarding.Encryption.title" = "Every file you add is encrypted";
+"Onboarding.Encryption.row1" = "Before it's stored on your device or in iCloud";
+"Onboarding.Encryption.row2" = "Only you can unlock your encrypted files";
+"Onboarding.Encryption.row3" = "Your recovery key is the only way to recover them if you lose access";
+
+/* Storage choice */
+"Onboarding.Storage.title" = "Where should your files be stored?";
+"Onboarding.Storage.subtitle" = "Choose where your encrypted photos and videos live";
+"Onboarding.Storage.iCloudLabel" = "Synced across your Apple devices";
+"Onboarding.Storage.thisIPhoneTitle" = "This iPhone";
+"Onboarding.Storage.thisIPhoneLabel" = "Stored only on this device";
+
+/* Ready */
+"Onboarding.Ready.title" = "You're ready to use Encamera";
+"Onboarding.Ready.subtitle" = "Your first private album is ready";
+"Onboarding.Ready.goToAlbum" = "Go to my album";
+
+/* Welcome back */
+"Onboarding.WelcomeBack.title" = "Welcome back to Encamera";
+"Onboarding.WelcomeBack.bodyWithDevice" = "We found that you've used Encamera on %@. Import your encryption key from that device to keep your encrypted library in sync.";
+"Onboarding.WelcomeBack.bodyGeneric" = "We found that you've used Encamera on your other device. Import your encryption key from that device to keep your encrypted library in sync.";
+"Onboarding.WelcomeBack.importKey" = "Import key";
+"Onboarding.WelcomeBack.noKey" = "I don't have my key";
+
+/* Need key */
+"Onboarding.NeedKey.title" = "You'll need your encryption key";
+"Onboarding.NeedKey.body" = "Without your encryption key, you won't be able to access your existing encrypted files on this device. You can import your key later if you get access to it.";
+"Onboarding.NeedKey.continueWithoutKey" = "Continue without key";
+"Onboarding.NeedKey.drawerTitle" = "Continue without your key?";
+"Onboarding.NeedKey.drawerBody" = "Your existing encrypted files won't be accessible on this device until you import your encryption key.";
+"Onboarding.NeedKey.goBack" = "Go Back";
+
+/* ./Encamera/Store/VerticalPaywall/VerticalPaywallView.swift - Vertical paywall layout (ENC-282) */
+"VerticalPaywall.title" = "Get Unlimited Storage";
+"VerticalPaywall.subtitle" = "Keep your entire private library in Encamera with unlimited, automatic encryption.";
+"VerticalPaywall.noPaymentDueNow" = "No payment due now";
+"VerticalPaywall.billedMonthly" = "Billed monthly";
+"VerticalPaywall.payOnceAccessForever" = "Pay once, access forever";
+"VerticalPaywall.monthlyPriceSubtext" = "%@ / month";
+"VerticalPaywall.startFreeTrial" = "Start Free Trial";
+
+/* ./Encamera/Onboarding/PremiumFeaturesExplanationView.swift - Premium features explainer (ENC-270) */
+"Onboarding.Premium.Title" = "%d items, always free";
+"Onboarding.Premium.Body1" = "Store up to %d photos and videos in Encamera at no cost.";
+"Onboarding.Premium.Body2" = "Upgrade to Premium when you need more.";

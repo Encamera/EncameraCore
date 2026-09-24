@@ -42,6 +42,7 @@ public enum UserDefaultKey {
     case promotionalBannerInteractions
     case dismissedBanners
     case showPaywallOnAppear
+    case paywallShownDuringOnboarding
     case selectedPhotoResolution
     case selectedVideoQuality
     case keyMigration
@@ -132,6 +133,7 @@ public enum UserDefaultKey {
              .promotionalBannerInteractions,
              .dismissedBanners,
              .showPaywallOnAppear,
+             .paywallShownDuringOnboarding,
              .selectedPhotoResolution,
              .selectedVideoQuality,
              .showHiddenAlbumsInCameraPicker,

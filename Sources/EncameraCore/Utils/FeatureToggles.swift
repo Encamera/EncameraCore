@@ -25,6 +25,7 @@ public enum Feature: String, CaseIterable {
     case iCloudDiagnostics
     case showDebugLogs
     case userDefaultsInspector
+    case multiDeviceOnboarding
 
     var userDefaultsKey: String {
         return "feature_" +  rawValue
@@ -60,6 +61,7 @@ public enum Feature: String, CaseIterable {
         case .iCloudDiagnostics: return "iCloud Diagnostics"
         case .showDebugLogs: return "Debug Logs"
         case .userDefaultsInspector: return "UserDefaults Inspector"
+        case .multiDeviceOnboarding: return "Multi-Device Onboarding"
         }
     }
 
@@ -82,6 +84,7 @@ public enum Feature: String, CaseIterable {
         case .iCloudDiagnostics: return "Show a Settings workbench that reports the status of EVERYTHING iCloud saving depends on — account, network, container, schema and a live write probe — without stopping at the first failure"
         case .showDebugLogs: return "Capture every printDebug line in memory and show a floating button that opens a viewer to search, copy, or share them"
         case .userDefaultsInspector: return "Show a debug screen in Settings that dumps every UserDefaults key the app has stored, including iCloud KVS copies, with their types and values"
+        case .multiDeviceOnboarding: return "Show the redesigned onboarding: story carousel, password or PIN choice, default album storage and the in-flow premium explainer. Off, the classic PIN-only onboarding is shown."
         }
     }
 
@@ -89,7 +92,7 @@ public enum Feature: String, CaseIterable {
     /// toggle has no opinion and callers fall back to disabled.
     public var defaultValue: Bool? {
         switch self {
-        case .cloudKitStorage:
+        case .cloudKitStorage, .multiDeviceOnboarding:
             return true
         case .cloudKitUpgradeFlow:
             #if DEBUG
