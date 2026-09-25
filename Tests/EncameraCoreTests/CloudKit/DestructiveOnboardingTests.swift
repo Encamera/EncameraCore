@@ -2,9 +2,9 @@
 //  DestructiveOnboardingTests.swift
 //  EncameraCoreTests
 //
-//  The destructive delete-my-iCloud-data path (ENC-94). The riskiest flow in the
-//  project — it deletes user data by design and sits on the tombstone landmine
-//  (ENC-72/ENC-82). These tests pin the non-negotiables:
+//  The destructive delete-my-iCloud-data path. The riskiest flow in the
+//  project — it deletes user data by design and sits on the tombstone landmine.
+//  These tests pin the non-negotiables:
 //   * every record and album is tombstoned,
 //   * a partial failure is reported, never swallowed into a false success,
 //   * NO account-wide keychain deletion is ever issued (the landmine),
@@ -48,7 +48,6 @@ final class DestructiveOnboardingTests: XCTestCase {
 
     private func makeCoordinator(store: CloudKitMediaStoring,
                                  keyManager: KeyManager) -> DestructiveOnboardingCoordinator {
-        // Inject an inert legacy-file remover so these tests never touch the disk.
         DestructiveOnboardingCoordinator(store: store,
                                          keyManager: keyManager,
                                          removeLegacyICloudDriveFiles: { (0, nil) })
@@ -73,7 +72,7 @@ final class DestructiveOnboardingTests: XCTestCase {
 
     func testPartialDeletionFailureIsReported() async throws {
         let store = seededStore()
-        store.deleteError = CloudKitMediaStoreError.notFound   // deletes now fail
+        store.deleteError = CloudKitMediaStoreError.notFound
         let keyManager = DestructiveSpyKeyManager()
 
         let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 3)
@@ -81,7 +80,6 @@ final class DestructiveOnboardingTests: XCTestCase {
         XCTAssertFalse(report.isCompleteSuccess, "A failed tombstone must not be reported as success")
         XCTAssertTrue(report.hasFailures)
         XCTAssertFalse(report.mediaFailures.isEmpty, "Per-record failures must be surfaced, not swallowed")
-        // A partial failure must NOT clear the marker or mint a key.
         XCTAssertFalse(report.freshKeyGenerated)
         XCTAssertTrue(keyManager.generatedKeyNames.isEmpty,
                       "No fresh key may be created when deletion did not fully succeed")
@@ -119,7 +117,6 @@ final class DestructiveOnboardingTests: XCTestCase {
         let store = seededStore()
         let keyManager = DestructiveSpyKeyManager()
 
-        // Seed a returning-user record: marker set, one roster device, one fingerprint.
         let device = MultiDeviceState.DeviceRecord(deviceID: "other-device", name: "iPad", lastSeen: Date())
         try keyManager.setMultiDeviceState(
             MultiDeviceState(devices: [device], keyFingerprints: ["oldfingerprint"])
@@ -210,8 +207,7 @@ final class DestructiveOnboardingTests: XCTestCase {
     /// empty album list. Nothing iterates, nothing fails — and without a census
     /// cross-check the run reports clean success over media still in CloudKit.
     func testShortSweepAgainstCensusIsNotACompleteSuccess() async throws {
-        let store = MockCloudKitMediaStore()      // no albums: the stale-index case
-        // The zone still holds the census's records, so the delete cannot be verified.
+        let store = MockCloudKitMediaStore()
         store.fingerprintCensusOverride = .counted(mediaCount: 47, fingerprints: [:])
         let keyManager = DestructiveSpyKeyManager()
         try keyManager.setMultiDeviceState(
@@ -238,7 +234,7 @@ final class DestructiveOnboardingTests: XCTestCase {
     /// completes. Without this the user could never finish the erase — every retry
     /// would fail against a number that can no longer be reached.
     func testShortSweepSucceedsWhenCensusConfirmsEmptyZone() async throws {
-        let store = MockCloudKitMediaStore()      // no albums, and no live records
+        let store = MockCloudKitMediaStore()
         let keyManager = DestructiveSpyKeyManager()
 
         let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 47)
@@ -286,11 +282,6 @@ final class DestructiveOnboardingTests: XCTestCase {
 
     // MARK: - The marker clear is the one write success is claimed over
 
-    /// It used to be a `try?`: the write that `isCompleteSuccess` asserts happened
-    /// could fail silently, and the run would still mint a fresh key over a record
-    /// that still held old fingerprints. The user
-    /// then finished onboarding on the new key and was dropped back onto the
-    /// returning-user branch at the next launch, for data they had already deleted.
     func testMarkerClearFailureIsReportedAndStopsShortOfTheMint() async throws {
         let store = seededStore()
         let keyManager = DestructiveSpyKeyManager()

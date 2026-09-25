@@ -30,8 +30,6 @@ public actor DiskMediaBackend: MediaBackend {
     public func configure(for album: Album, albumManager: AlbumManaging) async {
         await fileAccess.configure(for: album, albumManager: albumManager)
         self.directoryModel = albumManager.storageModel(for: album)
-        // Only reset the index when switching albums — re-configuring for the same
-        // album (e.g. a gallery refresh) keeps the store's warm in-memory cache.
         if albumID != album.id {
             self.albumID = album.id
             self.indexStore = MediaIndexStore(album: album)
@@ -71,14 +69,11 @@ public actor DiskMediaBackend: MediaBackend {
         sortBy sortOption: MediaSortOption = .dateEncrypted(ascending: false),
         filterBy filterOptions: MediaFilterOptions = .all
     ) async -> [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] {
-        // Get raw encrypted media with metadata from DiskFileAccess
         let rawMediaWithMetadata = await fileAccess.enumerateEncryptedMediaWithMetadata(
             sortBy: sortOption,
             filterBy: filterOptions
         )
 
-        // Group by media ID (for Live Photos which have photo + video components)
-        // We need to preserve the order while grouping
         var mediaMap: [String: (interactable: InteractableMedia<EncryptedMedia>, metadata: EncryptedFileMetadata?, dateTaken: Date?, dateEncrypted: Date?, subtype: MediaFilterOptions)] = [:]
         var orderedIds: [String] = []
 
@@ -86,11 +81,9 @@ public actor DiskMediaBackend: MediaBackend {
             let mediaId = item.media.id
 
             if var existing = mediaMap[mediaId] {
-                // Add to existing group (e.g., video component of Live Photo)
                 existing.interactable.appendToUnderlyingMedia(media: item.media)
                 mediaMap[mediaId] = existing
             } else {
-                // Create new group
                 do {
                     let interactable = try InteractableMedia(underlyingMedia: [item.media])
                     mediaMap[mediaId] = (
@@ -107,13 +100,11 @@ public actor DiskMediaBackend: MediaBackend {
             }
         }
 
-        // Build result array preserving order
         var results: [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] = []
 
         for mediaId in orderedIds {
             guard let group = mediaMap[mediaId] else { continue }
 
-            // For Live Photos, treat as still images for filtering purposes
             var subtype = group.subtype
             if group.interactable.mediaType == .livePhoto {
                 subtype = .stillImage
@@ -150,7 +141,6 @@ public actor DiskMediaBackend: MediaBackend {
     ) async throws -> [URL] {
         var urls = [URL]()
         for mediaItem in media.underlyingMedia {
-            // Check for cancellation before loading each media item
             try Task.checkCancellation()
 
             let loaded = try await fileAccess.loadMediaToURL(media: mediaItem, progress: progress)
@@ -165,7 +155,6 @@ public actor DiskMediaBackend: MediaBackend {
     public func loadMedia<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> where T: MediaDescribing {
         var decrypted: [CleartextMedia] = []
         for mediaItem in media.underlyingMedia {
-            // Check for cancellation before decrypting each media item
             try Task.checkCancellation()
 
             if mediaItem.mediaType == .photo {
@@ -193,15 +182,12 @@ public actor DiskMediaBackend: MediaBackend {
     public func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
         var encrypted: [EncryptedMedia] = []
         for mediaItem in media.underlyingMedia {
-            // Check for cancellation before processing each media item
-            // This ensures cancellation propagates through the actor boundary
             try Task.checkCancellation()
             if let encryptedMedia = try await fileAccess.save(media: mediaItem, metadata: metadata, progress: progress) {
                 encrypted.append(encryptedMedia)
             }
         }
 
-        // Fold the new item into the index immediately — no wait for a reconcile.
         await upsertIntoIndex(encrypted)
         return try InteractableMedia(underlyingMedia: encrypted)
     }
@@ -231,25 +217,16 @@ public actor DiskMediaBackend: MediaBackend {
 
     public func copy(media: InteractableMedia<EncryptedMedia>) async throws {
         for mediaItem in media.underlyingMedia {
-            // Check for cancellation before copying each media item
             try Task.checkCancellation()
             try await fileAccess.copy(media: mediaItem)
         }
-        // Copy mints a fresh id that `fileAccess.copy` does not return, so the new
-        // file is folded in by the next reconcile (the gallery's create-bus event
-        // triggers one) rather than an incremental upsert here.
     }
 
     public func move(media: InteractableMedia<EncryptedMedia>, progress: ((FileLoadingStatus) -> Void)? = nil) async throws {
         for mediaItem in media.underlyingMedia {
-            // Check for cancellation before moving each media item
             try Task.checkCancellation()
             try await fileAccess.move(media: mediaItem, progress: progress)
         }
-        // This backend is the move TARGET — the files now live under our own
-        // `sourceURL` scheme, so fold them into the target index. The SOURCE
-        // album drops them on its own next reconcile (the move UI triggers one);
-        // writing another album's index from here would couple the backends.
         var moved: [EncryptedMedia] = []
         for item in media.underlyingMedia {
             let url = await sourceURL(id: item.id, type: item.mediaType)
@@ -259,17 +236,11 @@ public actor DiskMediaBackend: MediaBackend {
     }
 
     public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
-        // Delete by id off a fresh directory listing rather than trusting the
-        // components the caller carries: those come from the index, and an index
-        // that lost a Live Photo's video component would leave the `.encvideo`
-        // behind for the next reconcile to resurface as a standalone 1–2 second
-        // video. Whatever shares the id goes with it.
         let allMediaItems = Self.componentsOnDisk(
             forIDs: Set(media.map { $0.id }),
             urlsByID: currentMediaURLsByID()
         )
         try await fileAccess.delete(media: allMediaItems)
-        // Disk delete removes every component of a logical item, so drop whole ids.
         do {
             try await indexStore?.remove(ids: Set(media.map { $0.id }))
         } catch {
@@ -294,8 +265,6 @@ public actor DiskMediaBackend: MediaBackend {
 
     public func sourceURL(id: String, type: MediaType) async -> URL {
         guard let directoryModel else {
-            // No configured album yet — fall back to a best-effort path so callers
-            // never crash; an unconfigured backend should not be materializing.
             return URL(fileURLWithPath: "/dev/null")
         }
         return directoryModel.driveURLForMedia(withID: id, type: type)
@@ -324,8 +293,6 @@ public actor DiskMediaBackend: MediaBackend {
             components.append(
                 MediaStorageDetails.Component(
                     mediaType: item.mediaType,
-                    // iCloud Drive stores exactly the file we would hold locally, so
-                    // one size describes both sides.
                     remoteBytes: storageType == .icloud ? logicalBytes : nil,
                     localBytes: isDownloaded ? logicalBytes : nil,
                     format: format,
@@ -389,20 +356,11 @@ public actor DiskMediaBackend: MediaBackend {
     ) async -> Bool {
         guard let indexStore else { return false }
 
-        // The scan below suspends this actor (directory listing → index reload →
-        // metadata reads), so an incremental save/delete/move can interleave and
-        // patch the index mid-scan. Capture the store's mutation generation before
-        // snapshotting anything and make the final write conditional on it: if the
-        // index moved on, re-diff against the updated state instead of clobbering
-        // the interleaved write with our stale snapshot. Interleaved mutations are
-        // user-driven and rare, so a couple of retries always suffice.
         for _ in 0..<3 {
             let generation = await indexStore.currentGeneration()
 
             let diskURLsByID = currentMediaURLsByID()
             let diskIDs = Set(diskURLsByID.keys)
-            // Diff against the authoritative on-disk index — a reconcile must see
-            // external writes (e.g. a migration rebuild), not a possibly-stale cache.
             let existingEntries = (await indexStore.reloadFromDisk())?.entries ?? []
             let indexIDs = Set(existingEntries.map { $0.id })
 
@@ -411,8 +369,6 @@ public actor DiskMediaBackend: MediaBackend {
 
             let unchangedIDs = indexIDs.intersection(diskIDs)
 
-            // Detect in-place modifications for entries whose IDs still match, relative
-            // to when the index file was last written.
             let modifiedIDs: Set<String>
             if let referenceDate = indexStore.fileModificationDate() {
                 modifiedIDs = Self.idsModifiedSince(referenceDate, among: unchangedIDs, urlsByID: diskURLsByID)
@@ -420,14 +376,6 @@ public actor DiskMediaBackend: MediaBackend {
                 modifiedIDs = []
             }
 
-            // Detect entries whose recorded components no longer describe the files
-            // on disk. The id-level diff above is blind to this — the id is in both
-            // sets — and the mtime check misses it whenever the index file has been
-            // rewritten since the component landed, which a busy album does on every
-            // save. Without this, a Live Photo that was only half-recorded (a
-            // component that threw after writing its file, or a gallery refresh that
-            // indexed the item between its photo and video writes) is stuck as a
-            // still photo forever, with an invisible `.encvideo` beside it.
             let mismatchedIDs = Self.idsWithComponentMismatch(
                 among: unchangedIDs,
                 urlsByID: diskURLsByID,
@@ -440,7 +388,6 @@ public actor DiskMediaBackend: MediaBackend {
                 return false
             }
 
-            // A cancelled reconcile must not write a partial index.
             if Task.isCancelled { return false }
 
             var entries = existingEntries.filter {
@@ -461,7 +408,6 @@ public actor DiskMediaBackend: MediaBackend {
                 entries.append(contentsOf: Self.makeEntries(fromFileLevelMetadata: withMetadata))
             }
 
-            // The metadata read above can be long; bail without writing if cancelled.
             if Task.isCancelled { return false }
 
             do {

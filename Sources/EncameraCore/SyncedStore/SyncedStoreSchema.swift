@@ -119,7 +119,6 @@ extension SyncedTableSchema {
     /// - Parameter record: The record to validate
     /// - Returns: True if the record contains the primary key field
     public func validateRecord(_ record: [String: Any]) -> Bool {
-        // Must have primary key
         guard record[primaryKey] != nil else {
             return false
         }

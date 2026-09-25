@@ -57,7 +57,6 @@ final class CloudKitUploadQueueTests: XCTestCase {
 
         try Data("not json".utf8).write(to: baseDir.appendingPathComponent("queue.json"))
 
-        // Fresh instance over the same directory = next launch.
         let relaunched = CloudKitUploadQueue(baseDir: baseDir)
         await relaunched.sweep()
 
@@ -96,7 +95,6 @@ final class CloudKitUploadQueueTests: XCTestCase {
         let kept = try await queue.enqueue(makeUpload(mediaID: "KEPT"))
         let doomed = try await queue.enqueue(makeUpload(mediaID: "DOOMED"))
 
-        // An orphan file no record claims, and a record whose file vanished.
         let albumDir = doomed.encryptedFileURL.deletingLastPathComponent()
         let orphan = albumDir.appendingPathComponent("orphan.photo")
         try Data("stray".utf8).write(to: orphan)

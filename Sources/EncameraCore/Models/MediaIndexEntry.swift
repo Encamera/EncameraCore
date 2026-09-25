@@ -153,7 +153,6 @@ public extension Array where Element == MediaIndexEntry {
         let (id, type) = MediaRecordName.parse(recordName)
         guard let idx = firstIndex(where: { $0.id == id }) else { return true }
 
-        // No component suffix => whole-item delete.
         guard let type else {
             remove(at: idx)
             return true

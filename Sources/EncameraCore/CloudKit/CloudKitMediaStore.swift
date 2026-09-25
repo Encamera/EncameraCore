@@ -104,16 +104,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
 
         // Upload the preview from a private snapshot, never the live file.
-        //
-        // CloudKit fingerprints an asset when the operation is submitted and
-        // reads it again while uploading; if the bytes change in between it
-        // rejects the record with "Asset File Modified" (17/3003). The preview
-        // file is shared — a Live Photo's photo and video components are keyed by
-        // the same media id, so both records point at ONE `<id>.preview` — and it
-        // is rewritten whenever a preview is regenerated or re-fetched. That is
-        // exactly how a Live Photo lost its video half: the preview was deleted
-        // and re-downloaded while the second component was uploading it.
-        // Copying first makes the upload immune to whatever else touches it.
         let snapshot = item.encryptedThumbURL.flatMap { Self.snapshotForUpload($0) }
         defer {
             if let snapshot { try? FileManager.default.removeItem(at: snapshot) }
@@ -143,19 +133,11 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         }
 
         do {
-            // An ordinary (non-long-lived) save: an upload interrupted by app
-            // termination is re-driven from the durable `MigrationPlan` checkpoint,
-            // which re-verifies the item with a cheap fetch-by-id before re-uploading.
-            // Nothing about this call survives the process, and nothing has to be
-            // re-attached on the next launch — see ENC-133.
             let saved = try await adapter.save(
                 records: [record],
                 savePolicy: .ifServerRecordUnchanged,
                 perRecordProgress: { _, fraction in progress(fraction) }
             )
-            // `saved` empty means the operation reported success without returning the
-            // record — falling back to the local copy would report a recordName that
-            // was never confirmed by the server, so say so loudly.
             if saved.isEmpty {
                 printDebug("upload WARNING recordName=\(recordName) save returned no records; reporting the unconfirmed local record")
             }
@@ -207,33 +189,23 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: thumbnailURL)
         }
         if item.chunkCount > 0, let headerData = try? SeekableEncryptedHeader.read(fromFileAt: item.encryptedFileURL).bytes {
-            // Chunked: the payload lives as `EncBlobChunk` records; this record
-            // carries the ENC3 header instead of an `encBlob`, and saving it is
-            // the upload's commit point.
             record[CloudKitSchema.EncMedia.encHeader] = headerData as CKRecordValue
             record[CloudKitSchema.EncMedia.chunkCount] = Int64(item.chunkCount) as CKRecordValue
             record[CloudKitSchema.EncMedia.plaintextLength] = item.plaintextLength as CKRecordValue
         } else {
             record[CloudKitSchema.EncMedia.encBlob] = CKAsset(fileURL: item.encryptedFileURL)
         }
-        // Relational link to the owning EncAlbum (record name == albumID hash). The
-        // `.deleteSelf` action cascades a media delete when the album is deleted; the
-        // same reference is set as `parent` for future record sharing. We do NOT need
-        // the album record to exist first — CloudKit stores the reference regardless.
         let albumRecordID = CKRecord.ID(recordName: item.albumID, zoneID: zoneID)
         record[CloudKitSchema.EncMedia.albumRef] = CKRecord.Reference(recordID: albumRecordID, action: .deleteSelf)
         record.parent = CKRecord.Reference(recordID: albumRecordID, action: .none)
     }
 
-    // MARK: - Albums (chunk 13)
+    // MARK: - Albums
 
     public func saveAlbum(_ album: CloudKitAlbumUpload) async throws {
         guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
         let recordID = CKRecord.ID(recordName: album.albumID, zoneID: zoneID)
         do {
-            // Fetch-then-update so a re-save carries the server's change tag and is
-            // an update rather than a rejected insert; build fresh when the record
-            // is absent.
             let existing = try await adapter.fetch(recordIDs: [recordID],
                                                    desiredKeys: nil,
                                                    perRecordProgress: { _, _ in })
@@ -297,16 +269,13 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             var counts: [String: Int] = [:]
             for record in records {
                 guard let fingerprint = record[CloudKitSchema.EncMedia.keyFingerprint] as? String,
-                      !fingerprint.isEmpty else { continue }   // pre-field record: unknown, not counted
+                      !fingerprint.isEmpty else { continue }
                 counts[fingerprint, default: 0] += 1
             }
             printDebug("fetchFingerprintCensus ok records=\(records.count) fingerprints=\(counts.count)")
             return .counted(mediaCount: records.count, fingerprints: counts)
         } catch {
             let mapped = mapAndRecord(error)
-            // A container whose schema predates the `createdAt` index — or the
-            // `EncMedia` record type itself — cannot answer the query. Both degrade
-            // to "unresolved" rather than an error.
             if Self.isSchemaNotReady(error) {
                 printDebug("fetchFingerprintCensus degraded — schema cannot answer the census query yet; index unavailable (raw=\(error))")
                 return .indexUnavailable
@@ -327,11 +296,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         if CloudKitStoreTestHooks.failDeletes { throw CloudKitMediaStoreError.retry(after: 1) }
         let recordID = CKRecord.ID(recordName: albumID, zoneID: zoneID)
         do {
-            // Every `EncMedia` parents to this record with `.deleteSelf`, so one op
-            // removes the album, its media, and their blobs. Soft-deleting instead
-            // never cascaded — `.deleteSelf` fires on a real delete only — which is
-            // why deleted albums used to keep billing the user's quota forever, and
-            // why re-creating an album with the same name resurrected its photos.
             _ = try await adapter.delete(recordIDs: [recordID])
         } catch {
             throw mapAndRecord(error)
@@ -345,7 +309,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         }
         let isHidden = ((record[CloudKitSchema.EncAlbum.isHidden] as? Int64) ?? 0) != 0
         let schemaVersion = (record[CloudKitSchema.EncAlbum.schemaVersion] as? Int64) ?? CloudKitSchema.currentSchemaVersion
-        // Absent stays nil ("unknown"), matching the write side's "only when known" rule.
         let keyFingerprint = record[CloudKitSchema.EncAlbum.keyFingerprint] as? String
         let coverMediaID: String?
         if let ref = record[CloudKitSchema.EncAlbum.coverMediaRef] as? CKRecord.Reference {
@@ -372,9 +335,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
 
         let predicate = NSPredicate(format: "%K == %@", CloudKitSchema.EncMedia.albumID, albumID)
         do {
-            // Asking for the thumbnail turns this from an index query into an asset
-            // transfer, so it gets the same top QoS band as `fetchAsset`. Without the
-            // thumbnail there is nothing bulky to move and the default is right.
             let records = try await adapter.query(recordType: CloudKitSchema.EncMedia.recordType,
                                                   predicate: predicate,
                                                   zoneID: zoneID,
@@ -395,8 +355,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             let fetched = try await adapter.fetch(recordIDs: [recordID],
                                                   desiredKeys: Self.metadataKeys,
                                                   perRecordProgress: { _, _ in })
-            // Each miss below is a distinct cause with a very different fix, and all
-            // three used to collapse into a bare `nil` at the call site.
             guard let record = fetched[recordID] else {
                 printDebug("fetchRecordMetadata MISS recordName=\(recordName) zone=\(zoneID.zoneName) — no record returned by fetch-by-id")
                 return nil
@@ -438,12 +396,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                             progress: @escaping @Sendable (Double) -> Void) async throws {
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         do {
-            // `.userInteractive` rather than the default `.userInitiated`: a blob or
-            // thumbnail is always fetched because something on screen is waiting for
-            // it, and CloudKit transfers assets markedly faster at the top QoS band —
-            // reports of 5-10x on the same 100-200KB asset are common. Paired with the
-            // single-key `desiredKeys` below, which keeps the transfer to just this
-            // asset (a blob fetch never drags the thumbnail along, or vice versa).
             let records = try await adapter.fetch(recordIDs: [recordID],
                                                   desiredKeys: [assetKey],
                                                   qualityOfService: .userInteractive,
@@ -459,9 +411,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                 try fileManager.removeItem(at: destination)
             }
             try fileManager.copyItem(at: sourceURL, to: destination)
-            // The adapter's snapshot has served its purpose now that the bytes are
-            // at `destination`; leaving it doubles the on-disk cost of every blob
-            // and thumbnail fetched.
             CKDatabaseAdapter.discardSnapshot(at: sourceURL)
         } catch let error as CloudKitMediaStoreError {
             throw error
@@ -476,7 +425,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         if CloudKitStoreTestHooks.failDeletes { throw CloudKitMediaStoreError.retry(after: 1) }
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         do {
-            // Single op removes the record and, with it, both assets — atomically.
             _ = try await adapter.delete(recordIDs: [recordID])
         } catch {
             throw mapAndRecord(error)
@@ -487,15 +435,9 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
 
     public func fetchChanges(since token: CKServerChangeToken?) async throws -> CloudKitChangeSet {
         do {
-            // Pure: fetch from exactly `token`; the caller commits the new token only
-            // after the changes are durably applied.
             let result = try await adapter.fetchZoneChanges(zoneID: zoneID,
                                                             since: token,
                                                             desiredKeys: Self.changeFeedKeys)
-            // Split by record type. `metadata(from:)` requires `EncMedia` fields and
-            // returns nil for anything else, so mapping everything through it used to
-            // drop every `EncAlbum` record on the floor — the albums were always
-            // coming down this feed, just discarded on arrival.
             var changed: [CloudKitMediaMetadata] = []
             var changedAlbums: [CloudKitAlbumMetadata] = []
             for record in result.changed {
@@ -524,8 +466,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                      deletedAlbumIDs: deletedAlbumIDs,
                                      token: result.token,
                                      moreComing: result.moreComing,
-                                     // A cursor came back, so this answer is one the
-                                     // caller may reason about absence against.
                                      snapshotComplete: result.token != nil)
         } catch {
             throw mapAndRecord(error)
@@ -563,12 +503,12 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     // MARK: - Push subscription
 
     public func registerZoneSubscription() async throws {
-        guard await accountAvailable() else { return }     // skip when no account (per research)
+        guard await accountAvailable() else { return }
         if defaults.bool(forKey: subscriptionCreatedKey) { return }
 
         let subscription = CKRecordZoneSubscription(zoneID: zoneID, subscriptionID: zoneSubscriptionID)
         let notificationInfo = CKSubscription.NotificationInfo()
-        notificationInfo.shouldSendContentAvailable = true   // silent push
+        notificationInfo.shouldSendContentAvailable = true
         subscription.notificationInfo = notificationInfo
         do {
             try await adapter.saveSubscription(subscription)
@@ -603,22 +543,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     // MARK: - Legacy long-lived state
 
     /// Drops the operation-ID map older builds persisted for long-lived uploads.
-    ///
-    /// Those builds saved with `isLongLived: true` and re-enqueued the recorded
-    /// operations on every store construction. That re-enqueue was itself the crash:
-    /// `CloudKitStoreProvider.makeStore` builds a store per album namespace (album
-    /// list, albums sync, per-album migration, flight check), each one fetched the
-    /// same *container-wide* long-lived operation IDs, and the second
-    /// `CKDatabase.add` of an operation the daemon already considers running raises
-    /// an Objective-C `NSException` ("another instance of it is already running").
-    /// An `NSException` is not catchable from Swift, so it killed the process during
-    /// launch — every launch, until the operation aged out. See ENC-133.
-    ///
-    /// Uploads are no longer long-lived and nothing re-enqueues anything, so the only
-    /// thing left to do is delete the stale map. Operations still outstanding in the
-    /// daemon from an older build run to completion there on their own; the durable
-    /// `MigrationPlan` — not CloudKit's deprecated long-lived ops — is what makes an
-    /// interrupted upload resumable.
     func purgeLegacyLongLivedState() {
         guard defaults.object(forKey: longLivedMapKey) != nil else { return }
         printDebug("purgeLegacyLongLivedState clearing \(longLivedMapKey)")
@@ -638,9 +562,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         let sizeBytes = (record[CloudKitSchema.EncMedia.sizeBytes] as? Int64) ?? 0
         let creationDeviceID = (record[CloudKitSchema.EncMedia.creationDevice] as? String) ?? ""
         let schemaVersion = (record[CloudKitSchema.EncMedia.schemaVersion] as? Int64) ?? CloudKitSchema.currentSchemaVersion
-        // Empty rather than nil for a record that somehow carries no fingerprint: the
-        // reader treats it as "this record names no key" and falls back, instead of the
-        // record failing to map at all and the media disappearing from the album.
         let keyFingerprint = (record[CloudKitSchema.EncMedia.keyFingerprint] as? String) ?? ""
         // Absent means monolithic — every record written before chunked storage.
         let chunkCount = (record[CloudKitSchema.EncMedia.chunkCount] as? Int64).map(Int.init) ?? 0

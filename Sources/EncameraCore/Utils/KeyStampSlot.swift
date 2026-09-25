@@ -95,8 +95,6 @@ public enum KeyStampSlot: DebugPrintable {
                 return stampFileOffset
             }
 
-            // Offset of the block-size field's unused bytes 4–7, relative to
-            // the start of the v1-compatible content (stream header + block size).
             let slotOffsetInContent = UInt64(EncryptedFileFormat.streamHeaderSize + 4)
 
             let offset: UInt64
@@ -115,7 +113,6 @@ public enum KeyStampSlot: DebugPrintable {
                 let contentStart = UInt64(EncryptedFileFormat.metadataLengthOffset + EncryptedFileFormat.metadataLengthSize) + UInt64(metadataLength)
                 offset = contentStart + slotOffsetInContent
             } else {
-                // V1: the file starts directly with the stream header.
                 offset = slotOffsetInContent
             }
 

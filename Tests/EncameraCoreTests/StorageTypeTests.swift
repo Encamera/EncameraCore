@@ -61,9 +61,6 @@ final class StorageTypeTests: XCTestCase {
             return XCTFail("iCloud Drive must never be offered as a destination for new albums")
         }
 
-        // Readability tracks the ubiquity container only — no deprecation gate. The
-        // simulator has no container, so assert on the *reason* rather than on
-        // availability, which would make this environment-dependent.
         let readable = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud)
         if case .unavailable(let reason) = readable {
             XCTAssertEqual(

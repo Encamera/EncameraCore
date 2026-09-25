@@ -32,7 +32,6 @@ final class DebugLogFormatterTests: XCTestCase {
         XCTAssertTrue(line.contains("[main]"))
         XCTAssertTrue(line.contains("DiskFileAccess:"))
         XCTAssertTrue(line.hasSuffix("opened album"))
-        // Timestamp prefix, POSIX-formatted regardless of device region.
         XCTAssertTrue(line.hasPrefix(formatter.string(from: Date(timeIntervalSince1970: 1_774_534_500))))
     }
 
@@ -69,7 +68,6 @@ final class DebugLogFormatterTests: XCTestCase {
     }
 
     func testMultiLineMessageIsPreservedVerbatim() {
-        // Some callers dump JSON/metadata; rewriting newlines would corrupt it.
         let text = DebugLogFormatter.plainText(entries: [makeEntry(id: 0, message: "{\n  \"a\": 1\n}")])
         XCTAssertTrue(text.contains("{\n  \"a\": 1\n}"))
     }

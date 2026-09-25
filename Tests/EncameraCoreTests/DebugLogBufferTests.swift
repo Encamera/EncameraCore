@@ -93,14 +93,12 @@ final class DebugLogBufferTests: XCTestCase {
         let capacity = 8
         let buffer = makeBuffer(capacity: capacity)
 
-        // Several full wraps to shake out head/index arithmetic.
         for index in 0..<(capacity * 5 + 3) {
             buffer.record(category: "Test", message: "line \(index)")
         }
 
         let chronological = buffer.snapshot(newestFirst: false)
         XCTAssertEqual(chronological.count, capacity)
-        // ids must remain strictly ascending with no gaps at the wrap point.
         let ids = chronological.map(\.id)
         XCTAssertEqual(ids, Array(ids.first!...ids.last!))
         XCTAssertEqual(chronological.last?.message, "line \(capacity * 5 + 2)")
@@ -112,8 +110,6 @@ final class DebugLogBufferTests: XCTestCase {
         let capacity = 4_000
         let buffer = makeBuffer(capacity: capacity)
 
-        // Each message is at the truncation limit, so the byte budget binds well
-        // before the entry-count cap does.
         let large = String(repeating: "x", count: DebugLogBuffer.maxMessageCharacters)
         for _ in 0..<capacity {
             buffer.record(category: "Test", message: large)
@@ -130,8 +126,6 @@ final class DebugLogBufferTests: XCTestCase {
 
     func testSingleOversizedEntryIsStillRetained() {
         let buffer = makeBuffer(capacity: 10)
-        // Truncation caps any one entry well under the budget, so one huge line
-        // must never evict itself down to nothing.
         buffer.record(category: "Test", message: String(repeating: "y", count: 500_000))
         XCTAssertEqual(buffer.stats.retained, 1)
     }
@@ -174,7 +168,6 @@ final class DebugLogBufferTests: XCTestCase {
         XCTAssertEqual(stats.evicted, 3)
         XCTAssertTrue(stats.isCapturing, "Clearing must not turn capture off")
 
-        // Still usable afterwards.
         buffer.record(category: "Test", message: "after clear")
         XCTAssertEqual(buffer.stats.retained, 1)
         XCTAssertEqual(buffer.snapshot().first?.message, "after clear")

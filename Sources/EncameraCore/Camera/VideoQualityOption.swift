@@ -30,7 +30,6 @@ public struct VideoQualityOption: Equatable, Hashable, Codable, Identifiable {
         case 720: return "720p"
         case 480: return "480p"
         default:
-            // For landscape formats where width > height
             switch Int(width) {
             case 3840: return "4K"
             case 1920: return "1080p"

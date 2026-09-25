@@ -19,7 +19,6 @@ final class MockAlbumManager: AlbumManaging {
     var currentAlbumMediaCount: Int? { nil }
     var albumsOnDisk: [Album] = []
 
-    // Instrumentation for reconciler tests
     private(set) var deletedAlbums: [Album] = []
     private(set) var adoptedAlbums: [(name: String, isHidden: Bool)] = []
     private(set) var setHiddenCalls: [(name: String, isHidden: Bool)] = []
@@ -88,9 +87,6 @@ final class MockAlbumManager: AlbumManaging {
         var cloudKitAlbum = album
         cloudKitAlbum.storageOption = .cloudKit
         finalizedAlbums.append(cloudKitAlbum)
-        // Mirror the real AlbumManager: finalize writes the CloudKit discovery
-        // marker (the engine's already-finalized detection keys on its presence)
-        // and drops the drained source dir.
         let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(cloudKitAlbum.encryptedPathComponent)
         try? FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
         let sourceModel = album.storageOption.modelForType.init(album: album)

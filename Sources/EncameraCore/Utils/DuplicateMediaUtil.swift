@@ -96,13 +96,10 @@ public struct DuplicateMediaUtil {
         in mediaWithMetadata: [MediaWithMetadata<EncryptedMedia>],
         keyBytes: [UInt8]
     ) async -> [DuplicateGroup] {
-        // Phase 1: Find duplicates by sourceAssetIdentifier
         let sourceIdGroups = findDuplicatesBySourceId(in: mediaWithMetadata)
 
-        // Collect IDs of items already matched by sourceAssetIdentifier
         let matchedMediaIds = Set(sourceIdGroups.flatMap { $0.items.map { $0.media.id } })
 
-        // Phase 2: For remaining items without sourceAssetIdentifier, use content hash
         let unmatchedItems = mediaWithMetadata.filter { item in
             item.metadata?.sourceAssetIdentifier == nil && !matchedMediaIds.contains(item.media.id)
         }
@@ -120,10 +117,6 @@ public struct DuplicateMediaUtil {
     /// Partially decrypts an encrypted file and returns a SHA-256 hash of the first decrypted block.
     /// Returns nil if the file cannot be read or decrypted.
     private static func partialContentHash(for url: URL, keyBytes: [UInt8]) -> String? {
-        // ENC3 (chunked video) is per-chunk AEAD, not a secretstream — the block
-        // machinery below cannot read it. Those files are ≥50 MiB videos whose
-        // imports are matched by sourceAssetIdentifier in phase 1; skipping the
-        // content-hash fallback for them loses nothing that phase caught.
         guard !SeekableEncryptedHeader.isSeekableFormat(fileURL: url) else { return nil }
         do {
             let metadataHandler = EncryptedMetadataHandler()
@@ -132,10 +125,8 @@ public struct DuplicateMediaUtil {
             let fileHandle = try FileHandle(forReadingFrom: url)
             defer { try? fileHandle.close() }
 
-            // Seek to content start
             try fileHandle.seek(toOffset: contentOffset)
 
-            // Read 24-byte stream header
             guard let headerData = try fileHandle.read(upToCount: 24),
                   headerData.count == 24 else {
                 return nil
@@ -149,7 +140,6 @@ public struct DuplicateMediaUtil {
             }
             let blockSize: UInt32 = blockSizeData.withUnsafeBytes { $0.load(as: UInt32.self) }
 
-            // Initialize decryption stream
             let sodium = Sodium()
             guard let streamDec = sodium.secretStream.xchacha20poly1305.initPull(
                 secretKey: keyBytes,
@@ -158,7 +148,6 @@ public struct DuplicateMediaUtil {
                 return nil
             }
 
-            // Read and decrypt the first block
             guard let encryptedBlock = try fileHandle.read(upToCount: Int(blockSize)),
                   !encryptedBlock.isEmpty else {
                 return nil
@@ -168,7 +157,6 @@ public struct DuplicateMediaUtil {
                 return nil
             }
 
-            // Hash the decrypted content
             let hash = SHA256.hash(data: Data(decryptedBytes))
             return hash.map { String(format: "%02x", $0) }.joined()
         } catch {

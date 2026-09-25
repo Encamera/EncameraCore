@@ -68,9 +68,6 @@ final class IndexBackendEquivalenceTests: XCTestCase {
         let livePhotoID = "live-photo-1"
         let videoID = "video-1"
 
-        // Disk path: one file-level item per component. The disk reader reclassifies
-        // a Live Photo's video component to `.stillImage`, so both its components
-        // arrive as still images.
         var diskIndex: [MediaIndexEntry] = []
         for item in [
             diskItem(id: livePhotoID, type: .photo, subtype: .stillImage),
@@ -80,7 +77,6 @@ final class IndexBackendEquivalenceTests: XCTestCase {
             diskIndex.upsert(DiskMediaBackend.entry(forFileLevelMetadata: item))
         }
 
-        // Cloud path: one CloudKit component record per component, same logical media.
         var cloudIndex: [MediaIndexEntry] = []
         for meta in [
             cloudMeta(id: livePhotoID, type: .photo),
@@ -95,8 +91,6 @@ final class IndexBackendEquivalenceTests: XCTestCase {
             "disk and cloud must produce the same id grouping and component flags for the same media"
         )
 
-        // Spot-check the merged shape itself so the test fails loudly if BOTH
-        // backends drift the same way.
         XCTAssertEqual(diskIndex.count, 2, "the two live-photo components collapse into one entry")
         let livePhoto = diskIndex.first { $0.id == livePhotoID }
         XCTAssertEqual([livePhoto?.hasPhotoComponent, livePhoto?.hasVideoComponent], [true, true])

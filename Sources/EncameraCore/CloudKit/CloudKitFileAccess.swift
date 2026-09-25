@@ -11,7 +11,7 @@
 //  feed carries that to every other device.
 //  `InteractableMediaFileAccess` routes here for `.cloudKit` albums behind the flag.
 //
-//  Reads MUST use `SecretFileHandler`, never `SecretFileHandlerV2` (ENC-135):
+//  Reads MUST use `SecretFileHandler`, never `SecretFileHandlerV2`:
 //  migration uploads the on-disk ciphertext verbatim, so a `.cloudKit` album can hold
 //  V1-format blobs from a user's legacy library. `SecretFileHandlerV2` throws on V1;
 //  `SecretFileHandler` sniffs the V2 magic and reads both, exactly as the local
@@ -78,8 +78,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         guard !thumbnailTagsLoaded else { return }
         thumbnailTagsLoaded = true
         guard let data = try? Data(contentsOf: thumbnailTagsURL) else {
-            // No sidecar is normal for a never-visited album; an unreadable one
-            // means every thumbnail looks stale and gets re-downloaded.
             let exists = FileManager.default.fileExists(atPath: thumbnailTagsURL.path)
             printDebug("loadThumbnailTags \(exists ? "FAILED" : "skip") albumID=\(albumIDHash) reason=\(exists ? "sidecarUnreadable" : "noSidecar")")
             return
@@ -95,9 +93,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     private func setThumbnailTag(_ tag: String?, for id: String) {
         loadThumbnailTagsIfNeeded()
         thumbnailTags[id] = tag
-        // Written only after a fetch attempt, so the album demonstrably exists —
-        // creating the cache directory here cannot confuse `AlbumManager.create`'s
-        // existence check (see `CloudKitStorageModel.baseURL`).
         guard let data = try? JSONEncoder().encode(thumbnailTags) else {
             printDebug("setThumbnailTag FAILED id=\(id) reason=encodeError tags=\(thumbnailTags.count)")
             return
@@ -110,8 +105,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         do {
             try data.write(to: thumbnailTagsURL, options: .atomic)
         } catch {
-            // A failed write means the tag map resets on relaunch and every
-            // thumbnail in this album is re-fetched.
             printDebug("setThumbnailTag FAILED id=\(id) tag=\(tag ?? "nil") file=\(thumbnailTagsURL.lastPathComponent) raw=\(error)")
         }
     }
@@ -133,12 +126,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         self.indexStore = index
         let sizeSidecar = AlbumSizeSidecar(album: album)
         if store != nil {
-            // Explicit store (tests): own coordinator + fresh cache + a throwaway
-            // upload queue in a temp directory, so a test never writes into (or
-            // reads from) the real holding folder. The coordinator is registered
-            // in an equally isolated registry handed to the uploader — otherwise
-            // the uploader would look in the SHARED registry, never find this
-            // coordinator, and the queue could never drain in tests.
             let isolatedQueue = CloudKitUploadQueue(
                 baseDir: FileManager.default.temporaryDirectory
                     .appendingPathComponent("CloudKitUploads-test-\(UUID().uuidString)", isDirectory: true)
@@ -147,10 +134,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             let isolatedCache = CloudKitBlobCache()
             self.blobCache = isolatedCache
             let isolatedRegistry = CloudKitCoordinatorRegistry()
-            // The delete bookkeeping is isolated for the same reason: on the shared
-            // one a test's deletes land in the app group's real pending-delete key
-            // and its marks outlive the test, so a later read of the same record
-            // name fails closed.
             let isolatedDeletes = CloudKitMediaDeleteQueue(suiteName: Self.testDeleteSuiteName)
             self.coordinator = await isolatedRegistry.coordinator(forAlbumID: albumIDHash) {
                 CloudKitSyncCoordinator(albumID: albumIDHash,
@@ -164,8 +147,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             }
             self.uploader = CloudKitUploader(queue: isolatedQueue, registry: isolatedRegistry)
         } else {
-            // Production: share ONE coordinator per album so the active album and the
-            // push fan-out keep the same in-memory state.
             self.uploadQueue = .shared
             self.uploader = .shared
             self.blobCache = .shared
@@ -191,7 +172,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// existing one. This is a no-op kept only to satisfy the protocol; the warm-up
     /// is driven by `start()`, which the facade calls after construction.
     public func configure(for album: Album, albumManager: AlbumManaging) async {
-        // Intentionally empty — see doc comment above.
     }
 
     // MARK: - Lifecycle
@@ -204,27 +184,19 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         printDebug("start begin albumID=\(albumIDHash)")
         if await store.accountAvailable() {
             do {
-                try await store.ensureZoneExists()   // routed through the store; mocks no-op
+                try await store.ensureZoneExists()
             } catch {
-                // Swallowed by the original `try?`: without the zone every save
-                // below fails, and the cause is otherwise invisible.
                 printDebug("start ensureZoneExists FAILED albumID=\(albumIDHash) raw=\(error)")
             }
         } else {
             printDebug("start skip albumID=\(albumIDHash) reason=accountUnavailable — zone not ensured")
         }
         await coordinator.startObserving()
-        // Opening an album is the moment its backlog becomes uploadable: the
-        // uploader can only work through a coordinator that exists, and this is
-        // where one is guaranteed to. Covers captures made in a previous launch
-        // that never got their chance.
         await uploader.kick()
         do {
             try await coordinator.sync(albumID: albumIDHash)
             printDebug("start ok albumID=\(albumIDHash)")
         } catch {
-            // Swallowed by the original `try?`: the album silently shows whatever
-            // the last successful sync left in the index.
             printDebug("start initialSync FAILED albumID=\(albumIDHash) raw=\(error)")
         }
     }
@@ -234,8 +206,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     public func save(media: InteractableMedia<CleartextMedia>,
                      metadata: EncryptedFileMetadata?,
                      progress: @escaping @Sendable (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
-        // The custom zone must exist before records target it — `start()` runs in a
-        // detached task, so an early capture can't assume it finished. Idempotent.
         if await store.accountAvailable() {
             do {
                 try await store.ensureZoneExists()
@@ -253,7 +223,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             encrypted.append(encMedia)
         }
         guard !encrypted.isEmpty else {
-            // A bare `nil` here is indistinguishable from a caller-side no-op.
             printDebug("save FAILED albumID=\(albumIDHash) — no components encrypted; returning nil")
             return nil
         }
@@ -273,10 +242,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let encURL = directoryModel.driveURLForMedia(withID: item.id, type: item.mediaType)
         try FileManager.default.createDirectory(at: directoryModel.baseURL, withIntermediateDirectories: true)
 
-        // 1. Encrypt — only ciphertext leaves the device. This is one of the two
-        // format chokepoints (`VideoChunkingPolicy`): a large video becomes
-        // seekable ENC3, so it can upload as chunk records and stream back;
-        // everything else stays on the metadata-bearing V2 handler as before.
         let plaintextLength = item.url.flatMap { $0.fileSizeBytes() } ?? 0
         var chunkGeometry: (chunkCount: Int, plaintextLength: Int64)?
         if let sourceURL = item.url,
@@ -285,8 +250,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                                                          storageType: .cloudKit) {
             let metadataJSON = try SeekableEncryptedFormat.encodeMetadata(metadata ?? EncryptedFileMetadata())
             let capturedKey = keyBytes
-            // Detached: the seekable writer is synchronous, and a multi-GB encrypt
-            // must not pin this actor's cooperative thread for its whole run.
             let header = try await Task.detached(priority: .userInitiated) {
                 try SeekableEncryptedWriter(keyBytes: capturedKey)
                     .encrypt(source: sourceURL, destination: encURL, metadata: metadataJSON) { fraction in
@@ -303,14 +266,9 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             sub.cancel()
         }
 
-        // 2. Generate + persist the encrypted preview via the existing pipeline. Only
-        // attach the thumbnail if the file actually exists — a failed preview must not
-        // make the whole record's asset save fail.
         do {
             _ = try await previewAccess.createPreview(for: item)
         } catch {
-            // Deliberately non-fatal (see above), but it means the record uploads
-            // without an eager thumbnail and other devices show a blank cell.
             printDebug("saveSingle preview FAILED mediaID=\(item.id) mediaType=\(item.mediaType) raw=\(error)")
         }
         let previewURL = directoryModel.previewURLForMedia(withID: item.id)
@@ -324,11 +282,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let proven = try await CloudKitKeyStamp.stampAndProveKey(forCiphertextAt: encURL,
                                                                  keyManager: keyManager)
 
-        // 3. Describe the record that will eventually be uploaded.
         let size = encURL.fileSizeBytes() ?? 0
         if size == 0 {
-            // Size 0 usually means the ciphertext is missing or unreadable — the
-            // upload would then carry a bogus sizeBytes into the index.
             printDebug("saveSingle size WARNING mediaID=\(item.id) mediaType=\(item.mediaType) sizeBytes=0 file=\(encURL.lastPathComponent)")
         }
         let descriptor = CloudKitMediaRecordDescriptor(
@@ -345,13 +300,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let upload = CloudKitMediaUpload(descriptor: descriptor,
                                          encryptedFileURL: encURL,
                                          encryptedThumbURL: thumbURL)
-        // 4. Hand the ciphertext to the durable holding folder. This MOVES the
-        // file out of the album's cache directory, which lives under
-        // `Library/Caches` and can be reclaimed by iOS — not somewhere the only
-        // copy of a photo may sit while it waits for CloudKit.
-        //
-        // A failure here is the one case that genuinely loses the capture, so it
-        // propagates: the camera has nowhere to put the photo.
         let queued: CloudKitMediaUpload
         do {
             queued = try await uploadQueue.enqueue(upload)
@@ -360,12 +308,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             throw error
         }
 
-        // 5. Put it in the album now. From here the photo is visible, openable
-        // and durable regardless of what CloudKit does — the upload is a
-        // background errand, not a precondition.
         try await coordinator.registerLocally(queued)
 
-        // 6. Nudge the uploader. Fire-and-forget: the capture is already saved.
         await uploader.kick()
 
         printDebug("saveSingle ok mediaID=\(item.id) recordName=\(upload.recordName) state=queuedForUpload")
@@ -382,8 +326,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             let local = try await ensureLocalCiphertext(id: item.id, type: item.mediaType, progress: progress)
             progress(.decrypting(progress: 0))
             let encMedia = EncryptedMedia(source: .url(local), mediaType: item.mediaType, id: item.id)
-            // Format-agnostic handler: the blob may be V1 (migrated verbatim from a
-            // legacy local album) or V2. See the file header (ENC-135).
             let cleartext: CleartextMedia
             if item.mediaType == .photo {
                 let handler = SecretFileHandler(keyBytes: keyBytes, source: encMedia)
@@ -408,7 +350,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             progress(.decrypting(progress: 0))
             let encMedia = EncryptedMedia(source: .url(local), mediaType: item.mediaType, id: item.id)
             let target = URL.tempMediaDirectory.appendingPathComponent("\(item.id).\(item.mediaType.decryptedFileExtension)")
-            // Format-agnostic handler — the blob may be V1 or V2 (ENC-135).
             let handler = SecretFileHandler(keyBytes: keyBytes, source: encMedia, targetURL: target)
             let cleartext = try await handler.decryptToURL()
             if let url = cleartext.url { urls.append(url) }
@@ -442,9 +383,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             return nil
         }
         let header = try SeekableEncryptedHeader.decode(headerBytes)
-        // Content-derived tag: fileID is random per encryption, so a re-uploaded
-        // video (same record name, new content) gets a different tag and the old
-        // cached chunks miss instead of producing a decryption error.
         let contentTag = header.fileID.base64EncodedString()
         let chunkStore = CachedChunkedBlobStore(store: chunkStore ?? CloudKitChunkedBlobStore(),
                                                 cache: blobCache,
@@ -509,8 +447,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let fileManager = FileManager.default
         var exported = 0
         let totalComponents = items.reduce(0) { $0 + $1.underlyingMedia.count }
-        // Report the plan up front so a progress surface can show "0 of N" while
-        // the first (possibly evicted, slow-to-download) component materializes.
         await onItemExported?(0, totalComponents)
         printDebug("exportCiphertext start albumID=\(albumIDHash) items=\(items.count) destination=\(destination.baseURL.lastPathComponent)")
         for media in items {
@@ -546,10 +482,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let recordName = Self.componentRecordName(mediaID: source.id, type: source.mediaType)
         let currentTag = await coordinator.currentChangeTag(recordName: recordName)
         loadThumbnailTagsIfNeeded()
-        // Refetch the eager thumbnail if it's missing OR a KNOWN server tag differs
-        // from the tag the local copy was fetched for (a remote re-upload). A nil
-        // `currentTag` means "no newer tag observed yet" (fresh coordinator before
-        // its first delta sync) — trust the local file, mirroring the blob cache.
         let stale = currentTag != nil && thumbnailTags[source.id] != currentTag
         let missing = !FileManager.default.fileExists(atPath: previewURL.path)
         if missing || stale {
@@ -557,13 +489,9 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             try? FileManager.default.removeItem(at: previewURL)
             do {
                 try await store.fetchThumbnail(recordName: recordName, to: previewURL)
-                // Only record the tag on a SUCCESSFUL fetch — otherwise a failed fetch
-                // would mark the (missing/partial) thumbnail as current and never retry.
                 setThumbnailTag(currentTag, for: source.id)
                 printDebug("loadMediaPreview thumbnail ok recordName=\(recordName) tag=\(currentTag ?? "nil")")
             } catch {
-                // Swallowed so the preview pipeline still runs (offline, or the
-                // asset is not up yet); the cleared tag forces a retry next time.
                 printDebug("loadMediaPreview thumbnail FAILED recordName=\(recordName) raw=\(error) — tag cleared so the next load retries")
                 setThumbnailTag(nil, for: source.id)
             }
@@ -598,10 +526,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                 let pendingGeometry = await uploadQueue.pendingItem(recordName: recordName)?.chunkCount ?? 0
                 let wasPending = await uploadQueue.cancel(recordName: recordName)
 
-                // A pending item skips the remote delete (nothing is up there)
-                // but still gets the full local cleanup and the deletion marker —
-                // see `remove`. Errors propagate: a swallowed failure here used to
-                // leave the index entry behind as a permanent ghost.
                 try await coordinator.remove(recordName: recordName,
                                              albumID: albumIDHash,
                                              wasPending: wasPending,
@@ -611,8 +535,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                     try FileManager.default.removeItem(at: localURL)
                     printDebug("delete ok recordName=\(recordName) localCopyRemoved=true")
                 } catch {
-                    // Usually just "no local copy on this device"; only interesting
-                    // when the file is there and genuinely cannot be removed.
                     let existed = FileManager.default.fileExists(atPath: localURL.path)
                     printDebug("delete ok recordName=\(recordName) localCopyRemoved=false stillPresent=\(existed) raw=\(error)")
                 }
@@ -637,8 +559,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             printDebug("reconcile ok albumID=\(albumIDHash)")
             return true
         } catch {
-            // The bare `false` collapses cancellation, offline, and real CloudKit
-            // failures into one indistinguishable value at every call site.
             printDebug("reconcile FAILED albumID=\(albumIDHash) cancelled=\(error is CancellationError) raw=\(error)")
             return false
         }
@@ -704,8 +624,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         do {
             return try InteractableMedia(underlyingMedia: underlying)
         } catch {
-            // Swallowed by the original `try?`: the item silently vanishes from
-            // the gallery with no indication that it was ever in the index.
             printDebug("materialize FAILED mediaID=\(entry.id) components=\(underlying.count) raw=\(error)")
             return nil
         }
@@ -749,9 +667,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         var components: [MediaStorageDetails.Component] = []
         for item in media.underlyingMedia {
             let recordName = Self.componentRecordName(mediaID: item.id, type: item.mediaType)
-            // Resolving chunk info first also warms the coordinator's map, which is
-            // what lets `cachedBytes` below count chunks instead of looking for a
-            // monolithic blob a chunked record never has.
             let info = try? await coordinator.chunkedBlobInfo(recordName: recordName)
             let chunkCount = info?.chunkCount ?? 0
             let format: EncryptedFormatVersion?
@@ -863,7 +778,6 @@ extension CloudKitFileAccess {
     /// are a local-disk concern. CloudKit blobs carry their key association via the
     /// record/metadata, so there is nothing to backfill.
     public func setKeyUUIDForExistingFiles() async throws {
-        // Intentionally empty — see doc comment above.
     }
 
     /// Cross-album copy for CloudKit albums is a later chunk; fail loudly rather

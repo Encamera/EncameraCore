@@ -40,9 +40,6 @@ final class CloudKitBlobCacheTests: XCTestCase {
     }
 
     func testStoreOfBlobLargerThanCapDoesNotEvictItself() async throws {
-        // A single blob bigger than the whole cap (a few minutes of 4K video vs
-        // the 500 MB default) can never fit — but the entry just stored is the one
-        // the caller is being handed a URL to, so it must survive this pass.
         let cache = makeCache(maxBytes: 100)
         let url = try await cache.store(recordName: "big",
                                         changeTag: nil,
@@ -56,8 +53,6 @@ final class CloudKitBlobCacheTests: XCTestCase {
     }
 
     func testOversizedStoreStillEvictsOlderEntries() async throws {
-        // Protecting the just-stored entry must not turn the cap off: everything
-        // ELSE is still evicted LRU-first to get as close to the cap as possible.
         let cache = makeCache(maxBytes: 100)
         _ = try await cache.store(recordName: "old",
                                   changeTag: nil,
@@ -75,13 +70,11 @@ final class CloudKitBlobCacheTests: XCTestCase {
     }
 
     func testStoreWithinCapEvictsLeastRecentlyUsedFirst() async throws {
-        // The pre-existing LRU contract, pinned so the fix cannot regress it.
         let cache = makeCache(maxBytes: 100)
         _ = try await cache.store(recordName: "first",
                                   changeTag: nil,
                                   albumID: "album",
                                   from: sourceFile(bytes: 60))
-        // Touch "first" so "second" becomes the LRU entry.
         _ = try await cache.store(recordName: "second",
                                   changeTag: nil,
                                   albumID: "album",
@@ -117,8 +110,6 @@ final class CloudKitBlobCacheTests: XCTestCase {
             XCTAssertEqual(size, 40)
         }
 
-        // 80 + 150 is over the cap, so the least-recently-used entry goes. "hot"
-        // was stored first and only ever read for its size, so it is still the one.
         _ = try await cache.store(recordName: "fresh", changeTag: nil, albumID: "album",
                                   from: sourceFile(bytes: 150))
 
@@ -142,7 +133,6 @@ final class CloudKitBlobCacheTests: XCTestCase {
         let absent = await cache.cachedSize(recordName: "nope", changeTag: nil)
         XCTAssertNil(absent)
 
-        // A Caches purge takes the file out from under the index.
         try FileManager.default.removeItem(at: url)
 
         let gone = await cache.cachedSize(recordName: "m1", changeTag: "t1")
@@ -302,8 +292,6 @@ final class CloudKitBlobCacheTests: XCTestCase {
         }
         let before = await cache.indexPersistCount
 
-        // The failing record comes first, so a batch that gives up on error leaves
-        // the other two behind.
         await cache.evict(recordNames: ["stuck", "c0", "c1"])
 
         for url in removable {

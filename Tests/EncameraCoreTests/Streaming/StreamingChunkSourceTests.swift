@@ -87,11 +87,6 @@ final class StreamingChunkSourceTests: XCTestCase {
     }
 
     /// One failed fetch must not fail that chunk forever.
-    ///
-    /// The in-flight map is shared with every later request for the same chunk, so
-    /// a failed task left in it is rethrown to all of them: playback stalls with
-    /// the player parked and no further network traffic, which is exactly how this
-    /// presented on device — a chunk timed out once and the video never recovered.
     func testAFailedChunkFetchIsRetriedRatherThanFailingForever() async throws {
         let (backing, plaintext, _) = try await seed(bytes: 50_000, chunkSize: 4_096)
         let flaky = FlakyChunkStore(backing: backing, failingIndex: 2, failures: 1)
@@ -106,7 +101,6 @@ final class StreamingChunkSourceTests: XCTestCase {
             _ = try await source.ciphertextChunk(at: 2)
             XCTFail("the fixture must fail the first attempt, or this proves nothing")
         } catch {
-            // Expected: the transient failure.
         }
 
         let recovered = try await source.ciphertextChunk(at: 2)
@@ -189,11 +183,6 @@ final class StreamingChunkSourceTests: XCTestCase {
     }
 
     /// A fetch that never returns must not park the session forever.
-    ///
-    /// The throwing case above reaches `clearInFlight`; a hung fetch never does. On
-    /// device this presented as a handful of `fetchChunk start` lines, then
-    /// silence, with the player waiting at time 0 until the URL loader's own
-    /// timeout fired minutes later.
     func testAHungChunkFetchIsRetriedAfterTheDeadline() async throws {
         let (backing, plaintext, _) = try await seed(bytes: 50_000, chunkSize: 4_096)
         let hanging = HangingChunkStore(backing: backing, hangingIndex: 2, hangs: 1)
@@ -232,7 +221,6 @@ final class StreamingChunkSourceTests: XCTestCase {
         let telemetry = await source.currentTelemetry()
         XCTAssertEqual(telemetry.deadlineExpiries, [2, 2, 2])
 
-        // The failed request must not be handed to the next one.
         await XCTAssertThrowsErrorAsync(try await completes(within: 5) { try await source.ciphertextChunk(at: 2) }) { error in
             XCTAssertEqual(error as? StreamingChunkSourceError, .fetchDeadlineExceeded(index: 2, attempts: 3))
         }
@@ -252,7 +240,6 @@ final class StreamingChunkSourceTests: XCTestCase {
                                           readAhead: 1,
                                           fetchDeadline: .milliseconds(300))
 
-        // Chunk 0 arms read-ahead of chunk 1, whose first attempt hangs.
         _ = try await source.ciphertextChunk(at: 0)
         try await Task.sleep(for: .milliseconds(50))
         let readAheadAttempts = await hanging.attempts(for: 1)
@@ -351,8 +338,6 @@ final class StreamingChunkSourceTests: XCTestCase {
         XCTAssertEqual(afterReads.chunksServedFromCache, 0,
                        "the reader's plaintext cache answers the repeat above this source")
 
-        // The ciphertext cache still serves a repeat that does reach the source —
-        // a second reader over the same session, or a chunk the reader evicted.
         _ = try await session.source.ciphertextChunk(at: 0)
         let afterDirectRead = await session.telemetry()
         XCTAssertEqual(afterDirectRead.chunksFetched, 1)
@@ -387,7 +372,6 @@ final class StreamingChunkSourceTests: XCTestCase {
                                                 readAhead: 3)
         _ = try await session.reader.plaintext(range: 0..<100)
 
-        // Read-ahead is fire-and-forget, so give it a moment to land before counting.
         try await Task.sleep(for: .milliseconds(300))
         let fetched = Set(await store.fetchedIndices)
         XCTAssertTrue(fetched.isSubset(of: [0, 1, 2, 3]),
@@ -414,9 +398,6 @@ final class StreamingChunkSourceTests: XCTestCase {
 
     func testWrongKeyFailsAtTheChunkNotAtTheHeader() async throws {
         let (store, _, header) = try await seed(bytes: 30_000, chunkSize: 10_000)
-        // The header is plaintext framing, so opening a session with the wrong key
-        // must still succeed — the failure has to land on the first chunk, where it
-        // is attributable.
         let session = ChunkedStreamSession.open(store: store,
                                                 mediaRecordName: "media-1",
                                                 header: header,
@@ -438,8 +419,6 @@ final class StreamingChunkSourceTests: XCTestCase {
         let url = try XCTUnwrap(EncryptedStreamScheme.url(mediaRecordName: "media-1"))
         XCTAssertEqual(url.scheme, "encamera-enc")
         XCTAssertEqual(EncryptedStreamScheme.mediaRecordName(from: url), "media-1")
-        // An http URL must not resolve — the delegate is never consulted for one, so
-        // treating it as ours would silently produce a video that never loads.
         let http = try XCTUnwrap(URL(string: "https://example.com/media-1"))
         XCTAssertNil(EncryptedStreamScheme.mediaRecordName(from: http))
     }

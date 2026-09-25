@@ -26,8 +26,6 @@ import Foundation
 public enum BiometricUnlockDecision {
     public static func isActive(hasBiometricHardware: Bool,
                                 confirmedOnThisDevice: Bool) -> Bool {
-        // The synced flag plays no part here: with a pin on the account it is
-        // never written at all, so activation is hardware plus local consent.
         hasBiometricHardware && confirmedOnThisDevice
     }
 }

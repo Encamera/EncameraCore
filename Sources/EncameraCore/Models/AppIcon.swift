@@ -70,7 +70,6 @@ public enum AppIcon: String, CaseIterable, Identifiable {
     
     /// Whether this is the currently selected app icon.
     public var isSelected: Bool {
-        // Get current alternate icon name, nil means primary icon
         let currentIconName = UIApplication.shared.alternateIconName
         return currentIconName == iconName
     }

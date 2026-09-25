@@ -105,7 +105,7 @@ extension KeyManagerError: Equatable {
 /// Deleting a `kSecAttrSynchronizable` item tombstones it and the deletion
 /// propagates to every device on the iCloud account. That is almost never what
 /// a user resetting *one* device expects, so account-wide is opt-in and callers
-/// have to say so explicitly (ENC-72).
+/// have to say so explicitly.
 public enum KeyDeletionScope {
     /// Removes only this device's non-synchronizable copy. Other devices keep
     /// theirs, and a synced copy can flow back.
@@ -138,9 +138,6 @@ public protocol KeyManager {
     /// What this can and cannot prove about tombstones: Security.framework exposes
     /// no tombstone API, so the only local evidence available is that a
     /// widest-match query (`kSecAttrSynchronizableAny`) no longer returns the item.
-    /// That the *deletion* replicated to the account's other devices can only be
-    /// observed on another device — `TwoDeviceKeyErasureScopeDeviceTests` is where
-    /// that claim is settled.
     func residualKeychainItemNames() -> [String]
     func keyWith(name: String) -> PrivateKey?
     @MainActor
@@ -154,7 +151,7 @@ public protocol KeyManager {
     func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws
     /// Derives the key a phrase encodes without writing anything to the keychain.
     /// Lets a caller inspect a candidate key's fingerprint before deciding to
-    /// keep it — the fingerprint gate on additive key entry (ENC-99).
+    /// keep it — the fingerprint gate on additive key entry.
     func deriveKey(from components: [String], name: String) throws -> PrivateKey
     func generateKeyUsingRandomWords(name: String) throws -> PrivateKey
     @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String) throws -> PrivateKey
@@ -192,20 +189,12 @@ public protocol KeyManager {
     /// writers don't drop each other's device entries.
     func setMultiDeviceState(_ state: MultiDeviceState) throws
     /// Replaces the stored record WITHOUT the merge that `setMultiDeviceState`
-    /// applies. The destructive delete-my-iCloud-data path (ENC-94) needs this to
+    /// applies. The destructive delete-my-iCloud-data path needs this to
     /// clear the fingerprints while carrying the existing device roster over — the
     /// merge unions fingerprints, so it can never shrink the list. This is an
     /// update, not a delete: the item stays synchronizable, so nothing is
     /// tombstoned. Use `setMultiDeviceState` for every additive write; this is
     /// only for the deliberate reset.
-    ///
-    /// Deliberately has NO protocol-extension default. The obvious one — forward
-    /// to `setMultiDeviceState` — inverts this method's entire contract: the merge
-    /// re-unions the fingerprints, so a conformer that didn't override got exactly
-    /// the opposite of what its one caller needs, with no compiler error and no
-    /// runtime signal (the destructive path calls it through this protocol behind
-    /// a `try?`, so the no-op merge was completely invisible and the report still
-    /// claimed success). A missing implementation must be a build failure.
     func overwriteMultiDeviceState(_ state: MultiDeviceState) throws
 }
 

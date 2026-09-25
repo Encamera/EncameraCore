@@ -64,20 +64,17 @@ public class FileMoveHandler: DebugPrintable {
     ) async throws -> MoveResult {
         printDebug("Starting move of \(media.count) items from album \(sourceAlbumId) to album \(targetAlbum.id)")
         
-        // Validate configuration upfront
         guard let albumManager = albumManager else {
             printDebug("Failed to start move - albumManager not configured")
             throw BackgroundImportError.configurationError
         }
         
-        // Create and register the task
         let task = createAndRegisterTask(
             media: media,
             sourceAlbumId: sourceAlbumId,
             targetAlbum: targetAlbum
         )
         
-        // Execute the move task
         return try await executeMoveTask(task, albumManager: albumManager)
     }
     
@@ -107,7 +104,6 @@ public class FileMoveHandler: DebugPrintable {
         
         taskManager.addTask(task)
         
-        // Register cancellation handler so BackgroundTaskManager can cancel this task
         taskManager.registerCancellationHandler(for: taskId) { [weak self] in
             self?.printDebug("Cancellation handler invoked for move task: \(taskId)")
             self?.currentMoveTask?.cancel()
@@ -156,13 +152,11 @@ public class FileMoveHandler: DebugPrintable {
                 self.endBackgroundTask()
             }
         } catch is CancellationError {
-            // Task was cancelled
             await MainActor.run {
                 self.printDebug("Move was cancelled")
                 self.taskManager.finalizeTaskCancelled(taskId: task.id)
                 self.endBackgroundTask()
             }
-            // Don't re-throw cancellation errors - the task is properly finalized
         } catch {
             await MainActor.run {
                 self.taskManager.finalizeTaskFailed(taskId: task.id, error: error)
@@ -186,7 +180,6 @@ public class FileMoveHandler: DebugPrintable {
         var failureCount = 0
         
         for (index, media) in task.mediaToMove.enumerated() {
-            // Check for task cancellation (cooperative cancellation)
             try Task.checkCancellation()
             
             let needsDownload = media.needsDownload
@@ -197,15 +190,12 @@ public class FileMoveHandler: DebugPrintable {
             }
             
             do {
-                // Create a progress callback for iCloud downloads
                 let progressCallback: (FileLoadingStatus) -> Void = { [weak self] status in
                     guard let self = self else { return }
                     Task { @MainActor in
                         switch status {
                         case .downloading(let downloadProgress):
                             self.printDebug("📥 Downloading from iCloud: \(Int(downloadProgress * 100))%")
-                            // Update progress to show iCloud download is in progress
-                            // The overall progress incorporates the download progress for the current item
                             let itemProgress = downloadProgress
                             let overallProgress = (Double(processedCount) + itemProgress) / Double(task.mediaToMove.count)
                             let estimatedTimeRemaining = self.taskManager.calculateEstimatedTime(startTime: startTime, progress: overallProgress)
@@ -237,7 +227,6 @@ public class FileMoveHandler: DebugPrintable {
                 printDebug("❌ Error moving item \(index + 1): \(error)")
             }
             
-            // Update progress after each item
             await MainActor.run {
                 updateMoveProgress(
                     task: task,
@@ -316,7 +305,7 @@ public class FileMoveHandler: DebugPrintable {
                 self?.printDebug("App will enter foreground - refreshing move task states")
                 Task { @MainActor in
                     // Delay non-critical work to let biometric authentication complete first
-                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                    try? await Task.sleep(nanoseconds: 500_000_000)
                     self?.taskManager.updateOverallProgress()
                 }
             }

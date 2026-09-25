@@ -5,8 +5,7 @@
 //  Orchestrates CloudKit for one album: delta-syncs metadata into the existing
 //  per-album MediaIndexStore, keeps an app-controlled evictable blob cache,
 //  dedups concurrent blob fetches, applies cross-device deletes from the zone
-//  change feed, and registers the zone push subscription. No app-UI wiring
-//  (chunk 04+).
+//  change feed, and registers the zone push subscription. No app-UI wiring.
 //  All CloudKit I/O goes through the chunk-02 `CloudKitMediaStoring` seam.
 //
 
@@ -52,7 +51,6 @@ private final class BlobWaiter: @unchecked Sendable {
             state = .waiting(continuation)
             return true
         case .waiting:
-            // Unreachable: one continuation per waiter.
             return false
         case .done:
             continuation.resume(throwing: CancellationError())
@@ -66,7 +64,6 @@ private final class BlobWaiter: @unchecked Sendable {
     func deliver(_ result: Result<URL, Error>) -> Bool {
         switch state {
         case .pending:
-            // Cancelled before `attach` — mark it so registration bails out.
             state = .done
             return false
         case .waiting(let continuation):
@@ -174,8 +171,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             try FileManager.default.removeItem(at: previewURL)
             printDebug("removeLocalPreview ok mediaID=\(mediaID)")
         } catch {
-            // The blob is gone but its thumbnail bytes stay on disk — a silent
-            // leak that grows with every cross-device delete.
             printDebug("removeLocalPreview FAILED mediaID=\(mediaID) file=\(previewURL.lastPathComponent) raw=\(error)")
         }
     }
@@ -295,10 +290,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
     public func sync(albumID: String) async throws {
         guard !isShutdown else { return }
-        // Single-flight that JOINS: a sync requested while one runs flags a re-run and
-        // then awaits the active task (which loops to honor the request), so callers
-        // never return before their changes are applied, yet overlapping calls coalesce
-        // into at most one extra pass — no concurrent load–merge–save racing the index.
         if let active = activeSync {
             printDebug("sync join albumID=\(albumID) — a sync is already running; flagged a re-run and awaiting it")
             resyncRequested = true
@@ -314,14 +305,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             // caller instead left a window where a joiner's request could land
             // after the final check yet still join the finished task.
             defer { activeSync = nil }
-            // Self-heal push registration on EVERY sync — a failed registration,
-            // and also one the STORE invalidated after the fact (it clears its
-            // persisted flag on `.zoneNotFound` when the zone is deleted in
-            // iCloud Settings or the account is wiped). A coordinator-side
-            // "already registered" bool went stale-true in that second case and
-            // push-driven sync stayed silently dead for the life of the process.
-            // The store's persisted-flag check makes the genuinely-registered
-            // attempt a cheap no-op, so dedup lives there, not here.
             await startObserving()
             try await drainSync(albumID: albumID)
         }
@@ -342,7 +325,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             do {
                 try await performSync(albumID: albumID)
             } catch CloudKitMediaStoreError.changeTokenExpired {
-                // The stored token is no longer valid: discard it and full-resync once.
                 printDebug("drainSync token EXPIRED albumID=\(albumID) pass=\(pass) — resetting the change token and full-resyncing")
                 await store.resetChangeToken()
                 try await performSync(albumID: albumID)
@@ -412,57 +394,30 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             }
         }
 
-        // Loud on purpose: a reap that fires on a healthy album means the full
-        // fetch came back short, and this pass just deleted live media locally.
         printDebug("reap done albumID=\(self.albumID) reaped=\(reaped) exemptPendingUpload=\(exempt) seen=\(seen.count) entriesRemaining=\(entries.count)")
     }
 
     private func performSync(albumID: String) async throws {
-        // Push unconfirmed deletes FIRST, so the fetch below sees a zone that
-        // already reflects them. Whatever fails to drain is excluded from the
-        // upsert path — otherwise its still-live remote record would resurrect the
-        // item on the very device that deleted it.
         let undrainedDeletes = await drainPendingDeletes()
 
-        // Diff from the authoritative on-disk index, refreshing the store's cache.
         let loaded = await indexStore.reloadFromDisk()
-        // A working copy, used to decide what this pass should do — NOT the thing
-        // that gets written back. See the commit below.
         var entries = loaded?.entries ?? []
-        // What this pass actually changed, recorded as operations rather than as a
-        // finished array. Everything from here to the commit runs across `await`s on
-        // the network, and this actor is reentrant at every one of them, so the
-        // index can move under us while we work.
         var upserted: [MediaIndexEntry] = []
         var removedRecordNames: [String] = []
         printDebug("performSync start albumID=\(albumID) coordinatorAlbumID=\(self.albumID) indexLoaded=\(loaded != nil) entries=\(entries.count) undrainedDeletes=\(undrainedDeletes.count)")
 
-        // Buffer gallery events and emit them ONLY after the index is durably saved,
-        // so a save failure + retry can't fire duplicate refreshes for unpersisted items.
         var pendingCreates: [EncryptedMedia] = []
         var pendingDeletes: [EncryptedMedia] = []
-        // Record sizes seen this pass, applied to the sidecar in one write once the
-        // index is durably saved.
         var sizeUpdates: [String: Int64] = [:]
         var sizeRemovals: Set<String> = []
 
-        // Drain the whole delta, not just the first page (the store advances its
-        // persisted token each call, so passing nil continues from where it left off).
         var token = await store.loadChangeToken()
 
-        // If the on-disk index is missing/corrupt but a token is still set (e.g. the
-        // index was cleared), the token would skip every historical record and leave
-        // the album empty forever — so discard it and resync from scratch.
         if loaded == nil, await store.hasChangeToken() {
             printDebug("performSync token DISCARDED albumID=\(self.albumID) — on-disk index is missing/corrupt while a token exists; resyncing from scratch")
             await store.resetChangeToken()
             token = nil
         }
-        // A from-scratch fetch returns every live record in the zone, so anything
-        // this album's index claims that does NOT come back no longer exists —
-        // the only chance to notice a delete whose change-feed entry we missed
-        // (an expired token, a cleared index). On an incremental fetch the feed
-        // reports just the delta, so absence there means nothing at all.
         let startedWithoutToken = token == nil
         var seen: Set<MediaComponent> = []
         var snapshotComplete = false
@@ -480,22 +435,16 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 throw error
             }
             printDebug("performSync page ok albumID=\(self.albumID) page=\(page) changed=\(changeSet.changed.count) deleted=\(changeSet.deleted.count) moreComing=\(changeSet.moreComing) newToken=\(changeSet.token != nil)")
-            if changeSet.token != nil { token = changeSet.token }   // advance the cursor across pages
+            if changeSet.token != nil { token = changeSet.token }
             moreComing = changeSet.moreComing
-            // The final page decides: an authoritative drain is one the server
-            // acknowledged all the way to its end.
             snapshotComplete = changeSet.snapshotComplete
 
             for meta in changeSet.changed {
-                // The zone is shared across albums; only apply records for THIS album.
                 guard meta.albumID == self.albumID else {
                     skippedOtherAlbum += 1
                     continue
                 }
 
-                // A record whose delete has not reached the server yet still reads
-                // as live. Pulling it in would resurrect, on the deleting device,
-                // exactly the item the user removed.
                 if undrainedDeletes.contains(meta.recordName) {
                     printDebug("performSync upsert skip recordName=\(meta.recordName) reason=deletePending")
                     continue
@@ -503,29 +452,17 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
                 if let tag = meta.recordChangeTag { changeTags[meta.recordName] = tag }
                 deleteQueue.clearKnownDeletedIfNotQueued(meta.recordName)
-                // Recorded even when the index entry is unchanged: a re-sync is how a
-                // sidecar that fell behind the index catches back up.
                 sizeUpdates[meta.recordName] = meta.sizeBytes
                 sizeRemovals.remove(meta.recordName)
-                // A zero count rather than a removal: the server has just said this
-                // record is monolithic, and that answer is worth keeping. Dropping
-                // the key would be indistinguishable from never having looked.
                 chunkInfo[meta.recordName] = ChunkedBlobInfo(chunkCount: meta.chunkCount,
                                                              encHeader: meta.encHeader)
                 seen.insert(MediaComponent(mediaID: meta.mediaID, mediaType: meta.mediaType))
-                // The shared `upsert` appends a new item or merges a Live Photo's
-                // second component into the existing entry, and reports whether the
-                // index actually changed. Refresh the gallery only on a real change —
-                // a no-op re-sync stays silent, so a large initial sync doesn't fire
-                // hundreds of redundant reconciles.
                 let incoming = Self.indexEntry(from: meta)
                 upserted.append(incoming)
                 if entries.upsert(incoming) {
                     pendingCreates.append(Self.media(forRecordName: meta.mediaID, albumID: self.albumID, mediaType: meta.mediaType))
                     printDebug("performSync upsert recordName=\(meta.recordName) mediaID=\(meta.mediaID) mediaType=\(meta.mediaType) sizeBytes=\(meta.sizeBytes) changeTag=\(meta.recordChangeTag ?? "nil")")
                 } else {
-                    // Distinguishes a genuine no-op re-sync from a dropped record:
-                    // both look identical in the pendingCreates count otherwise.
                     printDebug("performSync upsert skip recordName=\(meta.recordName) — index already current, no gallery refresh emitted")
                 }
             }
@@ -533,24 +470,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             for recordName in changeSet.deleted {
                 let mediaID = MediaRecordName.mediaID(from: recordName)
 
-                // Evict BEFORE the index-membership guard below. The record is gone
-                // from the zone whichever album owned it, so dropping any cached
-                // ciphertext is always correct — and a blob whose index entry
-                // vanished by some other path would otherwise be stranded on disk
-                // with nothing left to evict it. `evict` no-ops when not cached.
                 await cache.evict(recordName: recordName)
 
-                // The rest of the delete spans the whole shared zone; only act on
-                // records this album actually holds (the deleted payload carries no
-                // albumID). The owning album's coordinator does its own cleanup —
-                // including the preview, which we cannot reason about here because
-                // component survival is only knowable from that album's index.
                 guard entries.contains(where: { $0.id == mediaID }) else {
                     printDebug("performSync hardDelete skip recordName=\(recordName) mediaID=\(mediaID) — not in this album's index (shared-zone delete for another album); cache evicted")
                     continue
                 }
 
-                // Clear only this component; keep the entry if the other survives.
                 let entryRemoved = entries.removeComponent(recordName: recordName)
                 removedRecordNames.append(recordName)
                 deleteQueue.markDeletedFromFeed(recordName)
@@ -559,9 +485,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 sizeRemovals.insert(recordName)
                 chunkInfo[recordName] = nil
                 if entryRemoved { removeLocalPreview(mediaID: mediaID) }
-                // The deletion payload carries no fields, but the record name encodes
-                // the component type — so a hard delete still emits a well-typed bus
-                // event instead of the `.unknown` the gallery cannot act on.
                 let mediaType = MediaRecordName.mediaType(from: recordName)
                 let media = Self.media(forRecordName: mediaID, albumID: self.albumID, mediaType: mediaType)
                 if entryRemoved { pendingDeletes.append(media) } else { pendingCreates.append(media) }
@@ -572,12 +495,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             printDebug("performSync skip albumID=\(self.albumID) otherAlbumRecords=\(skippedOtherAlbum) (shared zone)")
         }
 
-        // Reap only when this pass was a from-scratch fetch the server acknowledged
-        // to its end — the one case where the feed's answer is a COMPLETE snapshot
-        // of the zone, so a record's absence from it means deletion. On an
-        // incremental fetch absence means nothing, and on an unacknowledged one we
-        // have no evidence the answer was whole; reaping on either would delete
-        // live media locally.
         if startedWithoutToken, snapshotComplete {
             await reap(from: &entries,
                        seen: seen,
@@ -592,23 +509,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         // Commit as a FOLD onto the live index, in ONE write, before emitting or
         // committing the token — so a crash mid-sequence re-fetches rather than
         // losing data.
-        //
-        // Deliberately not `replace(with: entries)`. `entries` was read before the
-        // fetch above, and a local save that landed while we were on the network
-        // writes to the index through `registerLocally`; writing our pre-fetch array
-        // back would silently discard it. That is not hypothetical — a large video
-        // import into a fresh CloudKit album reproduced it on the rig: the blob
-        // uploaded and the server confirmed it, and the album rendered empty.
-        //
-        // A lock does not fix this. The clobbering sync has usually already started
-        // by the time the save begins, and holding the index across a change-feed
-        // drain would block the save behind minutes of network — the opposite of the
-        // local-first design, where an imported item is visible immediately and the
-        // upload is a background errand. Applying only what this pass changed leaves
-        // interleaved writes untouched by construction.
-        //
-        // `apply` loads, mutates and saves inside the store's own actor, so the fold
-        // is atomic with respect to any other writer.
         do {
             try await indexStore.apply { live in
                 var changed = false
@@ -619,28 +519,18 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 return changed
             }
         } catch {
-            // Nothing after this point runs: no gallery events, no token commit.
-            // The next sync re-fetches the same delta from the un-advanced token.
             printDebug("performSync indexSave FAILED albumID=\(self.albumID) entries=\(entries.count) pendingCreates=\(pendingCreates.count) pendingDeletes=\(pendingDeletes.count) raw=\(error)")
             throw error
         }
 
-        // Alongside the index save, and deliberately after it: the sidecar is a
-        // derived cache, so a failure here is logged and the sync carries on rather
-        // than blocking the change-token commit.
         await persistSizes(updates: sizeUpdates, removals: sizeRemovals)
 
-        // The index is durably saved — now it is safe to notify the gallery.
         for media in pendingCreates { bus.didCreate(media) }
         if !pendingDeletes.isEmpty { bus.didDelete(pendingDeletes) }
         printDebug("performSync applied albumID=\(self.albumID) entries=\(entries.count) creates=\(pendingCreates.count) deletes=\(pendingDeletes.count) pages=\(page)")
 
-        // Commit the change token ONLY after the index is durably saved. If the save
-        // above threw, the token is not advanced and the next sync re-fetches.
         await store.commitChangeToken(token)
         if token == nil {
-            // No token to commit means the next sync refetches the whole zone —
-            // fine once, pathological if it repeats every pass.
             printDebug("performSync token WARNING albumID=\(self.albumID) — no token returned by the change feed; next sync will full-fetch")
         }
 
@@ -716,17 +606,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// first replayed the fraction the download has already reached), and each can
     /// walk away independently. The fetch is cancelled only when the LAST waiter
     /// goes away.
-    ///
-    /// Both halves of that matter — together they are the reported "cancel a
-    /// download, start it again, watch it freeze" bug. This used to
-    /// await the shared `Task.value` directly, which:
-    ///   - ignored the *caller's* cancellation — awaiting an unstructured task is
-    ///     not a cancellation point, so tapping Cancel neither stopped the download
-    ///     nor released the caller; and
-    ///   - fed progress only to the closure of whoever started the fetch, so the
-    ///     retry after a cancel joined a download it could not hear, and its
-    ///     progress bar sat frozen at whatever it last displayed until the whole
-    ///     (in the report: 552 MB) transfer finished.
     public func ensureBlobLocal(recordName: String,
                                 albumID: String,
                                 progress: @escaping @Sendable (Double) -> Void) async throws -> URL {
@@ -735,10 +614,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             throw CloudKitMediaStoreError.notFound
         }
 
-        // Before anything else: a capture that has not uploaded yet exists ONLY
-        // in the holding folder. It is absent from the cache and absent from
-        // CloudKit, so without this the read would go to the network and come
-        // back "record not found" for a photo sitting on the device.
         if let waiting = await uploadQueue.pendingFileURL(recordName: recordName) {
             printDebug("ensureBlobLocal hit recordName=\(recordName) source=uploadQueue file=\(waiting.lastPathComponent)")
             progress(1.0)
@@ -763,8 +638,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                          expectedTag: expectedTag)
             }
         } onCancel: {
-            // The handler runs off the actor, so hop back on to unregister. It can
-            // beat `register` — `BlobWaiter.state` is what makes that race safe.
             Task { await self.cancel(waiter: waiter, recordName: recordName) }
         }
     }
@@ -778,7 +651,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                           albumID: String,
                           expectedTag: String?) {
         guard waiter.attach(continuation) else {
-            // Cancelled while we were getting here.
             return
         }
         let download: BlobDownload
@@ -795,8 +667,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                                       expectedTag: expectedTag)
         }
         download.waiters.append(waiter)
-        // Replay where the download actually is, so a joiner's UI starts there
-        // instead of sitting at 0% until the next tick.
         if download.lastFraction > 0 {
             waiter.progress(download.lastFraction)
         }
@@ -898,8 +768,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 do {
                     try FileManager.default.removeItem(at: destination)
                 } catch {
-                    // Non-fatal: the blob is already cached. But a leaked temp file per
-                    // download adds up, so it should be visible.
                     Self.printDebug("ensureBlobLocal WARNING recordName=\(recordName) could not remove download temp file=\(destination.lastPathComponent) raw=\(error)")
                 }
             }
@@ -910,8 +778,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// Fans a progress tick out to every waiter on the download.
     private func report(fraction: Double, recordName: String, downloadID: UUID) {
         guard let download = downloads[recordName], download.id == downloadID else { return }
-        // Never go backwards: CloudKit can repeat a fraction, and a joiner that was
-        // just replayed the current position must not see the bar jump back.
         guard fraction > download.lastFraction else { return }
         download.lastFraction = fraction
         for waiter in download.waiters {
@@ -922,15 +788,12 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// Resolves every waiter on the download and retires it.
     private func finish(downloadID: UUID, recordName: String, result: Result<URL, Error>) async {
         guard let download = downloads[recordName], download.id == downloadID else {
-            // Superseded: every waiter walked away (the fetch was cancelled) or a
-            // newer download replaced this one. Nothing left to notify.
             return
         }
         downloads[recordName] = nil
 
         switch result {
         case .success(let url):
-            // A delete that landed mid-fetch wins: discard the fetched copy.
             if isKnownDeleted(recordName) {
                 printDebug("ensureBlobLocal FAILED recordName=\(recordName) reason=deletedDuringFetch — evicting the just-fetched copy")
                 await cache.evict(recordName: recordName)
@@ -969,10 +832,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// Puts a capture into the local index and announces it, without touching
     /// CloudKit — the photo becomes visible in the album straight away and the
     /// upload follows behind it (`CloudKitUploader`).
-    ///
-    /// Split out of `upload` deliberately: while CloudKit gated this step, a
-    /// refused record meant the capture never entered the index and was lost
-    /// even though its ciphertext was already on disk.
     public func registerLocally(_ item: CloudKitMediaUpload) async throws {
         do {
             try await indexStore.upsert([Self.indexEntry(fromUpload: item)])
@@ -992,28 +851,12 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                        progress: @escaping @Sendable (Double) -> Void,
                        alreadyVisibleLocally: Bool = false) async throws -> CloudKitMediaRef {
         printDebug("upload start recordName=\(item.recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes)")
-        // Issuing this upload is a deliberate (re)publication of the record name, so
-        // any delete bookkeeping from BEFORE it started is stale. The case that
-        // matters: moving an album out of iCloud calls `remove` for every item,
-        // leaving each one marked deleted-locally and queued for a hard purge — all
-        // in memory, on a coordinator the registry hands straight back when the album
-        // is moved to iCloud again. Without this, the guard after the store call
-        // fires on the very record the user asked to upload, marks it deleted, and the
-        // stale purge then deletes their photo from iCloud.
-        //
-        // Clearing here (before the `await`, on the actor) is also what makes that
-        // guard mean what it says: a delete that landed *during* this upload. One
-        // arriving now re-inserts the marks and still wins.
         forgetDeletion(of: item.recordName)
         let ref: CloudKitMediaRef
         do {
             do {
                 ref = try await store.upload(item, progress: progress)
             } catch CloudKitMediaStoreError.zoneNotFound {
-                // The zone was removed server-side (cleared iCloud data) while our
-                // local flag said it existed. Recreate it and retry once — the
-                // behaviour the old synchronous save path had; without it a queued
-                // capture retries against a nonexistent zone forever.
                 printDebug("upload zoneNotFound recordName=\(item.recordName) — recreating the zone and retrying once")
                 try await store.recreateZone()
                 ref = try await store.upload(item, progress: progress)
@@ -1023,20 +866,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             throw error
         }
 
-        // A delete that raced this upload wins: the user removed the item while
-        // its bytes were in flight, so the record that just landed must not be
-        // indexed, cached, or announced — and the server copy is reclaimed.
-        // Without this check the success path below would re-upsert the entry,
-        // resurrecting a deleted photo locally AND on every other device.
-        //
-        // The success path deliberately leaves the delete bookkeeping alone. This
-        // upload already forgot the deletion before its store call, so a mark here
-        // can only have been set by a delete that arrived after it — one that is
-        // supposed to win, and whose reclaim is queued.
         if isKnownDeleted(item.recordName) {
             printDebug("upload landed after delete recordName=\(item.recordName) — deleting the fresh record and discarding the result")
-            // Queue first, so the reclaim survives a failure here or a kill before
-            // the delete lands. Retried by the next sync's drain, chunks included.
             let reclaimClaim = deleteQueue.claimDeletion(of: item.recordName, chunkCount: item.chunkCount, queueRemoteDelete: true)
             do {
                 try await store.delete(recordName: item.recordName)
@@ -1052,41 +883,29 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
         if let tag = ref.recordChangeTag { changeTags[ref.recordName] = tag }
         deleteQueue.forgetDeletion(of: ref.recordName)
-        // Remember the geometry so a delete or playback right after the upload
-        // needs no round trip. The header is read off the local ENC3 file. A
-        // monolithic upload banks a zero count for the same reason, and so that it
-        // supersedes any chunked geometry held for the name it replaces.
         let headerBytes = item.chunkCount > 0
             ? (try? SeekableEncryptedHeader.read(fromFileAt: item.encryptedFileURL))?.bytes
             : nil
         chunkInfo[ref.recordName] = ChunkedBlobInfo(chunkCount: item.chunkCount,
                                                     encHeader: headerBytes)
-        // Cache the just-uploaded encrypted file (the authoring device keeps its copy).
         do {
             try await cache.store(recordName: ref.recordName,
                                   changeTag: ref.recordChangeTag,
                                   albumID: item.albumID,
                                   from: item.encryptedFileURL)
         } catch {
-            // Swallowed on purpose (the upload itself succeeded), but it means the
-            // authoring device will re-download its own freshly uploaded blob.
             printDebug("upload WARNING recordName=\(ref.recordName) local cache store failed; blob will be re-downloaded on next read raw=\(error)")
         }
 
-        // Upsert (through the store's cache) merges a Live Photo's photo and video
-        // components into one entry; the store persists and caches in one step.
         do {
             try await indexStore.upsert([Self.indexEntry(fromUpload: item)])
         } catch {
             printDebug("upload indexUpsert FAILED recordName=\(ref.recordName) mediaID=\(item.mediaID) — record is in CloudKit but not in the local index raw=\(error)")
             throw error
         }
-        // Counted from here, not from `registerLocally`: the sidecar measures bytes
-        // that exist in CloudKit, and until the save above returned they did not.
         await persistSizes(updates: [ref.recordName: item.sizeBytes], removals: [])
         printDebug("upload ok recordName=\(ref.recordName) changeTag=\(ref.recordChangeTag ?? "nil")")
         if !alreadyVisibleLocally {
-            // Surface the new item on the same bus the gallery already listens to.
             bus.didCreate(Self.media(forRecordName: item.mediaID, albumID: item.albumID, mediaType: item.mediaType))
         }
         return ref
@@ -1115,12 +934,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     ///   landed, so those are reclaimed here too.
     public func remove(recordName: String, albumID: String, wasPending: Bool = false, pendingChunkCount: Int = 0) async throws {
         printDebug("remove start recordName=\(recordName) albumID=\(albumID) wasPending=\(wasPending)")
-        // Claim BOTH halves before anything can suspend: the mark reads fail closed
-        // on, and — unless the item never reached CloudKit — the queued intent, so a
-        // delete that never gets issued (offline, or the process dies here) is still
-        // retried and the record is not pulled back in meanwhile. One operation
-        // because a concurrent republish of the same name must see either both or
-        // neither.
         let claim = deleteQueue.claimDeletion(of: recordName, queueRemoteDelete: !wasPending)
         changeTags[recordName] = nil
         await cache.evict(recordName: recordName)
@@ -1132,9 +945,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             let chunkCount = await resolveChunkCount(recordName: recordName)
             chunkInfo[recordName] = nil
 
-            // Enqueue BEFORE the call: a delete that never gets issued (offline, or
-            // the process dies here) must still be retried, and the queue is what
-            // keeps the record from being pulled back in meanwhile.
             deleteQueue.enqueue(recordName, chunkCount: chunkCount)
 
             if chunkCount == CloudKitMediaDeleteQueue.unknownChunkCount {
@@ -1169,9 +979,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 }
             }
         } else if pendingChunkCount > 0 {
-            // Never reached CloudKit as a committed record, but an interrupted
-            // queue drain may have left chunk records behind. Queue-then-delete,
-            // same as the committed path, so the reclaim survives a kill.
             deleteQueue.enqueue(recordName, chunkCount: pendingChunkCount)
             do {
                 try await chunkStore.delete(mediaRecordName: recordName, chunkCount: pendingChunkCount)
@@ -1182,14 +989,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             }
         }
 
-        // Clear only this component; the entry survives if the other component does.
-        // The store persists and caches; a no-op (record already absent) skips the write.
         let entryRemoved: Bool
         do {
             entryRemoved = try await indexStore.removeComponent(recordName: recordName)
         } catch {
-            // The record is gone (or queued to go) server-side, so a failure here
-            // leaves the local index claiming an item that no longer exists remotely.
             printDebug("remove indexRemove FAILED recordName=\(recordName) — record is deleted in CloudKit but still in the local index raw=\(error)")
             throw error
         }
@@ -1253,11 +1056,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 found = true
             }
             if found { return total }
-            // No chunks cached does not mean nothing is cached: the device that
-            // UPLOADED the video keeps the whole ENC3 file under the media record
-            // name, and that copy is what its own playback reads. Reporting it as
-            // absent leaves the largest reclaimable file on the device invisible to
-            // the storage screen, which then offers no way to evict it.
         }
         return await cache.cachedSize(recordName: recordName, changeTag: expectedTag)
     }
@@ -1296,7 +1094,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         guard await store.accountAvailable() else {
             printDebug("startObserving skip albumID=\(albumID) reason=accountUnavailable — no push subscription registered")
             return
-        }   // skip when no account
+        }
         do {
             try await store.registerZoneSubscription()
             printDebug("startObserving ok albumID=\(albumID) zone subscription registered")
@@ -1311,8 +1109,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             try await sync(albumID: albumID)
             printDebug("handleRemoteNotification ok albumID=\(albumID)")
         } catch {
-            // Swallowed by the original `try?`: a push-triggered sync failure was
-            // completely invisible, so the album silently stays stale.
             printDebug("handleRemoteNotification FAILED albumID=\(albumID) raw=\(error)")
         }
     }
@@ -1324,8 +1120,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// shared algebra — but it feeds the shared `upsert`. `internal` for the
     /// disk/cloud index-equivalence test.
     static func indexEntry(from meta: CloudKitMediaMetadata) -> MediaIndexEntry {
-        // `createdAt` is the record's capture/encryption date — use it for BOTH so the
-        // default encrypted-date gallery sort orders synced items by time, not last.
         MediaIndexEntry(id: meta.mediaID,
                         hasPhotoComponent: meta.mediaType == .photo,
                         hasVideoComponent: meta.mediaType == .video,
@@ -1335,8 +1129,6 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     }
 
     private static func indexEntry(fromUpload item: CloudKitMediaUpload) -> MediaIndexEntry {
-        // Use the capture date for BOTH dates so a freshly uploaded item sorts
-        // consistently with the same item once it comes back through delta sync.
         MediaIndexEntry(id: item.mediaID,
                         hasPhotoComponent: item.mediaType == .photo,
                         hasVideoComponent: item.mediaType == .video,

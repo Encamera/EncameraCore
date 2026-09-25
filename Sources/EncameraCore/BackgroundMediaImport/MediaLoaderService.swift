@@ -44,7 +44,6 @@ public struct LoadedMediaBatch {
 @MainActor
 public class MediaLoaderService: DebugPrintable {
     
-    // Cache directory check state to avoid hitting filesystem repeatedly
     private var tempDirectoryChecked = false
     
     /// Metadata extractor for extracting media metadata
@@ -101,7 +100,6 @@ public class MediaLoaderService: DebugPrintable {
         switch result {
         case .phAsset(let asset):
             let media = try await loadMediaFromAsset(asset)
-            // Extract metadata from the PHAsset
             var metadata = await metadataExtractor.extractMetadata(from: asset)
             if let originalFilename = media.compactMap(\.originalFilename).first {
                 metadata.originalFilename = originalFilename
@@ -110,8 +108,6 @@ public class MediaLoaderService: DebugPrintable {
             
         case .phPickerResult(let pickerResult):
             let media = try await loadMediaAsync(result: pickerResult)
-            // For PHPickerResult, we can only extract metadata from the file URL
-            // Try to get PHAsset if available for richer metadata
             var metadata: EncryptedFileMetadata?
             if let assetId = pickerResult.assetIdentifier {
                 let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
@@ -119,7 +115,6 @@ public class MediaLoaderService: DebugPrintable {
                     metadata = await metadataExtractor.extractMetadata(from: asset)
                 }
             }
-            // If we couldn't get PHAsset metadata, extract from the file URL
             if metadata == nil, let firstMedia = media.first, let url = firstMedia.url {
                 metadata = await metadataExtractor.extractMetadata(from: url, mediaType: firstMedia.mediaType)
             }
@@ -141,7 +136,6 @@ public class MediaLoaderService: DebugPrintable {
     // MARK: - PHPickerResult Loading
     
     private func loadMediaAsync(result: PHPickerResult) async throws -> [CleartextMedia] {
-        // Identify whether the item is a video or an image
         let isLivePhoto = result.itemProvider.canLoadObject(ofClass: PHLivePhoto.self)
         if isLivePhoto {
             return try await loadLivePhoto(result: result)
@@ -163,10 +157,7 @@ public class MediaLoaderService: DebugPrintable {
                     return
                 }
 
-                // The provider URL still carries the original filename; the copy
-                // below renames to a UUID temp name, so capture it now.
                 let originalFilename = url.lastPathComponent
-                // Use helper to copy file
                 let fileName = NSUUID().uuidString + (isVideo ? ".mov" : ".jpeg")
                 let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
 
@@ -197,7 +188,6 @@ public class MediaLoaderService: DebugPrintable {
     
     private func loadLivePhoto(result: PHPickerResult) async throws -> [CleartextMedia] {
         let assetResources = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[PHAssetResource], Error>) in
-            // Load the PHLivePhoto object from the picker result
             result.itemProvider.loadObject(ofClass: PHLivePhoto.self) { (object, error) in
                 if let error = error {
                     continuation.resume(throwing: error)
@@ -219,7 +209,6 @@ public class MediaLoaderService: DebugPrintable {
     // MARK: - PHAsset Loading
     
     private func loadMediaFromAsset(_ asset: PHAsset) async throws -> [CleartextMedia] {
-        // Handle live photos
         if asset.mediaSubtypes.contains(.photoLive) {
             return try await loadLivePhotoFromAsset(asset)
         } else {
@@ -233,7 +222,6 @@ public class MediaLoaderService: DebugPrintable {
         let originalFilename = MediaMetadataExtractor.primaryResourceFilename(for: asset)
         
         if isVideo {
-            // Handle video
             return try await withCheckedThrowingContinuation { continuation in
                 let options = PHVideoRequestOptions()
                 options.isNetworkAccessAllowed = true
@@ -241,8 +229,6 @@ public class MediaLoaderService: DebugPrintable {
                 
                 PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, info in
                     guard let urlAsset = avAsset as? AVURLAsset else {
-                        // No asset back means PhotoKit refused, not that the type was
-                        // wrong; `info` says which refusal it was.
                         continuation.resume(throwing: BackgroundImportError.fromPhotoKitInfo(info))
                         return
                     }
@@ -260,7 +246,6 @@ public class MediaLoaderService: DebugPrintable {
                 }
             }
         } else {
-            // Handle image
             return try await withCheckedThrowingContinuation { continuation in
                 let options = PHImageRequestOptions()
                 options.isNetworkAccessAllowed = true
@@ -304,7 +289,6 @@ public class MediaLoaderService: DebugPrintable {
             options.isNetworkAccessAllowed = true
             
             let documentsDirectory = URL.tempMediaDirectory
-            // Use a unique filename to avoid conflicts between imports
             let fileExtension = (resource.originalFilename as NSString).pathExtension
             let uniqueFileName = "\(UUID().uuidString).\(fileExtension.isEmpty ? "data" : fileExtension)"
             let fileURL = documentsDirectory.appendingPathComponent(uniqueFileName)

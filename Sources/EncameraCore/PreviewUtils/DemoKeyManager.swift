@@ -128,8 +128,6 @@ public class DemoKeyManager: KeyManager {
     }
     
     public func backupKeychainToiCloud(backupEnabled: Bool) throws {
-        // Record the flip so tests can assert that a code path did (or, more often,
-        // did not) change the key sync setting behind the user's back.
         if let backupError {
             throw backupError
         }

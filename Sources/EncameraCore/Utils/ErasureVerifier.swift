@@ -78,9 +78,6 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
     public func verify(scope: ErasureScope) async -> ErasureResidue {
         var residue = ErasureResidue()
 
-        // 1. Keychain. Only `.allData` promises to empty it; `.appData` deliberately
-        // leaves the account's synced credentials alone, so checking them there
-        // would report a designed outcome as a failure.
         if scope == .allData {
             residue.keychainItems = keyManager.residualKeychainItemNames()
                 .filter { item in
@@ -106,7 +103,6 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
     private func survivingFiles(scope: ErasureScope, containerPathLimit: Int = 20) -> [String] {
         var offenders: [String] = []
 
-        // Cleartext first — these are the ones that matter most if they survive.
         var directories: [(label: String, url: URL?)] = [
             ("thumbnails", LocalStorageModel.thumbnailDirectory),
             ("tempMedia", URL.tempMediaDirectory),
@@ -115,8 +111,6 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
             ("sharedImports", AppGroupFileAccess.shared.importDirectoryURL)
         ]
 
-        // The encrypted originals and the blob cache are `.allData`'s to destroy;
-        // `.appData` keeps them on purpose.
         if scope == .allData {
             directories.append(("cloudKitBlobs", CloudKitBlobCache.defaultBaseDir))
             directories.append(("localAlbums", LocalStorageModel.albumsURL))
@@ -129,10 +123,6 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
             }
         }
 
-        // The named surfaces above only catch what someone thought to list. For
-        // the scope that claims EVERYTHING is gone, walk the containers instead
-        // and report whatever is actually still there — that is the only check
-        // that can see a directory nobody registered.
         if scope == .allData {
             offenders.append(contentsOf: survivingContainerPaths(limit: containerPathLimit))
         }

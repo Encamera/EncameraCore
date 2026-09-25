@@ -49,13 +49,9 @@ public struct MediaTranscoder {
             return (url, .photo)
         }
         if Self.nativeVideoExtensions.contains(ext) {
-            // Native videos normally pass through untouched, but a video headed
-            // for the seekable ENC3 format must be faststart first — see
-            // `faststartForChunkingIfNeeded`.
             return (await faststartForChunkingIfNeeded(url: url, storageType: storageType), .video)
         }
 
-        // Decide by UTType conformance rather than the extension whitelist.
         if let utType, utType.conforms(to: .image) {
             return (try transcodeImageToJPEG(source: url), .photo)
         }
@@ -63,7 +59,6 @@ public struct MediaTranscoder {
             return (try await transcodeVideoToMOV(source: url), .video)
         }
 
-        // Unknown/mislabeled extension: sniff the content as an image first.
         if let jpeg = try? transcodeImageToJPEG(source: url) {
             return (jpeg, .photo)
         }
@@ -117,7 +112,6 @@ public struct MediaTranscoder {
             throw MediaTranscoderError.undecodable(underlying: nil)
         }
 
-        // Preserve metadata (EXIF/TIFF orientation, creation date, GPS, …).
         let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any] ?? [:]
 
         let outputURL = try makeTempURL(extension: "jpeg")
@@ -142,8 +136,6 @@ public struct MediaTranscoder {
     /// Remuxes (or, if that fails, re-encodes) a non-native video into a MOV.
     private func transcodeVideoToMOV(source: URL) async throws -> URL {
         let asset = AVURLAsset(url: source)
-        // Passthrough remuxes without re-encoding when the codecs are compatible;
-        // fall back to a re-encode preset when passthrough can't produce a MOV.
         let presets = [AVAssetExportPresetPassthrough, AVAssetExportPresetHighestQuality]
 
         var lastError: Error?
@@ -152,11 +144,6 @@ public struct MediaTranscoder {
             let outputURL = try makeTempURL(extension: "mov")
             export.outputURL = outputURL
             export.outputFileType = .mov
-            // Put the `moov` atom at the front ("faststart"). Without it AVFoundation's
-            // very first read of a MOV is near the END of the file, because that is
-            // where the index lives. For a chunk-streamed video that turns the opening
-            // frame into a seek to the last chunk; for a whole-file download it means
-            // nothing can start until everything has arrived.
             export.shouldOptimizeForNetworkUse = true
 
             do {

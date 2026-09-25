@@ -319,25 +319,12 @@ final class EncryptedStreamResourceLoaderTests: XCTestCase {
     /// *accepts* what the delegate hands it, end to end — custom scheme, delegate
     /// wiring, content information, byte-range requests, decryption, and a real
     /// decode.
-    ///
-    /// Runs here rather than in a UI test because the unit bundle has a host app, so
-    /// AVPlayer works: a ~15s app launch becomes a sub-second check.
-    ///
-    /// **Scope, established by mutation-testing rather than assumed.** This test
-    /// does NOT catch either of the two contract details the loader is careful
-    /// about: answering the ~2-byte data request attached to the info request, and
-    /// reporting the ciphertext length as `contentLength`. Both mutations leave it
-    /// passing on iOS 26 — AVFoundation tolerates them for a short clip. What it
-    /// does catch is a broken scheme or delegate wiring, wrong geometry, a bad
-    /// range mapping, and any decryption failure; those are the failures that
-    /// actually produce a black frame.
     @MainActor
     func testRealAVPlayerBecomesReadyAndDecodesAFrameThroughTheLoader() async throws {
         let movie = tempDir.appendingPathComponent("clip.mov")
         try await Self.writeTinyMovie(to: movie, seconds: 2)
 
         let enc3 = tempDir.appendingPathComponent("clip.enc3")
-        // 16 KB chunks so even a short clip spans many chunks.
         try SeekableEncryptedWriter(keyBytes: key, chunkSize: 16 * 1024)
             .encrypt(source: movie, destination: enc3)
 
@@ -369,8 +356,6 @@ final class EncryptedStreamResourceLoaderTests: XCTestCase {
         XCTAssertEqual(CMTimeGetSeconds(duration), 2.0, accuracy: 0.5,
                        "the streamed asset must report the real duration")
 
-        // A frame can only decode if chunks were fetched, authenticated, decrypted
-        // and reassembled into a valid MOV byte range.
         let generator = AVAssetImageGenerator(asset: item.asset)
         generator.requestedTimeToleranceBefore = CMTime(seconds: 0.5, preferredTimescale: 600)
         generator.requestedTimeToleranceAfter = CMTime(seconds: 0.5, preferredTimescale: 600)
@@ -424,10 +409,6 @@ final class EncryptedStreamResourceLoaderTests: XCTestCase {
         }
         XCTAssertEqual(item.status, .readyToPlay, "item error: \(item.error.map { "\($0)" } ?? "none")")
 
-        // Wait until every request received so far has an outcome and the trace has
-        // gone quiet, so a request AVFoundation issues after readiness is judged on
-        // its outcome rather than on where the snapshot happened to fall. A request
-        // that never reaches an outcome runs this to the deadline and fails below.
         var trace = lines.snapshot()
         for _ in 0..<20 {
             try await Task.sleep(for: .milliseconds(250))
@@ -528,8 +509,6 @@ final class EncryptedStreamResourceLoaderTests: XCTestCase {
         let loader = EncryptedStreamResourceLoader(session: session)
         XCTAssertFalse(loader.hasOpenDataRequest, "nothing has been asked for yet")
 
-        // Sampled from inside the sink, so each line carries the property's
-        // value at the moment the event happened.
         let observed = LockedLines()
         loader.traceSink = { [weak loader] line in
             guard let loader else { return }
@@ -553,7 +532,6 @@ final class EncryptedStreamResourceLoaderTests: XCTestCase {
             XCTAssertTrue(line.contains(" open=true"), "a request mid-delivery is open: \(line)")
         }
 
-        // Taking the item away cancels whatever is still outstanding.
         player.replaceCurrentItem(with: nil)
         let settled = try await waitUntil(.seconds(15)) { !loader.hasOpenDataRequest }
         XCTAssertTrue(settled, "requests still open after the item was dropped: \(observed.snapshot())")

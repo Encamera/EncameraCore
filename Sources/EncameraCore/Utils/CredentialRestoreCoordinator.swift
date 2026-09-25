@@ -247,7 +247,6 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
             printDebug("default key missing but passphrase present → restoringKeyMaterial (re-deriving)")
             state = .restoringKeyMaterial
             let keyManager = self.keyManager
-            // pwHash derivation is CPU-bound; keep it off the main actor.
             let result: Result<Bool, Error> = await Task.detached(priority: .userInitiated) {
                 do {
                     return .success(try keyManager.restoreDefaultKeyFromPassphraseIfNeeded())
@@ -264,9 +263,6 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
         } else if !snapshot.defaultKeyExists {
             printDebug("default key missing and NO passphrase yet — proceeding to main; unlock-time heal hook will retry when items arrive")
         }
-        // Even if the key is still missing (passphrase not yet synced), proceed
-        // to main: authentication works with the password hash alone and the
-        // unlock-time heal hook restores the key when its items arrive.
         resolve(.main)
     }
 

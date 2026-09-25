@@ -94,9 +94,6 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
         }
         XCTAssertEqual(fixtures.count, fileCount, "fixture setup should have produced every file")
 
-        // Every benchmark below is only interpretable if the fixtures are real
-        // encrypted media: a file that cannot be opened or parsed is measured as
-        // an early return, not as the work being timed.
         for url in fixtures {
             let probe = try XCTUnwrap(FirstBlockProbe(url: url),
                                       "fixture \(url.lastPathComponent) is not readable encrypted media")
@@ -135,15 +132,6 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     }
 
     // MARK: - Cost decomposition
-    //
-    // The two benchmarks above measure whole paths. These isolate the pieces so
-    // the difference between them can be attributed rather than guessed:
-    //
-    //   proveFirstBlock  = probe + 1 AEAD
-    //   discoverKeyOutcome = probe + readStamp + (storedKeyCount) AEAD
-    //
-    // so measuring `readStamp` and the bare probe on their own pins down what
-    // each part of that gap actually costs.
 
     /// `KeyStampSlot.readStamp` on its own: a second open of a file the probe
     /// has already opened and parsed.
@@ -173,8 +161,6 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     func testFirstBlockProbeOnlyAcrossAlbum() throws {
         measure {
             for url in fixtures {
-                // Pins that the whole block was read: a probe that returned nil,
-                // or bailed after the prologue, would time a fraction of this.
                 guard let probe = FirstBlockProbe(url: url),
                       probe.streamHeader.count == EncryptedFileFormat.streamHeaderSize,
                       probe.firstBlock.count > 20000 else {
@@ -229,11 +215,6 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     /// call. Two full keychain round-trips per image. Discovery now resolves the
     /// UUID against the snapshot it already holds; this measures what that
     /// removed.
-    ///
-    /// Note `keyWith(uuid:)` is main-actor isolated — it reads
-    /// `UIApplication.shared.applicationState` — so the old discovery path also
-    /// hopped to the main actor once per image, competing with the scrolling it
-    /// was blocking.
     func testKeyWithUUIDQueryCostPerAlbumSweep() throws {
         let keychain = CountingKeychainWrapper()
         let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher(),
@@ -253,9 +234,6 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
             }
             XCTAssertEqual(mismatches, 0,
                            "keyWith(uuid:) must resolve exactly the key the library holds, or nothing when it holds none")
-            // A uuid the library does not contain must miss whatever the library
-            // holds: the lookup is not allowed to fall back to whichever key
-            // happens to be current.
             XCTAssertNil(real.keyWith(uuid: UUID()))
             lookups.fulfill()
         }
@@ -276,15 +254,6 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     }
 
     // MARK: - The keychain hoist, A/B against the real keychain
-    //
-    // The DemoKeyManager benchmarks cannot see this: their `storedKeys()` is an
-    // array read. These two run the identical sweep against a real
-    // `KeychainManager`, differing only in whether the key library is read once
-    // for the album or once per file. Read-only — neither writes a key.
-    //
-    // The claim the pair exists to make — the hoist removes keychain queries —
-    // is asserted from a query counter, not from the two timings, which have no
-    // baseline to fail against.
 
     /// Old behavior: discovery reads the keychain itself, per file.
     func testRealKeychainSweepWithoutSnapshot() throws {
@@ -384,10 +353,6 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     /// to the length a trace needs.
     func testSoakDiscoverKeyOutcomeForProfiler() throws {
         let soakSeconds = TimeInterval(ProcessInfo.processInfo.environment["ENCAMERA_PERF_SOAK_SECONDS"] ?? "") ?? 1
-        // Soaks the REAL keychain path, because that is where the cost was.
-        // ENCAMERA_PERF_SOAK_NOSNAPSHOT=1 reproduces the pre-fix shape (the key
-        // library re-read per file) so two traces of the same workload can be
-        // compared directly.
         let useSnapshot = ProcessInfo.processInfo.environment["ENCAMERA_PERF_SOAK_NOSNAPSHOT"] != "1"
         let real = KeychainManager(isAuthenticated: Just(true).eraseToAnyPublisher())
         print("[KeyDiscoveryPerf] soak mode: \(useSnapshot ? "WITH snapshot (fixed)" : "WITHOUT snapshot (pre-fix)")")

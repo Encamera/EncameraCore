@@ -33,8 +33,6 @@ public final class NetworkMonitor {
         }
         monitor.start(queue: queue)
 
-        // Seed state synchronously from the current path so properties
-        // are correct even before the first async pathUpdateHandler callback.
         updateState(from: monitor.currentPath)
     }
 

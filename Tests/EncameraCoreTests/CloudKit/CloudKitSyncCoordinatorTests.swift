@@ -25,9 +25,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
             UserDefaults().removePersistentDomain(forName: suite)
         }
         deleteQueueSuites = []
-        // The tests that build a coordinator without an isolated queue get the
-        // process-wide marks, which outlive every test in the run. A name left
-        // marked here makes a later test's read of the same name fail closed.
         CloudKitKnownDeletedRecords.shared.removeAll()
     }
 
@@ -192,7 +189,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
             try await coord.sync(albumID: "a1")
             XCTFail("Expected throw")
         } catch {
-            // expected
         }
         let result = await ids(index)
         XCTAssertEqual(result, ["m1"], "A failed sync must not mutate the index")
@@ -214,7 +210,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
     func testConcurrentEnsureBlobLocalDedupsToSingleFetch() async throws {
         let store = MockCloudKitMediaStore()
-        store.fetchBlobDelayNanos = 50_000_000  // 50ms to force overlap
+        store.fetchBlobDelayNanos = 50_000_000
         let (coord, _, _) = makeCoordinator(store: store)
 
         async let r1 = coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
@@ -258,7 +254,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let (coord, _, _) = makeCoordinator(store: store)
 
         _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
-        try await coord.evictAll(olderThan: Date().addingTimeInterval(60))   // future => evicts all
+        try await coord.evictAll(olderThan: Date().addingTimeInterval(60))
         _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
 
         XCTAssertEqual(store.fetchBlobCount, 2)
@@ -288,7 +284,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
             _ = try await withTimeout(seconds: 3) { try await download.value }
             XCTFail("A cancelled download must not resolve — the caller has to be released immediately")
         } catch is CancellationError {
-            // expected
         }
         for _ in 0..<50 where store.fetchBlobCancelledCount == 0 {
             try await Task.sleep(nanoseconds: 20_000_000)
@@ -315,11 +310,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         download.cancel()
         _ = try? await withTimeout(seconds: 3) { try await download.value }
 
-        // Well past when the abandoned fetch would have finished.
         try await Task.sleep(nanoseconds: 1_000_000_000)
 
-        // A download left alone reaches the cache, so the absence below reads as
-        // "the cancel stopped it" rather than "caching never worked here".
         _ = try await coord.ensureBlobLocal(recordName: "m2", albumID: "a1", progress: { _ in })
         let control = await coord.isBlobCached(recordName: "m2")
         XCTAssertTrue(control, "A download allowed to finish caches its blob")
@@ -403,7 +395,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let leaving = Task { try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in }) }
         await fulfillment(of: [inFlight], timeout: 5)
         let staying = Task { try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: stayer.record) }
-        // Let the second caller register before the first one walks away.
         try await Task.sleep(nanoseconds: 100_000_000)
         leaving.cancel()
 
@@ -429,7 +420,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let afterRemove = await ids(index)
         XCTAssertTrue(afterRemove.isEmpty)
 
-        // A delete that lands mid-fetch wins.
         do {
             _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
             XCTFail("Expected notFound for a deleted record")
@@ -437,7 +427,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
             guard case .notFound = error else { return XCTFail("Wrong error: \(error)") }
         }
 
-        // A confirmed delete leaves the queue, so no later pass re-issues it.
         store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
         XCTAssertEqual(store.deleteCalls, ["m1"], "A confirmed delete must not be retried")
@@ -453,7 +442,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
-        // A server that keeps refusing: the intent must survive and keep retrying.
         store.deleteError = CloudKitMediaStoreError.retry(after: 1)
         try await coord.remove(recordName: "m1", albumID: "a1")
 
@@ -461,8 +449,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertTrue(afterFailedDelete.isEmpty,
                       "The item leaves this device even when the server call fails")
 
-        // The record is still live server-side, so the feed keeps reporting it. It
-        // must not be pulled back onto the device that deleted it.
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
@@ -470,7 +456,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let afterRetry = await ids(index)
         XCTAssertTrue(afterRetry.isEmpty, "A record pending deletion must never be re-materialized")
 
-        // Once the server accepts it, the intent is discharged.
         store.deleteError = nil
         store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
@@ -493,7 +478,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         try await coord.remove(recordName: "m1", albumID: "a1")
         XCTAssertEqual(queue.pending(), ["m1"], "An unconfirmed delete is persisted")
 
-        // A new coordinator over the same queue — what relaunch looks like.
         let (fresh, _, _) = makeCoordinator(store: store, deleteQueue: queue)
         store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
         try await fresh.sync(albumID: "a1")
@@ -512,7 +496,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let index = makeIndexStore()
         let cache = makeCache()
 
-        // First coordinator syncs the chunked video into the index.
         let videoMeta = CloudKitMediaMetadata(recordName: "vid#1",
                                               albumID: "a1",
                                               mediaID: "vid",
@@ -530,8 +513,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                             indexStore: index, bus: FileOperationBus(), deleteQueue: queue)
         try await first.sync(albumID: "a1")
 
-        // "Relaunch": a fresh coordinator has no chunkInfo in memory, so
-        // resolveChunkCount falls through to fetchRecordMetadata.
         store.fetchRecordMetadataError = CloudKitMediaStoreError.retry(after: 1)
         let relaunched = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache,
                                                   indexStore: index, bus: FileOperationBus(), deleteQueue: queue)
@@ -560,9 +541,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
         XCTAssertEqual(store.fetchBlobCount, 1)
 
-        // "Relaunch": a fresh coordinator over the SAME persisted cache, before any
-        // delta sync has repopulated its in-memory change-tag map. The persisted
-        // entry must be trusted (nil expectation), not re-downloaded wholesale.
         let relaunched = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
                                                  bus: FileOperationBus(), deleteQueue: deleteQueue)
         _ = try await relaunched.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
@@ -603,14 +581,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
     }
 
     func testEverySyncReattemptsRegistrationSoStoreInvalidationSelfHeals() async throws {
-        // `CloudKitMediaStore.mapAndRecord` clears its persisted subscription flag
-        // on `.zoneNotFound` (zone deleted in iCloud Settings, account wiped)
-        // precisely so the next registration attempt re-creates the subscription.
-        // The coordinator must therefore hand the store that chance on EVERY sync:
-        // a cached in-memory "already registered" bool goes stale-true the moment
-        // the store invalidates, silently killing push-driven sync for the life of
-        // the process. Dedup belongs to the store, whose persisted-flag check makes
-        // a genuinely-registered attempt a cheap no-op.
         let store = MockCloudKitMediaStore()
         let (coord, _, _) = makeCoordinator(store: store)
 
@@ -652,8 +622,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
                                             bus: bus, deleteQueue: makeDeleteQueue())
 
-        // First add m1 and m2, then delete m2 — a delete only fires for an item this
-        // album actually held (deletes are album-scoped against the shared zone).
         store.changeSet = CloudKitChangeSet(changed: [meta("m1"), meta("m2")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
         store.changeSet = CloudKitChangeSet(changed: [], deleted: ["m2"], token: nil, moreComing: false)
@@ -673,12 +641,9 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
-        // The server no longer has it — deleted from another device first.
         store.deleteError = CloudKitMediaStoreError.notFound
         try await coord.remove(recordName: "m1", albumID: "a1")
 
-        // Must not throw, and must not keep retrying forever: nothing to delete is
-        // success for a delete.
         store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
         try await coord.sync(albumID: "a1")
@@ -717,7 +682,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         ], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
-        // The photo component is removed from the zone; the video remains.
         store.changeSet = CloudKitChangeSet(changed: [], deleted: ["live#0"], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
@@ -774,9 +738,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                   createdAt: date, sizeBytes: 1, creationDeviceID: "d",
                                   schemaVersion: 1, recordChangeTag: "t-\(name)")
         }
-        // Ids ascend in the opposite direction to the capture dates, and the newer
-        // record arrives first, so neither the id tiebreak nor the arrival order can
-        // stand in for a date the coordinator took from the record.
         let earlier = Date(timeIntervalSince1970: 100)
         let later = Date(timeIntervalSince1970: 200)
         store.changeSet = CloudKitChangeSet(changed: [
@@ -811,8 +772,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                             bus: bus, deleteQueue: makeDeleteQueue())
 
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
-        try await coord.sync(albumID: "a1")   // first time: create
-        try await coord.sync(albumID: "a1")   // already present: no new create
+        try await coord.sync(albumID: "a1")
+        try await coord.sync(albumID: "a1")
 
         XCTAssertEqual(created.values, ["m1"], "Create should fire once, only for the genuinely new entry")
     }
@@ -836,7 +797,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
-        // A delete for "other#0" — a record from a different album we never indexed.
         store.changeSet = CloudKitChangeSet(changed: [], deleted: ["other#0"], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
@@ -910,7 +870,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let cachedBefore = await cache.cachedURL(recordName: "gone#0", changeTag: "t1")
         XCTAssertNotNil(cachedBefore)
 
-        // "gone#0" is not in this album's index at all.
         store.changeSet = CloudKitChangeSet(changed: [], deleted: ["gone#0"], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
@@ -958,8 +917,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let afterFirst = await ids(index)
         XCTAssertEqual(afterFirst, ["m1", "m2"])
 
-        // A complete snapshot that no longer contains m1: it was deleted elsewhere
-        // and this device never saw the delete.
         store.changeSet = CloudKitChangeSet(changed: [meta("m2")], deleted: [],
                                             token: nil, moreComing: false, snapshotComplete: true)
         try await coord.sync(albumID: "a1")
@@ -1004,7 +961,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
-        // A second item exists locally and is still queued for upload.
         let pendingFile = tempRoot.appendingPathComponent("pending.blob")
         try Data("ciphertext".utf8).write(to: pendingFile)
         _ = try await queue.enqueue(CloudKitMediaUpload(albumID: "a1",
@@ -1015,8 +971,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                                         encryptedFileURL: pendingFile,
                                                         encryptedThumbURL: nil,
                                                         recordName: "queued#0"))
-        // A third item is local-only with nothing queued for it — the control that
-        // proves the reap ran at all in this pass.
         try await index.upsert([MediaIndexEntry(id: "queued",
                                                 hasPhotoComponent: true,
                                                 hasVideoComponent: false,
@@ -1030,7 +984,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                                 dateTaken: Date(),
                                                 subtypeRawValue: 0)])
 
-        // A complete snapshot containing only the uploaded item.
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [],
                                             token: nil, moreComing: false, snapshotComplete: true)
         try await coord.sync(albumID: "a1")
@@ -1057,9 +1010,9 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                             bus: bus, deleteQueue: makeDeleteQueue())
 
         store.changeSet = CloudKitChangeSet(changed: [metaComponent(recordName: "live#0", mediaID: "live", type: .photo)], deleted: [], token: nil, moreComing: false)
-        try await coord.sync(albumID: "a1")   // photo arrives -> create
+        try await coord.sync(albumID: "a1")
         store.changeSet = CloudKitChangeSet(changed: [metaComponent(recordName: "live#1", mediaID: "live", type: .video)], deleted: [], token: nil, moreComing: false)
-        try await coord.sync(albumID: "a1")   // video merges in -> refresh
+        try await coord.sync(albumID: "a1")
 
         XCTAssertEqual(created.values, ["live", "live"], "Adding a component must refresh the gallery")
     }
@@ -1083,10 +1036,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
-        // The iCloud -> local move: delete the record and drop it locally.
         try await coord.remove(recordName: "m1", albumID: "a1")
 
-        // The local -> iCloud move back: the same record name is uploaded again.
         let upload = CloudKitMediaUpload(albumID: "a1", mediaID: "m1", mediaType: .photo,
                                          createdAt: Date(timeIntervalSince1970: 555), sizeBytes: 1,
                                          encryptedFileURL: URL(fileURLWithPath: "/tmp/m1.blob"),
@@ -1098,7 +1049,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let entries = await ids(index)
         XCTAssertEqual(entries, ["m1"], "The re-uploaded record must be back in the local index")
 
-        // And nothing queued by the move-out may reap what was just uploaded.
         store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
         XCTAssertEqual(store.deleteCalls, ["m1"],
@@ -1127,12 +1077,10 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await registryCoord.sync(albumID: "a1")
 
-        // The move out fails its delete, so the intent stays queued.
         store.deleteErrorOnce = CloudKitMediaStoreError.retry(after: 1)
         try await registryCoord.remove(recordName: "m1", albumID: "a1")
         XCTAssertEqual(queue.pending(), ["m1"])
 
-        // The move back runs on a DIFFERENT coordinator over the same queue.
         let (migrationCoord, _, _) = makeCoordinator(store: store, deleteQueue: queue)
         let upload = CloudKitMediaUpload(albumID: "a1", mediaID: "m1", mediaType: .photo,
                                          createdAt: Date(timeIntervalSince1970: 555), sizeBytes: 1,
@@ -1148,9 +1096,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(store.deleteCalls, ["m1"],
                        "Only the failed move-out delete — the fresh copy must never be deleted")
 
-        // And the stale local "known deleted" mark must go with it — on the
-        // coordinator that queued the delete, which is the one serving reads for
-        // the album — or reading the revived photo still fails closed.
         _ = try await registryCoord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
     }
 
@@ -1172,13 +1117,11 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
     func testAPairedUpdateCannotBeInterleavedByAnother() {
         let queue = makeDeleteQueue()
 
-        // A republish, interrupted by a delete of the same name.
         queue.claimDeletion(of: "m1", queueRemoteDelete: true)
         assertNoInterleaving(of: queue,
                              outer: { queue.forgetDeletion(of: "m1") },
                              interloper: { queue.claimDeletion(of: "m1", queueRemoteDelete: true) })
 
-        // And the other way round, so neither half can be split unnoticed.
         assertNoInterleaving(of: queue,
                              outer: { queue.claimDeletion(of: "m1", queueRemoteDelete: true) },
                              interloper: { queue.forgetDeletion(of: "m1") })
@@ -1201,7 +1144,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let landedMidUpdate = MidUpdateWitness()
 
         CloudKitMediaDeleteQueue.pairedUpdateSeam = {
-            // One shot: the interloper's own paired update must not re-enter this.
             CloudKitMediaDeleteQueue.pairedUpdateSeam = nil
             DispatchQueue.global().async {
                 interloper()
@@ -1256,12 +1198,9 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let queue = makeDeleteQueue()
 
         let first = queue.claimDeletion(of: "m1", queueRemoteDelete: true)
-        // The record comes back (a migration republishes it) and is deleted again,
-        // all while the first delete is still in flight.
         queue.forgetDeletion(of: "m1")
         queue.claimDeletion(of: "m1", queueRemoteDelete: true)
 
-        // The first delete's server call returns now, carrying its stale claim.
         queue.confirmDelete(of: "m1", claimedAs: first)
 
         let state = queue.deletionState(of: "m1")
@@ -1279,8 +1218,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         try await coord.sync(albumID: "a1")
 
-        // Delete lands *after* the upload has begun: the store call is where the
-        // bytes are in flight, so that is where the racing remove is injected.
         store.onUploadStarted = { [weak coord] in
             guard let coord else { return }
             try? await coord.remove(recordName: "m1", albumID: "a1")
@@ -1324,7 +1261,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let store = MockCloudKitMediaStore()
         store.hasChangeTokenValue = true
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
-        let (coord, index, _) = makeCoordinator(store: store)   // fresh index file => load() == nil
+        let (coord, index, _) = makeCoordinator(store: store)
 
         try await coord.sync(albumID: "a1")
 
@@ -1340,12 +1277,12 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let (coord, _, _) = makeCoordinator(store: store)
 
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
-        try await coord.sync(albumID: "a1")        // index missing first time => one reset
+        try await coord.sync(albumID: "a1")
         let resetsAfterFirst = store.resetChangeTokenCount
         XCTAssertEqual(resetsAfterFirst, 1, "A missing index alongside a live token forces exactly one reset")
 
         store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
-        try await coord.sync(albumID: "a1")        // index now present => no extra reset
+        try await coord.sync(albumID: "a1")
 
         XCTAssertEqual(store.resetChangeTokenCount, resetsAfterFirst, "An intact index must not force a resync")
     }
@@ -1354,7 +1291,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
     /// load–merge–save that races the index and re-advances the token.
     func testConcurrentSyncsAreCoalesced() async throws {
         let store = MockCloudKitMediaStore()
-        store.fetchChangesDelayNanos = 50_000_000  // 50ms so the calls overlap
+        store.fetchChangesDelayNanos = 50_000_000
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         let (coord, index, _) = makeCoordinator(store: store)
 
@@ -1374,13 +1311,13 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
     /// the caller's request), not return early before changes are applied.
     func testCoalescedSyncWaitsForCompletion() async throws {
         let store = MockCloudKitMediaStore()
-        store.fetchChangesDelayNanos = 80_000_000   // 80ms
+        store.fetchChangesDelayNanos = 80_000_000
         store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
         let (coord, index, _) = makeCoordinator(store: store)
 
         let first = Task { try await coord.sync(albumID: "a1") }
-        try await Task.sleep(nanoseconds: 15_000_000)   // let `first` enter the slow fetch
-        try await coord.sync(albumID: "a1")             // coalesced — must wait, not return early
+        try await Task.sleep(nanoseconds: 15_000_000)
+        try await coord.sync(albumID: "a1")
 
         let entries = await ids(index)
         XCTAssertEqual(entries, ["m1"], "A coalesced sync must not return before the index is applied")
@@ -1419,9 +1356,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                          encryptedThumbURL: URL(fileURLWithPath: "/tmp/x.thumb"))
         _ = try await coord.upload(upload, progress: { _ in })
 
-        // The upload warmed the store cache. Delete the on-disk file underneath: a
-        // path that re-read disk every time would now surface an empty index, but
-        // the read-through cache must still serve the uploaded entry.
         let warm = await index.current()
         XCTAssertEqual(warm?.entries.map(\.id), ["u1"])
         try FileManager.default.removeItem(at: url)
@@ -1430,7 +1364,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                        "the cloud read path must serve from the warm cache, not re-decrypt the file each time")
     }
 
-    // Reference holder for Combine sink captures.
     private final class CapturedIDs: @unchecked Sendable {
         private let lock = NSLock()
         private var storage: [String] = []
@@ -1450,19 +1383,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
     /// and the write-back, built from the pre-fetch snapshot, drops the entry it
     /// never saw. Nothing throws and nothing is logged; the album simply renders
     /// empty while the ciphertext, the upload and the server record are all fine.
-    ///
-    /// Observed on the rig 23 Aug 2026: a 70 MB import into a freshly created
-    /// CloudKit album uploaded all 21 chunks with `confirmedByServer=true`, and the
-    /// album detail still read "0 files on iCloud". A large video is what makes it
-    /// reliable rather than rare — the encrypt plus the per-chunk uploads stretch
-    /// the window from milliseconds to minutes — but nothing about the defect is
-    /// specific to chunking, so this test uses a plain photo and an explicit gate
-    /// instead of trying to be slow.
     func testSaveDuringSyncSurvivesTheSyncsIndexWrite() async throws {
         let store = MockCloudKitMediaStore()
-        // An empty feed: the sync has nothing of its own to apply, so the only
-        // thing that can change the index is the save below. That isolates the
-        // write-back from the merge.
         store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
         let gate = AsyncGate()
         store.fetchChangesGate = gate
@@ -1470,8 +1392,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let (coord, index, _) = makeCoordinator(store: store)
 
         let sync = Task { try await coord.sync(albumID: "a1") }
-        // Not a sleep: proceed only once the coordinator is provably inside the
-        // fetch, holding its snapshot.
         await gate.waitUntilEntered()
 
         let upload = CloudKitMediaUpload(albumID: "a1", mediaID: "m1", mediaType: .photo,
@@ -1525,14 +1445,12 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
             chunkURLs.append(try await cache.store(recordName: name, changeTag: "tag-1", albumID: "a1",
                                                    from: cacheSourceFile(bytes: 40)))
         }
-        // Cached after the chunks, so it is the more recently used entry.
         let photoURL = try await cache.store(recordName: "photo#1", changeTag: nil, albumID: "a1",
                                              from: cacheSourceFile(bytes: 40))
 
         let bytes = await coord.cachedBytes(recordName: "vid#1")
         XCTAssertEqual(bytes, 120, "Every cached chunk counts toward the video's local size")
 
-        // 160 + 60 is over the cap by one 40-byte entry, so exactly one is evicted.
         _ = try await cache.store(recordName: "fresh", changeTag: nil, albumID: "a1",
                                   from: cacheSourceFile(bytes: 60))
 
@@ -1639,7 +1557,6 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertNil(absent)
         XCTAssertEqual(store.fetchRecordMetadataCount, 1)
 
-        // The upload lands; the record is chunked after all.
         store.metadataToReturn = [geometryMeta(recordName: video, mediaID: "v1", type: .video,
                                                 chunkCount: 4, encHeader: Data([0xE3]))]
 

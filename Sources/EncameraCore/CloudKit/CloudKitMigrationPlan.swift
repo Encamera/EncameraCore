@@ -171,10 +171,6 @@ public actor MigrationPlanStore: DebugPrintable {
 
     /// Loads and decrypts the plan, or `nil` if absent/unreadable/corrupt.
     public func load() -> MigrationPlan? {
-        // "absent", "wrong key / corrupt ciphertext" and "decodes but isn't a plan"
-        // all returned the same `nil`, so a checkpoint that failed to come back
-        // looked identical to never having existed — and the run silently restarted
-        // from scratch instead of resuming.
         guard let fileData = try? Data(contentsOf: planURL) else {
             printDebug("load MISS file=\(planURL.lastPathComponent) — no plan file on disk")
             return nil
@@ -210,8 +206,6 @@ public actor MigrationPlanStore: DebugPrintable {
             try FileManager.default.removeItem(at: planURL)
             printDebug("delete ok file=\(planURL.lastPathComponent)")
         } catch {
-            // A checkpoint that outlives its migration is re-offered as resumable
-            // work on the next launch, so a failed delete is not cosmetic.
             printDebug("delete FAILED file=\(planURL.lastPathComponent) error=\(error)")
         }
     }

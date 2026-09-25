@@ -77,10 +77,6 @@ struct KeychainDeviceIDStorage: DeviceIDStorage {
 
     static let service = "com.encamera.device"
 
-    /// The attributes every query for the device-ID item shares. Extracted so
-    /// `MultiDeviceStateTests` can assert, as a regression guard, that this
-    /// item is never synchronizable: the roster is the synced structure device
-    /// IDs are copied into, and the identity itself must not migrate.
     static func baseQuery(account: String) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
@@ -94,8 +90,6 @@ struct KeychainDeviceIDStorage: DeviceIDStorage {
     static func saveAttributes(value: Data, account: String) -> [String: Any] {
         var attributes = baseQuery(account: account)
         attributes[kSecValueData as String] = value
-        // ThisDeviceOnly: never migrates to another device via backup restore
-        // or device transfer, and can never be marked synchronizable.
         attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         return attributes
     }

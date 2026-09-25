@@ -218,8 +218,6 @@ final class StorageUsageCalculatorTests: XCTestCase {
 
     func testCancellationStopsTheWalkAndThrows() async throws {
         let albumManager = makeAlbumManager()
-        // Enough albums that the per-album cancellation check is reached before the
-        // walk finishes.
         for _ in 0..<200 {
             let album = makeAlbum(.local)
             try seedLocalAlbum(album, bytes: 128)
@@ -254,7 +252,6 @@ final class StorageUsageCalculatorTests: XCTestCase {
         XCTAssertFalse(onMain, "The disk walk must not block the UI, even when called from the main actor")
     }
 
-    /// ENC-162's invariant, over a real disk walk rather than a constructed value.
     func testReclaimableExcludesLocalMediaEndToEnd() async throws {
         let albumManager = makeAlbumManager()
         let local = makeAlbum(.local)
@@ -410,7 +407,6 @@ final class StorageUsageCalculatorTests: XCTestCase {
         let firstPhoto = try plantCachedBlob(cacheDir: cacheDir, album: first, recordName: "x#0", bytes: 1_000)
         let secondVideo = try plantCachedBlob(cacheDir: cacheDir, album: second, recordName: "y#1", bytes: 3_000)
         let secondChunk = try plantCachedBlob(cacheDir: cacheDir, album: second, recordName: "y#1#c0", bytes: 5_000)
-        // A file in a folder no album claims counts globally, never against an album.
         let strayFolder = cacheDir.appendingPathComponent("albums", isDirectory: true)
         try FileManager.default.createDirectory(at: strayFolder, withIntermediateDirectories: true)
         let stray = strayFolder.appendingPathComponent("z#0")
@@ -459,7 +455,6 @@ final class StorageUsageCalculatorTests: XCTestCase {
         try Data(repeating: 0x22, count: 5_000).write(to: index)
         try Data(repeating: 0x33, count: 100).write(to: sizes)
         try Data(repeating: 0x44, count: 40).write(to: cover)
-        // Another album's files, and a file nobody owns.
         try Data(repeating: 0x55, count: 9_000).write(to: indexes.appendingPathComponent("\(indexStem(for: other)).encindex"))
         try Data(repeating: 0x66, count: 300).write(to: indexes.appendingPathComponent("orphan.encindex"))
 
@@ -493,7 +488,7 @@ final class StorageUsageCalculatorTests: XCTestCase {
             "live.encimage": 200,
             "live.encvideo": 3_000,
             "clip.encvideo": 7_000,
-            drive.storageURL.lastPathComponent: 4_096,   // the directory item the query also lists
+            drive.storageURL.lastPathComponent: 4_096,
             ".Trash": 50,
         ])
 

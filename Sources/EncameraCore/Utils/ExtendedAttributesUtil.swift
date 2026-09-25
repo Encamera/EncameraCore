@@ -32,25 +32,21 @@ public struct ExtendedAttributesUtil {
     
     /// Gets the key UUID from the extended attributes of the file
     public static func getKeyUUID(for url: URL) throws -> UUID? {
-        // First, get the size of the attribute
         let size = getxattr(url.path, keyUUIDAttribute, nil, 0, 0, 0)
         
         if size < 0 {
             let error = errno
             if error == ENOATTR {
-                // Attribute doesn't exist - this is normal for files encrypted before this feature
                 return nil
             } else {
                 throw ExtendedAttributesError.getAttributeFailed
             }
         }
         
-        // UUID should be exactly 16 bytes
         guard size == 16 else {
             throw ExtendedAttributesError.invalidData
         }
         
-        // Read the attribute data
         var buffer = Data(count: Int(size))
         let result = buffer.withUnsafeMutableBytes { bytes in
             getxattr(url.path, keyUUIDAttribute, bytes.bindMemory(to: UInt8.self).baseAddress, size, 0, 0)
@@ -60,7 +56,6 @@ public struct ExtendedAttributesUtil {
             throw ExtendedAttributesError.getAttributeFailed
         }
         
-        // Convert data back to UUID
         return buffer.withUnsafeBytes { bytes in
             let uuidBytes = bytes.bindMemory(to: uuid_t.self).baseAddress!.pointee
             return UUID(uuid: uuidBytes)

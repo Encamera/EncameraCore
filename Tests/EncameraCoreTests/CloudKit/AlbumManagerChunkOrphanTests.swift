@@ -34,9 +34,6 @@ final class AlbumManagerChunkOrphanTests: XCTestCase {
 
         manager.delete(album: album)
 
-        // The Task inside deleteCloudKitAlbumRecord runs asynchronously. Wait for the
-        // mock to record the fetchMetadata call, which proves the Task reached the
-        // error path.
         let deadline = Date().addingTimeInterval(5)
         while store.fetchMetadataCalls.isEmpty, Date() < deadline {
             try await Task.sleep(nanoseconds: 10_000_000)
@@ -45,13 +42,11 @@ final class AlbumManagerChunkOrphanTests: XCTestCase {
         XCTAssertFalse(store.fetchMetadataCalls.isEmpty,
                        "deleteCloudKitAlbumRecord must attempt to enumerate chunk members")
 
-        // Give a generous window for any follow-up work that should NOT happen.
         try await Task.sleep(nanoseconds: 100_000_000)
 
         XCTAssertTrue(store.deletedAlbumCalls.isEmpty,
                       "A failed chunk enumeration must NOT proceed to deleteAlbum — chunks would be permanently orphaned")
 
-        // The album must remain in the delete queue for the reconciler to retry.
         guard let hash = albumIDHash(for: album) else {
             XCTFail("keyedHash must succeed for a 32-byte key")
             return
@@ -60,7 +55,6 @@ final class AlbumManagerChunkOrphanTests: XCTestCase {
         XCTAssertTrue(queue.pending().contains(hash),
                       "The album must remain queued so the reconciler retries the full delete sequence")
 
-        // Clean up: remove the test entry from the shared queue.
         queue.remove(hash)
     }
 }

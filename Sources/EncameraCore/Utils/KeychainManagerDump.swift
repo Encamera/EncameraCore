@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Security // Need this import for keychain constants
+import Security
 
 /// One raw attribute of a keychain item, decoded into a human-readable string.
 /// Used by the debug keychain inspector.

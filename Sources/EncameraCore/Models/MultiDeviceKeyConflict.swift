@@ -3,20 +3,14 @@
 //  EncameraCore
 //
 //  Describes the "another key is already in this iCloud account" situation that
-//  the Multi-Device Mode confirmation has to tell the user about (ENC-86).
+//  the Multi-Device Mode confirmation has to tell the user about.
 //
 
 import Foundation
 
 /// A key on this device and a *different* key already known to the iCloud
 /// account. Detected by comparing the locally stored key fingerprints against
-/// the always-synced `MultiDeviceState.keyFingerprints` record (ENC-71).
-///
-/// This is the situation behind the shipping data-loss reports ("I turned on my
-/// iPad and lost all my data"). Since ENC-69 a key's identity is its
-/// fingerprint, so two different keys occupy two different keychain items and
-/// can coexist — but the user still has to be told, because which key a device
-/// writes new media with is a decision only they can make.
+/// the always-synced `MultiDeviceState.keyFingerprints` record.
 ///
 /// Advisory only: `MultiDeviceState` is a last-writer-merges record and is not
 /// authoritative. Nothing destructive may be decided from it — this type exists

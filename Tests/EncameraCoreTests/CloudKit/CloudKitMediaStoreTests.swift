@@ -11,8 +11,6 @@ import CloudKit
 @testable import EncameraCore
 
 final class CloudKitMediaStoreTests: XCTestCase {
-
-    // Reference box so a @Sendable progress closure can accumulate values.
     private final class Box: @unchecked Sendable { var values: [Double] = [] }
 
     private let tokenKey = "cloudkit_zone_change_token_v1"
@@ -121,9 +119,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(blob.fileURL, fileURL, "The blob uploads straight from the encrypted file")
         XCTAssertEqual(mock.lastSavedAssetPayloads[CloudKitSchema.EncMedia.encBlob], blobBytes)
 
-        // The preview is shared — a Live Photo's two components point at one file —
-        // and is rewritten whenever it is regenerated, so it uploads from a private
-        // copy. CloudKit rejects a record whose asset changed mid-upload (17/3003).
         let thumb = try XCTUnwrap(saved[CloudKitSchema.EncMedia.encThumbnail] as? CKAsset)
         let thumbAssetURL = try XCTUnwrap(thumb.fileURL)
         XCTAssertNotEqual(thumbAssetURL, thumbURL,
@@ -133,7 +128,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: thumbAssetURL.path),
                        "The snapshot is the upload's alone and must not outlive it")
 
-        // The cascade that makes deleting an album take its media with it.
         let albumRef = try XCTUnwrap(saved[CloudKitSchema.EncMedia.albumRef] as? CKRecord.Reference)
         XCTAssertEqual(albumRef.recordID.recordName, "album-hash")
         XCTAssertEqual(albumRef.action, .deleteSelf)
@@ -198,18 +192,11 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
     /// Moving an album out of iCloud DELETES its media records, so moving it back
     /// re-uploads a record name the server no longer holds — an ordinary insert.
-    ///
-    /// This used to be the branch that hurt most: a move out only tombstoned the
-    /// records, leaving the names taken, so every re-upload came back as "record to
-    /// insert already exists" (14/2004) and the migration failed every item forever.
-    /// Deleting for real is what makes the name free again.
     func testUploadAfterAMoveOutIsAPlainInsertWithNoConflictHandling() async throws {
         let mock = MockCloudKitDatabase()
         mock.rejectsSavesOfOccupiedRecordNames = true
         let store = makeStore(adapter: mock, defaults: freshDefaults())
 
-        // The album is in iCloud: the name is taken, and re-inserting over it is the
-        // failure a tombstone used to leave behind forever.
         _ = try await store.upload(makeUpload(), progress: { _ in })
         do {
             _ = try await store.upload(makeUpload(), progress: { _ in })
@@ -218,7 +205,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
             guard case .conflict = error else { return XCTFail("Wrong error: \(error)") }
         }
 
-        // Moving the album out deletes the records, which frees the names again.
         try await store.delete(recordName: "media-1")
         XCTAssertTrue(mock.storedRecordIDs.isEmpty, "The move out must remove the record, not tombstone it")
 
@@ -340,7 +326,7 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertFalse(CloudKitMediaStore.metadataKeys.contains(CloudKitSchema.EncMedia.encThumbnail))
     }
 
-    // MARK: - Key fingerprint (ENC-70)
+    // MARK: - Key fingerprint
 
     func testUploadSetsKeyFingerprintOnRecord() async throws {
         let mock = MockCloudKitDatabase()
@@ -525,7 +511,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         try await store.fetchBlob(recordName: "m1", to: dest, progress: { _ in })
         XCTAssertTrue(FileManager.default.fileExists(atPath: dest.path))
 
-        // The copy must survive deletion of CloudKit's temp file.
         try FileManager.default.removeItem(at: temp)
         XCTAssertTrue(FileManager.default.fileExists(atPath: dest.path))
         XCTAssertEqual(try Data(contentsOf: dest), payload)
@@ -613,8 +598,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
     }
 
     func testPartialFailureKeepsSucceeded() {
-        // A three-record batch where m1 and m3 failed for different reasons and m2
-        // went through: the caller re-drives only what the map names.
         let mapped = mapCKError(CKErrorFactory.error(
             .partialFailure,
             userInfo: [CKPartialErrorsByItemIDKey: [
@@ -645,9 +628,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
     }
 
     func testZoneScopedErrorsWrappedInPartialFailureUnwrap() {
-        // CloudKit delivers zone-scoped errors at the op level wrapped in
-        // `.partialFailure` — the typed cases must still come out, or the
-        // token-expired full-resync and zone recreation never fire.
         let zoneID = CKRecordZone.ID(zoneName: CloudKitSchema.zoneName)
         let wrappedToken = CKErrorFactory.error(
             .partialFailure,
@@ -663,7 +643,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         guard case .zoneNotFound = mapCKError(wrappedZone) else {
             return XCTFail("Expected zoneNotFound out of a wrapped partial failure")
         }
-        // A mixed bag must still surface as partial, not be misread as zone-scoped.
         let mixed = CKErrorFactory.error(
             .partialFailure,
             userInfo: [CKPartialErrorsByItemIDKey: [
@@ -717,21 +696,16 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertFalse(defaults.bool(forKey: subKey),
                        "A gone zone must clear the subscription flag so registration re-runs")
 
-        // With the stale flag cleared, registration actually happens again.
         try await store.registerZoneSubscription()
         XCTAssertEqual(mock.savedSubscriptions.count, 1)
     }
 
     func testRegisterZoneSubscriptionNoOpsWhenFlagAlreadySet() async throws {
-        // The coordinator retries registration on every sync and relies on THIS
-        // persisted-flag check to make the genuinely-registered case free.
         let defaults = freshDefaults()
         let subKey = "cloudkit_zone_subscription_v1_" + CloudKitSchema.containerID
         let mock = MockCloudKitDatabase()
         let store = makeStore(adapter: mock, defaults: defaults)
 
-        // The first registration is the positive control: the same store, the same
-        // available account, so a later no-op can only come from the persisted flag.
         try await store.registerZoneSubscription()
         XCTAssertEqual(mock.savedSubscriptions.count, 1)
         XCTAssertTrue(defaults.bool(forKey: subKey),
@@ -801,14 +775,13 @@ final class CloudKitMediaStoreTests: XCTestCase {
                        "A failed fetch must not advance the persisted change token")
     }
 
-    // MARK: - Interrupted uploads / legacy long-lived state (ENC-133)
+    // MARK: - Interrupted uploads / legacy long-lived state
 
     /// The crash was armed by *persisted* long-lived operation IDs that a later store
     /// construction handed back to CloudKit. Constructing a store must clear the map
     /// an older build left behind, so there is nothing left to hand back.
     func testConstructingAStoreClearsTheLegacyLongLivedOperationMap() {
         let defaults = freshDefaults()
-        // Exactly what a kill mid-upload used to leave behind.
         defaults.set(["m1": "3090886DAE392CF7", "m2": "opB"], forKey: longLivedMapKey)
 
         _ = makeStore(adapter: MockCloudKitDatabase(), defaults: defaults)
@@ -829,7 +802,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         for _ in 0..<5 {
             _ = makeStore(adapter: mock, defaults: defaults)
         }
-        // Give any stray init-time Task a chance to run before asserting.
         try? await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(mock.saveCount, 0)
@@ -843,7 +815,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
     /// the next attempt at the same record misbehave — the retry is an ordinary save.
     func testInterruptedUploadLeavesNoStateThatBreaksTheNextSave() async throws {
         let defaults = freshDefaults()
-        // What a kill mid-upload on an older build left on disk.
         defaults.set(["media-1": "3090886DAE392CF7"], forKey: longLivedMapKey)
         let mock = MockCloudKitDatabase()
         let store = makeStore(adapter: mock, defaults: defaults)
@@ -858,7 +829,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
             // expected
         }
 
-        // The resumed migration re-drives the same record.
         mock.saveError = nil
         let ref = try await store.upload(makeUpload(), progress: { _ in })
 
@@ -882,10 +852,8 @@ final class CloudKitMediaStoreTests: XCTestCase {
         } catch {
             // expected
         }
-        // The build that died mid-upload recorded the in-flight operation.
         defaults.set(["media-1": "3090886DAE392CF7"], forKey: longLivedMapKey)
 
-        // Relaunch: the album list, albums sync and the migration each build a store.
         let secondMock = MockCloudKitDatabase()
         var stores: [CloudKitMediaStore] = []
         for _ in 0..<3 { stores.append(makeStore(adapter: secondMock, defaults: defaults)) }

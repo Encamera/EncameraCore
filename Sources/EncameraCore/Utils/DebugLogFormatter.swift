@@ -9,9 +9,6 @@ import Foundation
 
 /// Turns captured log entries into the plain text used by the viewer's Copy and
 /// Share actions.
-///
-/// Lives in EncameraCore rather than the app target so the serialization format
-/// is unit-testable without standing up any UI.
 public enum DebugLogFormatter {
 
     /// - Note: A fresh formatter per export, never a shared mutable static —
@@ -20,7 +17,6 @@ public enum DebugLogFormatter {
     public static func makeLineFormatter() -> DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-        // POSIX locale so the output is stable regardless of device region.
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = .current
         return formatter

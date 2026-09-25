@@ -13,8 +13,6 @@ import Foundation
 public actor CloudKitAlbumsSync: DebugPrintable {
 
     private let albumManager: AlbumManaging
-    /// Builds the album-existence reconciler (chunk 13). Injectable so tests can
-    /// supply a deterministic in-memory store; production uses the shared provider.
     private let makeReconciler: @Sendable (AlbumManaging) -> CloudKitAlbumReconciler
     /// Gates reconciliation on the launch-time credential wait having resolved.
     /// `CloudKitAlbumReconciler` matches synced keys against a one-way album-id
@@ -31,15 +29,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     /// key backup to appear here".
     public private(set) var albumsNeedingKey: Int = 0
 
-    /// Single-flight: a CK push landing at the same moment as scene-active used to
-    /// run two overlapping full reconciles (and race `albumsNeedingKey`, then a
-    /// plain Int on an @unchecked Sendable class). Overlapping callers now join the
-    /// in-flight run, like `CloudKitSyncCoordinator` — and, like the coordinator,
-    /// a join flags `resyncRequested` so a push landing mid-run (possibly after
-    /// `fetchAllAlbums`/`reconcile` already passed) is honored by one extra pass
-    /// instead of silently dropped until the next trigger.
     private var activeSync: Task<Void, Never>?
-    /// Internal (not private) so tests can observe that a joiner's request landed.
     private(set) var resyncRequested = false
 
     public init(albumManager: AlbumManaging,
@@ -57,16 +47,9 @@ public actor CloudKitAlbumsSync: DebugPrintable {
             observer = NotificationCenter.default.addObserver(
                 forName: .cloudKitZoneChanged, object: nil, queue: nil
             ) { [weak self] _ in
-                // Static form: this closure is non-isolated and escaping, so it
-                // cannot touch the actor-isolated instance method.
                 Self.printDebug("cloudKitZoneChanged received; scheduling syncAll")
                 Task { await self?.syncAll() }
             }
-            // A decrypt-only key added for locked media (ENC-99) can make albums
-            // materializable that this reconciler last reported as locked out.
-            // Nothing else re-triggers it: an added, non-current key never fires
-            // `keyPublisher`, so without this the count stays stale until the
-            // next push or scene-active.
             keyLibraryObserver = NotificationCenter.default.addObserver(
                 forName: .keyLibraryDidGrow, object: nil, queue: nil
             ) { [weak self] _ in
@@ -112,9 +95,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         }
         printDebug("syncAll start")
         let task = Task {
-            // Cleared inside the task, in the same synchronous stretch as
-            // drainSyncAll's final `resyncRequested` check — a joiner either sees
-            // the task (its flag is honored by the loop) or starts a fresh sync.
             defer { activeSync = nil }
             await drainSyncAll()
         }
@@ -135,49 +115,28 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     }
 
     private func performSyncAll() async {
-        // Defer everything until the launch credential wait resolves — see
-        // `isReadyToSync`. A trigger that arrives during the wait is not lost:
-        // `credentialsMayHaveChanged`/scene-active re-fire once it resolves.
         guard isReadyToSync() else {
             printDebug("performSyncAll skip reason=awaitingCredentialRestore")
             return
         }
 
-        // Skip the container entirely when the CloudKit plane is inactive: flag off
-        // AND no `.cloudKit` albums exist locally (albums from a previous flag-on
-        // period keep syncing). Without this, every scene-active hits the live
-        // container for the vast majority of users, and the reconciler's self-heal
-        // push has no flag check of its own.
         let hasCloudKitAlbums = albumManager.fetchAlbumsFromSources(includingHidden: true)
             .contains { $0.storageOption == .cloudKit }
         let featureEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
         guard featureEnabled || hasCloudKitAlbums else {
             printDebug("performSyncAll skip reason=cloudKitPlaneInactive featureEnabled=\(featureEnabled) hasCloudKitAlbums=\(hasCloudKitAlbums)")
-            // Clear rather than leave standing: this is the only writer of the
-            // reported count, so a count from a flag-on period would otherwise
-            // keep the grid banner claiming N locked albums for the rest of the
-            // process — about albums the reconciler is no longer even looking
-            // for. The credential-wait skip above deliberately keeps its count:
-            // that wait resolves and re-fires within the launch.
             albumsNeedingKey = 0
             await LockedAlbumsReporter.shared.report(lockedAlbumCount: 0)
             return
         }
         printDebug("performSyncAll start featureEnabled=\(featureEnabled) hasCloudKitAlbums=\(hasCloudKitAlbums)")
 
-        // Only now, past both skip paths: this pass really is going to talk to
-        // CloudKit. Announcing earlier would flash "checking iCloud" at every
-        // user on every scene-active, CloudKit albums or not.
         await CloudKitSyncStatusReporter.shared.reportCheckStarted()
 
         albumsNeedingKey = await makeReconciler(albumManager).reconcileAlbums()
         printDebug("performSyncAll reconcileAlbums done albumsNeedingKey=\(albumsNeedingKey)")
-        // Hand the count to the UI (ENC-99). Before this, locked albums were
-        // silently absent from the grid — the user had albums they could not see
-        // and was never told they existed.
         await LockedAlbumsReporter.shared.report(lockedAlbumCount: albumsNeedingKey)
 
-        // Re-fetch: the reconciler may have materialized or removed albums.
         let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
             .filter { $0.storageOption == .cloudKit }
         printDebug("performSyncAll mediaReconcile start albumCount=\(albums.count)")
@@ -185,10 +144,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
             let access = await CloudKitFileAccess(album: album, albumManager: albumManager)
             _ = await access.reconcile()
         }
-        // Building those accesses registered a coordinator for every CloudKit
-        // album — the uploader can now reach backlogs for albums the user has not
-        // opened this launch. The scene-active kick races this method (it fires
-        // before the coordinators exist), so kick again now that they do.
         await CloudKitUploader.shared.kick()
         await CloudKitSyncStatusReporter.shared.reportCheckFinished()
         printDebug("performSyncAll ok albumCount=\(albums.count) albumsNeedingKey=\(albumsNeedingKey)")

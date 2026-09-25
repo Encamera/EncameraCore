@@ -94,13 +94,11 @@ public final class AlbumsDirectoryMigrationUtil: DebugPrintable {
             guard AlbumDirectoryNaming.isAlbumDirectoryName(url.lastPathComponent) else { return false }
             let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             guard isDirectory else { return false }
-            // Defensive: if it's already under albumsURL, leave it alone.
             return url.deletingLastPathComponent().standardizedFileURL != standardizedAlbumsURL
         }
     }
 
     private func moveAlbum(from sourceURL: URL, to destURL: URL) throws {
-        // Never clobber an existing destination — treat as already migrated.
         if fileManager.fileExists(atPath: destURL.path) {
             printDebug("Destination exists, skipping: \(destURL.lastPathComponent)")
             return

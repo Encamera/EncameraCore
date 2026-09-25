@@ -204,7 +204,7 @@ final class ZoomServiceTests: XCTestCase {
         XCTAssertNil(result, "Should return nil when zoom factor map is empty")
     }
 
-    // MARK: - Zoom Target (ENC-115)
+    // MARK: - Zoom Target
 
     func testSetZoom_recordsTarget() {
         configureTripleCamera()
@@ -232,8 +232,6 @@ final class ZoomServiceTests: XCTestCase {
         sut.set(zoom: .x1)
         XCTAssertEqual(mockDevice.videoZoomFactor, 2.0)
 
-        // Simulate AVFoundation resetting the factor (activeFormat change,
-        // session reconfiguration) back to the ultra-wide default.
         mockDevice.videoZoomFactor = 1.0
 
         sut.applyTarget()

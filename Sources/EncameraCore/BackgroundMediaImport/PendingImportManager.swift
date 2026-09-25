@@ -97,9 +97,6 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         
         printDebug("Checking for pending imports from Share Extension...")
         
-        // Move file I/O off the main thread to avoid blocking during foreground transition
-        // This is important because this check happens when the app becomes active,
-        // which is the same time biometric authentication is trying to run
         let fileAccess = appGroupFileAccess
         let count = await Task.detached(priority: .utility) {
             fileAccess.pendingMediaCount()
@@ -140,12 +137,8 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     ) async throws -> Int {
         printDebug("Starting import of pending media to album: \(albumId)")
 
-        // The handler is otherwise only configured when an album is opened, so a
-        // share-sheet import on a launch that restored no current album would fail
-        // validation and drop the media with nothing shown to the user.
         MediaImportHandler.shared.configure(albumManager: albumManager)
 
-        // Ensure we have the latest pending media
         await loadPendingMedia()
         
         guard !pendingMedia.isEmpty else {
@@ -156,18 +149,13 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         let mediaToImport = pendingMedia
         let count = mediaToImport.count
         
-        // Clear pending state IMMEDIATELY so the modal doesn't reappear
-        // The actual files will be cleaned up after import completes
         pendingMedia = []
         pendingCount = 0
         hasPendingImports = false
         clearPendingMetadata()
         
-        // Fire-and-forget: Start the import in a detached task so we return immediately
-        // The import will continue in the background
         Task.detached { [weak self] in
             do {
-                // Use the MediaImportHandler for the actual import
                 let result = try await MediaImportHandler.shared.startImport(
                     media: mediaToImport,
                     albumId: albumId,
@@ -178,7 +166,6 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
                     "ok=\(result.success):fail=\(result.failure):album=\(albumId)"
                 )
 
-                // Clean up the app group container after import completes
                 await self?.cleanupAfterImport(importedMedia: mediaToImport)
             } catch {
                 await PendingImportOutcome.shared.record("error=\(error):album=\(albumId)")
@@ -186,7 +173,6 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
             }
         }
         
-        // Return immediately with the count - don't wait for import to complete
         return count
     }
     
@@ -200,7 +186,6 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         pendingCount = 0
         hasPendingImports = false
         
-        // Clear the metadata in shared UserDefaults
         clearPendingMetadata()
         
         printDebug("Pending imports cancelled and cleaned up")
@@ -210,7 +195,6 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     public func deletePendingMedia(_ media: [CleartextMedia]) async throws {
         try await appGroupFileAccess.delete(mediaList: media)
         
-        // Reload to update counts
         await loadPendingMedia()
     }
     
@@ -256,7 +240,6 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
             printDebug("WARNING: Failed to clean up some imported files: \(error)")
         }
         
-        // Reset state
         pendingMedia = []
         pendingCount = 0
         hasPendingImports = false
@@ -264,21 +247,16 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     }
     
     private func setupNotificationObservers() {
-        // Check for pending imports when app becomes active
-        // Use a delay to avoid competing with biometric authentication during foreground transition
         NotificationUtils.didBecomeActivePublisher
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 Task { @MainActor in
                     // Delay non-critical file I/O to let biometrics complete first
-                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                    try? await Task.sleep(nanoseconds: 500_000_000)
                     await self?.checkForPendingImports()
                 }
             }
             .store(in: &cancellables)
-        
-        // Remove the willEnterForeground observer - didBecomeActive is sufficient
-        // and having both causes redundant work during foreground transition
     }
 }
 

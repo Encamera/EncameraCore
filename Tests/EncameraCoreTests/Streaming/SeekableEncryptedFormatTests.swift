@@ -78,7 +78,6 @@ final class SeekableEncryptedFormatTests: XCTestCase {
         let geo = SeekableChunkGeometry(chunkSize: 1000, plaintextLength: 2500, headerLength: 40)
         XCTAssertEqual(geo.ciphertextOffset(ofChunk: 0), 40)
         XCTAssertEqual(geo.ciphertextOffset(ofChunk: 1), 40 + 1000 + SeekableChunkGeometry.chunkOverhead)
-        // Every chunk starts exactly where the previous one ended.
         for i in 0..<(geo.chunkCount - 1) {
             XCTAssertEqual(geo.ciphertextOffset(ofChunk: i) + geo.ciphertextSize(ofChunk: i),
                            geo.ciphertextOffset(ofChunk: i + 1))
@@ -156,8 +155,6 @@ final class SeekableEncryptedFormatTests: XCTestCase {
         try SeekableEncryptedWriter(keyBytes: key, chunkSize: 256).encrypt(source: source, destination: dest)
         let reader = try SeekableEncryptedReader.forFile(dest, keyBytes: key)
 
-        // Ranges chosen to straddle every interesting boundary: chunk starts, chunk
-        // ends, single bytes, whole-chunk spans and multi-chunk spans.
         let ranges: [Range<Int>] = [
             0..<1, 0..<256, 255..<257, 256..<512, 1..<1023,
             700..<1400, 4_095..<4_096, 0..<4_096, 3_000..<4_096
@@ -175,7 +172,6 @@ final class SeekableEncryptedFormatTests: XCTestCase {
         let header = try SeekableEncryptedWriter(keyBytes: key, chunkSize: 10_000)
             .encrypt(source: source, destination: dest)
 
-        // The product claim: a read in the middle of the file must not touch chunk 0.
         let counting = CountingChunkProvider(
             wrapped: FileChunkProvider(fileURL: dest, geometry: header.geometry))
         let reader = SeekableEncryptedReader(keyBytes: key, header: header, provider: counting)
@@ -215,7 +211,6 @@ final class SeekableEncryptedFormatTests: XCTestCase {
 
         let reader = try SeekableEncryptedReader.forFile(dest, keyBytes: key)
         XCTAssertEqual(try reader.metadata(), metadata)
-        // Metadata shifts the header, so payload offsets must still line up.
         let payload = try await reader.plaintext(range: 0..<2_048)
         XCTAssertEqual(payload, plaintext)
     }
@@ -243,7 +238,6 @@ final class SeekableEncryptedFormatTests: XCTestCase {
 
         let enc3JSON = try SeekableEncryptedFormat.encodeMetadata(metadata)
 
-        // The v2 section is sealed, so unseal it to compare the JSON it actually wrote.
         let sealed = try EncryptedMetadataHandler().encryptMetadata(metadata, keyBytes: key)
         let streamHeader = Array(sealed.prefix(EncryptedFileFormat.streamHeaderSize))
         let cipherText = Array(sealed.dropFirst(EncryptedFileFormat.streamHeaderSize))
@@ -289,7 +283,6 @@ final class SeekableEncryptedFormatTests: XCTestCase {
         let servedAfterChunkZero = await spy.served
         XCTAssertEqual(servedAfterChunkZero, [0], "the second read of chunk 0 must not decrypt again")
 
-        // A different chunk must not be answered with the cached one.
         let nextChunk = try await reader.plaintextChunk(at: 1)
         XCTAssertEqual(nextChunk, plaintext.subdata(in: 1_024..<2_048))
 
@@ -404,9 +397,6 @@ final class SeekableEncryptedFormatTests: XCTestCase {
         let header = try SeekableEncryptedWriter(keyBytes: key, chunkSize: 1_024)
             .encrypt(source: source, destination: dest)
 
-        // Serve chunk 2's bytes when chunk 1 is asked for. Both are individually
-        // valid ciphertexts under the right key — only the AAD's index binding
-        // rejects this.
         let swapping = SwappingChunkProvider(
             wrapped: FileChunkProvider(fileURL: dest, geometry: header.geometry),
             serve: [1: 2])
@@ -425,9 +415,6 @@ final class SeekableEncryptedFormatTests: XCTestCase {
             .encrypt(source: source, destination: dest)
         XCTAssertEqual(header.chunkCount, 4)
 
-        // An attacker drops the last chunk and rewrites the header to match. Every
-        // surviving chunk is a valid ciphertext, but they were sealed with
-        // chunkCount=4 in the AAD, so claiming 3 breaks authentication.
         let lyingHeader = SeekableEncryptedHeader(chunkSize: header.chunkSize,
                                                   plaintextLength: 3_072,
                                                   chunkCount: 3,
@@ -496,8 +483,6 @@ final class SeekableEncryptedFormatTests: XCTestCase {
         try SeekableEncryptedWriter(keyBytes: key, chunkSize: 512).encrypt(source: source, destination: dest)
         XCTAssertTrue(SeekableEncryptedHeader.isSeekableFormat(fileURL: dest))
 
-        // An ENC2 file must not be mistaken for ENC3 — that misroute is exactly how
-        // ENC-135 made migrated media undecryptable.
         let enc2 = tempDir.appendingPathComponent("legacy.enc2")
         var legacy = Data(EncryptedFileFormat.magic)
         legacy.append(Data(repeating: 0, count: 64))

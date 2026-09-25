@@ -2,7 +2,7 @@
 //  MultiDeviceState.swift
 //  EncameraCore
 //
-//  The always-synced multi-device state record (ENC-71 / ENC-80).
+//  The always-synced multi-device state record.
 //
 
 import Foundation
@@ -123,9 +123,6 @@ public struct MultiDeviceState: Codable, Equatable {
             devices = devices.filter { survivors.contains($0.deviceID) }
         }
 
-        // Most-recent-first, then capped: `incoming` carries the fingerprints this
-        // device is writing now, so it leads and the oldest entries are the ones
-        // that fall off the end.
         var fingerprints: [String] = []
         var seenFingerprints: Set<String> = []
         for fingerprint in incoming.keyFingerprints + (existing?.keyFingerprints ?? []) where seenFingerprints.insert(fingerprint).inserted {

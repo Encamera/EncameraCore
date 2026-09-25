@@ -101,10 +101,6 @@ final class CloudKitKnownDeletedRecords: @unchecked Sendable {
     func release(_ recordName: String) {
         lock.withLock {
             names.remove(recordName)
-            // Bump only what is already claimed. Inserting here would add an entry
-            // per UPLOAD rather than per delete — every upload forgets a deletion
-            // first, so an import of 10,000 photos would leave 10,000 of them — and
-            // a record that was never claimed has no outstanding claim to retire.
             guard let current = generations[recordName] else { return }
             generations[recordName] = current + 1
         }

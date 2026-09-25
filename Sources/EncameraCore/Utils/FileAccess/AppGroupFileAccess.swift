@@ -82,7 +82,6 @@ public class AppGroupFileAccess: DebugPrintable {
             
             printDebug("Copying media from \(sourceURL.path) to \(destinationURL.path)")
             
-            // Remove existing file if present
             if FileManager.default.fileExists(atPath: destinationURL.path) {
                 try FileManager.default.removeItem(at: destinationURL)
             }
@@ -126,7 +125,6 @@ public class AppGroupFileAccess: DebugPrintable {
 
             let media = filteredURLs.map { url -> CleartextMedia in
                 var cleartextMedia = CleartextMedia(source: url)
-                // Try to get creation date for timestamp
                 if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
                    let creationDate = attributes[.creationDate] as? Date {
                     cleartextMedia.timestamp = creationDate
@@ -219,7 +217,6 @@ public class AppGroupFileAccess: DebugPrintable {
             printDebug("Cleared import directory")
         }
         
-        // Recreate the empty directory
         initializeDirectoryIfNeeded()
     }
     

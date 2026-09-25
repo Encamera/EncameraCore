@@ -32,9 +32,6 @@ final class CloudKitDatabaseAdapterTests: XCTestCase {
     }
 
     func testSinglePerRecordSaveFailureMatchesTheDocumentedPartialShape() {
-        // CloudKitMigrationManager is written on the documented assumption that
-        // the real adapter reports per-record failures wrapped in
-        // `.partialFailure` (see its `unwrapPartial` call sites).
         let failures: [CKRecord.ID: Error] = [
             CKRecord.ID(recordName: "r1"): CKErrorFactory.error(.serverRecordChanged),
         ]
@@ -66,13 +63,10 @@ final class CloudKitDatabaseAdapterTests: XCTestCase {
         await fulfillment(of: [started], timeout: 5)
 
         task.cancel()
-        // The cancellation handler runs off this task; give it a beat to land.
         try await Task.sleep(nanoseconds: 200_000_000)
         XCTAssertTrue(operation.isCancelled,
                       "Cancelling the awaiting task must cancel the CKOperation, not just abandon it")
 
-        // CloudKit would now complete the cancelled operation with an error; stand in
-        // for it so the task unwinds instead of leaking a continuation.
         held.resume(throwing: CKErrorFactory.error(.operationCancelled))
         _ = try? await task.value
     }

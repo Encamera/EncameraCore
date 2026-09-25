@@ -21,8 +21,6 @@ import Combine
 ///   Use it for decryption only when the file is known to be v2 — e.g. one this class
 ///   just wrote. **For decrypting a file of unknown or mixed provenance, use
 ///   `SecretFileHandler`**, which sniffs the magic and reads both v1 and v2.
-///   (An earlier version of this comment falsely claimed v1 compatibility; that claim
-///   caused ENC-135, where migrated v1 media became undecryptable in CloudKit albums.)
 public class SecretFileHandlerV2<T: MediaDescribing> {
     
     let sourceMedia: T
@@ -38,7 +36,6 @@ public class SecretFileHandlerV2<T: MediaDescribing> {
         progressSubject.eraseToAnyPublisher()
     }
     
-    /// Initialize the handler
     /// - Parameters:
     ///   - keyBytes: Encryption key bytes
     ///   - source: Source media to encrypt/decrypt
@@ -76,12 +73,10 @@ public class SecretFileHandlerV2<T: MediaDescribing> {
             
             try destinationHandler.prepareIfDoesNotExist()
             
-            // Build and write v2 header with encrypted metadata
             let metadataHandler = EncryptedMetadataHandler()
             let v2Header = try metadataHandler.buildV2Header(metadata: metadata, keyBytes: keyBytes)
             try destinationHandler.write(contentsOf: v2Header)
             
-            // Now write the v1-compatible content format (stream header + blocks)
             let header = streamEnc.header()
             try destinationHandler.write(contentsOf: Data(header))
             
@@ -133,10 +128,8 @@ public class SecretFileHandlerV2<T: MediaDescribing> {
         do {
             let fileHandler = try FileLikeHandler(media: sourceMedia, mode: .reading)
             
-            // Detect file version and skip metadata if v2
             try await skipMetadataIfV2(fileHandler: fileHandler)
             
-            // Now read and decrypt content (same format as v1)
             let headerBytesCount = 24
             guard let headerBytes = try fileHandler.read(upToCount: headerBytesCount) else {
                 throw SecretFilesError.decryptError("Could not read header")
@@ -238,40 +231,24 @@ public class SecretFileHandlerV2<T: MediaDescribing> {
     
     /// Skips the metadata section if this is a v2 file
     private func skipMetadataIfV2(fileHandler: FileLikeHandler<T>) async throws {
-        // Read first 4 bytes to check for v2 magic
         guard let magicData = try fileHandler.read(upToCount: EncryptedFileFormat.magicSize),
               magicData.count == EncryptedFileFormat.magicSize else {
-            // Can't read - might be empty or corrupt, will fail later
             return
         }
         
         if Array(magicData) == EncryptedFileFormat.magic {
-            // V2 file - skip the rest of the header
-            
-            // Read version (2 bytes)
             _ = try fileHandler.read(upToCount: EncryptedFileFormat.versionSize)
             
-            // Read flags (2 bytes)
             _ = try fileHandler.read(upToCount: EncryptedFileFormat.flagsSize)
             
-            // Read metadata length (4 bytes)
             guard let lengthData = try fileHandler.read(upToCount: EncryptedFileFormat.metadataLengthSize),
                   lengthData.count == EncryptedFileFormat.metadataLengthSize else {
                 throw SecretFilesError.decryptError("Invalid v2 file format")
             }
             let metadataLength = lengthData.withUnsafeBytes { $0.load(as: UInt32.self) }
             
-            // Skip over the encrypted metadata
             _ = try fileHandler.read(upToCount: Int(metadataLength))
-            
-            // Now positioned at v1-format content
         } else {
-            // V1 file. The 4 bytes just consumed are the first 4 of the 24-byte stream
-            // header, and `FileLikeHandler` cannot seek back to recover them, so this
-            // handler cannot decrypt V1 — by design, not as a temporary limitation.
-            // `SecretFileHandler.setupDecryption` handles exactly this case by reading
-            // the remaining 20 bytes and reassembling the header; callers that may see
-            // either format must use that handler instead.
             throw SecretFilesError.decryptError("V1 file detected - use SecretFileHandler for backwards compatibility")
         }
     }

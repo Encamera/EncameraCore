@@ -73,23 +73,19 @@ public class SyncedStoreEncryptionHandler {
         
         let messageBytes = Array(value.utf8)
         
-        // Create encryption stream
         guard let streamPush = sodium.secretStream.xchacha20poly1305.initPush(secretKey: keyBytes) else {
             throw SyncedStoreEncryptionError.encryptionFailed
         }
         
-        // Encrypt as single sealed message with FINAL tag
         let header = streamPush.header()
         guard let cipherText = streamPush.push(message: messageBytes, tag: .FINAL) else {
             throw SyncedStoreEncryptionError.encryptionFailed
         }
         
-        // Combine header and ciphertext
         var encryptedData = Data()
         encryptedData.append(contentsOf: header)
         encryptedData.append(contentsOf: cipherText)
         
-        // Return as base64
         return encryptedData.base64EncodedString()
     }
     
@@ -102,14 +98,12 @@ public class SyncedStoreEncryptionHandler {
             throw SyncedStoreEncryptionError.noEncryptionKeyAvailable
         }
         
-        // Decode base64
         guard let encryptedData = Data(base64Encoded: encryptedValue) else {
             throw SyncedStoreEncryptionError.invalidBase64
         }
         
         let encryptedBytes = Array(encryptedData)
         
-        // Extract header and ciphertext
         let headerSize = SecretStream.XChaCha20Poly1305.HeaderBytes
         guard encryptedBytes.count > headerSize else {
             throw SyncedStoreEncryptionError.invalidEncryptedData
@@ -118,7 +112,6 @@ public class SyncedStoreEncryptionHandler {
         let header = Array(encryptedBytes.prefix(headerSize))
         let cipherText = Array(encryptedBytes.dropFirst(headerSize))
         
-        // Initialize decryption stream
         guard let streamPull = sodium.secretStream.xchacha20poly1305.initPull(
             secretKey: keyBytes,
             header: header
@@ -126,12 +119,10 @@ public class SyncedStoreEncryptionHandler {
             throw SyncedStoreEncryptionError.decryptionFailed
         }
         
-        // Decrypt
         guard let (decryptedBytes, _) = streamPull.pull(cipherText: cipherText) else {
             throw SyncedStoreEncryptionError.decryptionFailed
         }
         
-        // Convert back to string
         guard let decryptedString = String(bytes: decryptedBytes, encoding: .utf8) else {
             throw SyncedStoreEncryptionError.decryptionFailed
         }
@@ -154,11 +145,9 @@ public class SyncedStoreEncryptionHandler {
             if let stringValue = record[field.name] as? String {
                 encryptedRecord[field.name] = try encrypt(stringValue)
             }
-            // Non-string encrypted fields could be converted to string first if needed
             // For now, we only support string encryption
         }
         
-        // Convert Date fields to TimeInterval for storage
         for field in schema.fields where field.type == .date {
             if let dateValue = record[field.name] as? Date {
                 encryptedRecord[field.name] = dateValue.timeIntervalSince1970
@@ -183,7 +172,6 @@ public class SyncedStoreEncryptionHandler {
             }
         }
         
-        // Convert TimeInterval back to Date for date fields
         for field in schema.fields where field.type == .date {
             if let timeInterval = record[field.name] as? TimeInterval {
                 decryptedRecord[field.name] = Date(timeIntervalSince1970: timeInterval)

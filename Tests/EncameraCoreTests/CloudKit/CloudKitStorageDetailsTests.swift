@@ -123,7 +123,6 @@ final class CloudKitStorageDetailsTests: XCTestCase {
         XCTAssertFalse(after?.canEvictLocalCopy ?? true)
         XCTAssertTrue(store.deleteCalls.isEmpty, "eviction must never delete the CloudKit record")
 
-        // And the media is still openable, because only the local copy went.
         let reloaded = try await access.loadMedia(media: item, progress: { _ in })
         XCTAssertEqual(reloaded.underlyingMedia.first?.data, Data("evict me".utf8))
     }

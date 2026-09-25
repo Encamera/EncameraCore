@@ -122,9 +122,6 @@ public actor StreamingChunkSource: SeekableChunkProviding, DebugPrintable {
 
     public func ciphertextChunk(at index: Int) async throws -> Data {
         let data = try await chunk(at: index)
-        // Read-ahead is fire-and-forget and never awaited: the caller's byte range is
-        // already satisfied, and blocking it on speculative work would trade the
-        // latency win away.
         scheduleReadAhead(after: index)
         return data
     }
@@ -273,9 +270,6 @@ public actor StreamingChunkSource: SeekableChunkProviding, DebugPrintable {
         for next in (index + 1)...(index + readAhead) where next < geometry.chunkCount {
             guard cache[next] == nil, inFlight[next] == nil else { continue }
             let task = fetchTask(for: next)
-            // Detached from the caller: a read-ahead failure must not surface as the
-            // caller's error, and a cancelled read-ahead must not leave a stale
-            // in-flight entry that blocks a later real request for the same chunk.
             Task { [weak self] in
                 if (try? await task.value) == nil { await self?.clearInFlight(index: next) }
             }

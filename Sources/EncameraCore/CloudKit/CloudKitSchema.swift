@@ -33,7 +33,7 @@ public enum CloudKitSchema {
     public static let containerID = "iCloud.app.encamera.Encamera"
 
     /// Custom record zone. A custom zone is mandatory for
-    /// `CKFetchRecordZoneChangesOperation` delta sync (chunk 03).
+    /// `CKFetchRecordZoneChangesOperation` delta sync.
     public static let zoneName = "EncameraZone"
 
     /// The single record type holding both the index fields and the two assets
@@ -85,7 +85,7 @@ public enum CloudKitSchema {
     }
 
     /// The album record. Makes CloudKit the authoritative, cross-device source of
-    /// truth for which albums exist (chunk 13). The record name is the same keyed
+    /// truth for which albums exist. The record name is the same keyed
     /// hash used as `EncMedia.albumID`, so the album↔media join needs no new id and
     /// `saveAlbum` is idempotent.
     ///

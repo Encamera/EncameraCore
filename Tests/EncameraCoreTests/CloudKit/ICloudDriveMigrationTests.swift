@@ -144,8 +144,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
 
     // MARK: - An evicted file is one whose BYTES are gone, not whose path is
 
-    /// The regression test for the bug the rig found and the mocks missed.
-    ///
     /// On iOS an evicted ubiquitous file keeps its path — `fileExists` answers
     /// `true` while the bytes live only in iCloud. The engine originally gated on
     /// `fileExists`, so it handed `CKAsset(fileURL:)` a placeholder for all nine
@@ -156,7 +154,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
     /// Gate any of these paths on `fileExists` again and this must go red.
     func testFilePresentButNotDownloadedIsNeverUploaded() async throws {
         let h = try await makeHarness(count: 2, evicting: 0)
-        // Evict in the shape a real device produces: file still there, bytes not.
         for id in h.mediaIDs {
             try h.materializer.evictForTest(encURL(album: h.album, id: id), shape: .pathPersists)
         }
@@ -167,8 +164,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
                            "precondition: but its bytes are not here")
         }
 
-        // Make every download fail, so nothing can rescue the item: the only
-        // question is whether the engine uploads what is on disk anyway.
         h.materializer.urlsThatFailToMaterialize = Set(
             h.mediaIDs.map { encURL(album: h.album, id: $0).lastPathComponent })
 
@@ -185,10 +180,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
     }
 
     func testPlanSizesAnUndownloadedFileFromMetadataNotTheStubOnDisk() async throws {
-        // Same trap one level down: statting a file whose path resolves but whose
-        // bytes are elsewhere measures the stub. That size then becomes the plan's,
-        // and `isPresentInCloudKit` compares the uploaded record against it — so a
-        // wrong size here fails verification on every item even once downloads work.
         let h = try await makeHarness(count: 2, evicting: 0)
         let realSizes = h.mediaIDs.reduce(into: [String: Int64]()) { acc, id in
             let url = encURL(album: h.album, id: id)
@@ -213,10 +204,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
     func testEvictedDriveAlbumIsPlannedWithEveryItem() async throws {
         let h = try await makeHarness(count: 3)
 
-        // Precondition: the bytes are not here. Asserted through the same predicate
-        // the engine uses, so it holds for either eviction shape — if this ever
-        // stopped being true the rest of the suite would be testing a local album
-        // wearing an iCloud Drive label.
         for id in h.mediaIDs {
             XCTAssertFalse(ICloudPlaceholderName.isMaterialized(encURL(album: h.album, id: id)),
                            "an evicted file's bytes must not be on disk")
@@ -233,10 +220,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
         let h = try await makeHarness(count: 2)
         let plan = try await h.manager.plan(album: h.album)
 
-        // A placeholder brick is a few hundred bytes. Sizing items from it would
-        // make the confirmation alert claim a nonsense total AND break the
-        // verification gate, which refuses to delete a source unless the uploaded
-        // record's size matches the planned size.
         let sizes = await h.materializer.logicalSizes(
             inAlbumDirectory: iCloudStorageModel(album: h.album).baseURL)
         XCTAssertEqual(plan.items.count, 2, "both evicted files must be planned — an empty plan would satisfy the sizing check below without checking anything")
@@ -295,8 +278,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
     }
 
     func testAlreadyMaterializedDriveAlbumMigratesToo() async throws {
-        // Not every Drive album is evicted — a recently-used one is fully on disk.
-        // It must take the same path without the materializer inventing work.
         let h = try await makeHarness(count: 2, evicting: 0)
         await h.manager.start(album: h.album)
 
@@ -339,7 +320,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
         await h.manager.start(album: h.album)
         XCTAssertEqual(h.albumManager.finalizeCallCount, 0)
 
-        // The network comes back / iCloud catches up.
         h.materializer.urlsThatFailToMaterialize = []
         await h.manager.resume(album: h.album)
 
@@ -352,20 +332,12 @@ final class ICloudDriveMigrationTests: XCTestCase {
     }
 
     func testGenuinelyMissingFileIsStillSkipped() async throws {
-        // The other side of the same coin: a stale index entry with no file in
-        // EITHER form has nothing to migrate and must not wedge the album forever.
-        //
-        // The file has to disappear AFTER planning. Enumeration reads the
-        // filesystem, so deleting it first means it is never planned at all and the
-        // skip decision never runs — the account preflight, awaited between planning
-        // and the item loop, is the window that puts the ghost in front of it.
         let h = try await makeHarness(count: 2, evicting: 1)
         let survivorID = h.mediaIDs[0]
         let ghostID = h.mediaIDs[1]
         let ghostURL = encURL(album: h.album, id: ghostID)
         let ghostPlaceholder = placeholderURL(album: h.album, id: ghostID)
         h.store.accountAvailableGate = {
-            // Truly absent: gone in BOTH forms, so it is not merely evicted.
             try? FileManager.default.removeItem(at: ghostURL)
             try? FileManager.default.removeItem(at: ghostPlaceholder)
         }
@@ -421,10 +393,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
     }
 
     func testLaterBatchesOnlyDownloadAfterEarlierOnesHaveFreedTheirSpace() async throws {
-        // The reason batching bounds disk at all: the engine deletes each source
-        // once CloudKit has verified it, so batch k+1 downloads into space batch k
-        // just freed. If batches overlapped, peak usage would be the whole album
-        // and the feature would be pointless.
         ICloudDriveMigrationBatchSize.current = 2
         let h = try await makeHarness(count: 4)
 
@@ -449,8 +417,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
     // MARK: - Stopping mid-batch
 
     func testCancelEvictsFilesDownloadedButNotYetUploaded() async throws {
-        // Someone cancelling a move because their phone is full must not be left
-        // with the downloaded batch still occupying the space that prompted them.
         ICloudDriveMigrationBatchSize.current = 4
         let h = try await makeHarness(count: 4)
 
@@ -463,8 +429,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
 
         XCTAssertFalse(h.materializer.evictedOnStop.isEmpty,
                        "the downloaded-but-unuploaded files are pushed back to iCloud Drive")
-        // Again `isMaterialized`, not `fileExists`: after eviction the path is
-        // still there, and it is the BYTES that had to go back.
         let stillOnDisk = h.mediaIDs.filter {
             ICloudPlaceholderName.isMaterialized(encURL(album: h.album, id: $0))
         }
@@ -498,8 +462,6 @@ final class ICloudDriveMigrationTests: XCTestCase {
     // MARK: - Local albums are unaffected
 
     func testLocalAlbumNeverMaterializes() async throws {
-        // The shipped local -> CloudKit path must be byte-for-byte what it was:
-        // a local album has nothing to download, so the materializer is not touched.
         let keyManager = DemoKeyManager()
         let key = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
         let album = Album(name: "local-\(UUID().uuidString)", storageOption: .local,

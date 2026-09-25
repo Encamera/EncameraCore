@@ -18,8 +18,6 @@ final class AudioSessionManagerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        // Start from the non-mixing category the app used to install, so a
-        // passing assertion cannot be an artifact of whatever ran before.
         try? session.setCategory(.playback, mode: .default, options: [])
         XCTAssertFalse(session.categoryOptions.contains(.mixWithOthers))
     }

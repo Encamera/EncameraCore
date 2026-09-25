@@ -53,13 +53,6 @@ final class DiskFileAccessTests: XCTestCase {
         tempDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("DiskFileAccessTests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
-        // The `storedKeysCalls` assertions below use "did the keychain get read"
-        // as the observable proof that a discovery sweep ran. `DiskFileAccess`
-        // holds the key library in a short-lived snapshot, which would make a
-        // genuine second sweep read zero times and quietly turn those
-        // assertions into no-ops. Zeroing the TTL keeps them measuring what they
-        // were written to measure; `testStoredKeysSnapshotCollapsesRepeatQueries`
-        // covers the caching itself.
         DiskFileAccess.storedKeysSnapshotTTL = 0
     }
 
@@ -114,11 +107,6 @@ final class DiskFileAccessTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: outputURL), plaintext)
     }
 
-    /// Superseded `testDecryptFailsSameAsBeforeWhenNoKeyMatches`, which pinned
-    /// the current-key fallback and the resulting generic `decryptError`. ENC-99
-    /// exists to change exactly that: media needing an absent key must now be
-    /// reported as such so the user can be offered the key, rather than being
-    /// indistinguishable from a damaged file.
     func testMissingKeyReportedInsteadOfGenericDecryptError() async throws {
         let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
@@ -160,7 +148,6 @@ final class DiskFileAccessTests: XCTestCase {
         } catch let error as FileAccessError {
             XCTFail("A corrupt file must not be reported as a missing key, got \(error)")
         } catch {
-            // Any non-FileAccessError failure is the pre-existing decrypt path.
         }
     }
 
@@ -183,8 +170,6 @@ final class DiskFileAccessTests: XCTestCase {
         let sourceURL = try XCTUnwrap(encrypted.url)
         XCTAssertNil(KeyStampSlot.readStamp(url: sourceURL), "the fixture must carry no stamp")
 
-        // Flip bytes inside the first ciphertext block, leaving every structural
-        // field readable, so the probe constructs and only the AEAD fails.
         // Offset 500 clears the prologue, the 24-byte stream header and the
         // 8-byte block-size field (which together end well below 200) and sits
         // far inside the ~20KB first block.
@@ -220,15 +205,9 @@ final class DiskFileAccessTests: XCTestCase {
         keyManager.currentKey = keyB
         let diskAccess = await makeDiskAccess(albumKey: keyB, keyManager: keyManager)
 
-        // Media AND its preview both written under a key this device lacks, and
-        // the media itself removed — a device that received only the thumbnail.
         let encrypted = try await encryptFixture(with: unstoredKey, id: UUID().uuidString)
         let sourceURL = try XCTUnwrap(encrypted.url)
         let foreignAccess = await makeDiskAccess(albumKey: unstoredKey, keyManager: keyManager)
-        // Written through `savePreview` rather than `createPreview`: the latter
-        // renders a thumbnail from the bytes, and this fixture's payload is not
-        // a decodable image. What matters here is only that the preview file
-        // exists and is encrypted under the absent key.
         let thumbnail = CleartextMedia(source: plaintext, mediaType: .preview, id: encrypted.id)
         _ = try await foreignAccess.savePreview(preview: PreviewModel(thumbnailMedia: thumbnail),
                                                 sourceMedia: encrypted)
@@ -390,8 +369,6 @@ final class DiskFileAccessTests: XCTestCase {
         let sourceURL = try XCTUnwrap(encrypted.url)
         _ = try await open(encrypted, with: diskAccess)
 
-        // Replace the file with one encrypted by a different key: the memo
-        // entry for this media id is now stale.
         try FileManager.default.removeItem(at: sourceURL)
         let cleartext = CleartextMedia(source: plaintext, mediaType: .photo, id: id)
         let handler = SecretFileHandlerV2(keyBytes: keyB.keyBytes, source: cleartext, targetURL: sourceURL)
@@ -434,8 +411,6 @@ final class DiskFileAccessTests: XCTestCase {
         keyManager.currentKey = keyB
         let diskAccess = await makeICloudDiskAccess(keyManager: keyManager)
 
-        // Encrypted with a key the manager does not hold, so every open runs the
-        // full sweep and none of them can be short-circuited by the memo.
         let foreign = PrivateKey(name: "foreign", keyBytes: Array(repeating: 0x5A, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         var media: [EncryptedMedia] = []
         for _ in 0..<8 {
@@ -451,7 +426,7 @@ final class DiskFileAccessTests: XCTestCase {
     }
 
     /// The snapshot must never outlive a key being added — that key exists
-    /// precisely to open the media being looked at (ENC-99), and waiting out a
+    /// precisely to open the media being looked at, and waiting out a
     /// TTL to notice it would show the user a missing-key album they have just
     /// supplied the key for.
     func testKeyLibraryDidGrowRetiresTheSnapshot() async throws {
@@ -556,12 +531,6 @@ final class DiskFileAccessTests: XCTestCase {
             return XCTFail("Expected in-memory data")
         }
         XCTAssertEqual(data, plaintext)
-        // The hint used to be resolved via `keyManager.keyWith(uuid:)`, which is
-        // a second full keychain query per file; discovery now resolves it
-        // against the key snapshot it already holds, so there is no call to
-        // count here. That the hint still ORDERS candidates ahead of the current
-        // key is asserted directly, on attempt order, by
-        // `KeyDiscoveryTests.testXattrHintOrderedBeforeCurrentKey`.
         XCTAssertTrue(keyManager.keyWithUUIDCalls.isEmpty,
                       "Resolving the xattr hint must not cost a second keychain query")
     }

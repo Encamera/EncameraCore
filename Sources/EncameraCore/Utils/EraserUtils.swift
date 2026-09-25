@@ -22,14 +22,6 @@ public enum ErasureScope {
     /// Multi-Device Mode on, every item is synchronizable, so a device-local sweep
     /// matched nothing at all.
     ///
-    /// ENC-82 introduced the device-local default for the returning-user
-    /// delete-my-iCloud-data path (ENC-75/ENC-94), where it is correct — that user
-    /// still owns another device and must not have its key tombstoned. But that path
-    /// never routed through here: `DestructiveOnboardingCoordinator` tombstones
-    /// CloudKit records directly and issues no keychain deletion of its own. The
-    /// default was protecting a caller that does not exist, at the cost of making
-    /// this screen lie.
-    ///
     /// `.appData` stays device-local. It is the forgot-passcode / start-over reset,
     /// which deliberately KEEPS the encrypted originals and the CloudKit zone, so
     /// tombstoning the account's keys would strand exactly the data it just promised
@@ -105,22 +97,8 @@ public protocol LocalDataErasing {
     /// Temp directories that can hold decrypted cleartext.
     func eraseTempDirectories()
     /// The App Group container's import directory, plus any pending-import state.
-    ///
-    /// This one holds CLEARTEXT media handed over by the Share Extension, and no
-    /// erase step reached it before: `eraseAllLocalMediaFiles()` walks the storage
-    /// models (Documents, the ubiquity container, Caches) and the App Group
-    /// container is none of them. A user who shared a photo into Encamera and then
-    /// erased everything was leaving the decrypted original on disk.
     func eraseSharedContainerImports() async
     /// Everything left in the app's own container trees, whatever put it there.
-    ///
-    /// Every step above names a surface someone remembered. This one names none of
-    /// them, which is the point: a feature that writes somewhere new and does not
-    /// register itself here leaves user data behind an erase, silently and
-    /// indefinitely. The CloudKit asset snapshots were exactly that — one copy of
-    /// every chunk ever fetched, in a directory no erase step and no verifier knew
-    /// about. `.allData` only: the app-data scope keeps the encrypted originals on
-    /// purpose.
     ///
     /// MUST only run on a path that then terminates the app. The sweep includes
     /// `Library/Caches/CloudKit`, and removing that under a running `cloudd` does
@@ -144,7 +122,7 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
     let fileAccess: FileAccess
     /// How far the keychain wipe reaches. Defaults to `.deviceLocal`: "erase this
     /// device" must never tombstone the account's keys on devices the user still
-    /// owns. `.accountWide` is a separate, explicitly-labelled action (ENC-72).
+    /// owns. `.accountWide` is a separate, explicitly-labelled action.
     let keyDeletionScope: KeyDeletionScope
 
     func shutdownCloudKitSync() async {
@@ -198,11 +176,6 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
                 printDebug("EraserUtils: could not delete iCloud Drive album files: \(error)")
             }
         }
-        // deleteAllFiles() only scans albumsURL (Documents/albums/); legacy
-        // layout albums live directly under Documents/ and placeholder .icloud
-        // bricks can linger anywhere in the tree. Removing the entire Documents
-        // directory catches both, and eliminates the empty "albums" directory
-        // that would otherwise trigger ExistingDataProbe's legacy sweep.
         let documents = ubiquityRoot.appendingPathComponent("Documents")
         let albums = documents.appendingPathComponent("albums")
         for target in [albums, documents] {
@@ -229,10 +202,6 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
         } catch {
             printDebug("EraserUtils: could not clear blob cache: \(error)")
         }
-        // Captures that never made it to CloudKit live outside the cache, in the
-        // durable holding folder. An erase that skipped them would leave the
-        // user's most recent photos on the device after they asked for
-        // everything to be wiped.
         do {
             try await CloudKitUploadQueue.shared.clearAll()
         } catch {
@@ -249,9 +218,6 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
     }
 
     func eraseTempDirectories() {
-        // The CloudKit asset snapshot directory belongs here with the rest: it
-        // holds a copy of every chunk this device has fetched, which is media
-        // bytes, and an erase that leaves them behind has not erased the media.
         for url in [URL.tempMediaDirectory,
                     URL.tempRecordingDirectory,
                     URL.tempExportDirectory,
@@ -270,9 +236,6 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
         } catch {
             printDebug("EraserUtils: could not cancel pending imports: \(error)")
         }
-        // Belt and braces: `cancelPendingImports` is about the import *queue*, and a
-        // file left behind by a Share Extension run that never reached the queue
-        // would survive it. This clears the directory itself, non-media included.
         do {
             try AppGroupFileAccess.shared.clearImportDirectory()
         } catch {
@@ -312,9 +275,6 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
             let isDirectory = (try? child.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
             if isDirectory {
                 removeContents(of: child)
-                // Only when it is actually empty: `removeItem` deletes a directory
-                // and everything under it, so calling it on a parent that still
-                // holds preserved content would delete that content too.
                 if (try? fileManager.contentsOfDirectory(atPath: child.path))?.isEmpty == true {
                     try? fileManager.removeItem(at: child)
                 }
@@ -334,11 +294,6 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
 
     func eraseUserDefaults() {
         UserDefaultUtils.removeAll(setTombstone: true)
-        // `UserDefaultUtils` owns the app-group suite and the iCloud key-value
-        // store, which is where everything it writes lives — but the app and its
-        // extensions also write to `UserDefaults.standard` (RevenueCat's cache,
-        // feature-toggle scratch, anything using a bare `UserDefaults()`), and that
-        // domain survived every erase. "App settings 🎛" has to mean all of them.
         if let bundleID = Bundle.main.bundleIdentifier {
             UserDefaults.standard.removePersistentDomain(forName: bundleID)
         }
@@ -507,8 +462,6 @@ public struct EraserUtils {
                       erase: { await localEraser.shutdownCloudKitSync() },
                       verify: { await localVerifier.verifyCloudKitSyncShutdown() })
 
-        // Cloud. A failure here is the one the launch-time retry exists for, so
-        // it is recorded durably below whatever the outcome shown to the user.
         progress(.running("cloud.zones"))
         do {
             try await cloudKitEraser.deleteAllCloudData()
@@ -518,13 +471,6 @@ public struct EraserUtils {
         } catch {
             print("EraserUtils: CloudKit deletion failed: \(error)")
             cloudWipeOwed = true
-            // Warn only when there could actually be CloudKit data: a signed-out
-            // purely-local user would otherwise get an unactionable "iCloud data
-            // may remain" report over data that never existed. The heuristic gates
-            // ONLY the report — `hasEverProvisionedZone` lives in defaults that a
-            // reinstall destroys, so a false negative here is entirely possible
-            // with a vault full of photos still in the private database. The
-            // durable retry marker is persisted on every non-benign failure.
             if await cloudKitEraser.mayHaveCloudKitData() {
                 cloudKitDeletionFailed = true
                 // The server may have committed the delete even though the client
@@ -584,8 +530,6 @@ public struct EraserUtils {
             await perform(step.descriptor.id, erase: step.erase, verify: step.verify)
         }
 
-        // Deliberately indiscriminate: whatever the named steps above missed is
-        // still user data.
         await perform("sweep.residual",
                       erase: { localEraser.eraseResidualContainerFiles() },
                       verify: { localVerifier.verifyResidualContainerFiles() })
@@ -647,9 +591,6 @@ public struct EraserUtils {
         await localEraser.eraseBlobCache()
         localEraser.eraseThumbnails()
         localEraser.eraseTempDirectories()
-        // Cleartext, and therefore a derived readable artifact like the thumbnails
-        // and temp files above — not one of the encrypted originals this scope
-        // deliberately preserves.
         await localEraser.eraseSharedContainerImports()
         localEraser.eraseKeychain()
         localEraser.eraseUserDefaults()

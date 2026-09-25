@@ -122,17 +122,9 @@ public actor CloudKitUploader: DebugPrintable {
     // MARK: - Draining
 
     private func onePass() async {
-        // Once per launch, not per pass: reconciling the folder against the
-        // manifest is startup housekeeping, and running it repeatedly only widens
-        // the window where it can interact with an upload in flight.
         if !hasSwept {
             hasSwept = true
             await queue.sweep()
-            // One fresh chance per launch for items that gave up (iCloud full):
-            // the user may have freed space since. Mirrors `nextAttemptAfter`
-            // being in-memory — a new launch starts clean — and is bounded to one
-            // attempt per item per launch, so a still-full account costs a single
-            // refused upload each, not a loop.
             await queue.retryGivenUp()
         }
         let items = await queue.all().filter { !$0.hasGivenUp }
@@ -157,7 +149,6 @@ public actor CloudKitUploader: DebugPrintable {
                 continue
             }
             guard let coordinator = await registry.existingCoordinator(forAlbumID: item.albumID) else {
-                // Not openable from here — see the file header.
                 deferredCount += 1
                 continue
             }
@@ -178,9 +169,6 @@ public actor CloudKitUploader: DebugPrintable {
 
     /// Returns true when the item reached CloudKit.
     private func send(_ item: CloudKitPendingUpload, using coordinator: CloudKitSyncCoordinator) async -> Bool {
-        // The preview lives in the shared thumbnail directory, not the holding
-        // folder, so it is resolved fresh at upload time. A missing one is not
-        // fatal: the record simply uploads without an eager thumbnail.
         let previewURL = CloudKitStorageModel.previewURL(forMediaID: item.mediaID)
         let thumbURL = FileManager.default.fileExists(atPath: previewURL.path) ? previewURL : nil
         let upload = await queue.rebuild(item, thumbURL: thumbURL)
@@ -209,11 +197,6 @@ public actor CloudKitUploader: DebugPrintable {
             await queue.giveUp(recordName: item.recordName, reason: error)
             nextAttemptAfter[item.recordName] = nil
         case .accountUnavailable:
-            // NOT a give-up: signed-out is transient (re-auth, account switch),
-            // and `hasGivenUp` is persisted — items marked that way used to stay
-            // stranded even after the user signed back in. Defer instead; the
-            // `.CKAccountChanged` observer calls `retryFailed()`, which clears
-            // these backoffs the moment the account returns.
             await queue.recordAttempt(recordName: item.recordName, error: error)
             nextAttemptAfter[item.recordName] = Date().addingTimeInterval(300)
         case .retry(let after):
@@ -221,9 +204,6 @@ public actor CloudKitUploader: DebugPrintable {
             nextAttemptAfter[item.recordName] = Date().addingTimeInterval(after)
         default:
             await queue.recordAttempt(recordName: item.recordName, error: error)
-            // Back off further the more an item has failed, so a persistently
-            // broken record cannot monopolise every pass. Capped so a transient
-            // problem still recovers within a session.
             let attempts = min((await queue.all().first { $0.recordName == item.recordName })?.attempts ?? 1, 6)
             nextAttemptAfter[item.recordName] = Date().addingTimeInterval(pow(2, Double(attempts)))
         }

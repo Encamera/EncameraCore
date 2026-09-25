@@ -156,7 +156,6 @@ final class BlobZoneLatch: DebugPrintable, @unchecked Sendable {
             defaults.set(true, forKey: zoneCreatedKey)
             printDebug("blobZone ensure ok zone=\(zoneID.zoneName)")
         } catch let error where CloudKitContainer.isBenignZoneError(error) {
-            // Provably "already exists" (a benign race with another device).
             defaults.set(true, forKey: zoneCreatedKey)
             printDebug("blobZone ensure ok zone=\(zoneID.zoneName) benign=\(error)")
         }
@@ -279,9 +278,6 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
                     resetZoneCreatedFlag()
                     return []
                 }
-                // Real CloudKit reports missing records as per-item `.unknownItem`
-                // inside an op-level partial failure. Anything else in there is a
-                // genuine fetch failure and must propagate.
                 let perItem = error.partialErrorsByItemID ?? [:]
                 let missing = Set(perItem.compactMap { key, value -> String? in
                     guard let recordID = key as? CKRecord.ID,
@@ -311,20 +307,11 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
         let geometry = header.geometry
         let total = geometry.chunkCount
 
-        // Resume-by-probe: skip every chunk a previous attempt already committed.
-        // Computed names + `.allKeys` make re-saving safe, but re-uploading 90% of
-        // a 1 GB video because the connection dropped at 90% is what this avoids.
         let existing = try await existingChunkIndices(mediaRecordName: mediaRecordName, chunkCount: total)
 
         let handle = try FileHandle(forReadingFrom: enc3FileURL)
         defer { try? handle.close() }
 
-        // Split the ENC3 file into one temp file per chunk. CKAsset can only be
-        // constructed from a file URL, so the bytes have to land on disk regardless;
-        // doing it in a scratch directory keeps the originals untouched and makes
-        // cleanup a single removal. Built, uploaded and deleted one batch at a
-        // time, so peak scratch is `uploadBatchSize * chunkSize`, not a second
-        // copy of the whole video.
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("enc3-upload-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
@@ -334,8 +321,6 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
         var pendingFiles: [URL] = []
         var completed = existing.count
 
-        // Per-record save progress, fanned into one overall fraction so a 4 MiB
-        // batch entry moves the bar continuously instead of in 100 MB dead zones.
         // The lock is required: CloudKit invokes the progress closure on its own
         // callback queue.
         let progressLock = NSLock()
@@ -358,9 +343,6 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
                     progress(overall)
                 }
             }
-            // Both saves used to discard results; a silently-dropped chunk then
-            // surfaced weeks later as a mid-playback `chunkNotFound`. Fail loudly
-            // here instead.
             guard saved.count == batch.count else {
                 throw ChunkedBlobError.saveVerificationFailed(expected: batch.count, saved: saved.count)
             }
@@ -414,11 +396,6 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
         let recordID = CKRecord.ID(
             recordName: ChunkedBlobSchema.chunkRecordName(mediaRecordName: mediaRecordName, index: index),
             zoneID: zoneID)
-        // `.userInteractive` and a single-key `desiredKeys`: a chunk is only ever
-        // fetched because a player is waiting on it, and the top QoS band is a real
-        // throughput knob for asset transfers rather than a scheduling hint. The
-        // default `.utility` opts into discretionary networking, which is a
-        // documented cause of transfers that appear to hang.
         let records = try await adapter.fetch(recordIDs: [recordID],
                                               desiredKeys: [ChunkedBlobSchema.Chunk.encChunk],
                                               qualityOfService: .userInteractive,
@@ -460,9 +437,6 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
             do {
                 _ = try await adapter.delete(recordIDs: batch)
             } catch let error where Self.isAlreadyAbsent(error) {
-                // Nothing to delete is success for a delete: a retried cleanup
-                // re-deletes chunks a prior pass already removed, and that may not
-                // fail the operation.
                 continue
             }
         }
@@ -534,6 +508,3 @@ public actor InMemoryChunkedBlobStore: ChunkedBlobStoring {
         }
     }
 }
-
-// `Array.chunked(into:)` comes from MediaImportHandler.swift — same module, so
-// batching here reuses it rather than declaring a second copy.

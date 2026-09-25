@@ -32,15 +32,8 @@ public actor InteractableMediaFileAccess: FileAccess {
         self.albumManager = albumManager
         self.directoryModel = albumManager.storageModel(for: album)
 
-        // The single backend decision point. Pick exactly one backend for the
-        // album's storage option. The feature flag gates whether NEW cloudKit
-        // albums can be *created* (availability), not whether an existing one uses
-        // CloudKit — otherwise toggling the flag off would strand a cloudKit album.
         if albumChanged || backend == nil {
             if album.storageOption == .cloudKit {
-                // `start()` is CloudKit-concrete (intentionally not in the
-                // protocol); construct with the concrete type so we can warm it up
-                // without a type-check, then store it as `any MediaBackend`.
                 let cloud = await CloudKitFileAccess(album: album, albumManager: albumManager)
                 self.backend = cloud
                 Task { await cloud.start() }
@@ -50,8 +43,6 @@ public actor InteractableMediaFileAccess: FileAccess {
                 self.backend = disk
             }
         } else {
-            // Same album, refreshed: re-point the existing backend at the album's
-            // (possibly updated) directory model.
             await backend?.configure(for: album, albumManager: albumManager)
         }
     }
@@ -87,9 +78,6 @@ public actor InteractableMediaFileAccess: FileAccess {
         }
 
         if let coverImageId = albumManager.getAlbumCoverImageId(album: album) {
-            // Resolve the explicit cover through the backend (disk reads its local
-            // preview; cloud fetches the eager thumbnail). Previously this always
-            // hit disk — wrong for cloud albums.
             return try await requireBackend().loadLeadingThumbnail(coverImageId: coverImageId)
         }
 
@@ -100,7 +88,6 @@ public actor InteractableMediaFileAccess: FileAccess {
             }
         }
 
-        // No explicit cover: pick the most-recent photo the user is allowed to see.
         let media: [InteractableMedia<EncryptedMedia>] = await enumerateMedia()
         guard !media.isEmpty else {
             return nil
@@ -108,30 +95,24 @@ public actor InteractableMediaFileAccess: FileAccess {
 
         let totalCount = media.count
         for index in 0..<totalCount {
-            // Stop promptly if the load was cancelled (the common case on a fast
-            // gallery scroll) instead of grinding through every candidate.
             try Task.checkCancellation()
             let accessCount = Double(totalCount - index)
             if purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: accessCount)) {
                 let targetMedia = media[index]
                 do {
-                    // Route through `loadMediaPreview` so CloudKit albums fetch the
-                    // eager thumbnail instead of reading a (possibly absent) local file.
                     let cleartextPreview = try await loadMediaPreview(for: targetMedia)
                     guard let previewData = cleartextPreview.thumbnailMedia.data,
                           let thumbnail = UIImage(data: previewData) else {
-                        continue // Try next photo if thumbnail generation fails
+                        continue
                     }
                     return thumbnail
                 } catch {
-                    // Never swallow cancellation — let the torn-down load stop.
                     if error is CancellationError { throw error }
-                    continue // Try next photo if preview loading fails
+                    continue
                 }
             }
         }
 
-        // If we can't access any photos, return nil
         return nil
     }
 
@@ -176,8 +157,6 @@ public actor InteractableMediaFileAccess: FileAccess {
     }
 
     public func copy(media: InteractableMedia<EncryptedMedia>) async throws {
-        // Cloud throws `operationNotSupported`; disk performs the copy. The branch
-        // lives in the backend now, not here.
         try await requireBackend().copy(media: media)
     }
 
@@ -186,17 +165,10 @@ public actor InteractableMediaFileAccess: FileAccess {
     }
 
     public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
-        // The backend deletes the files and patches its own index; the facade just
-        // forwards the call.
         try await requireBackend().delete(media: media)
     }
 
     public func deleteAllMedia() async throws {
-        // Erase-all must work on an unconfigured facade: the forgot-password
-        // flow constructs `InteractableMediaFileAccess()` with no album and
-        // expects an all-storage sweep (as `DiskFileAccess.deleteAllMedia`
-        // always provided). Only delegate when a backend exists so its index
-        // cleanup runs too.
         if let backend {
             try await backend.deleteAllMedia()
         } else {
@@ -205,8 +177,6 @@ public actor InteractableMediaFileAccess: FileAccess {
     }
 
     public func setKeyUUIDForExistingFiles() async throws {
-        // Routes to the backend: disk backfills key-UUID xattrs; cloud is a no-op
-        // (CloudKit blobs carry their key association via the record/metadata).
         try await requireBackend().setKeyUUIDForExistingFiles()
     }
 
@@ -248,9 +218,6 @@ public actor InteractableMediaFileAccess: FileAccess {
     public func rebuildIndex(
         onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)? = nil
     ) async -> MediaIndex {
-        // Only called by the startup migration for albums that have no index yet,
-        // so the backend's reconcile already starts from an empty index and treats
-        // every file as new — no explicit reset needed. Uniform across backends.
         await reconcileIndex(onProgress: onProgress)
         return await backend?.mediaIndex() ?? MediaIndex(entries: [])
     }
@@ -283,8 +250,6 @@ public actor InteractableMediaFileAccess: FileAccess {
             return MediaPageResult(media: [], totalCount: 0, nextOffset: 0)
         }
         /* begin fault injection hook */
-        // UI-test fault injection: widens the per-page window so a test can
-        // interleave a UI action between page loads. Inert in production.
         let delayMs = MediaIndexTestHooks.pageLoadDelayMs
         if delayMs > 0 {
             try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)

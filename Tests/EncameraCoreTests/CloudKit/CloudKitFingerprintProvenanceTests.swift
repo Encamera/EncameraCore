@@ -254,7 +254,6 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         defer { cleanUpAlbum(album) }
 
         let ids = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
-        // One file in the album is under B while the album itself is under A.
         let divergentID = try XCTUnwrap(ids.first)
         try await writeCiphertext(named: sourceEncURL(album: album, id: divergentID).lastPathComponent,
                                   key: keyB,
@@ -362,10 +361,6 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         defer { cleanUpAlbum(album) }
 
         let ids = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
-        // Strip the stamp the local write path left, so the only thing that can put one
-        // back is the upload path itself. Without this the assertion below is satisfied
-        // by stamping that happened long before CloudKit was involved, and proves nothing
-        // about the loop — which is the state every iCloud Drive source really arrives in.
         let seededURL = sourceEncURL(album: album, id: try XCTUnwrap(ids.first))
         KeyStampSlot.writeStamp(0, url: seededURL)
         XCTAssertNil(KeyStampSlot.readStamp(url: seededURL), "precondition: nothing has stamped this file")
@@ -404,9 +399,6 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
 
     // MARK: - Album records
 
-    /// An album record's fingerprint has to name the key that decrypts the album's own
-    /// name, which is what a receiving device matches on. The album key is proven by
-    /// that decryption, so this asserts the provenance rather than assuming it.
     /// A receiving device recognises an album by decrypting `encName`, so the record must
     /// name the key that opens it — not whichever key the local album object happens to
     /// carry. The fixture separates the two deliberately: `album.key` is A while the
@@ -458,8 +450,6 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         XCTAssertEqual(matched?.key.keychainLabel, keyB.keychainLabel)
         XCTAssertEqual(matched?.name, album.name)
 
-        // A record whose fingerprint names a key this device does not hold must still be
-        // matched by the sweep rather than declared unopenable on the field alone.
         let staleHint = CloudKitAlbumMetadata(albumID: albumID,
                                               encName: album.encryptedPathComponent,
                                               createdAt: Date(),

@@ -105,7 +105,6 @@ extension SecretFileHandlerInt {
     private func setupDecryption<M: MediaDescribing>(fileHandler: FileLikeHandler<M>) throws -> DecryptionSetup {
         debugPrint("SecretFileHandler: Setting up decryption")
         
-        // Read first 4 bytes to check for V2 magic
         guard let magicData = try fileHandler.read(upToCount: EncryptedFileFormat.magicSize),
               magicData.count == EncryptedFileFormat.magicSize else {
             if isSourceFileUnavailableFromICloud() {
@@ -120,20 +119,16 @@ extension SecretFileHandlerInt {
         if magicBytes == EncryptedFileFormat.magic {
             debugPrint("SecretFileHandler: V2 file detected, skipping metadata header")
             
-            // V2 file - read and skip the rest of the metadata header
-            // Read version (2 bytes)
             guard let versionData = try fileHandler.read(upToCount: EncryptedFileFormat.versionSize),
                   versionData.count == EncryptedFileFormat.versionSize else {
                 throw SecretFilesError.decryptError("Could not read V2 version")
             }
             
-            // Read flags (2 bytes)
             guard let flagsData = try fileHandler.read(upToCount: EncryptedFileFormat.flagsSize),
                   flagsData.count == EncryptedFileFormat.flagsSize else {
                 throw SecretFilesError.decryptError("Could not read V2 flags")
             }
             
-            // Read metadata length (4 bytes)
             guard let lengthData = try fileHandler.read(upToCount: EncryptedFileFormat.metadataLengthSize),
                   lengthData.count == EncryptedFileFormat.metadataLengthSize else {
                 throw SecretFilesError.decryptError("Could not read V2 metadata length")
@@ -146,7 +141,6 @@ extension SecretFileHandlerInt {
                 throw SecretFilesError.decryptError("Invalid metadata length: \(metadataLength) exceeds maximum allowed size")
             }
             
-            // Skip over the encrypted metadata
             guard let metadataData = try fileHandler.read(upToCount: Int(metadataLength)),
                   metadataData.count == Int(metadataLength) else {
                 throw SecretFilesError.decryptError("Could not skip V2 metadata")
@@ -154,7 +148,6 @@ extension SecretFileHandlerInt {
             
             debugPrint("SecretFileHandler: V2 metadata skipped, reading stream header")
             
-            // Now read the 24-byte stream header
             guard let headerData = try fileHandler.read(upToCount: 24),
                   headerData.count == 24 else {
                 throw SecretFilesError.decryptError("Could not read stream header after V2 metadata")
@@ -176,13 +169,11 @@ extension SecretFileHandlerInt {
             debugPrint("SecretFileHandler: V1 file detected")
             
             // V1 file - the 4 bytes we read are the first 4 bytes of the 24-byte stream header
-            // Read the remaining 20 bytes
             guard let remainingHeaderData = try fileHandler.read(upToCount: 20),
                   remainingHeaderData.count == 20 else {
                 throw SecretFilesError.decryptError("Could not read remaining V1 header bytes")
             }
             
-            // Combine the 4 bytes we already read with the 20 we just read
             var headerBuffer = [UInt8](repeating: 0, count: 24)
             for (i, byte) in magicBytes.enumerated() {
                 headerBuffer[i] = byte
@@ -232,9 +223,6 @@ extension SecretFileHandlerInt {
 
     func decryptFile() async throws -> AsyncThrowingStream<Data, Error> {
         do {
-            // Sniff the magic, never assume from context (the ENC-135 lesson):
-            // an album can hold V1, V2 and ENC3 files side by side, and this
-            // handler is the one place every load path funnels through.
             if case .url(let sourceURL) = sourceMedia.source,
                SeekableEncryptedHeader.isSeekableFormat(fileURL: sourceURL) {
                 return try seekableDecryptStream(url: sourceURL)
@@ -250,7 +238,6 @@ extension SecretFileHandlerInt {
                 throw error
             }
             
-            // Setup decryption - handles both V1 and V2 formats
             let setup = try setupDecryption(fileHandler: fileHandler)
             debugPrint("SecretFileHandler: Decryption setup complete, isV2: \(setup.isV2), blockSize: \(setup.blockSize)")
 

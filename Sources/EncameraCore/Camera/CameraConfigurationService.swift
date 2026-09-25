@@ -132,10 +132,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         }
     }
 
-    /// The app-lifecycle observers are registered exactly once per configure
-    /// cycle. Registering them inside `start()`/`stop()` accumulated a fresh
-    /// set of sinks on every transition, making the number of handlers that
-    /// ran on any lifecycle event depend on history.
     private func registerLifecycleObservers() {
         stopCancellables()
         NotificationUtils.didEnterBackgroundPublisher
@@ -216,8 +212,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
         printDebug("Calling startRunning, videoZoomFactor=\(zoomService.currentVideoZoomFactor())")
         session.startRunning()
-        // Final step of the start transaction: the device must carry the
-        // intended zoom whenever the session (re)starts.
         zoomService.applyTarget()
         printDebug("Started running session, videoZoomFactor=\(zoomService.currentVideoZoomFactor())")
     }
@@ -290,22 +284,18 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         session.beginConfiguration()
         defer { session.commitConfiguration() }
 
-        // Remove the current video device input.
         if let videoDeviceInput = videoDeviceInput {
             session.removeInput(videoDeviceInput)
         }
 
-        // Add the new video device input to the session.
         if session.canAddInput(newVideoDeviceInput) {
             session.addInput(newVideoDeviceInput)
             videoDeviceInput = newVideoDeviceInput
             zoomService.updateDevice(newVideoDeviceInput.device)
         } else if let videoDeviceInput = videoDeviceInput {
-            // Re-add the old input if the new input can't be added.
             session.addInput(videoDeviceInput)
         }
 
-        // Handle video stabilization, etc.
         if let connection = photoOutput.connection(with: .video) {
             if connection.isVideoStabilizationSupported {
                 connection.preferredVideoStabilizationMode = .auto
@@ -339,7 +329,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             position: preferredPosition).devices
         var newVideoDevice: AVCaptureDevice? = nil
 
-        // Prefer virtual devices for the back camera, wide-angle for front.
         let prioritizedTypes: [AVCaptureDevice.DeviceType] = preferredPosition == .back
             ? [.builtInTripleCamera, .builtInDualWideCamera, .builtInDualCamera, .builtInWideAngleCamera]
             : [.builtInWideAngleCamera]
@@ -368,8 +357,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
             printDebug("Error occurred while creating video device input: \(error)")
         }
         zoomService.loadAvailableZoomFactors()
-        // A new device starts at the wide (1x) lens; the outputs must be
-        // reconfigured for it even though the mode is unchanged.
         zoomService.set(zoom: .x1)
         await configureForMode(targetMode: model.cameraMode, force: true)
     }
@@ -557,7 +544,6 @@ private extension CameraConfigurationService {
         var seen = Set<String>()
         var options: [VideoQualityOption] = []
 
-        // Standard video resolutions we care about (height values)
         let targetHeights: Set<Int32> = [720, 1080, 2160]
 
         for format in device.formats {
@@ -576,7 +562,6 @@ private extension CameraConfigurationService {
 
             for range in format.videoSupportedFrameRateRanges {
                 let maxFPS = Int(range.maxFrameRate)
-                // Only offer standard frame rates
                 for fps in [24, 30, 60, 120, 240] {
                     if fps <= maxFPS {
                         let key = "\(dimensions.width)x\(dimensions.height)@\(fps)"
@@ -607,7 +592,6 @@ private extension CameraConfigurationService {
     public func applyVideoQuality(_ option: VideoQualityOption?) {
         guard let device = videoDeviceInput?.device, let option else { return }
 
-        // Find a matching format
         let targetFormat = device.formats.first { format in
             let desc = format.formatDescription
             let dims = CMVideoFormatDescriptionGetDimensions(desc)
@@ -684,7 +668,6 @@ private extension CameraConfigurationService {
         var defaultVideoDevice: AVCaptureDevice?
 
 
-        // Try to find a suitable camera among the types
         for cameraType in deviceTypes {
             if let device = AVCaptureDevice.default(cameraType, for: .video, position: currentCameraPosition) {
                 defaultVideoDevice = device
@@ -753,11 +736,6 @@ private extension CameraConfigurationService {
         zoomService.loadAvailableZoomFactors()
         zoomService.set(zoom: .x1)
 
-        // Video qualities also derive from static device formats. Publishing
-        // them now means a quality is already selected before the first
-        // photo→video switch, so that switch can apply the quality's format
-        // directly instead of first falling back to the `.high` preset — a
-        // second format change and a second zoom reset.
         loadAvailableVideoQualities()
 
         printDebug("Initial session configuration committed, videoZoomFactor=\(zoomService.currentVideoZoomFactor())")

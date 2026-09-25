@@ -148,12 +148,6 @@ final class EraserUtilsTests: XCTestCase {
     }
 
     func testEraseAllDataCloudFailureWithoutCloudUsageSuppressesWarningButKeepsRetryMarker() async throws {
-        // A signed-out user whose `hasEverProvisionedZone` flag was destroyed (an
-        // `.appData` reset wipes defaults; a reinstall loses them entirely) can
-        // still have a vault full of photos in the private database. The
-        // heuristic may suppress the unactionable ALERT — but the durable retry
-        // marker must be persisted on every non-benign failure: the launch-time
-        // retry is free and self-clearing (a missing zone is benign success).
         let cloud = MockCloudDataEraser()
         cloud.error = NSError(domain: "test", code: 1)
         cloud.mayHaveData = false
@@ -293,8 +287,6 @@ final class EraserUtilsTests: XCTestCase {
 
         let report = await utils.eraseAllData(progress: { _ in })
 
-        // The erase closure recorded how many local steps had already run when it
-        // fired: everything through the shared-imports sweep, and nothing after.
         let mediaSteps = Self.allDataSteps.firstIndex(of: "residualContainerFiles")!
         XCTAssertEqual(order.reports.first?.id, "app.purchases:erase:\(mediaSteps)",
                        "app-layer steps run before the residual sweep, keychain and defaults wipes so what they write is wiped too")

@@ -94,11 +94,6 @@ public enum KeyFingerprintDisplay {
         }
         let hex = KeyFingerprint.displayLabel(stampPrefix: stamp)
         let matches = storedKeys.filter { $0.stampPrefix == stamp }
-        // Only an UNAMBIGUOUS match may be named. The stamp is a 4-byte routing
-        // hint, not proof of ownership, so two stored keys can share one — and
-        // naming a key the file may not actually belong to is worse than naming
-        // none, because the label is what a user reaches for when deciding which
-        // key to keep.
         guard matches.count == 1, let match = matches.first else {
             return hex
         }

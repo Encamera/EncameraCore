@@ -151,7 +151,6 @@ public class MediaEditHandler: DebugPrintable {
             preservedMetadata = original
         }
 
-        // Phase 1: Decrypt
         progressHandler?(.decrypting(progress: 0))
         reportProgress(taskId: task.id, overall: 0, startTime: startTime)
 
@@ -172,7 +171,6 @@ public class MediaEditHandler: DebugPrintable {
         progressHandler?(.decrypting(progress: 1.0))
         reportProgress(taskId: task.id, overall: 0.33, startTime: startTime)
 
-        // Phase 2: Rotate each component
         var rotatedCleartextMedia: [CleartextMedia] = []
         let totalComponents = media.underlyingMedia.count
 
@@ -211,7 +209,6 @@ public class MediaEditHandler: DebugPrintable {
         progressHandler?(.rotating(progress: 1.0))
         reportProgress(taskId: task.id, overall: 0.67, startTime: startTime)
 
-        // Phase 3: Re-encrypt and save (with same media IDs)
         progressHandler?(.encrypting(progress: 0))
 
         let rotatedInteractable = try InteractableMedia(underlyingMedia: rotatedCleartextMedia)
@@ -227,11 +224,6 @@ public class MediaEditHandler: DebugPrintable {
 
         try Task.checkCancellation()
 
-        // Note: No need to delete original encrypted files — the save above
-        // overwrites them in-place because the media IDs are preserved,
-        // and driveURLForMedia derives the file path from the media ID.
-
-        // Clean up temp files
         for url in decryptedURLs {
             try? FileManager.default.removeItem(at: url)
         }
@@ -327,13 +319,11 @@ public class MediaEditHandler: DebugPrintable {
         let compositionVideoTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
         try compositionVideoTrack?.insertTimeRange(timeRange, of: videoTrack, at: .zero)
 
-        // Add audio track if present
         if let audioTrack = try? await asset.loadTracks(withMediaType: .audio).first {
             let compositionAudioTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
             try? compositionAudioTrack?.insertTimeRange(timeRange, of: audioTrack, at: .zero)
         }
 
-        // Apply rotation transform
         let radians = CGFloat(degrees) * .pi / 180.0
         let naturalSize = try await videoTrack.load(.naturalSize)
         let preferredTransform = try await videoTrack.load(.preferredTransform)
@@ -349,7 +339,6 @@ public class MediaEditHandler: DebugPrintable {
         let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack!)
         let rotationTransform = existingTransform.concatenating(CGAffineTransform(rotationAngle: radians))
 
-        // Calculate new size after rotation
         let transformedSize = naturalSize.applying(rotationTransform)
         let newSize = CGSize(width: abs(transformedSize.width), height: abs(transformedSize.height))
 
@@ -372,7 +361,6 @@ public class MediaEditHandler: DebugPrintable {
         videoComposition.frameDuration = CMTime(value: 1, timescale: frameRateTimescale)
         videoComposition.renderSize = newSize
 
-        // Export
         let outputURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("mov")
@@ -387,7 +375,6 @@ public class MediaEditHandler: DebugPrintable {
 
         self.exportSession = session
 
-        // Monitor progress
         let progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             progress(Double(session.progress))
         }
@@ -482,7 +469,6 @@ private extension UIImage {
         let newSize: CGSize
         let transform: CGAffineTransform
 
-        // For 90/270 degrees, swap width and height
         let normalizedRadians = radians.truncatingRemainder(dividingBy: 2 * .pi)
         let isOddMultipleOf90 = abs(abs(normalizedRadians) - .pi / 2) < 0.01 || abs(abs(normalizedRadians) - 3 * .pi / 2) < 0.01
 

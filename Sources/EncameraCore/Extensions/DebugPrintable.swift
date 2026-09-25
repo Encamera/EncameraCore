@@ -61,9 +61,6 @@ extension DebugPrintable {
 /// TestFlight build possible at all, which a DEBUG-only buffer never could.
 @inline(__always)
 private func emitDebug(className: String, message: String, terminator: String) {
-    // No-op (one uncontended lock) when the toggle is off. Note the string work
-    // above already happens in release today, so this adds only a lock, a
-    // `Date()` and an array store on the enabled path.
     DebugLogBuffer.shared.record(category: className, message: message)
 
     #if DEBUG

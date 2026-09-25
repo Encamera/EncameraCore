@@ -73,7 +73,7 @@ final class CloudKitFileAccessTests: XCTestCase {
     /// `DiskFileAccess.save` itself would also drag in `createPreview`, which needs decodable
     /// image bytes; `testDiskSaveWithoutMetadataProducesV1Ciphertext` pins that the app path
     /// really does produce this format.) This is what a legacy local library is full of, and
-    /// migration uploads those bytes to CloudKit verbatim — no re-encryption (ENC-135).
+    /// migration uploads those bytes to CloudKit verbatim — no re-encryption.
     private func makeV1(key: PrivateKey, id: String, data: Data, mediaType: MediaType = .photo) async throws -> Data {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("\(id)-\(UUID().uuidString).enc")
         let cleartext = CleartextMedia(source: .data(data), mediaType: mediaType, id: id)
@@ -136,21 +136,15 @@ final class CloudKitFileAccessTests: XCTestCase {
         let id = UUID().uuidString
         let cleartext = Data("super secret cleartext".utf8)
         _ = try await access.save(media: photo(id: id, data: cleartext), metadata: nil, progress: { _ in })
-        // Saves are local-first: the upload happens in the background. Drain it
-        // so the store has been given the record before asserting.
         await access.drainUploads()
 
         XCTAssertEqual(store.uploadCalls, [id])
         let upload = try XCTUnwrap(store.uploadedItems.first)
 
-        // Uploaded bytes are ciphertext: the file CloudKit read is an ENC2 file.
-        // (Asserted on the bytes captured at upload time — the holding-folder
-        // copy is deleted once the upload completes.)
         let bytes = try XCTUnwrap(store.uploadedBlobBytes[upload.recordName])
         XCTAssertEqual(Array(bytes.prefix(4)), EncryptedFileFormat.magic, "Uploaded file must be ENC2 ciphertext")
         XCTAssertFalse(bytes.contains(Data("super secret cleartext".utf8)), "No plaintext may appear in the uploaded file")
 
-        // albumID is the keyed hash, not the cleartext album name.
         XCTAssertNotEqual(upload.albumID, album.name)
         XCTAssertEqual(upload.albumID, SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes))
 
@@ -189,7 +183,6 @@ final class CloudKitFileAccessTests: XCTestCase {
 
         let id = UUID().uuidString
         let cleartext = Data("decrypt round trip".utf8)
-        // The blob exists only in the cloud (never saved locally) -> first load fetches.
         let localURL = encURL(for: album, id: id)
         try? FileManager.default.removeItem(at: localURL)
         store.blobContents = try await makeENC2(album: album, id: id, data: cleartext)
@@ -202,7 +195,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(store.fetchBlobCount, 1)
         XCTAssertEqual(decrypted.underlyingMedia.first?.data, cleartext)
 
-        // Second load is served from the now-local copy — no duplicate fetch.
         _ = try await access.loadMedia(media: encrypted, progress: { _ in })
         XCTAssertEqual(store.fetchBlobCount, 1, "Second load must not re-fetch")
 
@@ -237,7 +229,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertTrue(kinds.contains("downloading"))
         XCTAssertTrue(kinds.contains("decrypting"))
         XCTAssertEqual(kinds.last, "loaded")
-        // Ordering: a download status precedes a decrypt status.
         if let d = kinds.firstIndex(of: "downloading"), let c = kinds.firstIndex(of: "decrypting") {
             XCTAssertLessThan(d, c)
         } else {
@@ -251,7 +242,7 @@ final class CloudKitFileAccessTests: XCTestCase {
     func testEnumerateReadsFromSyncedIndexNotNetwork() async throws {
         let album = makeAlbum()
         let store = MockCloudKitMediaStore()
-        store.fetchBlobError = CKErrorFactory.error(.networkUnavailable)  // any direct fetch would fail
+        store.fetchBlobError = CKErrorFactory.error(.networkUnavailable)
         let albumIDHash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes)!
         store.changeSet = CloudKitChangeSet(
             changed: [
@@ -285,9 +276,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         ])
         try await access.delete(media: [encrypted])
 
-        // The delete addresses the component record — "m1#0" for the photo
-        // component — and removes it outright; the zone change feed is what
-        // carries that to other devices.
         XCTAssertEqual(store.deleteCalls, [CloudKitFileAccess.componentRecordName(mediaID: "m1", type: .photo)])
     }
 
@@ -299,8 +287,6 @@ final class CloudKitFileAccessTests: XCTestCase {
     /// unopenable ghost the user could never delete.
     func testDeletingAPendingItemRemovesItFromTheAlbum() async throws {
         let album = makeAlbum()
-        // A long upload delay pins the capture in the pending state: the
-        // background drain cannot complete before the delete runs.
         let store = InMemoryCloudKitMediaStore(uploadDelay: .seconds(30))
         let keyManager = DemoKeyManager()
         keyManager.currentKey = album.key
@@ -338,7 +324,6 @@ final class CloudKitFileAccessTests: XCTestCase {
     }
 
     func testLocalAndICloudModelsUnchanged() {
-        // Regression guard for hard requirement #1: the existing storage planes are untouched.
         XCTAssertTrue(StorageType.local.modelForType == LocalStorageModel.self)
         XCTAssertTrue(StorageType.icloud.modelForType == iCloudStorageModel.self)
         XCTAssertTrue(StorageType.cloudKit.modelForType == CloudKitStorageModel.self)
@@ -382,22 +367,18 @@ final class CloudKitFileAccessTests: XCTestCase {
             CloudKitStoreProvider.makeStore = previousProvider
         }
 
-        let album = makeAlbum()   // .cloudKit
+        let album = makeAlbum()
         let keyManager = DemoKeyManager()
         keyManager.currentKey = album.key
         let albumManager = MockAlbumManager(keyManager: keyManager)
         let access = await InteractableMediaFileAccess(for: album, albumManager: albumManager)
 
         let id = UUID().uuidString
-        // Real image bytes so DiskFileAccess.createPreview wouldn't throw — the test
-        // must fail on routing, not thumbnail generation, before the fix.
         let imageData = Self.tinyPNG()
         let photo = try InteractableMedia(underlyingMedia: [
             CleartextMedia(source: .data(imageData), mediaType: .photo, id: id)
         ])
         _ = try await access.save(media: photo, metadata: nil, progress: { _ in })
-        // The facade uses the production path (shared registry + shared uploader);
-        // drain the shared uploader so the background upload reaches the store.
         await CloudKitUploader.shared.drainNow()
 
         let albumHash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes)!
@@ -485,7 +466,6 @@ final class CloudKitFileAccessTests: XCTestCase {
             EncryptedMedia(source: .url(encURL(for: album, id: "m")), mediaType: .photo, id: "m")
         ])
 
-        // v1 at tag t1
         store.changeSet = CloudKitChangeSet(changed: [meta(tag: "t1")], deleted: [], token: nil, moreComing: false)
         _ = await access.reconcile()
         store.blobContents = try await makeENC2(album: album, id: "m", data: Data("v1".utf8))
@@ -493,7 +473,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(first.underlyingMedia.first?.data, Data("v1".utf8))
         XCTAssertEqual(store.fetchBlobCount, 1)
 
-        // A remote re-upload advances the tag to t2 with new content.
         store.changeSet = CloudKitChangeSet(changed: [meta(tag: "t2")], deleted: [], token: nil, moreComing: false)
         _ = await access.reconcile()
         store.blobContents = try await makeENC2(album: album, id: "m", data: Data("v2".utf8))
@@ -553,8 +532,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         let cache1 = CloudKitBlobCache(baseDir: dir)
         _ = try await cache1.store(recordName: "rec#0", changeTag: "t1", albumID: "albumHash", from: src)
 
-        // A fresh instance (app relaunch) over the same directory must recover the
-        // cached entry instead of re-downloading and leaking the orphan.
         let cache2 = CloudKitBlobCache(baseDir: dir)
         let url = await cache2.cachedURL(recordName: "rec#0", changeTag: "t1")
         XCTAssertNotNil(url, "Cache index should be restored from disk on init")
@@ -566,7 +543,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         let access = await makeAccess(album: album, store: store)
 
         let id = UUID().uuidString
-        // Non-image bytes => preview generation fails => no preview file on disk.
         _ = try await access.save(media: try photo(id: id, data: Data("not an image".utf8)), metadata: nil, progress: { _ in })
         await access.drainUploads()
 
@@ -587,7 +563,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         let albumManager = MockAlbumManager(keyManager: keyManager)
         albumManager.albumsOnDisk = [album]
 
-        // Upload a photo so the cloud has a record for this album.
         let access = await CloudKitFileAccess(album: album, albumManager: albumManager, store: shared)
         let id = UUID().uuidString
         _ = try await access.save(media: try InteractableMedia(underlyingMedia: [
@@ -595,11 +570,9 @@ final class CloudKitFileAccessTests: XCTestCase {
         ]), metadata: nil, progress: { _ in })
         await access.drainUploads()
 
-        // Simulate a device that hasn't built this album's index yet.
         try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
         XCTAssertEqual(MediaIndexStore.entryCount(for: album), 0)
 
-        // The fan-out sync must rebuild it without the album being "active".
         let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false)
         await sync.syncAll()
 
@@ -638,7 +611,6 @@ final class CloudKitFileAccessTests: XCTestCase {
             CloudKitAlbumPublishRegistry().forget(hash)
         }
 
-        // The delete is fire-and-forget; wait for it to land in the store.
         for _ in 0..<100 {
             if try await shared.fetchAllAlbums().allSatisfy({ $0.albumID != hash }) { break }
             try await Task.sleep(nanoseconds: 20_000_000)
@@ -672,8 +644,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         CloudKitStoreProvider.makeStore = { _ in InMemoryCloudKitMediaStore() }
         defer { CloudKitStoreProvider.makeStore = prev }
 
-        // `UserDefaults` is not `Sendable`, so the `@Sendable` factory below builds
-        // its own instance from the suite name.
         let suite = makeIsolatedSuiteName()
         let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false, makeReconciler: { manager in
             CloudKitAlbumReconciler(store: store,
@@ -684,10 +654,10 @@ final class CloudKitFileAccessTests: XCTestCase {
         })
 
         let first = Task { await sync.syncAll() }
-        while store.fetchAllAlbumsCount < 1 { await Task.yield() }   // first pass is mid-run, held by the gate
+        while store.fetchAllAlbumsCount < 1 { await Task.yield() }
 
-        let second = Task { await sync.syncAll() }                    // joins the in-flight run
-        while !(await sync.resyncRequested) { await Task.yield() }    // the join has been recorded
+        let second = Task { await sync.syncAll() }
+        while !(await sync.resyncRequested) { await Task.yield() }
         released.set()
 
         await first.value
@@ -711,7 +681,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         let media = await access.enumerate()
         let source = media.first?.underlyingMedia.first?.source
         guard case .url(let url)? = source else { return XCTFail("Expected a url source") }
-        // Must point at the cache/record-name path so a lazily downloaded blob resolves.
         XCTAssertEqual(url.lastPathComponent, CloudKitFileAccess.componentRecordName(mediaID: "m", type: .photo))
     }
 
@@ -746,7 +715,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         let album = makeAlbum()
         let store = MockCloudKitMediaStore()
         let albumHash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes)!
-        // A synced item gives a non-nil current change tag for "p#0".
         store.changeSet = CloudKitChangeSet(changed: [
             CloudKitMediaMetadata(recordName: "p#0", albumID: albumHash, mediaID: "p", mediaType: .photo,
                                   createdAt: Date(timeIntervalSince1970: 1), sizeBytes: 1, creationDeviceID: "d",
@@ -755,7 +723,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         let access = await makeAccess(album: album, store: store)
         _ = await access.reconcile()
 
-        // The fetch writes a (partial) file then fails — so the file exists but is bad.
         store.fetchThumbnailWritesFile = true
         store.fetchThumbnailError = CloudKitMediaStoreError.notFound
 
@@ -775,7 +742,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         let name = "CKDisc-\(UUID().uuidString)"
         let album = Album(name: name, storageOption: .cloudKit, creationDate: Date(), key: key)
 
-        // Place the discovery marker the way album creation does.
         let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
         try FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: marker) }
@@ -789,12 +755,7 @@ final class CloudKitFileAccessTests: XCTestCase {
                       "A CloudKit album marker must be discoverable in the album list")
     }
 
-    // MARK: - Mixed on-disk format support (ENC-135)
-    //
-    // Migration is a move of ciphertext, not a re-encode: whatever format the bytes had
-    // on disk is the format that lands in CloudKit. A legacy library holds V1 files, so
-    // the CloudKit read path must decrypt V1 as well as V2 — the reader adapts to the
-    // data, the data is never rewritten to suit the reader.
+    // MARK: - Mixed on-disk format support
 
     /// Why V1 blobs exist at all: the app's own local save writes V1 whenever no metadata is
     /// supplied. Anchors the `makeV1` fixture to the real production path.
@@ -808,8 +769,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         let disk = DiskFileAccess()
         await disk.configure(for: album, albumManager: albumManager)
 
-        // Real image bytes so the preview pipeline inside save() succeeds — the point of the
-        // test is the ciphertext format, not thumbnailing.
         let imageData = Self.tinyPNG()
 
         let v1 = try await disk.save(media: CleartextMedia(source: .data(imageData), mediaType: .photo, id: UUID().uuidString),
@@ -819,7 +778,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertNotEqual(Array(try Data(contentsOf: v1URL).prefix(4)), EncryptedFileFormat.magic,
                           "A save without metadata must produce a V1 file — this is why legacy libraries hold V1")
 
-        // The metadata-bearing branch must still produce V2: the fix must not have changed writes.
         let v2 = try await disk.save(media: CleartextMedia(source: .data(imageData), mediaType: .photo, id: UUID().uuidString),
                                      metadata: EncryptedFileMetadata(), progress: { _ in })
         let v2URL = try XCTUnwrap(v2?.url)
@@ -841,7 +799,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         try? FileManager.default.removeItem(at: localURL)
         defer { try? FileManager.default.removeItem(at: localURL) }
 
-        // Exactly the bytes migration would have uploaded, untouched.
         store.blobContents = try await makeV1(key: album.key, id: id, data: cleartext)
 
         let encrypted = try InteractableMedia(underlyingMedia: [
@@ -860,7 +817,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let access = await makeAccess(album: album, store: store)
 
         let id = UUID().uuidString
-        let cleartext = Data((0..<40000).map { UInt8($0 % 251) })   // spans several blocks
+        let cleartext = Data((0..<40000).map { UInt8($0 % 251) })
         let localURL = CloudKitStorageModel(album: album).driveURLForMedia(withID: id, type: .video)
         try? FileManager.default.removeItem(at: localURL)
         defer { try? FileManager.default.removeItem(at: localURL) }

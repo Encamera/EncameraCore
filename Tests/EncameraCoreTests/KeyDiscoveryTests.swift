@@ -95,9 +95,6 @@ final class KeyDiscoveryTests: XCTestCase {
     }
 
     func testFirstBlockDecryptFailsWithWrongKey() async throws {
-        // Regression guard for the initPull-vs-pull subtlety: initPull
-        // succeeds with a wrong key, so an implementation that skips the pull
-        // would wrongly return true here.
         let v2URL = try await encryptV2Fixture(with: keyA)
         let v2Control = await KeyDiscovery.proveFirstBlock(of: v2URL, with: keyA)
         XCTAssertEqual(v2Control, .proved, "the encrypting key must open the v2 fixture")
@@ -203,8 +200,6 @@ final class KeyDiscoveryTests: XCTestCase {
     }
 
     func testXattrConfirmedNotTrusted() async throws {
-        // Behavior change vs. today's open paths: the xattr is a hint that
-        // gets test-decrypted, not trusted.
         let url = try await encryptV2Fixture(with: keyB)
         try ExtendedAttributesUtil.setKeyUUID(keyA.uuid, for: url)
 
@@ -262,9 +257,6 @@ final class KeyDiscoveryTests: XCTestCase {
         let result = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager)
         XCTAssertNil(result)
 
-        // The same file and the same call resolve once the library holds the
-        // key it was encrypted with, so the nil above is a missing key rather
-        // than a fixture that never opened.
         let withKey = DemoKeyManager(keys: [keyA, keyB, unstoredKey])
         withKey.currentKey = keyA
         let found = await KeyDiscovery.discoverKey(for: url, keyManager: withKey)
@@ -283,13 +275,12 @@ final class KeyDiscoveryTests: XCTestCase {
         let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
         XCTAssertEqual(outcome, .unreadable, "bytes that are not media are damage, not a missing key")
 
-        // Anchor: the same key manager and the same call resolve readable media.
         let readableURL = try await encryptV2Fixture(with: keyA, name: "corrupt-anchor")
         let readable = await KeyDiscovery.discoverKey(for: readableURL, keyManager: keyManager)
         XCTAssertEqual(readable?.key, keyA)
     }
 
-    /// The failsafe end to end (ENC-97): after a key phrase import replaces the
+    /// The failsafe end to end: after a key phrase import replaces the
     /// current key, the retained key is still in `storedKeys()` and discovery
     /// sweeps it, so media encrypted under it opens with no user interaction.
     /// Both keys carry the same display name, exactly as in production.
@@ -298,38 +289,29 @@ final class KeyDiscoveryTests: XCTestCase {
         let imported = PrivateKey(name: "encamera_default_key", keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 1))
         let url = try await encryptV2Fixture(with: retained, name: "retained-key-media")
 
-        // Post-import state: the imported key is current, the replaced one is
-        // retained decrypt-only in the library.
         let keyManager = DemoKeyManager(keys: [imported, retained])
         keyManager.currentKey = imported
 
         let result = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager)
         XCTAssertEqual(result?.key.keyBytes, retained.keyBytes, "media under the retained key must still resolve")
 
-        // And it would not without retention.
         let withoutRetained = DemoKeyManager(keys: [imported])
         withoutRetained.currentKey = imported
         let missing = await KeyDiscovery.discoverKey(for: url, keyManager: withoutRetained)
         XCTAssertNil(missing, "guards the assertion above against passing for the wrong reason")
     }
 
-    // MARK: - Missing key vs. corruption (ENC-99)
+    // MARK: - Missing key vs. corruption
 
-    /// The heart of ENC-99. `testNilWhenNoKeyDecrypts` and
-    /// `testDiscoverKeyNilOnCorruptFile` above both get nil from `discoverKey`;
-    /// the whole point of the outcome API is that they must not be the same
-    /// answer, because one is fixable by adding a key and the other is not.
     func testMissingKeyIsDistinctFromCorruption() async throws {
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
         keyManager.currentKey = keyA
 
-        // Case 1: intact media, encrypted with a key the device does not hold.
         let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let foreignURL = try await encryptV2Fixture(with: unstoredKey, name: "foreign")
         let foreignOutcome = await KeyDiscovery.discoverKeyOutcome(for: foreignURL, keyManager: keyManager)
         XCTAssertEqual(foreignOutcome, .noKnownKey(requiredStampPrefix: nil))
 
-        // Case 2: bytes that are not encrypted media at all.
         let corruptURL = tempDirectory.appendingPathComponent("corrupt.enc")
         try Data("garbage".utf8).write(to: corruptURL)
         let corruptOutcome = await KeyDiscovery.discoverKeyOutcome(for: corruptURL, keyManager: keyManager)
@@ -337,8 +319,6 @@ final class KeyDiscoveryTests: XCTestCase {
 
         XCTAssertNotEqual(foreignOutcome, corruptOutcome, "the two nil cases must now be distinguishable")
 
-        // And the nil-returning API is unchanged for both, so existing callers
-        // that don't care about the reason keep their behavior.
         let foreignLegacy = await KeyDiscovery.discoverKey(for: foreignURL, keyManager: keyManager)
         let corruptLegacy = await KeyDiscovery.discoverKey(for: corruptURL, keyManager: keyManager)
         XCTAssertNil(foreignLegacy)
@@ -379,9 +359,6 @@ final class KeyDiscoveryTests: XCTestCase {
 
         try damageFirstBlockBody(of: url)
 
-        // The structural producer of `.unreadable` is excluded here: the file
-        // still parses, it still names keyA, and keyA — which the library holds
-        // — is now rejected by the AEAD rather than never tested.
         XCTAssertNotNil(FirstBlockProbe(url: url), "the prologue and block layout must survive the damage")
         XCTAssertEqual(KeyStampSlot.readStamp(url: url), keyA.stampPrefix, "the stamp must survive the damage")
         let proof = await KeyDiscovery.proveFirstBlock(of: url, with: keyA)
@@ -426,7 +403,6 @@ final class KeyDiscoveryTests: XCTestCase {
         let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
         XCTAssertEqual(outcome, .noKnownKey(requiredStampPrefix: unstoredKey.stampPrefix))
 
-        // And it renders as the short display label the UI shows.
         guard case .noKnownKey(let prefix) = outcome, let prefix else {
             return XCTFail("expected a reported fingerprint")
         }
@@ -447,9 +423,6 @@ final class KeyDiscoveryTests: XCTestCase {
         let outcome = await KeyDiscovery.discoverKeyOutcome(for: url, keyManager: keyManager)
         XCTAssertEqual(outcome, .noKnownKey(requiredStampPrefix: nil))
 
-        // Read against a working stamp path in the same run: the same foreign
-        // key, stamped, is reported. The nil above is an absent stamp, not a
-        // stamp-blind probe.
         let stampedURL = try await encryptV2Fixture(with: unstoredKey, name: "unstamped-foreign-anchor")
         KeyStampSlot.writeStamp(unstoredKey.stampPrefix, url: stampedURL)
         let stampedOutcome = await KeyDiscovery.discoverKeyOutcome(for: stampedURL, keyManager: keyManager)
@@ -465,10 +438,6 @@ final class KeyDiscoveryTests: XCTestCase {
     }
 
     func testFirstBlockDecryptReadsBoundedBytes() async throws {
-        // Proxy for the bounded-read guarantee: corrupt every byte after the
-        // first ciphertext block. If the implementation read beyond the first
-        // block, authentication of later data would fail — the first block
-        // alone must decide the result.
         let url = try await encryptV2Fixture(with: keyA)
         let firstBlockEnd = try firstBlockRange(of: url).upperBound
         var fileData = try Data(contentsOf: url)
@@ -496,11 +465,9 @@ final class KeyDiscoveryTests: XCTestCase {
         ] as [(String, () async throws -> URL)] {
             let url = try await makeURL()
 
-            // Unstamped: both must report nil, not 0.
             XCTAssertNil(KeyStampSlot.readStamp(url: url), "\(label) precondition: fixture starts unstamped")
             XCTAssertNil(FirstBlockProbe(url: url)?.stamp, "\(label) probe must report an unstamped file as nil")
 
-            // Stamped: both must report the same value.
             KeyStampSlot.writeStamp(keyA.stampPrefix, url: url)
             XCTAssertEqual(FirstBlockProbe(url: url)?.stamp,
                            KeyStampSlot.readStamp(url: url),
@@ -508,7 +475,6 @@ final class KeyDiscoveryTests: XCTestCase {
             XCTAssertEqual(FirstBlockProbe(url: url)?.stamp, keyA.stampPrefix,
                            "\(label) probe stamp must be the value that was written")
 
-            // A stamp is not allowed to disturb the block the AEAD reads.
             let stillDecrypts = await KeyDiscovery.canDecryptFirstBlock(of: url, with: keyA)
             XCTAssertTrue(stillDecrypts, "\(label) stamping must not corrupt the first block")
         }
@@ -549,12 +515,6 @@ final class KeyDiscoveryTests: XCTestCase {
         }
     }
 
-    /// The xattr hint must be tried BEFORE the current key. Isolated here by
-    /// naming a key that is not the current one, so attempt order is the only
-    /// thing that can distinguish the hint being honored from the sweep
-    /// stumbling onto the right key anyway. This replaces the call-count proxy
-    /// `DiskFileAccessTests` used before discovery stopped resolving the hint
-    /// through `keyManager.keyWith(uuid:)`.
     func testXattrHintOrderedBeforeCurrentKey() async throws {
         let keyC = PrivateKey(name: "keyC", keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let url = try await encryptV2Fixture(with: keyC, name: "xattr-order")

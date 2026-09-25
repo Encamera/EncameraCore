@@ -29,7 +29,6 @@ final class DeviceAuthManagerThreadConfinementTests: XCTestCase {
     func testBackgroundInvalidationNeverOverlapsBiometricEvaluation() async throws {
         let probe = ContextProbe(invalidateHoldTime: 0.3)
         let manager = await MainActor.run { DeviceAuthManager(keyManager: DemoKeyManager(), makeContext: { probe.makeContext() }) }
-        // Populate the cache so the background handler has a context to invalidate.
         await MainActor.run { _ = manager.deviceBiometryType }
 
         let handlerInsideInvalidate = expectation(description: "background handler entered invalidate()")
@@ -38,8 +37,6 @@ final class DeviceAuthManagerThreadConfinementTests: XCTestCase {
             NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
         }
 
-        // Start the unlock attempt only once the handler is inside invalidate()
-        // and holding the context, so the two paths are guaranteed to meet.
         try await Task.detached {
             await self.fulfillment(of: [handlerInsideInvalidate], timeout: 2)
             try await manager.authorizeWithBiometrics()

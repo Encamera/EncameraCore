@@ -189,8 +189,6 @@ final class AlbumSizeSidecarTests: XCTestCase {
             changed: [meta(recordName: "m1#0", mediaID: "m1", type: .photo, sizeBytes: 10)],
             deleted: [], token: nil, moreComing: false
         )
-        // A path whose parent is a regular file: `createDirectory` cannot make it, so
-        // every write throws.
         let blocker = tempRoot.appendingPathComponent("not-a-directory")
         try Data("x".utf8).write(to: blocker)
         let sidecar = AlbumSizeSidecar(fileURL: blocker.appendingPathComponent("a.encsizes"))

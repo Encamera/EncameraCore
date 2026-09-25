@@ -10,14 +10,7 @@ public class TempFileAccess: DebugPrintable {
             printDebug("isProcessing is false - proceeding with cleanup")
             deleteDirectory(at: URL.tempMediaDirectory)
             deleteDirectory(at: URL.tempExportDirectory)
-            // CloudKit asset snapshots. Their readers delete their own, but this
-            // is what bounds the ones nobody claimed — they are created inside a
-            // CloudKit delivery block, one per fetched chunk, and without a sweep
-            // they accumulate for the life of the install.
-            // Age-based: skip files younger than 60 s so in-flight consumers can
-            // still read them.
             deleteStaleFiles(in: CKDatabaseAdapter.assetSnapshotDirectory, olderThan: 60)
-            // Recreate the temp directory after cleanup to ensure it exists for future operations
             createDirectoryIfNeeded(at: URL.tempMediaDirectory)
         } else {
             printDebug("isProcessing is true - skipping cleanup")
@@ -26,7 +19,6 @@ public class TempFileAccess: DebugPrintable {
 
     public static func cleanupRecordings() {
         deleteDirectory(at: URL.tempRecordingDirectory)
-        // Recreate the temp recording directory after cleanup
         createDirectoryIfNeeded(at: URL.tempRecordingDirectory)
     }
     
@@ -75,7 +67,6 @@ public class TempFileAccess: DebugPrintable {
         
         do {
             if FileManager.default.fileExists(atPath: url.path) {
-                // List contents before deletion
                 let contents = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
                 printDebug("Directory exists with \(contents.count) items")
                 
@@ -91,7 +82,6 @@ public class TempFileAccess: DebugPrintable {
                     }
                 }
                 
-                // Check if any subdirectories exist
                 let subdirs = contents.filter { url in
                     var isDir: ObjCBool = false
                     FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)

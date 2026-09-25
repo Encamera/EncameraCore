@@ -65,8 +65,6 @@ public actor StorageUsageCalculator: DebugPrintable {
         lastRunTouchedMainThread = Thread.isMainThread
         let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
 
-        // Allocated size, not the in-memory index: the point of the disk-truth
-        // accessor is that orphaned files still occupy the user's storage.
         let cacheFiles = await cache.allocatedFiles()
         var cacheComponentsByFolder: [String: [MediaComponentBytes]] = [:]
         for file in cacheFiles {
@@ -94,11 +92,6 @@ public actor StorageUsageCalculator: DebugPrintable {
                                                              mediaBytes: media,
                                                              indexBytes: indexBytes))
             case .cloudKit:
-                // The sidecar is the only source. The sync path never writes one for
-                // an album with no media, so no sidecar and an empty index is a known
-                // zero; no sidecar beside an index with media is an album that has
-                // never been measured, and one such album makes the whole method
-                // unknowable.
                 let sidecar = makeSidecar(album)
                 var media: MediaTypeBytes?
                 if await sidecar.existsOnDisk() {
@@ -108,8 +101,6 @@ public actor StorageUsageCalculator: DebugPrintable {
                     media = .zero
                 }
                 cloudKitMedia = media.flatMap { m in cloudKitMedia.map { $0 + m } }
-                // The blob cache keeps one folder per album, named the same way the
-                // album's storage URL is; the getter does no filesystem I/O.
                 let cached = MediaTypeBytes.tabulate(cacheComponentsByFolder[album.storageURL.lastPathComponent] ?? [])
                 albumBreakdowns.append(AlbumStorageBreakdown(albumID: album.id,
                                                              storageOption: .cloudKit,
@@ -117,14 +108,9 @@ public actor StorageUsageCalculator: DebugPrintable {
                                                              cachedBytes: cached,
                                                              indexBytes: indexBytes))
             case .icloud:
-                // Measured in the cloud at logical size; its on-device copies are
-                // excluded from every device bucket by the accounting model. The
-                // album URL is only built once iCloud Drive is known to be reachable.
                 legacyICloudDriveAlbums += 1
                 var media: MediaTypeBytes?
                 if driveReachable, let sizes = await driveSizing.logicalSizes(inAlbumDirectory: album.storageURL) {
-                    // The metadata query also lists the directory itself and anything
-                    // nested; only names that name a media type are media.
                     let components = sizes
                         .map { MediaComponentBytes(filename: $0.key, bytes: $0.value) }
                         .filter { $0.type == .photo || $0.type == .video }
@@ -139,7 +125,6 @@ public actor StorageUsageCalculator: DebugPrintable {
         }
 
         try Task.checkCancellation()
-        // Every cache file, including any in a folder no album claims.
         let cachedCloud = MediaTypeBytes.tabulate(cacheComponentsByFolder.values.flatMap { $0 })
 
         try Task.checkCancellation()
@@ -195,8 +180,6 @@ public actor StorageUsageCalculator: DebugPrintable {
         }
         var seen = 0
         for case let url as URL in enumerator {
-            // Checked periodically rather than per file: a large album is tens of
-            // thousands of files, and the check is not free.
             seen += 1
             if seen % 128 == 0 { try Task.checkCancellation() }
             guard let values = try? url.resourceValues(forKeys: Set(Self.sizeKeys)),

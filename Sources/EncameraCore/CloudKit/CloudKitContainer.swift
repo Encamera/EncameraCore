@@ -132,8 +132,6 @@ public final class CloudKitContainer: DebugPrintable {
             printDebug("accountStatus ok status=\(status.rawValue)")
             return status
         } catch {
-            // `.couldNotDetermine` is also a legitimate server answer, so without
-            // this log an error and a genuine "unknown" are indistinguishable.
             printDebug("accountStatus FAILED error=\(error); collapsing to couldNotDetermine")
             return .couldNotDetermine
         }
@@ -171,7 +169,6 @@ public final class CloudKitContainer: DebugPrintable {
                 printDebug("ensureZoneExists FAILED zone=\(CloudKitSchema.zoneName) error=\(error)")
                 throw error
             }
-            // Benign means "already exists"; we still set the flag below.
             printDebug("ensureZoneExists ok zone=\(CloudKitSchema.zoneName) benignError=\(error)")
         }
         defaults.set(true, forKey: zoneCreatedKey)
@@ -203,10 +200,6 @@ public final class CloudKitContainer: DebugPrintable {
     /// that iCloud data may remain.
     public func deleteAllCloudData() async throws {
         printDebug("deleteAllCloudData start zone=\(zoneID.zoneName) container=\(CloudKitSchema.containerID)")
-        // Both latches are cleared however this returns. A delete the server
-        // committed but the client saw fail — a dropped response, a rate limit —
-        // leaves the zone gone; a flag still claiming it exists would make every
-        // later write skip the create and fail. Clearing costs one round trip.
         defer {
             resetZoneCreatedFlag()
             defaults.removeObject(forKey: ChunkedBlobSchema.zoneCreatedDefaultsKey)
@@ -219,13 +212,9 @@ public final class CloudKitContainer: DebugPrintable {
                 printDebug("deleteAllCloudData FAILED zone=\(zoneID.zoneName) error=\(error)")
                 throw error
             }
-            // The zone was already gone — nothing to remove, so this is success.
             printDebug("deleteAllCloudData ok zone=\(zoneID.zoneName) benignError=\(error)")
         }
 
-        // The blob zone too: one zone delete reclaims every chunk record ever
-        // written — including unreachable orphans from any earlier bug — which is
-        // exactly the guarantee "delete my iCloud data" promises.
         let blobZoneID = CKRecordZone.ID(zoneName: ChunkedBlobSchema.zoneName)
         do {
             try await zoneProvisioner.deleteZone(blobZoneID)
@@ -275,8 +264,6 @@ public final class CloudKitContainer: DebugPrintable {
     /// CloudKit errors as success.
     static func isBenignDeleteError(_ error: Error) -> Bool {
         guard let ckError = error as? CKError else {
-            // A non-CKError here means the failure came from somewhere other than
-            // CloudKit, which is never classifiable as "already gone".
             Self.printDebug("isBenignDeleteError MISS reason=notCKError error=\(error)")
             return false
         }
@@ -308,8 +295,6 @@ public final class CloudKitContainer: DebugPrintable {
             return true
         case .partialFailure:
             let perItem: [AnyHashable: Error] = ckError.partialErrorsByItemID ?? [:]
-            // Benign only if there is at least one underlying failure and every
-            // one of them is itself benign.
             let benign = !perItem.isEmpty && perItem.values.allSatisfy { isBenignZoneError($0) }
             Self.printDebug("isBenignZoneError partialFailure benign=\(benign) perItemCount=\(perItem.count)")
             return benign

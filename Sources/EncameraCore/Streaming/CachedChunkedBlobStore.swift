@@ -80,10 +80,6 @@ public final class CachedChunkedBlobStore: ChunkedBlobStoring, DebugPrintable, @
             let staged = chunk.stagedFileURL
             let source = staged ?? FileManager.default.temporaryDirectory
                 .appendingPathComponent("chunkcache-\(UUID().uuidString)")
-            // This file is ours for the rest of the task, whether the store handed it
-            // over or it was written here. A successful move leaves nothing to remove;
-            // every other path — a write failure, a cross-volume copy, a rejected
-            // store — is cleaned up here rather than leaking one file per chunk.
             defer { try? FileManager.default.removeItem(at: source) }
             do {
                 if staged == nil { try chunk.data.write(to: source) }

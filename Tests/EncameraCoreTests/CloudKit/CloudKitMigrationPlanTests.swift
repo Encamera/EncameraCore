@@ -53,7 +53,7 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         let plan = makePlan(items: [
             makeItem(size: 100, state: .verified),
             makeItem(size: 300, state: .sourceDeleted),
-            makeItem(size: 600, state: .uploading),    // in flight: not yet counted
+            makeItem(size: 600, state: .uploading),
         ])
         XCTAssertEqual(plan.totalBytes, 1000)
         XCTAssertEqual(plan.migratedBytes, 400)
@@ -87,7 +87,7 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         XCTAssertTrue(MigrationItemState.skipped.isDone, "a skipped item needs no further work")
         let plan = makePlan(items: [
             makeItem(state: .sourceDeleted),
-            makeItem(state: .skipped),   // source file was missing — nothing to migrate
+            makeItem(state: .skipped),
         ])
         XCTAssertTrue(plan.isComplete, "a migration completes even when an unmigratable item is skipped")
         XCTAssertFalse(plan.hasRemainingWork, "a skipped item is not retried forever")
@@ -128,7 +128,6 @@ final class CloudKitMigrationPlanTests: XCTestCase {
     func testLoadReturnsNilOnCorruptOrTruncatedFile() async throws {
         let url = try makeTempPlanURL()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-        // Garbage bytes (a crash mid-write could leave a partial file).
         try Data([0x00, 0x01, 0x02, 0x03]).write(to: url)
         let loaded = await MigrationPlanStore(keyBytes: randomKey(), planURL: url).load()
         XCTAssertNil(loaded, "a corrupt/truncated checkpoint must read as absent, not crash")

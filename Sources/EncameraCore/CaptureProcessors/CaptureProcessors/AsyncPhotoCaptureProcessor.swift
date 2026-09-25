@@ -72,8 +72,6 @@ extension AsyncPhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
     
     
     
-    // This extension adopts AVCapturePhotoCaptureDelegate protocol methods.
-    
     /// - Tag: WillBeginCapture
     public func photoOutput(_ output: AVCapturePhotoOutput, willBeginCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
 

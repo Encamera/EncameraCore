@@ -37,10 +37,6 @@ public enum VideoChunkingPolicy {
         guard plaintextLength >= Int64(SeekableEncryptedFormat.threshold) else { return false }
         switch storageType {
         case .local, .cloudKit:
-            // Local albums too, not just CloudKit: migration then slices and
-            // uploads the existing ENC3 ciphertext with no re-encryption, and
-            // local albums are single-device, so there is no cross-device
-            // reader-version risk.
             return true
         case .icloud, .none:
             // iCloud Drive syncs files across devices, so an ENC3 file written by

@@ -241,7 +241,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
     private let albumManager: AlbumManaging
     private let container: CloudKitContainer
 
-    // Carried across steps so the upload/list/download/delete steps reuse the album.
     private var testAlbum: Album?
     private var cloud: CloudKitFileAccess?
     private var savedMedia: InteractableMedia<EncryptedMedia>?
@@ -441,9 +440,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
     }
 
     private func checkCreateAlbum() throws -> String? {
-        // A UUID suffix guarantees a unique album name (and therefore a unique
-        // name-derived storage directory / discovery marker) even across rapid
-        // re-runs in the same second or leftover albums from previous runs.
         let name = "\(Self.testAlbumNamePrefix)\(Self.timestamp()) #\(String(NSUUID().uuidString.prefix(8)))"
         let album = try albumManager.create(name: name, storageOption: .cloudKit)
         testAlbum = album
@@ -458,9 +454,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
         let cleartext = CleartextMedia(source: jpeg, mediaType: .photo, id: NSUUID().uuidString)
         let interactable = try InteractableMedia(underlyingMedia: [cleartext])
 
-        // Exact cloud path: CloudKitFileAccess (production wiring — shared coordinator
-        // via the registry, shared blob cache) → encrypt (SecretFileHandlerV2) →
-        // CloudKitMediaStore.upload (writes the encBlob + encThumbnail CKAssets).
         let cloud = await CloudKitFileAccess(album: album, albumManager: albumManager)
         self.cloud = cloud
         await cloud.start()
@@ -533,13 +526,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
     /// The user-visible download loop this branch exists for: start a download,
     /// cancel it mid-transfer, start it again.
     ///
-    /// Both halves are regressions we have shipped:
-    ///   1. Cancel used to release nobody — awaiting the shared fetch task is not a
-    ///      cancellation point, so the caller stayed parked for the whole transfer
-    ///      (and CloudKit kept downloading).
-    ///   2. The restart attached to that abandoned fetch, whose progress closure
-    ///      belonged to the cancelled caller, so its progress bar never moved.
-    ///
     /// Uses its own multi-megabyte payload: the flight check's dummy photo arrives
     /// too fast to ever be caught mid-flight, and only a genuinely in-flight
     /// download proves anything here.
@@ -562,10 +548,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
         cancelProbeMedia = probe
         _ = await cloud.reconcile()
 
-        // 1. Time a full cold download of this exact payload. Everything below is
-        //    scaled off it: the rig's link does tens of MB/s, so any hard-coded
-        //    "cancel after N seconds" either misses the transfer entirely or waits
-        //    long enough that a broken cancel looks instant too.
         try await cloud.evictCachedBlob(for: probe.id, type: .photo)
         let baselineStarted = Date()
         _ = try await cloud.loadMedia(media: probe, progress: { _ in })
@@ -574,17 +556,11 @@ public final class CloudKitFlightCheck: DebugPrintable {
             throw FlightCheckError.downloadTooFastToCatch(bytes: payload.count, seconds: coldSeconds)
         }
 
-        // 2. Start it again and cancel a fraction of the way in, so the cancel
-        //    lands with most of the transfer still to go.
         try await cloud.evictCachedBlob(for: probe.id, type: .photo)
         let firstAttempt = DownloadProgressRecorder()
         let cancelled = Task {
             try await cloud.loadMedia(media: probe, progress: { firstAttempt.record($0) })
         }
-        // Cancel the instant bytes are provably moving, rather than after a fixed
-        // slice of the cold baseline. This second fetch is served warm and routinely
-        // beats that baseline several times over, so any stopwatch-derived grace
-        // period expires when the transfer is already finished.
         let startedWaiting = Date()
         let catchDeadline = startedWaiting.addingTimeInterval(coldSeconds * 3 + 1)
         while firstAttempt.midFlightFraction == nil,
@@ -595,12 +571,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
         let graceSeconds = Date().timeIntervalSince(startedWaiting)
 
         let caughtAt = firstAttempt.midFlightFraction ?? firstAttempt.downloadFractions.last ?? 0
-        // Either the transfer left the downloading phase, or it never reported a
-        // fraction between 0 and 1 at all: the cancel below would land on nothing and
-        // the load would return the media whatever the product does. That is this rig
-        // being faster than the payload, not a cancel being ignored, and the two must
-        // not report the same way — the step says it could not judge rather than
-        // accusing the product of a defect it did not commit.
         if firstAttempt.isPastDownloading || firstAttempt.midFlightFraction == nil {
             cancelled.cancel()
             _ = await Self.outcome(of: cancelled, timeout: coldSeconds * 3 + 1)
@@ -610,9 +580,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
         }
         let cancelledAt = Date()
         cancelled.cancel()
-        // A working cancel releases its caller in milliseconds. Allow it the whole
-        // remaining transfer plus slack, so the only way to exceed this is to have
-        // sat out the download — which is the defect.
         let released = await Self.outcome(of: cancelled, timeout: coldSeconds * 3 + 1)
         let releaseSeconds = Date().timeIntervalSince(cancelledAt)
         switch released {
@@ -626,17 +593,11 @@ public final class CloudKitFlightCheck: DebugPrintable {
             throw error
         }
 
-        // 3. The timing-free proof that the transfer really stopped: give the
-        //    abandoned fetch several times as long as it needed, then check the
-        //    blob cache. A download that secretly ran on to completion stores its
-        //    blob there — on any link, however fast.
         try await Task.sleep(nanoseconds: UInt64((coldSeconds * 3 + 1) * 1_000_000_000))
         if await cloud.isBlobCached(for: probe.id, type: .photo) {
             throw FlightCheckError.cancelledDownloadStillCompleted(seconds: coldSeconds)
         }
 
-        // 4. Restart it. This is the download the user watches after tapping
-        //    Cancel — and the one that used to sit frozen at its last percentage.
         let restart = DownloadProgressRecorder()
         let restartStarted = Date()
         let decrypted = try await cloud.loadMedia(media: probe, progress: { restart.record($0) })
@@ -651,8 +612,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
             throw FlightCheckError.byteMismatch(expected: payload.count, got: bytes.count)
         }
 
-        // Reclaim the probe's quota now — it is an order of magnitude bigger than
-        // the flight check's own test record.
         try? await cloud.delete(media: [probe])
         cancelProbeMedia = nil
 
@@ -719,9 +678,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
                 lastError = error
                 printDebug("\(label): attempt \(attempt)/\(attempts) failed — \(mapCKError(error).description)")
                 if attempt < attempts {
-                    // Propagate cancellation (Task.sleep throws CancellationError)
-                    // instead of swallowing it — a dismissed workbench must be able
-                    // to stop the retry loop, not just wait it out.
                     try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
                 }
             }
@@ -787,9 +743,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
         cascadeProbeMedia = probe
         let childRecordName = MediaRecordName.componentRecordName(mediaID: probe.id, type: .photo)
 
-        // Fetch-by-record-ID, never the `fetchMetadata` query: that index is
-        // eventually consistent, so it can report a live record as absent and a
-        // deleted one as present — both of which would decide this step wrongly.
         let store = CloudKitStoreProvider.makeStore(albumID)
         let landed = await Self.poll(timeout: 60) {
             let found = try? await store.fetchRecordMetadata(recordName: childRecordName)
@@ -798,8 +751,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
         guard landed else { throw FlightCheckError.childNeverReachedServer(recordName: childRecordName) }
 
         albumManager.delete(album: album)
-        // The album and its child are gone from here on; drop the handles so a
-        // cleanup pass does not try to delete them a second time.
         cascadeAlbum = nil
         cascadeCloud = nil
 
@@ -887,12 +838,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
     /// payload of a few tens of megabytes. The cancel/restart step needs a download
     /// that is still transferring a moment after it starts; the solid-colour dummy
     /// photo above compresses to a few kilobytes and is gone instantly.
-    ///
-    /// Sized for the fastest link this runs on, not the slowest: the rig pulls tens
-    /// of megabytes a second, and at 2600px the cold download measured barely over
-    /// `minimumUsefulDownloadSeconds` — so the second, warmer fetch finished before
-    /// the cancel could land and the step reported a product defect that was really
-    /// a stopwatch problem.
     static func makeIncompressibleJPEG(pixelsPerSide: Int = 4200) throws -> Data {
         #if canImport(UIKit)
         let bytesPerRow = pixelsPerSide * 4

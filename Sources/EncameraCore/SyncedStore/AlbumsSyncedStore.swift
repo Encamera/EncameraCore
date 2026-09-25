@@ -107,7 +107,6 @@ public class AlbumsSyncedStore: ObservableObject {
     
     // MARK: - Initialization
     
-    /// Creates a new AlbumsSyncedStore
     /// - Parameter store: The underlying SyncedDataStore instance
     public init(store: SyncedDataStore) {
         self.store = store

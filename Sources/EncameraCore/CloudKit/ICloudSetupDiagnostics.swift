@@ -276,9 +276,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
 
         let account = await accountStatusProbe()
         await emit(account)
-        // Everything below needs a usable account. Without one, CloudKit calls all
-        // return .notAuthenticated and would report N identical failures — which
-        // overstates the number of distinct problems and buries the real one.
         let accountUsable = account.outcome == .pass
 
         await emit(await userRecordProbe(accountUsable: accountUsable))
@@ -309,9 +306,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
         await emit(await subscriptionProbe(prerequisitesMet: zoneReady))
         await emit(await zoneInventoryProbe(prerequisitesMet: zoneReady))
 
-        // The two writes are the money probes: quota, a disabled per-app iCloud
-        // toggle, managed-account restrictions and an undeployed schema only ever
-        // surface on an actual save.
         let albumWrite = await albumRecordWriteProbe(prerequisitesMet: zoneReady)
         await emit(albumWrite.probe)
 
@@ -378,7 +372,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
     public static func cloudKitEnvironment() -> String {
         guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
               let data = try? Data(contentsOf: url) else {
-            // No embedded profile means App Store distribution, which is always Production.
             return "Production (no embedded profile — App Store build)"
         }
         // The profile is CMS-signed; the plist sits inside it as plain text.
@@ -404,7 +397,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
             return "AMBIGUOUS — profile permits \(allowed.joined(separator: " or "))"
                 + "; the effective value lives in the signed entitlement, which iOS cannot read at runtime"
         }
-        // Absent key on a development profile: Xcode defaults to Development.
         return "Development (no container-environment entitlement in the profile)"
     }
 
@@ -440,9 +432,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
         freeDiskSpace=\(freeDescription)
         """
 
-        // Low Power Mode does not block a foreground save, so this is a warning
-        // rather than a failure — but it is the single most common reason an
-        // upload "never finishes" while nothing reports an error.
         let outcome: ICloudDiagnosticOutcome = lowPower ? .warn : .info
         let summary = lowPower
             ? "Low Power Mode is ON — background CloudKit work is deferred"
@@ -866,7 +855,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
                                              summary: "\(CloudKitSchema.zoneName) exists",
                                              detail: "")
             }
-            // Missing — create it, which is what the app does on first use.
             _ = try await container.privateCloudDatabase.modifyRecordZones(
                 saving: [CKRecordZone(zoneName: CloudKitSchema.zoneName)], deleting: [])
             return ICloudDiagnosticProbe(
@@ -905,7 +893,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
         let flag = defaults.bool(forKey: key)
         let base = "defaults[\(key)] = \(flag); zone existed before this sweep = \(zoneExistedBefore)"
 
-        // Only meaningful once we know the real server-side state.
         guard containerReachable else {
             return ICloudDiagnosticProbe(
                 id: "ck.zoneFlag",
@@ -965,7 +952,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
         subscription.notificationInfo = info
         do {
             _ = try await container.privateCloudDatabase.modifySubscriptions(saving: [subscription], deleting: [])
-            // This is a diagnostic subscription, not the app's own — remove it again.
             _ = try? await container.privateCloudDatabase.modifySubscriptions(saving: [], deleting: [subscriptionID])
             return ICloudDiagnosticProbe(
                 id: "ck.subscription",
@@ -1068,8 +1054,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
             types.append(contentsOf: batchTypes)
             token = newToken
             moreComing = more
-            // A server that keeps saying moreComing without advancing the token
-            // would spin forever; treat a nil token as the end of the road.
             if newToken == nil { break }
         }
         return types

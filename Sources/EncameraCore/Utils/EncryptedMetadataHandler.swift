@@ -23,7 +23,7 @@ public actor EncryptedMetadataHandler: DebugPrintable {
     public static func encodeMetadata(_ metadata: EncryptedFileMetadata) throws -> Data {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = .sortedKeys // Deterministic output
+        encoder.outputFormatting = .sortedKeys
         return try encoder.encode(metadata)
     }
 
@@ -47,7 +47,7 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         guard let magicData = try fileHandle.read(upToCount: EncryptedFileFormat.magicSize),
               magicData.count == EncryptedFileFormat.magicSize else {
             printDebug("detectFileVersion: Could not read magic bytes, assuming v1")
-            return 1 // Can't read magic, assume v1
+            return 1
         }
         
         let magicBytes = Array(magicData)
@@ -94,7 +94,6 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         let fileHandle = try FileHandle(forReadingFrom: url)
         defer { try? fileHandle.close() }
         
-        // Step 1: Check for v2 magic
         guard let magicData = try fileHandle.read(upToCount: EncryptedFileFormat.magicSize),
               magicData.count == EncryptedFileFormat.magicSize else {
             printDebug("readMetadata: Could not read magic bytes")
@@ -158,7 +157,6 @@ public actor EncryptedMetadataHandler: DebugPrintable {
             throw EncryptedMetadataError.invalidMetadataSize(metadataLength)
         }
         
-        // Step 5: Read encrypted metadata (stream header + ciphertext)
         guard let encryptedData = try fileHandle.read(upToCount: Int(metadataLength)),
               encryptedData.count == Int(metadataLength) else {
             printDebug("readMetadata: Could not read encrypted metadata")
@@ -166,7 +164,6 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         }
         printDebug("readMetadata: Read \(encryptedData.count) bytes of encrypted metadata")
         
-        // Step 6: Decrypt metadata
         let headerSize = EncryptedFileFormat.streamHeaderSize
         guard encryptedData.count > headerSize else {
             printDebug("readMetadata: Encrypted data too small (size: \(encryptedData.count), header size: \(headerSize))")
@@ -191,7 +188,6 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         }
         printDebug("readMetadata: Decrypted \(decryptedBytes.count) bytes of metadata")
         
-        // Step 7: Parse JSON
         do {
             let metadata = try Self.decodeMetadata(Data(decryptedBytes))
             printDebug("readMetadata: Successfully parsed metadata, captureDate: \(String(describing: metadata.captureDate))")
@@ -228,7 +224,6 @@ public actor EncryptedMetadataHandler: DebugPrintable {
             var pending = urls.makeIterator()
             var inFlight = 0
 
-            // Start initial batch
             while inFlight < concurrency, let url = pending.next() {
                 group.addTask { [self] in
                     let metadata = try? await self.readMetadata(from: url, keyBytes: keyBytes)
@@ -237,7 +232,6 @@ public actor EncryptedMetadataHandler: DebugPrintable {
                 inFlight += 1
             }
 
-            // Process results and add more tasks
             for await result in group {
                 results.append(result)
                 inFlight -= 1
@@ -274,11 +268,9 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         printDebug("encryptMetadata: Starting metadata encryption")
         let sodium = Sodium()
         
-        // Encode to JSON
         let jsonData = try Self.encodeMetadata(metadata)
         printDebug("encryptMetadata: JSON encoded, size: \(jsonData.count) bytes")
         
-        // Create encryption stream
         guard let streamPush = sodium.secretStream.xchacha20poly1305.initPush(secretKey: keyBytes) else {
             printDebug("encryptMetadata: Failed to init stream push")
             throw EncryptedMetadataError.encryptionFailed
@@ -292,7 +284,6 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         }
         printDebug("encryptMetadata: Encrypted metadata, header: \(header.count) bytes, ciphertext: \(cipherText.count) bytes")
         
-        // Build complete encrypted metadata section
         var result = Data()
         result.reserveCapacity(header.count + cipherText.count)
         result.append(contentsOf: header)
@@ -362,11 +353,9 @@ public actor EncryptedMetadataHandler: DebugPrintable {
             return UInt64(header.headerLength)
         }
 
-        // v2: Read metadata length to calculate offset
         let fileHandle = try FileHandle(forReadingFrom: url)
         defer { try? fileHandle.close() }
         
-        // Seek to metadata length field
         try fileHandle.seek(toOffset: UInt64(EncryptedFileFormat.metadataLengthOffset))
         
         guard let lengthData = try fileHandle.read(upToCount: EncryptedFileFormat.metadataLengthSize),
@@ -411,10 +400,8 @@ extension EncryptedMetadataHandler {
             throw EncryptedMetadataError.v1FileNoMetadata
         }
         
-        // Apply the update
         update(&metadata)
         
-        // Read the original content portion
         let contentStart = try contentOffset(for: url)
         let fileHandle = try FileHandle(forReadingFrom: url)
         defer { try? fileHandle.close() }
@@ -424,10 +411,8 @@ extension EncryptedMetadataHandler {
             throw EncryptedMetadataError.readError
         }
         
-        // Build new header
         let newHeader = try buildV2Header(metadata: metadata, keyBytes: keyBytes)
         
-        // Write to temp file then replace
         let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent(UUID().uuidString)
         
@@ -437,7 +422,6 @@ extension EncryptedMetadataHandler {
         
         try newFileData.write(to: tempURL)
         
-        // Replace original with updated file
         _ = try FileManager.default.replaceItemAt(url, withItemAt: tempURL)
     }
 }

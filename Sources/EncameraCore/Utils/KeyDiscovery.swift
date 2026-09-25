@@ -163,10 +163,6 @@ public struct KeyDiscovery: DebugPrintable {
     /// stored key decrypts it. Never throws; performs no writes (no stamping,
     /// no xattr, no memo — that's the caller's job).
     ///
-    /// Callers that need to tell "missing key" from "corrupt file" apart should
-    /// use `discoverKeyOutcome` instead; this stays nil-returning so the existing
-    /// open paths, which treat both the same, are unaffected.
-    ///
     /// Candidate order: stamp matches → xattr hint → current key → remaining
     /// stored keys, deduplicated by uuid. Every candidate — including the
     /// xattr one, which today's open paths trust without verification — is
@@ -219,11 +215,6 @@ public struct KeyDiscovery: DebugPrintable {
         storedKeysSnapshot: [PrivateKey]? = nil,
         onAttempt: ((PrivateKey) -> Void)?
     ) async -> KeyDiscoveryOutcome {
-        // A file whose prologue does not parse, whose stream header is short, or
-        // whose first block is incomplete is not "encrypted with a key we lack" —
-        // no key could ever open it. This is the primary corruption signal, and
-        // it is structural rather than cryptographic: it does not depend on which
-        // keys happen to be in the library.
         guard let probe = FirstBlockProbe(url: sourceURL) else {
             printDebug("discoverKey UNREADABLE url=\(sourceURL.lastPathComponent) reason=prologueOrBlockUnparseable")
             return .unreadable
@@ -241,20 +232,11 @@ public struct KeyDiscovery: DebugPrintable {
         }
 
         if let stamp {
-            // Two of the user's keys can share a stamp prefix (~k²·2⁻³³), so
-            // matches are a list, not a single hit.
             for key in storedKeys where key.stampPrefix == stamp {
                 addCandidate(key)
             }
         }
         if let xattrUUID = (try? ExtendedAttributesUtil.getKeyUUID(for: sourceURL)) ?? nil {
-            // Resolved against `storedKeys` rather than `keyManager.keyWith(uuid:)`,
-            // which runs a SECOND full keychain query of its own — two per file on
-            // any file carrying the xattr. Beyond being cheaper, this makes both
-            // lookups agree by construction: they now read one snapshot instead of
-            // two queries taken moments apart. `keyWith` additionally short-circuits
-            // to `currentKey` when the app is backgrounded, which loses nothing here
-            // because `currentKey` is appended as a candidate immediately below.
             addCandidate(storedKeys.first { $0.uuid == xattrUUID })
         }
         addCandidate(keyManager.currentKey)
@@ -269,21 +251,6 @@ public struct KeyDiscovery: DebugPrintable {
             }
         }
 
-        // Nothing authenticated. Second corruption signal, cryptographic rather
-        // than structural: the file's own stamp says "the key that wrote me is
-        // the one with this prefix", we hold such a key, and it was tried above
-        // and rejected. A correct key only fails to authenticate intact
-        // ciphertext if the ciphertext is no longer intact.
-        //
-        // Unstamped files get no such signal and fall through to `.noKnownKey`.
-        // That is every iCloud Drive file today — see the note on
-        // `KeyDiscoveryOutcome`.
-        //
-        // The stamp is a 4-byte prefix, so this misreads a genuine missing-key
-        // case as damage if a foreign key collides with a stored one (~2⁻³² per
-        // pair). That trade is taken deliberately: in the colliding case the
-        // alternative is telling the user to go add a key whose displayed label
-        // matches one they already have, which is a dead end either way.
         if let stamp, storedKeys.contains(where: { $0.stampPrefix == stamp }) {
             printDebug("discoverKey UNREADABLE url=\(sourceURL.lastPathComponent) reason=stampedKeyHeldButFailedToAuthenticate")
             return .unreadable
@@ -395,17 +362,11 @@ struct FirstBlockProbe {
         }
         defer { try? fileHandle.close() }
         do {
-            // Parse the prologue the same way the shipped handlers do:
-            // v2 files start with the ENC2 magic and a metadata section to
-            // skip; v1 files start directly with the stream header.
             guard let magicData = try fileHandle.read(upToCount: EncryptedFileFormat.magicSize),
                   magicData.count == EncryptedFileFormat.magicSize else {
                 return nil
             }
 
-            // ENC3: per-chunk AEAD, so the proof is authenticating chunk 0 with
-            // its position-bound AAD — the secretstream machinery below cannot
-            // read this format at all.
             if Array(magicData) == SeekableEncryptedHeader.magic {
                 guard let header = (try? SeekableEncryptedHeader.read(fromFileAt: url))?.header,
                       header.geometry.chunkCount > 0 else {
@@ -463,8 +424,6 @@ struct FirstBlockProbe {
             }
             let rawStamp = UInt32(littleEndian: blockSizeData.dropFirst(4).withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) })
 
-            // The first ciphertext block is exactly blockSize bytes (the
-            // encoders record the first block's ciphertext length).
             guard let blockData = try fileHandle.read(upToCount: Int(blockSize)),
                   blockData.count == Int(blockSize) else {
                 return nil

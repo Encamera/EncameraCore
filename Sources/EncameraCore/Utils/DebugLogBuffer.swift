@@ -143,13 +143,11 @@ public final class DebugLogBuffer: @unchecked Sendable {
     /// returns; no `Date()`, no allocation, no string work beyond what the
     /// caller already did.
     public func record(category: String, message: String) {
-        // 1. Cheap gate.
         lock.lock()
         var enabled = capturing
         let resolved = didResolveInitialState
         lock.unlock()
 
-        // 2. First call in the process reads the toggle, outside the lock.
         if !resolved {
             resolveIfNeeded()
             lock.lock()
@@ -158,12 +156,10 @@ public final class DebugLogBuffer: @unchecked Sendable {
         }
         guard enabled else { return }
 
-        // 3. Build the entry outside the lock.
         let timestamp = Date()
         let trimmed = Self.truncate(message)
         let isMain = Thread.isMainThread
 
-        // 4. Short critical section: id, insert, generation bump.
         lock.lock()
         defer { lock.unlock() }
         guard capturing else { return }
@@ -199,7 +195,6 @@ public final class DebugLogBuffer: @unchecked Sendable {
         if !enabled {
             clearLocked()
         }
-        // Bump unconditionally so an open viewer notices the state change.
         generationValue &+= 1
     }
 

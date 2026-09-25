@@ -18,11 +18,11 @@ public enum ImportSource: String, Codable, CaseIterable {
     public var canDeleteTempFilesAfterImport: Bool {
         switch self {
         case .photos:
-            return true  // Photo library imports copy to temp directory, safe to delete
+            return true
         case .files:
-            return false // File imports reference user's files, should not delete
+            return false
         case .shareExtension:
-            return true  // Share Extension files are in app group, safe to delete after import
+            return true
         }
     }
 }
@@ -88,7 +88,6 @@ public struct ImportTask: BackgroundFileTask {
         self.createdAt = Date()
         self.assetIdentifiers = assetIdentifiers
         self.userBatchId = userBatchId
-        // Calculate totalFiles from unique media IDs so live photos count as one item
         let uniqueMediaCount = Set(media.map { $0.id }).count
         self.progress = ImportProgressUpdate(
             taskId: id,

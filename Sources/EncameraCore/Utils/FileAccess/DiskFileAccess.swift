@@ -48,12 +48,6 @@ public actor DiskFileAccess: DebugPrintable {
     /// Short-lived snapshot of the key library, so sweeping an album costs one
     /// keychain query rather than one per image.
     ///
-    /// `KeychainManager.storedKeys()` is a `SecItemCopyMatching` over every
-    /// stored key with `kSecReturnData`, and `resolveKey` runs per file. On an
-    /// iPhone 12 Pro holding one key that measured ~0.39ms per call — ~47ms of
-    /// pure keychain traffic for a 120-image album, growing with the library and
-    /// repeated on every re-entry into an album whose key is missing.
-    ///
     /// The TTL bounds staleness the app cannot see coming: the key library also
     /// changes from OUTSIDE this process — iCloud Keychain sync adds and
     /// tombstones items with no local call to hook, which is precisely what the
@@ -61,7 +55,7 @@ public actor DiskFileAccess: DebugPrintable {
     /// complete on its own.
     ///
     /// The one change that must NOT wait out the TTL is a key being added to fix
-    /// exactly the media being looked at (ENC-99): the user types a phrase and
+    /// exactly the media being looked at: the user types a phrase and
     /// expects the album to open. That posts `.keyLibraryDidGrow`, which bumps
     /// `storedKeysGeneration` below and retires every outstanding snapshot at
     /// once, so the re-enumerate that follows always reads the grown library.
@@ -162,7 +156,6 @@ public actor DiskFileAccess: DebugPrintable {
     public func enumerateAllMedia<T: MediaDescribing>() async -> [T] {
         var allURLs: [URL] = []
 
-        // Enumerate local storage (both locations to handle partial migration)
         allURLs.append(contentsOf: LocalStorageModel.enumeratorForStorageDirectory(
             at: LocalStorageModel.albumsURL,
             resourceKeys: Self.enumerationResourceKeys,
@@ -174,7 +167,6 @@ public actor DiskFileAccess: DebugPrintable {
             fileExtensionFilter: Self.mediaFileExtensionFilter
         ))
 
-        // Enumerate iCloud storage if available (both locations to handle partial migration)
         if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
             allURLs.append(contentsOf: iCloudStorageModel.enumeratorForStorageDirectory(
                 at: iCloudStorageModel.albumsURL,
@@ -263,15 +255,12 @@ public actor DiskFileAccess: DebugPrintable {
                     continue
                 }
 
-                // Skip directories that don't contain user media
                 let name = fileURL.lastPathComponent
                 if name == ".Trash" || name == AppConstants.previewDirectory || name == "thumbs" {
                     enumerator.skipDescendants()
                     continue
                 }
 
-                // Match extensions using the same logic as enumeratorForStorageDirectory,
-                // accounting for .icloud placeholder files (e.g. uuid.enc_photo.icloud)
                 let components = name.split(separator: ".")
                 guard components.count > 1,
                       let fileExtension = components[safe: 1],
@@ -301,14 +290,12 @@ public actor DiskFileAccess: DebugPrintable {
     private func enumerateAllPreviewFiles() -> [URL] {
         var allPreviewFiles: [URL] = []
         
-        // Get preview files from local storage
         let localPreviewFiles = LocalStorageModel.enumeratorForStorageDirectory(
             at: LocalStorageModel.thumbnailDirectory,
             fileExtensionFilter: [MediaType.preview.encryptedFileExtension]
         )
         allPreviewFiles.append(contentsOf: localPreviewFiles)
         
-        // Get preview files from iCloud storage if available
         if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
             let iCloudPreviewFiles = iCloudStorageModel.enumeratorForStorageDirectory(
                 at: iCloudStorageModel.thumbnailDirectory,
@@ -334,12 +321,9 @@ public actor DiskFileAccess: DebugPrintable {
     ) -> (dateTaken: Date?, dateEncrypted: Date?, subtype: MediaFilterOptions) {
         
         if let metadata = v2Metadata {
-            // V2 file - use embedded metadata
             let dateTaken = metadata.captureDate
             let dateEncrypted = metadata.encryptionDate
             
-            // Determine media subtype from V2 metadata
-            // Live Photos are treated as still images for filtering purposes
             let subtype: MediaFilterOptions
             if metadata.contentAnalysis?.isLivePhoto == true || metadata.originalMediaType == "livePhoto" {
                 subtype = .stillImage
@@ -353,7 +337,6 @@ public actor DiskFileAccess: DebugPrintable {
             
             return (dateTaken, dateEncrypted, subtype)
         } else {
-            // V1 file - fall back to file system dates
             var dateTaken: Date?
             var dateEncrypted: Date?
             
@@ -366,13 +349,11 @@ public actor DiskFileAccess: DebugPrintable {
                 }
             }
             
-            // V1 media subtype detection from file extension only
             let subtype: MediaFilterOptions
             switch media.mediaType {
             case .video:
                 subtype = .video
             case .photo:
-                // Cannot detect live photos or screenshots for V1 files
                 subtype = .stillImage
             default:
                 subtype = .stillImage
@@ -394,18 +375,14 @@ public actor DiskFileAccess: DebugPrintable {
         sortBy sortOption: MediaSortOption = .dateEncrypted(ascending: false),
         filterBy filterOptions: MediaFilterOptions = .all
     ) async -> [MediaWithMetadata<EncryptedMedia>] {
-        
-        // Get all encrypted media
         let allMedia: [EncryptedMedia] = await enumerateMedia()
         
         guard !allMedia.isEmpty else {
             return []
         }
         
-        // Get key bytes for metadata decryption
         guard let keyBytes = key?.keyBytes else {
             printDebug("enumerateEncryptedMediaWithMetadata: No key available, using file system fallback for all files")
-            // Fall back to file system dates for all files
             return buildMediaWithMetadataArray(
                 media: allMedia,
                 metadataMap: [:],
@@ -414,7 +391,6 @@ public actor DiskFileAccess: DebugPrintable {
             )
         }
         
-        // Extract URLs for batch metadata reading
         let urls: [URL] = allMedia.compactMap { media in
             if case .url(let url) = media.source {
                 return url
@@ -422,11 +398,9 @@ public actor DiskFileAccess: DebugPrintable {
             return nil
         }
         
-        // Batch read V2 metadata
         let metadataHandler = EncryptedMetadataHandler()
         let metadataResults = await metadataHandler.readMetadataBatch(from: urls, keyBytes: keyBytes)
         
-        // Build URL to metadata map
         var metadataMap: [URL: EncryptedFileMetadata] = [:]
         for (url, metadata) in metadataResults {
             if let metadata = metadata {
@@ -495,9 +469,6 @@ public actor DiskFileAccess: DebugPrintable {
         sortOption: MediaSortOption,
         filterOptions: MediaFilterOptions
     ) -> [MediaWithMetadata<EncryptedMedia>] {
-
-        // First pass: identify IDs of Live Photo components so their video
-        // counterparts can also be treated as still images for filtering
         var livePhotoIDs: Set<String> = []
         for mediaItem in media {
             var v2Metadata: EncryptedFileMetadata?
@@ -510,29 +481,23 @@ public actor DiskFileAccess: DebugPrintable {
             }
         }
 
-        // Second pass: build MediaWithMetadata for each item
         var results: [MediaWithMetadata<EncryptedMedia>] = []
 
         for mediaItem in media {
-            // Get V2 metadata if available
             var v2Metadata: EncryptedFileMetadata?
             if case .url(let url) = mediaItem.source {
                 v2Metadata = metadataMap[url]
             }
 
-            // Extract metadata info (handles V1/V2 fallback)
             var (dateTaken, dateEncrypted, subtype) = extractMetadataInfo(
                 for: mediaItem,
                 v2Metadata: v2Metadata
             )
 
-            // Reclassify video components of Live Photos as still images
-            // so they are filtered together with their photo counterpart
             if subtype == .video && livePhotoIDs.contains(mediaItem.id) {
                 subtype = .stillImage
             }
 
-            // Apply filter
             if !filterOptions.contains(subtype) {
                 continue
             }
@@ -547,12 +512,10 @@ public actor DiskFileAccess: DebugPrintable {
             results.append(wrapper)
         }
         
-        // Apply sorting
         results.sort { item1, item2 in
             switch sortOption {
             case .dateTaken(let ascending):
                 guard let date1 = item1.dateTaken, let date2 = item2.dateTaken else {
-                    // Items without dates go to the end
                     if item1.dateTaken == nil && item2.dateTaken == nil {
                         return false
                     }
@@ -562,7 +525,6 @@ public actor DiskFileAccess: DebugPrintable {
                 
             case .dateEncrypted(let ascending):
                 guard let date1 = item1.dateEncrypted, let date2 = item2.dateEncrypted else {
-                    // Items without dates go to the end
                     if item1.dateEncrypted == nil && item2.dateEncrypted == nil {
                         return false
                     }
@@ -606,15 +568,6 @@ extension DiskFileAccess {
             printDebug("loadMediaPreview: Found existing thumbnail", media.id)
             result = try PreviewModel(source: existingPreview)
         } catch {
-            // "The thumbnail needs a key we do not have" is an answer, not a
-            // miss. Regenerating the preview decrypts the SAME media with the
-            // SAME key, so it cannot succeed — and when the media itself is not
-            // on this device (a CloudKit second device, the exact case ENC-99
-            // exists for) `createPreview` fails through the `.unreadable`
-            // current-key fallback and reports a generic `decryptError`, which
-            // destroys the one actionable signal the user could have acted on.
-            // Observed on the rig: every item in a materialized album showed the
-            // generic failure glyph instead of the missing-key state.
             if case FileAccessError.missingKeyForMedia = error {
                 printDebug("loadMediaPreview: thumbnail needs an absent key for \(media.id)")
                 throw error
@@ -655,7 +608,6 @@ extension DiskFileAccess {
     public func loadMediaInMemory<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
 
         if var encrypted = media as? EncryptedMedia {
-            // Check if file needs to be downloaded from iCloud
             encrypted = try await ensureFileIsDownloaded(encrypted: encrypted, progress: progress)
             return try await decryptMediaToData(encrypted: encrypted, progress: progress)
         } else {
@@ -670,25 +622,20 @@ extension DiskFileAccess {
             return encrypted
         }
 
-        // Get comprehensive iCloud status
         let status = iCloudFileStatusUtil.getStatus(for: sourceURL)
 
-        // If file is not a ubiquitous item or is already downloaded, proceed
         guard status.isUbiquitousItem else {
             return encrypted
         }
 
         switch status.downloadState {
         case .current:
-            // File is fully downloaded
             return encrypted
             
         case .notDownloaded:
-            // File needs to be downloaded
             printDebug("File needs download from iCloud", encrypted.id)
             progress(.downloading(progress: 0))
             
-            // If we have an iCloud directory model, use its download method
             if let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
                 let downloaded = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { [weak self] prog in
                     self?.printDebug("Downloading file from iCloud", encrypted.id, prog)
@@ -696,25 +643,20 @@ extension DiskFileAccess {
                 }
                 return downloaded
             } else {
-                // The file is in iCloud but our directoryModel is not iCloud
-                // This can happen in edge cases - trigger download and wait
                 printDebug("File is in iCloud but directoryModel is not iCloudStorageModel, triggering download", encrypted.id)
                 try iCloudFileStatusUtil.startDownload(for: sourceURL)
                 
-                // Wait for the download to complete with polling
                 let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
                 return downloaded
             }
             
         case .downloading(let downloadProgress):
-            // Download is already in progress, wait for it to complete
             printDebug("File is currently downloading from iCloud, waiting", encrypted.id, downloadProgress)
             progress(.downloading(progress: downloadProgress / 100.0))
             let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
             return downloaded
             
         case .downloadFailed:
-            // Previous download failed, retry
             printDebug("Previous iCloud download failed, retrying", encrypted.id)
             progress(.downloading(progress: 0))
             try iCloudFileStatusUtil.startDownload(for: sourceURL)
@@ -722,14 +664,12 @@ extension DiskFileAccess {
             return downloaded
             
         case .notUbiquitous:
-            // Not an iCloud file, should have been caught above
             return encrypted
         }
     }
 
     public func loadMediaToURL<T: MediaDescribing>(media: T, progress: @escaping (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
         if var encrypted = media as? EncryptedMedia {
-            // Check if file needs to be downloaded from iCloud
             encrypted = try await ensureFileIsDownloaded(encrypted: encrypted, progress: progress)
             return try await decryptMediaToURL(encrypted: encrypted, progress: progress)
         } else if let cleartext = media as? CleartextMedia {
@@ -750,7 +690,6 @@ extension DiskFileAccess {
             var preview: PreviewModel
 
             if let encrypted = media as? EncryptedMedia, encrypted.mediaType == .video {
-                // === Video: single decryption, extract both thumbnail and duration ===
                 let decrypted: CleartextMedia = try await decryptMediaToURL(encrypted: encrypted, progress: { _ in })
                 guard let url = decrypted.url else {
                     printDebug("createPreview: Could not get video URL")
@@ -761,7 +700,6 @@ extension DiskFileAccess {
                 let asset = AVURLAsset(url: url, options: nil)
                 preview.videoDuration = asset.duration.durationText
             } else {
-                // === Photo or cleartext: existing path ===
                 let thumbnail = try await createThumbnail(for: media)
                 preview = PreviewModel(thumbnailMedia: thumbnail)
                 if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video,
@@ -772,9 +710,6 @@ extension DiskFileAccess {
             }
 
             printDebug("createPreview: Created preview for \(media.id)")
-            // A preview inherits the key of the media it was made from, not the album's:
-            // an album can hold media under another key, and an item whose two halves are
-            // under different keys cannot be described by one fingerprint.
             try await savePreview(preview: preview,
                                   sourceMedia: media,
                                   underKey: await sourceKey(of: media))
@@ -810,8 +745,6 @@ extension DiskFileAccess {
         let fileHandler = SecretFileHandler(keyBytes: resolution.key.keyBytes, source: encrypted)
 
         let decrypted: CleartextMedia = try await fileHandler.decryptInMemory()
-        // A successful full decrypt is definitive proof — seed the memo even
-        // when resolution came from the current-key fallback.
         discoveredKeyMemo[encrypted.id] = resolution.key.uuid
         return decrypted
     }
@@ -826,9 +759,6 @@ extension DiskFileAccess {
             throw FileAccessError.missingKeyManager
         }
 
-        // Memo hit: one verification AEAD op, no candidate sweep. A stale
-        // entry (e.g. the file was replaced) is dropped and falls through to
-        // full discovery instead of failing the open.
         if let memoizedUUID = discoveredKeyMemo[mediaID],
            let memoizedKey = await keyManager.keyWith(uuid: memoizedUUID) {
             let (proof, stamp) = await KeyDiscovery.proveFirstBlockReadingStamp(of: sourceURL, with: memoizedKey)
@@ -858,19 +788,10 @@ extension DiskFileAccess {
             return (discovered.key, discovered.stampMatched)
 
         case .noKnownKey(let requiredStampPrefix):
-            // The media is well-formed and simply needs a key we don't have.
-            // Fail loudly here instead of falling back to the current key: that
-            // fallback is what turned "you're missing a key" into an
-            // indistinguishable generic decryptError (ENC-76/ENC-99).
             printDebug("resolveKey: no known key decrypts \(mediaID), stamped=\(requiredStampPrefix != nil)")
             throw FileAccessError.missingKeyForMedia(requiredStampPrefix: requiredStampPrefix)
 
         case .unreadable:
-            // Deliberately preserves the pre-ENC-99 behavior: fall back to the
-            // current key and let the full decrypt fail through the existing
-            // `decryptError` path. `.unreadable` also covers a not-yet-
-            // downloaded iCloud placeholder, whose real error is raised further
-            // up — claiming corruption here would regress that case.
             guard let currentKey = key else {
                 throw FileAccessError.missingPrivateKey
             }
@@ -1025,11 +946,9 @@ extension DiskFileAccess {
 
         let encrypted = try await fileHandler.encrypt()
         
-        // Store the key UUID as an extended attribute for preview files too
         if var encryptedURL = encrypted.url {
             try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
             
-            // Ensure preview files are also included in device backups
             if directoryModel?.storageType == .local {
                 var resourceValues = URLResourceValues()
                 resourceValues.isExcludedFromBackup = false
@@ -1046,11 +965,8 @@ extension DiskFileAccess {
     /// iCloud Drive — the deprecation closes that type to new *albums*, not to writes
     /// into the ones users already have. Gating this on
     /// `DataStorageAvailabilityUtil.isStorageTypeAvailable` would silently break
-    /// exactly that case; `ICloudDriveLegacyContractTests` fails if anyone does
-    /// (ENC-106).
+    /// exactly that case; `ICloudDriveLegacyContractTests` fails if anyone does.
     @discardableResult public func save(media: CleartextMedia, metadata: EncryptedFileMetadata? = nil, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
-        // Check for task cancellation at the start of save operation
-        // This ensures we don't start encryption if the task is already cancelled
         try Task.checkCancellation()
         
         guard let key = key else {
@@ -1064,11 +980,6 @@ extension DiskFileAccess {
 
         let encrypted: EncryptedMedia
 
-        // Format chokepoint (`VideoChunkingPolicy`): a large video becomes
-        // seekable ENC3 — locally too, so a later migration to CloudKit slices
-        // and uploads the existing ciphertext with no re-encryption. iCloud
-        // Drive albums are excluded by the policy (cross-device reader-version
-        // risk); everything else falls through to the handlers below unchanged.
         let plaintextLength = media.url.flatMap { $0.fileSizeBytes() } ?? 0
         if let sourceURL = media.url,
            VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: media.mediaType,
@@ -1108,16 +1019,13 @@ extension DiskFileAccess {
             encrypted = try await fileHandler.encrypt()
         }
         
-        // Store the key UUID as an extended attribute
         if var encryptedURL = encrypted.url {
             try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
 
-            // New local files are born stamped — they never need discovery.
             if shouldStampFile(at: encryptedURL) {
                 KeyStampSlot.writeStamp(key.stampPrefix, url: encryptedURL)
             }
 
-            // Ensure local files are included in device backups for transfer to new devices
             if directoryModel.storageType == .local {
                 var resourceValues = URLResourceValues()
                 resourceValues.isExcludedFromBackup = false
@@ -1125,7 +1033,6 @@ extension DiskFileAccess {
             }
         }
         
-        // Invalidate cached preview so the new one is picked up on next load
         Self.previewCache.removeObject(forKey: media.id as NSString)
         try await createPreview(for: media)
         operationBus.didCreate(encrypted)
@@ -1138,12 +1045,10 @@ extension DiskFileAccess {
         }
         try FileManager.default.copyItem(at: source, to: destinationURL)
         
-        // Copy the key UUID extended attribute if it exists
         if let keyUUID = try? ExtendedAttributesUtil.getKeyUUID(for: source) {
             try? ExtendedAttributesUtil.setKeyUUID(keyUUID, for: destinationURL)
         }
         
-        // Ensure copied files are included in device backups for transfer to new devices
         if directoryModel?.storageType == .local {
             var resourceValues = URLResourceValues()
             resourceValues.isExcludedFromBackup = false
@@ -1165,7 +1070,6 @@ extension DiskFileAccess {
         // a placeholder will either fail or only move the metadata, not the actual data.
         let downloadedMedia = try await ensureFileIsDownloadedForMove(encrypted: media, progress: progress)
         
-        // Use the downloaded source URL (may be different if download was required)
         guard case .url(let downloadedSource) = downloadedMedia.source else {
             throw FileAccessError.couldNotLoadMedia
         }
@@ -1173,7 +1077,6 @@ extension DiskFileAccess {
         try FileManager.default.moveItem(at: downloadedSource, to: destinationURL)
 
         
-        // Ensure moved files are included in device backups for transfer to new devices
         if directoryModel?.storageType == .local {
             var resourceValues = URLResourceValues()
             resourceValues.isExcludedFromBackup = false
@@ -1188,26 +1091,20 @@ extension DiskFileAccess {
             return encrypted
         }
         
-        // Get comprehensive iCloud status
         let status = iCloudFileStatusUtil.getStatus(for: sourceURL)
         
-        // If file is not a ubiquitous item or is already downloaded, proceed
         guard status.isUbiquitousItem else {
             return encrypted
         }
         
         switch status.downloadState {
         case .current:
-            // File is fully downloaded
             return encrypted
             
         case .notDownloaded:
-            // File needs to be downloaded before moving
             printDebug("File needs download from iCloud before move", encrypted.id)
             progress?(.downloading(progress: 0))
             
-            // If we have an iCloud directory model, use its download method
-            // Otherwise, create a temporary iCloud model to download the file
             if let iCloudDirectoryModel = directoryModel as? iCloudStorageModel {
                 let downloaded = try await iCloudDirectoryModel.downloadFileFromiCloud(media: encrypted) { [weak self] prog in
                     self?.printDebug("Downloading file from iCloud for move", encrypted.id, prog)
@@ -1215,33 +1112,26 @@ extension DiskFileAccess {
                 }
                 return downloaded
             } else {
-                // The file is in iCloud but our directoryModel is not iCloud
-                // This can happen when moving from iCloud album to local album
-                // We need to trigger the download and wait for it
                 printDebug("File is in iCloud but directoryModel is not iCloudStorageModel, triggering download", encrypted.id)
                 try iCloudFileStatusUtil.startDownload(for: sourceURL)
                 
-                // Wait for the download to complete with polling
                 let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
                 return downloaded
             }
             
         case .downloading(let downloadProgress):
-            // Download is already in progress, wait for it to complete
             printDebug("File is currently downloading from iCloud, waiting", encrypted.id, downloadProgress)
             progress?(.downloading(progress: downloadProgress))
             let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
             return downloaded
             
         case .downloadFailed:
-            // Previous download failed, try again
             printDebug("Previous iCloud download failed, retrying", encrypted.id)
             try iCloudFileStatusUtil.startDownload(for: sourceURL)
             let downloaded = try await waitForICloudDownload(media: encrypted, progress: progress)
             return downloaded
             
         case .notUbiquitous:
-            // Not an iCloud file, should have been caught above
             return encrypted
         }
     }
@@ -1252,7 +1142,7 @@ extension DiskFileAccess {
             return media
         }
         
-        let maxWaitTime: TimeInterval = 300 // 5 minutes max wait
+        let maxWaitTime: TimeInterval = 300
         let pollInterval: TimeInterval = 0.5
         let startTime = Date()
         
@@ -1263,7 +1153,6 @@ extension DiskFileAccess {
             
             switch status.downloadState {
             case .current:
-                // Download complete
                 progress?(.downloading(progress: 1.0))
                 return media
                 
@@ -1274,18 +1163,15 @@ extension DiskFileAccess {
                 throw FileAccessError.iCloudDownloadFailed(status: status)
                 
             case .notDownloaded:
-                // Still waiting for download to start/continue
                 break
                 
             case .notUbiquitous:
-                // File became local somehow (e.g., was fully downloaded)
                 return media
             }
             
             try await Task.sleep(nanoseconds: UInt64(pollInterval * 1_000_000_000))
         }
         
-        // Timeout - throw error
         printDebug("iCloud download timed out for file", media.id)
         throw FileAccessError.iCloudDownloadTimeout
     }
@@ -1294,7 +1180,6 @@ extension DiskFileAccess {
         var deletedMedia: [EncryptedMedia] = []
         
         for mediaItem in media {
-            // Check for cancellation before deleting each media item
             try Task.checkCancellation()
             
             guard case .url(let source) = mediaItem.source else {
@@ -1340,16 +1225,13 @@ extension DiskFileAccess {
         
         printDebug("setKeyUUIDForExistingFiles: Starting UUID migration for existing files")
         
-        // Get all encrypted media files across all albums
         var allEncryptedMedia: [EncryptedMedia] = await enumerateAllMedia()
         
-        // Also include files from the current album if we have a directoryModel configured
         if let directoryModel = directoryModel {
             let currentAlbumMedia: [EncryptedMedia] = await enumerateMedia()
             allEncryptedMedia.append(contentsOf: currentAlbumMedia)
         }
         
-        // Remove duplicates based on file URL
         var uniqueMedia: [EncryptedMedia] = []
         var seenURLs: Set<URL> = []
         
@@ -1365,7 +1247,6 @@ extension DiskFileAccess {
         print("encrypted media", uniqueMedia.map({$0.id}))
 
         for media in uniqueMedia {
-            // Check for cancellation periodically during UUID migration
             try Task.checkCancellation()
             
             guard case .url(let fileURL) = media.source else {
@@ -1375,11 +1256,9 @@ extension DiskFileAccess {
             processedCount += 1
             
             do {
-                // Check if UUID is already set
                 let existingUUID = try? ExtendedAttributesUtil.getKeyUUID(for: fileURL)
                 
                 if existingUUID == nil {
-                    // No UUID set, set it to the current key's UUID
                     try ExtendedAttributesUtil.setKeyUUID(currentKey.uuid, for: fileURL)
                     updatedCount += 1
                     printDebug("setKeyUUIDForExistingFiles: Set UUID for file \(media.id)")
@@ -1391,20 +1270,16 @@ extension DiskFileAccess {
             }
         }
         
-        // Also process preview files across all storage types
         var allPreviewFiles = enumerateAllPreviewFiles()
         
-        // Include preview files from current album if we have a directoryModel
         if let directoryModel = directoryModel {
             let currentAlbumPreviewFiles = directoryModel.enumeratePreviewFiles()
             allPreviewFiles.append(contentsOf: currentAlbumPreviewFiles)
         }
         
-        // Remove duplicate preview files
         let uniquePreviewFiles = Array(Set(allPreviewFiles))
         
         for previewURL in uniquePreviewFiles {
-            // Check for cancellation periodically during preview file UUID migration
             try Task.checkCancellation()
             
             processedCount += 1

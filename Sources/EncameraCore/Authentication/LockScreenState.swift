@@ -31,10 +31,6 @@ public enum LockScreenState: Equatable {
         biometricsEnabled: Bool,
         availability: BiometricAvailability
     ) -> LockScreenState {
-        // Biometrics is offerable only when the device permits it *and* the
-        // user has consented on this device. Either half missing means no
-        // Face ID button, which is exactly the pair that used to go silently
-        // false together.
         let usableBiometric = biometricsEnabled ? availability.method : nil
 
         guard passcodeType == .none else {

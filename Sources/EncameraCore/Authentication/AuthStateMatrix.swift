@@ -67,9 +67,6 @@ public enum AuthStateMatrix {
         /// tombstones the synced items everywhere. `KeyMissingView` explains it
         /// and offers key-phrase import or a fresh start.
         case keyMissing
-        /// Not a resolution. Represents the pre-ENC-83 behaviour where a
-        /// synced "a passcode is set" configuration met an absent hash and the
-        /// user got an unlock screen no input could satisfy.
         case lockedOut
     }
 
@@ -84,32 +81,18 @@ public enum AuthStateMatrix {
     public static func resolution(for cell: Cell) -> Resolution {
         switch (cell.configPresent, cell.hashPresent, cell.keyPresent) {
 
-        // Fresh install: nothing anywhere.
         case (false, false, false):
             return .onboarding
 
-        // A key synced in before any authentication was configured — the
-        // landing state of the "key arrives first" path. Setting up auth must
-        // not run onboarding-from-scratch, which would treat the key as absent.
         case (false, false, true):
             return .passcodeSetup
 
-        // Pre-configuration installs (the configuration item post-dates the
-        // password hash). Authentication works; heal the configuration.
         case (false, true, false), (false, true, true):
             return .authenticateAndHealConfiguration
 
-        // Only the always-synced configuration made it here. There is no key to
-        // protect and no hash to check, so this is a recovery screen, not a
-        // lockout — and specifically not a silent onboarding, because the user
-        // does have an account whose key may be recoverable from a key phrase.
         case (true, false, false):
             return .keyMissing
 
-        // THE LOCKOUT. The configuration says "a passcode is set" but the hash
-        // that would verify it never synced (backup off on the writing device),
-        // while the key did arrive. The user owns data and cannot open it.
-        // Passcode re-setup is the escape, and it must leave the key untouched.
         case (true, false, true):
             return .passcodeSetup
 

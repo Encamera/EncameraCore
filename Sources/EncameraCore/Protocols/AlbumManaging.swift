@@ -83,8 +83,6 @@ public extension AlbumManaging {
     func finalizeMigrationToCloudKit(album: Album) throws -> Album {
         let cloudKitAlbum = Album.cloudKitTwin(of: album)
         let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(cloudKitAlbum.encryptedPathComponent)
-        // The marker is the only discovery mechanism for CloudKit albums — surface
-        // a write failure instead of silently finishing with an unreachable album.
         try FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
         guard FileManager.default.fileExists(atPath: marker.path) else {
             throw AlbumError.cloudKitMarkerWriteFailed

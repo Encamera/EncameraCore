@@ -11,8 +11,7 @@
 //  device itself.
 //
 //  The queue holds the local *intent*, independently of how the deletion reaches
-//  the server — a real record delete, which cascades to the album's media
-//  (chunk 14).
+//  the server — a real record delete, which cascades to the album's media.
 //
 
 import Foundation
@@ -53,7 +52,6 @@ public struct CloudKitAlbumDeleteQueue: DebugPrintable {
         Self.lock.withLock {
             var set = read()
             guard set.insert(albumID).inserted else {
-                // Already queued: an idempotent re-enqueue, not a lost write.
                 printDebug("enqueue skip albumID=\(albumID) reason=alreadyQueued pending=\(set.count)")
                 return
             }
@@ -66,8 +64,6 @@ public struct CloudKitAlbumDeleteQueue: DebugPrintable {
         Self.lock.withLock {
             var set = read()
             guard set.remove(albumID) != nil else {
-                // Removing an entry that isn't there means someone confirmed a
-                // delete we never recorded — benign, but it hides double-drains.
                 printDebug("remove skip albumID=\(albumID) reason=notQueued pending=\(set.count)")
                 return
             }

@@ -76,9 +76,6 @@ public actor CloudKitBlobCache: DebugPrintable {
     /// persisted entry rather than re-downloading everything; the next sync
     /// supplies a real tag and evicts genuinely stale copies via the mismatch.
     public func cachedURL(recordName: String, changeTag: String?) -> URL? {
-        // Three very different causes used to collapse into a bare `nil` here:
-        // never cached, cached-but-stale, and cached-but-file-vanished. Each gets
-        // its own message so a spurious re-download is attributable.
         guard var entry = index[recordName] else {
             printDebug("cachedURL MISS recordName=\(recordName) reason=notIndexed indexCount=\(index.count)")
             return nil
@@ -158,8 +155,6 @@ public actor CloudKitBlobCache: DebugPrintable {
         }
 
         if let existing = index[recordName] {
-            // Swallowed by design (a missing prior copy is fine), but a real
-            // failure here leaves an orphan file outside the byte cap.
             do {
                 try FileManager.default.removeItem(at: url(for: existing))
                 printDebug("store replace recordName=\(recordName) removedPriorSizeBytes=\(existing.size) priorTag=\(existing.changeTag ?? "nil")")
@@ -186,9 +181,6 @@ public actor CloudKitBlobCache: DebugPrintable {
 
         let attributes = try? FileManager.default.attributesOfItem(atPath: destURL.path)
         if attributes == nil {
-            // The copy above succeeded, so an unreadable destination means the file
-            // is gone/inaccessible already — the entry would then record size 0 and
-            // escape the byte cap forever.
             printDebug("store WARNING recordName=\(recordName) could not read attributes of just-copied file=\(destURL.lastPathComponent); recording sizeBytes=0")
         }
         let size = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
@@ -214,12 +206,6 @@ public actor CloudKitBlobCache: DebugPrintable {
     }
 
     /// Evicts every named record, then writes the index once.
-    ///
-    /// The chunks of one video are thousands of records; evicting them one at a
-    /// time re-encodes and rewrites the whole sidecar per chunk, serialized on this
-    /// actor. Every removal is attempted whatever the ones before it did, and the
-    /// single write happens either way — an index still describing files that are
-    /// gone is the failure this replaces.
     public func evict(recordNames: [String]) {
         guard !recordNames.isEmpty else { return }
         var evicted = 0
@@ -268,8 +254,6 @@ public actor CloudKitBlobCache: DebugPrintable {
             do {
                 try FileManager.default.removeItem(at: fileURL)
             } catch {
-                // Same posture as `evict` and `enforceCap`: a surviving file keeps its
-                // entry, so its bytes keep counting instead of leaking untracked.
                 if FileManager.default.fileExists(atPath: fileURL.path) {
                     printDebug("evictAll WARNING recordName=\(recordName) file remove failed, keeping entry file=\(fileURL.lastPathComponent) raw=\(error)")
                     continue
@@ -403,8 +387,6 @@ public actor CloudKitBlobCache: DebugPrintable {
     /// sidecar) and clears the in-memory index. Used by "Erase All Data" so no
     /// cached ciphertext blobs survive a full reset.
     ///
-    /// Throws on failure: a swallowed error here meant "Erase All Data" could leave
-    /// cached ciphertext blobs on disk while the in-memory index reported them gone.
     /// The index is cleared only after the on-disk removal actually succeeded, so it
     /// keeps tracking whatever survived a failed erase.
     public func clearAll() throws {
@@ -438,7 +420,6 @@ public actor CloudKitBlobCache: DebugPrintable {
         guard maxBytes > 0 else { return }
         var total = totalBytes()
         guard total > maxBytes else { return }
-        // Evict least-recently-used first.
         let ordered = index.sorted { $0.value.lastAccess < $1.value.lastAccess }
         printDebug("enforceCap start totalBytes=\(total) maxBytes=\(maxBytes) entries=\(index.count)")
         for (recordName, entry) in ordered {
@@ -449,10 +430,6 @@ public actor CloudKitBlobCache: DebugPrintable {
                 try FileManager.default.removeItem(at: fileURL)
                 printDebug("enforceCap evict recordName=\(recordName) sizeBytes=\(entry.size) lastAccess=\(entry.lastAccess)")
             } catch {
-                // A file that still exists after a failed remove keeps its index
-                // entry and its bytes in the running total — dropping either would
-                // make the accounting optimistic and let the cache exceed maxBytes
-                // on disk indefinitely. An already-missing file is safe to untrack.
                 if FileManager.default.fileExists(atPath: fileURL.path) {
                     printDebug("enforceCap WARNING recordName=\(recordName) file remove failed, keeping entry file=\(fileURL.lastPathComponent) raw=\(error)")
                     continue
@@ -488,7 +465,6 @@ public actor CloudKitBlobCache: DebugPrintable {
         do {
             try url.setResourceValues(values)
         } catch {
-            // Non-fatal, but it means re-fetchable ciphertext is being backed up.
             printDebug("excludeFromBackup WARNING file=\(url.lastPathComponent) raw=\(error)")
         }
     }
@@ -500,8 +476,6 @@ public actor CloudKitBlobCache: DebugPrintable {
     /// orphans on-disk files outside the byte cap.
     private func loadIndex() {
         guard let data = try? Data(contentsOf: indexFileURL) else {
-            // Absent sidecar is normal on first launch; a read failure on an
-            // existing file is not, and costs a full re-download of the album.
             let exists = FileManager.default.fileExists(atPath: indexFileURL.path)
             printDebug("loadIndex \(exists ? "FAILED" : "skip") reason=\(exists ? "sidecarUnreadable" : "noSidecar") file=\(indexFileURL.lastPathComponent)")
             return
@@ -511,8 +485,6 @@ public actor CloudKitBlobCache: DebugPrintable {
             return
         }
         index = decoded.filter { FileManager.default.fileExists(atPath: url(for: $0.value).path) }
-        // A large gap between decoded and kept means files were reaped underneath
-        // us (Caches purge) and everything in the gap will be re-downloaded.
         printDebug("loadIndex ok decoded=\(decoded.count) kept=\(index.count) droppedMissingFiles=\(decoded.count - index.count) cacheTotalBytes=\(totalBytes())")
     }
 
@@ -530,8 +502,6 @@ public actor CloudKitBlobCache: DebugPrintable {
         do {
             try data.write(to: indexFileURL)
         } catch {
-            // A failed write means the next launch reads a stale sidecar: entries
-            // stored since the last good persist look uncached and re-download.
             printDebug("persist FAILED entries=\(index.count) bytes=\(data.count) file=\(indexFileURL.lastPathComponent) raw=\(error)")
         }
     }

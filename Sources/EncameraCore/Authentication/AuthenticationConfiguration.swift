@@ -30,8 +30,6 @@ public struct AuthenticationConfiguration: Codable, Equatable {
     }
 
     public mutating func addAuthenticationType(_ type: AuthenticationType) {
-        // Only one passcode entry may exist: replace any existing one so the
-        // set can't hold two .passcode cases with different associated values.
         if case .passcode = type, let existing = passcodeType {
             enabledTypes.remove(.passcode(existing))
         }

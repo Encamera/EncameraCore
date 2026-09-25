@@ -102,11 +102,6 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         
         currentTasks[taskIndex].progress.state = .cancelled
         publishProgress(for: currentTasks[taskIndex])
-
-        // Note: We intentionally do NOT call updateIsProcessing() here.
-        // The task is still "in progress" until finalizeTaskCancelled is called,
-        // which handles cleanup, updates asset identifiers, and then updates isProcessing.
-        // This prevents premature UI dismissal before the import has properly cleaned up.
     }
     
     // MARK: - Cancellation
@@ -135,24 +130,15 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             return
         }
         
-        // Always mark the task as cancelled immediately so the UI updates right away.
-        // This ensures the task state is synchronized with the cancellation action.
-        // The handler will still be called to cancel any in-flight operations,
-        // and finalizeTaskCancelled() will be called later to handle cleanup and partial results.
         markTaskCancelled(taskId: taskId)
         
-        // Call the registered cancellation handler if one exists
-        // The handler is responsible for calling finalizeTaskCancelled() when done
         if let handler = cancellationHandlers[taskId] {
             printDebug("Invoking cancellation handler for task: \(taskId)")
             handler()
         } else {
-            // No handler registered - remove after delay
-            // (task is already marked cancelled above)
             removeTaskAfterDelay(taskId: taskId)
         }
         
-        // Remove the cancellation handler
         unregisterCancellationHandler(for: taskId)
     }
     
@@ -206,7 +192,6 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     /// Tasks with partial imports (assetIdentifiers > 0) are kept in the list for history.
     /// Tasks without partial imports are removed after a delay.
     public func finalizeTaskCancelled(taskId: String, assetIdentifiers: [String] = []) {
-        // Only remove the task if there are no partial imports to show in history
         let shouldRemove = assetIdentifiers.isEmpty
         finalizeTaskStopped(taskId: taskId, state: .cancelled, assetIdentifiers: assetIdentifiers, shouldRemove: shouldRemove)
         
@@ -223,7 +208,6 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         }
         
         currentTasks[taskIndex].progress.state = state
-        // Update asset identifiers if provided (for cancelled tasks with partial results)
         applyAssetIdentifiers(assetIdentifiers, at: taskIndex)
         publishProgress(for: currentTasks[taskIndex])
 

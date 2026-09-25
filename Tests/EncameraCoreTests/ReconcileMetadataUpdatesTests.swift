@@ -89,7 +89,6 @@ final class ReconcileMetadataUpdatesTests: XCTestCase {
         XCTAssertTrue(FileManager.default.createFile(atPath: video.path, contents: Data()))
 
         let reference = Date(timeIntervalSinceReferenceDate: 700_000_000)
-        // Photo is untouched, video was rewritten after the reference.
         try setModificationDate(reference.addingTimeInterval(-60), on: photo)
         try setModificationDate(reference.addingTimeInterval(60), on: video)
 

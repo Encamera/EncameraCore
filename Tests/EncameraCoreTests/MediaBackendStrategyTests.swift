@@ -17,8 +17,6 @@ import UIKit
 
 /// A fully in-memory `MediaBackend` so the facade's index/paging layer and the
 /// cancellation contract can be tested without a real disk or CloudKit account.
-/// Removing the silent `FileEnumerator` defaults means this must implement every
-/// member — which is the point.
 actor MediaBackendMock: MediaBackend {
 
     // Instrumentation
@@ -147,8 +145,6 @@ final class MediaBackendStrategyTests: XCTestCase {
         try model.initializeDirectories()
         defer { try? FileManager.default.removeItem(at: model.baseURL) }
 
-        // A Live Photo is a photo + video sharing one media id. Drop both encrypted
-        // files directly on disk — enumeration only lists/parses names, no decryption.
         let id = UUID().uuidString
         let photoURL = model.driveURLForMedia(withID: id, type: .photo)
         let videoURL = model.driveURLForMedia(withID: id, type: .video)
@@ -181,8 +177,6 @@ final class MediaBackendStrategyTests: XCTestCase {
         let changed = await access.reconcileIndex()
         XCTAssertTrue(changed)
 
-        // The facade reads the index straight through the backend after reconcile —
-        // the backend owns the index uniformly for disk and cloud.
         let viaFacade = await access.mediaIndex()
         let onDisk = await store.load()
         XCTAssertEqual(viaFacade?.entries.map { $0.id }, onDisk?.entries.map { $0.id })
@@ -192,10 +186,6 @@ final class MediaBackendStrategyTests: XCTestCase {
     // MARK: - Cancellation (the §0 contract)
 
     func testCancellationStopsBackendEnumeration() async throws {
-        // Exercise the REAL backend's per-item loop, not a test double: the §0
-        // contract lives in `DiskMediaBackend.loadMediaToURLs`, so that is what
-        // must bail. A Live Photo (photo + video, one id) makes it a genuine
-        // multi-item loop.
         let album = makeAlbum(storage: .local)
         let backend = DiskMediaBackend()
         await backend.configure(for: album, albumManager: makeManager(for: album))
@@ -207,8 +197,6 @@ final class MediaBackendStrategyTests: XCTestCase {
         ])
 
         let task = Task { () -> [URL] in
-            // Deterministic: don't enter the backend until cancellation has
-            // landed, so its first per-item check must observe it.
             while !Task.isCancelled { await Task.yield() }
             return try await backend.loadMediaToURLs(media: media, progress: { _ in })
         }
@@ -219,8 +207,6 @@ final class MediaBackendStrategyTests: XCTestCase {
             XCTFail("A cancelled multi-item load must throw CancellationError, not run to completion")
         } catch is CancellationError {
             // expected — the backend's loop bailed at its cancellation check.
-            // Any other error (e.g. a load attempt on the nonexistent file)
-            // means the check was skipped and the loop did real work.
         }
     }
 
@@ -233,8 +219,6 @@ final class MediaBackendStrategyTests: XCTestCase {
             try? MediaIndexStore.clearAllIndexes()
         }
 
-        // One on-disk file so reconcile detects an added id and would otherwise
-        // write the index.
         let id = UUID().uuidString
         try Data([0, 1, 2, 3]).write(to: model.driveURLForMedia(withID: id, type: .photo))
 
@@ -243,10 +227,6 @@ final class MediaBackendStrategyTests: XCTestCase {
 
         XCTAssertFalse(MediaIndexStore.hasIndex(for: album), "precondition: no index yet")
 
-        // Deterministic: an unstructured Task starts concurrently, so racing
-        // cancel() against its startup is flaky. Hold the body until the
-        // cancellation has landed, then run reconcile — its pre-write
-        // cancellation check must bail before saving.
         let task = Task { () -> Bool in
             while !Task.isCancelled { await Task.yield() }
             return await backend.reconcile()
@@ -265,8 +245,6 @@ final class MediaBackendStrategyTests: XCTestCase {
         let store = MockCloudKitMediaStore()
         let access = await CloudKitFileAccess(album: album, albumManager: makeManager(for: album), store: store)
 
-        // Must not throw and must not touch CloudKit — key-UUID xattrs are a
-        // local-disk concern (decision §6.1).
         try await access.setKeyUUIDForExistingFiles()
         XCTAssertEqual(store.uploadCalls, [], "Cloud setKeyUUIDForExistingFiles must be a pure no-op")
     }
@@ -276,8 +254,6 @@ final class MediaBackendStrategyTests: XCTestCase {
         let store = MockCloudKitMediaStore()
         let access = await CloudKitFileAccess(album: album, albumManager: makeManager(for: album), store: store)
 
-        // The cover must be resolved through the CloudKit eager-thumbnail fetch
-        // (decision §6.2), not a local disk read.
         _ = try? await access.loadLeadingThumbnail(coverImageId: UUID().uuidString)
         XCTAssertGreaterThan(store.fetchThumbnailCount, 0, "Cloud cover resolution must fetch the eager thumbnail from CloudKit")
     }
@@ -288,7 +264,6 @@ final class MediaBackendStrategyTests: XCTestCase {
         let disk: any MediaBackend = DiskMediaBackend()
         let mock: any MediaBackend = MediaBackendMock()
         let facade: any FileAccess = InteractableMediaFileAccess()
-        // `any FileAccess` must also satisfy `any MediaBackend` (it refines it).
         let facadeAsBackend: any MediaBackend = facade
         XCTAssertFalse(disk is CloudKitFileAccess)
         XCTAssertTrue(mock is MediaBackendMock)

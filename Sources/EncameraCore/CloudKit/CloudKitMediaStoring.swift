@@ -224,7 +224,7 @@ public struct CloudKitMediaRef: Sendable, Equatable {
     }
 }
 
-/// One album to upsert as a single `EncAlbum` record (chunk 13). `albumID` is the
+/// One album to upsert as a single `EncAlbum` record. `albumID` is the
 /// keyed hash of the album name — it is BOTH the record name and the value media
 /// records carry in `EncMedia.albumID`, so the join needs no separate identifier.
 public struct CloudKitAlbumUpload: Sendable {
@@ -368,13 +368,9 @@ public protocol CloudKitMediaStoring: Sendable {
     func fetchThumbnail(recordName: String, to destination: URL) async throws
 
     /// Removes the record and (atomically) both assets.
-    ///
-    /// The only delete there is. Cross-device propagation is the zone change feed's
-    /// job — `CKFetchRecordZoneChangesOperation` reports deletions — so media needs
-    /// no soft-delete state of its own (chunk 14).
     func delete(recordName: String) async throws
 
-    // MARK: Albums (chunk 13)
+    // MARK: Albums
 
     /// Upsert one `EncAlbum` record so the album syncs across devices. Idempotent:
     /// the record name is the album-id hash, so re-saving the same album is a no-op

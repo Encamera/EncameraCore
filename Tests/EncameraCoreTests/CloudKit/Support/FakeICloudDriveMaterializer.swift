@@ -58,10 +58,6 @@ final class FakeICloudDriveMaterializer: ICloudDriveMaterializing {
     }
 
     /// Turns a real on-disk ciphertext into an iCloud Drive placeholder.
-    ///
-    /// Defaults to `.pathPersists` because that is what a real device does. The
-    /// original version of this fake only modelled the brick, which is why the unit
-    /// suite was green while the device uploaded placeholders to CloudKit.
     func evictForTest(_ url: URL, shape: EvictionShape = .pathPersists) throws {
         let data = try Data(contentsOf: url)
         evictedContents[url] = data
@@ -69,8 +65,6 @@ final class FakeICloudDriveMaterializer: ICloudDriveMaterializing {
 
         switch shape {
         case .pathPersists:
-            // Bytes replaced by a stub, path intact — and reported as evicted
-            // through the same seam the engine consults on a device.
             try Data("placeholder".utf8).write(to: url)
             var evicted = ICloudPlaceholderName.testEvictedURLs ?? []
             evicted.insert(url.standardizedFileURL)
@@ -114,8 +108,6 @@ final class FakeICloudDriveMaterializer: ICloudDriveMaterializing {
                 continue
             }
             guard let data = evictedContents[url] else {
-                // Never evicted (or already back) — the real materializer short-
-                // circuits the same way when the file is already on disk.
                 results[url] = .success(url)
                 continue
             }

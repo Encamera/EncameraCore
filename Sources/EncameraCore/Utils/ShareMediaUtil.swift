@@ -66,35 +66,28 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
         }
 
         var overallProgress: Double = 0.0
-        let progressLock = NSLock() // A lock to ensure thread-safety when updating overallProgress
+        let progressLock = NSLock()
 
         for media in targetMedia {
             do {
                 let media = try await self.fileAccess.loadMediaToURLs(media: media) { status in
-                    // Using lock to ensure thread-safety when updating overall progress
                     self.printDebug("Status: \(status), overallstatus: \(overallProgress), totalMedia: \(totalMediaToLoad)")
                     progressLock.lock()
                     defer { progressLock.unlock() }
 
                     switch status {
                     case .downloading(let percent):
-                        // Update the overall progress based on the percent of the current media
                         overallProgress += (percent / Double(totalMediaToLoad))
                     case .decrypting(let percent):
-                        // Update the overall progress based on the percent of the current media being decrypted
                         overallProgress += (percent / Double(totalMediaToLoad))
                     case .loaded:
-                        // No action required, as the item is fully loaded
                         break
                     case .notLoaded:
-                        // No progress to report if the item is not loaded
                         break
                     }
 
-                    // Make sure the progress value is within bounds (0.0 to 1.0)
                     overallProgress = min(max(overallProgress, 0.0), 1.0)
 
-                    // Report the overall progress
                     progress(.downloading(progress: overallProgress))
                 }
                 self.preparedMediaURLs.append(contentsOf: media)
@@ -103,7 +96,6 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
             }
         }
 
-        // Once all media items are loaded, report the final status as loaded
         progress(.loaded)
     }
 
@@ -130,13 +122,11 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
             let scene = allScenes.first { $0.activationState == .foregroundActive }
 
             if let windowScene = scene as? UIWindowScene, let rootViewController = windowScene.keyWindow?.rootViewController {
-                // Find the topmost presented view controller
                 var currentVC = rootViewController
                 while let presentedVC = currentVC.presentedViewController {
                     currentVC = presentedVC
                 }
                 
-                // Configure popover for iPad
                 ShareMediaUtil.configurePopoverForIPad(
                     activityController: activityView,
                     sourceView: currentVC.view

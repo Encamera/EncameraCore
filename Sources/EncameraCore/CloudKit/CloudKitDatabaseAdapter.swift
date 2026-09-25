@@ -15,8 +15,6 @@ import CloudKit
 ///
 /// The type matters as much as the name: the zone is shared between `EncMedia`
 /// and `EncAlbum`, and CloudKit hands it to us in `recordWithIDWasDeletedBlock`.
-/// Dropping it — as this adapter used to — is what forced album deletes onto a
-/// query path that has no delete channel at all, and from there onto a tombstone.
 public struct DeletedRecord: Equatable, Sendable {
     public let recordName: String
     public let recordType: String
@@ -138,25 +136,12 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
         operation.savePolicy = savePolicy
         operation.qualityOfService = .userInitiated
 
-        // `runCancellable`, like `fetch`: cancelling the awaiting task must stop an
-        // in-flight save — a cancelled 100 MB chunk batch otherwise keeps
-        // transferring invisibly to completion.
         return try await Self.runCancellable(operation) { continuation in
-            // `configuration.isLongLived` stays at its default (false) on purpose —
-            // see the protocol's note and ENC-133. A long-lived save survives app
-            // termination in the daemon, but re-attaching to it on the next launch is
-            // what crashed the app, and the migration checkpoint re-verifies and
-            // re-drives an interrupted item anyway.
-
             var saved: [CKRecord] = []
             var perRecordFailures: [CKRecord.ID: Error] = [:]
             operation.perRecordProgressBlock = { record, fraction in
                 perRecordProgress(record.recordID, fraction)
             }
-            // A per-record failure used to be dropped on the floor here, leaving an
-            // empty `saved` and no error — the caller then could not tell a record that
-            // failed to save from one that saved and returned nothing. `referenceViolation`
-            // (a dangling `parent`) lands exactly here.
             operation.perRecordSaveBlock = { recordID, result in
                 switch result {
                 case .success(let record):
@@ -170,9 +155,6 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                 self?.untrack(operation)
                 switch result {
                 case .success:
-                    // The operation as a whole succeeded but individual records did not:
-                    // surface the per-record failures rather than reporting success
-                    // with nothing saved.
                     if !perRecordFailures.isEmpty {
                         Self.printDebug("save reported success with \(perRecordFailures.count) per-record failure(s): \(perRecordFailures.keys.map(\.recordName))")
                         continuation.resume(throwing: Self.perRecordSaveFailureError(perRecordFailures))
@@ -414,10 +396,6 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
             operation.recordWasChangedBlock = { _, result in
                 if case .success(let record) = result { changed.append(record) }
             }
-            // The second parameter is the deleted record's TYPE. Keeping it is what
-            // lets a caller tell an album deletion from a media one — the whole
-            // reason album deletes can live on this feed instead of needing a
-            // server-side tombstone to be visible at all.
             operation.recordWithIDWasDeletedBlock = { recordID, recordType in
                 deleted.append(DeletedRecord(recordName: recordID.recordName, recordType: recordType))
             }
@@ -440,7 +418,6 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
             operation.fetchRecordZoneChangesResultBlock = { [weak self] result in
                 self?.untrack(operation)
                 if let zoneError {
-                    // We fetch exactly one zone, so its error IS the result.
                     continuation.resume(throwing: zoneError)
                     return
                 }

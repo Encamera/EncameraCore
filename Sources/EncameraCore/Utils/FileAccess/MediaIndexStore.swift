@@ -84,7 +84,6 @@ public actor MediaIndexStore {
     /// Returns the in-memory index, loading it from disk on first access or when
     /// the on-disk file is newer than the cached copy (e.g. after a migration
     /// rebuild on a separate actor). Returns `nil` if no index has been built yet.
-    /// Moved verbatim from `DiskMediaBackend.mediaIndex()`.
     public func current() -> MediaIndex? {
         if cachedIndex != nil {
             let diskDate = fileModificationDate()
@@ -99,8 +98,6 @@ public actor MediaIndexStore {
         }
         if let loaded = load() {
             cachedIndex = loaded
-            // Use the index file's modification date — not `Date()` — so a newer
-            // on-disk write is correctly detected as such on the next read.
             cacheTimestamp = fileModificationDate() ?? Date()
             return loaded
         }

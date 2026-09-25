@@ -64,7 +64,6 @@ final class AlbumsDirectoryMigrationUtilTests: XCTestCase {
         XCTAssertTrue(exists(albumsURL.appendingPathComponent("Album_aaa")))
         XCTAssertTrue(exists(albumsURL.appendingPathComponent("Album_bbb")))
 
-        // Contents preserved.
         let sentinel = albumsURL.appendingPathComponent("Album_aaa").appendingPathComponent("sentinel.bin")
         XCTAssertEqual(try Data(contentsOf: sentinel), Data([0x01, 0x02, 0x03]))
     }
@@ -85,7 +84,6 @@ final class AlbumsDirectoryMigrationUtilTests: XCTestCase {
         _ = try seedAlbum("Album_once", at: rootURL)
 
         XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
-        // Second call: nothing to move, still succeeds.
         XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
 
         XCTAssertTrue(exists(albumsURL.appendingPathComponent("Album_once")))
@@ -93,20 +91,16 @@ final class AlbumsDirectoryMigrationUtilTests: XCTestCase {
     }
 
     func testSkipsWhenDestinationAlreadyExists() throws {
-        // Simulate crash-recovery state: a partially-migrated album exists at dest,
-        // and a stale copy still sits at root. Migration must not clobber the dest.
         _ = try seedAlbum("Album_dup", at: rootURL, withFile: "stale.bin")
         try FileManager.default.createDirectory(at: albumsURL, withIntermediateDirectories: true)
         _ = try seedAlbum("Album_dup", at: albumsURL, withFile: "fresh.bin")
 
         XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
 
-        // Dest retains its existing content.
         let freshFile = albumsURL.appendingPathComponent("Album_dup").appendingPathComponent("fresh.bin")
         XCTAssertTrue(exists(freshFile))
         let staleInDest = albumsURL.appendingPathComponent("Album_dup").appendingPathComponent("stale.bin")
         XCTAssertFalse(exists(staleInDest))
-        // Stale root copy remains; operator can resolve manually.
         XCTAssertTrue(exists(rootURL.appendingPathComponent("Album_dup")))
     }
 
@@ -120,13 +114,11 @@ final class AlbumsDirectoryMigrationUtilTests: XCTestCase {
 
     func testReturnsFalseWhenAlbumsURLCannotBeCreated() throws {
         _ = try seedAlbum("Album_good", at: rootURL)
-        // Point albumsURL at a non-creatable location — a file where a directory should be.
         let blockedAlbumsURL = rootURL.appendingPathComponent("blocked")
         XCTAssertTrue(FileManager.default.createFile(atPath: blockedAlbumsURL.path, contents: Data()))
 
         XCTAssertFalse(util.performMigration(at: rootURL, into: blockedAlbumsURL))
 
-        // Source album untouched — safe for next-launch retry.
         XCTAssertTrue(exists(rootURL.appendingPathComponent("Album_good")))
     }
 

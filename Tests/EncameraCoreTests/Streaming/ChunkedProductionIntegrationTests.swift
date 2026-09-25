@@ -29,8 +29,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
 
     override func tearDownWithError() throws {
         try? FileManager.default.removeItem(at: tempDir)
-        // The delete queue is durable and process-wide: an entry left behind would
-        // suppress another test's upserts and issue phantom deletes.
         for suite in deleteQueueSuites {
             UserDefaults().removePersistentDomain(forName: suite)
         }
@@ -85,12 +83,9 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
 
     func testChunkingPolicyMatrix() {
         let threshold = Int64(SeekableEncryptedFormat.threshold)
-        // Videos at/above threshold chunk on local and CloudKit backends.
         XCTAssertTrue(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .video, plaintextLength: threshold, storageType: .cloudKit))
         XCTAssertTrue(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .video, plaintextLength: threshold + 1, storageType: .local))
-        // Below threshold never chunks.
         XCTAssertFalse(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .video, plaintextLength: threshold - 1, storageType: .cloudKit))
-        // Photos never chunk, no matter the size.
         XCTAssertFalse(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .photo, plaintextLength: threshold * 4, storageType: .cloudKit))
         // iCloud Drive is excluded: an ENC3 file synced to a device on an older
         // app version would be unreadable there.
@@ -114,7 +109,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         let store = makeChunkStore()
         try await store.uploadChunks(enc3FileURL: blob.url, mediaRecordName: "m1", progress: { _ in })
 
-        // Model an interrupted upload: chunks 3 and 7 never landed.
         mock.removeRecord(named: "m1#c3")
         mock.removeRecord(named: "m1#c7")
         mock.resetObservations()
@@ -163,7 +157,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         XCTAssertEqual(reassembled, try Data(contentsOf: blob.url),
                        "header bytes + chunks in order must reproduce the exact original ENC3 file")
 
-        // And the reassembled bytes decrypt to the original plaintext.
         let roundTrip = tempDir.appendingPathComponent("roundtrip.enc3")
         try reassembled.write(to: roundTrip)
         let reader = try SeekableEncryptedReader.forFile(roundTrip, keyBytes: key)
@@ -189,12 +182,9 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
             try await store.ensureZoneExists()
             XCTFail("a failed zone create must propagate")
         } catch {
-            // Expected. The flag must NOT be set, or the install could never
-            // write a chunk again.
             XCTAssertFalse(defaults.bool(forKey: ChunkedBlobSchema.zoneCreatedDefaultsKey))
         }
 
-        // A later attempt with a working provisioner succeeds and latches.
         let healthy = makeChunkStore()
         try await healthy.ensureZoneExists()
         XCTAssertTrue(defaults.bool(forKey: ChunkedBlobSchema.zoneCreatedDefaultsKey))
@@ -226,8 +216,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
                                          plaintextLength: Int64(blob.header.plaintextLength))
         _ = try await store.upload(upload, progress: { _ in })
 
-        // The commit record is the LAST save: until it lands a partial chunk
-        // upload reads as "not chunked yet".
         let lastBatch = try XCTUnwrap(mock.savedRecordBatches.last)
         XCTAssertEqual(lastBatch.map(\.recordType), [CloudKitSchema.EncMedia.recordType])
 
@@ -309,11 +297,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         return blob
     }
 
-    /// The end-to-end failure this whole path exists to prevent: a chunked video
-    /// uploaded, then opened by a reader holding nothing in memory. It failed with
-    /// "Record or asset not found" — `fetchRecordMetadata` did not request
-    /// `chunkCount`, so the record read back as monolithic and the reader went
-    /// looking for an `encBlob` a chunked record deliberately never carries.
     func testChunkedVideoIsReadableByAColdReader() async throws {
         let blob = try await uploadChunkedVideo()
         let coordinator = makeColdCoordinator(albumID: "album-hash")
@@ -349,11 +332,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
                        "without the header bytes there is nothing to open a streaming session with")
     }
 
-    /// A sync runs on launch, before anything is played. It used to make things
-    /// worse rather than better: the change feed did not carry `chunkCount`
-    /// either, so every pass concluded "not chunked" and cleared the geometry the
-    /// coordinator was holding — including the geometry an upload had just put
-    /// there. Playing after a sync had to keep working, not just playing cold.
     func testASyncPassLeavesAChunkedVideoPlayable() async throws {
         let blob = try await uploadChunkedVideo()
         let coordinator = makeColdCoordinator(albumID: "album-hash")
@@ -370,10 +348,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: local), try Data(contentsOf: blob.url))
     }
 
-    /// The other half of the same bug, and the one that does not announce itself:
-    /// a delete reads the chunk count to know what to reclaim. Reading 0 removes
-    /// the commit record and strands every chunk in the blob zone — and once the
-    /// commit record is gone nothing can say how many there were.
     func testDeletingAChunkedVideoColdReclaimsEveryChunkRecord() async throws {
         let blob = try await uploadChunkedVideo()
         let coordinator = makeColdCoordinator(albumID: "album-hash")
@@ -408,14 +382,12 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
                                          plaintextLength: 3_000)
         _ = try await queue.enqueue(upload)
 
-        // Geometry survives a relaunch (a fresh queue over the same directory).
         let relaunched = CloudKitUploadQueue(baseDir: queueDir)
         let pendingItem = await relaunched.pendingItem(recordName: videoRecordName)
         let item = try XCTUnwrap(pendingItem)
         XCTAssertEqual(item.chunkCount, 3)
         XCTAssertEqual(item.plaintextLength, 3_000)
 
-        // And the rebuilt upload carries it back into the drain.
         let rebuilt = await relaunched.rebuild(item, thumbURL: nil)
         XCTAssertEqual(rebuilt.chunkCount, 3)
         XCTAssertEqual(rebuilt.plaintextLength, 3_000)
@@ -426,7 +398,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
     func testDeleteQueueCarriesChunkCountAndMigratesLegacyEntries() {
         let suiteName = makeIsolatedSuiteName()
         let isolated = UserDefaults(suiteName: suiteName)!
-        // A v1 build left bare record names behind.
         isolated.set(["old#1", "old#2"], forKey: "cloudkit_pending_media_deletes_v1")
 
         let queue = CloudKitMediaDeleteQueue(suiteName: suiteName)
@@ -438,7 +409,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         XCTAssertEqual(entries["old#2"], 0)
         XCTAssertNil(isolated.stringArray(forKey: "cloudkit_pending_media_deletes_v1"), "the legacy key is retired")
 
-        // Unknown geometry can be resolved later, but never the reverse.
         queue.enqueue("unknown#2", chunkCount: CloudKitMediaDeleteQueue.unknownChunkCount)
         queue.updateChunkCount(7, for: "unknown#2")
         queue.enqueue("unknown#2", chunkCount: CloudKitMediaDeleteQueue.unknownChunkCount)
@@ -567,7 +537,6 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
                                                   deleteQueue: deleteQueue,
                                                   chunkStore: chunkStore)
 
-        // The record is a chunked video the server knows about.
         store.metadataToReturn = [CloudKitMediaMetadata(recordName: videoRecordName,
                                                         albumID: "a1",
                                                         mediaID: "vid",

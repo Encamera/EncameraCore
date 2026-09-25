@@ -31,7 +31,6 @@ final class StubZoneProvisioner: RecordZoneProvisioning {
 
 final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
 
-    // Captured inputs
     private(set) var savedRecordBatches: [[CKRecord]] = []
     private(set) var deletedRecordIDBatches: [[CKRecord.ID]] = []
     private(set) var lastSavePolicy: CKModifyRecordsOperation.RecordSavePolicy?
@@ -54,7 +53,6 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
     /// private snapshot it uploaded from as soon as `upload` returns.
     private(set) var lastSavedAssetPayloads: [CKRecord.FieldKey: Data] = [:]
 
-    // Programmable behavior
     var saveError: Error?
     /// Models the server's uniqueness constraint: saving a record name it already
     /// holds fails with `serverRecordChanged` (the 14/2004 shape) instead of
@@ -214,8 +212,6 @@ enum CloudKitTestFactory {
         record[CloudKitSchema.EncMedia.sizeBytes] = sizeBytes as CKRecordValue
         record[CloudKitSchema.EncMedia.creationDevice] = "test-device" as CKRecordValue
         record[CloudKitSchema.EncMedia.schemaVersion] = CloudKitSchema.currentSchemaVersion as CKRecordValue
-        // Left off entirely by default, so the default fixture models a record
-        // written before `keyFingerprint` existed.
         if let keyFingerprint { record[CloudKitSchema.EncMedia.keyFingerprint] = keyFingerprint as CKRecordValue }
         return record
     }
@@ -230,7 +226,6 @@ enum CloudKitTestFactory {
         record[CloudKitSchema.EncAlbum.createdAt] = createdAt as CKRecordValue
         record[CloudKitSchema.EncAlbum.isHidden] = (isHidden ? 1 : 0) as CKRecordValue
         record[CloudKitSchema.EncAlbum.schemaVersion] = CloudKitSchema.currentSchemaVersion as CKRecordValue
-        // Same convention as `encMediaRecord`: absent by default == pre-field record.
         if let keyFingerprint { record[CloudKitSchema.EncAlbum.keyFingerprint] = keyFingerprint as CKRecordValue }
         return record
     }

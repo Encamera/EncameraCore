@@ -78,11 +78,6 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
     #if DEBUG
     /// Runs inside a paired update, between the session half and the queue half,
     /// with the lock held. Nil in production and never set by the app.
-    ///
-    /// A test installs it to prove the ordering contract directly: no other paired
-    /// update can complete while one is between its halves. That is the property a
-    /// split implementation breaks, and asserting it here is deterministic —
-    /// racing two mutators and sampling for a torn read is not.
     static var pairedUpdateSeam: (@Sendable () -> Void)?
     #endif
 
@@ -100,11 +95,6 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
     /// the session half — so two queues over the same suite are always backed by
     /// the same session state, and there is no way to express a private durable
     /// half with a shared session half (or the reverse).
-    ///
-    /// Tests use it with a suite of their own. `UserDefaults(suiteName:)` returns
-    /// nil for a name that collides with the app's own bundle id, and silently
-    /// falling back to `.standard` would hand a test the shared store it asked to
-    /// be isolated from, so that is a hard stop rather than a default.
     init(suiteName: String) {
         guard let defaults = UserDefaults(suiteName: suiteName) else {
             preconditionFailure("No UserDefaults suite named \(suiteName) — a bundle id cannot be a suite name")
@@ -293,7 +283,6 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
 
     private func read() -> [String: Int] {
         var map = (defaults.dictionary(forKey: Self.storageKey) as? [String: Int]) ?? [:]
-        // Fold in (and retire) any v1 entries left by an earlier build.
         if let legacy = defaults.stringArray(forKey: Self.legacyStorageKey), !legacy.isEmpty {
             for name in legacy where map[name] == nil { map[name] = 0 }
             defaults.set(map, forKey: Self.storageKey)

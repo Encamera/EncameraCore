@@ -36,8 +36,6 @@ public enum BackgroundImportError: Error, Equatable {
     ///
     /// PhotoKit reports failure through `info` rather than by throwing: `PHImageErrorKey`
     /// carries the underlying error and `PHImageCancelledKey` marks a cancelled request.
-    /// Discarding that dictionary — which every load path used to do — is what made
-    /// "you un-shared this photo" indistinguishable from "this file is corrupt".
     public static func fromPhotoKitInfo(_ info: [AnyHashable: Any]?) -> BackgroundImportError {
         guard let info else { return .assetUnavailable }
 

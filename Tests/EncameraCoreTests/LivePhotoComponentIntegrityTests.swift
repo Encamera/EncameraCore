@@ -74,15 +74,11 @@ final class LivePhotoComponentIntegrityTests: XCTestCase {
         _ = try await backend.save(media: try makePhoto(id: liveID), metadata: nil, progress: { _ in })
         _ = try await backend.save(media: try makePhoto(id: donorID), metadata: nil, progress: { _ in })
 
-        // Move the donor's ciphertext into the Live Photo's video slot, then drop
-        // the donor entirely — leaving `<liveID>.encvideo` beside `<liveID>.encimage`.
         let donorPhotoURL = model.driveURLForMedia(withID: donorID, type: .photo)
         let liveVideoURL = model.driveURLForMedia(withID: liveID, type: .video)
         try FileManager.default.moveItem(at: donorPhotoURL, to: liveVideoURL)
         try? FileManager.default.removeItem(at: model.previewURLForMedia(withID: donorID))
 
-        // The index now reflects the bug: one photo-only entry for the Live Photo,
-        // nothing for the (now gone) donor.
         let store = MediaIndexStore(album: album)
         try await store.replace(with: [
             MediaIndexEntry(
@@ -159,7 +155,6 @@ final class LivePhotoComponentIntegrityTests: XCTestCase {
         await backend.configure(for: album, albumManager: makeManager(for: album))
         let liveID = try await makeHalfRecordedLivePhoto(backend: backend, album: album, model: model)
 
-        // Heal it first, then take the video away behind the index's back.
         await backend.reconcile()
         try FileManager.default.removeItem(at: model.driveURLForMedia(withID: liveID, type: .video))
 
@@ -194,8 +189,6 @@ final class LivePhotoComponentIntegrityTests: XCTestCase {
         await backend.configure(for: album, albumManager: makeManager(for: album))
         let liveID = try await makeHalfRecordedLivePhoto(backend: backend, album: album, model: model)
 
-        // Exactly what `InteractableMediaFileAccess.materialize` builds from the
-        // photo-only entry the gallery is showing.
         let photoOnly = try InteractableMedia(underlyingMedia: [
             EncryptedMedia(
                 source: .url(model.driveURLForMedia(withID: liveID, type: .photo)),
@@ -212,7 +205,6 @@ final class LivePhotoComponentIntegrityTests: XCTestCase {
             "deleting the item must take the paired video with it — a survivor resurfaces as a separate video"
         )
 
-        // And it must stay gone: a reconcile has nothing left to re-add.
         await backend.reconcile()
         let entry = await backend.mediaIndex()?.entries.first { $0.id == liveID }
         XCTAssertNil(entry, "no component may survive to be re-indexed as a standalone video")

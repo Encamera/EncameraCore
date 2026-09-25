@@ -27,7 +27,6 @@ final class FakeAssetDatabase: CloudKitDatabaseAdapter, @unchecked Sendable {
     private var records: [CKRecord.ID: CKRecord] = [:]
     private let storageDir: URL
 
-    // Observability for assertions.
     private(set) var savedRecordBatches: [[CKRecord]] = []
     private(set) var deletedRecordIDBatches: [[CKRecord.ID]] = []
     private(set) var fetchCount = 0

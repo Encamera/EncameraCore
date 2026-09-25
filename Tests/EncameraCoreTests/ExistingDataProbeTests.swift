@@ -101,7 +101,6 @@ final class ExistingDataProbeTests: XCTestCase {
             return XCTFail("expected .found from CloudKit records")
         }
         XCTAssertEqual(summary.cloudKitMediaCount, 3)
-        // Most-used fingerprint first, so the branch screen can lead with it.
         XCTAssertEqual(summary.requiredFingerprints, ["ffff", "1111"])
         XCTAssertTrue(summary.knownDevices.isEmpty)
     }
@@ -158,10 +157,6 @@ final class ExistingDataProbeTests: XCTestCase {
 
     // MARK: - The two ways to read an empty answer
 
-    /// THE false negative this ticket exists to prevent. `keyFingerprint` is not
-    /// queryable server-side yet (ENC-70's pending Dashboard step), so the query
-    /// returns nothing — that is "could not tell", never "no data exists". Reading
-    /// it as `.none` would let a returning user set up as new and lose their media.
     func testUnavailableIndexIsUnknownNotNone() async {
         let store = MockCloudKitMediaStore()
         store.fingerprintCensusOverride = .indexUnavailable
@@ -208,7 +203,7 @@ final class ExistingDataProbeTests: XCTestCase {
         XCTAssertEqual(probed, .unknown)
     }
 
-    // MARK: - Marker semantics (ENC-81)
+    // MARK: - Marker semantics
 
     /// `getMultiDeviceState()` returns nil for BOTH a genuine new user and an
     /// existing user who has not launched since the marker shipped. So nil alone
@@ -296,7 +291,7 @@ final class ExistingDataProbeTests: XCTestCase {
         defer { iCloudStorageModel.testContainerRootOverride = saved }
 
         iCloudStorageModel.testContainerRootOverride = nil
-        _ = LegacyICloudDriveSweep.legacyRootURL()   // must not trap
+        _ = LegacyICloudDriveSweep.legacyRootURL()
 
         let scratch = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("probe-root")
         iCloudStorageModel.testContainerRootOverride = scratch
@@ -317,8 +312,6 @@ final class ExistingDataProbeTests: XCTestCase {
         XCTAssertEqual(store.fingerprintCensusCount, 1, "branch screens must not re-probe")
     }
 
-    /// The UITest stubs are what make the ENC-91..96 branch screens drivable in a
-    /// simulator that has no iCloud account.
     func testStubbedSignalsBypassTheRealSources() async {
         let store = MockCloudKitMediaStore()
         store.accountAvailableValue = false
@@ -376,17 +369,15 @@ final class ExistingDataProbeTests: XCTestCase {
     /// purchase, not of recoverable data. A genuine new user who restores a
     /// subscription still resolves `.none` and proceeds to fresh setup un-gated.
     func testRestoreAloneDoesNotProduceFound() async {
-        let store = MockCloudKitMediaStore()          // empty zone
+        let store = MockCloudKitMediaStore()
         let probe = makeProbe(marker: nil, store: store)
-        ExistingDataProbeTestHooks.stubbedCloudKitCount = 0   // trustworthy negative
+        ExistingDataProbeTestHooks.stubbedCloudKitCount = 0
 
-        // Restore recorded BEFORE the probe runs, then the probe resolves.
         _ = await probe.recordRestoredPurchase()
         let resolved = await probe.result()
         XCTAssertEqual(resolved, ExistingDataProbeResult.none,
                        "A restore alone must never gate fresh setup")
 
-        // ...and recording it AFTER a resolved negative must not upgrade it either.
         let afterwards = await probe.recordRestoredPurchase()
         XCTAssertEqual(afterwards, ExistingDataProbeResult.none,
                        "A restore must not upgrade a resolved `.none`")
@@ -399,7 +390,7 @@ final class ExistingDataProbeTests: XCTestCase {
         ExistingDataProbeTestHooks.forcesTimeout = true
         let probe = makeProbe(marker: nil, store: store)
 
-        _ = await probe.result()                       // resolves `.unknown`
+        _ = await probe.result()
         let annotated = await probe.recordRestoredPurchase()
         XCTAssertEqual(annotated, .unknown,
                        "A restore must not turn `.unknown` into `.found`")
@@ -430,30 +421,18 @@ final class ExistingDataProbeTests: XCTestCase {
 
     // MARK: - reset() vs an in-flight probe
 
-    /// `reset()` exists "for tests and for a post-erase re-probe", and that second
-    /// case is a race: the destructive path runs while a probe may still be
-    /// outstanding. The probe's continuation used to write `cached = value`
-    /// unconditionally, so the pre-erase probe resumed after the reset and put back
-    /// a `.found` describing data that had just been deleted — routing the user
-    /// into the returning-user branch again, immediately after erasing their way
-    /// out of it.
     func testResetIsNotUndoneByAProbeAlreadyInFlight() async throws {
         let store = MockCloudKitMediaStore()
         store.fingerprintCensusOverride = .counted(mediaCount: 4, fingerprints: ["ab": 4])
         store.fingerprintCensusDelayNanos = 400_000_000
         let probe = makeProbe(marker: nil, store: store, budget: 5.0)
 
-        // The pre-erase probe, parked inside its census.
         let inFlight = Task { await probe.result() }
         try await Task.sleep(nanoseconds: 80_000_000)
 
-        // The erase happens and the cache is dropped.
         await probe.reset()
         _ = await inFlight.value
 
-        // The account is empty now. A probe that honoured the reset re-runs and
-        // sees that; one that let the stale continuation write back reports the
-        // deleted media as still present.
         store.fingerprintCensusOverride = .counted(mediaCount: 0, fingerprints: [:])
         store.fingerprintCensusDelayNanos = 0
 

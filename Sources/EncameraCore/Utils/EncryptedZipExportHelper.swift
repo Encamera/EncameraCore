@@ -84,7 +84,6 @@ public class EncryptedZipExportHelper: DebugPrintable {
         password: String,
         progress: @escaping (ZipExportProgress) -> Void
     ) async throws -> URL {
-        // Validate inputs
         guard !media.isEmpty else {
             throw ZipExportError.noMediaToExport
         }
@@ -93,21 +92,16 @@ public class EncryptedZipExportHelper: DebugPrintable {
             throw ZipExportError.emptyPassword
         }
         
-        // Create and register the export task
         let task = createAndRegisterTask()
         exportTaskId = task.id
         
-        // Start background task to prevent cleanup during export
         startBackgroundTask()
         
         do {
-            // Create export directory if needed
             try createExportDirectoryIfNeeded()
             
-            // Decrypt all media to temp directory
             let decryptedURLs = try await decryptMedia(progress: progress)
             
-            // Check if background time expired
             if backgroundTimeExpired {
                 throw ZipExportError.backgroundTimeExpired
             }
@@ -116,27 +110,23 @@ public class EncryptedZipExportHelper: DebugPrintable {
                 throw ZipExportError.decryptionFailed("No files were successfully decrypted")
             }
             
-            // Create password-protected zip
             let zipURL = try createPasswordProtectedZip(
                 from: decryptedURLs,
                 password: password,
                 progress: progress
             )
             
-            // Check if background time expired
             if backgroundTimeExpired {
                 throw ZipExportError.backgroundTimeExpired
             }
             
             progress(.completed)
             
-            // Finalize task as completed
             await finalizeTaskCompleted()
             endBackgroundTask()
             
             return zipURL
         } catch {
-            // Finalize task as failed
             await finalizeTaskFailed(error: error)
             endBackgroundTask()
             throw error
@@ -187,7 +177,6 @@ public class EncryptedZipExportHelper: DebugPrintable {
         printDebug("FileAccess type: \(type(of: fileAccess))")
         
         for mediaItem in media {
-            // Check if background time expired before processing each item
             if backgroundTimeExpired {
                 printDebug("Background time expired - stopping decryption")
                 throw ZipExportError.backgroundTimeExpired
@@ -222,7 +211,6 @@ public class EncryptedZipExportHelper: DebugPrintable {
                         let itemProgress = percent / Double(totalMedia)
                         let overallPercent = min(baseProgress + itemProgress, 1.0)
                         progress(.decrypting(current: currentIndex, total: totalMedia, percent: overallPercent))
-                        // Update task manager progress
                         Task { @MainActor in
                             self.updateTaskProgress(current: currentIndex, total: totalMedia, progress: overallPercent)
                         }
@@ -232,7 +220,6 @@ public class EncryptedZipExportHelper: DebugPrintable {
                         let itemProgress = percent / Double(totalMedia)
                         let overallPercent = min(baseProgress + itemProgress, 1.0)
                         progress(.decrypting(current: currentIndex, total: totalMedia, percent: overallPercent))
-                        // Update task manager progress
                         Task { @MainActor in
                             self.updateTaskProgress(current: currentIndex, total: totalMedia, progress: overallPercent)
                         }
@@ -266,17 +253,14 @@ public class EncryptedZipExportHelper: DebugPrintable {
         password: String,
         progress: @escaping (ZipExportProgress) -> Void
     ) throws -> URL {
-        // Generate unique export name and paths
         let timestamp = ISO8601DateFormatter().string(from: Date())
             .replacingOccurrences(of: ":", with: "-")
         let exportName = "encamera-export-\(timestamp)"
         let zipFilename = "\(exportName).zip"
         let zipPath = URL.tempExportDirectory.appendingPathComponent(zipFilename)
         
-        // Create a subdirectory with the export name to hold the files
         let contentDirectory = URL.tempExportDirectory.appendingPathComponent(exportName)
         
-        // Clean up any existing directory or zip
         if FileManager.default.fileExists(atPath: contentDirectory.path) {
             try? FileManager.default.removeItem(at: contentDirectory)
         }
@@ -284,7 +268,6 @@ public class EncryptedZipExportHelper: DebugPrintable {
             try? FileManager.default.removeItem(at: zipPath)
         }
         
-        // Create the content directory
         do {
             try FileManager.default.createDirectory(at: contentDirectory, withIntermediateDirectories: true)
             printDebug("Created content directory: \(contentDirectory.path)")
@@ -292,7 +275,6 @@ public class EncryptedZipExportHelper: DebugPrintable {
             throw ZipExportError.directoryCreationFailed(error.localizedDescription)
         }
         
-        // Copy files into the content directory
         for url in urls {
             let destinationURL = contentDirectory.appendingPathComponent(url.lastPathComponent)
             do {
@@ -308,8 +290,6 @@ public class EncryptedZipExportHelper: DebugPrintable {
         printDebug("Content directory: \(contentDirectory.path)")
         printDebug("Files to include: \(urls.map { $0.lastPathComponent })")
         
-        // Create the password-protected zip using ZipArchive with keepParentDirectory
-        // This will create a zip where all files are inside a folder named "encamera-export-..."
         let success = SSZipArchive.createZipFile(
             atPath: zipPath.path,
             withContentsOfDirectory: contentDirectory.path,
@@ -317,14 +297,12 @@ public class EncryptedZipExportHelper: DebugPrintable {
             withPassword: password
         )
         
-        // Clean up the content directory after zipping
         try? FileManager.default.removeItem(at: contentDirectory)
         
         guard success else {
             throw ZipExportError.zipCreationFailed("ZipArchive failed to create the zip file")
         }
         
-        // Verify the zip was created
         guard FileManager.default.fileExists(atPath: zipPath.path) else {
             throw ZipExportError.zipCreationFailed("Zip file was not created at expected path")
         }
@@ -344,7 +322,6 @@ public class EncryptedZipExportHelper: DebugPrintable {
         taskManager.addTask(task)
         taskManager.markTaskRunning(taskId: task.id)
         
-        // Register cancellation handler
         taskManager.registerCancellationHandler(for: task.id) { [weak self] in
             self?.printDebug("Cancellation handler invoked for export task")
             self?.backgroundTimeExpired = true
@@ -403,7 +380,6 @@ public class EncryptedZipExportHelper: DebugPrintable {
             self?.printDebug("UIBackgroundTask expiration handler called - background time limit reached")
             Task { @MainActor in
                 self?.backgroundTimeExpired = true
-                // Mark the task as failed due to background time expiration
                 if let taskId = self?.exportTaskId {
                     self?.taskManager.finalizeTaskFailed(taskId: taskId, error: ZipExportError.backgroundTimeExpired)
                 }

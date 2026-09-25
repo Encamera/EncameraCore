@@ -82,8 +82,6 @@ final class KeyStampSlotTests: XCTestCase {
         let fileData = try Data(contentsOf: destinationURL)
         XCTAssertEqual(Array(fileData[Int(offset)..<Int(offset) + 4]), [0, 0, 0, 0], "The stamp slot must be written-as-zero by the shipped encoder")
 
-        // The 4 bytes before the slot are the used half of the block-size
-        // field and must be nonzero (the actual block size).
         let blockSize = fileData[Int(offset) - 4..<Int(offset)].withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
         XCTAssertGreaterThan(blockSize, 0)
     }
@@ -246,7 +244,6 @@ final class KeyStampSlotTests: XCTestCase {
         let url = try await encryptV2Fixture(multiBlockPlaintext, name: "compat-v2")
         KeyStampSlot.writeStamp(0xCAFEBABE, url: url)
 
-        // Both shipped v2 read paths: SecretFileHandlerV2 and SecretFileHandler's v2 branch.
         let viaV2Handler = try await decryptWithV2Handler(url)
         XCTAssertEqual(viaV2Handler, multiBlockPlaintext)
         let viaV1Handler = try await decryptWithV1Handler(url)
@@ -271,8 +268,6 @@ final class KeyStampSlotTests: XCTestCase {
     }
 
     func testMaxPrefixStampStillDecrypts() async throws {
-        // All-ones in the dead bytes — the harshest case for any code that
-        // accidentally reads the block-size field as 8 bytes.
         let v2URL = try await encryptV2Fixture(multiBlockPlaintext, name: "compat-max-v2")
         KeyStampSlot.writeStamp(0xFFFFFFFF, url: v2URL)
         let v2Decrypted = try await decryptWithV2Handler(v2URL)
@@ -285,7 +280,6 @@ final class KeyStampSlotTests: XCTestCase {
     }
 
     func testMultiBlockStampedFileDecryptsFullyToURL() async throws {
-        // The streaming decrypt-to-URL path must also ignore the stamp.
         let sourceURL = try await encryptV2Fixture(multiBlockPlaintext, name: "compat-stream")
         KeyStampSlot.writeStamp(0xCAFEBABE, url: sourceURL)
 

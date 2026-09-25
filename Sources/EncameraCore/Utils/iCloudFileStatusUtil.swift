@@ -80,7 +80,7 @@ public struct iCloudFileStatus {
         case .notDownloaded, .downloadFailed:
             return true
         case .downloading:
-            return true // Still needs to complete download
+            return true
         default:
             return false
         }
@@ -125,7 +125,6 @@ public struct iCloudFileStatusUtil {
             let isDownloading = resourceValues.ubiquitousItemIsDownloading ?? false
             let downloadingError = resourceValues.ubiquitousItemDownloadingError
             
-            // Determine download state
             let downloadState: iCloudFileDownloadState
             
             if !isUbiquitous {
@@ -138,13 +137,11 @@ public struct iCloudFileStatusUtil {
                     downloadState = .current
                 case .notDownloaded:
                     if isDownloading {
-                        // Try to get progress - use NSMetadataQuery for more accurate progress
                         downloadState = .downloading(progress: 0)
                     } else {
                         downloadState = .notDownloaded
                     }
                 default:
-                    // .downloaded but not .current means it's downloaded but may need update
                     downloadState = .current
                 }
             } else {
@@ -175,8 +172,6 @@ public struct iCloudFileStatusUtil {
             )
             
         } catch {
-            // If we can't get resource values, assume it's not a ubiquitous item
-            // but this could also indicate the file doesn't exist
             return iCloudFileStatus(
                 isUbiquitousItem: false,
                 downloadState: .notUbiquitous,
@@ -318,14 +313,11 @@ public class iCloudDirectoryMonitor: ObservableObject {
         let query = NSMetadataQuery()
         query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
         
-        // Build predicate to match files in the directory
         var predicates: [NSPredicate] = []
         
-        // Match files that start with the directory path
         let pathPredicate = NSPredicate(format: "%K BEGINSWITH %@", NSMetadataItemPathKey, directoryURL.path)
         predicates.append(pathPredicate)
         
-        // If file extensions are specified, add extension filter
         if !fileExtensions.isEmpty {
             let extensionPredicates = fileExtensions.map { ext in
                 NSPredicate(format: "%K ENDSWITH[c] %@", NSMetadataItemFSNameKey, ".\(ext)")
@@ -336,14 +328,12 @@ public class iCloudDirectoryMonitor: ObservableObject {
         
         query.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         
-        // Request download status attributes
         query.valueListAttributes = [
             NSMetadataUbiquitousItemDownloadingStatusKey,
             NSMetadataUbiquitousItemPercentDownloadedKey,
             NSMetadataUbiquitousItemIsDownloadingKey
         ]
         
-        // Observe initial gathering completion
         finishGatheringObserver = NotificationCenter.default.addObserver(
             forName: .NSMetadataQueryDidFinishGathering,
             object: query,
@@ -352,7 +342,6 @@ public class iCloudDirectoryMonitor: ObservableObject {
             self?.processQueryResults()
         }
         
-        // Observe updates
         queryObserver = NotificationCenter.default.addObserver(
             forName: .NSMetadataQueryDidUpdate,
             object: query,
@@ -431,10 +420,8 @@ public class iCloudDirectoryMonitor: ObservableObject {
                     totalProgress += percentDownloaded
                 } else {
                     pendingCount += 1
-                    // Pending files contribute 0 to progress
                 }
             default:
-                // Unknown status, treat as pending
                 pendingCount += 1
             }
         }
@@ -442,7 +429,6 @@ public class iCloudDirectoryMonitor: ObservableObject {
         let totalFiles = results.count
         let overallProgress = totalFiles > 0 ? totalProgress / (Double(totalFiles) * 100.0) : 1.0
         
-        // Determine state
         let state: iCloudDirectorySyncState
         if downloadedCount == totalFiles {
             state = .allSynced

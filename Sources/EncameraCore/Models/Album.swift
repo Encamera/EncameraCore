@@ -69,12 +69,8 @@ public struct Album: Codable, Identifiable, Hashable {
             for case let url as URL in enumerator {
                 let isRegularFile = (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) ?? false
                 if isRegularFile {
-                    // Say WHAT blocked it. Silently returning false leaves the album
-                    // still discoverable in its source storage with no explanation —
-                    // which on the rig looked like a migration that had lost files,
-                    // and took a device run per guess to narrow down.
                     printDebug("removeDrainedSourceDirectory KEPT \(baseURL.lastPathComponent) — leftover file \(url.lastPathComponent)")
-                    return false   // leftover data — never delete
+                    return false
                 }
             }
         }
@@ -96,7 +92,7 @@ public struct Album: Codable, Identifiable, Hashable {
 
         if let encryptedMessage = streamEnc.push(message: nameBytes, tag: .FINAL) {
             var combinedData = Data(streamEnc.header()) // Add the header (24 bytes)
-            combinedData.append(contentsOf: encryptedMessage) // Append the encrypted message
+            combinedData.append(contentsOf: encryptedMessage)
 
             let finalComponent = "Album_" + combinedData.base64EncodedString().replacingOccurrences(of: "/", with: "_")
             return finalComponent
@@ -165,9 +161,6 @@ public struct Album: Codable, Identifiable, Hashable {
     }
 }
 
-/// So `removeDrainedSourceDirectory` can report what stopped it from deleting a
-/// migrated album's source directory — on a device that message is the difference
-/// between a diagnosis and a guess.
 extension Album: DebugPrintable {}
 
 /// An album whose encryption key is not on this device. Carries enough metadata

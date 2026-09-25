@@ -350,9 +350,6 @@ public final class StreamingPlaybackSupervisor: DebugPrintable {
             pauseClassification = nil
             return
         }
-        // The notification decides before the buffer does: by the time the
-        // pause is processed, bytes may already have landed for a stall that
-        // was posted first.
         if let stalled = lastStalledNotification, Date().timeIntervalSince(stalled) <= Self.stallPairingWindow {
             noteStall(trigger: "pausedAfterStalledNotification")
         } else if !item.isPlaybackBufferEmpty {
@@ -388,8 +385,6 @@ public final class StreamingPlaybackSupervisor: DebugPrintable {
             resumePending = true
             printDebug("stall pending trigger=\(trigger) time=\(Int(CMTimeGetSeconds(item.currentTime()) * 1000))ms")
         }
-        // The item may already report it can keep up, in which case no
-        // observation is coming to trigger the resume.
         resumeIfReady(trigger: trigger)
     }
 
@@ -437,8 +432,6 @@ public final class StreamingPlaybackSupervisor: DebugPrintable {
         if remaining.isFinite, remaining <= Self.endTolerance { return }
         guard Date().timeIntervalSince(lastActivity) >= starvedAfter else { return }
         rebuild(reason: "starved")
-        // A rebuild clears the pending stall and with it the watch; past the
-        // bound the stall stays pending, and one report of it is enough.
         stopStarvationWatch()
     }
 
@@ -591,14 +584,6 @@ public final class EncryptedStreamResourceLoader: NSObject, AVAssetResourceLoade
             // Finish on the information alone, leaving the ~2-byte dataRequest
             // AVFoundation attaches here unanswered; AVPlayer follows up with real
             // data requests.
-            //
-            // The widely-cited reason is a bug where answering it stops all further
-            // loading requests. That does NOT reproduce on iOS 26 — answering it
-            // still plays, verified by mutation-testing
-            // `testRealAVPlayerBecomesReadyAndDecodesAFrameThroughTheLoader`, which
-            // passes either way. Keeping the behaviour anyway: it is the documented
-            // shape, it costs nothing, and the failure it guards against is silent.
-            // Do not treat the test as proof that answering is unsafe.
             loadingRequest.finishLoading()
             finish(trace, for: loadingRequest)
             return true
@@ -696,9 +681,6 @@ public final class EncryptedStreamResourceLoader: NSObject, AVAssetResourceLoade
                               requestedLength: Int,
                               requestsAllToEnd: Bool,
                               plaintextLength: Int) -> Range<Int> {
-        // The requested window first, then intersect with the resource. Clamping the
-        // START before computing the end would widen a negative-offset request past
-        // the end position the caller actually asked for.
         let requestedEnd = requestsAllToEnd
             ? plaintextLength
             : requestedOffset + max(0, requestedLength)
@@ -761,8 +743,6 @@ public final class EncryptedStreamResourceLoader: NSObject, AVAssetResourceLoade
         }
 
         do {
-            // Slices arrive in order and each lies within one chunk, so the chunk a
-            // slice came from is the one holding the cursor it starts at.
             var cursor = range.lowerBound
             for try await slice in responseSlices(for: range) {
                 try Task.checkCancellation()

@@ -123,11 +123,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
 
     // MARK: - Planning
 
-    // `.icloud` sources are accepted — the engine materializes each batch of evicted
-    // files before uploading it. That path lives in `ICloudDriveMigrationTests`,
-    // which needs a substituted ubiquity container; only `.cloudKit` is refused
-    // outright, and `testPlanRejectsCloudKitAlbum` above covers it.
-
     func testPlanCreatesPendingItemPerComponent() async throws {
         let album = makeAlbum()
         let (manager, albumManager) = makeManager(for: album)
@@ -168,7 +163,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
         _ = try await manager.plan(album: album)
 
-        // Simulate one item having already reached CloudKit (verified) before a relaunch.
         let store = MigrationPlanStore(album: album)
         let loaded = await store.load()
         var persisted = try XCTUnwrap(loaded)
@@ -193,8 +187,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let reloaded = await MigrationPlanStore(album: album).load()
         XCTAssertEqual(reloaded?.items.count, 1)
 
-        // The checkpoint embeds the cleartext album name, so the bytes on disk must
-        // be ciphertext — not merely round-trippable through the store.
         let raw = try Data(contentsOf: MigrationPlanStore.planURL(for: album))
         XCTAssertFalse(raw.isEmpty)
         XCTAssertNil(try? JSONSerialization.jsonObject(with: raw),
@@ -247,12 +239,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testMigrationPreservesPreviewsInGlobalThumbnailDirectory() async throws {
-        // Previews live in the single global, storage-agnostic thumbnail
-        // directory; the `.cloudKit` twin reads them from exactly the same path.
-        // Deleting them with the source ciphertext forces a full thumbnail
-        // re-download of a just-migrated album (blank grid cells offline), and
-        // for a Live Photo removes the shared preview before its second
-        // component uploads.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         store.reflectUploadsInMetadata = true
@@ -286,8 +272,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertEqual(store.uploadCalls.count, 2)
         XCTAssertEqual(albumManager.finalizeCallCount, 1)
 
-        // A second run (e.g. the user re-opens the screen): the source is already
-        // drained, so nothing re-uploads and the album isn't flipped again.
         await manager.start(album: album)
         XCTAssertEqual(store.uploadCalls.count, 2, "completed items are never re-uploaded")
         XCTAssertEqual(albumManager.finalizeCallCount, 1, "the album is not re-finalized")
@@ -303,8 +287,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let planned = try await manager.plan(album: album)
         let item = try XCTUnwrap(planned.items.first)
 
-        // Simulate a crash AFTER the upload reached CloudKit but BEFORE the source was
-        // deleted: the record is on the server and the checkpoint says `uploaded`.
         store.metadataToReturn = [CloudKitMediaMetadata(
             recordName: item.recordName, albumID: "x", mediaID: item.mediaID, mediaType: item.mediaType,
             createdAt: item.createdAt, sizeBytes: item.sizeBytes, creationDeviceID: "mock",
@@ -326,10 +308,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     // MARK: - Parent reference ordering
 
     func testAlbumRecordIsSavedBeforeAnyUpload() async throws {
-        // CloudKit rejects a media save whose parent `EncAlbum` record is not on
-        // the server (CKError 31, reference violation). With the mock enforcing
-        // that requirement, this run completes only because `run` creates the
-        // album record before the item loop — the 2b4ab4f4 fix.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         store.reflectUploadsInMetadata = true
@@ -370,9 +348,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testSaveAlbumFailureFailsFastWithoutUploading() async throws {
-        // If the album record cannot be created, every upload would fail with the
-        // same reference violation — the run must fail fast with the real reason
-        // instead of emitting N identical per-item failures.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         store.saveAlbumError = CloudKitMediaStoreError.zoneNotFound
@@ -392,13 +367,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testSaveAlbumSchemaMissingSurfacesSchemaNotDeployedReason() async throws {
-        // A release build whose CloudKit Production schema lacks the `EncAlbum`
-        // record type fails the very first `saveAlbum` with a per-record
-        // `CKError.invalidArguments` ("Cannot create new type EncAlbum in
-        // production schema"). That must surface as the distinct
-        // `.schemaNotDeployed` reason — not the generic
-        // `.other("Partial failure (1 failed)")` — so the alert is actionable
-        // and the diagnostic shorthand names the real cause.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         let serverError = NSError(
@@ -454,7 +422,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
             XCTAssertTrue(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path))
         }
 
-        // "Free up space" (the one-shot error already cleared) and resume.
         await manager.resume(album: album)
         XCTAssertEqual(manager.state, .completed)
         XCTAssertFalse(MigrationPlanStore.hasPlan(for: album), "the checkpoint is removed on completion")
@@ -464,9 +431,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testQuotaWrappedInPartialFailureStillHaltsAsQuota() async throws {
-        // The real adapter reports a CKModifyRecordsOperation's per-record failure
-        // wrapped in `.partialFailure` -> `.partial(failed:)`. The quota halt must
-        // fire through that wrapping, not just for the bare typed error.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         store.reflectUploadsInMetadata = true
@@ -485,9 +449,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testConflictWrappedInPartialFallsThroughToVerify() async throws {
-        // A record with the stable name already on the server surfaces as a
-        // partial-wrapped `.serverRecordChanged`. The engine must fall through to
-        // the verify gate (which confirms presence + size) instead of failing.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         defer { cleanup(album) }
@@ -495,7 +456,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
         let plan = try await manager.plan(album: album)
         let item = try XCTUnwrap(plan.items.first)
-        // Server truth: the record is already there with the expected size.
         store.metadataToReturn = [CloudKitMediaMetadata(
             recordName: item.recordName,
             albumID: "any",
@@ -517,9 +477,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testStaleVerifiedItemIsReVerifiedBeforeSourceDelete() async throws {
-        // An item persisted as `verified` from an earlier run may be arbitrarily
-        // stale — the record could have been erased from another device since.
-        // Resume must re-verify before the irreversible source delete.
         let album = makeAlbum()
         let (manager, albumManager, _) = makeExecutableManager(for: album)
         defer { cleanup(album) }
@@ -529,10 +486,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         for index in plan.items.indices { plan.items[index].state = .verified }
         try await MigrationPlanStore(album: album).save(plan)
 
-        // Server truth: the record no longer exists (metadataToReturn stays empty),
-        // and the re-driven upload cannot verify either (`reflectUploadsInMetadata`
-        // is off) — so the item must surface as a visible failure, not a silent
-        // `.idle` the launcher reads as a user cancel.
         await manager.start(album: album)
 
         for id in ids {
@@ -549,10 +502,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testStaleVerifiedItemIsReDrivenToCompletionInSamePass() async throws {
-        // A stale `verified` item whose record vanished is reset to `pending` by
-        // the re-verify gate. The run must re-drive it in the SAME pass (upload,
-        // verify, delete) and complete — not end as a silent `.idle` that the
-        // launcher reports to the user as "Move to iCloud canceled".
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         store.reflectUploadsInMetadata = true
@@ -563,8 +512,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         for index in plan.items.indices { plan.items[index].state = .verified }
         try await MigrationPlanStore(album: album).save(plan)
 
-        // Server truth: the record is gone (metadataToReturn starts empty), but a
-        // re-upload will land and verify.
         await manager.start(album: album)
 
         XCTAssertEqual(manager.state, .completed, "the re-driven item must finish in this pass")
@@ -595,14 +542,9 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testMigrationFailsClosedWhenAlbumIDHashCannotBeDerived() async throws {
-        // If the keyed-hash derivation fails, the run must fail closed: falling
-        // back to `album.id` ("<name>_<storage>") would persist the CLEARTEXT
-        // album name into CloudKit record fields — and in a namespace the
-        // reconciler (which skips unhashable albums) can never match, pull, or
-        // tombstone.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
-        manager.albumIDHashOverride = { _ in nil }   // derivation failure
+        manager.albumIDHashOverride = { _ in nil }
         defer { cleanup(album) }
 
         let ids = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
@@ -640,7 +582,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let ids = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
         _ = try await manager.plan(album: album)
 
-        // Simulate a crash mid-upload: the checkpoint shows an `uploading` item.
         let planStore = MigrationPlanStore(album: album)
         let loaded = await planStore.load()
         var persisted = try XCTUnwrap(loaded)
@@ -681,10 +622,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testCancelDuringPreflightIsHonoredBeforeAnyUpload() async throws {
-        // The launcher registers its cancellation handler as soon as the task is
-        // added, so a cancel can land while `start()` is still planning or inside
-        // the account/zone/saveAlbum preflight. It must stop the run before the
-        // first upload — not be clobbered by the run loop claiming `control`.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         store.reflectUploadsInMetadata = true
@@ -705,9 +642,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testCancelDuringPreflightOfEmptyAlbumDoesNotFinalize() async throws {
-        // The zero-item plan never enters the item loop, so the pre-loop control
-        // check is the only thing standing between a cancelled preflight and an
-        // album silently flipped to CloudKit.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         defer { cleanup(album) }
@@ -734,7 +668,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
 
         let ids = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
         _ = try await manager.plan(album: album)
-        // One source ciphertext disappears out of band before the migration runs.
         try FileManager.default.removeItem(at: sourceEncURL(album: album, id: ids[0]))
 
         await manager.start(album: album)
@@ -746,9 +679,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testEmptyAlbumMigrationFinalizesAndCompletes() async throws {
-        // Zero items means zero remaining work, not "incomplete": the run must
-        // finalize (flip the album to CloudKit) and clean up its checkpoint, not
-        // fall into `.idle` and orphan a never-resumable zero-item plan.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         store.reflectUploadsInMetadata = true
@@ -764,10 +694,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testPlanDoesNotPublishTerminalCompleted() async throws {
-        // Planning must never publish a terminal state: on a finalize-retry resume
-        // (all items already sourceDeleted) a pre-run `.completed` makes the UI
-        // adopt the CloudKit twin and tear down its binding BEFORE `run()` retries
-        // finalize — dropping the failure if finalize fails again.
         let album = makeAlbum()
         let (manager, albumManager, _) = makeExecutableManager(for: album)
         defer { cleanup(album) }
@@ -809,9 +735,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let (manager, albumManager, _) = makeExecutableManager(for: album)
         defer { cleanup(album) }
 
-        // Real components on disk, so the storage-type guard is the only thing that
-        // can produce a zero estimate: an album already at the destination has no
-        // work regardless of what its directory holds.
         _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
 
         let estimate = await manager.estimate(album: album)
@@ -828,7 +751,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         defer { cleanup(album) }
 
         _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
-        _ = try await manager.plan(album: album)   // writes an incomplete checkpoint
+        _ = try await manager.plan(album: album)
 
         let pending = await manager.pendingPlans()
         XCTAssertEqual(pending.map(\.id), [album.id])
@@ -853,10 +776,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testFinalizeFailureKeepsCheckpointSurfacedByPendingPlans() async throws {
-        // Finalize failure leaves every item `sourceDeleted` (no remaining per-item
-        // work) but the album undiscoverable — the checkpoint is the ONLY retry
-        // state. `pendingPlans()` must surface it, or the one-time failure alert is
-        // the last chance anyone gets to retry finalize.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         store.reflectUploadsInMetadata = true
@@ -878,8 +797,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testFinalizeFailureCheckpointResumesToCompletion() async throws {
-        // The kept checkpoint must actually finish the job on the next resume once
-        // the failure clears: retry finalize, flip the album, delete the checkpoint.
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
         store.reflectUploadsInMetadata = true
@@ -935,7 +852,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
 
     /// Moving media into the cloud must never be treated as consent to sync the
     /// key that decrypts it. A full local -> CloudKit migration leaves the key
-    /// sync setting exactly as the user left it (ENC-84).
+    /// sync setting exactly as the user left it.
     func testMigrationDoesNotTouchKeySyncSetting() async throws {
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
@@ -953,11 +870,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testMoveCloudKitAlbumToLocalAbortsWhenReconcileFails() async throws {
-        // Every destructive step of the move (export, deleteAllMedia, tombstone)
-        // enumerates from the LOCAL index. If the pre-move reconcile fails, that
-        // index may be stale or empty (fresh device), so tearing down the cloud
-        // plane would orphan every record the index doesn't know about — on every
-        // device. The move must abort and leave the album fully usable in CloudKit.
         let priorMakeStore = CloudKitStoreProvider.makeStore
         let store = MockCloudKitMediaStore()
         store.fetchChangesError = CloudKitMediaStoreError.underlying(NSError(domain: "test", code: 1))
@@ -975,8 +887,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
             _ = try await manager.moveCloudKitAlbumToLocal(album: album)
             XCTFail("a failed reconcile must abort the move, not run the cloud teardown against a stale index")
         } catch AlbumError.cloudReconcileFailed {
-            // The only acceptable abort. Any other error propagates and fails the
-            // test: it would mean the move stopped before it reached the reconcile.
         }
         XCTAssertGreaterThan(store.fetchChangesCount, 0,
                              "the abort must come from an attempted reconcile, not an earlier guard")
@@ -1011,12 +921,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: marker.path), "the CloudKit discovery marker is written")
     }
 
-    // MARK: - iCloud Drive deprecation is unconditional (ENC-88)
-
-    /// Both deprecation backstops used to be gated on the `cloudKitStorage` feature
-    /// flag, which defaults ON only in DEBUG — so in a release build they were inert
-    /// and iCloud Drive albums kept being created. These two tests drive the gates
-    /// with the flag explicitly OFF, which is precisely the release configuration.
+    // MARK: - iCloud Drive deprecation is unconditional
 
     func testCreateICloudDriveAlbumThrowsInAllBuildConfigurations() throws {
         let prior = FeatureToggle.isEnabled(feature: .cloudKitStorage)
@@ -1045,9 +950,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
         let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
 
-        // The album is laid down on disk so the source-existence check passes: the
-        // throw has to come from the deprecation gate, not from a missing directory,
-        // or this would pass for the wrong reason.
         let album = makeAlbum()
         let model = album.storageOption.modelForType.init(album: album)
         try model.initializeDirectories()
@@ -1172,9 +1074,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
             XCTAssertEqual(albumManager.finalizeCallCount, 0, "and the album is not flipped to CloudKit")
             if case .failed = manager.state {} else { XCTFail("expected a failed run, got \(manager.state)") }
 
-            // Now let verification succeed and resume: the same sources ARE removed,
-            // which proves the assertions above are gated on verification and not on
-            // the `.icloud` source being skipped wholesale.
             store.reflectUploadsInMetadata = true
             await manager.start(album: album)
 
@@ -1200,8 +1099,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
             let planned = try await manager.plan(album: album)
             XCTAssertEqual(planned.items.count, 2)
 
-            // Simulate a kill after the first item finished and before the second
-            // started, by writing that exact checkpoint back to disk.
             let planStore = MigrationPlanStore(album: album)
             let loaded = await planStore.load()
             var persisted = try XCTUnwrap(loaded)
@@ -1226,7 +1123,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         }
     }
 
-    // MARK: - Published phase (ENC-121)
+    // MARK: - Published phase
 
     /// Records every `progress` snapshot published while `body` runs. Everything here
     /// is main-actor isolated and the run is awaited, so the sink fires synchronously
@@ -1253,8 +1150,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let seen = await recordingProgress(of: manager) { await manager.start(album: album) }
         XCTAssertEqual(manager.state, .completed)
 
-        // Collapse runs of the same phase: the assertion is about the ORDER of the
-        // transitions, not how many snapshots each one happened to produce.
         let phases = seen.map(\.phase).reduce(into: [MigrationPhase?]()) { acc, phase in
             if acc.last != phase { acc.append(phase) }
         }
@@ -1279,8 +1174,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let firstActive = try XCTUnwrap(phases.firstIndex(where: { $0 != nil }))
         let lastActive = try XCTUnwrap(phases.lastIndex(where: { $0 != nil }))
 
-        // `run()` rebuilds `progress` wholesale before and after every item. If those
-        // rebuilds bypassed the funnel, the phase would drop to nil between items.
         XCTAssertFalse(phases[firstActive...lastActive].contains(nil),
                        "no nil phase may be published between the first and last active phase — that is the clobber this guards")
     }
@@ -1305,8 +1198,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         defer { cleanup(album) }
 
         _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
-        // Cancel from inside the first upload, so the run is genuinely mid-phase when
-        // the between-items control check stops it.
         store.onUploadStarted = { [weak manager] in
             await manager?.cancel(album: album)
         }
@@ -1372,7 +1263,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertFalse(itemObjects.contains { $0.keys.contains("phase") },
                        "items must not carry a phase either")
 
-        // And it still round-trips.
         let decoded = try JSONDecoder().decode(MigrationPlan.self, from: encoded)
         XCTAssertEqual(decoded.items.count, 1)
         XCTAssertEqual(decoded.version, MigrationPlan.currentVersion)
@@ -1385,9 +1275,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     /// reporting `CloudToLocalMoveProgress` — the sequence the blocking overlay
     /// renders, so the phase order and count monotonicity are the contract.
     func testMoveCloudKitAlbumToLocalReportsPhasesAndMonotonicCounts() async throws {
-        // One store for both directions: the engine uploads into it (storeFactory)
-        // and the reverse move's reconcile/export/teardown read the same records
-        // back out through the global provider.
         let shared = InMemoryCloudKitMediaStore()
         let priorMakeStore = CloudKitStoreProvider.makeStore
         CloudKitStoreProvider.makeStore = { _ in shared }

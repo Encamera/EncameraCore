@@ -1,7 +1,7 @@
 import XCTest
 @testable import EncameraCore
 
-/// Fingerprint-gated additive key entry (ENC-99 steps 5 and 6).
+/// Fingerprint-gated additive key entry.
 final class MissingKeyEntryTests: XCTestCase {
 
     private var tempDirectory: URL!
@@ -53,7 +53,6 @@ final class MissingKeyEntryTests: XCTestCase {
     func testAddedKeyMakesMediaReadable() async throws {
         let scenario = try await makeScenario()
 
-        // Precondition: the media does not open today.
         let before = await KeyDiscovery.discoverKeyOutcome(for: scenario.mediaURL, keyManager: scenario.manager)
         XCTAssertEqual(before, .noKnownKey(requiredStampPrefix: scenario.foreignKey.stampPrefix))
 
@@ -64,7 +63,6 @@ final class MissingKeyEntryTests: XCTestCase {
 
         XCTAssertEqual(added.keyBytes, scenario.foreignKey.keyBytes)
 
-        // The whole point: the same media now resolves, with no restart.
         let after = await KeyDiscovery.discoverKeyOutcome(for: scenario.mediaURL, keyManager: scenario.manager)
         guard case .resolved(let result) = after else {
             return XCTFail("expected the media to open after adding its key, got \(after)")
@@ -106,7 +104,6 @@ final class MissingKeyEntryTests: XCTestCase {
             }
             XCTAssertEqual(required, scenario.foreignKey.stampPrefix)
             XCTAssertNotEqual(entered, scenario.foreignKey.stampPrefix)
-            // Specific, not generic: the message names both keys.
             XCTAssertTrue(error.displayDescription.contains(KeyFingerprint.displayLabel(stampPrefix: scenario.foreignKey.stampPrefix)),
                           "the rejection must name the key the media actually needs")
         }
@@ -211,7 +208,6 @@ final class MissingKeyEntryTests: XCTestCase {
     /// CloudKit blobs that are not in the cache.
     func testUnreadableMediaIsReportedAsUnverifiedRatherThanWrong() async throws {
         let scenario = try await makeScenario()
-        // A file that cannot be probed at all stands in for a placeholder.
         try Data("placeholder".utf8).write(to: scenario.mediaURL)
 
         do {
@@ -237,8 +233,6 @@ final class MissingKeyEntryTests: XCTestCase {
         let wrongKey = try scenario.manager.deriveKey(from: wrongPhrase, name: AppConstants.defaultKeyName)
 
         do {
-            // Passing the wrong key's own prefix as the requirement makes the
-            // stamp pre-check pass, leaving `verify` to do the rejecting.
             _ = try await MissingKeyEntry(keyManager: scenario.manager)
                 .addKey(phraseComponents: wrongPhrase,
                         requiredStampPrefix: wrongKey.stampPrefix,

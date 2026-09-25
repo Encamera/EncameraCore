@@ -2,14 +2,13 @@
 //  MissingKeyEntry.swift
 //  EncameraCore
 //
-//  Additive, fingerprint-gated key entry for media this device cannot open
-//  (ENC-99, under the ENC-76 failsafe).
+//  Additive, fingerprint-gated key entry for media this device cannot open.
 //
 
 import Foundation
 
 public extension Notification.Name {
-    /// Posted when a decrypt-only key is added to the library (ENC-99).
+    /// Posted when a decrypt-only key is added to the library.
     ///
     /// An added, non-current key does NOT go through `setActiveKey`, so it never
     /// fires `keyPublisher` and none of the rebuild that ENC-97 relies on for an
@@ -113,7 +112,7 @@ public struct MissingKeyEntry {
         }
 
         // Identity is the full fingerprint, never the display name — every
-        // production key is named `encamera_default_key` (ENC-69).
+        // production key is named `encamera_default_key`.
         let alreadyHeld = ((try? keyManager.storedKeys()) ?? [])
             .contains { $0.keychainLabel == candidate.keychainLabel }
         if alreadyHeld {
@@ -133,16 +132,9 @@ public struct MissingKeyEntry {
         case .indeterminate:
             throw MissingKeyEntryError.couldNotVerify
         case .disproved:
-            // `required` is deliberately dropped when the stamp already matched:
-            // the pre-check above proved `candidate.stampPrefix ==
-            // requiredStampPrefix`, so naming both would render "that phrase is
-            // for key 54E0-7B52, but this media needs key 54E0-7B52". Reaching
-            // here past a stamp match means a 4-byte prefix collision, and the
-            // fingerprint is exactly the thing that cannot tell the two apart.
             throw MissingKeyEntryError.wrongKey(entered: candidate.stampPrefix, required: nil)
         }
 
-        // Decrypt-only: `false` is the whole point of this call site.
         try keyManager.save(key: candidate, setNewKeyToCurrent: false)
         NotificationCenter.default.post(name: .keyLibraryDidGrow, object: nil)
         return candidate

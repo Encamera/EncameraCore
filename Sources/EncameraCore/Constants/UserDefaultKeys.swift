@@ -128,7 +128,7 @@ public enum UserDefaultKey {
              .videoAddedCount,
              .widgetOpenCount,
              .showPushNotificationPrompt,
-             .passcodeType, // Passcode type is now managed via keychain
+             .passcodeType,
              .keyBackupPromptLastShown,
              .promotionalBannerInteractions,
              .dismissedBanners,
@@ -150,20 +150,13 @@ public enum UserDefaultKey {
              // always-synced AuthenticationConfiguration; this flag is the
              // confirmation that the user opted in ON THIS DEVICE.
              .biometricsConfirmedOnThisDevice,
-             // The seed window is per-install by definition: it exists to stop
-             // one device's intent from leaking onto another.
              .biometricsSeedWindowClosed,
-             // A debug tunable measured against one device's free space and network;
-             // syncing it would push one phone's experiment onto every other.
              .iCloudDriveMigrationBatchSize,
              .pendingCloudDataWipe,
              // The defaults-wipe tombstone describes this device's own erase. Synced,
              // it would make every other device on the account wipe its settings at
              // its next launch.
              .pendingDefaultsWipe,
-             // A deferral records that THIS device declined the upgrade prompt;
-             // synced, one phone's "Maybe later" would silence the prompt on
-             // every other device on the account.
              .cloudKitUpgradeDeferredAt:
             return false
         }

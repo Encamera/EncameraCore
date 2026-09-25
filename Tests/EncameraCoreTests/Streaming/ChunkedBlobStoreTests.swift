@@ -99,8 +99,6 @@ final class ChunkedBlobStoreTests: XCTestCase {
         let blob = try makeBlob(bytes: 2_000, chunkSize: 1_000)
         try await makeStore().uploadChunks(enc3FileURL: blob.url, mediaRecordName: "abc", progress: { _ in })
 
-        // The whole reason chunks are separated: they must never enter the index
-        // zone's change feed, which every device walks on every delta sync.
         for record in savedRecords {
             XCTAssertEqual(record.recordID.zoneID.zoneName, ChunkedBlobSchema.zoneName)
             XCTAssertNotEqual(record.recordID.zoneID.zoneName, CloudKitSchema.zoneName)
@@ -125,9 +123,6 @@ final class ChunkedBlobStoreTests: XCTestCase {
         let blob = try makeBlob(bytes: 2_500, chunkSize: 1_000)
         try await makeStore().uploadChunks(enc3FileURL: blob.url, mediaRecordName: "abc", progress: { _ in })
 
-        // `allRecords`, not `savedRecords`: the store deletes its scratch directory
-        // once the save returns (correct — CloudKit reads the bytes during the save),
-        // so only the double's persisted copies still have readable assets.
         let chunks = mock.allRecords
             .filter { $0.recordType == ChunkedBlobSchema.Chunk.recordType }
             .sorted { ($0[ChunkedBlobSchema.Chunk.chunkIndex] as? Int64 ?? 0) < ($1[ChunkedBlobSchema.Chunk.chunkIndex] as? Int64 ?? 0) }
@@ -178,9 +173,6 @@ final class ChunkedBlobStoreTests: XCTestCase {
                                                   mediaRecordName: "media-1",
                                                   progress: { _ in })
 
-        // Feed everything the upload wrote back as the database's contents, which is
-        // what a fetch-by-ID would find on the server.
-
         let session = ChunkedStreamSession.open(store: store,
                                                 mediaRecordName: "media-1",
                                                 header: header,
@@ -207,8 +199,6 @@ final class ChunkedBlobStoreTests: XCTestCase {
         let got = try await session.reader.plaintext(range: 50_000..<50_100)
         XCTAssertEqual(got, blob.plaintext.subdata(in: 50_000..<50_100))
 
-        // One fetch, for chunk 5. Nothing else — the header came with the commit
-        // record, so opening the session costs no round trip.
         XCTAssertEqual(mock.fetchCount - fetchesAfterUpload, 1)
         let telemetry = await session.telemetry()
         XCTAssertEqual(telemetry.fetchOrder, [5])
@@ -335,7 +325,6 @@ final class ChunkedBlobStoreTests: XCTestCase {
         let store = makeStore(zoneProvisioner: provisioner)
         try await store.uploadChunks(enc3FileURL: blob.url, mediaRecordName: "first", progress: { _ in })
 
-        // What the destructive erase does: drop the zone, then clear the latch.
         try await provisioner.deleteZone(CKRecordZone.ID(zoneName: ChunkedBlobSchema.zoneName))
         defaults.removeObject(forKey: ChunkedBlobSchema.zoneCreatedDefaultsKey)
         mock.resetObservations()
@@ -353,8 +342,6 @@ final class ChunkedBlobStoreTests: XCTestCase {
     func testUploadRecreatesTheZoneWhenTheLatchIsStale() async throws {
         let blob = try makeBlob(bytes: 4_000, chunkSize: 1_000)
         let provisioner = ZoneGatedProvisioner(database: mock)
-        // What another device sharing the account leaves behind: the zone is gone
-        // server-side while this device's flag still claims it exists.
         defaults.set(true, forKey: ChunkedBlobSchema.zoneCreatedDefaultsKey)
 
         try await makeStore(zoneProvisioner: provisioner).uploadChunks(enc3FileURL: blob.url,

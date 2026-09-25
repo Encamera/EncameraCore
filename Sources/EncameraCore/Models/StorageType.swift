@@ -26,7 +26,7 @@ public enum StorageType: String, Codable {
     case local
     /// CloudKit-backed storage (the user's private CloudKit database). Coexists
     /// with `.icloud` (iCloud Drive) during migration; becomes "iCloud" to the
-    /// user once iCloud Drive is removed (chunk 07).
+    /// user once iCloud Drive is removed.
     case cloudKit
 
     public enum Availability: Equatable {
@@ -63,8 +63,6 @@ extension StorageType: Identifiable, CaseIterable {
         case .local:
             return L10n.local
         case .cloudKit:
-            // To the user this is simply "iCloud"; once iCloud Drive is removed
-            // entirely the `.icloud` case goes with it and this stays as-is.
             return "iCloud"
         }
     }

@@ -71,9 +71,6 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             try await Task.sleep(for: uploadDelay)
         }
 
-        // Chunked items delegate their payload to the chunk store, mirroring
-        // CloudKitMediaStore's production path. The monolithic blob is left
-        // empty — reads go through the chunk store, not fetchBlob.
         let blob: Data
         if item.chunkCount > 0 {
             try await chunkStore.uploadChunks(enc3FileURL: item.encryptedFileURL,
@@ -177,7 +174,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         }
     }
 
-    // MARK: Albums (chunk 13)
+    // MARK: Albums
 
     public func saveAlbum(_ album: CloudKitAlbumUpload) async throws {
         let tag = "albumtag-\(album.albumID)"
@@ -212,9 +209,6 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         locked {
             guard albums.removeValue(forKey: albumID) != nil else { return }
             deletedAlbumIDs.append(albumID)
-            // Model the server-side `.deleteSelf` cascade: the album's media go with
-            // it. Without this the fake would keep reporting an album's records as
-            // live after the album was deleted, which the real zone never does.
             for (recordName, stored) in records where stored.metadata.albumID == albumID {
                 records[recordName] = nil
                 deletedRecordNames.append(recordName)

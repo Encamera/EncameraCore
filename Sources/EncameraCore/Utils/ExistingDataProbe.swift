@@ -2,8 +2,8 @@
 //  ExistingDataProbe.swift
 //  EncameraCore
 //
-//  Detects whether an account already holds Encamera data, ahead of onboarding
-//  (ENC-90, under ENC-75). Detection only — no UI, no navigation, no writes.
+//  Detects whether an account already holds Encamera data, ahead of onboarding.
+//  Detection only — no UI, no navigation, no writes.
 //
 //  Two requirements pull against each other and both are load-bearing:
 //
@@ -57,7 +57,7 @@ public struct ExistingDataSummary: Equatable, Sendable {
     /// from it.
     public var knownDevices: [MultiDeviceState.DeviceRecord]
 
-    /// The user restored a prior purchase during onboarding (ENC-96). This is a
+    /// The user restored a prior purchase during onboarding. This is a
     /// BACKSTOP signal ONLY: it proves a prior *purchase*, not the presence of
     /// recoverable data — the user may have subscribed on a device whose media was
     /// purely local and has since been erased. It therefore only ever *annotates* a
@@ -117,7 +117,7 @@ public actor ExistingDataProbe {
     /// always-synced marker without EncameraCore reaching for a concrete
     /// `KeyManager`. Mirrors `CloudKitStoreProvider.makeStore`.
     ///
-    /// IMPORTANT (ENC-81): `nil` means BOTH "genuine new user" and "existing user
+    /// IMPORTANT: `nil` means BOTH "genuine new user" and "existing user
     /// who has not launched since the marker shipped". It is never proof of a new
     /// user, which is why `markerSignal` maps `nil` to `.unresolved`.
     nonisolated(unsafe)
@@ -198,12 +198,12 @@ public actor ExistingDataProbe {
             return applyLegacyCount(stubbed, to: base, generation: startedAt)
         }
         guard let count = await legacyFileCount(legacyBudget) else {
-            return base   // unresolved — leave the fast result exactly as it was
+            return base
         }
         return applyLegacyCount(count, to: base, generation: startedAt)
     }
 
-    /// Records a successful Restore Purchases during onboarding (ENC-96) as a
+    /// Records a successful Restore Purchases during onboarding as a
     /// BACKSTOP-ONLY signal, and returns the (possibly annotated) current result.
     ///
     /// The safety property this method exists to guarantee — and that
@@ -223,8 +223,6 @@ public actor ExistingDataProbe {
     public func recordRestoredPurchase() -> ExistingDataProbeResult {
         restoredPurchase = true
         guard case .found(var summary) = cached else {
-            // No data-bearing evidence resolved: leave `.none`/`.unknown`/nil exactly
-            // as they were. A restore on its own does not create a returning user.
             return cached ?? .unknown
         }
         summary.hasRestoredPurchase = true
@@ -249,32 +247,18 @@ public actor ExistingDataProbe {
     // MARK: Fast signals
 
     private func runFastSignals(budget: TimeInterval) async -> ExistingDataProbeResult {
-        // `-StubProbeTimeout`: every signal unresolved, so the caller can assert
-        // that `.unknown` falls through to normal onboarding without a warning.
         if ExistingDataProbeTestHooks.forcesTimeout { return .unknown }
 
         let deadline = Date().addingTimeInterval(budget)
 
-        // Signal 1 — the synced marker. A keychain read, effectively instant, and
-        // the ONLY signal that fires for a local-only-media user.
         let state = markerState()
         let marker = Self.markerSignal(state)
 
-        // Signal 2 — CloudKit, time-boxed. Metadata-only indexed query; it must
-        // never download a blob or a thumbnail.
         let census = await withBudget(until: deadline) { [makeStore] in
             await Self.cloudKitCensus(store: makeStore())
         } ?? .unresolvedOutcome
         let cloud = census.outcome
 
-        // `iCloudDriveFileCount` stays 0 here: signal 3 has not run yet and is
-        // filled in later by `refineWithLegacyICloudDrive()`.
-        //
-        // The restore-purchase backstop (ENC-96) is carried on the summary but is
-        // NOT passed to `combine` — only the marker and CloudKit outcomes decide
-        // `.found`/`.none`/`.unknown`. This is what makes a restore incapable of, on
-        // its own, producing a `.found` (and therefore incapable of gating fresh
-        // setup or reaching the destructive path).
         let summary = ExistingDataSummary(
             cloudKitMediaCount: census.mediaCount,
             iCloudDriveFileCount: 0,
@@ -290,9 +274,6 @@ public actor ExistingDataProbe {
     private func markerState() -> MultiDeviceState? {
         if let stubbed = ExistingDataProbeTestHooks.stubbedMarker {
             guard stubbed else { return MultiDeviceState() }
-            // Optional stubbed roster names, so the guided flip-the-switch flow
-            // (ENC-93) can render its "open Encamera on your <device>" naming
-            // without a real second device. Advisory copy only.
             let devices = (ExistingDataProbeTestHooks.stubbedDeviceNames ?? []).enumerated().map {
                 MultiDeviceState.DeviceRecord(deviceID: "stub-device-\($0.offset)", name: $0.element, lastSeen: Date())
             }
@@ -301,7 +282,7 @@ public actor ExistingDataProbe {
         return stateProvider()
     }
 
-    /// `nil` is NOT a new user (ENC-81) — it is also every existing user who has
+    /// `nil` is NOT a new user — it is also every existing user who has
     /// not launched since the marker shipped, so it can only ever be `.unresolved`.
     /// A record that exists but is entirely empty is a real negative: some device
     /// wrote it and had nothing to report.
@@ -323,9 +304,6 @@ public actor ExistingDataProbe {
 
     private static func cloudKitCensus(store: CloudKitMediaStoring) async -> CensusReading {
         if let stubbed = ExistingDataProbeTestHooks.stubbedCloudKitCount {
-            // Optional fingerprints let a UI test drive the manual-key-entry gate
-            // (ENC-92): each is given a descending count so `orderedFingerprints`
-            // preserves the order they were supplied in (primary first).
             let fingerprints = ExistingDataProbeTestHooks.stubbedRequiredFingerprints ?? []
             let fingerprintMap = Dictionary(
                 uniqueKeysWithValues: fingerprints.enumerated().map { ($1, fingerprints.count - $0) }
@@ -532,7 +510,7 @@ private final class MetadataCounter {
 
             Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                self?.finish(with: nil)   // timed out: unresolved, not zero
+                self?.finish(with: nil)
             }
         }
     }
@@ -553,7 +531,7 @@ private final class MetadataCounter {
 // MARK: - Test hooks
 
 /// UI-test-only stubs, one per signal, so the returning-user branch screens
-/// (ENC-91..96) can be driven in a simulator that has no iCloud account. All
+/// can be driven in a simulator that has no iCloud account. All
 /// default to inert; the app sets them from launch arguments inside
 /// `UITestMode.setupIfNeeded()`, so production builds are unaffected.
 public enum ExistingDataProbeTestHooks {
@@ -570,11 +548,11 @@ public enum ExistingDataProbeTestHooks {
     nonisolated(unsafe) public static var stubbedICloudDriveCount: Int?
 
     /// The fingerprints the stubbed CloudKit census reports as required, so the
-    /// manual-key-entry gate (ENC-92) can be driven in a simulator. Ordered
+    /// manual-key-entry gate can be driven in a simulator. Ordered
     /// primary-first. Only consulted when `stubbedCloudKitCount` is set.
     nonisolated(unsafe) public static var stubbedRequiredFingerprints: [String]?
 
-    /// Device names to seed into the stubbed marker's roster (ENC-93), so the
+    /// Device names to seed into the stubbed marker's roster, so the
     /// guided flip-the-switch flow can render "open Encamera on your <device>"
     /// without a real second device. Only consulted when `stubbedMarker == true`.
     nonisolated(unsafe) public static var stubbedDeviceNames: [String]?

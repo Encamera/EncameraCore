@@ -22,9 +22,6 @@ public struct MediaMetadataExtractor {
     
     // MARK: - PHAsset Extraction
     
-    /// Extracts metadata from a PHAsset
-    /// - Parameter asset: The Photos framework asset
-    /// - Returns: Populated EncryptedFileMetadata
     /// The Photos-recorded filename (e.g. `IMG_1234.HEIC`) of the asset's
     /// primary resource — the still photo or video, not adjustments or the
     /// Live Photo's paired video.
@@ -38,27 +35,22 @@ public struct MediaMetadataExtractor {
     public func extractMetadata(from asset: PHAsset) async -> EncryptedFileMetadata {
         var metadata = EncryptedFileMetadata()
 
-        // Store the PHAsset identifier for import tracking
         metadata.sourceAssetIdentifier = asset.localIdentifier
         metadata.originalFilename = Self.primaryResourceFilename(for: asset)
         
-        // Core dates
         metadata.captureDate = asset.creationDate
         metadata.modificationDate = asset.modificationDate
         metadata.encryptionDate = Date()
         
-        // Location
         if let location = asset.location {
             metadata.location = extractLocation(from: location)
         }
         
-        // Dimensions
         metadata.dimensions = .init(
             width: asset.pixelWidth,
             height: asset.pixelHeight
         )
         
-        // Media type
         switch asset.mediaType {
         case .image:
             metadata.originalMediaType = "photo"
@@ -73,7 +65,6 @@ public struct MediaMetadataExtractor {
             metadata.originalMediaType = "unknown"
         }
         
-        // Content analysis from asset subtypes
         var analysis = EncryptedFileMetadata.ContentAnalysis()
         analysis.isLivePhoto = asset.mediaSubtypes.contains(.photoLive)
         analysis.isScreenshot = asset.mediaSubtypes.contains(.photoScreenshot)
@@ -81,7 +72,6 @@ public struct MediaMetadataExtractor {
         analysis.burstIdentifier = asset.burstIdentifier
         metadata.contentAnalysis = analysis
         
-        // Extract EXIF data from image data (async)
         if asset.mediaType == .image {
             metadata.camera = await extractCameraInfo(from: asset)
         } else if asset.mediaType == .video {
@@ -109,18 +99,15 @@ public struct MediaMetadataExtractor {
             return metadata
         }
         
-        // Extract image properties
         if let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any] {
             metadata.camera = extractCameraInfo(from: properties)
             metadata.dimensions = extractDimensions(from: properties)
             
-            // Extract capture date from EXIF
             if let exif = properties[kCGImagePropertyExifDictionary as String] as? [String: Any],
                let dateString = exif[kCGImagePropertyExifDateTimeOriginal as String] as? String {
                 metadata.captureDate = parseExifDate(dateString)
             }
             
-            // Extract GPS info
             if let gps = properties[kCGImagePropertyGPSDictionary as String] as? [String: Any] {
                 metadata.location = extractLocation(from: gps)
             }
@@ -141,7 +128,6 @@ public struct MediaMetadataExtractor {
             height: Int(image.size.height * image.scale)
         )
         
-        // EXIF orientation from UIImage orientation
         let orientation: Int
         switch image.imageOrientation {
         case .up: orientation = 1
@@ -178,7 +164,6 @@ public struct MediaMetadataExtractor {
         metadata.originalFilename = url.lastPathComponent
         metadata.originalFilename = metadata.displayFilename
         
-        // Get file attributes
         if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) {
             metadata.captureDate = attrs[.creationDate] as? Date
             metadata.modificationDate = attrs[.modificationDate] as? Date
@@ -190,7 +175,6 @@ public struct MediaMetadataExtractor {
             metadata.originalMediaType = "photo"
             if let data = try? Data(contentsOf: url) {
                 let imageMetadata = extractMetadata(from: data)
-                // Merge image-specific metadata
                 metadata.camera = imageMetadata.camera
                 metadata.dimensions = imageMetadata.dimensions
                 metadata.location = imageMetadata.location ?? metadata.location
@@ -234,7 +218,6 @@ public struct MediaMetadataExtractor {
         var lat = latitude
         var lon = longitude
         
-        // Apply reference direction
         if let latRef = gps[kCGImagePropertyGPSLatitudeRef as String] as? String, latRef == "S" {
             lat = -lat
         }
@@ -257,7 +240,6 @@ public struct MediaMetadataExtractor {
         
         var camera = EncryptedFileMetadata.CameraInfo()
         
-        // TIFF properties
         if let tiff = tiff {
             camera.deviceMake = tiff[kCGImagePropertyTIFFMake as String] as? String
             camera.deviceModel = tiff[kCGImagePropertyTIFFModel as String] as? String
@@ -265,7 +247,6 @@ public struct MediaMetadataExtractor {
             camera.orientation = tiff[kCGImagePropertyTIFFOrientation as String] as? Int
         }
         
-        // EXIF properties
         if let exif = exif {
             camera.aperture = exif[kCGImagePropertyExifFNumber as String] as? Double
             camera.exposureTime = exif[kCGImagePropertyExifExposureTime as String] as? Double
@@ -274,12 +255,10 @@ public struct MediaMetadataExtractor {
             camera.focalLength35mm = exif[kCGImagePropertyExifFocalLenIn35mmFilm as String] as? Int
             camera.lensModel = exif[kCGImagePropertyExifLensModel as String] as? String
             
-            // Flash
             if let flash = exif[kCGImagePropertyExifFlash as String] as? Int {
                 camera.flashFired = (flash & 1) == 1
             }
             
-            // Format shutter speed
             if let exposure = camera.exposureTime {
                 if exposure >= 1 {
                     camera.shutterSpeed = String(format: "%.1f\"", exposure)
@@ -351,14 +330,11 @@ public struct MediaMetadataExtractor {
     }
     
     private func extractVideoInfo(from asset: AVURLAsset) async -> EncryptedFileMetadata.VideoInfo {
-        // Load asset duration asynchronously
         let duration = (try? await asset.load(.duration)) ?? CMTime.zero
         var info = EncryptedFileMetadata.VideoInfo(duration: CMTimeGetSeconds(duration))
         
-        // Load video tracks asynchronously
         let videoTracks = try? await asset.loadTracks(withMediaType: .video)
         if let videoTrack = videoTracks?.first {
-            // Load video track properties asynchronously
             async let frameRate = try? videoTrack.load(.nominalFrameRate)
             async let bitRate = try? videoTrack.load(.estimatedDataRate)
             async let formatDescriptions = try? videoTrack.load(.formatDescriptions)
@@ -372,7 +348,6 @@ public struct MediaMetadataExtractor {
                 info.bitRate = Int(bitRate)
             }
             
-            // Codec
             if let formatDescriptions = loadedFormatDescriptions,
                let formatDescription = formatDescriptions.first {
                 let codecType = CMFormatDescriptionGetMediaSubType(formatDescription)
@@ -380,12 +355,10 @@ public struct MediaMetadataExtractor {
             }
         }
         
-        // Load audio tracks asynchronously
         let audioTracks = try? await asset.loadTracks(withMediaType: .audio)
         if let audioTrack = audioTracks?.first {
             info.hasAudio = true
             
-            // Codec
             if let formatDescriptions = try? await audioTrack.load(.formatDescriptions),
                let formatDescription = formatDescriptions.first {
                 let codecType = CMFormatDescriptionGetMediaSubType(formatDescription)
@@ -401,13 +374,11 @@ public struct MediaMetadataExtractor {
     private func extractVideoDimensions(from url: URL) async -> EncryptedFileMetadata.Dimensions? {
         let asset = AVURLAsset(url: url)
         
-        // Load video tracks asynchronously
         guard let videoTracks = try? await asset.loadTracks(withMediaType: .video),
               let videoTrack = videoTracks.first else {
             return nil
         }
         
-        // Load track properties asynchronously
         async let naturalSize = try? videoTrack.load(.naturalSize)
         async let preferredTransform = try? videoTrack.load(.preferredTransform)
         
@@ -416,7 +387,6 @@ public struct MediaMetadataExtractor {
             return nil
         }
         
-        // Apply transform to get actual dimensions
         let transformedSize = size.applying(transform)
         
         return .init(

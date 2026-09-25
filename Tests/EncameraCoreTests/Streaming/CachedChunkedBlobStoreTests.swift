@@ -26,16 +26,11 @@ final class CachedChunkedBlobStoreTests: XCTestCase {
     // MARK: - Stale chunk validation
 
     /// A nil validationTag must NOT match a cached entry whose changeTag is set.
-    /// This is the bug: a post-relaunch CachedChunkedBlobStore gets validationTag
-    /// nil (the in-memory changeTags map is empty), and the cache serves stale
-    /// chunks from a previous upload — the AAD's fileID rejects them as a
-    /// decryption error instead of a clean cache miss.
     func testNilValidationTagRejectsCachedChunksFromAPriorUpload() async throws {
         let staleData = Data("stale-chunk-v1".utf8)
         let freshData = Data("fresh-chunk-v2".utf8)
         let chunkRecordName = ChunkedBlobSchema.chunkRecordName(mediaRecordName: "media-1", index: 0)
 
-        // Simulate a prior session: cache a chunk under a known changeTag.
         let staging = stagingDir.appendingPathComponent("stale.bin")
         try staleData.write(to: staging)
         try await cache.store(recordName: chunkRecordName,
@@ -43,11 +38,9 @@ final class CachedChunkedBlobStoreTests: XCTestCase {
                               albumID: "album-1",
                               from: staging)
 
-        // Verify the cache hit exists when the tag matches.
         let hitURL = await cache.cachedURL(recordName: chunkRecordName, changeTag: "tag-v1")
         XCTAssertNotNil(hitURL, "sanity: cache should hit when tags match")
 
-        // Post-relaunch: validationTag is nil because changeTags map is empty.
         let stub = StubChunkStore(chunkData: freshData)
         let cachedStore = CachedChunkedBlobStore(store: stub,
                                                   cache: cache,
@@ -56,8 +49,6 @@ final class CachedChunkedBlobStoreTests: XCTestCase {
 
         let fetched = try await cachedStore.fetchChunk(mediaRecordName: "media-1", index: 0)
 
-        // The correct behavior: nil tag should NOT serve a tagged cache entry.
-        // It must fall through to the underlying store and return fresh data.
         XCTAssertEqual(fetched, freshData,
                        "nil validationTag must not serve stale cached chunks — should fetch fresh from the store")
         let fetchCount1 = await stub.fetches.count
@@ -167,8 +158,6 @@ final class CachedChunkedBlobStoreTests: XCTestCase {
     /// Caching is best-effort: a cache that cannot accept the file must not fail the
     /// fetch, and must not leave the staged file behind either.
     func testChunkIsReturnedAndStagedFileRemovedWhenTheCacheStoreFails() async throws {
-        // A regular file where the cache expects its directory: every store fails at
-        // createDirectory.
         let blockedBase = FileManager.default.temporaryDirectory
             .appendingPathComponent("blocked-cache-\(UUID().uuidString)")
         try Data("not a directory".utf8).write(to: blockedBase)

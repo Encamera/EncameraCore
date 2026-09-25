@@ -165,8 +165,6 @@ public struct FeatureToggle {
     private static func featureDidChange(_ feature: Feature, enabled: Bool) {
         switch feature {
         case .showDebugLogs:
-            // `printDebug` is on essentially every code path; it must not pay a
-            // UserDefaults read per line.
             DebugLogBuffer.shared.setCapturing(enabled)
         default:
             break

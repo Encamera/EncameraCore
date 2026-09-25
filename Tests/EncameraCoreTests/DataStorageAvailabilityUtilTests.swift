@@ -2,12 +2,6 @@ import XCTest
 @testable import EncameraCore
 
 /// Pins the split between "can this storage be read" and "can a new album go here".
-///
-/// Regression: the CloudKit toggle used to make `isStorageTypeAvailable(.icloud)`
-/// report unavailable, which silently dropped every existing iCloud Drive album out
-/// of `AlbumManager.fetchAlbumsFromSources` (and out of the erase/enumerate paths in
-/// `DiskFileAccess`). Deprecating iCloud Drive as a *destination* must not hide the
-/// albums a user already has there.
 final class DataStorageAvailabilityUtilTests: XCTestCase {
 
     private var originalToggle: Bool!
@@ -31,8 +25,6 @@ final class DataStorageAvailabilityUtilTests: XCTestCase {
         FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
         let withToggleOn = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud)
 
-        // Whether iCloud Drive is readable depends only on the iCloud account, so the
-        // two answers must agree regardless of which one this host produces.
         XCTAssertEqual(withToggleOn, withToggleOff)
     }
 

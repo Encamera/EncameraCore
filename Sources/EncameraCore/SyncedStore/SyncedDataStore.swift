@@ -61,7 +61,6 @@ public class SyncedDataStore: ObservableObject {
     
     // MARK: - Initialization
     
-    /// Creates a new SyncedDataStore
     /// - Parameters:
     ///   - keyManager: The key manager for encryption operations
     ///   - defaults: Optional UserDefaults instance (defaults to app group defaults)
@@ -95,19 +94,16 @@ public class SyncedDataStore: ObservableObject {
             self?.handleiCloudChange(notification)
         }
         
-        // Trigger initial sync
         cloudStore.synchronize()
     }
     
     private func handleiCloudChange(_ notification: Notification) {
         guard let userInfo = notification.userInfo else { return }
         
-        // Check the change reason
         if let changeReason = userInfo[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int {
             switch changeReason {
             case NSUbiquitousKeyValueStoreServerChange,
                  NSUbiquitousKeyValueStoreInitialSyncChange:
-                // Valid sync changes - proceed
                 break
             case NSUbiquitousKeyValueStoreQuotaViolationChange:
                 print("[SyncedDataStore] WARNING: iCloud quota violation")
@@ -119,9 +115,7 @@ public class SyncedDataStore: ObservableObject {
             }
         }
         
-        // Get the changed keys
         if let changedKeys = userInfo[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] {
-            // Sync changed values from cloud to local
             for keyString in changedKeys {
                 if let cloudValue = cloudStore.dictionary(forKey: keyString) {
                     defaults.set(cloudValue, forKey: keyString)
@@ -129,7 +123,6 @@ public class SyncedDataStore: ObservableObject {
                 }
             }
             
-            // Notify observers
             externalChangePublisher.send(changedKeys)
         }
     }
@@ -150,7 +143,6 @@ public class SyncedDataStore: ObservableObject {
             throw SyncedStoreError.invalidData
         }
         
-        // Hash the primary key if it's an encrypted field (for privacy)
         let storageKey: String
         if schema.isPrimaryKeyEncrypted {
             do {
@@ -162,7 +154,6 @@ public class SyncedDataStore: ObservableObject {
             storageKey = primaryKeyValue
         }
         
-        // Encrypt fields as needed
         let recordToStore: [String: Any]
         if schema.encryptedFields.isEmpty {
             recordToStore = convertDatesToTimeIntervals(record, schema: schema)
@@ -174,16 +165,12 @@ public class SyncedDataStore: ObservableObject {
             }
         }
         
-        // Load existing table data
         var tableData = loadTableData(schema: schema)
         
-        // Update with new record using hashed key for privacy
         tableData[storageKey] = recordToStore
         
-        // Save to local storage first (offline-first)
         defaults.set(tableData, forKey: schema.storageKey)
         
-        // Sync to iCloud (opportunistic)
         cloudStore.set(tableData, forKey: schema.storageKey)
         cloudStore.synchronize()
         
@@ -199,7 +186,6 @@ public class SyncedDataStore: ObservableObject {
     public func fetch(primaryKey: String, schema: SyncedTableSchema) throws -> [String: Any]? {
         let tableData = loadTableData(schema: schema)
         
-        // Hash the primary key if it's an encrypted field
         let storageKey: String
         if schema.isPrimaryKeyEncrypted {
             do {
@@ -215,7 +201,6 @@ public class SyncedDataStore: ObservableObject {
             return nil
         }
         
-        // Decrypt if needed
         if schema.encryptedFields.isEmpty {
             return convertTimeIntervalsToDates(rawRecord, schema: schema)
         } else {
@@ -234,7 +219,6 @@ public class SyncedDataStore: ObservableObject {
     public func delete(primaryKey: String, schema: SyncedTableSchema) {
         var tableData = loadTableData(schema: schema)
         
-        // Hash the primary key if it's an encrypted field
         let storageKey: String
         if schema.isPrimaryKeyEncrypted {
             guard let hashedKey = encryptionHandler.tryHashPrimaryKey(primaryKey) else {
@@ -248,10 +232,8 @@ public class SyncedDataStore: ObservableObject {
         
         tableData.removeValue(forKey: storageKey)
         
-        // Save to local storage
         defaults.set(tableData, forKey: schema.storageKey)
         
-        // Sync to iCloud
         cloudStore.set(tableData, forKey: schema.storageKey)
         cloudStore.synchronize()
         
@@ -274,7 +256,6 @@ public class SyncedDataStore: ObservableObject {
     ) throws -> [[String: Any]] {
         let tableData = loadTableData(schema: schema)
         
-        // Decrypt all records
         var records: [[String: Any]] = []
         for (_, value) in tableData {
             guard let rawRecord = value as? [String: Any] else { continue }
@@ -283,7 +264,6 @@ public class SyncedDataStore: ObservableObject {
             if schema.encryptedFields.isEmpty {
                 decryptedRecord = convertTimeIntervalsToDates(rawRecord, schema: schema)
             } else {
-                // Try to decrypt, skip records that fail
                 guard let record = encryptionHandler.tryDecryptRecord(rawRecord, schema: schema) else {
                     continue
                 }
@@ -292,12 +272,10 @@ public class SyncedDataStore: ObservableObject {
             records.append(decryptedRecord)
         }
         
-        // Apply predicate filter if provided
         if let predicate = predicate {
             records = (records as NSArray).filtered(using: predicate) as? [[String: Any]] ?? []
         }
         
-        // Apply sorting if provided
         if let sortDescriptors = sortDescriptors {
             records = (records as NSArray).sortedArray(using: sortDescriptors) as? [[String: Any]] ?? records
         }
@@ -318,14 +296,11 @@ public class SyncedDataStore: ObservableObject {
     
     /// Loads the raw table data from storage (prefers local, falls back to cloud)
     internal func loadTableData(schema: SyncedTableSchema) -> [String: Any] {
-        // Try local storage first
         if let localData = defaults.dictionary(forKey: schema.storageKey) {
             return localData
         }
         
-        // Fall back to cloud storage
         if let cloudData = cloudStore.dictionary(forKey: schema.storageKey) {
-            // Cache locally
             defaults.set(cloudData, forKey: schema.storageKey)
             return cloudData
         }

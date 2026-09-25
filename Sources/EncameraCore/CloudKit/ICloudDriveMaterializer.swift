@@ -99,11 +99,6 @@ public enum ICloudDriveMigrationBatchSize {
 /// Every counter the on-device suite reads, in the order the marker publishes
 /// them.
 ///
-/// One struct rather than eight properties on the observer so the list is
-/// written down ONCE. `reset()` is `counters = .init()`, which cannot miss a
-/// member, and `markerLabel` is generated from these same declarations, so a
-/// ninth counter is reset and published by adding it here and nothing else.
-///
 /// The property names ARE the marker's field names; the device tests look every
 /// field up by name (`AlbumDetailScreen.materializationCounter`), so renaming one
 /// renames the wire format.
@@ -144,11 +139,6 @@ public struct MaterializationCounters: Equatable {
 
     /// `batches=3:maxBatch=10:...`, the payload of the app's
     /// `iCloudDriveMaterialization` marker.
-    ///
-    /// Reflected off the stored properties rather than concatenated by hand, so
-    /// the field list cannot drift from the declarations above. Order follows
-    /// declaration order; every reader looks fields up by name, so it is not
-    /// load-bearing.
     public var markerLabel: String {
         Mirror(reflecting: self).children
             .compactMap { child in child.label.map { "\($0)=\(child.value)" } }
@@ -298,19 +288,10 @@ public enum ICloudPlaceholderName {
     public static func isMaterialized(_ url: URL) -> Bool {
         if let override = testEvictedURLs, override.contains(url.standardizedFileURL) { return false }
         guard FileManager.default.fileExists(atPath: url.path) else { return false }
-        // `needsDownload` is false for a non-ubiquitous file, so a local album's
-        // files are always "materialized" and take no special path.
         return !iCloudFileStatusUtil.needsDownload(url: url)
     }
 
     /// Test seam: URLs to treat as evicted even though the file is present.
-    ///
-    /// Without this, no off-device test can reproduce the shape that actually broke
-    /// on the rig — a file whose path resolves while its bytes live in iCloud —
-    /// because a scratch directory has no ubiquity status to report. A fake that
-    /// models eviction by *deleting* the file tests a state iOS never produces, and
-    /// would have gone on passing through the placeholder-upload bug. Nil in
-    /// production.
     nonisolated(unsafe) public static var testEvictedURLs: Set<URL>?
 }
 
@@ -381,10 +362,6 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
 
         for url in urls {
             if ICloudPlaceholderName.isMaterialized(url) {
-                // Bytes already here — a resumed run, or a file that was never
-                // evicted. Note this is NOT `fileExists`: an evicted file's path
-                // still resolves, and treating that as "already downloaded" is how
-                // a placeholder ends up in CloudKit.
                 results[url] = .success(url)
                 continue
             }
@@ -397,9 +374,6 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
         }
 
         guard Self.isICloudDriveReachable else {
-            // Fail every pending file rather than waiting out the deadline. The
-            // engine turns these into retryable `.failed` items, so the album stays
-            // whole and finishes once iCloud is signed in again.
             for (name, url) in pending {
                 results[url] = .failure(ICloudMaterializationError.downloadFailed(
                     filename: name, message: "iCloud Drive is not available on this device"))
@@ -407,8 +381,6 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
             return results
         }
 
-        // Request every download up front so they proceed concurrently; the query
-        // below is only an observer, it does not drive the transfers.
         for (_, url) in pending {
             do {
                 try Self.requestDownload(of: url)
@@ -427,9 +399,6 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
 
     @discardableResult
     public func evict(_ urls: [URL]) -> [URL] {
-        // `isMaterialized`, not `fileExists`: an evicted file's path still resolves,
-        // so `fileExists` would have this ask iCloud to evict placeholders it has
-        // already evicted — and count them as space given back.
         let fileManager = FileManager.default
         var evicted: [URL] = []
         for url in urls where ICloudPlaceholderName.isMaterialized(url) {
@@ -437,8 +406,6 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
                 try fileManager.evictUbiquitousItem(at: url)
                 evicted.append(url)
             } catch {
-                // Best effort: failing to reclaim space is not a reason to fail a
-                // pause or cancel the user asked for.
                 printDebug("evict FAILED \(url.lastPathComponent) error=\(error)")
             }
         }
@@ -450,11 +417,6 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
     private static func makeQuery(for directory: URL, attributes: [String]) -> NSMetadataQuery {
         let query = NSMetadataQuery()
         query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
-        // A directory predicate, not the per-file `NSMetadataItemURLKey ==` form used
-        // by `iCloudStorageModel.monitorDownloadProgress`: a placeholder and its
-        // materialized twin have different paths, so matching one exact URL misses
-        // the item in whichever state we didn't guess. Matching the directory and
-        // normalizing names afterwards is immune to that.
         query.predicate = NSPredicate(format: "%K BEGINSWITH %@", NSMetadataItemPathKey, directory.path)
         query.valueListAttributes = attributes
         return query
@@ -534,7 +496,6 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
                     query.stop()
                 }
 
-                /// Resolve everything still outstanding as a timeout and finish.
                 let finishByDeadline: @MainActor () -> Void = {
                     guard state.claim() else { return }
                     ICloudDriveMigrationObserver.shared.recordBatchResolved(byDeadline: true)

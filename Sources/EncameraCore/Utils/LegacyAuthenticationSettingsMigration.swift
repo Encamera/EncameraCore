@@ -18,7 +18,6 @@ public struct LegacyAuthenticationSettingsMigration {
     }
 
     public static func migrateIfNeeded(keyManager: KeyManager) {
-        // Already migrated (or freshly onboarded) — the keychain is the source of truth.
         guard keyManager.getAuthenticationConfiguration() == nil else {
             return
         }
@@ -33,8 +32,6 @@ public struct LegacyAuthenticationSettingsMigration {
 
         let passwordExists = keyManager.passwordExists()
 
-        // Fresh install that hasn't onboarded yet: nothing to migrate,
-        // onboarding will write the configuration.
         guard legacyBiometrics != nil || passwordExists else {
             return
         }

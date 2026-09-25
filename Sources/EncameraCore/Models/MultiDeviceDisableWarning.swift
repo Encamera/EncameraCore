@@ -2,7 +2,7 @@
 //  MultiDeviceDisableWarning.swift
 //  EncameraCore
 //
-//  The copy shown before turning iCloud Multi-Device Mode OFF (ENC-87).
+//  The copy shown before turning iCloud Multi-Device Mode OFF.
 //
 //  De-syncing a keychain item tombstones it: it is removed from iCloud and from
 //  every other device on the account. The device performing the flip keeps its
@@ -13,9 +13,6 @@
 import Foundation
 
 /// Builds the warning for turning Multi-Device Mode off.
-///
-/// Separated from the view model so the wording rules — which are the whole
-/// point of the ticket — are unit-testable without SwiftUI.
 public enum MultiDeviceDisableWarning {
 
     /// The devices, other than this one, that the roster knows about.

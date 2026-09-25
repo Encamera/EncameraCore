@@ -14,7 +14,6 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     private let lock = NSLock()
     private func locked<T>(_ body: () -> T) -> T { lock.lock(); defer { lock.unlock() }; return body() }
 
-    // Programmable
     var accountAvailableValue = true
     var changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
     var metadataToReturn: [CloudKitMediaMetadata] = []
@@ -35,7 +34,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fetchChangesGate: AsyncGate?
     var deleteError: Error?
     /// The enumeration failures the destructive path must not mistake for "there
-    /// was nothing here" (ENC-94). Without these hooks no test could reach that
+    /// was nothing here". Without these hooks no test could reach that
     /// branch at all, which is how the vacuous-success bug survived.
     var fetchAllAlbumsError: Error?
     var fetchMetadataError: Error?
@@ -43,7 +42,6 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var deleteErrorOnce: Error?
     var uploadRefOverride: CloudKitMediaRef?
 
-    // Recorded
     private var _fetchBlobCount = 0
     private var _fingerprintCensusCount = 0
     var fingerprintCensusCount: Int { locked { _fingerprintCensusCount } }
@@ -104,7 +102,6 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
                 failed: [item.recordName: CKErrorFactory.error(.referenceViolation)]
             )
         }
-        // Past every failure injection, so only a record that really "landed" counts.
         locked { _liveRecords[item.recordName] = item }
         if reflectUploadsInMetadata {
             locked {
@@ -171,17 +168,12 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
                 progress(fraction)
                 if index == 0 { onFirstProgress?() }
             }
-            // Cancellation is honored here, unlike the old `try?` swallow: a
-            // cancelled download must stop, not run to completion in the dark.
             if fetchBlobDelayNanos > 0 { try await Task.sleep(nanoseconds: fetchBlobDelayNanos) }
         } catch is CancellationError {
             locked { _fetchBlobCancelledCount += 1 }
             throw CancellationError()
         }
         if let fetchBlobError { throw fetchBlobError }
-        // Serve back the bytes this record was uploaded with, so a test can read what
-        // actually made the round trip rather than a stub. Falls back to `blobContents`
-        // for records seeded without an upload.
         let stored = locked { _uploadedBlobBytes[recordName] }
         try (stored ?? blobContents).write(to: destination)
         progress(1.0)
@@ -193,7 +185,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     func fetchThumbnail(recordName: String, to destination: URL) async throws {
         locked { fetchThumbnailCount += 1 }
         if fetchThumbnailWritesFile { try blobContents.write(to: destination) }
-        if let fetchThumbnailError { throw fetchThumbnailError }   // simulates a partial write then failure
+        if let fetchThumbnailError { throw fetchThumbnailError }
     }
 
     /// Observation hook invoked on every delete, so a test can record the
@@ -208,7 +200,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         locked { _liveRecords[recordName] = nil }
     }
 
-    // MARK: Albums (chunk 13)
+    // MARK: Albums
 
     private var _albums: [String: CloudKitAlbumMetadata] = [:]
     private var _savedAlbumCalls: [CloudKitAlbumUpload] = []
@@ -269,8 +261,6 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     func deleteAlbum(albumID: String) async throws {
         locked { _deletedAlbumCalls.append(albumID) }
         if let deleteAlbumError { throw deleteAlbumError }
-        // The record is gone from the zone; the change feed is what tells other
-        // consumers, and tests drive that through `changeSet.deletedAlbumIDs`.
         locked {
             _albums[albumID] = nil
             // `.deleteSelf` cascades the album delete to its media server-side, so
@@ -283,9 +273,6 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fetchChangesDelayNanos: UInt64 = 0
     func fetchChanges(since token: CKServerChangeToken?) async throws -> CloudKitChangeSet {
         locked { _fetchChangesCount += 1 }
-        // Held open by a test that needs another operation to land while the
-        // coordinator is out on the network. `fetchChangesDelayNanos` only makes
-        // that ordering probable; the gate makes it certain.
         if let fetchChangesGate { await fetchChangesGate.enter() }
         if fetchChangesDelayNanos > 0 { try? await Task.sleep(nanoseconds: fetchChangesDelayNanos) }
         if let error = fetchChangesErrorOnce { fetchChangesErrorOnce = nil; throw error }

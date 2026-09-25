@@ -3,7 +3,7 @@
 //  EncameraCore
 //
 //  Makes CloudKit the authoritative, cross-device source of truth for which albums
-//  exist (chunk 13). Two-way reconcile against the `EncAlbum` records in the zone:
+//  exist. Two-way reconcile against the `EncAlbum` records in the zone:
 //   - Pull: a remote album with no local materialization becomes a local discovery
 //     marker (so it shows in the grid and gets its media reconciled); an album the
 //     change feed reports deleted removes the local materialization.
@@ -16,7 +16,7 @@
 //  eventually consistent, so absence there is not evidence of anything, and a
 //  reconciler that treated it as a delete would race every fresh create. Absence
 //  is disambiguated locally instead, by whether the album was ever published
-//  (chunk 14) — no server-side tombstone required.
+//  — no server-side tombstone required.
 //
 //  The album-id hash is one-way, so a fresh device recovers the plaintext name by
 //  matching a synced album key against the hash (XChaCha20's MAC rejects wrong keys;
@@ -57,8 +57,6 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     public func reconcileAlbums() async -> Int {
         printDebug("reconcileAlbums start")
         guard await store.accountAvailable() else {
-            // Distinct from the fetch-failure return below: both return 0, but this
-            // one means we never talked to the server at all.
             printDebug("reconcileAlbums skip reason=accountUnavailable")
             return 0
         }
@@ -78,15 +76,11 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 pendingDeletes.remove(albumID)
                 printDebug("reconcileAlbums deleteDrain ok albumID=\(albumID)")
             } catch {
-                // Stays queued on purpose; log so a permanently-stuck delete intent
-                // (which also suppresses materialization of that album) is visible.
                 printDebug("reconcileAlbums deleteDrain FAILED albumID=\(albumID) error=\(error)")
             }
         }
         printDebug("reconcileAlbums deleteDrain done stillPending=\(pendingDeletes.count)")
 
-        // 1. Apply deletions the zone reports. This is the ONLY delete signal —
-        // absence from the query below is not one.
         let deletedRemotely = await applyRemoteDeletions()
 
         let remote: [CloudKitAlbumMetadata]
@@ -95,15 +89,13 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             printDebug("reconcileAlbums fetchAllAlbums ok remoteCount=\(remote.count)")
         } catch {
             printDebug("reconcileAlbums fetchAllAlbums FAILED error=\(error)")
-            return 0   // degrade quietly; the next push/scene-active retries
+            return 0
         }
 
         let keys: [PrivateKey]
         do {
             keys = try keyManager.storedKeys()
         } catch {
-            // An empty key list makes every remote album look locked-out, so the
-            // reason for the zero count must not be lost.
             printDebug("reconcileAlbums storedKeys FAILED error=\(error); proceeding with no keys")
             keys = []
         }
@@ -114,31 +106,23 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         printDebug("reconcileAlbums state keys=\(keys.count) localCloudKitAlbums=\(localByHash.count) remote=\(remote.count)")
         for albumID in deletedRemotely { localByHash[albumID] = nil }
 
-        // 2. Pull remote -> local.
         for record in remote {
             remoteIDs.insert(record.albumID)
 
-            // A locally-deleted album whose delete hasn't been confirmed yet: its
-            // remote record still reads as live — do NOT resurrect it.
             if pendingDeletes.contains(record.albumID) {
                 printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=deletePending")
                 continue
             }
 
-            // The server has it, so a later absence is meaningful for this album.
             publishRegistry.markPublished(record.albumID)
 
             if localByHash[record.albumID] != nil {
                 printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=alreadyMaterialized")
-                // Existing albums keep their local hidden state: `EncAlbum.isHidden`
-                // is only written at create-time and on explicit toggles, and the
-                // authoritative cross-device hidden sync is AlbumsSyncedStore.
-                // Applying the record here un-hid albums on every scene-active.
                 continue
             }
 
             guard let match = Self.match(record: record, keys: keys) else {
-                lockedOut += 1   // key not on this device — cannot decrypt/materialize
+                lockedOut += 1
                 printDebug("reconcileAlbums pull MISS albumID=\(record.albumID) reason=noMatchingKey candidateKeys=\(keys.count)")
                 //TODO: We have to surface this!
                 continue
@@ -156,17 +140,6 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             adopted += 1
         }
 
-        // 3. Reconcile local albums the query did not return.
-        //
-        // Absence here is ambiguous, and the two readings need opposite actions, so
-        // it is resolved from local state rather than from the server:
-        //   - never published -> the create never landed. Push it (self-heal).
-        //   - published before -> deleted elsewhere, and the deletion notice was
-        //     missed (token expired, or the app was away long enough). Remove it.
-        //
-        // Note what is NOT done: treating plain absence as a delete. A record saved
-        // moments ago is routinely missing from a `CKQuery` while its index
-        // catches up, so that rule would delete brand-new albums at random.
         var pushed = 0
         var deletedLocally = deletedRemotely.count
         for (hash, album) in localByHash where !remoteIDs.contains(hash) && !pendingDeletes.contains(hash) {
@@ -199,9 +172,6 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 pushed += 1
                 printDebug("reconcileAlbums push ok albumID=\(hash)")
             } catch {
-                // Self-heal is best-effort by design (the next pass retries), but a
-                // persistently failing push means the album never appears on other
-                // devices — so the error must not be discarded silently.
                 printDebug("reconcileAlbums push FAILED albumID=\(hash) error=\(error)")
             }
         }
@@ -227,7 +197,6 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             do {
                 changeSet = try await store.fetchChanges(since: token)
             } catch {
-                // Degrade quietly: the next pass retries from the un-advanced token.
                 printDebug("applyRemoteDeletions fetchChanges FAILED error=\(error)")
                 return removed
             }
@@ -269,12 +238,6 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     /// under that key AND the keyed hash of the recovered name equals the record name
     /// (the album id). Pure + `internal` so it can be unit-tested directly.
     static func match(record: CloudKitAlbumMetadata, keys: [PrivateKey]) -> (name: String, key: PrivateKey)? {
-        // The record names its own key, so try that one first and the sweep below
-        // becomes a single decrypt for every album a device can actually open. It stays
-        // an ordering hint rather than the answer: the keyed-hash check is what decides,
-        // and a record whose fingerprint names a key this device lacks still falls
-        // through to the sweep instead of being declared unopenable on the strength of a
-        // field alone.
         let ordered = record.keyFingerprint
             .flatMap { fingerprint in keys.first { $0.keychainLabel == fingerprint } }
             .map { hinted in [hinted] + keys.filter { $0.keychainLabel != hinted.keychainLabel } }
@@ -302,8 +265,6 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             if let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) {
                 byHash[hash] = album
             } else {
-                // An album we cannot hash is invisible to BOTH the pull match and the
-                // self-heal push, so it silently never syncs — worth shouting about.
                 unhashable += 1
             }
         }

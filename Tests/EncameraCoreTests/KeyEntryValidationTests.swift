@@ -2,7 +2,7 @@ import XCTest
 @testable import EncameraCore
 
 /// Fingerprint-gated, additive manual key entry for the returning-user
-/// onboarding "I have my key" path (ENC-92).
+/// onboarding "I have my key" path.
 final class KeyEntryValidationTests: XCTestCase {
 
     /// The device's own key, present before entry in the additive test.
@@ -56,7 +56,6 @@ final class KeyEntryValidationTests: XCTestCase {
             XCTAssertEqual(entered, enteredExpected)
             XCTAssertEqual(requiredReported, required)
             XCTAssertNotEqual(entered, requiredReported)
-            // Specific, not generic: the message names both keys' short labels.
             XCTAssertTrue(error.displayDescription.contains(KeyFingerprint.displayLabel(fingerprintHex: required)!),
                           "the mismatch must name the key the photos actually need")
         }

@@ -3,9 +3,9 @@
 //  EncameraCore
 //
 //  Fingerprint-gated, additive manual key entry for the returning-user
-//  onboarding "I have my key" path (ENC-92, under ENC-75).
+//  onboarding "I have my key" path.
 //
-//  Sibling to `MissingKeyEntry` (ENC-99), but for a different moment: this runs
+//  Sibling to `MissingKeyEntry`, but for a different moment: this runs
 //  during onboarding, before any media is on disk to decrypt against, so the
 //  gate is a full-fingerprint comparison against what the existing-data probe
 //  collected (`ExistingDataSummary.requiredFingerprints`) rather than an
@@ -43,7 +43,7 @@ public enum KeyEntryValidationError: Error, ErrorDescribable, Equatable {
 
 /// Outcome of comparing one key's fingerprint against the fingerprints the
 /// existing data needs. The single source of truth for "is this the right key",
-/// shared by manual entry (ENC-92) and the guided flip-the-switch flow (ENC-93):
+/// shared by manual entry and the guided flip-the-switch flow:
 /// the latter verifies a key that ARRIVED via iCloud Keychain rather than one
 /// derived from a typed phrase, but the gate is identical.
 public enum KeyFingerprintVerification: Equatable {
@@ -130,31 +130,21 @@ public struct KeyEntryValidator {
         do {
             candidate = try keyManager.deriveKey(from: phraseComponents, name: AppConstants.defaultKeyName)
         } catch let error as KeyManagerError {
-            // Malformed phrase — never reached the fingerprint comparison.
             throw KeyEntryValidationError.invalidPhrase(error.displayDescription)
         }
 
-        // Identity is the full fingerprint, never the display name — every
-        // production key is named `encamera_default_key` (ENC-69).
         let enteredFingerprint = candidate.keychainLabel
 
         let validated: Bool
         switch KeyEntryValidator.verify(fingerprint: enteredFingerprint, against: requiredFingerprints) {
         case .unvalidated:
-            // Offline / `.unknown`: accept without validation. Verification
-            // happens when photos load.
             validated = false
         case .matched:
             validated = true
         case let .mismatch(entered, required):
-            // Well-formed but wrong: a DETECTABLE mismatch, distinct from a
-            // parse error.
             throw KeyEntryValidationError.fingerprintMismatch(entered: entered, required: required)
         }
 
-        // Additive: `save` dedupes on key material and never tombstones another
-        // key. `setNewKeyToCurrent: true` makes the returning user's media
-        // readable and keeps new photos on the same key across their devices.
         try keyManager.save(key: candidate, setNewKeyToCurrent: true)
 
         return KeyEntryOutcome(key: candidate, validatedAgainstFingerprint: validated)

@@ -37,7 +37,7 @@ final class MediaIndexPaginationTests: XCTestCase {
             default:
                 subtype = .stillImage
                 hasPhoto = true
-                hasVideo = (i % 5 == 0) // every fifth still image is a live photo
+                hasVideo = (i % 5 == 0)
             }
             return MediaIndexEntry(
                 id: UUID().uuidString,
@@ -95,14 +95,13 @@ final class MediaIndexPaginationTests: XCTestCase {
         let indexURL = tempIndexURL()
         defer { try? FileManager.default.removeItem(at: indexURL.deletingLastPathComponent()) }
 
-        // Setup (not measured): build and persist the index once.
         let entries = makeEntries(count: entryCount)
         try await MediaIndexStore(keyBytes: key, indexURL: indexURL).save(MediaIndex(entries: entries))
 
         let mediaBaseURL = FileManager.default.temporaryDirectory
 
         func loadFirstPage() async -> (count: Int, elapsed: Duration) {
-            let store = MediaIndexStore(keyBytes: key, indexURL: indexURL) // fresh, no cache
+            let store = MediaIndexStore(keyBytes: key, indexURL: indexURL)
             let start = ContinuousClock.now
             guard let index = await store.load() else {
                 return (0, .seconds(999))
@@ -115,8 +114,6 @@ final class MediaIndexPaginationTests: XCTestCase {
             return (page.count, ContinuousClock.now - start)
         }
 
-        // Warm up one-time costs (libsodium init, etc.), then take the best of
-        // several runs to discount scheduler noise.
         _ = await loadFirstPage()
         var best = Duration.seconds(999)
         var samples: [Duration] = []
@@ -269,11 +266,6 @@ final class MediaIndexPaginationTests: XCTestCase {
         }.shuffled()
     }
 
-    /// When many entries share the same `dateEncrypted`, the sort must still
-    /// be a total order — pre-fix `compareDates` returned `false` for ties
-    /// either way, leaving Swift's sort to break them arbitrarily. The post-
-    /// fix tiebreaker on `id` gives a deterministic, repeatable order across
-    /// calls so offset-based paging doesn't shuffle items between pages.
     func testEqualTimestampSortIsDeterministicAcrossCalls() {
         let entries = makeEntriesWithIdenticalTimestamps(count: 500)
         let index = MediaIndex(entries: entries)
@@ -305,19 +297,12 @@ final class MediaIndexPaginationTests: XCTestCase {
                        + "tie — the secondary key (`id`) must drive the ordering.")
     }
 
-    /// The real symptom: page boundaries. Pre-fix, the sort could place
-    /// different ties in different positions between calls, so a page-0
-    /// snapshot and a page-1 snapshot drawn from separate sort runs would
-    /// overlap or skip items.
     func testEqualTimestampPagingHasNoDuplicatesOrSkips() {
         let total = 600
         let pageSize = 50
         let entries = makeEntriesWithIdenticalTimestamps(count: total)
         let index = MediaIndex(entries: entries)
 
-        // Mimic real paging: each page is a fresh sort call, sliced at the
-        // page offset. With an unstable sort, page 1's first item could be a
-        // duplicate of page 0's last item — or skip the one in between.
         var collected: [String] = []
         var offset = 0
         while offset < total {

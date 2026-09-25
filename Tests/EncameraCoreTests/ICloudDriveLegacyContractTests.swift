@@ -97,9 +97,6 @@ final class ICloudDriveLegacyContractTests: XCTestCase {
     /// ciphertext written under the iCloud container, visible to enumeration, and
     /// decryptable back to the exact bytes that went in — so the test fails
     /// whether the save path is blocked outright or quietly writes somewhere else.
-    ///
-    /// Gate this save path on `isStorageTypeOfferedForNewAlbums` instead of letting it
-    /// through and this test must go red.
     func testCanAddMediaToExistingICloudDriveAlbum() async throws {
         try await withICloudDriveRoot {
             XCTAssertNotEqual(DataStorageAvailabilityUtil.isStorageTypeOfferedForNewAlbums(type: .icloud), .available,

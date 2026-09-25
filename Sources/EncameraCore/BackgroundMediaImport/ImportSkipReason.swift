@@ -3,8 +3,8 @@
 //  EncameraCore
 //
 //  Low-cardinality classification of why a media item was skipped during import.
-//  Used both to surface a human-readable reason to the user (ENC-65) and, later,
-//  to report a privacy-safe reason string to analytics (ENC-66). Never carries a
+//  Used both to surface a human-readable reason to the user and, later,
+//  to report a privacy-safe reason string to analytics. Never carries a
 //  filename or path.
 //
 

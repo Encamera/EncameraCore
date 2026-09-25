@@ -54,7 +54,6 @@ class DiskBlockReader: FileLikeBlockReader {
             return
         }
         
-        // Create directory if it doesn't exist
         let directoryURL = source.deletingLastPathComponent()
         if !FileManager.default.fileExists(atPath: directoryURL.path) {
             try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)

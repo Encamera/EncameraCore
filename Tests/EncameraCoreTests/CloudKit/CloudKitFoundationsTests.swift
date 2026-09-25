@@ -30,8 +30,6 @@ final class CloudKitFoundationsTests: XCTestCase {
         }
     }
 
-    // A throwaway, isolated defaults suite so the persisted "zone created" flag
-    // never leaks between tests, into the app group, or across runs.
     private func freshDefaults(_ name: String = #function) -> UserDefaults {
         makeIsolatedDefaults(name)
     }
@@ -70,7 +68,6 @@ final class CloudKitFoundationsTests: XCTestCase {
             defaults: freshDefaults()
         )
 
-        // Never throws, reports the underlying status, and is treated as unavailable.
         let status = await container.accountStatus()
         XCTAssertEqual(status, .noAccount)
 
@@ -103,7 +100,6 @@ final class CloudKitFoundationsTests: XCTestCase {
         try await container.ensureZoneExists()
         try await container.ensureZoneExists()
 
-        // The persisted flag short-circuits every call after the first success.
         XCTAssertEqual(provisioner.saveCount, 1)
     }
 
@@ -118,18 +114,14 @@ final class CloudKitFoundationsTests: XCTestCase {
             defaults: defaults
         )
 
-        // Prime the "zone created" flag so we can prove the teardown clears it.
         try await container.ensureZoneExists()
         XCTAssertEqual(provisioner.saveCount, 1)
 
         try await container.deleteAllCloudData()
 
-        // Both zones go: the index zone and the chunked-blob zone — one zone
-        // delete each reclaims every record ever written, orphans included.
         XCTAssertEqual(provisioner.deletedZoneIDs,
                        [container.zoneID, CKRecordZone.ID(zoneName: ChunkedBlobSchema.zoneName)])
 
-        // Flag was reset: the next ensureZoneExists re-provisions instead of short-circuiting.
         try await container.ensureZoneExists()
         XCTAssertEqual(provisioner.saveCount, 2)
     }
@@ -143,8 +135,6 @@ final class CloudKitFoundationsTests: XCTestCase {
             defaults: freshDefaults()
         )
 
-        // A user who never used CloudKit must not see this surface as a failure —
-        // for either zone (the index zone and the chunked-blob zone).
         try await container.deleteAllCloudData()
         XCTAssertEqual(provisioner.deletedZoneIDs.count, 2)
     }
@@ -183,9 +173,6 @@ final class CloudKitFoundationsTests: XCTestCase {
             try await container.deleteAllCloudData()
             XCTFail("Expected a non-benign CloudKit error to propagate")
         } catch {
-            // The server may well have committed the delete before the client saw
-            // the failure. A latch left set would make every later write skip the
-            // zone create and fail against a zone that is gone.
             XCTAssertFalse(container.hasEverProvisionedZone)
             XCTAssertFalse(defaults.bool(forKey: ChunkedBlobSchema.zoneCreatedDefaultsKey))
         }
@@ -202,9 +189,7 @@ final class CloudKitFoundationsTests: XCTestCase {
         let hashA = try handlerA.hashPrimaryKey(albumName)
         let hashB = try handlerB.hashPrimaryKey(albumName)
 
-        // Same key + same album name => same albumID across instances (devices).
         XCTAssertEqual(hashA, hashB)
-        // A different album name must not collide.
         let other = try handlerA.hashPrimaryKey("Work")
         XCTAssertNotEqual(hashA, other)
     }

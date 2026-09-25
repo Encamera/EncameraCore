@@ -42,17 +42,17 @@ public enum OnboardingFlowScreen: String, Identifiable {
     case setPinCode
     case confirmPinCode
     case showKeyPhrase
-    /// iCloud Multi-Device Mode opt-in (ENC-95), shown AFTER auth setup and BEFORE
+    /// iCloud Multi-Device Mode opt-in, shown AFTER auth setup and BEFORE
     /// the app opens. Offers the mode defaulted OFF (no pre-check, explicit tap
     /// required), with the honest framing that the key lives in the user's iCloud
     /// Keychain. Gated on `.keychainSyncRestore`; skipped for a user who already
     /// arrived through a recovery path or already has sync on. Handled in
     /// `handleNavigationFor`, never `fatalError`.
     case multiDeviceOptIn
-    /// Returning-user branch shown when the existing-data probe (ENC-90) returns
+    /// Returning-user branch shown when the existing-data probe returns
     /// `.found`. Genuine new users (`.none`/`.unknown`) never reach it.
     case returningUserBranch
-    /// Manual key-phrase entry for the "I have my key" happy path (ENC-92):
+    /// Manual key-phrase entry for the "I have my key" happy path:
     /// paste/type the phrase, validate it against the fingerprints the existing
     /// data needs, and accept it additively. Handled in `handleNavigationFor`,
     /// never `fatalError`.
@@ -61,7 +61,7 @@ public enum OnboardingFlowScreen: String, Identifiable {
     /// flow that lands in ENC-93. Handled in `handleNavigationFor`, never
     /// `fatalError`.
     case returningUserRecoveryPlaceholder
-    /// Guided flip-the-switch recovery (ENC-93): the second "I have my key" path,
+    /// Guided flip-the-switch recovery: the second "I have my key" path,
     /// for a user who still has their other device but not the key phrase. Waits
     /// for the key to arrive via iCloud Keychain (polling the ENC-68 credential
     /// coordinator), with a mandatory timeout, fingerprint verification on
@@ -72,7 +72,7 @@ public enum OnboardingFlowScreen: String, Identifiable {
     /// recovery follow-ups. The live destructive flow lands in the three screens
     /// below. Handled in `handleNavigationFor`, never `fatalError`.
     case returningUserDestructivePlaceholder
-    /// Destructive delete-my-iCloud-data path (ENC-94), the "I don't have my key"
+    /// Destructive delete-my-iCloud-data path, the "I don't have my key"
     /// branch. Three escalating confirmations, each handled in `handleNavigationFor`
     /// and never `fatalError`; a back-out at any of them cancels the whole flow
     /// (nothing is deleted until the hold completes on the third).
@@ -91,7 +91,7 @@ public enum OnboardingFlowScreen: String, Identifiable {
     case cloudKitUpgradeIntro
     case cloudKitUpgradeProgress
     case cloudKitUpgradeComplete
-    // MARK: - Multi-Device Onboarding (ENC-264)
+    // MARK: - Multi-Device Onboarding
     case loginMethod
     case unlockMethod
     case encryptionExplainer

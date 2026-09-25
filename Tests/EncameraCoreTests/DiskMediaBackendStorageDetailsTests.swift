@@ -87,7 +87,6 @@ final class DiskMediaBackendStorageDetailsTests: XCTestCase {
             try await backend.evictLocalCopy(for: try media(id: id, types: [.photo], model: model))
             XCTFail("evicting a local album's only copy must not be treated as a no-op success")
         } catch FileAccessError.localCopyNotEvictable {
-            // expected
         }
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path),
                       "the refused eviction must not have touched the file")

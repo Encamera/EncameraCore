@@ -48,7 +48,7 @@ public class iCloudStorageModel: DataStorageModel {
     @MainActor
     private var downloadTasks = [URL: AnyCancellable]()
     @MainActor
-    private var activeQueries = [URL: (NSMetadataQuery, [NSObjectProtocol])]() // Track active queries for cleanup
+    private var activeQueries = [URL: (NSMetadataQuery, [NSObjectProtocol])]()
 
     public var baseURL: URL {
         let preferred = iCloudStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
@@ -117,7 +117,6 @@ public class iCloudStorageModel: DataStorageModel {
         var updateObserver: NSObjectProtocol?
         var gatheringObserver: NSObjectProtocol?
         
-        // Helper function to process an NSMetadataItem and emit status
         func processItem(_ item: NSMetadataItem) -> Bool {
             // Returns true if download is complete and observer should be terminated
             if let downloadingStatus = item.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String {
@@ -159,11 +158,9 @@ public class iCloudStorageModel: DataStorageModel {
             }
         }
         
-        // Observe updates for ongoing download progress
         updateObserver = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidUpdate, object: query, queue: .main) { [weak self] notification in
             guard self != nil else { return }
             
-            // First try to get from the changed items in the notification
             if let items = notification.userInfo?[NSMetadataQueryUpdateChangedItemsKey] as? NSArray,
                let item = items.firstObject as? NSMetadataItem {
                 if processItem(item) {
@@ -198,7 +195,6 @@ public class iCloudStorageModel: DataStorageModel {
             }
         }
         
-        // Store the query and observers for cleanup on cancellation
         var observers: [NSObjectProtocol] = []
         if let observer = updateObserver {
             observers.append(observer)
@@ -220,7 +216,6 @@ public class iCloudStorageModel: DataStorageModel {
 
         try iCloudFileStatusUtil.startDownload(for: source)
         
-        // Use AsyncThrowingStream to properly handle the callback-based NSMetadataQuery
         let stream = AsyncThrowingStream<iCloudDownloadStatus, Error> { continuation in
             let task = Task { @MainActor in
                 let cancellable = self.checkDownloadStatus(ofFile: media)
@@ -246,7 +241,6 @@ public class iCloudStorageModel: DataStorageModel {
                 case .cancelled:
                     task.cancel()
                     Task { @MainActor in
-                        // Properly clean up both cancellables AND the NSMetadataQuery
                         self.cleanUpCancellables()
                         if case .url(let sourceURL) = media.source {
                             self.cleanUpQuery(for: sourceURL)
@@ -258,10 +252,9 @@ public class iCloudStorageModel: DataStorageModel {
             }
         }
         
-        // Process the stream until we get a final result
         do {
             for try await status in stream {
-                try Task.checkCancellation() // Proper cancellation checking
+                try Task.checkCancellation()
                 
                 switch status {
                 case .notDownloaded:
@@ -309,7 +302,6 @@ public class iCloudStorageModel: DataStorageModel {
                 }
             }
             
-            // If we get here, the stream ended without a final status
             await MainActor.run {
                 self.cleanUpCancellables()
                 if case .url(let sourceURL) = media.source {
@@ -318,7 +310,6 @@ public class iCloudStorageModel: DataStorageModel {
             }
             throw DataStorageModelError.couldNotCreateMedia
         } catch {
-            // Ensure cleanup happens even if an error is thrown
             await MainActor.run {
                 self.cleanUpCancellables() 
                 if case .url(let sourceURL) = media.source {

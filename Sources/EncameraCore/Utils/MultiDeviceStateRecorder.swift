@@ -2,7 +2,7 @@
 //  MultiDeviceStateRecorder.swift
 //  EncameraCore
 //
-//  Writes the always-synced multi-device state record (ENC-71 / ENC-81).
+//  Writes the always-synced multi-device state record.
 //
 
 import Foundation
@@ -94,9 +94,6 @@ public struct MultiDeviceStateRecorder {
                 keyFingerprints: fingerprints
             ))
         } catch {
-            // Best-effort telemetry about the account, not a source of truth
-            // for anything the user is doing right now. A failed write is
-            // retried on the next launch.
             debugPrint("MultiDeviceStateRecorder: could not write multi-device state: \(error)")
         }
     }

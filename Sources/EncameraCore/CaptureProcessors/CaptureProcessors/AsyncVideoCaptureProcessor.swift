@@ -66,8 +66,6 @@ extension AsyncVideoCaptureProcessor: AVCaptureFileOutputRecordingDelegate {
 
         // AVFoundation reports a non-nil error even when the recording is usable
         // (e.g. a clean user-initiated stop) via AVErrorRecordingSuccessfullyFinishedKey.
-        // Only treat it as a failure when the recording did not finish successfully —
-        // otherwise an interrupted recording was silently saved as a truncated clip.
         if let error = error {
             let finishedSuccessfully = (error as NSError)
                 .userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool ?? false

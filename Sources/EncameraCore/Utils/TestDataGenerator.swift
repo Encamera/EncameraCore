@@ -1,5 +1,5 @@
 import Foundation
-import Sodium // Sodium is available within EncameraCore
+import Sodium
 
 internal enum TestDataGenerator {
 

@@ -189,8 +189,6 @@ public enum CloudKitKeyStamp: DebugPrintable {
             }
             return StampedSource(key: proven.key, uploadURL: copy, temporaryCopy: copy)
         } catch {
-            // An unstamped upload is worse than a stamped one but far better than a
-            // failed migration: the record still names the key, which is what readers use.
             printDebug("stampedSourceForUpload copy FAILED file=\(url.lastPathComponent) raw=\(error); uploading the original unstamped")
             return StampedSource(key: proven.key, uploadURL: url, temporaryCopy: nil)
         }

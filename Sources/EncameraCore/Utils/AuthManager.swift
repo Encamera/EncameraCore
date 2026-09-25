@@ -121,8 +121,6 @@ public enum BiometricAvailability: Equatable {
     public func cannotUnlockMessage(biometryName: String = L10n.BiometricAvailability.genericName) -> String {
         switch self {
         case .available(let method):
-            // Usable hardware, but not switched on for Encamera on this
-            // device — the per-device consent has not been answered here.
             return L10n.BiometricAvailability.CannotUnlock.notEnabled(method.nameForMethod)
         case .lockedOut:
             return L10n.BiometricAvailability.CannotUnlock.lockedOut(biometryName)
@@ -187,7 +185,6 @@ public class DeviceAuthManager: AuthManager {
     private func invalidateContext() {
         _cachedContext?.invalidate()
         _cachedContext = nil
-        // Also reset cached biometric availability since it depends on context
         _biometricAvailabilityChecked = false
         _cachedAvailableBiometric = nil
     }
@@ -219,8 +216,6 @@ public class DeviceAuthManager: AuthManager {
         var probeError: NSError?
         if probe.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &probeError) {
             guard let method = AuthenticationMethod.methodFrom(biometryType: probe.biometryType) else {
-                // canEvaluatePolicy passed but the biometry type is one the
-                // app does not support (e.g. Optic ID).
                 return .noHardware
             }
             return .available(method)
@@ -244,16 +239,11 @@ public class DeviceAuthManager: AuthManager {
     }
 
     public var availableBiometric: AuthenticationMethod? {
-        // Return cached result if we've already checked
         if _biometricAvailabilityChecked {
             return _cachedAvailableBiometric
         }
 
         guard case .available(let method) = biometricAvailability else {
-            // Only cache a positive. A failure here can be transient (device
-            // lockout, context timing); caching it would keep reporting
-            // "Face ID is disabled" for the rest of the foreground session
-            // even after the condition clears.
             return nil
         }
 
@@ -263,7 +253,6 @@ public class DeviceAuthManager: AuthManager {
     }
 
     public var deviceBiometryType: AuthenticationMethod? {
-        // Use the cached context to check biometry type
         _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
         return AuthenticationMethod.methodFrom(biometryType: context.biometryType)
     }
@@ -274,27 +263,16 @@ public class DeviceAuthManager: AuthManager {
             if let _useBiometricsForAuth = self._useBiometricsForAuth {
                 return _useBiometricsForAuth
             }
-            // The REAL per-device capability, not a hardcoded `true`. It used to be
-            // hardcoded with a separate `deviceBiometryType != .none` guard above
-            // doing the actual gating, which made `isActive`'s hardware check dead
-            // at its only production call site, and made the unit tests that
-            // exercise `isActive(hasBiometricHardware: false, ...)` cover a
-            // configuration production never produced. `BiometricsDeviceConfirmation`'s
-            // header states this hardware check as a design property; now it is one.
             let isActive = BiometricUnlockDecision.isActive(
                 hasBiometricHardware: deviceBiometryType != .none,
                 confirmedOnThisDevice: BiometricsDeviceConfirmation.isConfirmed
             )
-            // Only cache a positive: an unconfirmed device must pick up the
-            // confirmation as soon as the user gives it, without a relaunch.
             guard isActive else { return false }
             self._useBiometricsForAuth = isActive
             return isActive
         }
         set(value) {
             self._useBiometricsForAuth = value
-            // Answering the toggle anywhere is consent on the device it was
-            // answered on.
             BiometricsDeviceConfirmation.setConfirmed(value)
             // Turning biometrics off is a device-specific setting: it clears
             // only the local consent above. Stripping .biometrics from the
@@ -428,17 +406,13 @@ public class DeviceAuthManager: AuthManager {
             // context stays for the cheap biometry-type reads.
             invalidateContext()
             let result = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: L10n.keepYourEncryptedDataSafeByUsing(method.nameForMethod))
-            // Successful auth - invalidate context to get fresh one next time
-            // (LAContext should not be reused after successful evaluation)
             invalidateContext()
             return result
         } catch let localAuthError as LAError {
             debugPrint("LAError", localAuthError)
             
-            // Invalidate context on errors that may leave it in a bad state
             switch localAuthError.code {
             case .invalidContext, .systemCancel:
-                // These errors indicate the context is no longer valid
                 invalidateContext()
             default:
                 break
@@ -460,7 +434,6 @@ public class DeviceAuthManager: AuthManager {
                 throw AuthManagerError.biometricsFailed
             }
         } catch {
-            // Unknown error - invalidate context to be safe
             invalidateContext()
             throw AuthManagerError.biometricsFailed
         }
@@ -472,15 +445,12 @@ public class DeviceAuthManager: AuthManager {
             throw AuthManagerError.biometricsNotAvailable
         }
         
-        // Debounce: Don't trigger if we just triggered within the debounce interval
-        // This prevents duplicate triggers from multiple sources firing simultaneously
         if let lastAttempt = lastBiometricAttemptTime,
            Date().timeIntervalSince(lastAttempt) < biometricDebounceInterval {
             debugPrint("Skipping duplicate biometric attempt - debounced")
             return
         }
         
-        // If biometric auth is already in progress, don't start another
         guard !isBiometricAuthInProgress else {
             debugPrint("Skipping biometric attempt - already in progress")
             return

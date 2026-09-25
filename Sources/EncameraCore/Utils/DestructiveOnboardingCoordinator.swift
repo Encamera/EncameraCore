@@ -3,9 +3,8 @@
 //  EncameraCore
 //
 //  The destructive "delete my iCloud data" path for the returning user who does
-//  NOT have their key (ENC-94). The riskiest flow in the multi-device project: it
-//  deletes user data by design and sits directly on the tombstone landmine
-//  (ENC-72/ENC-82).
+//  NOT have their key. The riskiest flow in the multi-device project: it
+//  deletes user data by design and sits directly on the tombstone landmine.
 //
 //  Non-negotiables, all enforced here:
 //   * It deletes iCloud *data*, never keys account-wide. It issues NO account-wide
@@ -42,38 +41,14 @@ public struct DestructiveOnboardingReport: Equatable, Sendable {
     public var legacyFileError: String?
     /// Failures ENUMERATING what to delete, keyed by what was being enumerated
     /// (`"albums"`, or an albumID for its media).
-    ///
-    /// Separate from the tombstone failures above because they are the more
-    /// dangerous kind: a `(try? await store.fetchAllAlbums()) ?? []` turned a fetch
-    /// failure — CloudKit throttling, a network drop after `accountAvailable()`
-    /// returned true, the query-index latency this container is prone to — into an
-    /// empty album list. Nothing was then iterated, nothing failed, `hasFailures`
-    /// was false, and `isCompleteSuccess` was VACUOUSLY true: the marker got
-    /// cleared and a fresh key minted over media still sitting in CloudKit, whose
-    /// key fingerprint had just been erased from the synced record. "I could not
-    /// enumerate what to delete" is not "there was nothing to delete" — the same
-    /// evidence-vs-absence distinction `ExistingDataProbe` makes with `.unresolved`.
     public var enumerationFailures: [String: String] = [:]
     /// How many live media records the probe's census said this account holds — the
     /// only reason the destructive screen was offered at all.
     public var expectedMediaCount: Int = 0
     /// Records the census counted that the sweep never tombstoned, when a post-sweep
     /// census could not confirm the zone is empty either.
-    ///
-    /// A THROWN enumeration is caught above; this catches the quieter half of the
-    /// same bug — a fetch that succeeds but comes back short. `fetchAllAlbums` is a
-    /// `CKQuery` and, unlike fetch-by-record-ID, is not strongly consistent: a stale
-    /// `EncAlbum` index, or media whose album another device already hard-deleted,
-    /// yields an album list that enumerates nothing. Zero iterations, zero failures,
-    /// a VACUOUSLY clean report — marker cleared, fingerprints wiped, fresh key
-    /// minted, and the census's media left in CloudKit permanently undecryptable
-    /// with nothing left to warn the next install.
     public var censusShortfall: Int?
     /// Set when clearing the marker fingerprints failed. The one write that
-    /// `isCompleteSuccess` claims happened, so swallowing it (it was a `try?`) let
-    /// the run mint a key over a record still holding old fingerprints — sending the
-    /// user back to the returning-user branch on the next launch, for data they had
-    /// already deleted.
     public var markerClearError: String?
     /// True only when a fresh key was generated — which happens only on a clean run.
     public var freshKeyGenerated: Bool = false
@@ -97,9 +72,6 @@ enum LegacyICloudDriveEraser {
     static func removeAll() async -> (removed: Int, error: String?) {
         guard let root = LegacyICloudDriveSweep.legacyRootURL() else { return (0, nil) }
         let fileManager = FileManager.default
-        // An unreadable container is NOT clean success: it used to return `(0, nil)`,
-        // which is byte-for-byte the "nothing to remove" answer, so the destructive
-        // run went on to clear the has-used marker over files it never even saw.
         guard let enumerator = fileManager.enumerator(
             at: root,
             includingPropertiesForKeys: [.isDirectoryKey],
@@ -157,16 +129,11 @@ public struct DestructiveOnboardingCoordinator {
     /// that succeeds but comes back short cannot pass for "there was nothing to
     /// delete". Callers with no census pass 0.
     public func run(expectedMediaCount: Int) async throws -> DestructiveOnboardingReport {
-        // Step 7: never offer a destructive action we cannot complete or verify.
         guard await store.accountAvailable() else { throw DestructiveOnboardingError.offline }
 
         var report = DestructiveOnboardingReport()
         report.expectedMediaCount = expectedMediaCount
 
-        // A failure here must NOT degrade to "no albums" — see `enumerationFailures`.
-        // Bail immediately: with no album list there is nothing to delete and no way
-        // to know what was missed, and continuing would only walk into the step-5
-        // guard with a report that looks clean.
         let albums: [CloudKitAlbumMetadata]
         do {
             albums = try await store.fetchAllAlbums()
@@ -175,16 +142,12 @@ public struct DestructiveOnboardingCoordinator {
             return report
         }
 
-        // Delete every media record, deduplicated by record name so an item is
-        // never deleted twice.
         var seenRecords = Set<String>()
         for album in albums {
             let media: [CloudKitMediaMetadata]
             do {
                 media = try await store.fetchMetadata(albumID: album.albumID, includeThumbnail: false)
             } catch {
-                // Record and keep going: the other albums can still be drained, and
-                // `hasFailures` now stops the run short of clearing the marker.
                 report.enumerationFailures[album.albumID] = "\(error)"
                 continue
             }
@@ -193,15 +156,11 @@ public struct DestructiveOnboardingCoordinator {
                     try await store.delete(recordName: item.recordName)
                     report.tombstonedMedia.append(item.recordName)
                 } catch {
-                    // Step 5: surface it, never re-swallow it.
                     report.mediaFailures[item.recordName] = "\(error)"
                 }
             }
         }
 
-        // Delete every album record. `deleteAlbum` is deliberately NOT feature-flag
-        // gated (see AlbumManager.deleteCloudKitAlbumRecord) so the delete always
-        // propagates and the reconciler cannot resurrect it.
         for album in albums {
             do {
                 try await store.deleteAlbum(albumID: album.albumID)
@@ -211,33 +170,19 @@ public struct DestructiveOnboardingCoordinator {
             }
         }
 
-        // Legacy iCloud Drive files.
         let legacy = await removeLegacyICloudDriveFiles()
         report.removedLegacyFileCount = legacy.removed
         report.legacyFileError = legacy.error
 
-        // Cross-check the sweep against the census. A short sweep is only forgiven
-        // when a fresh census can confirm the zone really is empty — which is also
-        // what un-sticks the user whose census was itself stale: the retry passes
-        // once the index catches up, instead of failing forever against a number
-        // that can never be reached.
         if report.tombstonedMedia.count < expectedMediaCount, await !zoneConfirmedEmpty() {
             report.censusShortfall = expectedMediaCount - report.tombstonedMedia.count
         }
 
-        // Step 5: on any failure, report and stop. The account still holds data, so
-        // clearing the marker or minting a key would be claiming a success we didn't
-        // achieve.
         guard report.isCompleteSuccess else { return report }
 
         // Step 6: clear the fingerprints, PRESERVE the roster. A direct overwrite,
         // NOT the merging setter/recorder. An update, not a delete — so the
         // synchronizable record is not tombstoned account-wide.
-        //
-        // A failure here stops the run exactly like the other failure paths: the
-        // fingerprints are the returning-user signal for the next install, and
-        // minting a key over a record that still holds old fingerprints strands the
-        // user in the returning-user branch describing data they already erased.
         let existing = keyManager.getMultiDeviceState()
         do {
             try keyManager.overwriteMultiDeviceState(
@@ -249,10 +194,6 @@ public struct DestructiveOnboardingCoordinator {
             return report
         }
 
-        // Step 3 (the landmine): NO account-wide keychain deletion. This is a fresh
-        // install with no key of its own, and the user's other device still owns the
-        // account key — it must survive. Step 4: mint a fresh key and let the caller
-        // continue into normal auth setup.
         _ = try keyManager.generateKeyUsingRandomWords(name: freshKeyName)
         report.freshKeyGenerated = true
 

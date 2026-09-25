@@ -8,11 +8,6 @@ extension UIDeviceOrientation {
     /// right in video terms) and vice versa, because the sensor is mounted
     /// rotated relative to the device body.
     ///
-    /// Not a general answer, and not the one to reach for: the mounting differs
-    /// between the front and back cameras and between device generations, so
-    /// this table is wrong for some cameras — which is what left front-camera
-    /// captures rotated (ENC-15). `CaptureRotationTracker` asks the camera
-    /// itself; this survives only as its fallback on hosts with no camera.
     /// Nil for `faceUp`, `faceDown` and `unknown`, which imply no angle at all.
     public var videoRotationAngle: CGFloat? {
         switch self {

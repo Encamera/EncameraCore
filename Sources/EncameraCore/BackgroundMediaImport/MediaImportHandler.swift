@@ -25,7 +25,6 @@ enum ImportMediaSource {
     var count: Int {
         switch self {
         case .preloaded(let media):
-            // Count unique media IDs (live photos have same ID for image+video)
             return Set(media.map { $0.id }).count
         case .streaming(let results):
             return results.count
@@ -36,8 +35,8 @@ enum ImportMediaSource {
 // MARK: - Import Result Summary
 
 /// Details of a single media group that failed to import. Carries the media id
-/// and the underlying error so callers can surface a reason to the user (ENC-65)
-/// and classify it for analytics (ENC-66).
+/// and the underlying error so callers can surface a reason to the user
+/// and classify it for analytics.
 ///
 /// `@unchecked Sendable`: the wrapped `Error` values here are immutable enum/value
 /// errors, so they are safe to hand back through a throwing task group.
@@ -110,17 +109,14 @@ public class MediaImportHandler: DebugPrintable {
     public func startImport(results: [MediaSelectionResult], albumId: String, source: ImportSource) async throws -> (success: Int, failure: Int) {
         printDebug("Starting import from \(results.count) MediaSelectionResults to album: \(albumId)")
         
-        // Validate configuration upfront
         _ = try validateAndGetAlbum(albumId: albumId)
         
-        // Create and register the task using shared helper
         let task = createAndRegisterTask(
             totalFiles: results.count,
             albumId: albumId,
             source: source
         )
         
-        // Execute using unified infrastructure with streaming mode
         let summary = try await executeImportTask(task, mediaSource: .streaming(results))
         return (summary.success, summary.failure)
     }
@@ -132,10 +128,8 @@ public class MediaImportHandler: DebugPrintable {
     public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = [], userBatchId: String? = nil) async throws -> ImportResultSummary {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
         
-        // Validate configuration upfront
         _ = try validateAndGetAlbum(albumId: albumId)
         
-        // Log details about each media item (first 5 for brevity)
         for (index, mediaItem) in media.prefix(5).enumerated() {
             printDebug("Media item \(index): id=\(mediaItem.id)")
             if case .url(let url) = mediaItem.source {
@@ -148,7 +142,6 @@ public class MediaImportHandler: DebugPrintable {
             printDebug("... and \(media.count - 5) more media items")
         }
         
-        // Create and register the task using shared helper
         let task = createAndRegisterTask(
             media: media,
             albumId: albumId,
@@ -157,7 +150,6 @@ public class MediaImportHandler: DebugPrintable {
             userBatchId: userBatchId
         )
         
-        // Execute using unified infrastructure with preloaded mode
         return try await executeImportTask(task, mediaSource: .preloaded(media))
     }
     
@@ -207,16 +199,13 @@ public class MediaImportHandler: DebugPrintable {
         
         let task: ImportTask
         if media.isEmpty, let total = totalFiles {
-            // Streaming mode: create task with known count but no media yet
             task = ImportTask(id: taskId, totalFiles: total, albumId: albumId, source: source, userBatchId: batchId)
         } else {
-            // Preloaded mode: create task with media
             task = ImportTask(id: taskId, media: media, albumId: albumId, source: source, assetIdentifiers: assetIdentifiers, userBatchId: batchId)
         }
         
         taskManager.addTask(task)
         
-        // Register cancellation handler so BackgroundTaskManager can cancel this task
         taskManager.registerCancellationHandler(for: taskId) { [weak self] in
             self?.printDebug("Cancellation handler invoked for task: \(taskId)")
             self?.currentImportTask?.cancel()
@@ -268,8 +257,6 @@ public class MediaImportHandler: DebugPrintable {
         var failedItems: [ImportItemFailure] = []
         var collectedAssetIdentifiers: [String] = []
         var wasCancelled = false
-        // Preloaded (Files/Share) imports are fault-tolerant per item and finalize
-        // completed-with-failures; only an all-failures batch finalizes as failed.
         let isPreloaded: Bool
         if case .preloaded = mediaSource { isPreloaded = true } else { isPreloaded = false }
 
@@ -282,7 +269,6 @@ public class MediaImportHandler: DebugPrintable {
                 successCount = summary.success
                 failureCount = summary.failure
                 failedItems = summary.failedItems
-                // For preloaded imports, asset identifiers are already set on the task
                 collectedAssetIdentifiers = task.assetIdentifiers
 
             case .streaming(let results):
@@ -291,8 +277,6 @@ public class MediaImportHandler: DebugPrintable {
                 failureCount = counts.failure
                 collectedAssetIdentifiers = counts.assetIdentifiers
 
-                // Check if we were cancelled (fewer successes than total results)
-                // This happens when the streaming loop breaks early due to cancellation
                 if successCount + failureCount < results.count {
                     wasCancelled = true
                 }
@@ -303,19 +287,13 @@ public class MediaImportHandler: DebugPrintable {
             try await currentImportTask?.value
 
             await MainActor.run {
-                // Check if the task was cancelled during streaming (early exit from loop)
                 if wasCancelled {
                     self.printDebug("Streaming import was cancelled with \(collectedAssetIdentifiers.count) partial imports")
                     self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: collectedAssetIdentifiers)
                 } else if isPreloaded && successCount == 0 && failureCount > 0 {
-                    // Every item in the batch failed — finalize as failed rather than
-                    // a completed-with-failures partial success.
                     self.printDebug("Batch import had \(failureCount) failures and no successes - finalizing failed")
                     self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.allImportsFailed(failureCount: failureCount))
                 } else {
-                    // Completed, possibly with per-item failures (partial success).
-                    // For partial success, report the succeeded count; empty/no-op and
-                    // streaming imports keep the full source count.
                     let completedItems = (isPreloaded && successCount > 0) ? successCount : mediaSource.count
                     self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: completedItems, assetIdentifiers: collectedAssetIdentifiers)
                 }
@@ -323,9 +301,6 @@ public class MediaImportHandler: DebugPrintable {
                 self.cleanupTempFilesIfSafe()
             }
         } catch is CancellationError {
-            // Task was cancelled (typically batch imports via Task.checkCancellation())
-            // Use collectedAssetIdentifiers if we collected any (streaming imports),
-            // otherwise fall back to task.assetIdentifiers (preloaded imports)
             let partialIdentifiers = !collectedAssetIdentifiers.isEmpty ? collectedAssetIdentifiers : task.assetIdentifiers
             await MainActor.run {
                 self.printDebug("Import was cancelled with \(partialIdentifiers.count) asset identifiers")
@@ -333,7 +308,6 @@ public class MediaImportHandler: DebugPrintable {
                 self.endBackgroundTask()
                 self.cleanupTempFilesIfSafe()
             }
-            // Don't re-throw cancellation errors - the task is properly finalized
         } catch {
             await MainActor.run {
                 self.taskManager.finalizeTaskFailed(taskId: task.id, error: error)
@@ -378,7 +352,6 @@ public class MediaImportHandler: DebugPrintable {
         printDebug("Processing \(batches.count) batches of size \(batchSize)")
 
         for (batchIndex, batch) in batches.enumerated() {
-            // Check for cancellation before processing each batch
             try Task.checkCancellation()
             printDebug("Processing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) media groups")
 
@@ -399,10 +372,8 @@ public class MediaImportHandler: DebugPrintable {
                             )
                             return .success
                         } catch is CancellationError {
-                            // Let cancellation abort the whole import (pause/cancel).
                             throw CancellationError()
                         } catch {
-                            // Record the per-item failure and keep the batch going.
                             self.printDebug("❌ Skipping media \(mediaId): \(error)")
                             return .failure(ImportItemFailure(id: mediaId, error: error))
                         }
@@ -447,8 +418,6 @@ public class MediaImportHandler: DebugPrintable {
         var collectedAssetIdentifiers: [String] = []
         
         for (index, result) in results.enumerated() {
-            // Check for task cancellation (cooperative cancellation)
-            // This is more efficient than polling task state from MainActor
             try Task.checkCancellation()
             
             printDebug("📄 Processing item \(index + 1)/\(results.count)")
@@ -471,7 +440,6 @@ public class MediaImportHandler: DebugPrintable {
                     deleteTempFiles(for: loaded.media)
                 }
                 
-                // Collect asset identifier for successful imports
                 if let assetId = loaded.assetIdentifier {
                     collectedAssetIdentifiers.append(assetId)
                 }
@@ -536,13 +504,10 @@ public class MediaImportHandler: DebugPrintable {
         
         logSourceFileStatus(for: mediaGroup)
         
-        // Extract metadata from the file URL for preloaded imports
         var metadata: EncryptedFileMetadata?
         if let firstMedia = mediaGroup.first, let url = firstMedia.url {
             let extractor = MediaMetadataExtractor()
             metadata = await extractor.extractMetadata(from: url, mediaType: firstMedia.mediaType)
-            // The entry point knows the real source name; it wins over whatever
-            // the extractor derived from the (possibly temp) URL.
             if let originalFilename = firstMedia.originalFilename {
                 metadata?.originalFilename = originalFilename
             }
@@ -753,7 +718,7 @@ public class MediaImportHandler: DebugPrintable {
                 self?.printDebug("Current tasks: \(self?.taskManager.currentTasks.count ?? 0)")
                 Task { @MainActor in
                     // Delay non-critical work to let biometric authentication complete first
-                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                    try? await Task.sleep(nanoseconds: 500_000_000)
                     self?.taskManager.updateOverallProgress()
                     self?.cleanupTempFilesIfSafe()
                 }

@@ -75,11 +75,9 @@ public class DemoAlbumManager: AlbumManaging {
     public var currentAlbum: Album?
 
     public required init(keyManager: KeyManager = DemoKeyManager(), syncedDataStore: SyncedDataStore? = nil) {
-        // Initialize demo data
-        self.defaultStorageForAlbum = .local // Example storage type
+        self.defaultStorageForAlbum = .local
         let key = DemoPrivateKey.dummyKey()
         self.demoAlbums = [
-            // Populate with demo albums
             Album(name: "Personal", storageOption: .local, creationDate: Date(), key: key),
             Album(name: "Private", storageOption: .local, creationDate: Date(), key: key),
             Album(name: "Secret", storageOption: .local, creationDate: Date(), key: key),
@@ -89,27 +87,22 @@ public class DemoAlbumManager: AlbumManaging {
         ]
         self.keyManager = DemoKeyManager()
         self.currentAlbum = demoAlbums.first
-        // Note: syncedDataStore is ignored in demo implementation
     }
 
     public func delete(album: Album) {
-        // No-op for demo
     }
     public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
         fatalError()
 
     }
     public func create(album: Album) throws {
-        // No-op for demo
     }
 
     public func storageModel(for album: Album) -> DataStorageModel? {
-        // Return a demo storage model
         return LocalStorageModel(album: album)
     }
 
     public func validateAlbumName(name: String) throws {
-        // Example validation logic
         guard !name.isEmpty else {
             throw AlbumError.albumNameError
         }

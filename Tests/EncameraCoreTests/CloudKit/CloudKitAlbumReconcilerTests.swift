@@ -102,7 +102,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
     }
 
     func test_reconcile_reportsLockedOutWhenKeyMissing() async {
-        // A remote album owned by a key this device does NOT have (key backup off).
         let absentOwner = makeKey(9)
         let store = MockCloudKitMediaStore()
         store.seedAlbum(remoteRecord(name: "Remote", key: absentOwner))
@@ -111,19 +110,13 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let lockedOut = await reconciler.reconcileAlbums()
 
         XCTAssertEqual(lockedOut, 1)
-        XCTAssertTrue(store.savedAlbumCalls.isEmpty)   // nothing materialized or pushed
+        XCTAssertTrue(store.savedAlbumCalls.isEmpty)
     }
 
-    /// ENC-99: the locked-out count has been computed since this reconciler was
-    /// written and consumed by nothing, so locked albums were simply absent from
-    /// the grid with nothing said. This pins that the count now travels all the
-    /// way to the layer the UI observes.
     @MainActor
     func testLockedOutAlbumCountIsSurfaced() async {
         LockedAlbumsReporter.shared.report(lockedAlbumCount: 0)
 
-        // Same condition as test_reconcile_reportsLockedOutWhenKeyMissing: two
-        // remote albums owned by keys this device does not hold.
         let store = MockCloudKitMediaStore()
         store.seedAlbum(remoteRecord(name: "RemoteOne", key: makeKey(9)))
         store.seedAlbum(remoteRecord(name: "RemoteTwo", key: makeKey(8)))
@@ -132,8 +125,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         keyManager.storedKeysValue = [makeKey(1)]
         keyManager.currentKey = keyManager.storedKeysValue.first
         let albumManager = MockAlbumManager(keyManager: keyManager)
-        // A local .cloudKit album keeps performSyncAll from short-circuiting on
-        // the inactive-CloudKit-plane guard, independent of the feature flag.
         albumManager.albumsOnDisk = [Album(name: "Local", storageOption: .cloudKit, creationDate: Date(), key: keyManager.currentKey!)]
 
         let queue = freshDeleteQueue()
@@ -182,8 +173,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         await sync.syncAll()
 
-        // The 0 has to come from the key matching, not from any path that returns
-        // 0 without looking: the remote album was decrypted and materialized.
         XCTAssertEqual(albumManager.adoptedAlbums.map { $0.name }, ["RemoteOne"],
                        "the album whose key is present is materialized, not counted as locked out")
         let reported = await sync.albumsNeedingKey
@@ -207,8 +196,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         keyManager.storedKeysValue = [makeKey(1)]
         keyManager.currentKey = keyManager.storedKeysValue.first
         let albumManager = MockAlbumManager(keyManager: keyManager)
-        // No local `.cloudKit` album, so once the flag goes off the guard skips the
-        // whole run — exactly the path that left the count standing.
         albumManager.albumsOnDisk = []
 
         let store = MockCloudKitMediaStore()
@@ -223,8 +210,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                     publishRegistry: registry)
         })
 
-        // A flag-on pass first, so both counts are standing at 1 before the plane
-        // goes inactive — otherwise "cleared" is indistinguishable from "never set".
         await sync.syncAll()
         var reported = await sync.albumsNeedingKey
         XCTAssertEqual(reported, 1, "the unreadable remote album is counted while the plane is active")
@@ -253,8 +238,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertEqual(store.fetchAllAlbumsCount, 0)
         XCTAssertTrue(store.savedAlbumCalls.isEmpty)
 
-        // The same fixture with an account: everything the guard suppressed happens,
-        // so the emptiness above is the guard's doing and not the fixture's.
         store.accountAvailableValue = true
         _ = await reconciler.reconcileAlbums()
 
@@ -268,7 +251,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let key = makeKey(5)
         let local = Album(name: "Synced", storageOption: .cloudKit, creationDate: Date(), key: key)
         let store = MockCloudKitMediaStore()
-        store.seedAlbum(remoteRecord(name: "Synced", key: key))   // already on the server
+        store.seedAlbum(remoteRecord(name: "Synced", key: key))
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [local])
 
         _ = await reconciler.reconcileAlbums()
@@ -314,7 +297,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
     func test_reconcile_pushesAnAlbumAbsentFromTheQueryButNeverPublished() async {
         let key = makeKey(5)
         let local = Album(name: "BrandNew", storageOption: .cloudKit, creationDate: Date(), key: key)
-        let store = MockCloudKitMediaStore()   // query returns nothing
+        let store = MockCloudKitMediaStore()
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local])
 
         _ = await reconciler.reconcileAlbums()
@@ -334,7 +317,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let hash = SyncedStoreEncryptionHandler.keyedHash("WasThere", keyBytes: key.keyBytes)!
         let registry = freshPublishRegistry()
         registry.markPublished(hash)
-        let store = MockCloudKitMediaStore()   // query returns nothing
+        let store = MockCloudKitMediaStore()
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local],
                                                         publishRegistry: registry)
 
@@ -361,9 +344,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
     }
 
     func test_reconcile_doesNotOverwriteLocalHiddenStateOfExistingAlbum() async {
-        // The user hid the album locally; the record still says isHidden == false
-        // (it's only written at create-time / explicit toggles). Reconcile must NOT
-        // un-hide it on every scene-active.
         let key = makeKey(5)
         let local = Album(name: "Private", storageOption: .cloudKit, creationDate: Date(), key: key)
         let store = MockCloudKitMediaStore()
@@ -373,9 +353,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         _ = await reconciler.reconcileAlbums()
 
-        // Pins the branch the assertions below are about: the pull loop saw the
-        // record (so nothing was self-heal pushed) and recognised the album as
-        // already materialized (so nothing was adopted).
         XCTAssertTrue(store.savedAlbumCalls.isEmpty, "the album was recognised as already remote")
         XCTAssertTrue(albumManager.deletedAlbums.isEmpty, "and not treated as absent from the query")
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty, "an already-materialized album is not re-adopted")
@@ -387,8 +364,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
     // MARK: - Durable pending deletes
 
     func test_reconcile_drainsPendingDeleteAndDoesNotResurrectAlbum() async {
-        // Device deleted "Doomed" offline: the local marker is gone, the durable
-        // delete intent is queued, and the remote record is still live.
         let key = makeKey(5)
         let hash = SyncedStoreEncryptionHandler.keyedHash("Doomed", keyBytes: key.keyBytes)!
         let store = MockCloudKitMediaStore()
@@ -433,7 +408,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let upload = CloudKitAlbumUpload(albumID: "hash-1", encName: "Album_xyz", createdAt: Date(), isHidden: false)
 
         try await store.saveAlbum(upload)
-        try await store.saveAlbum(upload)   // idempotent: same record name
+        try await store.saveAlbum(upload)
         var all = try await store.fetchAllAlbums()
         XCTAssertEqual(all.count, 1)
 

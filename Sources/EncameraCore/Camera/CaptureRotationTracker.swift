@@ -16,10 +16,6 @@ import UIKit
 
 /// The angles to apply to the preview and capture connections, and where they
 /// came from.
-///
-/// Split out from `CaptureRotationTracker` so the precedence rule — hardware
-/// wins, the device-orientation guess is only a last resort — is testable
-/// without a camera.
 public struct CaptureRotationResolution: Equatable {
 
     /// Angle for the preview layer's connection.
@@ -65,16 +61,6 @@ public struct CaptureRotationResolution: Equatable {
 }
 
 /// Publishes the video rotation angles for the camera that is currently active.
-///
-/// Why this exists rather than a table keyed on `UIDevice.current.orientation`:
-/// the angle a connection needs is not a property of how the user is holding
-/// the phone alone. It also depends on how that particular camera's sensor is
-/// mounted, and AVFoundation states plainly that "the video rotation angle for
-/// capture may differ between cameras" and that the preview angle "may not match
-/// the amount of rotation needed for horizon-level capture". A single
-/// hand-rolled angle applied to both connections on both cameras is therefore
-/// only accidentally right — it is what left front-camera captures rotated
-/// (ENC-15) while the back camera looked fine.
 ///
 /// `AVCaptureDevice.RotationCoordinator` is the API that knows the mounting, so
 /// it is the source of truth here. The device-orientation angle survives only as

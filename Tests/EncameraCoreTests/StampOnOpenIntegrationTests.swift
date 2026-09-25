@@ -23,8 +23,6 @@ final class StampOnOpenIntegrationTests: XCTestCase {
             .appendingPathComponent("StampOnOpenIntegrationTests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
 
-        // Store keys A and B; make B current. Files encrypted with A simulate
-        // media from another device / an older key.
         keyManager = DemoKeyManager(keys: [keyA, keyB])
         keyManager.currentKey = keyB
         album = Album(name: "StampOnOpenIntegrationTests-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: keyB)
@@ -78,17 +76,13 @@ final class StampOnOpenIntegrationTests: XCTestCase {
         try await encryptFixture(with: keyA, format: format, at: url)
         XCTAssertNil(KeyStampSlot.readStamp(url: url), "Fixture must start unstamped")
 
-        // Before the first open, resolution needs the sweep: current key B is
-        // tried (and rejected) before A.
         let sweepAttempts = await recordedDiscoveryAttempts(for: url)
         XCTAssertEqual(sweepAttempts, ["keyB", "keyA"], "An unstamped foreign-key file resolves via the sweep")
 
-        // First open: correct plaintext, and the file learns its key.
         let firstOpen = try await openInMemory(url, id: id)
         XCTAssertEqual(firstOpen, plaintext)
         XCTAssertEqual(KeyStampSlot.readStamp(url: url), keyA.stampPrefix, "The open must stamp the confirmed key")
 
-        // Reopen: stamp hit — exactly one candidate test-decrypt.
         let stampedAttempts = await recordedDiscoveryAttempts(for: url)
         XCTAssertEqual(stampedAttempts, ["keyA"], "A stamped file must resolve with a single test-decrypt")
         let secondOpen = try await openInMemory(url, id: id)
@@ -107,21 +101,17 @@ final class StampOnOpenIntegrationTests: XCTestCase {
         let id = UUID().uuidString
         let url = tempDirectory.appendingPathComponent("\(id).\(MediaType.photo.encryptedFileExtension)")
         try await encryptFixture(with: keyA, format: .v2, at: url)
-        // Stale hint from a restore: the xattr names the wrong key.
         try ExtendedAttributesUtil.setKeyUUID(keyB.uuid, for: url)
 
         let firstOpen = try await openInMemory(url, id: id)
         XCTAssertEqual(firstOpen, plaintext)
         XCTAssertEqual(KeyStampSlot.readStamp(url: url), keyA.stampPrefix, "The open must heal the file with a correct stamp")
 
-        // The stamp now outranks the still-wrong xattr: single test-decrypt.
         let attempts = await recordedDiscoveryAttempts(for: url)
         XCTAssertEqual(attempts, ["keyA"])
     }
 
     func testLegacyAlbumPassivelyMigrates() async throws {
-        // A pre-change album: unstamped files, mixed formats, all encrypted
-        // with the non-current key A.
         let storageModel = LocalStorageModel(album: album)
         try storageModel.initializeDirectories()
         let ids = (0..<4).map { "legacy-\($0)-\(UUID().uuidString)" }
@@ -146,7 +136,6 @@ final class StampOnOpenIntegrationTests: XCTestCase {
         for (index, id) in ids.enumerated() {
             let url = storageModel.driveURLForMedia(withID: id, type: .photo)
             try await encryptFixture(with: keyA, format: .v2, at: url)
-            // Distinct, deliberately shuffled dates so ordering is meaningful.
             let date = Date(timeIntervalSince1970: 1_600_000_000 + Double((index * 7) % 5) * 1000)
             try FileManager.default.setAttributes([.creationDate: date, .modificationDate: date], ofItemAtPath: url.path)
         }

@@ -57,8 +57,6 @@ final class MediaIndexStoreStateTests: XCTestCase {
         let loaded = await store.current()
         XCTAssertEqual(loaded?.entries.count, 2)
 
-        // The first access warms the cache; deleting the file underneath must not
-        // empty a subsequent read.
         try FileManager.default.removeItem(at: indexURL)
         let warm = await store.current()
         XCTAssertEqual(warm?.entries.count, 2, "current() must serve the warm cache, not re-read disk every time")
@@ -77,7 +75,6 @@ final class MediaIndexStoreStateTests: XCTestCase {
         let warm = await store.current()
         XCTAssertEqual(warm?.entries.count, 2)
 
-        // An external writer rewrites the file with a newer mtime.
         let replacement = original + [makeEntry(id: "c")]
         try await MediaIndexStore(keyBytes: key, indexURL: indexURL).save(MediaIndex(entries: replacement))
         let newMtime = Date()
@@ -140,10 +137,8 @@ final class MediaIndexStoreStateTests: XCTestCase {
         let changed = try await store.apply { $0.upsert(entry) }
         XCTAssertTrue(changed)
 
-        // Cache reflects the mutation...
         let cached = await store._testCachedIndex()
         XCTAssertEqual(cached?.entries.map(\.id), ["a"])
-        // ...and it was persisted (a fresh store reads it back).
         let fresh = MediaIndexStore(keyBytes: key, indexURL: indexURL)
         let persisted = await fresh.load()
         XCTAssertEqual(persisted?.entries.map(\.id), ["a"])
@@ -212,16 +207,13 @@ final class MediaIndexStoreStateTests: XCTestCase {
         let mtimeBefore = store.fileModificationDate()
         XCTAssertNotNil(mtimeBefore)
 
-        // Backdate so any rewrite would be detectable as a strictly-newer mtime.
         try setModificationDate(Date(timeIntervalSinceNow: -120), on: indexURL)
         let backdated = store.fileModificationDate()
 
-        // Re-upserting the identical entry changes nothing — the file must not be rewritten.
         let changed = try await store.upsert([entry])
         XCTAssertFalse(changed, "an idempotent upsert reports no change")
         XCTAssertEqual(store.fileModificationDate(), backdated, "a no-op mutation must not rewrite the file")
 
-        // removeComponent for a record name with no matching entry is also a no-op.
         let removed = try await store.removeComponent(recordName: "ghost#0")
         XCTAssertTrue(removed, "a missing record counts as already removed")
         XCTAssertEqual(store.fileModificationDate(), backdated, "removing a missing record must not rewrite the file")
@@ -255,18 +247,14 @@ final class MediaIndexStoreStateTests: XCTestCase {
         let store = MediaIndexStore(keyBytes: key, indexURL: indexURL)
         _ = try await store.upsert([makeEntry(id: "existing")])
 
-        // A reconcile captures the generation, scans (suspending), and meanwhile
-        // an incremental save lands.
         let generation = await store.currentGeneration()
         _ = try await store.upsert([makeEntry(id: "interleaved")])
 
-        // The stale snapshot must be refused, leaving the interleaved write intact.
         let wrote = try await store.replace(with: [makeEntry(id: "stale")], ifGenerationIs: generation)
         XCTAssertFalse(wrote, "a generation mismatch must refuse the stale replace")
         let current = await store.current()
         XCTAssertEqual(current?.entries.map(\.id), ["existing", "interleaved"], "the interleaved write must survive")
 
-        // With a fresh generation the replace goes through.
         let freshGeneration = await store.currentGeneration()
         let wroteFresh = try await store.replace(with: [makeEntry(id: "reconciled")], ifGenerationIs: freshGeneration)
         XCTAssertTrue(wroteFresh, "a matching generation must write")

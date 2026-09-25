@@ -19,8 +19,8 @@ public enum FileAccessError: Error, ErrorDescribable {
     case iCloudDownloadFailed(status: iCloudFileStatus)
     case iCloudDownloadInProgress(status: iCloudFileStatus)
     case iCloudDownloadTimeout
-    /// The media is intact but no key in this device's library authenticates it
-    /// (ENC-99). Distinct from `missingPrivateKey`, which means this device has
+    /// The media is intact but no key in this device's library authenticates it.
+    /// Distinct from `missingPrivateKey`, which means this device has
     /// no key at all, and from a decrypt failure, which means damaged bytes.
     ///
     /// `requiredStampPrefix` is the file's own stamp when it carries one; nil
@@ -204,11 +204,6 @@ public extension FileWriter {
 /// Composed from the existing `FileReader` / `FileWriter` protocols plus the two
 /// genuinely-new backend responsibilities (`reconcile`, `sourceURL`). NOT a
 /// parallel stack.
-///
-/// (The `: Actor` refinement proposed by the migration plan was dropped: several
-/// conformers of `FileAccess` — `DemoFileEnumerator` and the test mocks — are
-/// plain classes, so constraining the protocol to actors would break them. All
-/// real backends are still actors regardless.)
 public protocol MediaBackend: FileReader, FileWriter {
     /// Brings the album's media index in sync with its backing store. Disk does a
     /// directory scan (driving `onProgress` as it reads metadata); CloudKit does a

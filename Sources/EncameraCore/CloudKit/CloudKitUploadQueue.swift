@@ -169,8 +169,6 @@ public actor CloudKitUploadQueue: DebugPrintable {
             printDebug("loadIfNeeded ok pending=\(pending.count)")
             return
         }
-        // Strict decode failed — salvage what individual entries still decode
-        // (a future schema change to one field must not orphan every capture).
         if let lenient = try? JSONDecoder().decode([LenientPendingUpload].self, from: data) {
             let items = lenient.compactMap(\.value)
             pending = Dictionary(items.map { ($0.recordName, $0) }, uniquingKeysWith: { _, newer in newer })
@@ -178,8 +176,6 @@ public actor CloudKitUploadQueue: DebugPrintable {
             printDebug("loadIfNeeded SALVAGED pending=\(pending.count) dropped=\(lenient.count - items.count) — orphan deletion disabled this launch")
             return
         }
-        // Nothing decodes. The files the manifest described are still on disk;
-        // `manifestUnreadable` stops `sweep()` from deleting them as orphans.
         manifestUnreadable = true
         printDebug("loadIfNeeded FAILED manifest unreadable file=\(manifestURL.lastPathComponent) — starting empty; files are left in place and sweep will not delete orphans")
     }
@@ -190,8 +186,6 @@ public actor CloudKitUploadQueue: DebugPrintable {
             let data = try JSONEncoder().encode(Array(pending.values))
             try data.write(to: manifestURL, options: .atomic)
         } catch {
-            // The files are already on disk; a failed manifest write costs us the
-            // record of them, which `sweep()` reports rather than hides.
             printDebug("persist FAILED pending=\(pending.count) raw=\(error)")
         }
     }
@@ -337,8 +331,6 @@ public actor CloudKitUploadQueue: DebugPrintable {
                 try FileManager.default.removeItem(at: url)
             }
         } catch {
-            // The upload succeeded, so the record must still go; a leftover file
-            // is picked up by the next `sweep()`.
             printDebug("complete WARNING recordName=\(recordName) file remove failed file=\(item.fileName) raw=\(error)")
         }
         pending[recordName] = nil
@@ -395,10 +387,6 @@ public actor CloudKitUploadQueue: DebugPrintable {
         var droppedRecords = 0
         for (name, item) in pending where !FileManager.default.fileExists(atPath: fileURL(for: item).path) {
             printDebug("sweep dropping recordName=\(name) reason=fileMissingOnDisk file=\(item.fileName)")
-            // A chunked item that got partway through a drain has committed chunk
-            // records in the blob zone with no `EncMedia` to ever commit them.
-            // Hand the reclaim to the durable delete queue — the next sync's drain
-            // deletes them (the missing EncMedia resolves as notFound).
             if item.chunkCount > 0 {
                 CloudKitMediaDeleteQueue().enqueue(name, chunkCount: item.chunkCount)
             }
@@ -406,10 +394,6 @@ public actor CloudKitUploadQueue: DebugPrintable {
             droppedRecords += 1
         }
 
-        // With an unreadable manifest, every file on disk looks unclaimed — and
-        // each one may be the only copy of a photo. Refuse to treat them as
-        // orphans; they upload again once a readable manifest re-claims them or
-        // stay put for diagnosis.
         if manifestUnreadable {
             printDebug("sweep skip orphanDeletion reason=manifestUnreadable — unclaimed files kept")
             if droppedRecords > 0 { persist() }
@@ -417,16 +401,6 @@ public actor CloudKitUploadQueue: DebugPrintable {
         }
 
         var quarantinedOrphans = 0
-        // Matched on (album folder, filename) rather than whole path strings.
-        // Comparing `URL.path` values is what broke here before: the two sides
-        // are built differently and a mismatch means condemning a file a record
-        // still owns — i.e. a photo that has not been uploaded yet.
-        //
-        // Orphans are MOVED to a quarantine folder rather than deleted, and only
-        // removed for good after `quarantineGracePeriod`. This is the queue's one
-        // destructive operation on user media; a bug in the matching (it has
-        // happened) or a manifest that goes unreadable and is later overwritten
-        // by a fresh one now costs a detour through quarantine, not the photo.
         var known: Set<String> = []
         for item in pending.values {
             known.insert("\(CloudKitBlobCache.albumFolderName(item.albumID))/\(item.fileName)")

@@ -78,10 +78,6 @@ final class KeyFingerprintDisplayTests: XCTestCase {
     }
 
     func testLabelNilForGarbageFile() throws {
-        // Same garbage fixture as KeyStampSlotTests: shorter than the v1 slot
-        // layout, so readStamp can reject it. (V1 files carry no magic, so a
-        // garbage file long enough to contain the slot reads as v1 — the
-        // stamp is a routing hint, not proof, and the label reflects that.)
         let garbageURL = tempDirectory.appendingPathComponent("garbage.enc")
         try Data("not an encrypted file".utf8).write(to: garbageURL)
         XCTAssertNil(KeyFingerprintDisplay.label(for: garbageURL, storedKeys: [keyA]))

@@ -96,9 +96,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     public var defaultStorageForAlbum: StorageType {
         get {
-            // iCloud Drive is deprecated. A `.icloud` default may still be persisted from
-            // before the deprecation — never hand it back, or the picker-less
-            // quick-create paths would attempt a deprecated album.
             if _defaultStorageForAlbum == .icloud {
                 return .local
             }
@@ -156,11 +153,9 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         if let syncedStore = albumsSyncedStore {
             do {
                 let hidden = try syncedStore.isAlbumHidden(album.name)
-                // If the synced store has a record, it's authoritative
                 if try syncedStore.fetchAlbum(name: album.name) != nil {
                     return hidden
                 }
-                // No record yet — check legacy and migrate if found
                 let legacyKey = Self.legacyHiddenKey(albumName: album.name)
                 if legacyDefaults.object(forKey: legacyKey) != nil {
                     let legacyValue = legacyDefaults.bool(forKey: legacyKey)
@@ -179,8 +174,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     public func fetchAlbumsFromSources(includingHidden: Bool) -> [Album] {
         let fileManager = FileManager.default
-        // Read once for the whole scan: resolving a name is a cheap AEAD op, but
-        // `storedKeys()` is a full keychain query and this runs on every broadcast.
         let storedKeys = (try? keyManager.storedKeys()) ?? []
         var lockedPlaceholders: [LockedAlbumPlaceholder] = []
         let mapToAlbum: (URL, StorageType) -> Album? = { url, storageType in
@@ -214,10 +207,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                     return mapToAlbum(url, .icloud)
                 }
         }
-        // CloudKit albums keep a discovery marker under the CloudKit albums root (their
-        // blobs live in CloudKit + a hashed cache). Scan unconditionally — the marker
-        // only exists if a CloudKit album was created — so they appear in the grid and
-        // get reconciled by the push fan-out.
         let cloudKitAlbums = CloudKitStorageModel.enumerateAlbumsDirectory()
             .compactMap { url -> Album? in
                 return mapToAlbum(url, .cloudKit)
@@ -249,14 +238,12 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         broadcastAlbumsUpdated()
     }
 
-    /// Creates a new AlbumManager
     /// - Parameters:
     ///   - keyManager: The key manager for encryption operations
     ///   - syncedDataStore: Optional synced data store for iCloud sync (uses legacy UserDefaults if nil)
     required public init(keyManager: KeyManager, syncedDataStore: SyncedDataStore? = nil) {
         self.keyManager = keyManager
 
-        // Initialize defaultStorageForAlbum first (before any callbacks can fire)
         if let defaultStorageLocationValue = UserDefaultUtils.string(forKey: .defaultStorageLocation),
            let defaultStorageLocation = StorageType(rawValue: defaultStorageLocationValue) {
             self._defaultStorageForAlbum = defaultStorageLocation
@@ -264,11 +251,9 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             self._defaultStorageForAlbum = .local
         }
 
-        // Set up synced store if provided (after all properties are initialized)
         if let syncedDataStore = syncedDataStore {
             self.albumsSyncedStore = AlbumsSyncedStore(store: syncedDataStore)
 
-            // Subscribe to external changes
             albumsSyncedStore?.externalChangePublisher
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
@@ -286,18 +271,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         let fileManager = FileManager.default
         let albumURL = album.storageURL
 
-        // Check if the directory exists
         if fileManager.fileExists(atPath: albumURL.path) {
-            // If the directory exists, delete it
             try? fileManager.removeItem(at: albumURL)
         }
 
         albumsSyncedStore?.deleteAlbum(name: album.name)
         removeLegacyHiddenKey(albumName: album.name)
         removeLegacyCoverImageKey(albumName: album.name)
-        // CloudKit albums: also remove the discovery marker + synced index, and
-        // delete the `EncAlbum` record so the deletion propagates to other devices
-        // and its media cascade away with it. `.local` albums skip this entirely.
         if album.storageOption == .cloudKit {
             let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
             try? fileManager.removeItem(at: marker)
@@ -310,7 +290,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         currentAlbum = fetchAlbumsFromSources().first
     }
 
-    // MARK: - CloudKit album record sync (chunk 13)
+    // MARK: - CloudKit album record sync
 
     /// Upsert the album's `EncAlbum` record so it syncs across devices. Fire-and-forget:
     /// the on-disk marker already makes the album usable locally, and
@@ -338,7 +318,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         let store = CloudKitStoreProvider.makeStore(hash)
         Task {
             guard (try? await store.saveAlbum(upload)) != nil else { return }
-            // Confirmed on the server, so a later absence means someone deleted it.
             CloudKitAlbumPublishRegistry().markPublished(hash)
         }
     }
@@ -390,9 +369,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             do {
                 try await store.deleteAlbum(albumID: hash)
                 queue.remove(hash)
-                // Forget the publish mark too, so re-creating an album with this
-                // name later reads as a fresh create rather than as one that was
-                // published and has since vanished.
                 publishRegistry.forget(hash)
             } catch {
                 // Left queued — the album reconciler retries on its next pass.
@@ -469,7 +445,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                 if let id = try syncedStore.getCoverImageId(album.name) {
                     return id
                 }
-                // Check legacy UserDefaults and migrate if found
                 let legacyKey = Self.legacyCoverImageKey(albumName: album.name)
                 if let legacyValue = legacyDefaults.string(forKey: legacyKey) {
                     try syncedStore.setCoverImageId(album.name, coverImageId: legacyValue)
@@ -515,11 +490,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album  {
-        // iCloud Drive album creation is deprecated. No new `.icloud` albums may be
-        // created via any caller, in any build configuration (UI pickers already hide
-        // the option via DataStorageAvailabilityUtil; this is the authoritative
-        // backstop). Not gated on `cloudKitStorage`: the flag governs whether CloudKit
-        // is offered, not whether iCloud Drive is deprecated.
         if storageOption == .icloud {
             throw AlbumError.iCloudDriveDeprecated
         }
@@ -539,28 +509,20 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
         printDebug("File manager and album URL are set up")
 
-        // Check if the directory already exists
         printDebug("Checking if the directory exists at path: \(albumURL.path)")
         if fileManager.fileExists(atPath: albumURL.path) {
-            // If the directory exists, throw the albumExists error
             printDebug("Directory already exists, throwing albumExists error")
             throw AlbumError.albumExists
         }
 
         printDebug("Directory does not exist, proceeding to create it")
 
-        // If the directory does not exist, create it
         try fileManager.createDirectory(
             at: albumURL,
             withIntermediateDirectories: true,
             attributes: nil
         )
 
-        // CloudKit albums store blobs in CloudKit + a hashed cache (not an `Album_*`
-        // dir), so also write a discovery marker so the album appears in the grid and
-        // survives relaunch. Then push the `EncAlbum` record so the album syncs to the
-        // user's other devices (chunk 13). `.local` albums never do either — they stay
-        // pure-local and never reach CloudKit.
         if storageOption == .cloudKit {
             let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
             try? fileManager.createDirectory(at: marker, withIntermediateDirectories: true)
@@ -576,59 +538,33 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     
     public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
-        // Moving an album into iCloud Drive creates a new iCloud Drive album, which is
-        // deprecated. This used to throw only under `#if DEBUG`, on the reasoning that
-        // a missed call site should stay lenient in shipped builds — but leniency here
-        // means the release build silently creates exactly the album the deprecation
-        // exists to prevent, and then walks into `iCloudStorageModel.rootURL`, which
-        // `fatalError`s with no ubiquity container. Throwing is the lenient option.
         if toStorage == .icloud {
             throw AlbumError.iCloudDriveDeprecated
         }
-        // A CloudKit move is a resumable upload, never a synchronous file move — it has
-        // no correct path here, so funnel every caller through the migration engine.
         if toStorage == .cloudKit {
             throw AlbumError.migrationRequiredForCloudKit
         }
-        // The reverse is equally wrong here: this generic path would move raw
-        // record-named blob-cache files into a layout that cannot read them, skip
-        // anything evicted from the cache, and leave the discovery marker and the
-        // live CloudKit records behind. Funnel through `moveCloudKitAlbumToLocal`.
         if album.storageOption == .cloudKit {
             throw AlbumError.downloadRequiredFromCloudKit
         }
         let fileManager = FileManager.default
         let currentStorage = album.storageOption.modelForType.init(album: album)
-        // Deliberately does NOT touch key sync. Moving an album used to call
-        // `backupKeychainToiCloud(backupEnabled: true)` here, silently pushing the
-        // user's key to iCloud Keychain with no prompt and the error swallowed.
-        // Enabling key sync is exclusively user-initiated (Settings toggle or the
-        // onboarding opt-in); no storage operation may enable it as a side effect.
         printDebug("Starting the move process for album: \(album.name)")
         printDebug("Current storage URL: \(currentStorage.baseURL)")
 
-        // Check the source before resolving the destination: resolving an iCloud
-        // Drive URL requires a ubiquity container, so there is no reason to reach
-        // for one on a move that cannot happen.
         guard fileManager.fileExists(atPath: currentStorage.baseURL.path) else {
             printDebug("Album not found at the source location.")
             throw AlbumError.albumNotFoundAtSourceLocation
         }
 
-        // `.local` is the only destination this generic path can still reach — `.icloud`
-        // is deprecated and `.cloudKit` requires the migration engine, both rejected
-        // above. Constructing the destination explicitly rather than via an `.icloud`
-        // fallback keeps `iCloudStorageModel.rootURL`'s `fatalError` off this path.
         let newStorage: DataStorageModel = LocalStorageModel(album: album)
         printDebug("New storage URL: \(newStorage.baseURL)")
 
-        // Ensure the destination directory exists
         if !fileManager.fileExists(atPath: newStorage.baseURL.path) {
             printDebug("Destination directory does not exist. Creating new directory.")
             try fileManager.createDirectory(at: newStorage.baseURL, withIntermediateDirectories: true, attributes: nil)
         }
 
-        // Move files individually to merge contents
         let enumerator = fileManager.enumerator(at: currentStorage.baseURL, includingPropertiesForKeys: nil)
         while let sourceURL = enumerator?.nextObject() as? URL {
             let destinationURL = newStorage.baseURL.appendingPathComponent(sourceURL.lastPathComponent)
@@ -642,13 +578,11 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             }
         }
 
-        // Delete the source directory if it's empty
         if let contents = try? fileManager.contentsOfDirectory(atPath: currentStorage.baseURL.path), contents.isEmpty {
             printDebug("Source directory is empty after moving files. Deleting source directory.")
             try fileManager.removeItem(at: currentStorage.baseURL)
         }
 
-        // Update the album's storage option and URL if needed
         var movedAlbum = album
         movedAlbum.storageOption = toStorage
         albumOperationSubject.send(.albumMoved(album: movedAlbum))
@@ -667,20 +601,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     public func finalizeMigrationToCloudKit(album: Album) throws -> Album {
         let cloudKitAlbum = Album.cloudKitTwin(of: album)
 
-        // The marker is the ONLY way this device discovers a CloudKit album — if it
-        // can't be written, the migrated album would vanish from the grid with all
-        // its bytes safe but unreachable. Verify it exists before reporting success;
-        // the caller keeps the migration checkpoint on failure so finalize retries.
         let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(cloudKitAlbum.encryptedPathComponent)
         try FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
         guard FileManager.default.fileExists(atPath: marker.path) else {
             throw AlbumError.cloudKitMarkerWriteFailed
         }
-        // Push the album record so the migrated album appears on the user's other devices.
         pushCloudKitAlbumRecord(cloudKitAlbum)
 
-        // Only drop the source dir if the engine drained it; a non-enumerated leftover
-        // file is preserved rather than destroyed (no last-copy data loss).
         if album.storageOption != .cloudKit {
             let sourceModel = album.storageOption.modelForType.init(album: album)
             Album.removeDrainedSourceDirectory(at: sourceModel.baseURL)
@@ -715,12 +642,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
         await onProgress?(CloudToLocalMoveProgress(phase: .preparing, exportedCount: 0, totalCount: 0))
         let access = await CloudKitFileAccess(album: album, albumManager: self)
-        // Bring the index current first so a record uploaded from another device
-        // moments ago is included rather than silently left in the cloud. A FAILED
-        // reconcile must abort: every destructive step below enumerates from the
-        // local index, so a stale/empty index (fresh device, transient CloudKit
-        // error) would export nothing yet still delete the album — orphaning
-        // every un-indexed record on every device.
         guard await access.reconcile() else {
             throw AlbumError.cloudReconcileFailed
         }
@@ -738,11 +659,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // the album still reads as CloudKit.
         try Task.checkCancellation()
 
-        // Local copies are verified — now remove the cloud plane. Media first
-        // (each delete is awaited), then the album record. The album delete is ALSO
-        // awaited (not fire-and-forget like delete): the durable retry queue is
-        // device-local, so relying on it here would let a fresh install
-        // rematerialize the album before this device retries.
         await onProgress?(CloudToLocalMoveProgress(phase: .removingRemoteCopy,
                                                    exportedCount: exported,
                                                    totalCount: exported))
@@ -753,20 +669,12 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             do {
                 try await CloudKitStoreProvider.makeStore(hash).deleteAlbum(albumID: hash)
                 queue.remove(hash)
-                // The record name is free again, so a later move back to iCloud is
-                // an ordinary create rather than a collision with a leftover record.
                 CloudKitAlbumPublishRegistry().forget(hash)
             } catch {
-                // Left queued — the reconciler retries from this device. The local
-                // move still completes; the worst interim state elsewhere is an
-                // empty album, never data loss.
                 printDebug("moveCloudKitAlbumToLocal album delete FAILED album=\(album.name) — left queued for retry raw=\(error)")
             }
         }
 
-        // Drop the CloudKit identity on this device: discovery marker, blob cache
-        // dir, the cloud album's index, and any stale index under the local
-        // identity (the disk scan rebuilds it from the exported files).
         let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
         try? FileManager.default.removeItem(at: marker)
         try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).baseURL)
@@ -781,12 +689,10 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     public func renameAlbum(album: Album, to newName: String) throws -> Album {
-        // Validate the new name
         try validateAlbumName(name: newName)
 
         let existingAlbums = fetchAlbumsFromSources(includingHidden: true)
 
-        // Check if an album with the new name already exists
         if existingAlbums.contains(where: { $0.name == newName }) {
             throw AlbumError.albumExists
         }
@@ -795,7 +701,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
 
         albumToUpdate.name = newName
-        // Rename the album in the file system
         let fileManager = FileManager.default
         let oldURL = album.storageURL
         let newURL = oldURL.deletingLastPathComponent().appendingPathComponent(albumToUpdate.encryptedPathComponent)
