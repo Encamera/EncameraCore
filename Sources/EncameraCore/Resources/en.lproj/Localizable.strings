@@ -20,6 +20,7 @@
 /* ./EncameraCore/Utils/AuthManager.swift */
 "Touch ID" = "Touch ID";
 "Face ID" = "Face ID";
+"BiometricMethod.Generic" = "Biometrics";
 "Password" = "Password";
 "Use Password" = "Use Password";
 "Keep your encrypted data safe by using %@." = "Keep your encrypted data safe by using %@.";
@@ -505,7 +506,7 @@
 "NotificationBanner.Reddit.Body" = "Join the Encamera subreddit to follow the latest and give feedback";
 "NotificationBanner.Reddit.Button" = "Join Subreddit";
 
-"Enable Face ID" = "Enable Face ID";
+"BiometricMethod.Enable" = "Enable %@";
 "Use Passcode instead" = "Use Passcode instead";
 "Select Login Method" = "Please select a method";
 "LoginMethodDescription" = "Choose how you want to access your private albums.";
@@ -575,8 +576,8 @@
 "TakeSurveyTitle" = "Want 3 Months Free?";
 "TakeSurveyBody" = "Give us your feedback and get 3 months for free";
 "TakeSurveyButtonText" = "Take Survey";
-"SettingsFaceIdDisabled" = "Face ID is Disabled";
-"SettingsFaceIdOpenSettings" = "You have disabled Face ID for Encamera. Enable it in Settings to login with Face ID.";
+"BiometricMethod.DisabledTitle" = "%@ is Disabled";
+"BiometricMethod.DisabledOpenSettings" = "You have disabled %1$@ for Encamera. Enable it in Settings to login with %1$@.";
 "PurchaseProduct" = "Purchase";
 "SelectProduct" = "Select a Product";
 "BuyOnceUseForever" = "Buy once. Use forever.";
@@ -824,14 +825,14 @@
 "Change Authentication Method" = "Change Authentication Method";
 "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?" = "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?";
 "Continue" = "Continue";
-"RemovePasscode" = "This will remove your passcode. You will only be able to use Face ID to get into the app. Continue?";
+"BiometricMethod.RemovePasscode" = "This will remove your passcode. You will only be able to use %@ to get into the app. Continue?";
 "Clear" = "Clear";
 "Choose your login method" = "Choose your login method";
 "None" = "None";
 
 /* Cannot Clear Alert */
 "CannotClearTitle" = "Cannot Clear";
-"CannotClearMessage" = "You cannot clear your passcode. You must have Face ID enabled in order to do this.";
+"BiometricMethod.CannotClearPasscode" = "You cannot clear your passcode. You must have %@ enabled in order to do this.";
 "OK" = "OK";
 
 /* PIN Code Setting */

@@ -154,6 +154,14 @@ public protocol AuthManager {
     func waitForAuthResponse() async -> AuthManagerState
 }
 
+public extension AuthManager {
+    /// The device's biometric method name ("Face ID", "Touch ID") for
+    /// user-facing copy, or a generic "Biometrics" when the device reports none.
+    var biometricMethodName: String {
+        deviceBiometryType?.nameForMethod ?? L10n.BiometricMethod.generic
+    }
+}
+
 @MainActor
 public class DeviceAuthManager: AuthManager {
     
