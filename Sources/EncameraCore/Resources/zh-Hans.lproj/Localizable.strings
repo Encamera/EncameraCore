@@ -657,6 +657,10 @@
 "FeatureFlagToast.Message" = "功能“%@”现在为%@";
 "SettingsView.SectionHeader.AppSettings" = "应用设置";
 "SettingsView.SectionHeader.GetHelp" = "获取帮助";
+"SettingsView.SectionHeader.WhatsNew" = "最新动态";
+"UnreadNotificationsIndicator" = "新";
+"AlbumGrid.EmptyState.Title" = "创建你的第一个相册";
+"AlbumGrid.EmptyState.Subtitle" = "添加到相册的所有内容都会在你的设备上加密。创建一个相册即可开始。";
 
 "SettingsView.SectionHeader.PremiumPlan" = "高级版";
 "AppIconSelection.PremiumFeature" = "高级功能";

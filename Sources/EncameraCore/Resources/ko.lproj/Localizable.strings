@@ -680,6 +680,10 @@
 "FeatureFlagToast.Message" = "기능 '%@'이(가) 이제 %@입니다";
 "SettingsView.SectionHeader.AppSettings" = "앱 설정";
 "SettingsView.SectionHeader.GetHelp" = "도움 받기";
+"SettingsView.SectionHeader.WhatsNew" = "새로운 소식";
+"UnreadNotificationsIndicator" = "새 항목";
+"AlbumGrid.EmptyState.Title" = "첫 번째 앨범 만들기";
+"AlbumGrid.EmptyState.Subtitle" = "앨범에 추가한 모든 항목은 기기에서 암호화됩니다. 앨범을 만들어 시작하세요.";
 
 "SettingsView.SectionHeader.PremiumPlan" = "프리미엄";
 "MediaInfo.Codec" = "코덱";

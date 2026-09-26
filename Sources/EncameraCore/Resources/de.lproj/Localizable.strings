@@ -811,6 +811,10 @@
 "FeatureFlagToast.Message" = "Funktion '%@' ist jetzt %@";
 "SettingsView.SectionHeader.AppSettings" = "APP-EINSTELLUNGEN";
 "SettingsView.SectionHeader.GetHelp" = "HILFE ERHALTEN";
+"SettingsView.SectionHeader.WhatsNew" = "NEUIGKEITEN";
+"UnreadNotificationsIndicator" = "Neu";
+"AlbumGrid.EmptyState.Title" = "Erstelle dein erstes Album";
+"AlbumGrid.EmptyState.Subtitle" = "Alles, was du einem Album hinzufügst, wird auf deinem Gerät verschlüsselt. Erstelle eins, um loszulegen.";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
 "MediaInfo.Codec" = "Codec";

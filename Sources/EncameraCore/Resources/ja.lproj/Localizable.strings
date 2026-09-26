@@ -692,6 +692,10 @@
 "FeatureFlagToast.Message" = "機能「%@」が現在%@になりました";
 "SettingsView.SectionHeader.AppSettings" = "アプリ設定";
 "SettingsView.SectionHeader.GetHelp" = "ヘルプを取得";
+"SettingsView.SectionHeader.WhatsNew" = "新着情報";
+"UnreadNotificationsIndicator" = "新着";
+"AlbumGrid.EmptyState.Title" = "最初のアルバムを作成";
+"AlbumGrid.EmptyState.Subtitle" = "アルバムに追加したものはすべてデバイス上で暗号化されます。まずはアルバムを作成しましょう。";
 
 "SettingsView.SectionHeader.PremiumPlan" = "プレミアム";
 "MediaInfo.Codec" = "コーデック";

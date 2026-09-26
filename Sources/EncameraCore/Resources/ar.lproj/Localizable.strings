@@ -661,6 +661,10 @@
 "FeatureFlagToast.Message" = "الميزة '%@' أصبحت الآن %@";
 "SettingsView.SectionHeader.AppSettings" = "إعدادات التطبيق";
 "SettingsView.SectionHeader.GetHelp" = "الحصول على المساعدة";
+"SettingsView.SectionHeader.WhatsNew" = "ما الجديد";
+"UnreadNotificationsIndicator" = "جديد";
+"AlbumGrid.EmptyState.Title" = "أنشئ ألبومك الأول";
+"AlbumGrid.EmptyState.Subtitle" = "كل ما تضيفه إلى الألبوم يُشفَّر على جهازك. أنشئ ألبومًا للبدء.";
 
 "SettingsView.SectionHeader.PremiumPlan" = "بريميوم";
 "MediaInfo.Codec" = "برنامج الترميز";

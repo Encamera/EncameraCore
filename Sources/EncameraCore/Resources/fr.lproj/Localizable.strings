@@ -694,6 +694,10 @@ album";
 "FeatureFlagToast.Message" = "La fonctionnalité '%@' est maintenant %@";
 "SettingsView.SectionHeader.AppSettings" = "PARAMÈTRES DE L'APPLICATION";
 "SettingsView.SectionHeader.GetHelp" = "OBTENIR DE L'AIDE";
+"SettingsView.SectionHeader.WhatsNew" = "NOUVEAUTÉS";
+"UnreadNotificationsIndicator" = "Nouveau";
+"AlbumGrid.EmptyState.Title" = "Créez votre premier album";
+"AlbumGrid.EmptyState.Subtitle" = "Tout ce que vous ajoutez à un album est chiffré sur votre appareil. Créez-en un pour commencer.";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
 "MediaInfo.Codec" = "Codec";

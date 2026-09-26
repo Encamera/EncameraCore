@@ -689,6 +689,10 @@ Encamera！";
 "FeatureFlagToast.Message" = "功能「%@」現在為%@";
 "SettingsView.SectionHeader.AppSettings" = "應用程式設定";
 "SettingsView.SectionHeader.GetHelp" = "獲取協助";
+"SettingsView.SectionHeader.WhatsNew" = "最新動態";
+"UnreadNotificationsIndicator" = "新";
+"AlbumGrid.EmptyState.Title" = "建立你的第一個相簿";
+"AlbumGrid.EmptyState.Subtitle" = "加入相簿的所有內容都會在你的裝置上加密。建立一個相簿即可開始。";
 
 "SettingsView.SectionHeader.PremiumPlan" = "高級版";
 "MediaInfo.Codec" = "編解碼器";

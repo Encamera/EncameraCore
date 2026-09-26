@@ -676,6 +676,10 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "FeatureFlagToast.Message" = "Funcția „%@” este acum %@";
 "SettingsView.SectionHeader.AppSettings" = "SETĂRI APLICAȚIE";
 "SettingsView.SectionHeader.GetHelp" = "OBȚINE AJUTOR";
+"SettingsView.SectionHeader.WhatsNew" = "NOUTĂȚI";
+"UnreadNotificationsIndicator" = "Nou";
+"AlbumGrid.EmptyState.Title" = "Creează primul tău album";
+"AlbumGrid.EmptyState.Subtitle" = "Tot ce adaugi într-un album este criptat pe dispozitivul tău. Creează unul pentru a începe.";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
 "MediaInfo.Codec" = "Codec";

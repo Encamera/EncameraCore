@@ -723,6 +723,8 @@ public enum L10n {
   public static let unlockUnlimitedForFree = L10n.tr("Localizable", "UnlockUnlimitedForFree", fallback: "Unlock Unlimited for Free!")
   /// Unlock
   public static let unlockWithPin = L10n.tr("Localizable", "UnlockWithPin", fallback: "Unlock")
+  /// New
+  public static let unreadNotificationsIndicator = L10n.tr("Localizable", "UnreadNotificationsIndicator", fallback: "New")
   /// Upgrade to Premium
   public static let upgradeToPremium = L10n.tr("Localizable", "Upgrade to Premium", fallback: "Upgrade to Premium")
   /// ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift
@@ -926,6 +928,14 @@ public enum L10n {
       public static let resetFilters = L10n.tr("Localizable", "AlbumDetailView.SortFilter.ResetFilters", fallback: "Reset Filters")
       /// Videos
       public static let videos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.Videos", fallback: "Videos")
+    }
+  }
+  public enum AlbumGrid {
+    public enum EmptyState {
+      /// Everything you add to an album is encrypted on your device. Create one to get started.
+      public static let subtitle = L10n.tr("Localizable", "AlbumGrid.EmptyState.Subtitle", fallback: "Everything you add to an album is encrypted on your device. Create one to get started.")
+      /// Create your first album
+      public static let title = L10n.tr("Localizable", "AlbumGrid.EmptyState.Title", fallback: "Create your first album")
     }
   }
   public enum AlbumSelectionModal {
@@ -2759,6 +2769,8 @@ public enum L10n {
       public static let getHelp = L10n.tr("Localizable", "SettingsView.SectionHeader.GetHelp", fallback: "GET HELP")
       /// PREMIUM
       public static let premiumPlan = L10n.tr("Localizable", "SettingsView.SectionHeader.PremiumPlan", fallback: "PREMIUM")
+      /// WHAT'S NEW
+      public static let whatsNew = L10n.tr("Localizable", "SettingsView.SectionHeader.WhatsNew", fallback: "WHAT'S NEW")
     }
   }
   public enum ShareExtension {

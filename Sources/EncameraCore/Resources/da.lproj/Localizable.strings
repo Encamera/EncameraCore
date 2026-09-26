@@ -663,6 +663,10 @@ Encamera!";
 "FeatureFlagToast.Message" = "Funktionen '%@' er nu %@";
 "SettingsView.SectionHeader.AppSettings" = "APP-INDSTILLINGER";
 "SettingsView.SectionHeader.GetHelp" = "FÅ HJÆLP";
+"SettingsView.SectionHeader.WhatsNew" = "NYHEDER";
+"UnreadNotificationsIndicator" = "Ny";
+"AlbumGrid.EmptyState.Title" = "Opret dit første album";
+"AlbumGrid.EmptyState.Subtitle" = "Alt, hvad du tilføjer til et album, krypteres på din enhed. Opret et for at komme i gang.";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
 "MediaInfo.Codec" = "Codec";

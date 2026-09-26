@@ -691,6 +691,10 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "FeatureFlagToast.Message" = "Ominaisuus '%@' on nyt %@";
 "SettingsView.SectionHeader.AppSettings" = "SOVELLUSASETUKSET";
 "SettingsView.SectionHeader.GetHelp" = "HANKI APUA";
+"SettingsView.SectionHeader.WhatsNew" = "UUTTA";
+"UnreadNotificationsIndicator" = "Uusi";
+"AlbumGrid.EmptyState.Title" = "Luo ensimmäinen albumisi";
+"AlbumGrid.EmptyState.Subtitle" = "Kaikki albumiin lisäämäsi salataan laitteellasi. Luo albumi aloittaaksesi.";
 
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
 "MediaInfo.Codec" = "Koodekki";
