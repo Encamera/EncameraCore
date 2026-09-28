@@ -82,20 +82,33 @@ public struct KeychainCredentialSnapshot: Equatable {
     public let passwordExists: Bool
     public let passphraseExists: Bool
     public let defaultKeyExists: Bool
+    public let biometricsEnabled: Bool
     public let backupFlagState: KeychainBackupFlagState
     /// Full flag payload with flip metadata; nil when the item is absent.
     public let backupStatus: KeychainBackupStatus?
 
-    public init(passwordExists: Bool, passphraseExists: Bool, defaultKeyExists: Bool, backupFlagState: KeychainBackupFlagState, backupStatus: KeychainBackupStatus? = nil) {
+    public init(
+        passwordExists: Bool,
+        passphraseExists: Bool,
+        defaultKeyExists: Bool,
+        biometricsEnabled: Bool,
+        backupFlagState: KeychainBackupFlagState,
+        backupStatus: KeychainBackupStatus? = nil
+    ) {
         self.passwordExists = passwordExists
         self.passphraseExists = passphraseExists
         self.defaultKeyExists = defaultKeyExists
+        self.biometricsEnabled = biometricsEnabled
         self.backupFlagState = backupFlagState
         self.backupStatus = backupStatus
     }
 
+    public var hasAccessCredential: Bool {
+        passwordExists || biometricsEnabled
+    }
+
     public var hasAnyCredential: Bool {
-        passwordExists || passphraseExists || defaultKeyExists
+        passwordExists || passphraseExists || defaultKeyExists || biometricsEnabled
     }
 }
 
@@ -209,13 +222,14 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
             didLogVariantDetail = true
             logCredentialVariantState(context: "first credentialSnapshot")
         }
-
+        let configuration = getAuthenticationConfiguration()
         let status = getBackupStatus()
         let flagState: KeychainBackupFlagState = status.map { $0.enabled ? .enabled : .disabled } ?? .notSet
         let snapshot = KeychainCredentialSnapshot(
             passwordExists: passwordExists(),
             passphraseExists: keyPassphraseExists(),
             defaultKeyExists: keyWith(name: AppConstants.defaultKeyName) != nil,
+            biometricsEnabled: configuration?.isTypeEnabled(.biometrics) ?? false,
             backupFlagState: flagState,
             backupStatus: status
         )

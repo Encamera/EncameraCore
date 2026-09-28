@@ -131,8 +131,8 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
         var snapshot = keyManager.credentialSnapshot()
         printDebug("initial snapshot: \(snapshot)")
 
-        if snapshot.passwordExists {
-            printDebug("password already present at first probe → resolving with credentials")
+        if snapshot.hasAccessCredential {
+            printDebug("password or biometrics already present at first probe → resolving with credentials")
             await resolveWithCredentials(snapshot)
             return
         }
@@ -167,8 +167,8 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
             snapshot = keyManager.credentialSnapshot()
             printDebug("poll #\(delayIndex) (elapsed \(String(format: "%.2f", elapsed))s/\(timeouts.quietGrace)s): \(snapshot)")
 
-            if snapshot.passwordExists {
-                printDebug("password arrived after \(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s → resolving with credentials")
+            if snapshot.hasAccessCredential {
+                printDebug("access credential flag arrived after \(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s → resolving with credentials")
                 await resolveWithCredentials(snapshot)
                 return
             }
@@ -212,7 +212,7 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
     /// arrive after the grace period (the keychain sync was slow, or the user
     /// re-enabled backup on another device).
     public func credentialsMayHaveChanged() {
-        if resolved, state == .keyMissing, keyManager.credentialSnapshot().passwordExists {
+        if resolved, state == .keyMissing, keyManager.credentialSnapshot().hasAccessCredential {
             printDebug("credentials arrived while on keyMissing → re-resolving")
             resolved = false
         }
@@ -222,7 +222,7 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
             state = .passcodeSetup
             return
         }
-        if resolved, state == .onboarding, keyManager.credentialSnapshot().passwordExists {
+        if resolved, state == .onboarding, keyManager.credentialSnapshot().hasAccessCredential {
             printDebug("credentials arrived while on onboarding → interrupting")
             resolved = false
         }
@@ -232,8 +232,8 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
         }
         let snapshot = keyManager.credentialSnapshot()
         printDebug("credentialsMayHaveChanged(): \(snapshot)")
-        if snapshot.passwordExists {
-            printDebug("password present on external signal → resolving with credentials")
+        if snapshot.hasAccessCredential {
+            printDebug("password or biometrics present on external signal → resolving with credentials")
             Task { await resolveWithCredentials(snapshot) }
         }
     }
@@ -243,7 +243,7 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
             printDebug("resolveWithCredentials ignored — already resolved (state=\(state))")
             return
         }
-        if !snapshot.defaultKeyExists && snapshot.passphraseExists {
+        if !snapshot.defaultKeyExists && snapshot.hasAccessCredential {
             printDebug("default key missing but passphrase present → restoringKeyMaterial (re-deriving)")
             state = .restoringKeyMaterial
             let keyManager = self.keyManager

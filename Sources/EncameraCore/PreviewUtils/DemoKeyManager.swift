@@ -120,6 +120,7 @@ public class DemoKeyManager: KeyManager {
             passwordExists: hasExistingPassword,
             passphraseExists: true,
             defaultKeyExists: !storedKeysValue.isEmpty,
+            biometricsEnabled: false,
             backupFlagState: .notSet
         )
     }
