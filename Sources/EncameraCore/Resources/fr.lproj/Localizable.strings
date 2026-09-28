@@ -603,8 +603,6 @@ album";
 "BlackFridaySubtitle" = "Ne manquez pas cette offre ! La promotion se termine bientôt !";
 "FeatureToggles.RecoveryPhraseDescription" = "Activer la fonctionnalité de phrase de récupération";
 "FeatureToggles.RevenuecatToggleTitle" = "Redémarrage requis";
-"PromotionalBanner.ImageLoadError" = "Échec du chargement de l'image";
-"PromotionalBanner.DismissAccessibility" = "Fermer la bannière";
 "CMS.LoadingError" = "Échec du chargement des bannières promotionnelles";
 "FeatureToggles.EnableVideoDescription" = "Activer l'enregistrement et la lecture vidéo";
 "PurchaseScreen.Retry" = "Réessayer";

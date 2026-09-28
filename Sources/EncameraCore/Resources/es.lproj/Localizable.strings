@@ -719,8 +719,6 @@
 "BlackFridaySubtitle" = "¡No te lo pierdas! ¡La oferta termina pronto!";
 "FeatureToggles.RecoveryPhraseDescription" = "Habilitar la función de frase de recuperación";
 "FeatureToggles.RevenuecatToggleTitle" = "Reinicio requerido";
-"PromotionalBanner.ImageLoadError" = "La imagen no se pudo cargar";
-"PromotionalBanner.DismissAccessibility" = "Descartar banner";
 "CMS.LoadingError" = "No se pudieron cargar los banners promocionales";
 "FeatureToggles.EnableVideoDescription" = "Habilitar grabación y reproducción de video";
 "PurchaseScreen.Retry" = "Reintentar";

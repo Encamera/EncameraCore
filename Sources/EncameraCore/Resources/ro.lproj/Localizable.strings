@@ -585,8 +585,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "BlackFridaySubtitle" = "Nu rata! Oferta se încheie în curând!";
 "FeatureToggles.RecoveryPhraseDescription" = "Activează funcția de frază de recuperare";
 "FeatureToggles.RevenuecatToggleTitle" = "Este necesară repornirea";
-"PromotionalBanner.ImageLoadError" = "Imaginea nu a putut fi încărcată";
-"PromotionalBanner.DismissAccessibility" = "Închide bannerul";
 "CMS.LoadingError" = "Nu s-au putut încărca bannerele promoționale";
 "FeatureToggles.EnableVideoDescription" = "Activează înregistrarea și redarea videoclipurilor";
 "PurchaseScreen.Retry" = "Reîncearcă";

@@ -598,8 +598,6 @@ Encamera！";
 "BlackFridaySubtitle" = "不要錯過！優惠即將結束！";
 "FeatureToggles.RecoveryPhraseDescription" = "啟用恢復助記詞功能";
 "FeatureToggles.RevenuecatToggleTitle" = "需要重新啟動";
-"PromotionalBanner.ImageLoadError" = "圖片載入失敗";
-"PromotionalBanner.DismissAccessibility" = "關閉橫幅";
 "CMS.LoadingError" = "促銷橫幅載入失敗";
 "FeatureToggles.EnableVideoDescription" = "啟用錄影與回放";
 "PurchaseScreen.Retry" = "重試";

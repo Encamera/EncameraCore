@@ -570,8 +570,6 @@
 "BlackFridaySubtitle" = "لا تفوت الفرصة! العرض ينتهي قريبًا!";
 "FeatureToggles.RecoveryPhraseDescription" = "تفعيل ميزة عبارة الاسترداد";
 "FeatureToggles.RevenuecatToggleTitle" = "إعادة التشغيل مطلوبة";
-"PromotionalBanner.ImageLoadError" = "فشل تحميل الصورة";
-"PromotionalBanner.DismissAccessibility" = "إغلاق الشريط";
 "CMS.LoadingError" = "فشل تحميل اللافتات الترويجية";
 "FeatureToggles.EnableVideoDescription" = "تفعيل تسجيل وتشغيل الفيديو";
 "PurchaseScreen.Retry" = "إعادة المحاولة";

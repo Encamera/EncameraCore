@@ -576,8 +576,6 @@ album";
 "BlackFridaySubtitle" = "Non lasciarti scappare l'offerta! L'affare termina presto!";
 "FeatureToggles.RecoveryPhraseDescription" = "Abilita la funzione frase di recupero";
 "FeatureToggles.RevenuecatToggleTitle" = "Riavvio richiesto";
-"PromotionalBanner.ImageLoadError" = "Immagine non caricata";
-"PromotionalBanner.DismissAccessibility" = "Chiudi banner";
 "CMS.LoadingError" = "Impossibile caricare i banner promozionali";
 "FeatureToggles.EnableVideoDescription" = "Abilita registrazione e riproduzione video";
 "PurchaseScreen.Retry" = "Riprova";

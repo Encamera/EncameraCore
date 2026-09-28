@@ -542,6 +542,9 @@
 "AlbumDetailView.SortFilter.ResetFilters" = "Reset Filters";
 "AlbumDetailView.NoMediaFound" = "No media found";
 "AlbumDetailView.ClearFilters" = "Clear Filters";
+"AlbumDetailView.PremiumCardTitle" = "Store more with Premium";
+"AlbumDetailView.PremiumCardSubtitle" = "Get unlimited encrypted storage for all your photos and videos";
+"AlbumDetailView.PremiumCardBadge" = "Premium";
 
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "AddAlbumModal.RenameAlbumTitle" = "Let's rename your\nalbum";
@@ -1101,10 +1104,6 @@
 "CMS.NetworkError" = "Unable to load promotional content. Using cached data.";
 "CMS.LoadingError" = "Failed to load promotional banners";
 "CMS.NoBannersAvailable" = "No promotional banners available";
-
-/* ./Encamera/Components/PromotionalBannerView.swift */
-"PromotionalBanner.ImageLoadError" = "Image failed to load";
-"PromotionalBanner.DismissAccessibility" = "Dismiss banner";
 
 /* ./EncameraCore/Utils/iCloudFileStatusUtil.swift */
 "ICloudStatus.NotICloudFile" = "This file is stored locally.";

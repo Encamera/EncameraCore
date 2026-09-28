@@ -720,8 +720,6 @@
 "BlackFridaySubtitle" = "Nicht verpassen! Angebot endet bald!";
 "FeatureToggles.RecoveryPhraseDescription" = "Wiederherstellungs-Phrase aktivieren";
 "FeatureToggles.RevenuecatToggleTitle" = "Neustart erforderlich";
-"PromotionalBanner.ImageLoadError" = "Bild konnte nicht geladen werden";
-"PromotionalBanner.DismissAccessibility" = "Banner ausblenden";
 "CMS.LoadingError" = "Werbebanner konnten nicht geladen werden";
 "FeatureToggles.EnableVideoDescription" = "Videoaufzeichnung und -wiedergabe aktivieren";
 "PurchaseScreen.Retry" = "Erneut versuchen";

@@ -566,8 +566,6 @@
 "BlackFridaySubtitle" = "不要错过！优惠即将结束！";
 "FeatureToggles.RecoveryPhraseDescription" = "启用恢复短语功能";
 "FeatureToggles.RevenuecatToggleTitle" = "需要重启";
-"PromotionalBanner.ImageLoadError" = "图片加载失败";
-"PromotionalBanner.DismissAccessibility" = "关闭横幅";
 "CMS.LoadingError" = "促销横幅加载失败";
 "FeatureToggles.EnableVideoDescription" = "启用视频录制和回放";
 "PurchaseScreen.Retry" = "重试";

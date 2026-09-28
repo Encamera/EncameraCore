@@ -893,6 +893,12 @@ public enum L10n {
     public static let photoAccessRequired = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessRequired", fallback: "Photo Access Required")
     /// Please grant access to your photo library in Settings to import photos.
     public static let photoAccessSettings = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessSettings", fallback: "Please grant access to your photo library in Settings to import photos.")
+    /// Premium
+    public static let premiumCardBadge = L10n.tr("Localizable", "AlbumDetailView.PremiumCardBadge", fallback: "Premium")
+    /// Get unlimited encrypted storage for all your photos and videos
+    public static let premiumCardSubtitle = L10n.tr("Localizable", "AlbumDetailView.PremiumCardSubtitle", fallback: "Get unlimited encrypted storage for all your photos and videos")
+    /// Store more with Premium
+    public static let premiumCardTitle = L10n.tr("Localizable", "AlbumDetailView.PremiumCardTitle", fallback: "Store more with Premium")
     /// Disable Album Cover
     public static let removeCoverImage = L10n.tr("Localizable", "AlbumDetailView.RemoveCoverImage", fallback: "Disable Album Cover")
     /// Rename Album
@@ -2494,12 +2500,6 @@ public enum L10n {
     public static let fileLoadedSuccessfully = L10n.tr("Localizable", "ProgressView.FileLoadedSuccessfully", fallback: "File loaded successfully")
     /// Starting download...
     public static let startingDownload = L10n.tr("Localizable", "ProgressView.StartingDownload", fallback: "Starting download...")
-  }
-  public enum PromotionalBanner {
-    /// Dismiss banner
-    public static let dismissAccessibility = L10n.tr("Localizable", "PromotionalBanner.DismissAccessibility", fallback: "Dismiss banner")
-    /// ./Encamera/Components/PromotionalBannerView.swift
-    public static let imageLoadError = L10n.tr("Localizable", "PromotionalBanner.ImageLoadError", fallback: "Image failed to load")
   }
   public enum PromptToErase {
     /// You can back up your keys from the key management screen before erasing.

@@ -572,8 +572,6 @@ Encamera!";
 "BlackFridaySubtitle" = "Gå ikke glip af det! Tilbuddet slutter snart!";
 "FeatureToggles.RecoveryPhraseDescription" = "Aktivér funktion til gendannelsesfrase";
 "FeatureToggles.RevenuecatToggleTitle" = "Genstart påkrævet";
-"PromotionalBanner.ImageLoadError" = "Billedet kunne ikke indlæses";
-"PromotionalBanner.DismissAccessibility" = "Afvis banner";
 "CMS.LoadingError" = "Kunne ikke indlæse reklamebannere";
 "FeatureToggles.EnableVideoDescription" = "Aktivér videooptagelse og afspilning";
 "PurchaseScreen.Retry" = "Prøv igen";

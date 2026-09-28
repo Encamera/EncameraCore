@@ -601,8 +601,6 @@
 "BlackFridaySubtitle" = "お見逃しなく！セールはまもなく終了します！";
 "FeatureToggles.RecoveryPhraseDescription" = "リカバリーフレーズ機能を有効にする";
 "FeatureToggles.RevenuecatToggleTitle" = "再起動が必要です";
-"PromotionalBanner.ImageLoadError" = "画像の読み込みに失敗しました";
-"PromotionalBanner.DismissAccessibility" = "バナーを閉じる";
 "CMS.LoadingError" = "プロモーションバナーの読み込みに失敗しました";
 "FeatureToggles.EnableVideoDescription" = "ビデオ録画と再生を有効にする";
 "PurchaseScreen.Retry" = "再試行";

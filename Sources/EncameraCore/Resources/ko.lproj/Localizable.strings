@@ -589,8 +589,6 @@
 "BlackFridaySubtitle" = "놓치지 마세요! 곧 행사가 종료됩니다!";
 "FeatureToggles.RecoveryPhraseDescription" = "복구 구문 기능 활성화";
 "FeatureToggles.RevenuecatToggleTitle" = "재시작 필요";
-"PromotionalBanner.ImageLoadError" = "이미지 불러오기에 실패했습니다";
-"PromotionalBanner.DismissAccessibility" = "배너 닫기";
 "CMS.LoadingError" = "프로모션 배너 불러오기에 실패했습니다";
 "FeatureToggles.EnableVideoDescription" = "비디오 녹화 및 재생 활성화";
 "PurchaseScreen.Retry" = "다시 시도";
