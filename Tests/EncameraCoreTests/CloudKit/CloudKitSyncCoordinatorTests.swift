@@ -1370,6 +1370,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         var values: [String] { lock.lock(); defer { lock.unlock() }; return storage }
         func append(_ id: String) { lock.lock(); storage.append(id); lock.unlock() }
         func append(contentsOf ids: [String]) { lock.lock(); storage.append(contentsOf: ids); lock.unlock() }
+        func clear() { lock.lock(); storage.removeAll(); lock.unlock() }
     }
 
     // MARK: - A local save during a sync
@@ -1638,5 +1639,154 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         private var storage: [MediaType] = []
         var values: [MediaType] { lock.lock(); defer { lock.unlock() }; return storage }
         func append(contentsOf types: [MediaType]) { lock.lock(); storage.append(contentsOf: types); lock.unlock() }
+    }
+
+    // MARK: - Moved-away (re-parented) records
+
+    /// A helper that builds metadata with a foreign albumID.
+    private func foreignMeta(_ name: String,
+                             albumID: String = "a2",
+                             mediaID: String? = nil,
+                             type: MediaType = .photo,
+                             tag: String? = "tag-1") -> CloudKitMediaMetadata {
+        CloudKitMediaMetadata(recordName: name,
+                              albumID: albumID,
+                              mediaID: mediaID ?? name,
+                              mediaType: type,
+                              createdAt: Date(timeIntervalSince1970: 100),
+                              sizeBytes: 10,
+                              creationDeviceID: "device",
+                              schemaVersion: 1,
+                              recordChangeTag: tag)
+    }
+
+    func testChangedRecordNowOwnedByAnotherAlbumIsDroppedFromIndex() async throws {
+        let store = MockCloudKitMediaStore()
+        let bus = FileOperationBus()
+        let deleted = CapturedIDs()
+        let cancellable = bus.operations.sink { operation in
+            if case .delete(let medias) = operation { deleted.append(contentsOf: medias.map { $0.id }) }
+        }
+        defer { cancellable.cancel() }
+
+        let index = makeIndexStore()
+        let cache = makeCache()
+        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                            bus: bus, deleteQueue: makeDeleteQueue())
+
+        // Seed m1 into this album's index.
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+        let seeded = await ids(index)
+        XCTAssertEqual(seeded, ["m1"], "m1 must be in the index before the move")
+
+        // m1 now arrives with albumID "a2" — it moved to another album.
+        store.changeSet = CloudKitChangeSet(changed: [foreignMeta("m1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+
+        let afterMove = await ids(index)
+        XCTAssertTrue(afterMove.isEmpty, "A record that moved to another album must leave the source index")
+        XCTAssertEqual(deleted.values, ["m1"], "A moved-away record emits a delete event on the bus")
+    }
+
+    func testMovedAwayRecordEvictsCacheAndSidecarSize() async throws {
+        let store = MockCloudKitMediaStore()
+        let sidecar = makeSizeSidecar()
+        let (coord, index, _) = makeCoordinator(store: store, sizeSidecar: sidecar)
+
+        // Seed m1, cache a blob, and record its size.
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+        _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
+        let cachedBefore = await coord.isBlobCached(recordName: "m1")
+        XCTAssertTrue(cachedBefore, "The blob must be cached before the move")
+
+        // Move m1 to another album.
+        store.changeSet = CloudKitChangeSet(changed: [foreignMeta("m1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+
+        let cachedAfter = await coord.isBlobCached(recordName: "m1")
+        XCTAssertFalse(cachedAfter, "A moved-away record's ciphertext must be evicted from the blob cache")
+
+        let afterMove = await ids(index)
+        XCTAssertTrue(afterMove.isEmpty, "m1 must be gone from the index")
+    }
+
+    func testMovedAwayLivePhotoHalfKeepsEntryAndEmitsRefresh() async throws {
+        let store = MockCloudKitMediaStore()
+        let bus = FileOperationBus()
+        let created = CapturedIDs()
+        let deleted = CapturedIDs()
+        let cancellable = bus.operations.sink { operation in
+            switch operation {
+            case .create(let media): created.append(media.id)
+            case .delete(let medias): deleted.append(contentsOf: medias.map { $0.id })
+            case .move, .albumCoverChanged: break
+            }
+        }
+        defer { cancellable.cancel() }
+
+        let index = makeIndexStore()
+        let cache = makeCache()
+        let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
+                                            bus: bus, deleteQueue: makeDeleteQueue())
+
+        // Seed a Live Photo with both components in this album.
+        store.changeSet = CloudKitChangeSet(changed: [
+            metaComponent(recordName: "live#0", mediaID: "live", type: .photo),
+            metaComponent(recordName: "live#1", mediaID: "live", type: .video)
+        ], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+
+        let seeded = await ids(index)
+        XCTAssertEqual(seeded, ["live"], "Both components produce one index entry")
+
+        // Clear bus events from the seed phase so we only see the move's events.
+        created.clear()
+        deleted.clear()
+
+        // Move only the video component to another album.
+        let movedVideo = CloudKitMediaMetadata(recordName: "live#1",
+                                               albumID: "a2",
+                                               mediaID: "live",
+                                               mediaType: .video,
+                                               createdAt: Date(timeIntervalSince1970: 100),
+                                               sizeBytes: 10,
+                                               creationDeviceID: "device",
+                                               schemaVersion: 1,
+                                               recordChangeTag: "tag-moved")
+        store.changeSet = CloudKitChangeSet(changed: [movedVideo], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+
+        let afterHalfMove = await ids(index)
+        XCTAssertEqual(afterHalfMove, ["live"], "The photo half survives — the entry stays")
+        XCTAssertTrue(deleted.values.isEmpty, "No delete event — the entry was not fully removed")
+        XCTAssertEqual(created.values, ["live"], "A refresh (create) event is emitted for the surviving half")
+    }
+
+    func testForeignRecordNeverIndexedIsStillSkipped() async throws {
+        let store = MockCloudKitMediaStore()
+        let bus = FileOperationBus()
+        let created = CapturedIDs()
+        let deleted = CapturedIDs()
+        let cancellable = bus.operations.sink { operation in
+            switch operation {
+            case .create(let media): created.append(media.id)
+            case .delete(let medias): deleted.append(contentsOf: medias.map { $0.id })
+            case .move, .albumCoverChanged: break
+            }
+        }
+        defer { cancellable.cancel() }
+
+        let (coord, index, _) = makeCoordinator(store: store, bus: bus)
+
+        // A record for a different album that was never in this album's index.
+        store.changeSet = CloudKitChangeSet(changed: [foreignMeta("foreign1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+
+        let afterSync = await ids(index)
+        XCTAssertTrue(afterSync.isEmpty, "A foreign record must not be added to this album's index")
+        XCTAssertTrue(created.values.isEmpty, "No create event for a foreign record")
+        XCTAssertTrue(deleted.values.isEmpty, "No delete event for a foreign record")
     }
 }

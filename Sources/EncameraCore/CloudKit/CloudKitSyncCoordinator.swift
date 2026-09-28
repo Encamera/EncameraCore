@@ -85,16 +85,22 @@ private final class BlobDownload {
     var lastFraction: Double = 0
 }
 
-/// What a chunked `EncMedia` record says about its blob-zone payload — enough to
-/// open a streaming session (header) or reclaim the chunks (count).
+/// What an `EncMedia` record says about its blob: the chunk geometry — enough to
+/// open a streaming session (header) or reclaim the chunks (count) — and the key
+/// the writer proved it under.
 public struct ChunkedBlobInfo: Sendable, Equatable {
     public let chunkCount: Int
     /// The ENC3 header bytes, when the sync that observed the record fetched them.
     public let encHeader: Data?
+    /// The record's `keyFingerprint`. A hint for which key to try first, never the
+    /// answer: it is not covered by the AEAD, so readers prove the key against the
+    /// content. Nil when the record carried none.
+    public let keyFingerprint: String?
 
-    public init(chunkCount: Int, encHeader: Data?) {
+    public init(chunkCount: Int, encHeader: Data?, keyFingerprint: String? = nil) {
         self.chunkCount = chunkCount
         self.encHeader = encHeader
+        self.keyFingerprint = keyFingerprint.flatMap { $0.isEmpty ? nil : $0 }
     }
 }
 
@@ -218,6 +224,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         changeTags[recordName]
     }
 
+    /// The record's `keyFingerprint`, as far as this session has already learned it
+    /// from sync, an upload or a fetch-by-id. Never fetches: it is only a hint for
+    /// which key to try first, and a miss costs nothing but candidate order.
+    public func keyFingerprintHint(recordName: String) -> String? {
+        chunkInfo[recordName]?.keyFingerprint
+    }
+
     /// Chunk geometry for a record: the in-memory map first (populated by delta
     /// sync and by uploads this session), then a strongly-consistent fetch-by-id.
     /// `nil` means monolithic — including a record the server does not hold.
@@ -232,7 +245,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         guard let meta = try await fetchAndBankMetadata(recordName: recordName), meta.chunkCount > 0 else {
             return nil
         }
-        return ChunkedBlobInfo(chunkCount: meta.chunkCount, encHeader: meta.encHeader)
+        return ChunkedBlobInfo(chunkCount: meta.chunkCount, encHeader: meta.encHeader,
+                               keyFingerprint: meta.keyFingerprint)
     }
 
     /// Fetch-by-id that banks everything the record carries, not only the field the
@@ -248,7 +262,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private func fetchAndBankMetadata(recordName: String) async throws -> CloudKitMediaMetadata? {
         guard let meta = try await store.fetchRecordMetadata(recordName: recordName) else { return nil }
         if let tag = meta.recordChangeTag { changeTags[recordName] = tag }
-        chunkInfo[recordName] = ChunkedBlobInfo(chunkCount: meta.chunkCount, encHeader: meta.encHeader)
+        chunkInfo[recordName] = ChunkedBlobInfo(chunkCount: meta.chunkCount, encHeader: meta.encHeader,
+                                                keyFingerprint: meta.keyFingerprint)
         await persistSizes(updates: [recordName: meta.sizeBytes], removals: [])
         return meta
     }
@@ -440,8 +455,24 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             snapshotComplete = changeSet.snapshotComplete
 
             for meta in changeSet.changed {
-                guard meta.albumID == self.albumID else {
-                    skippedOtherAlbum += 1
+                if meta.albumID != self.albumID {
+                    // Check if this record WAS in our index — it moved to another album.
+                    let mediaID = meta.mediaID
+                    guard entries.contains(where: { $0.id == mediaID }) else {
+                        skippedOtherAlbum += 1
+                        continue
+                    }
+                    // Record moved away from this album — clean up.
+                    let entryRemoved = entries.removeComponent(recordName: meta.recordName)
+                    removedRecordNames.append(meta.recordName)
+                    await cache.evict(recordName: meta.recordName)
+                    changeTags[meta.recordName] = nil
+                    chunkInfo[meta.recordName] = nil
+                    sizeRemovals.insert(meta.recordName)
+                    if entryRemoved { removeLocalPreview(mediaID: mediaID) }
+                    let media = Self.media(forRecordName: mediaID, albumID: self.albumID, mediaType: meta.mediaType)
+                    if entryRemoved { pendingDeletes.append(media) } else { pendingCreates.append(media) }
+                    printDebug("performSync movedAway recordName=\(meta.recordName) mediaID=\(mediaID) toAlbumID=\(meta.albumID) entryRemoved=\(entryRemoved)")
                     continue
                 }
 
@@ -455,7 +486,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 sizeUpdates[meta.recordName] = meta.sizeBytes
                 sizeRemovals.remove(meta.recordName)
                 chunkInfo[meta.recordName] = ChunkedBlobInfo(chunkCount: meta.chunkCount,
-                                                             encHeader: meta.encHeader)
+                                                             encHeader: meta.encHeader,
+                                                             keyFingerprint: meta.keyFingerprint)
                 seen.insert(MediaComponent(mediaID: meta.mediaID, mediaType: meta.mediaType))
                 let incoming = Self.indexEntry(from: meta)
                 upserted.append(incoming)
@@ -887,7 +919,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             ? (try? SeekableEncryptedHeader.read(fromFileAt: item.encryptedFileURL))?.bytes
             : nil
         chunkInfo[ref.recordName] = ChunkedBlobInfo(chunkCount: item.chunkCount,
-                                                    encHeader: headerBytes)
+                                                    encHeader: headerBytes,
+                                                    keyFingerprint: item.keyFingerprint)
         do {
             try await cache.store(recordName: ref.recordName,
                                   changeTag: ref.recordChangeTag,

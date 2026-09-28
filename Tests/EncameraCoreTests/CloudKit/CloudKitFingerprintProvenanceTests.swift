@@ -231,9 +231,9 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         let model = album.storageOption.modelForType.init(album: album)
         try? FileManager.default.removeItem(at: model.baseURL)
         try? FileManager.default.removeItem(at: MigrationPlanStore.planURL(for: album))
-        let marker = CloudKitStorageModel.albumsURL
-            .appendingPathComponent(Album.cloudKitTwin(of: album).encryptedPathComponent)
-        try? FileManager.default.removeItem(at: marker)
+        if let markerID = CloudKitAlbumMarker.albumID(matching: album) {
+            try? CloudKitAlbumMarker.remove(albumID: markerID)
+        }
         try? MediaIndexStore.clearAllIndexes()
     }
 
@@ -431,13 +431,13 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
     }
 
     /// The record names its key, so a device holding several tries that one first. It is
-    /// an ordering hint only — the keyed-hash check still decides.
+    /// an ordering hint only — authenticated decryption of the name still decides.
     func testReconcilerTriesTheKeyTheRecordNames() throws {
         let album = Album(name: "hinted-\(UUID().uuidString.prefix(6))",
                           storageOption: .cloudKit,
                           creationDate: Date(),
                           key: keyB)
-        let albumID = try XCTUnwrap(SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: keyB.keyBytes))
+        let albumID = UUID().uuidString
         let record = CloudKitAlbumMetadata(albumID: albumID,
                                            encName: album.encryptedPathComponent,
                                            createdAt: Date(),

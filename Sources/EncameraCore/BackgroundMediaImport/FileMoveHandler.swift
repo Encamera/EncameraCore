@@ -16,6 +16,15 @@ public struct MoveResult {
     public let successCount: Int
     public let failureCount: Int
     public let targetAlbumName: String
+    /// The user cancelled the move; the counts cover the items handled before it.
+    public let wasCancelled: Bool
+
+    public init(successCount: Int, failureCount: Int, targetAlbumName: String, wasCancelled: Bool = false) {
+        self.successCount = successCount
+        self.failureCount = failureCount
+        self.targetAlbumName = targetAlbumName
+        self.wasCancelled = wasCancelled
+    }
 }
 
 // MARK: - File Move Handler
@@ -26,11 +35,16 @@ public struct MoveResult {
 public class FileMoveHandler: DebugPrintable {
     
     public static let shared = FileMoveHandler()
+
+    /// A pause before each item, set by UI tests that cancel a move part-way.
+    nonisolated(unsafe) public static var itemDelayForTesting: TimeInterval?
     
     // MARK: - Dependencies
     
     private let taskManager: BackgroundTaskManager
     private var albumManager: AlbumManaging?
+    /// Builds the destination album's file access. Injectable for tests.
+    private let makeFileAccess: (Album, AlbumManaging) async -> FileAccess
     
     // MARK: - Private Properties
     
@@ -40,8 +54,12 @@ public class FileMoveHandler: DebugPrintable {
     
     // MARK: - Initialization
     
-    public init(taskManager: BackgroundTaskManager = .shared) {
+    public init(taskManager: BackgroundTaskManager = .shared,
+                makeFileAccess: ((Album, AlbumManaging) async -> FileAccess)? = nil) {
         self.taskManager = taskManager
+        self.makeFileAccess = makeFileAccess ?? { album, albumManager in
+            await InteractableMediaFileAccess(for: album, albumManager: albumManager)
+        }
         setupNotificationObservers()
     }
     
@@ -135,23 +153,34 @@ public class FileMoveHandler: DebugPrintable {
         
         var result: MoveResult = MoveResult(successCount: 0, failureCount: 0, targetAlbumName: task.targetAlbumName)
         
+        let sourceAlbum = availableAlbums.first { $0.id == task.sourceAlbumId }
         currentMoveTask = Task {
-            let fileAccess = await InteractableMediaFileAccess(for: targetAlbum, albumManager: albumManager)
-            let counts = try await performMove(task: task, fileAccess: fileAccess)
+            let fileAccess = await makeFileAccess(targetAlbum, albumManager)
+            let counts = await performMove(task: task, fileAccess: fileAccess) { moved in
+                guard let sourceAlbum else { return }
+                albumManager.resetAlbumCover(album: sourceAlbum, ifItIs: moved.id)
+            }
             return MoveResult(
                 successCount: counts.success,
                 failureCount: counts.failure,
-                targetAlbumName: task.targetAlbumName
+                targetAlbumName: task.targetAlbumName,
+                wasCancelled: counts.cancelled
             )
         }
         
         do {
             result = try await currentMoveTask!.value
             await MainActor.run {
-                self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: task.mediaToMove.count)
+                if result.wasCancelled {
+                    self.printDebug("Move was cancelled after \(result.successCount) item(s)")
+                    self.taskManager.finalizeTaskCancelled(taskId: task.id)
+                } else {
+                    self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: task.mediaToMove.count)
+                }
                 self.endBackgroundTask()
             }
         } catch is CancellationError {
+            result = MoveResult(successCount: 0, failureCount: 0, targetAlbumName: task.targetAlbumName, wasCancelled: true)
             await MainActor.run {
                 self.printDebug("Move was cancelled")
                 self.taskManager.finalizeTaskCancelled(taskId: task.id)
@@ -168,11 +197,14 @@ public class FileMoveHandler: DebugPrintable {
         return result
     }
     
-    /// Performs the actual move operation for all media items
+    /// Moves every item in turn. A cancel takes effect between items only: the item
+    /// under way always finishes, so none is left with some components moved and the
+    /// rest still in the source. `didMove` runs once for each item that moved.
     private func performMove(
         task: MoveTask,
-        fileAccess: FileAccess
-    ) async throws -> (success: Int, failure: Int) {
+        fileAccess: FileAccess,
+        didMove: (InteractableMedia<EncryptedMedia>) -> Void
+    ) async -> (success: Int, failure: Int, cancelled: Bool) {
         printDebug("Performing move for task: \(task.id) with \(task.mediaToMove.count) items")
         let startTime = Date()
         var processedCount = 0
@@ -180,7 +212,13 @@ public class FileMoveHandler: DebugPrintable {
         var failureCount = 0
         
         for (index, media) in task.mediaToMove.enumerated() {
-            try Task.checkCancellation()
+            if let delay = Self.itemDelayForTesting {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+            if Task.isCancelled {
+                printDebug("📈 Move cancelled - Moved \(successCount)/\(task.mediaToMove.count) (Failed: \(failureCount))")
+                return (successCount, failureCount, true)
+            }
             
             let needsDownload = media.needsDownload
             if needsDownload {
@@ -217,7 +255,9 @@ public class FileMoveHandler: DebugPrintable {
                     }
                 }
                 
-                try await fileAccess.move(media: media, progress: progressCallback)
+                // An unstructured task does not inherit this task's cancellation.
+                try await Task { try await fileAccess.move(media: media, progress: progressCallback) }.value
+                didMove(media)
                 successCount += 1
                 processedCount += 1
                 printDebug("✅ Successfully moved item \(index + 1)/\(task.mediaToMove.count)")
@@ -239,7 +279,7 @@ public class FileMoveHandler: DebugPrintable {
         }
         
         printDebug("📈 Move complete - Processed: \(processedCount)/\(task.mediaToMove.count) (Success: \(successCount), Failed: \(failureCount))")
-        return (successCount, failureCount)
+        return (successCount, failureCount, false)
     }
     
     /// Updates progress during move operation

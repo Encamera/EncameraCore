@@ -102,6 +102,10 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     public func upload(_ item: CloudKitMediaUpload,
                        progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
         guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
+        if CloudKitStoreTestHooks.consumeUploadFailure() {
+            printDebug("upload FAILED recordName=\(item.recordName) — quotaExceeded injected by -CloudKitFailUploadAfter")
+            throw CloudKitMediaStoreError.quotaExceeded
+        }
 
         // Upload the preview from a private snapshot, never the live file.
         let snapshot = item.encryptedThumbURL.flatMap { Self.snapshotForUpload($0) }
@@ -116,12 +120,32 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         // A chunked item's payload goes to the blob zone FIRST; the `EncMedia`
         // save below is then the commit point (`makeRecord` gave it the header
         // fields and no `encBlob`). Until it lands, a partial chunk upload reads
-        // as "not chunked yet" — never as a truncated video. Idempotent computed
-        // chunk names + the store's resume-by-probe make a retry cheap.
+        // as "not chunked yet" — never as a truncated video. Computed chunk names
+        // make a retry idempotent, and `existingChunks` says whether it may keep
+        // the chunks an earlier attempt saved.
         if item.chunkCount > 0 {
+            // Rewriting the chunks of a committed record would leave its header
+            // describing an encryption its chunks no longer hold. A committed record
+            // is already whole, so report it as the conflict the commit would have
+            // hit, and let the caller verify it.
+            if item.existingChunks == .overwrite {
+                let committed: Bool
+                do {
+                    committed = try await recordExists(recordName: recordName)
+                } catch {
+                    let mapped = mapAndRecord(error)
+                    printDebug("upload overwrite check FAILED recordName=\(recordName) mapped=\(mapped) raw=\(error)")
+                    throw mapped
+                }
+                if committed {
+                    printDebug("upload REFUSED recordName=\(recordName) — overwrite requested but the record is already committed")
+                    throw CloudKitMediaStoreError.conflict(serverRecord: nil)
+                }
+            }
             do {
                 try await chunkStore.uploadChunks(enc3FileURL: item.encryptedFileURL,
                                                   mediaRecordName: item.recordName,
+                                                  existingChunks: item.existingChunks,
                                                   progress: progress)
             } catch ChunkedBlobError.accountUnavailable {
                 throw CloudKitMediaStoreError.accountUnavailable
@@ -150,6 +174,17 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             printDebug("upload FAILED recordName=\(recordName) mapped=\(mapped) raw=\(error)")
             throw mapped
         }
+    }
+
+    /// Whether the `EncMedia` record is on the server. Fetch by id is strongly
+    /// consistent, a missing record is absent from the result, and no field is
+    /// asked for.
+    private func recordExists(recordName: String) async throws -> Bool {
+        let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
+        let found = try await adapter.fetch(recordIDs: [recordID],
+                                            desiredKeys: [],
+                                            perRecordProgress: { _, _ in })
+        return found[recordID] != nil
     }
 
     /// Copies `source` somewhere only this upload knows about. Returns nil if the
@@ -203,6 +238,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     // MARK: - Albums
 
     public func saveAlbum(_ album: CloudKitAlbumUpload) async throws {
+        if CloudKitStoreTestHooks.failAlbumSaves { throw CloudKitMediaStoreError.retry(after: 1) }
         guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
         let recordID = CKRecord.ID(recordName: album.albumID, zoneID: zoneID)
         do {
@@ -230,6 +266,54 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         }
     }
 
+    /// Re-parents `EncMedia` records to another album: rewrites `albumID`, `albumRef`
+    /// and `parent`. Assets are untouched — `.ifServerRecordUnchanged` sends only
+    /// changed keys to the server. A `CKRecord` fetched with a `desiredKeys` subset
+    /// can be modified and saved: unfetched fields (including blob assets) are
+    /// preserved. Confirmed: WWDC14 "Advanced CloudKit" documents that CKRecord
+    /// tracks changes locally and only the changed fields are transmitted on save;
+    /// partial records save normally. Both `.ifServerRecordUnchanged` and
+    /// `.changedKeys` policies send only changed keys; the difference is conflict
+    /// detection.
+    public func reassignAlbum(recordNames: [String], toAlbumID: String) async throws -> [String] {
+        guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
+        // CloudKit caps a single CKModifyRecordsOperation at 400 records.
+        let batchSize = 400
+        var notFound: [String] = []
+
+        for batch in recordNames.chunked(into: batchSize) {
+            let recordIDs = batch.map { CKRecord.ID(recordName: $0, zoneID: zoneID) }
+            do {
+                // Fetch with only albumID — .ifServerRecordUnchanged sends only changed
+                // keys, so unfetched assets (encBlob, encThumbnail) are preserved on the
+                // server.
+                let fetched = try await adapter.fetch(recordIDs: recordIDs,
+                                                      desiredKeys: [CloudKitSchema.EncMedia.albumID],
+                                                      perRecordProgress: { _, _ in })
+                var toSave: [CKRecord] = []
+                for recordID in recordIDs {
+                    guard let record = fetched[recordID] else {
+                        notFound.append(recordID.recordName)
+                        continue
+                    }
+                    record[CloudKitSchema.EncMedia.albumID] = toAlbumID as CKRecordValue
+                    let albumRecordID = CKRecord.ID(recordName: toAlbumID, zoneID: zoneID)
+                    record[CloudKitSchema.EncMedia.albumRef] = CKRecord.Reference(recordID: albumRecordID, action: .deleteSelf)
+                    record.parent = CKRecord.Reference(recordID: albumRecordID, action: .none)
+                    toSave.append(record)
+                }
+                if !toSave.isEmpty {
+                    _ = try await adapter.save(records: toSave,
+                                               savePolicy: .ifServerRecordUnchanged,
+                                               perRecordProgress: { _, _ in })
+                }
+            } catch {
+                throw mapAndRecord(error)
+            }
+        }
+        return notFound
+    }
+
     public func fetchAllAlbums() async throws -> [CloudKitAlbumMetadata] {
         do {
             let records = try await adapter.query(recordType: CloudKitSchema.EncAlbum.recordType,
@@ -244,6 +328,51 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                 return []
             }
             throw mapped
+        }
+    }
+
+    /// A missing record is absent from the fetch result. A `notFound` error, bare
+    /// or as every entry of a partial failure, means the same thing. Any other
+    /// failure, a missing zone included, is thrown: the server did not answer.
+    public func fetchAlbum(albumID: String) async throws -> CloudKitAlbumMetadata? {
+        let recordID = CKRecord.ID(recordName: albumID, zoneID: zoneID)
+        let fetched: [CKRecord.ID: CKRecord]
+        do {
+            fetched = try await adapter.fetch(recordIDs: [recordID],
+                                              desiredKeys: nil,
+                                              perRecordProgress: { _, _ in })
+        } catch {
+            let mapped = mapAndRecord(error)
+            if Self.isNotFound(mapped) {
+                printDebug("fetchAlbum MISS albumID=\(albumID) — server reported no such record")
+                return nil
+            }
+            printDebug("fetchAlbum FAILED albumID=\(albumID) mapped=\(mapped)")
+            throw mapped
+        }
+        guard let record = fetched[recordID] else {
+            printDebug("fetchAlbum MISS albumID=\(albumID) — no record returned by fetch-by-id")
+            return nil
+        }
+        guard let metadata = albumMetadata(from: record) else {
+            // The record exists, so this must not read as "gone".
+            printDebug("fetchAlbum UNREADABLE albumID=\(albumID) keys=\(record.allKeys())")
+            throw CloudKitMediaStoreError.underlying(CKError(.internalError))
+        }
+        printDebug("fetchAlbum hit albumID=\(albumID)")
+        return metadata
+    }
+
+    private static func isNotFound(_ error: CloudKitMediaStoreError) -> Bool {
+        switch error {
+        case .notFound:
+            return true
+        case .partial(let failed):
+            return !failed.isEmpty && failed.values.allSatisfy {
+                if case .notFound = mapCKError($0) { return true } else { return false }
+            }
+        default:
+            return false
         }
     }
 

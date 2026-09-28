@@ -211,7 +211,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
 
         let plan = try await h.manager.plan(album: h.album)
 
-        XCTAssertEqual(plan.sourceStorage, .icloud)
+        XCTAssertEqual(plan.source.storage, .icloud)
         XCTAssertEqual(plan.items.count, 3, "an evicted placeholder is still a file to migrate")
         XCTAssertEqual(Set(plan.items.map(\.mediaID)), Set(h.mediaIDs))
     }
@@ -238,7 +238,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         XCTAssertEqual(estimate.itemCount, 3)
         XCTAssertGreaterThan(estimate.totalBytes, 0,
                              "the confirmation alert must not tell the user they are moving 0 bytes")
-        XCTAssertFalse(MigrationPlanStore.hasPlan(for: h.album),
+        XCTAssertFalse(FileManager.default.fileExists(atPath: MigrationPlanStore.planURL(for: h.album).path),
                        "estimating must stay side-effect free")
     }
 
@@ -251,7 +251,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         XCTAssertEqual(h.manager.state, .completed)
         XCTAssertEqual(h.store.uploadCalls.count, 3, "every evicted file reaches CloudKit exactly once")
         XCTAssertEqual(h.albumManager.finalizeCallCount, 1, "and the album flips to CloudKit")
-        XCTAssertFalse(MigrationPlanStore.hasPlan(for: h.album), "the checkpoint is cleared on completion")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: MigrationPlanStore.planURL(for: h.album).path), "the checkpoint is cleared on completion")
 
         for id in h.mediaIDs {
             XCTAssertFalse(FileManager.default.fileExists(atPath: encURL(album: h.album, id: id).path),
@@ -477,9 +477,9 @@ final class ICloudDriveMigrationTests: XCTestCase {
         defer {
             try? FileManager.default.removeItem(at: LocalStorageModel(album: album).baseURL)
             try? FileManager.default.removeItem(at: MigrationPlanStore.planURL(for: album))
-            let marker = CloudKitStorageModel.albumsURL
-                .appendingPathComponent(Album.cloudKitTwin(of: album).encryptedPathComponent)
-            try? FileManager.default.removeItem(at: marker)
+            if let markerID = CloudKitAlbumMarker.albumID(matching: album) {
+                try? CloudKitAlbumMarker.remove(albumID: markerID)
+            }
         }
 
         let model = LocalStorageModel(album: album)

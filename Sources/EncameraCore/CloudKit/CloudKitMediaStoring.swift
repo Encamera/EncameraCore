@@ -24,7 +24,7 @@ import CloudKit
 /// key as the enum's integer, and whose chunk geometry is present only for a
 /// chunked record.
 public struct CloudKitMediaRecordDescriptor: Codable, Sendable, Equatable {
-    public let albumID: String          // hashPrimaryKey(albumName) — deterministic, non-reversible
+    public let albumID: String          // the owning album's UUID
     public let mediaID: String          // shared grouping id (the InteractableMedia id)
     /// The CloudKit record name — UNIQUE per blob. A Live Photo's photo and video
     /// components share a `mediaID` but must be distinct records, or the second
@@ -35,8 +35,9 @@ public struct CloudKitMediaRecordDescriptor: Codable, Sendable, Equatable {
     public let sizeBytes: Int64
     /// `PrivateKey.keychainLabel` of the key that produced the ciphertext —
     /// lowercase hex of the full 16-byte fingerprint, proven against the file's own
-    /// bytes by `CloudKitKeyStamp`. Required: readers decrypt by this value without
-    /// re-deriving it, so a record that does not carry one has no business existing.
+    /// bytes by `CloudKitKeyStamp`. Readers try this key first and prove it against
+    /// the content (`CloudKitRecordKeyResolver`), since the field is not covered by the
+    /// AEAD; it also names the required key when the device holds none that opens it.
     public let keyFingerprint: String
     /// Number of ENC3 chunks the blob splits into. 0 means monolithic: the whole
     /// ciphertext lives in `encBlob`. > 0 means the blob is stored as `EncBlobChunk`
@@ -111,15 +112,22 @@ public struct CloudKitMediaUpload: Sendable {
     public let encryptedThumbURL: URL?
     /// The record format the store writes at drain time.
     public let schemaVersion: Int64
+    /// What a chunked upload does with chunks an earlier attempt saved. `.overwrite`
+    /// when this file was encrypted for this attempt, so its bytes differ from any
+    /// earlier attempt's; the store then refuses to write under a record that is
+    /// already committed.
+    public let existingChunks: ExistingChunkPolicy
 
     public init(descriptor: CloudKitMediaRecordDescriptor,
                 encryptedFileURL: URL,
                 encryptedThumbURL: URL?,
-                schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
+                schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion,
+                existingChunks: ExistingChunkPolicy = .resumeByProbe) {
         self.descriptor = descriptor
         self.encryptedFileURL = encryptedFileURL
         self.encryptedThumbURL = encryptedThumbURL
         self.schemaVersion = schemaVersion
+        self.existingChunks = existingChunks
     }
 
     /// Flat convenience over `init(descriptor:...)`.
@@ -213,6 +221,19 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
     }
 }
 
+extension CloudKitMediaMetadata {
+    /// The byte length of the ciphertext this record holds: the ENC3 file its
+    /// header and chunks assemble into, or `sizeBytes` for a monolithic blob.
+    /// `sizeBytes` is not usable for a chunked record, since a video re-encrypted
+    /// on its way into CloudKit keeps the size of its ENC2 original there. `nil`
+    /// for a chunked record fetched without its header.
+    var expectedCiphertextLength: Int64? {
+        guard descriptor.chunkCount > 0 else { return descriptor.sizeBytes }
+        guard let encHeader, let header = try? SeekableEncryptedHeader.decode(encHeader) else { return nil }
+        return Int64(header.geometry.totalCiphertextLength)
+    }
+}
+
 /// Lightweight reference returned after a save.
 public struct CloudKitMediaRef: Sendable, Equatable {
     public let recordName: String
@@ -224,11 +245,11 @@ public struct CloudKitMediaRef: Sendable, Equatable {
     }
 }
 
-/// One album to upsert as a single `EncAlbum` record. `albumID` is the
-/// keyed hash of the album name — it is BOTH the record name and the value media
-/// records carry in `EncMedia.albumID`, so the join needs no separate identifier.
+/// One album to upsert as a single `EncAlbum` record. `albumID` is the album's
+/// UUID — it is BOTH the record name and the value media records carry in
+/// `EncMedia.albumID`, so the join needs no separate identifier.
 public struct CloudKitAlbumUpload: Sendable {
-    public let albumID: String          // record name == keyedHash(name, key)
+    public let albumID: String          // record name == the album's UUID
     public let encName: String          // album-name ciphertext (Album.encryptedPathComponent)
     public let createdAt: Date
     public let isHidden: Bool
@@ -304,7 +325,8 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
 public struct CloudKitChangeSet: Sendable {
     public let changed: [CloudKitMediaMetadata]
     public let deleted: [String]            // record names
-    /// `EncAlbum` records changed since the token — album discovery and rename.
+    /// `EncAlbum` records changed since the token — new albums, and name, hidden
+    /// flag or cover changes to existing ones.
     public let changedAlbums: [CloudKitAlbumMetadata]
     /// Album ids the zone reports deleted. Positive evidence of deletion, which a
     /// `CKQuery` of `EncAlbum` cannot give at all: absence from a query means
@@ -373,8 +395,8 @@ public protocol CloudKitMediaStoring: Sendable {
     // MARK: Albums
 
     /// Upsert one `EncAlbum` record so the album syncs across devices. Idempotent:
-    /// the record name is the album-id hash, so re-saving the same album is a no-op
-    /// upsert.
+    /// the record name is the album's id, so re-saving the same album overwrites
+    /// its fields in place.
     func saveAlbum(_ album: CloudKitAlbumUpload) async throws
 
     /// Fetch every `EncAlbum` record in the zone. DISCOVERY ONLY: this is a
@@ -384,6 +406,13 @@ public protocol CloudKitMediaStoring: Sendable {
     /// is a full query (albums are few), not a delta sync, so it is independent of the
     /// per-album media change-token cursor.
     func fetchAllAlbums() async throws -> [CloudKitAlbumMetadata]
+
+    /// Strongly consistent lookup of ONE `EncAlbum` record by its album id: a
+    /// fetch-by-record-ID, not the `fetchAllAlbums` query, so a record saved moments
+    /// ago is found. Returns `nil` only when the server has no such record, which,
+    /// unlike absence from the query, is evidence that the album is gone. Throws
+    /// when the server could not answer.
+    func fetchAlbum(albumID: String) async throws -> CloudKitAlbumMetadata?
 
     /// A zone-wide census of the `EncMedia` records in the zone: how many there
     /// are, and how many name each key fingerprint. A metadata-only query over the
@@ -423,6 +452,17 @@ public protocol CloudKitMediaStoring: Sendable {
     /// starts from scratch.
     func resetChangeToken() async
 
+    /// Re-parents EncMedia records to another album: rewrites `albumID`, `albumRef` and
+    /// `parent`. Metadata only — assets are untouched and never re-uploaded. Batched.
+    /// Returns record names the server did not have (not an error for a move — the item
+    /// may already have been deleted from another device).
+    func reassignAlbum(recordNames: [String], toAlbumID: String) async throws -> [String]
+
+    /// Strongly consistent check of which album a record currently belongs to;
+    /// `nil` when the record does not exist. The default reads
+    /// `fetchRecordMetadata`. A requirement, so a test double can answer it.
+    func confirmAlbum(recordName: String) async throws -> String?
+
     /// Force-recreate the custom zone (after `zoneNotFound`): clears the cached
     /// "zone created" flag and re-issues the create.
     func recreateZone() async throws
@@ -460,5 +500,15 @@ public enum CloudKitFingerprintCensus: Sendable, Equatable {
     /// container (see ENC-70). Carries no information in either direction;
     /// callers must treat it as unresolved, never as "no data".
     case indexUnavailable
+}
+
+// MARK: - Default implementations
+
+extension CloudKitMediaStoring {
+    /// Strongly-consistent check of which album a record currently belongs to.
+    /// Returns `nil` when the record does not exist.
+    public func confirmAlbum(recordName: String) async throws -> String? {
+        try await fetchRecordMetadata(recordName: recordName)?.albumID
+    }
 }
 

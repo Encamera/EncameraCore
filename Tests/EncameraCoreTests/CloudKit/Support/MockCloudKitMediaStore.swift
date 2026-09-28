@@ -42,6 +42,65 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var deleteErrorOnce: Error?
     var uploadRefOverride: CloudKitMediaRef?
 
+    // MARK: Fault hooks
+    //
+    // Each is inert by default, and each throws a `CloudKitMediaStoreError` shaped
+    // like the one the real store produces for that failure.
+
+    /// Record names whose `reassignAlbum` fails. The save is atomic, so a batch
+    /// naming any of them moves nothing: the named records fail with
+    /// `serverRejectedRequest` and the rest with `batchRequestFailed`, wrapped in
+    /// `.partial`.
+    var reassignFailures: Set<String> = []
+    /// Record names that vanish between `reassignAlbum`'s fetch and its save, so the
+    /// call throws `.notFound` and moves nothing.
+    var reassignNotFound: Set<String> = []
+    /// Per-record answer for `confirmAlbum`: `.success(owner)` (`nil` for "no such
+    /// record") or `.failure(error)` to throw. Records not listed fall through to
+    /// `fetchRecordMetadata`, as the real store does.
+    var confirmAlbumOverride: [String: Result<String?, Error>] = [:]
+    /// Album ids whose `EncAlbum` record is not on the server yet. A media save into
+    /// one (an upload, or a `reassignAlbum` to it) fails with a reference violation
+    /// wrapped in `.partial`, as CloudKit rejects a child whose parent is missing.
+    var unpublishedParents: Set<String> = []
+    /// Lets `successes` calls to `fetchRecordMetadata` through, then throws `error`
+    /// from every later one (including those `confirmAlbum` makes).
+    var fetchRecordMetadataErrorAfter: (successes: Int, error: Error)?
+    /// Record names whose every `upload` throws the mapped error, before anything is
+    /// stored.
+    var uploadFailures: [String: Error] = [:]
+
+    /// One store call, as logged in `callOrder`.
+    enum Call: Equatable {
+        case upload(recordName: String)
+        case fetchMetadata(albumID: String)
+        case fetchRecordMetadata(recordName: String)
+        case confirmAlbum(recordName: String)
+        case fetchBlob(recordName: String)
+        case fetchThumbnail(recordName: String)
+        case delete(recordName: String)
+        case reassignAlbum(recordNames: [String], toAlbumID: String)
+        case saveAlbum(albumID: String)
+        case fetchAllAlbums
+        case fetchAlbum(albumID: String)
+        case deleteAlbum(albumID: String)
+        case fetchChanges
+    }
+    private var _callOrder: [Call] = []
+    /// Every store call in the order it was made, including calls a fault hook
+    /// failed, so a test can assert that one operation happened before another.
+    var callOrder: [Call] { locked { _callOrder } }
+    private func log(_ call: Call) { locked { _callOrder.append(call) } }
+    private var _fetchRecordMetadataSuccesses = 0
+    private var _reassignSaveCount = 0
+
+    /// The per-record error CloudKit reports when a child's parent is not on the server.
+    private func parentMissing(_ recordNames: [String]) -> CloudKitMediaStoreError {
+        .partial(failed: Dictionary(uniqueKeysWithValues: recordNames.map {
+            ($0, CKErrorFactory.error(.referenceViolation))
+        }))
+    }
+
     private var _fetchBlobCount = 0
     private var _fingerprintCensusCount = 0
     var fingerprintCensusCount: Int { locked { _fingerprintCensusCount } }
@@ -89,6 +148,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
 
     func upload(_ item: CloudKitMediaUpload,
                 progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
+        log(.upload(recordName: item.recordName))
         if let onUploadStarted { await onUploadStarted() }
         let blobBytes = (try? Data(contentsOf: item.encryptedFileURL)) ?? Data()
         locked {
@@ -97,6 +157,8 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
             _uploadedBlobBytes[item.recordName] = blobBytes
         }
         if let error = uploadErrorOnce { uploadErrorOnce = nil; throw error }
+        if let error = uploadFailures[item.recordName] { throw error }
+        if unpublishedParents.contains(item.albumID) { throw parentMissing([item.recordName]) }
         if enforceParentAlbumExists, locked({ _albums[item.albumID] == nil }) {
             throw CloudKitMediaStoreError.partial(
                 failed: [item.recordName: CKErrorFactory.error(.referenceViolation)]
@@ -116,6 +178,10 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         return uploadRefOverride ?? CloudKitMediaRef(recordName: item.recordName, recordChangeTag: "tag-upload")
     }
 
+    // Reassign tracking
+    private var _reassignCalls: [(recordNames: [String], toAlbumID: String)] = []
+    var reassignCalls: [(recordNames: [String], toAlbumID: String)] { locked { _reassignCalls } }
+
     /// Every `fetchMetadata` call, so a test can prove a backfill ran once and never
     /// asked for an asset key.
     private var _fetchMetadataCalls: [(albumID: String, includeThumbnail: Bool)] = []
@@ -124,6 +190,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fetchMetadataDelayNanos: UInt64 = 0
 
     func fetchMetadata(albumID: String, includeThumbnail: Bool) async throws -> [CloudKitMediaMetadata] {
+        log(.fetchMetadata(albumID: albumID))
         locked { _fetchMetadataCalls.append((albumID, includeThumbnail)) }
         if fetchMetadataDelayNanos > 0 { try await Task.sleep(nanoseconds: fetchMetadataDelayNanos) }
         if let fetchMetadataError { throw fetchMetadataError }
@@ -140,10 +207,18 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fetchRecordMetadataCount: Int { locked { _fetchRecordMetadataCalls.count } }
 
     func fetchRecordMetadata(recordName: String) async throws -> CloudKitMediaMetadata? {
+        log(.fetchRecordMetadata(recordName: recordName))
         locked { _fetchRecordMetadataCalls.append(recordName) }
         if let fetchRecordMetadataError { throw fetchRecordMetadataError }
-        return locked { (metadataToReturn + (reflectUploadsInMetadata ? _reflected : []))
-            .first { $0.recordName == recordName } }
+        if let after = fetchRecordMetadataErrorAfter,
+           locked({ _fetchRecordMetadataSuccesses }) >= after.successes {
+            throw after.error
+        }
+        return locked {
+            _fetchRecordMetadataSuccesses += 1
+            return (metadataToReturn + (reflectUploadsInMetadata ? _reflected : []))
+                .first { $0.recordName == recordName }
+        }
     }
 
     /// Fractions reported, in order, before the fetch completes — each one
@@ -161,6 +236,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     func fetchBlob(recordName: String,
                    to destination: URL,
                    progress: @escaping @Sendable (Double) -> Void) async throws {
+        log(.fetchBlob(recordName: recordName))
         locked { _fetchBlobCount += 1 }
         do {
             for (index, fraction) in fetchBlobProgressSteps.enumerated() {
@@ -183,6 +259,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fetchThumbnailWritesFile = true
     var fetchThumbnailError: Error?
     func fetchThumbnail(recordName: String, to destination: URL) async throws {
+        log(.fetchThumbnail(recordName: recordName))
         locked { fetchThumbnailCount += 1 }
         if fetchThumbnailWritesFile { try blobContents.write(to: destination) }
         if let fetchThumbnailError { throw fetchThumbnailError }
@@ -193,11 +270,80 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var onDelete: ((String) -> Void)?
 
     func delete(recordName: String) async throws {
+        log(.delete(recordName: recordName))
         locked { _deleteCalls.append(recordName) }
         onDelete?(recordName)
         if let deleteError { throw deleteError }
         if let deleteErrorOnce { self.deleteErrorOnce = nil; throw deleteErrorOnce }
         locked { _liveRecords[recordName] = nil }
+    }
+
+    func confirmAlbum(recordName: String) async throws -> String? {
+        log(.confirmAlbum(recordName: recordName))
+        if let override = confirmAlbumOverride[recordName] { return try override.get() }
+        return try await fetchRecordMetadata(recordName: recordName)?.albumID
+    }
+
+    // MARK: - Reassign
+
+    func reassignAlbum(recordNames: [String], toAlbumID: String) async throws -> [String] {
+        log(.reassignAlbum(recordNames: recordNames, toAlbumID: toAlbumID))
+        locked { _reassignCalls.append((recordNames: recordNames, toAlbumID: toAlbumID)) }
+        if recordNames.contains(where: reassignFailures.contains) {
+            throw CloudKitMediaStoreError.partial(failed: Dictionary(uniqueKeysWithValues: recordNames.map {
+                ($0, CKErrorFactory.error(reassignFailures.contains($0) ? .serverRejectedRequest : .batchRequestFailed))
+            }))
+        }
+        if recordNames.contains(where: reassignNotFound.contains) { throw CloudKitMediaStoreError.notFound }
+        if unpublishedParents.contains(toAlbumID) {
+            let present = recordNames.filter { name in locked { metadataToReturn.contains { $0.recordName == name } } }
+            if !present.isEmpty { throw parentMissing(present) }
+        }
+        // Mutate metadataToReturn for records that match, and update the changeSet
+        // so coordinators see the move in fetchChanges.
+        return locked {
+            var notFound: [String] = []
+            _reassignSaveCount += 1
+            for name in recordNames {
+                if let idx = metadataToReturn.firstIndex(where: { $0.recordName == name }) {
+                    let old = metadataToReturn[idx]
+                    let newDesc = CloudKitMediaRecordDescriptor(
+                        albumID: toAlbumID,
+                        mediaID: old.mediaID,
+                        recordName: old.recordName,
+                        mediaType: old.mediaType,
+                        createdAt: old.createdAt,
+                        sizeBytes: old.sizeBytes,
+                        keyFingerprint: old.keyFingerprint,
+                        chunkCount: old.chunkCount,
+                        plaintextLength: old.plaintextLength
+                    )
+                    let updated = CloudKitMediaMetadata(
+                        descriptor: newDesc,
+                        creationDeviceID: old.creationDeviceID,
+                        schemaVersion: old.schemaVersion,
+                        recordChangeTag: "tag-reassign-\(_reassignSaveCount)"
+                    )
+                    metadataToReturn[idx] = updated
+                    // Reflect into the changeSet so coordinators see the move.
+                    var changed = changeSet.changed
+                    if let ci = changed.firstIndex(where: { $0.recordName == name }) {
+                        changed[ci] = updated
+                    } else {
+                        changed.append(updated)
+                    }
+                    changeSet = CloudKitChangeSet(changed: changed,
+                                                  deleted: changeSet.deleted,
+                                                  changedAlbums: changeSet.changedAlbums,
+                                                  deletedAlbumIDs: changeSet.deletedAlbumIDs,
+                                                  token: changeSet.token,
+                                                  moreComing: changeSet.moreComing)
+                } else {
+                    notFound.append(name)
+                }
+            }
+            return notFound
+        }
     }
 
     // MARK: Albums
@@ -211,10 +357,15 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     func seedAlbum(_ album: CloudKitAlbumMetadata) { locked { _albums[album.albumID] = album } }
 
     var saveAlbumError: Error?
+    private var _saveAlbumAttemptCount = 0
+    /// Every `saveAlbum` call, including the ones `saveAlbumError` fails.
+    var saveAlbumAttemptCount: Int { locked { _saveAlbumAttemptCount } }
     /// The account check belongs to the caller, so this mock deliberately does not
     /// repeat it — an empty `savedAlbumCalls` then means "the caller's guard held",
     /// not "the store refused".
     func saveAlbum(_ album: CloudKitAlbumUpload) async throws {
+        log(.saveAlbum(albumID: album.albumID))
+        locked { _saveAlbumAttemptCount += 1 }
         if let saveAlbumError { throw saveAlbumError }
         locked {
             _savedAlbumCalls.append(album)
@@ -222,7 +373,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
                 albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
                 isHidden: album.isHidden, schemaVersion: album.schemaVersion,
                 keyFingerprint: album.keyFingerprint.isEmpty ? nil : album.keyFingerprint,
-                recordChangeTag: "albumtag")
+                recordChangeTag: "albumtag", coverMediaID: album.coverMediaID)
         }
     }
 
@@ -232,10 +383,24 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fetchAllAlbumsGate: (@Sendable () async -> Void)?
 
     func fetchAllAlbums() async throws -> [CloudKitAlbumMetadata] {
+        log(.fetchAllAlbums)
         locked { _fetchAllAlbumsCount += 1 }
         if let gate = fetchAllAlbumsGate { await gate() }
         if let fetchAllAlbumsError { throw fetchAllAlbumsError }
-        return locked { Array(_albums.values) }
+        return locked { _albums.values.filter { !albumsMissingFromQuery.contains($0.albumID) } }
+    }
+
+    /// Album ids the query index has not caught up with: `fetchAllAlbums` leaves
+    /// them out while `fetchAlbum` still finds them, as a just-saved record behaves
+    /// on the server.
+    var albumsMissingFromQuery: Set<String> = []
+    /// Thrown by every `fetchAlbum`, as when the device is offline or throttled.
+    var fetchAlbumError: Error?
+
+    func fetchAlbum(albumID: String) async throws -> CloudKitAlbumMetadata? {
+        log(.fetchAlbum(albumID: albumID))
+        if let fetchAlbumError { throw fetchAlbumError }
+        return locked { _albums[albumID] }
     }
 
     /// Counts come from `_liveRecords` — the records this mock believes are actually
@@ -259,6 +424,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
 
     var deleteAlbumError: Error?
     func deleteAlbum(albumID: String) async throws {
+        log(.deleteAlbum(albumID: albumID))
         locked { _deletedAlbumCalls.append(albumID) }
         if let deleteAlbumError { throw deleteAlbumError }
         locked {
@@ -272,6 +438,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var fetchChangesErrorOnce: Error?
     var fetchChangesDelayNanos: UInt64 = 0
     func fetchChanges(since token: CKServerChangeToken?) async throws -> CloudKitChangeSet {
+        log(.fetchChanges)
         locked { _fetchChangesCount += 1 }
         if let fetchChangesGate { await fetchChangesGate.enter() }
         if fetchChangesDelayNanos > 0 { try? await Task.sleep(nanoseconds: fetchChangesDelayNanos) }

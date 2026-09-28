@@ -11,18 +11,20 @@ import Sodium
 
 public struct Album: Codable, Identifiable, Hashable {
 
-    public init(name: String, storageOption: StorageType, creationDate: Date, key: PrivateKey) {
+    public init(name: String, storageOption: StorageType, creationDate: Date, key: PrivateKey, albumID: String? = nil) {
         self.name = name
         self.storageOption = storageOption
         self.creationDate = creationDate
         self.key = key
+        self.albumID = albumID
         self.encryptedName = encryptedPathComponent
     }
 
-    public init(encryptedName: String, storageOption: StorageType, creationDate: Date, key: PrivateKey) {
+    public init(encryptedName: String, storageOption: StorageType, creationDate: Date, key: PrivateKey, albumID: String? = nil) {
         self.storageOption = storageOption
         self.creationDate = creationDate
         self.key = key
+        self.albumID = albumID
         self.name = Self.decryptAlbumName(encryptedName, key: key)
         self.encryptedName = encryptedName
     }
@@ -38,7 +40,19 @@ public struct Album: Codable, Identifiable, Hashable {
     public var creationDate: Date
     private var encryptedName: String?
 
+    /// A CloudKit album's identity: minted once when the album becomes a CloudKit
+    /// album and never derived from its name, so a rename leaves it unchanged. It is
+    /// the `EncAlbum` record name and names every per-album store on this device.
+    /// Non-nil exactly when `storageOption == .cloudKit`.
+    public var albumID: String?
+
+    /// Keys the media index, the sidecars, migration plans and `currentAlbumID`.
+    /// A CloudKit album is keyed by its `albumID`; a local album by its name, since
+    /// its directory is its identity.
     public var id: String {
+        if let albumID {
+            return "\(albumID)_\(StorageType.cloudKit.rawValue)"
+        }
         return "\(name)_\(storageOption.rawValue)"
     }
 
@@ -46,13 +60,60 @@ public struct Album: Codable, Identifiable, Hashable {
         storageOption.modelForType.init(album: self).baseURL
     }
 
-    /// The same album (same name + key) re-pointed at CloudKit storage — the single
-    /// owner of "make the `.cloudKit` twin of this album", used by the migration engine
-    /// and the album flip so the semantics live in one place.
-    public static func cloudKitTwin(of album: Album) -> Album {
+    /// The same album (same name + key) re-pointed at CloudKit storage under
+    /// `albumID` — the single owner of "make the `.cloudKit` twin of this album",
+    /// used by the migration engine and the album flip so the semantics live in one
+    /// place.
+    ///
+    /// A legacy album whose directory name is plaintext gets a real ciphertext name
+    /// here, because the twin's `encryptedPathComponent` is what reaches CloudKit and
+    /// `album.json` as `encName`. Existing ciphertext is kept as it is, even when
+    /// `key` cannot open it: it may belong to another key the device holds.
+    public static func cloudKitTwin(of album: Album, albumID: String) -> Album {
         var twin = album
         twin.storageOption = .cloudKit
+        twin.albumID = albumID
+        if !twin.encryptedPathComponent.hasPrefix("Album_") {
+            twin.name = album.name
+        }
         return twin
+    }
+
+    /// The same album (same name + key) re-pointed at local storage. A local album
+    /// is identified by its directory, so the CloudKit `albumID` is dropped.
+    public static func localTwin(of album: Album) -> Album {
+        var twin = album
+        twin.storageOption = .local
+        twin.albumID = nil
+        return twin
+    }
+
+    // MARK: - Equality
+
+    /// A CloudKit album compares by `albumID` plus the fields a view renders, and
+    /// leaves out the name ciphertext, which differs on every encryption of the same
+    /// name. `name` stays in so SwiftUI still sees a rename as a change. Albums
+    /// without an `albumID` compare every stored field.
+    public static func == (lhs: Album, rhs: Album) -> Bool {
+        guard lhs.albumID == rhs.albumID,
+              lhs.name == rhs.name,
+              lhs.storageOption == rhs.storageOption,
+              lhs.creationDate == rhs.creationDate,
+              lhs.key == rhs.key else { return false }
+        return lhs.albumID != nil || lhs.encryptedName == rhs.encryptedName
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        if let albumID {
+            hasher.combine(albumID)
+            hasher.combine(storageOption)
+            return
+        }
+        hasher.combine(key)
+        hasher.combine(name)
+        hasher.combine(storageOption)
+        hasher.combine(creationDate)
+        hasher.combine(encryptedName)
     }
 
     /// Removes a migrated album's drained source directory, but ONLY when it holds no

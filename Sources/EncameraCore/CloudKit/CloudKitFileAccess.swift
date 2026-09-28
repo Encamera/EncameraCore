@@ -41,8 +41,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     private static let testDeleteSuiteName = "ck-delete-test-\(ProcessInfo.processInfo.processIdentifier)"
 
     private let album: Album
-    private let albumIDHash: String
+    private let albumID: String
+    /// The album's key: what saves encrypt with. Reads resolve their key per record
+    /// through `keyResolver`, because a moved-in record keeps the key it was written
+    /// under.
     private let keyBytes: [UInt8]
+    private var keyResolver: CloudKitRecordKeyResolver
     /// The key library, for proving which key encrypted a blob before it is uploaded.
     private let keyManager: KeyManager
     private let store: CloudKitMediaStoring
@@ -79,15 +83,15 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         thumbnailTagsLoaded = true
         guard let data = try? Data(contentsOf: thumbnailTagsURL) else {
             let exists = FileManager.default.fileExists(atPath: thumbnailTagsURL.path)
-            printDebug("loadThumbnailTags \(exists ? "FAILED" : "skip") albumID=\(albumIDHash) reason=\(exists ? "sidecarUnreadable" : "noSidecar")")
+            printDebug("loadThumbnailTags \(exists ? "FAILED" : "skip") albumID=\(albumID) reason=\(exists ? "sidecarUnreadable" : "noSidecar")")
             return
         }
         guard let decoded = try? JSONDecoder().decode([String: String].self, from: data) else {
-            printDebug("loadThumbnailTags FAILED albumID=\(albumIDHash) reason=decodeError bytes=\(data.count); every thumbnail will be treated as stale")
+            printDebug("loadThumbnailTags FAILED albumID=\(albumID) reason=decodeError bytes=\(data.count); every thumbnail will be treated as stale")
             return
         }
         thumbnailTags = decoded
-        printDebug("loadThumbnailTags ok albumID=\(albumIDHash) tags=\(decoded.count)")
+        printDebug("loadThumbnailTags ok albumID=\(albumID) tags=\(decoded.count)")
     }
 
     private func setThumbnailTag(_ tag: String?, for id: String) {
@@ -109,6 +113,16 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         }
     }
 
+    /// The album's CloudKit id: the store's change-token namespace, the coordinator
+    /// and registry key, and the `albumID` on every record this album owns.
+    static func storeNamespace(for album: Album) -> String {
+        guard let albumID = album.albumID else {
+            assertionFailure("a CloudKit album has no albumID")
+            return ""
+        }
+        return albumID
+    }
+
     public init(album: Album,
                 albumManager: AlbumManaging,
                 store: CloudKitMediaStoring? = nil,
@@ -117,9 +131,10 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         self.chunkStore = chunkStore
         self.keyBytes = album.key.keyBytes
         self.keyManager = albumManager.keyManager
-        let albumIDHash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) ?? album.id
-        self.albumIDHash = albumIDHash
-        let resolvedStore = store ?? CloudKitStoreProvider.makeStore(albumIDHash)
+        self.keyResolver = CloudKitRecordKeyResolver(albumKey: album.key, keyManager: albumManager.keyManager)
+        let albumID = Self.storeNamespace(for: album)
+        self.albumID = albumID
+        let resolvedStore = store ?? CloudKitStoreProvider.makeStore(albumID)
         self.store = resolvedStore
         self.directoryModel = CloudKitStorageModel(album: album)
         let index = MediaIndexStore(album: album)
@@ -135,8 +150,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             self.blobCache = isolatedCache
             let isolatedRegistry = CloudKitCoordinatorRegistry()
             let isolatedDeletes = CloudKitMediaDeleteQueue(suiteName: Self.testDeleteSuiteName)
-            self.coordinator = await isolatedRegistry.coordinator(forAlbumID: albumIDHash) {
-                CloudKitSyncCoordinator(albumID: albumIDHash,
+            self.coordinator = await isolatedRegistry.coordinator(forAlbumID: albumID) {
+                CloudKitSyncCoordinator(albumID: albumID,
                                         store: resolvedStore,
                                         cache: isolatedCache,
                                         indexStore: index,
@@ -150,8 +165,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             self.uploadQueue = .shared
             self.uploader = .shared
             self.blobCache = .shared
-            self.coordinator = await CloudKitCoordinatorRegistry.shared.coordinator(forAlbumID: albumIDHash) {
-                CloudKitSyncCoordinator(albumID: albumIDHash,
+            self.coordinator = await CloudKitCoordinatorRegistry.shared.coordinator(forAlbumID: albumID) {
+                CloudKitSyncCoordinator(albumID: albumID,
                                         store: resolvedStore,
                                         cache: CloudKitBlobCache.shared,
                                         indexStore: index,
@@ -167,7 +182,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     // MARK: - Configure
 
     /// `MediaBackend` conformance. A `CloudKitFileAccess` is bound to its album at
-    /// `init` (it derives `albumIDHash`, the store, and the coordinator there), so
+    /// `init` (it derives `albumID`, the store, and the coordinator there), so
     /// the facade constructs a fresh instance per album rather than re-pointing an
     /// existing one. This is a no-op kept only to satisfy the protocol; the warm-up
     /// is driven by `start()`, which the facade calls after construction.
@@ -181,23 +196,23 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// unavailable. Push-driven re-sync is handled app-wide by `CloudKitAlbumsSync`
     /// (which covers inactive albums too), not per-instance here.
     public func start() async {
-        printDebug("start begin albumID=\(albumIDHash)")
+        printDebug("start begin albumID=\(albumID)")
         if await store.accountAvailable() {
             do {
                 try await store.ensureZoneExists()
             } catch {
-                printDebug("start ensureZoneExists FAILED albumID=\(albumIDHash) raw=\(error)")
+                printDebug("start ensureZoneExists FAILED albumID=\(albumID) raw=\(error)")
             }
         } else {
-            printDebug("start skip albumID=\(albumIDHash) reason=accountUnavailable — zone not ensured")
+            printDebug("start skip albumID=\(albumID) reason=accountUnavailable — zone not ensured")
         }
         await coordinator.startObserving()
         await uploader.kick()
         do {
-            try await coordinator.sync(albumID: albumIDHash)
-            printDebug("start ok albumID=\(albumIDHash)")
+            try await coordinator.sync(albumID: albumID)
+            printDebug("start ok albumID=\(albumID)")
         } catch {
-            printDebug("start initialSync FAILED albumID=\(albumIDHash) raw=\(error)")
+            printDebug("start initialSync FAILED albumID=\(albumID) raw=\(error)")
         }
     }
 
@@ -210,12 +225,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             do {
                 try await store.ensureZoneExists()
             } catch {
-                printDebug("save ensureZoneExists FAILED albumID=\(albumIDHash) raw=\(error); continuing — the upload will surface the real error")
+                printDebug("save ensureZoneExists FAILED albumID=\(albumID) raw=\(error); continuing — the upload will surface the real error")
             }
         } else {
-            printDebug("save WARNING albumID=\(albumIDHash) account unavailable at save time; zone not ensured")
+            printDebug("save WARNING albumID=\(albumID) account unavailable at save time; zone not ensured")
         }
-        printDebug("save start albumID=\(albumIDHash) components=\(media.underlyingMedia.count) mediaType=\(media.mediaType)")
+        printDebug("save start albumID=\(albumID) components=\(media.underlyingMedia.count) mediaType=\(media.mediaType)")
         var encrypted: [EncryptedMedia] = []
         for item in media.underlyingMedia {
             try Task.checkCancellation()
@@ -223,10 +238,10 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             encrypted.append(encMedia)
         }
         guard !encrypted.isEmpty else {
-            printDebug("save FAILED albumID=\(albumIDHash) — no components encrypted; returning nil")
+            printDebug("save FAILED albumID=\(albumID) — no components encrypted; returning nil")
             return nil
         }
-        printDebug("save ok albumID=\(albumIDHash) components=\(encrypted.count)")
+        printDebug("save ok albumID=\(albumID) components=\(encrypted.count)")
         return try InteractableMedia(underlyingMedia: encrypted)
     }
 
@@ -287,7 +302,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             printDebug("saveSingle size WARNING mediaID=\(item.id) mediaType=\(item.mediaType) sizeBytes=0 file=\(encURL.lastPathComponent)")
         }
         let descriptor = CloudKitMediaRecordDescriptor(
-            albumID: albumIDHash,
+            albumID: albumID,
             mediaID: item.id,
             recordName: Self.componentRecordName(mediaID: item.id, type: item.mediaType),
             mediaType: item.mediaType,
@@ -324,15 +339,16 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         for item in media.underlyingMedia {
             try Task.checkCancellation()
             let local = try await ensureLocalCiphertext(id: item.id, type: item.mediaType, progress: progress)
+            let key = try await key(forCiphertextAt: local, id: item.id, type: item.mediaType)
             progress(.decrypting(progress: 0))
             let encMedia = EncryptedMedia(source: .url(local), mediaType: item.mediaType, id: item.id)
             let cleartext: CleartextMedia
             if item.mediaType == .photo {
-                let handler = SecretFileHandler(keyBytes: keyBytes, source: encMedia)
+                let handler = SecretFileHandler(keyBytes: key.keyBytes, source: encMedia)
                 cleartext = try await handler.decryptInMemory()
             } else {
                 let target = URL.tempMediaDirectory.appendingPathComponent("\(item.id).\(item.mediaType.decryptedFileExtension)")
-                let handler = SecretFileHandler(keyBytes: keyBytes, source: encMedia, targetURL: target)
+                let handler = SecretFileHandler(keyBytes: key.keyBytes, source: encMedia, targetURL: target)
                 cleartext = try await handler.decryptToURL()
             }
             decrypted.append(cleartext)
@@ -347,10 +363,11 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         for item in media.underlyingMedia {
             try Task.checkCancellation()
             let local = try await ensureLocalCiphertext(id: item.id, type: item.mediaType, progress: progress)
+            let key = try await key(forCiphertextAt: local, id: item.id, type: item.mediaType)
             progress(.decrypting(progress: 0))
             let encMedia = EncryptedMedia(source: .url(local), mediaType: item.mediaType, id: item.id)
             let target = URL.tempMediaDirectory.appendingPathComponent("\(item.id).\(item.mediaType.decryptedFileExtension)")
-            let handler = SecretFileHandler(keyBytes: keyBytes, source: encMedia, targetURL: target)
+            let handler = SecretFileHandler(keyBytes: key.keyBytes, source: encMedia, targetURL: target)
             let cleartext = try await handler.decryptToURL()
             if let url = cleartext.url { urls.append(url) }
         }
@@ -369,6 +386,10 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// byte after ~20 s, and cold CloudKit takes longer than that to hand over a
     /// 4 MiB chunk; the caller's loading UI covers the wait instead. A first
     /// chunk that cannot be fetched throws — the video cannot be streamed.
+    ///
+    /// Chunk 0 is also what proves the key: the record keeps the key it was written
+    /// under, so the session decrypts with the key that authenticates chunk 0, and
+    /// a video no held key opens throws `missingKeyForMedia` here.
     public func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
         guard media.mediaType == .video, let component = media.underlyingMedia.first(where: { $0.mediaType == .video }) else {
             return nil
@@ -386,18 +407,18 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let contentTag = header.fileID.base64EncodedString()
         let chunkStore = CachedChunkedBlobStore(store: chunkStore ?? CloudKitChunkedBlobStore(),
                                                 cache: blobCache,
-                                                albumID: albumIDHash,
+                                                albumID: albumID,
                                                 validationTag: contentTag)
         let policy = StreamingPlaybackPolicy.cloudKit
-        let session = ChunkedStreamSession.open(store: chunkStore,
-                                                mediaRecordName: recordName,
-                                                header: header,
-                                                keyBytes: keyBytes,
-                                                readAhead: policy.readAhead)
+        let source = StreamingChunkSource(store: chunkStore,
+                                          mediaRecordName: recordName,
+                                          geometry: header.geometry,
+                                          readAhead: policy.readAhead)
         guard EncryptedStreamScheme.url(mediaRecordName: recordName) != nil else { return nil }
         let prefetchStarted = Date()
+        let chunk0: Data
         do {
-            _ = try await session.source.ciphertextChunk(at: 0)
+            chunk0 = try await source.ciphertextChunk(at: 0)
             printDebug("streamingPlayback prefetch ok recordName=\(recordName) "
                        + "ms=\(Int(Date().timeIntervalSince(prefetchStarted) * 1000))")
         } catch {
@@ -405,9 +426,27 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                        + "ms=\(Int(Date().timeIntervalSince(prefetchStarted) * 1000)) raw=\(error)")
             throw error
         }
+        let key = try keyResolver.key(forRecordName: recordName,
+                                      fingerprintHint: info.keyFingerprint,
+                                      probe: FirstBlockProbe(seekableHeader: header, chunk0: Array(chunk0)))
+        let session = ChunkedStreamSession.open(source: source, header: header, keyBytes: key.keyBytes)
         let loader = EncryptedStreamResourceLoader(session: session)
         printDebug("streamingPlayback ok recordName=\(recordName) chunks=\(header.chunkCount) bytes=\(header.plaintextLength)")
         return StreamingPlayback(loader: loader, session: session, policy: policy)
+    }
+
+    /// The key that opens one component's ciphertext, proven against the local copy
+    /// a read just made resident — its first block, so no extra download. The
+    /// record's `keyFingerprint`, when this session has seen it, is tried first.
+    ///
+    /// Reusable by any read of a CloudKit component that decrypts (the lightbox's
+    /// metadata read, for one): make the ciphertext local, then ask here.
+    func key(forCiphertextAt url: URL, id: String, type: MediaType) async throws -> PrivateKey {
+        let recordName = Self.componentRecordName(mediaID: id, type: type)
+        let hint = await coordinator.keyFingerprintHint(recordName: recordName)
+        return try keyResolver.key(forRecordName: recordName,
+                                   fingerprintHint: hint,
+                                   probe: FirstBlockProbe(url: url))
     }
 
     /// Resolves the current encrypted blob for `id` via the coordinator's
@@ -420,58 +459,15 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let recordName = Self.componentRecordName(mediaID: id, type: type)
         progress(.downloading(progress: 0))
         do {
-            let url = try await coordinator.ensureBlobLocal(recordName: recordName, albumID: albumIDHash) { fraction in
+            let url = try await coordinator.ensureBlobLocal(recordName: recordName, albumID: albumID) { fraction in
                 progress(.downloading(progress: fraction))
             }
             printDebug("ensureLocalCiphertext ok recordName=\(recordName) file=\(url.lastPathComponent)")
             return url
         } catch {
-            printDebug("ensureLocalCiphertext FAILED recordName=\(recordName) albumID=\(albumIDHash) raw=\(error)")
+            printDebug("ensureLocalCiphertext FAILED recordName=\(recordName) albumID=\(albumID) raw=\(error)")
             throw error
         }
-    }
-
-    /// Materializes every indexed component's ciphertext into `destination`'s
-    /// file layout, downloading anything not resident in the blob cache, and
-    /// verifies each copy byte-for-byte by size before counting it. Previews need
-    /// no copying — they live in the storage-agnostic global thumbnail directory.
-    ///
-    /// Never mutates CloudKit: the caller (the CloudKit -> local move) deletes
-    /// the remote copies only after this returns successfully, so any failure
-    /// here leaves the album fully usable in CloudKit.
-    /// Returns the number of components exported.
-    @discardableResult
-    public func exportCiphertext(to destination: DataStorageModel,
-                                 onItemExported: (@Sendable (Int, Int) async -> Void)? = nil) async throws -> Int {
-        let items = await enumerate()
-        let fileManager = FileManager.default
-        var exported = 0
-        let totalComponents = items.reduce(0) { $0 + $1.underlyingMedia.count }
-        await onItemExported?(0, totalComponents)
-        printDebug("exportCiphertext start albumID=\(albumIDHash) items=\(items.count) destination=\(destination.baseURL.lastPathComponent)")
-        for media in items {
-            for component in media.underlyingMedia {
-                try Task.checkCancellation()
-                let sourceURL = try await ensureLocalCiphertext(id: component.id, type: component.mediaType, progress: { _ in })
-                let destURL = destination.driveURLForMedia(withID: component.id, type: component.mediaType)
-                if fileManager.fileExists(atPath: destURL.path) {
-                    try fileManager.removeItem(at: destURL)
-                }
-                try fileManager.copyItem(at: sourceURL, to: destURL)
-                let sourceSize = sourceURL.fileSizeBytes()
-                let destSize = destURL.fileSizeBytes()
-                guard let sourceSize, let destSize, sourceSize == destSize, destSize > 0 else {
-                    printDebug("exportCiphertext VERIFY FAILED id=\(component.id) sourceSize=\(sourceSize ?? -1) destSize=\(destSize ?? -1)")
-                    throw CloudKitMediaStoreError.underlying(NSError(
-                        domain: "CloudKitFileAccess", code: 1,
-                        userInfo: [NSLocalizedDescriptionKey: "exported copy of \(component.id) failed size verification"]))
-                }
-                exported += 1
-                await onItemExported?(exported, totalComponents)
-            }
-        }
-        printDebug("exportCiphertext ok albumID=\(albumIDHash) exported=\(exported)")
-        return exported
     }
 
     // MARK: - Previews
@@ -515,7 +511,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         for interactable in media {
             for item in interactable.underlyingMedia {
                 let recordName = Self.componentRecordName(mediaID: item.id, type: item.mediaType)
-                printDebug("delete start recordName=\(recordName) albumID=\(albumIDHash)")
+                printDebug("delete start recordName=\(recordName) albumID=\(albumID)")
 
                 // Drop any durable copy still waiting to upload first, so a
                 // delete cannot leave an orphan in the holding folder that the
@@ -527,7 +523,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                 let wasPending = await uploadQueue.cancel(recordName: recordName)
 
                 try await coordinator.remove(recordName: recordName,
-                                             albumID: albumIDHash,
+                                             albumID: albumID,
                                              wasPending: wasPending,
                                              pendingChunkCount: pendingGeometry)
                 let localURL = directoryModel.driveURLForMedia(withID: item.id, type: item.mediaType)
@@ -555,11 +551,11 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     @discardableResult
     public func reconcile() async -> Bool {
         do {
-            try await coordinator.sync(albumID: albumIDHash)
-            printDebug("reconcile ok albumID=\(albumIDHash)")
+            try await coordinator.sync(albumID: albumID)
+            printDebug("reconcile ok albumID=\(albumID)")
             return true
         } catch {
-            printDebug("reconcile FAILED albumID=\(albumIDHash) cancelled=\(error is CancellationError) raw=\(error)")
+            printDebug("reconcile FAILED albumID=\(albumID) cancelled=\(error is CancellationError) raw=\(error)")
             return false
         }
     }
@@ -582,12 +578,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     public func deleteAllMedia() async throws {
         let all = await enumerate()
         guard !all.isEmpty else {
-            printDebug("deleteAllMedia skip albumID=\(albumIDHash) reason=emptyAlbum")
+            printDebug("deleteAllMedia skip albumID=\(albumID) reason=emptyAlbum")
             return
         }
-        printDebug("deleteAllMedia start albumID=\(albumIDHash) items=\(all.count)")
+        printDebug("deleteAllMedia start albumID=\(albumID) items=\(all.count)")
         try await delete(media: all)
-        printDebug("deleteAllMedia ok albumID=\(albumIDHash) items=\(all.count)")
+        printDebug("deleteAllMedia ok albumID=\(albumID) items=\(all.count)")
     }
 
     public func enumerate() async -> [InteractableMedia<EncryptedMedia>] {
@@ -701,6 +697,55 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         }
     }
 
+    // MARK: - Metadata
+
+    /// `MediaBackend.loadMetadata`. Read from wherever the bytes already are, with
+    /// the key proven per record:
+    ///
+    /// - a copy on this device (pending upload or cached blob): its header;
+    /// - a chunked video: the ENC3 header the record carries, proving the key on
+    ///   its sealed metadata section, so no chunk is fetched;
+    /// - a photo: its blob, which the lightbox downloads to show it anyway;
+    /// - a monolithic video not on this device: nothing. Its metadata sits at the
+    ///   front of a blob CloudKit only serves whole, and swiping past a video must
+    ///   not download it. Once it has been played the first case answers.
+    public func loadMetadata(for media: InteractableMedia<EncryptedMedia>) async throws -> EncryptedFileMetadata? {
+        guard let item = media.underlyingMedia.first(where: { $0.mediaType == .photo }) ?? media.underlyingMedia.first else {
+            return nil
+        }
+        let recordName = Self.componentRecordName(mediaID: item.id, type: item.mediaType)
+        if let local = await coordinator.localCiphertextURL(recordName: recordName) {
+            return try await metadata(ofCiphertextAt: local, id: item.id, type: item.mediaType)
+        }
+        guard item.mediaType == .photo else {
+            guard let info = try await coordinator.chunkedBlobInfo(recordName: recordName),
+                  let headerBytes = info.encHeader else {
+                printDebug("loadMetadata SKIP recordName=\(recordName) — monolithic video not on this device")
+                return nil
+            }
+            return try metadata(ofChunkedHeader: headerBytes, recordName: recordName, fingerprintHint: info.keyFingerprint)
+        }
+        let local = try await ensureLocalCiphertext(id: item.id, type: item.mediaType, progress: { _ in })
+        return try await metadata(ofCiphertextAt: local, id: item.id, type: item.mediaType)
+    }
+
+    private func metadata(ofCiphertextAt url: URL, id: String, type: MediaType) async throws -> EncryptedFileMetadata? {
+        let key = try await key(forCiphertextAt: url, id: id, type: type)
+        return try await EncryptedMetadataHandler().readMetadata(from: url, keyBytes: key.keyBytes)
+    }
+
+    private func metadata(ofChunkedHeader headerBytes: Data,
+                          recordName: String,
+                          fingerprintHint: String?) throws -> EncryptedFileMetadata? {
+        let header = try SeekableEncryptedHeader.decode(headerBytes)
+        guard let probe = FirstBlockProbe(seekableMetadataOf: header) else { return nil }
+        let key = try keyResolver.key(forRecordName: recordName, fingerprintHint: fingerprintHint, probe: probe)
+        guard let plain = header.openMetadata(keyBytes: key.keyBytes) else {
+            throw SeekableFormatError.metadataAuthenticationFailed
+        }
+        return try SeekableEncryptedFormat.decodeMetadata(plain)
+    }
+
     /// Removes the local thumbnail copy + its cached change-tag so the next
     /// `loadMediaPreview` re-fetches the eager thumbnail asset from CloudKit.
     ///
@@ -786,8 +831,61 @@ extension CloudKitFileAccess {
         throw CloudKitMediaStoreError.operationNotSupported("copy")
     }
 
-    /// Cross-album move for CloudKit albums is a later chunk; fail loudly.
+    /// Cross-album move: server-side re-parent, then local index/cache/bus update.
+    ///
+    /// Called on the **target** album's `CloudKitFileAccess`. The store's
+    /// `reassignAlbum` rewrites `albumID`, `albumRef` and `parent` on the server;
+    /// the local side relocates the blob cache, upserts the target index, and
+    /// emits a bus event so the gallery refreshes.
     public func move(media: InteractableMedia<EncryptedMedia>, progress: ((FileLoadingStatus) -> Void)? = nil) async throws {
-        throw CloudKitMediaStoreError.operationNotSupported("move")
+        // Collect record names for all components.
+        var recordNames: [String] = []
+        for component in media.underlyingMedia {
+            let recordName = Self.componentRecordName(mediaID: component.id, type: component.mediaType)
+            // A component still in the upload queue is not reassignable yet.
+            if await uploadQueue.pendingItem(recordName: recordName) != nil {
+                throw CloudKitMediaStoreError.operationNotSupported("move: item \(recordName) is still uploading")
+            }
+            recordNames.append(recordName)
+        }
+
+        // Server-side re-parent: changes albumID, albumRef, parent.
+        let notFound = try await store.reassignAlbum(recordNames: recordNames, toAlbumID: albumID)
+        if !notFound.isEmpty {
+            throw CloudKitMediaStoreError.notFound
+        }
+
+        // Verify every component landed under our album.
+        for recordName in recordNames {
+            guard try await store.confirmAlbum(recordName: recordName) == albumID else {
+                throw CloudKitMediaStoreError.operationNotSupported("move: confirmation failed for \(recordName)")
+            }
+        }
+
+        // Local updates: relocate cache and upsert the target index.
+        for recordName in recordNames {
+            await blobCache.relocate(recordName: recordName, toAlbumID: albumID)
+
+            if let meta = try await store.fetchRecordMetadata(recordName: recordName) {
+                let entry = CloudKitSyncCoordinator.indexEntry(from: meta)
+                _ = try await indexStore.upsert([entry])
+            }
+        }
+
+        // A sync picks up the moved records' sizes for the target album's sidecar
+        // and keeps the coordinator's change tags current.
+        try? await coordinator.sync(albumID: albumID)
+
+        // Emit a bus event for the gallery to refresh.
+        let busMedia = media.underlyingMedia.map { component in
+            EncryptedMedia(
+                source: URL(fileURLWithPath: "/cloudkit/\(albumID)/\(component.id)"),
+                mediaType: component.mediaType,
+                id: component.id
+            )
+        }
+        FileOperationBus.shared.didMove(busMedia, to: album)
+
+        progress?(.loaded)
     }
 }

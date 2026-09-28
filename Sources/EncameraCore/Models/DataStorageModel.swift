@@ -147,15 +147,15 @@ extension DataStorageModel {
         return thumbnailDirectory
     }
     
-    /// Whether this album has already been migrated to CloudKit, i.e. its discovery
-    /// marker exists. `finalizeMigrationToCloudKit` writes that marker last, so it is
-    /// the signal that the source copy is drained and must not be revived. Always
-    /// false for a `.cloudKit` model, which IS the destination.
+    /// Whether this album has already been migrated to CloudKit, i.e. this device
+    /// holds a CloudKit album whose `album.json` names it (same name, same key). The
+    /// CloudKit album's id is not derivable from the name, so the markers are
+    /// scanned. `finalizeMigrationToCloudKit` writes the marker when the move
+    /// completes, so it is the signal that the source copy is drained and must not
+    /// be revived. Always false for a `.cloudKit` model, which IS the destination.
     var hasMigratedToCloudKit: Bool {
         guard storageType == .icloud else { return false }
-        let marker = CloudKitStorageModel.albumsURL
-            .appendingPathComponent(Album.cloudKitTwin(of: album).encryptedPathComponent)
-        return FileManager.default.fileExists(atPath: marker.path)
+        return CloudKitAlbumMarker.albumID(matching: album) != nil
     }
 
     public func initializeDirectories() throws {

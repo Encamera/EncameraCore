@@ -50,7 +50,8 @@ final class StorageUsageCalculatorTests: XCTestCase {
 
     private func makeAlbum(_ storage: StorageType) -> Album {
         let key = PrivateKey(name: "key", keyBytes: Array(repeating: 4, count: 32), creationDate: Date())
-        return Album(name: "Calc-\(UUID().uuidString)", storageOption: storage, creationDate: Date(), key: key)
+        return Album(name: "Calc-\(UUID().uuidString)", storageOption: storage, creationDate: Date(), key: key,
+                     albumID: storage == .cloudKit ? UUID().uuidString : nil)
     }
 
     /// Materializes a `.local` album's real directory (the calculator reads
@@ -407,7 +408,7 @@ final class StorageUsageCalculatorTests: XCTestCase {
         let firstPhoto = try plantCachedBlob(cacheDir: cacheDir, album: first, recordName: "x#0", bytes: 1_000)
         let secondVideo = try plantCachedBlob(cacheDir: cacheDir, album: second, recordName: "y#1", bytes: 3_000)
         let secondChunk = try plantCachedBlob(cacheDir: cacheDir, album: second, recordName: "y#1#c0", bytes: 5_000)
-        let strayFolder = cacheDir.appendingPathComponent("albums", isDirectory: true)
+        let strayFolder = cacheDir.appendingPathComponent("unclaimed", isDirectory: true)
         try FileManager.default.createDirectory(at: strayFolder, withIntermediateDirectories: true)
         let stray = strayFolder.appendingPathComponent("z#0")
         try Data(repeating: 0x01, count: 400).write(to: stray)

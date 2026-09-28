@@ -144,6 +144,10 @@ public actor InteractableMediaFileAccess: FileAccess {
         try await requireBackend().evictLocalCopy(for: media)
     }
 
+    public func loadMetadata(for media: InteractableMedia<EncryptedMedia>) async throws -> EncryptedFileMetadata? {
+        try await requireBackend().loadMetadata(for: media)
+    }
+
     public func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
         try await requireBackend().streamingPlayback(for: media)
     }

@@ -73,6 +73,19 @@ public enum ChunkedBlobError: Error, Equatable {
     case saveVerificationFailed(expected: Int, saved: Int)
 }
 
+// MARK: - Existing chunks
+
+/// What a chunk upload does with chunk records an earlier attempt already saved
+/// under the same media record name.
+public enum ExistingChunkPolicy: Sendable, Equatable {
+    /// Keep them and upload only the missing chunks. Correct only when every
+    /// attempt uploads the same bytes, as an existing ENC3 file does.
+    case resumeByProbe
+    /// Rewrite every chunk. Required when each attempt encrypts afresh: a chunk
+    /// from an earlier encryption does not decrypt under this attempt's header.
+    case overwrite
+}
+
 // MARK: - Protocol seam
 
 /// The seam every consumer depends on. An in-memory implementation backs unit
@@ -82,14 +95,16 @@ public protocol ChunkedBlobStoring: Sendable {
     /// own record last (`EncMedia` with `chunkCount` set), so a partial upload reads
     /// as "not chunked yet", never as a truncated video.
     ///
-    /// Idempotent and resumable: computed record names mean a retry overwrites
-    /// rather than duplicates, and chunks already in the zone are detected by a
-    /// metadata-only probe and skipped — a 90%-complete upload resumes with ~one
-    /// probe round trip per batch plus the missing 10%.
+    /// Idempotent: computed record names mean a retry overwrites rather than
+    /// duplicates. Under `.resumeByProbe`, chunks already in the zone are detected
+    /// by a metadata-only probe and skipped — a 90%-complete upload resumes with
+    /// ~one probe round trip per batch plus the missing 10%. Under `.overwrite`
+    /// every chunk is written.
     /// - Returns: the ENC3 header read from the file, for the caller's commit record.
     @discardableResult
     func uploadChunks(enc3FileURL: URL,
                       mediaRecordName: String,
+                      existingChunks: ExistingChunkPolicy,
                       progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader
 
     /// Fetches one chunk's ciphertext.
@@ -109,6 +124,17 @@ public protocol ChunkedBlobStoring: Sendable {
 }
 
 public extension ChunkedBlobStoring {
+    /// Uploads with `.resumeByProbe`, for a file whose bytes are the same on every attempt.
+    @discardableResult
+    func uploadChunks(enc3FileURL: URL,
+                      mediaRecordName: String,
+                      progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
+        try await uploadChunks(enc3FileURL: enc3FileURL,
+                               mediaRecordName: mediaRecordName,
+                               existingChunks: .resumeByProbe,
+                               progress: progress)
+    }
+
     func fetchChunkStaged(mediaRecordName: String, index: Int) async throws -> FetchedChunk {
         FetchedChunk(data: try await fetchChunk(mediaRecordName: mediaRecordName, index: index),
                      stagedFileURL: nil)
@@ -299,6 +325,7 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
     @discardableResult
     public func uploadChunks(enc3FileURL: URL,
                              mediaRecordName: String,
+                             existingChunks: ExistingChunkPolicy,
                              progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
         guard await container.isCloudKitAvailable() else { throw ChunkedBlobError.accountUnavailable }
         try await ensureZoneExists()
@@ -307,7 +334,13 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
         let geometry = header.geometry
         let total = geometry.chunkCount
 
-        let existing = try await existingChunkIndices(mediaRecordName: mediaRecordName, chunkCount: total)
+        let existing: Set<Int>
+        switch existingChunks {
+        case .resumeByProbe:
+            existing = try await existingChunkIndices(mediaRecordName: mediaRecordName, chunkCount: total)
+        case .overwrite:
+            existing = []
+        }
 
         let handle = try FileHandle(forReadingFrom: enc3FileURL)
         defer { try? handle.close() }
@@ -355,6 +388,10 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
 
         for index in 0..<total where !existing.contains(index) {
             try Task.checkCancellation()
+            if let hook = CloudKitStoreTestHooks.chunkUploadHook {
+                try await flush()
+                await hook(mediaRecordName, completed)
+            }
             try handle.seek(toOffset: UInt64(geometry.ciphertextOffset(ofChunk: index)))
             let want = geometry.ciphertextSize(ofChunk: index)
             guard let bytes = try handle.read(upToCount: want), bytes.count == want else {
@@ -377,7 +414,7 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
             if pending.count >= Self.uploadBatchSize { try await flush() }
         }
         try await flush()
-        printDebug("uploadChunks ok media=\(mediaRecordName) chunks=\(total) skippedExisting=\(existing.count) bytes=\(geometry.plaintextLength)")
+        printDebug("uploadChunks ok media=\(mediaRecordName) chunks=\(total) policy=\(existingChunks) skippedExisting=\(existing.count) bytes=\(geometry.plaintextLength)")
         return header
     }
 
@@ -478,6 +515,7 @@ public actor InMemoryChunkedBlobStore: ChunkedBlobStoring {
     @discardableResult
     public func uploadChunks(enc3FileURL: URL,
                              mediaRecordName: String,
+                             existingChunks: ExistingChunkPolicy,
                              progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
         let reader = try SeekableEncryptedReader.forFile(enc3FileURL, keyBytes: [UInt8](repeating: 0, count: 32))
         let header = reader.header
@@ -485,10 +523,15 @@ public actor InMemoryChunkedBlobStore: ChunkedBlobStoring {
         let handle = try FileHandle(forReadingFrom: enc3FileURL)
         defer { try? handle.close() }
         for index in 0..<geometry.chunkCount {
+            let name = ChunkedBlobSchema.chunkRecordName(mediaRecordName: mediaRecordName, index: index)
+            if existingChunks == .resumeByProbe, chunks[name] != nil {
+                progress(Double(index + 1) / Double(max(1, geometry.chunkCount)))
+                continue
+            }
             try handle.seek(toOffset: UInt64(geometry.ciphertextOffset(ofChunk: index)))
             let want = geometry.ciphertextSize(ofChunk: index)
             let bytes = try handle.read(upToCount: want) ?? Data()
-            chunks[ChunkedBlobSchema.chunkRecordName(mediaRecordName: mediaRecordName, index: index)] = bytes
+            chunks[name] = bytes
             progress(Double(index + 1) / Double(max(1, geometry.chunkCount)))
         }
         return header

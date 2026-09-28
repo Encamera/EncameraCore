@@ -2,8 +2,8 @@
 //  CloudKitMigrationPlan.swift
 //  EncameraCore
 //
-//  The durable checkpoint for a user-initiated local -> CloudKit album migration.
-//  A migration is a list of per-file work items, each in a state machine that is
+//  The durable checkpoint for a transfer between local storage and CloudKit: a
+//  whole album or selected items, in either direction. A migration is a list of per-file work items, each in a state machine that is
 //  persisted (encrypted, atomically) after EVERY transition. That on-disk plan —
 //  not CloudKit's deprecated long-lived ops — is the source of truth that makes the
 //  migration resumable across a crash, app kill, or power-off.
@@ -77,18 +77,93 @@ public struct MigrationItem: Codable, Sendable, Equatable {
     }
 }
 
+// MARK: - Endpoints, scope, direction
+
+/// One side of a transfer: an album named in the clear (the plan is encrypted at
+/// rest), the storage plane it lives on, and for a CloudKit album its
+/// `Album.albumID` — including the destination of a move to CloudKit, once the
+/// engine has resolved which album that is.
+public struct MigrationEndpoint: Codable, Sendable, Equatable {
+    public let albumName: String
+    public let storage: StorageType
+    public let cloudKitAlbumID: String?
+
+    public init(albumName: String, storage: StorageType, cloudKitAlbumID: String? = nil) {
+        self.albumName = albumName
+        self.storage = storage
+        self.cloudKitAlbumID = cloudKitAlbumID
+    }
+
+    public init(album: Album) {
+        self.init(albumName: album.name, storage: album.storageOption, cloudKitAlbumID: album.albumID)
+    }
+
+    /// The `Album.id` this endpoint names, so plan paths and the engine's active-set
+    /// claims key on the same string the rest of the app uses.
+    public var albumID: String {
+        if let cloudKitAlbumID {
+            return "\(cloudKitAlbumID)_\(StorageType.cloudKit.rawValue)"
+        }
+        return "\(albumName)_\(storage.rawValue)"
+    }
+
+    /// The same endpoint under another album name. Storage and `cloudKitAlbumID` are
+    /// kept, so a move to CloudKit still lands in the album it resolved.
+    public func renamed(to albumName: String) -> MigrationEndpoint {
+        MigrationEndpoint(albumName: albumName, storage: storage, cloudKitAlbumID: cloudKitAlbumID)
+    }
+
+    /// The name to show for this endpoint. A CloudKit album is found by its id, since
+    /// a rename on any device leaves the persisted `albumName` behind.
+    public func displayName(among albums: [Album]) -> String {
+        guard let cloudKitAlbumID else { return albumName }
+        return albums.first { $0.albumID == cloudKitAlbumID }?.name ?? albumName
+    }
+}
+
+public enum MigrationScope: String, Codable, Sendable {
+    /// Every item in the album; finalize flips the album's storage.
+    case album
+    /// The selected items; finalize flips nothing.
+    case items
+}
+
+public enum MigrationDirection: Sendable, Equatable {
+    /// Source `.local` or `.icloud`, destination `.cloudKit`.
+    case toCloudKit
+    /// Source `.cloudKit`, destination `.local`.
+    case toLocal
+}
+
+public enum MigrationPlanError: Error, Equatable {
+    /// Only local/iCloud Drive -> CloudKit and CloudKit -> local are transfers.
+    case unsupportedStoragePair(source: StorageType, destination: StorageType)
+    /// An album-scope plan moves one album between planes, so both ends share a
+    /// name and the plan id is `MigrationPlan.albumPlanID`.
+    case invalidAlbumScope
+    case unsupportedVersion(Int)
+}
+
 // MARK: - Plan
 
-/// The whole migration for one album: its work items plus enough context to be
-/// self-describing on disk. Persisted encrypted under
-/// `~/Library/Application Support/CloudKitMigration/<sha256(album.id)>.encplan`.
+/// One transfer between local storage and CloudKit: a whole album or a selection of
+/// its items, in either direction, as work items plus enough context to be
+/// self-describing on disk. Persisted encrypted with the source album's key under
+/// `~/Library/Application Support/CloudKitMigration/<sha256(source album.id)>/<id>.encplan`.
+///
+/// Item states read the same in both directions: `uploading` is the transfer in
+/// flight, `uploaded` the bytes at the destination, `verified` the destination copy
+/// confirmed, and `sourceDeleted` the source copy removed.
 public struct MigrationPlan: Codable, Sendable {
-    public static let currentVersion = 1
+    public static let currentVersion = 2
+    /// The id of every album-scope plan. One album-scope plan per source album.
+    public static let albumPlanID = "album"
 
-    public let albumName: String
-    /// The album's storage type when the plan was built (`.local`, or `.icloud` for
-    /// the chunk-05 reuse). Never `.cloudKit`.
-    public let sourceStorage: StorageType
+    /// `albumPlanID` for album scope, a UUID for item scope.
+    public let id: String
+    public let source: MigrationEndpoint
+    public let destination: MigrationEndpoint
+    public let scope: MigrationScope
     public var items: [MigrationItem]
     public let createdAt: Date
     public let version: Int
@@ -98,21 +173,144 @@ public struct MigrationPlan: Codable, Sendable {
     /// durable and is never silently restarted in the background. Cleared on re-plan.
     public var cancelledAt: Date?
 
-    public init(albumName: String,
-                sourceStorage: StorageType,
+    /// Total over the storage pair, which the initializer restricts to the two
+    /// supported transfers.
+    public var direction: MigrationDirection {
+        source.storage == .cloudKit ? .toLocal : .toCloudKit
+    }
+
+    public init(id: String,
+                source: MigrationEndpoint,
+                destination: MigrationEndpoint,
+                scope: MigrationScope,
                 items: [MigrationItem],
                 createdAt: Date,
                 version: Int = MigrationPlan.currentVersion,
-                cancelledAt: Date? = nil) {
-        self.albumName = albumName
-        self.sourceStorage = sourceStorage
+                cancelledAt: Date? = nil) throws {
+        try Self.validate(id: id, source: source, destination: destination, scope: scope)
+        self.id = id
+        self.source = source
+        self.destination = destination
+        self.scope = scope
         self.items = items
         self.createdAt = createdAt
         self.version = version
         self.cancelledAt = cancelledAt
     }
 
-    // MARK: Progress
+    private enum CodingKeys: String, CodingKey {
+        case id, source, destination, scope, items, createdAt, version, cancelledAt
+    }
+
+    /// Rejects any other version and any plan the initializer would reject, so a
+    /// stale or foreign checkpoint reads as absent rather than driving the engine.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let version = try container.decode(Int.self, forKey: .version)
+        guard version == Self.currentVersion else { throw MigrationPlanError.unsupportedVersion(version) }
+        try self.init(id: try container.decode(String.self, forKey: .id),
+                      source: try container.decode(MigrationEndpoint.self, forKey: .source),
+                      destination: try container.decode(MigrationEndpoint.self, forKey: .destination),
+                      scope: try container.decode(MigrationScope.self, forKey: .scope),
+                      items: try container.decode([MigrationItem].self, forKey: .items),
+                      createdAt: try container.decode(Date.self, forKey: .createdAt),
+                      version: version,
+                      cancelledAt: try container.decodeIfPresent(Date.self, forKey: .cancelledAt))
+    }
+
+    private static func validate(id: String,
+                                 source: MigrationEndpoint,
+                                 destination: MigrationEndpoint,
+                                 scope: MigrationScope) throws {
+        switch (source.storage, destination.storage) {
+        case (.local, .cloudKit), (.icloud, .cloudKit), (.cloudKit, .local):
+            break
+        default:
+            throw MigrationPlanError.unsupportedStoragePair(source: source.storage,
+                                                             destination: destination.storage)
+        }
+        if scope == .album, source.albumName != destination.albumName || id != albumPlanID {
+            throw MigrationPlanError.invalidAlbumScope
+        }
+    }
+
+    /// This plan after a local album named by `oldAlbumID` is renamed to `newName`:
+    /// every endpoint naming that album takes the new name, and nothing else changes.
+    /// Nil when neither endpoint names it. An album-scope plan is one album on two
+    /// planes, so it follows its source and renames both ends together.
+    public func renamingAlbum(_ oldAlbumID: String, to newName: String) throws -> MigrationPlan? {
+        let renamesSource = source.albumID == oldAlbumID
+        let renamesDestination = scope == .album ? renamesSource : destination.albumID == oldAlbumID
+        guard renamesSource || renamesDestination else { return nil }
+        return try MigrationPlan(id: id,
+                                 source: renamesSource ? source.renamed(to: newName) : source,
+                                 destination: renamesDestination ? destination.renamed(to: newName) : destination,
+                                 scope: scope,
+                                 items: items,
+                                 createdAt: createdAt,
+                                 version: version,
+                                 cancelledAt: cancelledAt)
+    }
+
+    // MARK: Factories
+
+    /// The album-scope plan that moves `album` to the other plane: a local or iCloud
+    /// Drive album to CloudKit, a CloudKit album to local storage.
+    ///
+    /// `cloudKitAlbumID` is the id of the CloudKit album a move to CloudKit lands in.
+    /// It is persisted in the destination endpoint so a resume reuses it; nil until
+    /// the engine has resolved it, and always nil for a move to local storage.
+    public static func album(_ album: Album,
+                             items: [MigrationItem],
+                             createdAt: Date = Date(),
+                             cloudKitAlbumID: String? = nil) throws -> MigrationPlan {
+        let destination: StorageType = album.storageOption == .cloudKit ? .local : .cloudKit
+        return try MigrationPlan(id: albumPlanID,
+                                 source: MigrationEndpoint(album: album),
+                                 destination: MigrationEndpoint(albumName: album.name,
+                                                                storage: destination,
+                                                                cloudKitAlbumID: destination == .cloudKit ? cloudKitAlbumID : nil),
+                                 scope: .album,
+                                 items: items,
+                                 createdAt: createdAt)
+    }
+
+    /// An item-scope plan moving `items` from `source` into `destination`.
+    public static func items(source: Album,
+                             destination: Album,
+                             items: [MigrationItem],
+                             id: String = UUID().uuidString) throws -> MigrationPlan {
+        try MigrationPlan(id: id,
+                          source: MigrationEndpoint(album: source),
+                          destination: MigrationEndpoint(album: destination),
+                          scope: .items,
+                          items: items,
+                          createdAt: Date())
+    }
+
+    /// An item-scope plan for the selected media. Each component is its own item,
+    /// so a Live Photo contributes two, sized from the source's on-disk ciphertext.
+    public static func items(source: Album,
+                             destination: Album,
+                             media: [InteractableMedia<EncryptedMedia>],
+                             id: String = UUID().uuidString) throws -> MigrationPlan {
+        let sourceModel = source.storageOption.modelForType.init(album: source)
+        let items = media.flatMap { interactable in
+            interactable.underlyingMedia.map { component in
+                let fileURL = sourceModel.driveURLForMedia(withID: component.id, type: component.mediaType)
+                return MigrationItem(
+                    mediaID: component.id,
+                    recordName: MediaRecordName.componentRecordName(mediaID: component.id, type: component.mediaType),
+                    mediaType: component.mediaType,
+                    createdAt: interactable.timestamp ?? Date(),
+                    sizeBytes: fileURL.fileSizeBytes() ?? 0
+                )
+            }
+        }
+        return try Self.items(source: source, destination: destination, items: items, id: id)
+    }
+
+// MARK: Progress
 
     /// Total bytes across every item — the denominator for byte-weighted progress.
     public var totalBytes: Int64 { items.reduce(0) { $0 + $1.sizeBytes } }
@@ -147,30 +345,27 @@ public struct MigrationPlan: Codable, Sendable {
 
 // MARK: - Persistence
 
-/// Reads/writes one album's `MigrationPlan`, encrypted with the album key and
-/// written atomically (temp-file + rename via `Data.WritingOptions.atomic`) so a
-/// crash mid-write can never corrupt the checkpoint. Keyed by `sha256(album.id)`,
-/// matching `MediaIndexStore`, so the cleartext album name never appears on disk.
-/// The plan only exists while the album is still its source type, so keying by the
-/// source id is stable for the whole migration (the file is deleted on completion).
-public actor MigrationPlanStore: DebugPrintable {
+/// Reads/writes one `Codable` plan, encrypted with a symmetric key and written
+/// atomically (temp-file + rename via `Data.WritingOptions.atomic`) so a crash
+/// mid-write can never corrupt the checkpoint.
+public actor EncryptedPlanStore<Plan: Codable & Sendable>: DebugPrintable {
 
     private let keyBytes: [UInt8]
     private let planURL: URL
 
-    public init(album: Album) {
-        self.keyBytes = album.key.keyBytes
-        self.planURL = Self.planURL(for: album)
-    }
-
-    /// Direct initializer for tests, exercising the store without a full `Album`.
+    /// Direct initializer — the only stored-property init on the generic type.
+    /// Convenience inits that derive `keyBytes`/`planURL` from domain objects
+    /// live on concrete typealiases (e.g. `MigrationPlanStore.init(album:)`).
     init(keyBytes: [UInt8], planURL: URL) {
         self.keyBytes = keyBytes
         self.planURL = planURL
     }
 
-    /// Loads and decrypts the plan, or `nil` if absent/unreadable/corrupt.
-    public func load() -> MigrationPlan? {
+    /// Loads and decrypts the plan, or `nil` if absent/unreadable/corrupt. A file
+    /// that decrypts but does not decode (another plan version, or a plan the type
+    /// rejects) is deleted: nothing can ever resume it. One that does not decrypt
+    /// is kept, since it may belong to an album whose key this store was not given.
+    public func load() -> Plan? {
         guard let fileData = try? Data(contentsOf: planURL) else {
             printDebug("load MISS file=\(planURL.lastPathComponent) — no plan file on disk")
             return nil
@@ -179,28 +374,46 @@ public actor MigrationPlanStore: DebugPrintable {
             printDebug("load FAILED file=\(planURL.lastPathComponent) bytes=\(fileData.count) — could not decrypt (wrong key or corrupt)")
             return nil
         }
-        guard let plan = try? JSONDecoder().decode(MigrationPlan.self, from: plaintext) else {
-            printDebug("load FAILED file=\(planURL.lastPathComponent) — decrypted but did not decode as a MigrationPlan")
+        let plan: Plan
+        do {
+            plan = try JSONDecoder().decode(Plan.self, from: plaintext)
+        } catch {
+            printDebug("load DISCARD file=\(planURL.lastPathComponent) plaintext=\(plaintext.count)b — decrypted but did not decode as \(Plan.self): \(error)")
+            try? FileManager.default.removeItem(at: planURL)
             return nil
         }
-        printDebug("load ok file=\(planURL.lastPathComponent) items=\(plan.items.count) verified=\(plan.verifiedCount) failed=\(plan.failedCount)")
+        printDebug("load ok file=\(planURL.lastPathComponent) plaintext=\(plaintext.count)b")
         return plan
     }
 
-    /// Encrypts and atomically persists the plan. Called after every item transition.
-    public func save(_ plan: MigrationPlan) throws {
-        let plaintext = try JSONEncoder().encode(plan)
-        let encrypted = try MediaIndexStore.encrypt(plaintext, keyBytes: keyBytes)
-        try FileManager.default.createDirectory(
-            at: planURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        try encrypted.write(to: planURL, options: .atomic)
-        Self.excludeFromBackup(planURL)
-        printDebug("save ok file=\(planURL.lastPathComponent) items=\(plan.items.count) verified=\(plan.verifiedCount) failed=\(plan.failedCount)")
+    /// Encrypts and atomically persists the plan. Called after every state transition.
+    public func save(_ plan: Plan) throws {
+        let encryptedBytes = try Self.write(plan, to: planURL, keyBytes: keyBytes)
+        printDebug("save ok file=\(planURL.lastPathComponent) encrypted=\(encryptedBytes)b")
     }
 
-    /// Removes the plan file (after the migration completes or is fully reverted).
+    /// Encrypts `plan` with `keyBytes` and writes it atomically to `url`, excluded
+    /// from backup. Returns the size written.
+    @discardableResult
+    static func write(_ plan: Plan, to url: URL, keyBytes: [UInt8]) throws -> Int {
+        let plaintext = try JSONEncoder().encode(plan)
+        let encrypted = try MediaIndexStore.encrypt(plaintext, keyBytes: keyBytes)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try encrypted.write(to: url, options: .atomic)
+        excludeFromBackup(url)
+        return encrypted.count
+    }
+
+    /// The plan at `url`, or nil when it is absent, does not decrypt with `keyBytes`,
+    /// or does not decode. Unlike `load()`, never deletes the file.
+    static func read(at url: URL, keyBytes: [UInt8]) -> Plan? {
+        guard let fileData = try? Data(contentsOf: url),
+              let plaintext = try? MediaIndexStore.decrypt(fileData, keyBytes: keyBytes) else { return nil }
+        return try? JSONDecoder().decode(Plan.self, from: plaintext)
+    }
+
+    /// Removes the plan file (after the operation completes or is fully reverted).
     public func delete() {
         do {
             try FileManager.default.removeItem(at: planURL)
@@ -215,6 +428,33 @@ public actor MigrationPlanStore: DebugPrintable {
         FileManager.default.fileExists(atPath: planURL.path)
     }
 
+    // MARK: - Backup exclusion
+
+    private static func excludeFromBackup(_ url: URL) {
+        var url = url
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
+    }
+}
+
+// MARK: - MigrationPlanStore
+
+public typealias MigrationPlanStore = EncryptedPlanStore<MigrationPlan>
+
+extension EncryptedPlanStore where Plan == MigrationPlan {
+
+    /// The store for one plan, encrypted with its source album's key.
+    public init(sourceAlbum: Album, planID: String) {
+        self.init(keyBytes: sourceAlbum.key.keyBytes,
+                  planURL: Self.planURL(sourceAlbum: sourceAlbum, planID: planID))
+    }
+
+    /// The store for `album`'s album-scope plan, whichever direction it runs.
+    public init(album: Album) {
+        self.init(sourceAlbum: album, planID: MigrationPlan.albumPlanID)
+    }
+
     // MARK: File location
 
     /// `~/Library/Application Support/CloudKitMigration/` — local, never synced,
@@ -225,15 +465,103 @@ public actor MigrationPlanStore: DebugPrintable {
         return base.appendingPathComponent("CloudKitMigration", isDirectory: true)
     }
 
-    static func planURL(for album: Album) -> URL {
-        let digest = SHA256.hash(data: Data(album.id.utf8))
-        let hash = digest.map { String(format: "%02x", $0) }.joined()
-        return directoryURL().appendingPathComponent("\(hash).encplan")
+    /// `CloudKitMigration/<sha256(album.id)>/`. `album.id` includes the storage, so
+    /// an album's forward and reverse plans never share a directory.
+    static func directoryURL(forSource album: Album) -> URL {
+        directoryURL().appendingPathComponent(sourceHash(album), isDirectory: true)
     }
 
-    /// Whether a migration plan already exists on disk for the album.
-    public static func hasPlan(for album: Album) -> Bool {
-        FileManager.default.fileExists(atPath: planURL(for: album).path)
+    static func planURL(sourceAlbum: Album, planID: String) -> URL {
+        directoryURL(forSource: sourceAlbum).appendingPathComponent("\(planID).encplan")
+    }
+
+    /// The album-scope plan's location for `album`.
+    static func planURL(for album: Album) -> URL {
+        planURL(sourceAlbum: album, planID: MigrationPlan.albumPlanID)
+    }
+
+    private static func sourceHash(_ album: Album) -> String {
+        SHA256.hash(data: Data(album.id.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Every readable plan whose source is `album`, both scopes. Also removes this
+    /// album's checkpoints from the version-1 layout (`<hash>.encplan` and
+    /// `moves/<hash>/`), which no longer load.
+    public static func plans(for album: Album) async -> [MigrationPlan] {
+        removeLegacyCheckpoints(for: album)
+        let dir = directoryURL(forSource: album)
+        guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else {
+            return []
+        }
+        var plans: [MigrationPlan] = []
+        for file in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
+            where file.pathExtension == "encplan" {
+            if let plan = await MigrationPlanStore(keyBytes: album.key.keyBytes, planURL: file).load() {
+                plans.append(plan)
+            }
+        }
+        return plans
+    }
+
+    /// Whether any plan file exists for `album` as the source — a cheap, synchronous
+    /// check that decrypts nothing, for callers that only need to know whether to
+    /// look further.
+    public static func hasPlans(for album: Album) -> Bool {
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: directoryURL(forSource: album).path)) ?? []
+        return files.contains { $0.hasSuffix(".encplan") }
+    }
+
+    // MARK: Rename
+
+    /// Carries every plan that names `oldAlbum` across its rename to `newAlbum`, for an
+    /// album whose id is its name (local or iCloud Drive). The album's own plans move
+    /// to the new id's directory with their endpoints renamed; plans of `otherAlbums`
+    /// that move items into the album get their destination renamed in place. A
+    /// rename keeps the album's key, so each plan is re-encrypted with the key it was
+    /// written with. A plan that does not read is left where it is.
+    ///
+    /// Synchronous, because a rename is. Returns the album's own plans as carried.
+    @discardableResult
+    static func carryPlans(acrossRenameOf oldAlbum: Album, to newAlbum: Album,
+                           otherAlbums: [Album]) throws -> [MigrationPlan] {
+        let fileManager = FileManager.default
+        var carried: [MigrationPlan] = []
+        let oldDirectory = directoryURL(forSource: oldAlbum)
+        let newDirectory = directoryURL(forSource: newAlbum)
+        for file in planFiles(in: oldDirectory) {
+            guard let plan = read(at: file, keyBytes: oldAlbum.key.keyBytes),
+                  let renamed = try plan.renamingAlbum(oldAlbum.id, to: newAlbum.name) else { continue }
+            try write(renamed, to: newDirectory.appendingPathComponent(file.lastPathComponent),
+                      keyBytes: newAlbum.key.keyBytes)
+            try fileManager.removeItem(at: file)
+            carried.append(renamed)
+        }
+        if (try? fileManager.contentsOfDirectory(atPath: oldDirectory.path))?.isEmpty == true {
+            try? fileManager.removeItem(at: oldDirectory)
+        }
+
+        for album in otherAlbums where album.id != oldAlbum.id && album.id != newAlbum.id {
+            for file in planFiles(in: directoryURL(forSource: album)) {
+                guard let plan = read(at: file, keyBytes: album.key.keyBytes),
+                      plan.destination.albumID == oldAlbum.id,
+                      let renamed = try plan.renamingAlbum(oldAlbum.id, to: newAlbum.name) else { continue }
+                try write(renamed, to: file, keyBytes: album.key.keyBytes)
+            }
+        }
+        return carried
+    }
+
+    private static func planFiles(in directory: URL) -> [URL] {
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        return files.filter { $0.pathExtension == "encplan" }
+    }
+
+    private static func removeLegacyCheckpoints(for album: Album) {
+        let hash = sourceHash(album)
+        let root = directoryURL()
+        try? FileManager.default.removeItem(at: root.appendingPathComponent("\(hash).encplan"))
+        try? FileManager.default.removeItem(at: root.appendingPathComponent("moves", isDirectory: true)
+            .appendingPathComponent(hash, isDirectory: true))
     }
 
     /// Deletes every on-disk migration checkpoint (the encrypted per-file
@@ -244,12 +572,5 @@ public actor MigrationPlanStore: DebugPrintable {
         if FileManager.default.fileExists(atPath: dir.path) {
             try FileManager.default.removeItem(at: dir)
         }
-    }
-
-    private static func excludeFromBackup(_ url: URL) {
-        var url = url
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = true
-        try? url.setResourceValues(values)
     }
 }

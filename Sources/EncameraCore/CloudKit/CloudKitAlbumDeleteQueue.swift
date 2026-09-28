@@ -41,7 +41,7 @@ public struct CloudKitAlbumDeleteQueue: DebugPrintable {
         self.defaults = defaults
     }
 
-    /// Album-id hashes with an unconfirmed delete.
+    /// Album ids with an unconfirmed delete.
     public func pending() -> Set<String> {
         let set = Self.lock.withLock { read() }
         printDebug("pending ok count=\(set.count) albumIDs=\(set.sorted())")

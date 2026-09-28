@@ -749,6 +749,18 @@ extension DiskFileAccess {
         return decrypted
     }
 
+    /// The file's encrypted metadata under the key that opens it, resolved as an
+    /// open resolves it. Nil for an iCloud Drive placeholder, which would have to
+    /// be downloaded first, and for a file that carries no metadata.
+    public func loadMetadata(of encrypted: EncryptedMedia) async throws -> EncryptedFileMetadata? {
+        guard case .url(let sourceURL) = encrypted.source,
+              !iCloudFileStatusUtil.needsDownload(url: sourceURL) else {
+            return nil
+        }
+        let resolution = try await resolveKey(for: sourceURL, mediaID: encrypted.id)
+        return try await EncryptedMetadataHandler().readMetadata(from: sourceURL, keyBytes: resolution.key.keyBytes)
+    }
+
     /// Shared key resolution for the open paths: discovery confirms the key
     /// by authenticating the file's first block (stamp hint → xattr hint →
     /// current key → stored-key sweep). When nothing decrypts, fall back to

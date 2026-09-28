@@ -243,6 +243,14 @@ public protocol MediaBackend: FileReader, FileWriter {
     /// where the local bytes *are* the only copy — evicting there would be a
     /// silent delete, which is what the separate `delete` path is for.
     func evictLocalCopy(for media: InteractableMedia<EncryptedMedia>) async throws
+
+    /// The item's encrypted metadata, as the lightbox's info sheet shows it.
+    ///
+    /// The key is resolved per item, the way opening the item resolves it: an item
+    /// moved in from an album under another key keeps that key. `nil` when the item
+    /// carries no metadata, or when reading it would mean downloading a whole
+    /// video. Throws `FileAccessError.missingKeyForMedia` when no held key opens it.
+    func loadMetadata(for media: InteractableMedia<EncryptedMedia>) async throws -> EncryptedFileMetadata?
 }
 
 public extension MediaBackend {

@@ -41,7 +41,7 @@ public struct CloudKitAlbumPublishRegistry: DebugPrintable {
         self.defaults = defaults
     }
 
-    /// Album-id hashes this device has seen exist on the server.
+    /// Album ids this device has seen exist on the server.
     public func published() -> Set<String> {
         Self.lock.withLock { read() }
     }

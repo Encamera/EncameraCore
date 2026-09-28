@@ -56,6 +56,8 @@ public enum L10n {
   public static let addPhotosToThisAlbum = L10n.tr("Localizable", "AddPhotosToThisAlbum", fallback: "ADD PHOTOS TO THIS ALBUM")
   /// An album with that name already exists.
   public static let albumExistsError = L10n.tr("Localizable", "AlbumExistsError", fallback: "An album with that name already exists.")
+  /// This album can't be renamed while items are moving. Try again when the move finishes.
+  public static let albumMoveInProgressRenameError = L10n.tr("Localizable", "AlbumMoveInProgressRenameError", fallback: "This album can't be renamed while items are moving. Try again when the move finishes.")
   /// Album Name
   public static let albumName = L10n.tr("Localizable", "AlbumName", fallback: "Album Name")
   /// Album name must be longer than 1 character
@@ -861,6 +863,22 @@ public enum L10n {
     public static func moveErrorToast(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MoveErrorToast", String(describing: p1), String(describing: p2), fallback: "Failed to move %@ %@")
     }
+    /// Moved %@ %@, %@ %@ failed
+    public static func movePartialToast(_ p1: Any, _ p2: Any, _ p3: Any, _ p4: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MovePartialToast", String(describing: p1), String(describing: p2), String(describing: p3), String(describing: p4), fallback: "Moved %@ %@, %@ %@ failed")
+    }
+    /// Moving to or from an iCloud album isn't available yet
+    public static let moveCloudKitRefusedToast = L10n.tr("Localizable", "AlbumDetailView.MoveCloudKitRefusedToast", fallback: "Moving to or from an iCloud album isn\u{2019}t available yet")
+    /// A move is already running for one of these albums. Try again when it finishes.
+    public static let moveBusyToast = L10n.tr("Localizable", "AlbumDetailView.MoveBusyToast", fallback: "A move is already running for one of these albums. Try again when it finishes.")
+    /// Move cancelled: %@ %@ moved to %@
+    public static func moveCancelledToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveCancelledToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Move cancelled: %@ %@ moved to %@")
+    }
+    /// Upgrade “%@” to the new iCloud sync first, then move items into it
+    public static func moveNeedsUpgradeToast(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveNeedsUpgradeToast", String(describing: p1), fallback: "Upgrade \u{201C}%@\u{201D} to the new iCloud sync first, then move items into it")
+    }
     /// The album was not moved and stays where it is. %@
     public static func moveFailedAlertMessage(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertMessage", String(describing: p1), fallback: "The album was not moved and stays where it is. %@")
@@ -1239,6 +1257,8 @@ public enum L10n {
     }
     /// The move to iCloud didn't finish
     public static let failedTitle = L10n.tr("Localizable", "CloudKitMigration.FailedTitle", fallback: "The move to iCloud didn't finish")
+    /// The move to this device didn't finish
+    public static let failedToLocalTitle = L10n.tr("Localizable", "CloudKitMigration.FailedToLocalTitle", fallback: "The move to this device didn't finish")
     /// Stop the move
     public static let overlayCancel = L10n.tr("Localizable", "CloudKitMigration.OverlayCancel", fallback: "Stop the move")
     /// %@ couldn't be moved yet
@@ -1249,8 +1269,8 @@ public enum L10n {
     public static func overlayItemProgress(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.OverlayItemProgress", String(describing: p1), String(describing: p2), fallback: "%@ of %@ items")
     }
-    /// Keep Encamera open. You can switch apps, but don't force-quit.
-    public static let overlayKeepOpen = L10n.tr("Localizable", "CloudKitMigration.OverlayKeepOpen", fallback: "Keep Encamera open. You can switch apps, but don't force-quit.")
+    /// Keep Encamera open. You can switch apps, but don't force-quit. You may need to be connected to Wi-Fi for this to complete, depending on your system settings.
+    public static let overlayKeepOpen = L10n.tr("Localizable", "CloudKitMigration.OverlayKeepOpen", fallback: "Keep Encamera open. You can switch apps, but don't force-quit. You may need to be connected to Wi-Fi for this to complete, depending on your system settings.")
     /// Downloading from iCloud
     public static let overlayPhaseDownloading = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseDownloading", fallback: "Downloading from iCloud")
     /// Downloading from iCloud Drive
@@ -1283,6 +1303,18 @@ public enum L10n {
     public static let partialMessage = L10n.tr("Localizable", "CloudKitMigration.PartialMessage", fallback: "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.")
     /// Album partially moved
     public static let partialTitle = L10n.tr("Localizable", "CloudKitMigration.PartialTitle", fallback: "Album partially moved")
+    /// Plural format key: "%1$#@moved@ %2$@, %3$#@remaining@"
+    public static func partialMoveBannerMessage(_ p1: Int, _ p2: Any, _ p3: Int) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.PartialMoveBannerMessage", p1, String(describing: p2), p3, fallback: "Plural format key: \"%1$#@moved@ %2$@, %3$#@remaining@\"")
+    }
+    /// “%@” no longer exists, so this move can't be finished. Discard it to keep every item where it is now.
+    public static func partialMoveDestinationMissing(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.PartialMoveDestinationMissing", String(describing: p1), fallback: "“%@” no longer exists, so this move can't be finished. Discard it to keep every item where it is now.")
+    }
+    /// Discard
+    public static let partialMoveDiscard = L10n.tr("Localizable", "CloudKitMigration.PartialMoveDiscard", fallback: "Discard")
+    /// Media Move Incomplete
+    public static let partialMoveTitle = L10n.tr("Localizable", "CloudKitMigration.PartialMoveTitle", fallback: "Media Move Incomplete")
     /// Free up space in iCloud, then resume the move.
     public static let quotaMessage = L10n.tr("Localizable", "CloudKitMigration.QuotaMessage", fallback: "Free up space in iCloud, then resume the move.")
     /// iCloud storage is full

@@ -205,7 +205,8 @@ final class AlbumSizeSidecarTests: XCTestCase {
     /// integers only.
     func testSidecarContainsNoCleartextAlbumName() async throws {
         let key = PrivateKey(name: "key", keyBytes: Array(repeating: 3, count: 32), creationDate: Date())
-        let album = Album(name: "Beach Trip 2026", storageOption: .cloudKit, creationDate: Date(), key: key)
+        let album = Album(name: "Beach Trip 2026", storageOption: .cloudKit, creationDate: Date(), key: key,
+                          albumID: UUID().uuidString)
         let url = AlbumSizeSidecar.sidecarURL(for: album)
         addTeardownBlock { try? FileManager.default.removeItem(at: url) }
 

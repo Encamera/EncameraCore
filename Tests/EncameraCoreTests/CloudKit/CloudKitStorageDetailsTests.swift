@@ -23,7 +23,8 @@ final class CloudKitStorageDetailsTests: XCTestCase {
         return Album(name: "Storage-\(UUID().uuidString)",
                      storageOption: .cloudKit,
                      creationDate: Date(),
-                     key: key)
+                     key: key,
+                     albumID: UUID().uuidString)
     }
 
     private func makeAccess(album: Album, store: MockCloudKitMediaStore) async -> CloudKitFileAccess {

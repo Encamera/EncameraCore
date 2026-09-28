@@ -92,6 +92,33 @@
 			<string>%d files</string>
 		</dict>
 	</dict>
+	<key>CloudKitMigration.PartialMoveBannerMessage</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@moved@ %2$@, %3$#@remaining@</string>
+		<key>moved</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%1$d item was moved to</string>
+			<key>other</key>
+			<string>%1$d items were moved to</string>
+		</dict>
+		<key>remaining</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%3$d is still here</string>
+			<key>other</key>
+			<string>%3$d are still here</string>
+		</dict>
+	</dict>
 	<key>CloudKitUpgrade.IntroIncludes</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

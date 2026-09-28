@@ -228,7 +228,7 @@ private final class StubChunkStore: ChunkedBlobStoring, Sendable {
     }
 
     @discardableResult
-    func uploadChunks(enc3FileURL: URL, mediaRecordName: String, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
+    func uploadChunks(enc3FileURL: URL, mediaRecordName: String, existingChunks: ExistingChunkPolicy, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
         fatalError("not used in this test")
     }
 
@@ -266,7 +266,7 @@ private final class StagingChunkStore: ChunkedBlobStoring, @unchecked Sendable {
     }
 
     @discardableResult
-    func uploadChunks(enc3FileURL: URL, mediaRecordName: String, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
+    func uploadChunks(enc3FileURL: URL, mediaRecordName: String, existingChunks: ExistingChunkPolicy, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
         fatalError("not used in this test")
     }
 

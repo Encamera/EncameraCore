@@ -720,8 +720,8 @@ public final class CloudKitFlightCheck: DebugPrintable {
         let name = "\(Self.testAlbumNamePrefix)Cascade \(Self.timestamp()) #\(String(NSUUID().uuidString.prefix(8)))"
         let album = try albumManager.create(name: name, storageOption: .cloudKit)
         cascadeAlbum = album
-        guard let albumID = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) else {
-            throw FlightCheckError.internalState("could not derive the album id hash for '\(album.name)'")
+        guard let albumID = album.albumID else {
+            throw FlightCheckError.internalState("the created album '\(album.name)' has no albumID")
         }
 
         let cloud = await CloudKitFileAccess(album: album, albumManager: albumManager)

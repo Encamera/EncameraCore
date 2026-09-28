@@ -38,9 +38,10 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
         case main
 
         /// False while launch-time credentials are still in flight. CloudKit
-        /// album reconciliation must not run before this turns true: it matches
-        /// synced keys against a one-way album-id hash, so a pass made mid-wait
-        /// reports every remote album as unmaterializable and empties the grid.
+        /// album reconciliation must not run before this turns true: it finds each
+        /// album's key by decrypting the album name under the synced keys, so a
+        /// pass made mid-wait reports every remote album as unmaterializable and
+        /// empties the grid.
         /// `.keyMissing` is terminal — nothing further will arrive — so the
         /// reconciler is allowed to run and report its locked-out count.
         public var allowsCloudKitSync: Bool {

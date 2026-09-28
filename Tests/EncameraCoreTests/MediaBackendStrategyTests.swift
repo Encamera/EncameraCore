@@ -77,6 +77,7 @@ actor MediaBackendMock: MediaBackend {
     }
     func storageDetails(for media: InteractableMedia<EncryptedMedia>) async -> MediaStorageDetails? { nil }
     func evictLocalCopy(for media: InteractableMedia<EncryptedMedia>) async throws {}
+    func loadMetadata(for media: InteractableMedia<EncryptedMedia>) async throws -> EncryptedFileMetadata? { nil }
 }
 
 final class MediaBackendStrategyTests: XCTestCase {
@@ -87,7 +88,8 @@ final class MediaBackendStrategyTests: XCTestCase {
 
     private func makeAlbum(storage: StorageType) -> Album {
         let key = PrivateKey(name: "test-key", keyBytes: randomKey(), creationDate: Date())
-        return Album(name: "\(storage)-\(UUID().uuidString)", storageOption: storage, creationDate: Date(), key: key)
+        return Album(name: "\(storage)-\(UUID().uuidString)", storageOption: storage, creationDate: Date(), key: key,
+                     albumID: storage == .cloudKit ? UUID().uuidString : nil)
     }
 
     private func makeManager(for album: Album) -> MockAlbumManager {

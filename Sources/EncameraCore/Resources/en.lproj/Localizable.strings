@@ -188,6 +188,7 @@
 "UseCameraToTakePhotos" = "Use the built-in camera to take photos and videos.";
 "AlbumExistsError" = "An album with that name already exists.";
 "CouldNotRenameAlbumError" = "Could not rename album.";
+"AlbumMoveInProgressRenameError" = "This album can't be renamed while items are moving. Try again when the move finishes.";
 "PleaseEnterAnAlbumName" = "Please enter a name for the album";
 "Error clearing keychain" = "Error clearing keychain";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Error deleting key and associated files. Please try again or try to delete files manually via the Files app.";
@@ -228,6 +229,11 @@
 "AlbumDetailView.MoveMedia" = "Move Media";
 "AlbumDetailView.MovedToast" = "Moved %@ %@ to %@";
 "AlbumDetailView.MoveErrorToast" = "Failed to move %@ %@";
+"AlbumDetailView.MovePartialToast" = "Moved %@ %@, %@ %@ failed";
+"AlbumDetailView.MoveCloudKitRefusedToast" = "Moving to or from an iCloud album isn't available yet";
+"AlbumDetailView.MoveBusyToast" = "A move is already running for one of these albums. Try again when it finishes.";
+"AlbumDetailView.MoveCancelledToast" = "Move cancelled: %@ %@ moved to %@";
+"AlbumDetailView.MoveNeedsUpgradeToast" = "Upgrade “%@” to the new iCloud sync first, then move items into it";
 "AlbumDetailView.AlbumHiddenToast" = "Album is now hidden";
 "AlbumDetailView.AlbumUnhiddenToast" = "Album is now visible";
 "AlbumDetailView.PhotoAccessRequired" = "Photo Access Required";
@@ -924,6 +930,7 @@
 "CloudKitMigration.SchemaNotDeployedTitle" = "iCloud can't accept this album yet";
 "CloudKitMigration.SchemaNotDeployedMessage" = "iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.";
 "CloudKitMigration.FailedTitle" = "The move to iCloud didn't finish";
+"CloudKitMigration.FailedToLocalTitle" = "The move to this device didn't finish";
 "CloudKitMigration.FailedMessage" = "Something went wrong: %@. You may need to be connected to Wi-Fi to continue. You can resume the move.";
 "CloudKitMigration.Resume" = "Resume";
 "CloudKitMigration.PartialTitle" = "Album partially moved";
@@ -932,6 +939,11 @@
 /* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud */
 "CloudKitMigration.BannerMessage" = "This album is split between this device and iCloud.";
 "CloudKitMigration.BannerCounts" = "%@ moved, %@ still on this device";
+
+/* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for a cross-plane media move left incomplete */
+"CloudKitMigration.PartialMoveTitle" = "Media Move Incomplete";
+"CloudKitMigration.PartialMoveDestinationMissing" = "“%@” no longer exists, so this move can't be finished. Discard it to keep every item where it is now.";
+"CloudKitMigration.PartialMoveDiscard" = "Discard";
 
 /* ./Encamera/AlbumManagement/MigrationStatusOverlay.swift - Blocking status view shown for the duration of a move to iCloud */
 "CloudKitMigration.OverlayTitle" = "Moving to iCloud";
@@ -948,7 +960,7 @@
 "CloudKitMigration.OverlayTotalSize" = "%@ total";
 "CloudKitMigration.OverlayTimeRemaining" = "About %@ remaining";
 "CloudKitMigration.OverlayFailedItems" = "%@ couldn't be moved yet";
-"CloudKitMigration.OverlayKeepOpen" = "Keep Encamera open. You can switch apps, but don't force-quit.";
+"CloudKitMigration.OverlayKeepOpen" = "Keep Encamera open. You can switch apps, but don't force-quit. You may need to be connected to Wi-Fi for this to complete, depending on your system settings.";
 "CloudKitMigration.OverlayCancel" = "Stop the move";
 
 /* ./Encamera/Lightbox/LightboxController.swift - Edit Mode */

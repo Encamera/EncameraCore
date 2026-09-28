@@ -268,6 +268,41 @@ public actor CloudKitBlobCache: DebugPrintable {
         persist()
     }
 
+    // MARK: - Relocate
+
+    /// Moves a cached blob from its current album folder to another, rewriting the
+    /// index entry. The file stays resident; only its path changes. No-op when the
+    /// record is not cached.
+    public func relocate(recordName: String, toAlbumID: String) {
+        guard let entry = index[recordName] else { return }
+
+        let newAlbumFolder = Self.albumFolderName(toAlbumID)
+        let newRelativePath = "\(newAlbumFolder)/\(recordName)"
+
+        // Already in the right place (idempotent re-call).
+        guard entry.relativePath != newRelativePath else { return }
+
+        let source = url(for: entry)
+        let destDir = baseDir.appendingPathComponent(newAlbumFolder, isDirectory: true)
+        var destURL = destDir.appendingPathComponent(recordName)
+
+        do {
+            try FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+            try Self.placeFile(from: source, at: destURL, consumingSource: true)
+        } catch {
+            printDebug("relocate FAILED recordName=\(recordName) from=\(entry.relativePath) to=\(newRelativePath) raw=\(error)")
+            return
+        }
+        excludeFromBackup(&destURL)
+
+        index[recordName] = Entry(changeTag: entry.changeTag,
+                                  relativePath: newRelativePath,
+                                  size: entry.size,
+                                  lastAccess: entry.lastAccess)
+        persist()
+        printDebug("relocate ok recordName=\(recordName) from=\(entry.relativePath) to=\(newRelativePath)")
+    }
+
     /// The fast in-memory figure, summed over index entries. Deliberately does no
     /// filesystem I/O: `store` calls it on every upload, and a directory walk there
     /// would put an enumeration in the hot path.
@@ -354,11 +389,12 @@ public actor CloudKitBlobCache: DebugPrintable {
         let modified: Date
     }
 
-    /// Every cached blob under `baseDir`, excluding the index sidecar. An absent
-    /// directory enumerates as nothing, which is the right answer for a cache that
-    /// has never been written.
+    /// Every cached blob under `baseDir`. Excludes the index sidecar, the hidden
+    /// per-album sidecars, and the `albums/` tree of CloudKit album markers, none of
+    /// which is cached media. An absent directory enumerates as nothing, which is the
+    /// right answer for a cache that has never been written.
     private func enumerateCacheFiles() -> [CacheFile] {
-        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey,
+        let keys: [URLResourceKey] = [.isRegularFileKey, .isDirectoryKey, .fileSizeKey,
                                       .totalFileAllocatedSizeKey, .contentModificationDateKey]
         guard let enumerator = FileManager.default.enumerator(at: baseDir,
                                                              includingPropertiesForKeys: keys,
@@ -366,10 +402,16 @@ public actor CloudKitBlobCache: DebugPrintable {
             return []
         }
         let basePath = baseDir.standardizedFileURL.path
+        let markersPath = baseDir.appendingPathComponent(AlbumDirectoryNaming.albumsDirectory,
+                                                         isDirectory: true).standardizedFileURL.path
         var files: [CacheFile] = []
         for case let url as URL in enumerator {
-            guard let values = try? url.resourceValues(forKeys: Set(keys)),
-                  values.isRegularFile == true else { continue }
+            guard let values = try? url.resourceValues(forKeys: Set(keys)) else { continue }
+            if values.isDirectory == true {
+                if url.standardizedFileURL.path == markersPath { enumerator.skipDescendants() }
+                continue
+            }
+            guard values.isRegularFile == true else { continue }
             guard url.lastPathComponent != indexFileURL.lastPathComponent else { continue }
             let path = url.standardizedFileURL.path
             guard path.hasPrefix(basePath + "/") else { continue }
@@ -405,6 +447,53 @@ public actor CloudKitBlobCache: DebugPrintable {
             throw error
         }
         index.removeAll()
+    }
+
+    /// "Free up space" on the storage screen: deletes the cached ciphertext and
+    /// nothing else, then writes an index that lists only what survived.
+    ///
+    /// The cache root is also where CloudKit album markers (`albums/<albumID>/album.json`)
+    /// and per-album sidecars such as `.thumbtags.json` live, and a marker is the only
+    /// way this device knows a CloudKit album exists. `enumerateCacheFiles` never
+    /// yields those, so they stay.
+    ///
+    /// A blob that may be the only copy on the device stays too: a record the upload
+    /// queue still holds, and a capture's ciphertext that `CloudKitFileAccess` has
+    /// written into the album folder but not yet handed to the queue.
+    public func freeUpSpace(pendingUploads: CloudKitUploadQueue) async throws {
+        let pending = Set(await pendingUploads.all().map(\.recordName))
+        var freedFiles = 0
+        var freedBytes: Int64 = 0
+        var keptFiles = 0
+        var firstError: Error?
+        for file in enumerateCacheFiles() {
+            if pending.contains(file.recordName) || Self.isUnqueuedCapture(file.recordName) {
+                keptFiles += 1
+                continue
+            }
+            let fileURL = baseDir.appendingPathComponent(file.relativePath)
+            do {
+                try FileManager.default.removeItem(at: fileURL)
+                freedFiles += 1
+                freedBytes += file.logicalSize
+            } catch {
+                guard FileManager.default.fileExists(atPath: fileURL.path) else { continue }
+                printDebug("freeUpSpace WARNING file remove failed, keeping entry file=\(file.recordName) raw=\(error)")
+                firstError = firstError ?? error
+            }
+        }
+        index = index.filter { FileManager.default.fileExists(atPath: url(for: $0.value).path) }
+        persist()
+        printDebug("freeUpSpace ok freedFiles=\(freedFiles) freedBytes=\(freedBytes) keptFiles=\(keptFiles) remainingEntries=\(index.count) cacheTotalBytes=\(totalBytes())")
+        if let firstError { throw firstError }
+    }
+
+    /// Whether `fileName` is a capture's ciphertext in the `<mediaID>.<ext>` form
+    /// `CloudKitFileAccess` encrypts into before the upload queue moves it away. The
+    /// cache itself stores files under their record names, which carry no extension.
+    private static func isUnqueuedCapture(_ fileName: String) -> Bool {
+        let captureExtensions = [MediaType.photo, .video].map(\.encryptedFileExtension)
+        return captureExtensions.contains((fileName as NSString).pathExtension)
     }
 
     // MARK: - Internals

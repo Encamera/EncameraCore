@@ -165,6 +165,162 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: plainURL), blob.plaintext)
     }
 
+    // MARK: - Existing chunks from an earlier attempt
+
+    /// Encrypts `plaintext` again, as a re-encrypting upload does on every attempt:
+    /// same plaintext, same geometry, a new file id.
+    private func reencrypt(_ plaintext: Data, chunkSize: Int) throws -> (url: URL, header: SeekableEncryptedHeader) {
+        let source = tempDir.appendingPathComponent("src-\(UUID().uuidString).bin")
+        try plaintext.write(to: source)
+        let enc3 = tempDir.appendingPathComponent("blob-\(UUID().uuidString).enc3")
+        let header = try SeekableEncryptedWriter(keyBytes: key, chunkSize: chunkSize)
+            .encrypt(source: source, destination: enc3, metadata: nil)
+        return (enc3, header)
+    }
+
+    private func decryptReassembled(header: SeekableEncryptedHeader, from store: ChunkedBlobStoring, mediaRecordName: String) async throws -> Data {
+        var reassembled = header.encoded()
+        for index in 0..<header.chunkCount {
+            reassembled.append(try await store.fetchChunk(mediaRecordName: mediaRecordName, index: index))
+        }
+        let url = tempDir.appendingPathComponent("reassembled-\(UUID().uuidString).enc3")
+        try reassembled.write(to: url)
+        let plain = tempDir.appendingPathComponent("reassembled-\(UUID().uuidString).plain")
+        try await SeekableEncryptedReader.forFile(url, keyBytes: key).decryptToFile(destination: plain)
+        return try Data(contentsOf: plain)
+    }
+
+    func testOverwriteRewritesEveryChunkAnEarlierEncryptionSaved() async throws {
+        let first = try makeBlob(bytes: 10_000, chunkSize: 1_000)
+        let store = makeChunkStore()
+        try await store.uploadChunks(enc3FileURL: first.url, mediaRecordName: "m1", progress: { _ in })
+        for index in 5..<10 { mock.removeRecord(named: "m1#c\(index)") }
+        mock.resetObservations()
+
+        let second = try reencrypt(first.plaintext, chunkSize: 1_000)
+        XCTAssertNotEqual(second.header.encoded(), first.header.encoded(), "precondition: a new encryption")
+        try await store.uploadChunks(enc3FileURL: second.url, mediaRecordName: "m1",
+                                     existingChunks: .overwrite, progress: { _ in })
+
+        XCTAssertEqual(savedRecords.map(\.recordID.recordName).sorted(),
+                       (0..<10).map { "m1#c\($0)" }.sorted(),
+                       "every chunk is rewritten, including the ones the earlier encryption left")
+        let plaintext = try await decryptReassembled(header: second.header, from: store, mediaRecordName: "m1")
+        XCTAssertEqual(plaintext, first.plaintext)
+    }
+
+    func testResumeByProbeIsTheDefaultPolicy() async throws {
+        let blob = try makeBlob(bytes: 4_000, chunkSize: 1_000)
+        let store = makeChunkStore()
+        try await store.uploadChunks(enc3FileURL: blob.url, mediaRecordName: "m1", progress: { _ in })
+        mock.removeRecord(named: "m1#c2")
+        mock.resetObservations()
+
+        try await store.uploadChunks(enc3FileURL: blob.url, mediaRecordName: "m1",
+                                     existingChunks: .resumeByProbe, progress: { _ in })
+        let explicit = savedRecords.map(\.recordID.recordName)
+        mock.removeRecord(named: "m1#c2")
+        mock.resetObservations()
+        try await store.uploadChunks(enc3FileURL: blob.url, mediaRecordName: "m1", progress: { _ in })
+
+        XCTAssertEqual(explicit, ["m1#c2"])
+        XCTAssertEqual(savedRecords.map(\.recordID.recordName), explicit,
+                       "an upload that names no policy resumes by probe")
+    }
+
+    private func chunkedUpload(_ blob: (url: URL, header: SeekableEncryptedHeader),
+                               existingChunks: ExistingChunkPolicy) -> CloudKitMediaUpload {
+        CloudKitMediaUpload(descriptor: CloudKitMediaRecordDescriptor(albumID: "album-hash",
+                                                                      mediaID: "vid",
+                                                                      recordName: videoRecordName,
+                                                                      mediaType: .video,
+                                                                      createdAt: Date(),
+                                                                      sizeBytes: 10_000,
+                                                                      keyFingerprint: "",
+                                                                      chunkCount: blob.header.chunkCount,
+                                                                      plaintextLength: Int64(blob.header.plaintextLength)),
+                            encryptedFileURL: blob.url,
+                            encryptedThumbURL: nil,
+                            existingChunks: existingChunks)
+    }
+
+    func testOverwriteIsRefusedUnderARecordThatIsAlreadyCommitted() async throws {
+        let first = try makeBlob(bytes: 10_000, chunkSize: 1_000)
+        let store = makeMediaStore(chunkStore: makeChunkStore())
+        _ = try await store.upload(chunkedUpload((first.url, first.header), existingChunks: .overwrite), progress: { _ in })
+        mock.resetObservations()
+
+        let second = try reencrypt(first.plaintext, chunkSize: 1_000)
+        do {
+            _ = try await store.upload(chunkedUpload(second, existingChunks: .overwrite), progress: { _ in })
+            XCTFail("rewriting the chunks of a committed record must be refused")
+        } catch CloudKitMediaStoreError.conflict {
+        }
+
+        XCTAssertTrue(savedRecords.isEmpty, "nothing is written under a committed record")
+        let committedHeader = try SeekableEncryptedHeader.decode(
+            try XCTUnwrap(mock.allRecords.first { $0.recordID.recordName == videoRecordName }?[CloudKitSchema.EncMedia.encHeader] as? Data))
+        let plaintext = try await decryptReassembled(header: committedHeader, from: makeChunkStore(), mediaRecordName: videoRecordName)
+        XCTAssertEqual(plaintext, first.plaintext, "the committed video still decrypts")
+    }
+
+    func testOverwriteProceedsWhenNothingIsCommitted() async throws {
+        let first = try makeBlob(bytes: 10_000, chunkSize: 1_000)
+        let chunkStore = makeChunkStore()
+        try await chunkStore.uploadChunks(enc3FileURL: first.url, mediaRecordName: videoRecordName, progress: { _ in })
+        mock.resetObservations()
+
+        let second = try reencrypt(first.plaintext, chunkSize: 1_000)
+        let store = makeMediaStore(chunkStore: chunkStore)
+        _ = try await store.upload(chunkedUpload(second, existingChunks: .overwrite), progress: { _ in })
+
+        XCTAssertEqual(savedRecords.filter { $0.recordType == ChunkedBlobSchema.Chunk.recordType }.count, 10)
+        let plaintext = try await decryptReassembled(header: second.header, from: chunkStore, mediaRecordName: videoRecordName)
+        XCTAssertEqual(plaintext, first.plaintext)
+    }
+
+    // MARK: - Chunk upload hook
+
+    private final class HookLog: @unchecked Sendable {
+        private let lock = NSLock()
+        private var calls: [(name: String, onServer: Int, savedSoFar: Int)] = []
+        func append(_ call: (name: String, onServer: Int, savedSoFar: Int)) { lock.withLock { calls.append(call) } }
+        var all: [(name: String, onServer: Int, savedSoFar: Int)] { lock.withLock { calls } }
+    }
+
+    func testChunkUploadHookSeesEachChunkLandAlone() async throws {
+        let blob = try makeBlob(bytes: 5_000, chunkSize: 1_000)
+        let log = HookLog()
+        let database = mock!
+        CloudKitStoreTestHooks.chunkUploadHook = { name, onServer in
+            log.append((name, onServer, database.savedRecordBatches.flatMap { $0 }.count))
+        }
+        defer { CloudKitStoreTestHooks.chunkUploadHook = nil }
+
+        try await makeChunkStore().uploadChunks(enc3FileURL: blob.url, mediaRecordName: "m1", progress: { _ in })
+
+        XCTAssertEqual(log.all.map(\.name), Array(repeating: "m1", count: 5))
+        XCTAssertEqual(log.all.map(\.onServer), [0, 1, 2, 3, 4])
+        XCTAssertEqual(log.all.map(\.savedSoFar), [0, 1, 2, 3, 4],
+                       "each chunk before the hook call is already saved, so a hold leaves exactly that many")
+        XCTAssertTrue(mock.savedRecordBatches.allSatisfy { $0.count == 1 })
+    }
+
+    func testChunkUploadHookCountsChunksAResumeKept() async throws {
+        let blob = try makeBlob(bytes: 5_000, chunkSize: 1_000)
+        let store = makeChunkStore()
+        try await store.uploadChunks(enc3FileURL: blob.url, mediaRecordName: "m1", progress: { _ in })
+        mock.removeRecord(named: "m1#c3")
+        mock.removeRecord(named: "m1#c4")
+        let log = HookLog()
+        CloudKitStoreTestHooks.chunkUploadHook = { name, onServer in log.append((name, onServer, 0)) }
+        defer { CloudKitStoreTestHooks.chunkUploadHook = nil }
+
+        try await store.uploadChunks(enc3FileURL: blob.url, mediaRecordName: "m1", progress: { _ in })
+
+        XCTAssertEqual(log.all.map(\.onServer), [3, 4])
+    }
+
     // MARK: - Zone latch
 
     private final class ThrowingZoneProvisioner: RecordZoneProvisioning {
@@ -503,7 +659,7 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         let log: CallLog
         init(log: CallLog) { self.log = log }
 
-        func uploadChunks(enc3FileURL: URL, mediaRecordName: String, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
+        func uploadChunks(enc3FileURL: URL, mediaRecordName: String, existingChunks: ExistingChunkPolicy, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
             throw ChunkedBlobError.accountUnavailable
         }
         func fetchChunk(mediaRecordName: String, index: Int) async throws -> Data {

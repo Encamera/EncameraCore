@@ -13,9 +13,9 @@ import Foundation
 /// Canonical names for the Encamera CloudKit schema.
 ///
 /// Privacy contract (see `00-overview.md` §schema):
-/// - `albumID` is `SyncedStoreEncryptionHandler.hashPrimaryKey(albumName)` — a
-///   deterministic, non-reversible BLAKE2b keyed hash that is stable across
-///   devices. It is **not** the per-encryption `encryptedPathComponent`.
+/// - `albumID` is a random UUID minted once, when the album first becomes a
+///   CloudKit album. It says nothing about the album; the name travels only as
+///   `EncAlbum.encName`, ciphertext under the album key.
 /// - `encThumbnail` and `encBlob` are ciphertext only (the existing ENC2 files).
 ///   No plaintext name, location, or content ever reaches CloudKit.
 public enum CloudKitSchema {
@@ -85,17 +85,17 @@ public enum CloudKitSchema {
     }
 
     /// The album record. Makes CloudKit the authoritative, cross-device source of
-    /// truth for which albums exist. The record name is the same keyed
-    /// hash used as `EncMedia.albumID`, so the album↔media join needs no new id and
-    /// `saveAlbum` is idempotent.
+    /// truth for which albums exist. The record name is the album's `albumID`
+    /// UUID, the same value `EncMedia.albumID` carries, so the album↔media join
+    /// needs no new id and `saveAlbum` is idempotent.
     ///
     /// Privacy: `encName` is the album-name ciphertext (the existing
-    /// `Album.encryptedPathComponent`, encrypted with the album's own key). The hash
-    /// record name is one-way; a device recovers the plaintext name by matching a
-    /// synced album key against the hash, then decrypts `encName`.
+    /// `Album.encryptedPathComponent`, encrypted with the album's own key). A device
+    /// finds the album's key by decrypting `encName` under each synced key; the
+    /// authenticated decrypt fails under every other key.
     public enum EncAlbum {
         public static let recordType = "EncAlbum"
-        // record name == albumID hash (SyncedStoreEncryptionHandler.keyedHash(name, key))
+        // record name == albumID (a UUID)
         public static let encName        = "encName"          // String (album name ciphertext)
         public static let createdAt      = "createdAt"        // Date
         public static let isHidden       = "isHidden"         // Int64 (0/1)

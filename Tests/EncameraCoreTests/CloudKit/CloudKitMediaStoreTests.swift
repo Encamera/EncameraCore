@@ -232,6 +232,36 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.fetchCount, 0, "The happy path must not fetch before saving")
     }
 
+    func testInjectedUploadFailureFailsOnlyTheUploadAfterTheCountAndOnlyOnce() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+        CloudKitStoreTestHooks.failUpload(after: 1)
+        defer { CloudKitStoreTestHooks.failUpload(after: nil) }
+
+        _ = try await store.upload(makeUpload(mediaID: "first"), progress: { _ in })
+        do {
+            _ = try await store.upload(makeUpload(mediaID: "second"), progress: { _ in })
+            XCTFail("The upload after the first must fail")
+        } catch CloudKitMediaStoreError.quotaExceeded {
+        } catch {
+            XCTFail("Wrong error: \(error)")
+        }
+        _ = try await store.upload(makeUpload(mediaID: "second"), progress: { _ in })
+
+        XCTAssertEqual(mock.saveCount, 2, "The injected failure must not reach the server")
+    }
+
+    func testUploadsGoThroughWithNoFailureArmed() async throws {
+        let mock = MockCloudKitDatabase()
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        for index in 0..<3 {
+            _ = try await store.upload(makeUpload(mediaID: "media-\(index)"), progress: { _ in })
+        }
+
+        XCTAssertEqual(mock.saveCount, 3)
+    }
+
     func testAccountUnavailableShortCircuits() async {
         let mock = MockCloudKitDatabase()
         let store = makeStore(account: .noAccount, adapter: mock, defaults: freshDefaults())
@@ -489,6 +519,71 @@ final class CloudKitMediaStoreTests: XCTestCase {
         } catch let error as CloudKitMediaStoreError {
             guard case .retry = error else { return XCTFail("Wrong error: \(error)") }
         }
+    }
+
+    // MARK: - fetchAlbum (by id)
+
+    func testFetchAlbumReadsTheRecordByIDNotThroughTheQuery() async throws {
+        let mock = MockCloudKitDatabase()
+        let record = CloudKitTestFactory.encAlbumRecord(albumID: "fresh", keyFingerprint: keyA.keychainLabel)
+        mock.stubbedFetchRecords = [record.recordID: record]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let album = try await store.fetchAlbum(albumID: "fresh")
+
+        XCTAssertEqual(album?.albumID, "fresh")
+        XCTAssertEqual(album?.keyFingerprint, keyA.keychainLabel)
+        XCTAssertEqual(mock.fetchCount, 1, "a fetch by id is the strongly consistent read")
+        XCTAssertNil(mock.lastQueryDesiredKeys, "the eventually consistent query must not be used")
+    }
+
+    func testFetchAlbumReturnsNilWhenTheServerHasNoSuchRecord() async throws {
+        let store = makeStore(adapter: MockCloudKitDatabase(), defaults: freshDefaults())
+        let album = try await store.fetchAlbum(albumID: "gone")
+        XCTAssertNil(album)
+    }
+
+    func testFetchAlbumReadsUnknownItemAsNotFound() async throws {
+        let mock = MockCloudKitDatabase()
+        mock.fetchError = CKErrorFactory.error(.unknownItem)
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+        let album = try await store.fetchAlbum(albumID: "gone")
+        XCTAssertNil(album)
+    }
+
+    func testFetchAlbumReadsAPartialFailureOfUnknownItemAsNotFound() async throws {
+        let mock = MockCloudKitDatabase()
+        let recordID = CKRecord.ID(recordName: "gone", zoneID: CloudKitTestFactory.zoneID)
+        mock.fetchError = CKErrorFactory.error(.partialFailure, userInfo: [
+            CKPartialErrorsByItemIDKey: [recordID: CKErrorFactory.error(.unknownItem)]
+        ])
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+        let album = try await store.fetchAlbum(albumID: "gone")
+        XCTAssertNil(album)
+    }
+
+    func testFetchAlbumThrowsWhenTheServerCouldNotAnswer() async {
+        for code in [CKError.Code.requestRateLimited, .networkUnavailable, .zoneNotFound] {
+            let mock = MockCloudKitDatabase()
+            mock.fetchError = CKErrorFactory.error(code)
+            let store = makeStore(adapter: mock, defaults: freshDefaults("\(#function)-\(code.rawValue)"))
+            do {
+                _ = try await store.fetchAlbum(albumID: "album")
+                XCTFail("\(code) must not read as \"no such record\"")
+            } catch {}
+        }
+    }
+
+    func testFetchAlbumThrowsWhenTheRecordExistsButCannotBeRead() async {
+        let mock = MockCloudKitDatabase()
+        let record = CKRecord(recordType: CloudKitSchema.EncAlbum.recordType,
+                              recordID: CKRecord.ID(recordName: "bare", zoneID: CloudKitTestFactory.zoneID))
+        mock.stubbedFetchRecords = [record.recordID: record]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+        do {
+            _ = try await store.fetchAlbum(albumID: "bare")
+            XCTFail("a record that exists must never read as gone")
+        } catch {}
     }
 
     // MARK: - Lazy asset fetch
@@ -865,5 +960,94 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
         XCTAssertEqual(ref.recordName, "media-1")
         XCTAssertEqual(secondMock.saveCount, 1)
+    }
+
+    // MARK: - reassignAlbum
+
+    /// Seed 401 records, call reassign, verify the mock adapter got 2 fetch + 2 save
+    /// calls (the 400-record CloudKit batch limit is respected).
+    func testReassignAlbumBatchesAt400Records() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+
+        // Seed 401 records into the mock adapter.
+        var names: [String] = []
+        for i in 0..<401 {
+            let name = "rec-\(i)"
+            names.append(name)
+            let record = CloudKitTestFactory.encMediaRecord(recordName: name, albumID: "old-album")
+            adapter.stubbedFetchRecords[record.recordID] = record
+        }
+
+        let notFound = try await store.reassignAlbum(recordNames: names, toAlbumID: "new-album")
+        XCTAssertTrue(notFound.isEmpty)
+        XCTAssertEqual(adapter.fetchCount, 2, "401 records should produce 2 fetch batches (400 + 1)")
+        XCTAssertEqual(adapter.saveCount, 2, "401 records should produce 2 save batches (400 + 1)")
+    }
+
+    /// Reassign one record and verify the saved CKRecord has albumID, albumRef and
+    /// parent set correctly, and NO asset keys (encBlob, encThumbnail) were touched.
+    func testReassignAlbumSetsAlbumIDRefAndParentOnly() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+
+        let record = CloudKitTestFactory.encMediaRecord(recordName: "media-A", albumID: "old-album")
+        adapter.stubbedFetchRecords[record.recordID] = record
+
+        _ = try await store.reassignAlbum(recordNames: ["media-A"], toAlbumID: "new-album")
+
+        let saved = try XCTUnwrap(adapter.savedRecordBatches.last?.first)
+        XCTAssertEqual(saved[CloudKitSchema.EncMedia.albumID] as? String, "new-album")
+
+        let albumRef = try XCTUnwrap(saved[CloudKitSchema.EncMedia.albumRef] as? CKRecord.Reference)
+        XCTAssertEqual(albumRef.recordID.recordName, "new-album")
+        XCTAssertEqual(albumRef.action, .deleteSelf)
+
+        let parent = try XCTUnwrap(saved.parent)
+        XCTAssertEqual(parent.recordID.recordName, "new-album")
+
+        // Asset fields must NOT appear — the fetch requested only albumID.
+        XCTAssertNil(saved[CloudKitSchema.EncMedia.encBlob])
+        XCTAssertNil(saved[CloudKitSchema.EncMedia.encThumbnail])
+
+        XCTAssertEqual(adapter.lastSavePolicy?.rawValue,
+                       CKModifyRecordsOperation.RecordSavePolicy.ifServerRecordUnchanged.rawValue)
+        XCTAssertEqual(adapter.lastFetchDesiredKeys, [CloudKitSchema.EncMedia.albumID])
+    }
+
+    /// Call reassign with a name that does not exist in the adapter; verify it is
+    /// returned in the not-found list.
+    func testReassignAlbumReturnsMissingRecordNames() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+
+        let notFound = try await store.reassignAlbum(recordNames: ["ghost-1", "ghost-2"],
+                                                      toAlbumID: "new-album")
+        XCTAssertEqual(Set(notFound), Set(["ghost-1", "ghost-2"]))
+        // Nothing to save when every record is missing.
+        XCTAssertEqual(adapter.saveCount, 0)
+    }
+
+    /// Inject a partial failure from the adapter and verify it is mapped via
+    /// mapAndRecord (i.e. the error comes back as a CloudKitMediaStoreError).
+    func testReassignAlbumMapsPartialFailure() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+
+        let record = CloudKitTestFactory.encMediaRecord(recordName: "media-A", albumID: "old-album")
+        adapter.stubbedFetchRecords[record.recordID] = record
+        adapter.saveError = CKErrorFactory.error(.zoneBusy)
+
+        do {
+            _ = try await store.reassignAlbum(recordNames: ["media-A"], toAlbumID: "new-album")
+            XCTFail("Expected an error from reassignAlbum")
+        } catch let error as CloudKitMediaStoreError {
+            // zoneBusy is mapped to .retry — verify the raw CKError was translated
+            if case .retry = error {
+                // correct
+            } else {
+                XCTFail("Expected .retry, got \(error)")
+            }
+        }
     }
 }

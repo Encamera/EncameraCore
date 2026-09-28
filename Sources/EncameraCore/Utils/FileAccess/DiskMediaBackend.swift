@@ -318,6 +318,14 @@ public actor DiskMediaBackend: MediaBackend {
         }
     }
 
+    /// `MediaBackend.loadMetadata`, from the photo half of a Live Photo.
+    public func loadMetadata(for media: InteractableMedia<EncryptedMedia>) async throws -> EncryptedFileMetadata? {
+        guard let item = media.underlyingMedia.first(where: { $0.mediaType == .photo }) ?? media.underlyingMedia.first else {
+            return nil
+        }
+        return try await fileAccess.loadMetadata(of: item)
+    }
+
     /// The item's size in bytes regardless of whether its bytes are present.
     /// `totalFileSize` is what an undownloaded ubiquitous placeholder reports; a
     /// materialized file has no `totalFileSize` and answers with `fileSize`.

@@ -18,6 +18,10 @@ public protocol AlbumManaging {
     var currentAlbum: Album? { get set }
     var currentAlbumMediaCount: Int? { get }
     func delete(album: Album)
+    /// Removes the album locally without touching CloudKit records — the device
+    /// that deleted the album already handled the server side. Used by
+    /// the reconciler when the change feed reports a deletion.
+    func applyRemoteAlbumDeletion(album: Album)
     func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>)
     func removeAlbumCover(album: Album)
     func resetAlbumCover(album: Album)
@@ -28,15 +32,13 @@ public protocol AlbumManaging {
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
     func storageModel(for album: Album) -> DataStorageModel?
     func moveAlbum(album: Album, toStorage: StorageType) throws -> Album
-    /// Downloads a CloudKit album's contents into local storage and removes the
-    /// remote records — the reverse of the migration engine. See `AlbumManager`.
-    func moveCloudKitAlbumToLocal(album: Album) async throws -> Album
-    /// Progress-reporting variant of the above: `onProgress` is awaited between
-    /// items, so the app can mirror the move into the same blocking overlay the
-    /// forward migration shows.
-    func moveCloudKitAlbumToLocal(album: Album,
-                                  onProgress: (@Sendable (CloudToLocalMoveProgress) async -> Void)?) async throws -> Album
-    @discardableResult func finalizeMigrationToCloudKit(album: Album) throws -> Album
+    /// Flips a drained local or iCloud Drive album to the CloudKit album `albumID`:
+    /// writes its marker and drops the drained source directory. See `AlbumManager`.
+    @discardableResult func finalizeMigrationToCloudKit(album: Album, albumID: String) throws -> Album
+    /// Completes a whole CloudKit album's move back to local storage once the engine
+    /// has copied and verified every item and removed every record: drops the album
+    /// record and this device's CloudKit identity for the album. See `AlbumManager`.
+    @discardableResult func finalizeMigrationToLocal(album: Album) async throws -> Album
     func renameAlbum(album: Album, to newName: String) throws -> Album
     func validateAlbumName(name: String) throws
     func albumMediaCount(album: Album) -> Int
@@ -45,8 +47,9 @@ public protocol AlbumManaging {
     /// Materializes a CloudKit album discovered by the album reconciler (marker,
     /// hidden state, broadcasts) so remote discovery goes through the manager —
     /// keeping `albumOperationPublisher` observers and `currentAlbum` consistent —
-    /// instead of mutating the filesystem behind its back.
-    func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool)
+    /// instead of mutating the filesystem behind its back. `record` is the album's
+    /// `EncAlbum` record and `key` the key proven to open its `encName`.
+    func adoptCloudKitAlbum(record: CloudKitAlbumMetadata, key: PrivateKey)
     var lockedAlbums: [LockedAlbumPlaceholder] { get }
 
     /// Rescans the filesystem and broadcasts the updated album list.
@@ -54,37 +57,39 @@ public protocol AlbumManaging {
 }
 
 public extension AlbumManaging {
+    /// Default: delegates to the full `delete` for conformers that don't need a
+    /// local-only path (previews, test doubles).
+    func applyRemoteAlbumDeletion(album: Album) {
+        delete(album: album)
+    }
+
     /// Default no-op for lightweight conformers (previews, test doubles).
     func notifyAlbumsChanged() {}
     func fetchAlbumsFromSources() -> [Album] {
         fetchAlbumsFromSources(includingHidden: false)
     }
 
-    /// Default for non-CloudKit conformers (previews/test doubles): flip the
-    /// storage only. `AlbumManager` overrides this with the real download +
-    /// remote cleanup.
-    func moveCloudKitAlbumToLocal(album: Album) async throws -> Album {
-        var moved = album
-        moved.storageOption = .local
-        return moved
-    }
-
-    /// Default for conformers that don't report progress: run the plain move and
-    /// drop the callback. `AlbumManager` overrides this with real reporting.
-    func moveCloudKitAlbumToLocal(album: Album,
-                                  onProgress: (@Sendable (CloudToLocalMoveProgress) async -> Void)?) async throws -> Album {
-        try await moveCloudKitAlbumToLocal(album: album)
+    /// Another album on this device already called `name`, in any storage and hidden
+    /// or not. Album names are unique per device only; two devices can still make
+    /// same-named albums while offline.
+    func albumNamed(_ name: String, otherThan album: Album) -> Album? {
+        fetchAlbumsFromSources(includingHidden: true).first { $0.name == name && $0.id != album.id }
     }
 
     /// Default flip used by non-broadcasting conformers (previews/test doubles):
-    /// write the CloudKit discovery marker and drop the drained source directory.
-    /// `AlbumManager` overrides this to also broadcast the change.
+    /// write `album.json` with the source's hidden flag and cover (unless the album
+    /// is already on this device) and drop the drained source directory.
+    /// `AlbumManager` overrides this to also push the record, remove the source's
+    /// name-keyed settings and broadcast the change.
     @discardableResult
-    func finalizeMigrationToCloudKit(album: Album) throws -> Album {
-        let cloudKitAlbum = Album.cloudKitTwin(of: album)
-        let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(cloudKitAlbum.encryptedPathComponent)
-        try FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
-        guard FileManager.default.fileExists(atPath: marker.path) else {
+    func finalizeMigrationToCloudKit(album: Album, albumID: String) throws -> Album {
+        let cloudKitAlbum = Album.cloudKitTwin(of: album, albumID: albumID)
+        if !CloudKitAlbumMarker.exists(albumID: albumID) {
+            try CloudKitAlbumMarker(album: cloudKitAlbum,
+                                    isHidden: isAlbumHidden(album),
+                                    coverMediaID: getAlbumCoverImageId(album: album)).write(albumID: albumID)
+        }
+        guard CloudKitAlbumMarker.exists(albumID: albumID) else {
             throw AlbumError.cloudKitMarkerWriteFailed
         }
         if album.storageOption != .cloudKit {
@@ -94,21 +99,39 @@ public extension AlbumManaging {
         return cloudKitAlbum
     }
 
-    /// Whether the album's CloudKit discovery marker exists — i.e. whether a
-    /// migration actually finalized. Reads the same artefact
-    /// `finalizeMigrationToCloudKit` writes above and `fetchAlbumsFromSources`
-    /// derives its `.cloudKit` albums from, so it is the one true answer to "did
-    /// this album really move", available to callers outside this module that
-    /// must not report a migration they did not achieve.
+    /// Default flip used by non-broadcasting conformers (previews/test doubles):
+    /// remove the CloudKit discovery marker so the local album is discovered.
+    /// `AlbumManager` overrides this to also delete the album record and broadcast.
+    @discardableResult
+    func finalizeMigrationToLocal(album: Album) async throws -> Album {
+        if let albumID = album.albumID {
+            try CloudKitAlbumMarker.remove(albumID: albumID)
+        }
+        return Album.localTwin(of: album)
+    }
+
+    /// Whether a CloudKit album with this album's name and key exists on this
+    /// device — i.e. whether a migration actually finalized. A CloudKit album's id is
+    /// not derivable from its name, so this scans the `album.json` markers
+    /// `finalizeMigrationToCloudKit` writes (and `fetchAlbumsFromSources` derives its
+    /// `.cloudKit` albums from) for an `encName` that decrypts under the album's key
+    /// to its name. It is the one true answer to "did this album really move",
+    /// available to callers outside this module that must not report a migration
+    /// they did not achieve. Before finalize there is no marker, so it is false.
     func hasFinalizedToCloudKit(album: Album) -> Bool {
-        let marker = CloudKitStorageModel.albumsURL
-            .appendingPathComponent(Album.cloudKitTwin(of: album).encryptedPathComponent)
-        return FileManager.default.fileExists(atPath: marker.path)
+        CloudKitAlbumMarker.albumID(matching: album) != nil
     }
 
     /// Default no-op so lightweight test/demo conformers need not implement it.
-    func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool) {}
+    func adoptCloudKitAlbum(record: CloudKitAlbumMetadata, key: PrivateKey) {}
 
     /// Default empty: conformers that don't track locked albums return none.
     var lockedAlbums: [LockedAlbumPlaceholder] { [] }
+
+    /// Falls `album` back to its default cover when its cover is `mediaID`, the item
+    /// that has just left it. A cover the user turned off stays off.
+    func resetAlbumCover(album: Album, ifItIs mediaID: String) {
+        guard getAlbumCoverImageId(album: album) == mediaID else { return }
+        resetAlbumCover(album: album)
+    }
 }

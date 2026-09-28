@@ -2,10 +2,10 @@
 //  CloudKitMigrationManager.swift
 //  EncameraCore
 //
-//  Drives a user-initiated, resumable, crash-safe migration of one album's media
-//  from local (or iCloud-Drive) storage to CloudKit. The existing upload stack does
-//  the transport (`CloudKitSyncCoordinator.upload` -> `CloudKitMediaStore.upload`);
-//  this manager only sequences the work and checkpoints every step to disk so a
+//  The one engine that moves ciphertext between local storage and CloudKit: a whole
+//  album or selected items, in either direction. The existing sync stack does the
+//  transport (`CloudKitSyncCoordinator`); this manager sequences the work through a
+//  per-direction `MigrationItemStep` and checkpoints every step to disk so a
 //  crash/kill/power-off resumes exactly where it left off (the durable `MigrationPlan`
 //  is the source of truth, not CloudKit's deprecated long-lived ops).
 //  See plans/cloudkit-migration/12-local-to-cloudkit-migration.md.
@@ -50,11 +50,23 @@ public enum MigrationPhase: String, Equatable, Sendable {
     case verifying
     case removingLocalCopy
     case retrying
-    // The CloudKit -> local direction. The reverse move is not driven by this
-    // engine, but it reports through the same `MigrationProgress` type so both
-    // directions share one overlay.
+    // The CloudKit -> local direction.
     case downloading
     case removingRemoteCopy
+}
+
+/// Where a run is when it calls `CloudKitMigrationManager.boundaryHook`.
+public enum MigrationBoundary: Equatable, Sendable {
+    /// An item finished its step in the main loop; `verified` counts the plan's
+    /// verified and source-deleted items.
+    case transferred(verified: Int)
+    /// The second pass of a whole album moving back to this device, before its next
+    /// record removal. `removed: 0` is the boundary between the two passes.
+    case removing(removed: Int)
+    /// An item has verified at its destination and its source copy is about to be
+    /// removed, in any run that removes each source copy as its item verifies.
+    /// `removed` counts the plan's items whose source copy is already gone.
+    case removingSource(removed: Int)
 }
 
 /// A snapshot the UI binds to. Byte-weighted so a few large videos don't make a
@@ -99,31 +111,29 @@ public struct MigrationProgress: Equatable, Sendable {
     }
 }
 
-/// A snapshot of the CloudKit -> local move, shaped so the app can feed the same
-/// blocking overlay the forward migration drives. Counts are ciphertext
-/// components (a Live Photo is two), matching what `exportCiphertext` copies.
-public struct CloudToLocalMoveProgress: Equatable, Sendable {
-    public let phase: MigrationPhase
-    public let exportedCount: Int
-    public let totalCount: Int
-
-    public init(phase: MigrationPhase, exportedCount: Int, totalCount: Int) {
-        self.phase = phase
-        self.exportedCount = exportedCount
-        self.totalCount = totalCount
-    }
-}
-
 public enum MigrationError: Error, Equatable {
-    /// Only `.local` and `.icloud` albums can be migrated. `.cloudKit` is already at
-    /// the destination; the reverse direction is `moveCloudKitAlbumToLocal`.
+    /// Only `.local` and `.icloud` albums can be planned by `plan(album:)`. A
+    /// `.cloudKit` album moves back with an album-scope plan through `start(plan:)`.
     case invalidSourceStorage(StorageType)
     /// The record did not appear in CloudKit after upload (verification failed); the
     /// source is never deleted in this case.
     case verificationFailed(recordName: String)
+    /// The server's albums could not be listed while choosing the CloudKit album a
+    /// move to CloudKit lands in. Retryable; the plan is not written.
+    case cloudKitAlbumLookupFailed(String)
 }
 
 // MARK: - Manager
+
+/// The ids in `CloudKitMigrationManager`'s active set, readable from any thread.
+private final class ActiveAlbumIDs: @unchecked Sendable {
+    private let lock = NSLock()
+    private var ids: Set<String> = []
+
+    func contains(_ id: String) -> Bool { lock.withLock { ids.contains(id) } }
+    func insert(_ id: String) { lock.withLock { _ = ids.insert(id) } }
+    func remove(_ id: String) { lock.withLock { _ = ids.remove(id) } }
+}
 
 @MainActor
 public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
@@ -136,6 +146,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// item mid-transition.
     private enum RunControl { case running, pauseRequested, cancelRequested }
     private var control: RunControl = .running
+    /// Set while a whole album's CloudKit records are being removed, when a cancel
+    /// is no longer honored.
+    private var isRemovingSources = false
 
     /// The store backing the run currently in flight, so `cancel()` can abort an
     /// in-progress upload immediately instead of waiting for it to finish.
@@ -164,9 +177,6 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         publishProgress(plan, currentItemName: currentItemName)
     }
 
-    /// Max automatic retries for a `CloudKit retry(after:)` before an item is failed.
-    private static let maxRetriesPerItem = 3
-
     private let albumManager: AlbumManaging
     /// Test seam: supplies the `CloudKitMediaStoring` for an album's token namespace.
     /// Production reads `CloudKitStoreProvider.makeStore` at call time (so a UI-test
@@ -176,27 +186,64 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// be tested off-device: a simulator has no ubiquity container, so the real one
     /// can never download anything there.
     private let materializer: ICloudDriveMaterializing
+    /// Test seam: the chunk store the run's coordinator reads chunked blobs through.
+    /// `nil` keeps the coordinator's default, the live CloudKit chunk store.
+    private let chunkStoreOverride: ChunkedBlobStoring?
 
     public init(albumManager: AlbumManaging,
                 storeFactory: (@Sendable (String) -> CloudKitMediaStoring)? = nil,
-                materializer: ICloudDriveMaterializing? = nil) {
+                materializer: ICloudDriveMaterializing? = nil,
+                chunkStore: ChunkedBlobStoring? = nil) {
         self.albumManager = albumManager
         self.storeFactoryOverride = storeFactory
         self.materializer = materializer ?? ICloudDriveMaterializer()
+        self.chunkStoreOverride = chunkStore
     }
 
     private func makeStore(_ namespace: String) -> CloudKitMediaStoring {
         storeFactoryOverride?(namespace) ?? CloudKitStoreProvider.makeStore(namespace)
     }
 
-    /// Test seam: overrides the album-id hash derivation (production uses
-    /// `SyncedStoreEncryptionHandler.keyedHash`, whose failure modes — key-size
-    /// violations — can't be reproduced with a key that still encrypts).
-    var albumIDHashOverride: ((Album) -> String?)?
+    // MARK: - Destination album
 
-    private func deriveAlbumIDHash(for album: Album) -> String? {
-        if let albumIDHashOverride { return albumIDHashOverride(album) }
-        return SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes)
+    /// The id of the CloudKit album `album` moves into. An album already on this
+    /// device as a CloudKit album with the same name and key is that album; failing
+    /// that, a server album whose `encName` decrypts under the key to the same name
+    /// is adopted, so two devices moving the same album do not upload the same media
+    /// records into two albums. Only when neither exists is a new id minted.
+    ///
+    /// A server album this device has queued for deletion is never adopted: its
+    /// delete would cascade to the media uploaded into it.
+    ///
+    /// Throws when the server's albums cannot be listed: minting without looking
+    /// would split the album whenever another device already moved it.
+    private func resolveCloudKitAlbumID(for album: Album) async throws -> String {
+        if let local = CloudKitAlbumMarker.albumID(matching: album) {
+            printDebug("resolve albumID=\(local) — adopting this device's CloudKit album")
+            return local
+        }
+        let records: [CloudKitAlbumMetadata]
+        do {
+            records = try await makeStore("").fetchAllAlbums()
+        } catch let error as CloudKitMediaStoreError {
+            let unwrapped = Self.unwrapPartial(error)
+            if case .accountUnavailable = unwrapped { throw unwrapped }
+            throw MigrationError.cloudKitAlbumLookupFailed("\(error)")
+        } catch {
+            throw MigrationError.cloudKitAlbumLookupFailed("\(error)")
+        }
+        let pendingDeletes = CloudKitAlbumDeleteQueue().pending()
+        let match = records
+            .filter { !pendingDeletes.contains($0.albumID) }
+            .sorted { ($0.createdAt, $0.albumID) < ($1.createdAt, $1.albumID) }
+            .first { Album.decryptedAlbumName($0.encName, key: album.key) == album.name }
+        if let match {
+            printDebug("resolve albumID=\(match.albumID) — adopting the server's album")
+            return match.albumID
+        }
+        let minted = UUID().uuidString
+        printDebug("resolve albumID=\(minted) — minted, no album with this name and key")
+        return minted
     }
 
     // MARK: - Planning
@@ -206,6 +253,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// persist the plan encrypted to disk. Re-planning a partially-migrated album
     /// yields identical ids and preserves the state of items that already made
     /// progress, so nothing is re-uploaded or lost. Never touches a `.cloudKit` album.
+    ///
+    /// The destination album's id is resolved the first time (see
+    /// `resolveCloudKitAlbumID`) and persisted in the plan; a re-plan reuses it, so a
+    /// resumed move can never land in a second album.
     @discardableResult
     public func plan(album: Album) async throws -> MigrationPlan {
         guard album.storageOption == .local || album.storageOption == .icloud else {
@@ -213,18 +264,20 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         }
 
         state = .planning
-        let enumerated = await enumerateItems(album: album)
-
         let store = MigrationPlanStore(album: album)
         let existing = await store.load()
+        let cloudKitAlbumID: String
+        if let persisted = existing?.destination.cloudKitAlbumID {
+            cloudKitAlbumID = persisted
+        } else {
+            cloudKitAlbumID = try await resolveCloudKitAlbumID(for: album)
+        }
+
+        let enumerated = await enumerateItems(album: album)
         let merged = Self.merge(existing: existing?.items ?? [], enumerated: enumerated)
 
-        let plan = MigrationPlan(
-            albumName: album.name,
-            sourceStorage: album.storageOption,
-            items: merged,
-            createdAt: existing?.createdAt ?? Date()
-        )
+        let plan = try MigrationPlan.album(album, items: merged, createdAt: existing?.createdAt ?? Date(),
+                                           cloudKitAlbumID: cloudKitAlbumID)
         try await store.save(plan)
 
         publishProgress(plan)
@@ -234,22 +287,49 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
     // MARK: - Launch-time resume
 
-    /// Source albums that have an incomplete migration checkpoint on disk — surfaced
-    /// on launch so the app can offer to resume (or auto-resume). Cheap: one file
-    /// check per album, decrypting only those that actually have a checkpoint. A
-    /// completed migration deletes its checkpoint (and flips the album to `.cloudKit`),
-    /// so it never appears here.
-    public func pendingPlans() async -> [Album] {
-        var result: [Album] = []
+    /// Every plan on disk with unfinished business, in both scopes and both
+    /// directions — surfaced on launch so the app can resume them. A completed run
+    /// deletes its checkpoint, so it never appears here. A user-cancelled plan is
+    /// skipped: it stays resumable on demand, but must never be auto-restarted in the
+    /// background against the user's explicit cancel. Any OTHER surviving checkpoint
+    /// is unfinished business — "no remaining per-item work" still means a pending
+    /// finalize, which must be retried or the moved album is unreachable here.
+    public func pendingPlans() async -> [MigrationPlan] {
+        var result: [MigrationPlan] = []
         for album in albumManager.fetchAlbumsFromSources(includingHidden: true) {
-            guard MigrationPlanStore.hasPlan(for: album) else { continue }
-            if let plan = await MigrationPlanStore(album: album).load(),
-               plan.cancelledAt == nil {
-                result.append(album)
-            }
+            result += await MigrationPlanStore.plans(for: album).filter { $0.cancelledAt == nil }
         }
         return result
     }
+
+    /// The albums a plan's endpoints name on this device. An album-scope plan's
+    /// destination is the source's twin on the other plane, which need not exist yet;
+    /// an item-scope plan needs both albums. `nil` when an album is gone, and for a
+    /// move to CloudKit whose destination album has not been resolved yet.
+    public func albums(for plan: MigrationPlan) -> (source: Album, destination: Album)? {
+        let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
+        guard let source = albums.first(where: { $0.id == plan.source.albumID }) else { return nil }
+        switch plan.scope {
+        case .album:
+            guard plan.destination.storage == .cloudKit else {
+                return (source, Album.localTwin(of: source))
+            }
+            guard let albumID = plan.destination.cloudKitAlbumID else { return nil }
+            return (source, Album.cloudKitTwin(of: source, albumID: albumID))
+        case .items:
+            guard let destination = albums.first(where: { $0.id == plan.destination.albumID }) else { return nil }
+            return (source, destination)
+        }
+    }
+
+    /// The plan's source album on this device, or nil when it is gone.
+    private func sourceAlbum(for plan: MigrationPlan) -> Album? {
+        albumManager.fetchAlbumsFromSources(includingHidden: true).first { $0.id == plan.source.albumID }
+    }
+
+    /// The album the last run moved into, once it is known: for a move to CloudKit
+    /// that is only after planning has resolved the destination album's id.
+    public private(set) var destinationAlbum: Album?
 
     // MARK: - Execution
 
@@ -259,34 +339,30 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// instance can never drive the same plan and the same files concurrently (which
     /// would clobber the checkpoint and double-upload / double-delete). Keyed by
     /// `album.id` so it spans separate manager instances; in-memory so a crash never
-    /// leaves a stale lock across launches. Guarded by the `@MainActor` isolation.
-    private static var activeAlbumIDs: Set<String> = []
+    /// leaves a stale lock across launches. Claims and releases happen on the main
+    /// actor, so check-and-claim stays atomic; the lock only lets `isActive` be read
+    /// from any thread.
+    private static let activeAlbumIDs = ActiveAlbumIDs()
 
     /// Whether a migration for the album is currently running in this process (any
     /// manager instance). Lets UI launchers detect the already-running case up
-    /// front instead of registering a floating task that `start` silently orphans.
-    public static func isActive(albumID: String) -> Bool {
+    /// front instead of registering a floating task that `start` silently orphans,
+    /// and lets a rename refuse an album whose plan a run is rewriting.
+    public nonisolated static func isActive(albumID: String) -> Bool {
         activeAlbumIDs.contains(albumID)
     }
 
-    /// Claims the album for a run this engine does not drive — the CloudKit ->
-    /// local move. Sharing the engine's active set means the overlay predicate
-    /// (`isActive`) holds for both directions, and a forward `start` for the same
-    /// album is refused while the reverse move is draining it (and vice versa).
-    /// Returns `false` without claiming when the album is already active or an
-    /// erase is in flight; the caller must not run.
-    public static func claimExternalRun(albumID: String) -> Bool {
-        guard !abortAllRequested, !activeAlbumIDs.contains(albumID) else { return false }
-        activeAlbumIDs.insert(albumID)
-        return true
+    /// Slows each CloudKit -> local download so a UI test can observe the run,
+    /// mirroring the mock store's upload delay. Zero outside UI tests.
+    public static var downloadDelay: Duration {
+        get { CloudKitToLocalStep.downloadDelay }
+        set { CloudKitToLocalStep.downloadDelay = newValue }
     }
 
-    /// Releases a claim taken with `claimExternalRun`. Must be called on every
-    /// exit path of the external run, or the album stays unmigratable for the
-    /// rest of the session.
-    public static func releaseExternalRun(albumID: String) {
-        activeAlbumIDs.remove(albumID)
-    }
+    /// UI-test seam, nil in production. Awaited at each item boundary so a device
+    /// test can hold a run at an exact checkpoint and kill the app there, which no
+    /// amount of timing can do against real CloudKit.
+    public static var boundaryHook: ((MigrationBoundary) async -> Void)?
 
     /// Set by the erase flows: every in-flight run halts at its next item boundary
     /// WITHOUT saving a further checkpoint (the wipe removes them all), and new
@@ -303,47 +379,101 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         abortAllRequested = false
     }
 
-    /// Plans (or resumes) then runs the migration to completion. Safe to call again
-    /// after a crash/kill: it picks up from the persisted checkpoint and never
-    /// re-uploads or re-deletes an item that already advanced.
+    /// Plans (or resumes) then runs the album's migration to CloudKit to completion.
+    /// Safe to call again after a crash/kill: it picks up from the persisted
+    /// checkpoint and never re-uploads or re-deletes an item that already advanced.
     /// Returns `false` — without any state transition — when the album is already
     /// being migrated by another run in this process; callers driving UI must not
     /// register progress surfaces for a start that didn't claim the album.
+    ///
+    /// The CloudKit album it lands in is resolved while planning, so only the source
+    /// is claimed up front; the destination is claimed once the plan names it.
     @discardableResult
     public func start(album: Album) async -> Bool {
-        // Check-and-claim is atomic on the main actor (no await in between), so two
-        // concurrent starts for the same album can't both pass the guard.
-        guard !Self.abortAllRequested, !Self.activeAlbumIDs.contains(album.id) else { return false }
-        Self.activeAlbumIDs.insert(album.id)
-        defer { Self.activeAlbumIDs.remove(album.id) }
+        await claimAndRun(source: album, destination: nil) {
+            try await self.plan(album: album)
+        }
+    }
+
+    /// Runs `plan` to completion, in either scope and either direction. An
+    /// album-scope move to CloudKit re-plans first, so files added since the plan
+    /// was written are included. Returns `false` when either album is already being
+    /// moved by another run in this process, or when an album the plan names is gone.
+    @discardableResult
+    public func start(plan: MigrationPlan) async -> Bool {
+        if plan.scope == .album, plan.direction == .toCloudKit, let source = sourceAlbum(for: plan) {
+            return await start(album: source)
+        }
+        guard let albums = albums(for: plan) else {
+            printDebug("start ABORT plan=\(plan.id) — source or destination album not found")
+            state = .failed(.other("The album this move belongs to is no longer on this device."))
+            return false
+        }
+        return await claimAndRun(source: albums.source, destination: albums.destination) { plan }
+    }
+
+    /// Claims both albums, then plans and runs. The check-and-claim is atomic on the
+    /// main actor (no await in between), so two concurrent starts touching either
+    /// album can't both pass the guard; every claim is released on every exit.
+    ///
+    /// A nil `destination` is a move to CloudKit whose album the plan resolves: it is
+    /// claimed after planning, and a destination already claimed by another run ends
+    /// this one as `.idle` with `false`.
+    private func claimAndRun(source: Album,
+                             destination: Album?,
+                             makePlan: () async throws -> MigrationPlan) async -> Bool {
+        guard !Self.abortAllRequested,
+              !Self.activeAlbumIDs.contains(source.id),
+              !(destination.map { Self.activeAlbumIDs.contains($0.id) } ?? false) else { return false }
+        var claimed = [source.id]
+        if let destination { claimed.append(destination.id) }
+        claimed.forEach { Self.activeAlbumIDs.insert($0) }
+        defer { claimed.forEach { Self.activeAlbumIDs.remove($0) } }
         control = .running
+        destinationAlbum = destination
         do {
-            let plan = try await plan(album: album)
-            await run(album: album, initialPlan: plan)
+            let plan = try await makePlan()
+            let resolved: Album
+            if let destination {
+                resolved = destination
+            } else {
+                guard let albumID = plan.destination.cloudKitAlbumID else {
+                    state = .failed(.other("The move has no destination album"))
+                    return true
+                }
+                resolved = Album.cloudKitTwin(of: source, albumID: albumID)
+                guard !Self.activeAlbumIDs.contains(resolved.id) else {
+                    printDebug("start ABORT — destination album=\(resolved.id) is already being moved into")
+                    state = .idle
+                    return false
+                }
+                Self.activeAlbumIDs.insert(resolved.id)
+                claimed.append(resolved.id)
+                destinationAlbum = resolved
+            }
+            await run(plan, source: source, destination: resolved)
         } catch let MigrationError.invalidSourceStorage(storage) {
             state = .failed(.other("Cannot migrate a \(storage.rawValue) album"))
+        } catch MigrationError.cloudKitAlbumLookupFailed(let reason) {
+            printDebug("start ABORT — could not look up the destination album: \(reason)")
+            state = .failed(.other("Could not look up the album in iCloud. Check your connection and try again."))
+        } catch CloudKitMediaStoreError.accountUnavailable {
+            state = .failed(.accountUnavailable)
         } catch {
             state = .failed(.other("\(error)"))
         }
         return true
     }
 
-    /// Drives every not-yet-done item through upload -> verify -> delete-source,
-    /// persisting the plan after each transition. The CloudKit upload goes through
-    /// the SAME coordinator the live app uses, so the migrated album's index and
-    /// blob cache are populated exactly as a fresh CloudKit save would leave them.
-    private func run(album: Album, initialPlan: MigrationPlan) async {
-        let target = Self.cloudKitAlbum(from: album)
-        // Fail closed if the keyed hash cannot be derived: `album.id` embeds the
-        // CLEARTEXT album name, so any fallback would persist it server-side —
-        // and in a namespace the reconciler (which skips unhashable albums) could
-        // never match, pull, or tombstone.
-        guard let albumIDHash = deriveAlbumIDHash(for: album) else {
-            printDebug("run ABORT — could not derive albumIDHash for album=\(album.name)")
-            state = .failed(.other("Could not derive the album's iCloud identifier"))
-            return
-        }
-        let store = makeStore(albumIDHash)
+    /// Drives every not-yet-done item through transfer -> verify -> remove-source,
+    /// persisting the plan after each transition. Uploads go through the SAME
+    /// coordinator the live app uses, so a migrated album's index and blob cache are
+    /// populated exactly as a fresh CloudKit save would leave them.
+    private func run(_ initialPlan: MigrationPlan, source: Album, destination: Album) async {
+        let cloudAlbum = initialPlan.direction == .toCloudKit ? destination : source
+        guard let albumID = cloudKitAlbumID(of: cloudAlbum),
+              destinationNameIsFree(for: initialPlan, source: source, destination: destination) else { return }
+        let store = makeStore(albumID)
         activeStore = store
         defer { activeStore = nil }
         defer { currentPhase = nil }
@@ -351,198 +481,610 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         state = .running
         setPhase(.preparing, plan: initialPlan)
 
-        printDebug("run start album=\(album.name) storage=\(album.storageOption) items=\(initialPlan.items.count) albumIDHash=\(albumIDHash)")
+        printDebug("run start plan=\(initialPlan.id) scope=\(initialPlan.scope) source=\(source.name)/\(source.storageOption) destination=\(destination.name)/\(destination.storageOption) items=\(initialPlan.items.count) albumID=\(albumID)")
 
+        guard await prepareStore(store) else { return }
+        let planStore = MigrationPlanStore(sourceAlbum: source, planID: initialPlan.id)
+        let context = makeRunContext(for: initialPlan, source: source, destination: destination,
+                                     albumID: albumID, store: store, planStore: planStore)
+        guard await prepareDestination(for: initialPlan, context: context) else { return }
+
+        var plan = initialPlan
+        if plan.scope == .album, plan.direction == .toLocal {
+            guard await replanFromCloudKitIndex(&plan, source: source, planStore: planStore) else { return }
+        }
+        if plan.scope == .items, plan.direction == .toCloudKit {
+            await removeLeftoverSourceEntries(of: plan, source: source)
+        }
+        if await honorPendingControl(&plan, planStore: planStore, store: store,
+                                    sourceModel: context.sourceModel) { return }
+
+        let step: MigrationItemStep = plan.direction == .toCloudKit ? LocalToCloudKitStep() : CloudKitToLocalStep()
+        guard let verifiedThisRun = await transferItems(&plan, step: step, context: context, planStore: planStore),
+              await removeSourcesOnceAllVerified(&plan, step: step, context: context,
+                                                 verifiedThisRun: verifiedThisRun, planStore: planStore) else { return }
+        await finishRun(&plan, context: context, planStore: planStore)
+    }
+
+    // MARK: - Run setup
+
+    /// The CloudKit side's album id, or nil — with the run failed — when it has none.
+    private func cloudKitAlbumID(of cloudAlbum: Album) -> String? {
+        guard let albumID = cloudAlbum.albumID else {
+            printDebug("run ABORT — the CloudKit side has no albumID album=\(cloudAlbum.name)")
+            state = .failed(.other("The album has no iCloud identifier"))
+            return nil
+        }
+        return albumID
+    }
+
+    /// A whole album moving back becomes the local directory its name ciphertext
+    /// names, so its name must be free on this device first. A directory already at
+    /// that path is this move's own, from an earlier run. Fails the run on a clash.
+    private func destinationNameIsFree(for plan: MigrationPlan, source: Album, destination: Album) -> Bool {
+        guard plan.direction == .toLocal, plan.scope == .album,
+              !FileManager.default.fileExists(atPath: LocalStorageModel(album: destination).baseURL.path),
+              let clash = albumManager.albumNamed(source.name, otherThan: source) else { return true }
+        printDebug("run ABORT — an album with the source's name already exists storage=\(clash.storageOption)")
+        state = .failed(.other(L10n.albumExistsError))
+        return false
+    }
+
+    /// Checks the iCloud account and makes sure the zone exists. Only a missing
+    /// account stops the run; a zone failure surfaces through the transfers.
+    private func prepareStore(_ store: CloudKitMediaStoring) async -> Bool {
         guard await store.accountAvailable() else {
             printDebug("run ABORT — iCloud account unavailable")
             state = .failed(.accountUnavailable)
-            return
+            return false
         }
         do {
             try await store.ensureZoneExists()
             printDebug("run zone ready")
         } catch {
-            printDebug("run WARNING ensureZoneExists failed: \(error) — continuing, but uploads will likely fail")
+            printDebug("run WARNING ensureZoneExists failed: \(error) — continuing, but transfers will likely fail")
         }
+        return true
+    }
 
-        // The album record MUST exist before any media is uploaded into it. Every
-        // EncMedia record sets `parent` to the owning EncAlbum, and CloudKit
-        // requires a `parent` target to already exist on the server (or be saved in
-        // the same operation) — otherwise the save is rejected with
-        // `CKError.referenceViolation` (31). Only the album reconciler used to
-        // create this record, on its own schedule, so migrating an album the
-        // reconciler had not yet pushed failed EVERY item with a reference
-        // violation. `saveAlbum` is idempotent, so doing it here is safe even when
-        // the reconciler already got there first.
-        guard let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
-                                                                             keyManager: albumManager.keyManager) else {
-            printDebug("run ABORT albumID=\(albumIDHash) — no held key decrypts this album's name")
-            state = .failed(.other("This album's key is not on this device."))
-            return
-        }
-        do {
-            try await store.saveAlbum(CloudKitAlbumUpload(
-                albumID: albumIDHash,
-                encName: album.encryptedPathComponent,
-                createdAt: album.creationDate,
-                isHidden: albumManager.isAlbumHidden(album),
-                keyFingerprint: albumFingerprint
-            ))
-            printDebug("run album record ready albumID=\(albumIDHash)")
-        } catch {
-            printDebug("run ABORT saveAlbum FAILED albumID=\(albumIDHash) error=\(error)")
-            if case .underlying(let underlying) = Self.unwrapPartial(mapCKError(error)),
-               let ckError = underlying as? CKError, ckError.code == .invalidArguments {
-                state = .failed(.schemaNotDeployed)
-            } else {
-                state = .failed(.other("Could not create the album in iCloud: \(error)"))
-            }
-            return
-        }
-
+    private func makeRunContext(for plan: MigrationPlan,
+                                source: Album,
+                                destination: Album,
+                                albumID: String,
+                                store: CloudKitMediaStoring,
+                                planStore: MigrationPlanStore) -> MigrationRunContext {
+        let cloudAlbum = plan.direction == .toCloudKit ? destination : source
         // The SHARED blob cache, not a fresh instance: separate instances write
         // `.cacheindex.json` from divergent snapshots and clobber each other (see
         // `CloudKitBlobCache.shared`), and a private cache would leave the shared
         // one ignorant of the migrated blobs — its next persist would orphan them,
         // breaking the "blob is in the on-device cache" claim at the delete site.
         let coordinator = CloudKitSyncCoordinator(
-            albumID: albumIDHash,
+            albumID: albumID,
             store: store,
             cache: CloudKitBlobCache.shared,
-            indexStore: MediaIndexStore(album: target),
-            sizeSidecar: AlbumSizeSidecar(album: target)
+            indexStore: MediaIndexStore(album: cloudAlbum),
+            sizeSidecar: AlbumSizeSidecar(album: cloudAlbum),
+            chunkStore: chunkStoreOverride
         )
-        let planStore = MigrationPlanStore(album: album)
-        let sourceModel = albumManager.storageModel(for: album)
-
-        var plan = initialPlan
-
-        if await honorPendingControl(&plan, planStore: planStore, store: store,
-                                    sourceModel: sourceModel) { return }
-
-        let batchSize = ICloudDriveMigrationBatchSize.current
-        let storedKeys = (try? albumManager.keyManager.storedKeys()) ?? []
-        /// Exclusive upper bound of the item indices already materialized. Only
-        /// meaningful for an `.icloud` source; a local album needs no download step,
-        /// so its loop is byte-for-byte what it was before batching existed.
-        var materializedThrough = 0
-
-        for index in plan.items.indices where !plan.items[index].state.isDone {
-            if Self.abortAllRequested {
-                store.cancelAll()
-                state = .idle
-                return
+        return MigrationRunContext(
+            source: source,
+            destination: destination,
+            sourceModel: albumManager.storageModel(for: source),
+            destinationModel: plan.direction == .toLocal ? LocalStorageModel(album: destination) : nil,
+            cloudKitAlbumID: albumID,
+            coordinator: coordinator,
+            store: store,
+            savePlan: { plan in try await planStore.save(plan) },
+            // The key library, read once for the whole run rather than per item: the
+            // keychain query behind it is a full `SecItemCopyMatching`.
+            storedKeys: (try? albumManager.keyManager.storedKeys()) ?? [],
+            keyManager: albumManager.keyManager,
+            isCancelRequested: { [weak self] in self?.control == .cancelRequested },
+            setPhase: { [weak self] phase, plan, itemName in
+                self?.setPhase(phase, plan: plan, currentItemName: itemName)
             }
-            if await honorPendingControl(&plan, planStore: planStore, store: store,
-                                        sourceModel: sourceModel) { return }
+        )
+    }
 
-            if plan.sourceStorage == .icloud, index >= materializedThrough {
+    /// Readies the destination before any item moves: the album record for a move
+    /// to CloudKit, the local directory for a move back. Fails the run otherwise.
+    private func prepareDestination(for plan: MigrationPlan, context: MigrationRunContext) async -> Bool {
+        switch plan.direction {
+        case .toCloudKit:
+            return await saveAlbumRecord(for: context.destination, source: context.source,
+                                         albumID: context.cloudKitAlbumID, store: context.store,
+                                         scope: plan.scope)
+        case .toLocal:
+            // Bring the index current first so the move sees records uploaded from
+            // another device moments ago rather than silently leaving them behind.
+            do {
+                try await context.coordinator.sync(albumID: context.cloudKitAlbumID)
+            } catch {
+                printDebug("run ABORT — reconcile of the source album failed: \(error)")
+                state = .failed(.other("Could not bring the album up to date with iCloud: \(error)"))
+                return false
+            }
+            do {
+                try LocalStorageModel(album: context.destination).initializeDirectories()
+            } catch {
+                printDebug("run ABORT — could not initialize the local destination: \(error)")
+                state = .failed(.other("Could not initialize the local destination directory: \(error)"))
+                return false
+            }
+            return true
+        }
+    }
+
+    /// A whole CloudKit album is planned only after the reconcile in
+    /// `prepareDestination`, so the plan covers every record the server holds. A
+    /// surviving checkpoint's progress is merged in, so a resume after every item
+    /// verified goes straight to removing the records.
+    private func replanFromCloudKitIndex(_ plan: inout MigrationPlan,
+                                         source: Album,
+                                         planStore: MigrationPlanStore) async -> Bool {
+        let existing = await planStore.load()
+        let enumerated = await enumerateCloudKitItems(album: source)
+        do {
+            plan = try MigrationPlan.album(source,
+                                           items: Self.merge(existing: existing?.items ?? plan.items,
+                                                             enumerated: enumerated),
+                                           createdAt: existing?.createdAt ?? plan.createdAt)
+            try await planStore.save(plan)
+        } catch {
+            printDebug("run ABORT — could not checkpoint the plan: \(error)")
+            state = .failed(.other("\(error)"))
+            return false
+        }
+        publishProgress(plan)
+        return true
+    }
+
+    // MARK: - Run: transfer pass
+
+    /// A whole album moving back to this device removes nothing until every item
+    /// has verified: the local album stays invisible here until finalize flips its
+    /// storage, so removing a record per item would take it off every other device
+    /// while this one cannot show it yet. Everything else removes each source copy
+    /// as soon as its destination copy verifies.
+    private static func removesSourcePerItem(_ plan: MigrationPlan) -> Bool {
+        !(plan.scope == .album && plan.direction == .toLocal)
+    }
+
+    /// The main loop: every not-yet-done item through its step. Returns the indices
+    /// of the items this run verified — any other `verified` item is checked again
+    /// before its source copy is removed — or nil when the run has stopped and
+    /// already published its terminal state.
+    private func transferItems(_ plan: inout MigrationPlan,
+                               step: MigrationItemStep,
+                               context: MigrationRunContext,
+                               planStore: MigrationPlanStore) async -> Set<Int>? {
+        let removesPerItem = Self.removesSourcePerItem(plan)
+        let batchSize = ICloudDriveMigrationBatchSize.current
+        /// Exclusive upper bound of the item indices already materialized. Only
+        /// meaningful for an `.icloud` source; a local album needs no download step.
+        var materializedThrough = 0
+        var verifiedThisRun = Set<Int>()
+        for index in plan.items.indices where !plan.items[index].state.isDone {
+            if await mustStopBeforeItem(&plan, context: context, planStore: planStore) { return nil }
+
+            if plan.source.storage == .icloud, index >= materializedThrough {
                 materializedThrough = await materializeBatch(startingAt: index,
                                                              in: &plan,
                                                              planStore: planStore,
-                                                             sourceModel: sourceModel,
+                                                             sourceModel: context.sourceModel,
                                                              batchSize: batchSize)
-                if await honorPendingControl(&plan, planStore: planStore, store: store,
-                                            sourceModel: sourceModel) { return }
+                if await honorPendingControl(&plan, planStore: planStore, store: context.store,
+                                            sourceModel: context.sourceModel) { return nil }
             }
 
             publishProgress(plan, currentItemName: plan.items[index].mediaID)
+            let entered = plan.items[index].state
             do {
-                try await migrateItem(at: index,
-                                      in: &plan,
-                                      planStore: planStore,
-                                      store: store,
-                                      coordinator: coordinator,
-                                      sourceModel: sourceModel,
-                                      albumIDHash: albumIDHash,
-                                      storedKeys: storedKeys)
-                if plan.items[index].state == .pending {
-                    try await migrateItem(at: index,
-                                          in: &plan,
-                                          planStore: planStore,
-                                          store: store,
-                                          coordinator: coordinator,
-                                          sourceModel: sourceModel,
-                                          albumIDHash: albumIDHash,
-                                          storedKeys: storedKeys)
-                    if plan.items[index].state == .pending {
-                        markFailed(&plan, index,
-                                   MigrationError.verificationFailed(recordName: plan.items[index].recordName))
-                        try? await planStore.save(plan)
-                    }
-                }
-            } catch let rawError as CloudKitMediaStoreError {
-                let error = Self.unwrapPartial(rawError)
-                switch error {
-                case .quotaExceeded:
-                    markFailed(&plan, index, error)
-                    try? await planStore.save(plan)
-                    state = .failed(.quota)
-                    currentPhase = nil
-                    publishProgress(plan)
-                    return
-                case .accountUnavailable:
-                    markFailed(&plan, index, error)
-                    try? await planStore.save(plan)
-                    state = .failed(.accountUnavailable)
-                    currentPhase = nil
-                    publishProgress(plan)
-                    return
-                case .cancelled:
-                    Self.revertInFlight(&plan)
-                    evictUnuploadedMaterializedFiles(plan, sourceModel: sourceModel)
-                    if control == .cancelRequested { plan.cancelledAt = Date() }
-                    try? await planStore.save(plan)
-                    state = .idle
-                    currentPhase = nil
-                    publishProgress(plan)
-                    return
-                default:
-                    markFailed(&plan, index, error)
-                    try? await planStore.save(plan)
-                }
+                try await drive(index, in: &plan, step: step, removesSource: removesPerItem, context: context)
             } catch {
-                markFailed(&plan, index, error)
-                try? await planStore.save(plan)
+                if await recordItemError(error, at: index, in: &plan, context: context,
+                                         planStore: planStore) { return nil }
+            }
+            if entered != .verified, plan.items[index].state == .verified { verifiedThisRun.insert(index) }
+            if plan.scope == .items, plan.items[index].state == .sourceDeleted {
+                await recordItemMoved(plan.items[index], of: plan, direction: plan.direction,
+                                      source: context.source, destinationModel: context.destinationModel,
+                                      destination: context.destination)
             }
             publishProgress(plan, currentItemName: plan.items[index].mediaID)
+            await Self.boundaryHook?(.transferred(verified: plan.verifiedCount))
         }
+        return verifiedThisRun
+    }
 
+    /// Honors an erase's abort-all and any pending pause/cancel before the next item.
+    private func mustStopBeforeItem(_ plan: inout MigrationPlan,
+                                    context: MigrationRunContext,
+                                    planStore: MigrationPlanStore) async -> Bool {
+        if Self.abortAllRequested {
+            context.store.cancelAll()
+            state = .idle
+            return true
+        }
+        return await honorPendingControl(&plan, planStore: planStore, store: context.store,
+                                         sourceModel: context.sourceModel)
+    }
+
+    /// Records an item's failure. Returns `true` when the error ends the whole run —
+    /// a full iCloud, a lost account, or a cancel — with its terminal state published;
+    /// any other error fails only the item and the loop moves on.
+    private func recordItemError(_ error: Error,
+                                 at index: Int,
+                                 in plan: inout MigrationPlan,
+                                 context: MigrationRunContext,
+                                 planStore: MigrationPlanStore) async -> Bool {
+        guard let storeError = error as? CloudKitMediaStoreError else {
+            plan.markFailed(index, error)
+            try? await planStore.save(plan)
+            return false
+        }
+        let unwrapped = Self.unwrapPartial(storeError)
+        switch unwrapped {
+        case .quotaExceeded:
+            plan.markFailed(index, unwrapped)
+            try? await planStore.save(plan)
+            endRun(.failed(.quota), plan: plan)
+            return true
+        case .accountUnavailable:
+            plan.markFailed(index, unwrapped)
+            try? await planStore.save(plan)
+            endRun(.failed(.accountUnavailable), plan: plan)
+            return true
+        case .cancelled:
+            plan.revertInFlight()
+            evictUnuploadedMaterializedFiles(plan, sourceModel: context.sourceModel)
+            if control == .cancelRequested {
+                plan.cancelledAt = Date()
+                await discardLocalCopiesOfUnmovedItems(&plan, store: context.store)
+            }
+            try? await planStore.save(plan)
+            endRun(.idle, plan: plan)
+            return true
+        default:
+            plan.markFailed(index, unwrapped)
+            try? await planStore.save(plan)
+            return false
+        }
+    }
+
+    /// Sets the run's terminal state and publishes the final snapshot with no phase.
+    private func endRun(_ terminal: MigrationState, plan: MigrationPlan) {
+        state = terminal
+        currentPhase = nil
+        publishProgress(plan)
+    }
+
+    // MARK: - Run: removal pass and finish
+
+    /// For a run that holds source removal until every item has verified, starts that
+    /// pass once they have. Returns `false` when the run has stopped and already
+    /// published its terminal state.
+    private func removeSourcesOnceAllVerified(_ plan: inout MigrationPlan,
+                                              step: MigrationItemStep,
+                                              context: MigrationRunContext,
+                                              verifiedThisRun: Set<Int>,
+                                              planStore: MigrationPlanStore) async -> Bool {
+        guard !Self.removesSourcePerItem(plan),
+              plan.items.allSatisfy({ $0.state == .verified || $0.state.isDone }),
+              plan.items.contains(where: { $0.state == .verified }) else { return true }
+        // The last boundary a cancel can stop at: every local copy is verified
+        // and no record has been touched, so the album is still whole in CloudKit.
+        if await honorPendingControl(&plan, planStore: planStore, store: context.store,
+                                    sourceModel: context.sourceModel) { return false }
+        return await removeSources(&plan, step: step, context: context, verifiedThisRun: verifiedThisRun,
+                                   planStore: planStore, store: context.store)
+    }
+
+    /// Settles the run once the item passes are over: finalize when nothing is left,
+    /// fail when items failed, otherwise go idle with the checkpoint kept.
+    private func finishRun(_ plan: inout MigrationPlan,
+                           context: MigrationRunContext,
+                           planStore: MigrationPlanStore) async {
         if !plan.hasRemainingWork {
-            if plan.items.isEmpty {
-                let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(target.encryptedPathComponent)
-                if FileManager.default.fileExists(atPath: marker.path) {
-                    await planStore.delete()
-                    state = .idle
-                    currentPhase = nil
-                    publishProgress(plan)
-                    return
-                }
-            }
-            do {
-                _ = try albumManager.finalizeMigrationToCloudKit(album: album)
-            } catch {
-                printDebug("run FINALIZE FAILED album=\(album.name) error=\(error) — checkpoint kept for retry")
-                state = .failed(.other("Could not finish the album move: \(error)"))
-                currentPhase = nil
-                publishProgress(plan)
-                return
-            }
-            try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
-            await planStore.delete()
-            printDebug("run COMPLETED album=\(album.name) items=\(plan.items.count)")
-            state = .completed
+            guard await finalize(plan, context: context, planStore: planStore) else { return }
         } else if plan.failedCount > 0 {
-            let failedNames = plan.items.filter { $0.state == .failed }.map(\.recordName)
-            printDebug("run FAILED album=\(album.name) failedCount=\(plan.failedCount) of \(plan.items.count) recordNames=\(failedNames)")
-            let firstError = plan.items.first(where: { $0.state == .failed })?.lastError
-            state = .failed(.other(firstError.map { "\(plan.failedCount) item(s) failed: \($0)" }
-                                   ?? "\(plan.failedCount) item(s) failed"))
+            await failWithItemErrors(&plan, store: context.store, planStore: planStore)
         } else {
             state = .idle
         }
         currentPhase = nil
         publishProgress(plan)
+    }
+
+    /// Completes a drained plan. Returns `false` when finalizing failed and the run
+    /// has already published its terminal state.
+    private func finalize(_ plan: MigrationPlan,
+                          context: MigrationRunContext,
+                          planStore: MigrationPlanStore) async -> Bool {
+        switch (plan.scope, plan.direction) {
+        case (.album, .toCloudKit):
+            return await finalizeAlbumToCloudKit(plan, album: context.source, albumID: context.cloudKitAlbumID,
+                                                 planStore: planStore)
+        case (.album, .toLocal):
+            return await finalizeAlbumToLocal(plan, album: context.source, planStore: planStore)
+        case (.items, _):
+            await planStore.delete()
+            printDebug("run COMPLETED plan=\(plan.id) items=\(plan.items.count)")
+            state = .completed
+            return true
+        }
+    }
+
+    /// Flips a drained album's identity back to local. A failure keeps the
+    /// checkpoint so the next resume retries the finalize.
+    private func finalizeAlbumToLocal(_ plan: MigrationPlan,
+                                      album: Album,
+                                      planStore: MigrationPlanStore) async -> Bool {
+        do {
+            _ = try await albumManager.finalizeMigrationToLocal(album: album)
+        } catch {
+            printDebug("run FINALIZE FAILED album=\(album.name) error=\(error) — checkpoint kept for retry")
+            endRun(.failed(.other("Could not finish the album move: \(error)")), plan: plan)
+            return false
+        }
+        await planStore.delete()
+        printDebug("run COMPLETED album=\(album.name) -> local items=\(plan.items.count)")
+        state = .completed
+        return true
+    }
+
+    /// Fails the run with the first failed item's error, keeping the checkpoint.
+    private func failWithItemErrors(_ plan: inout MigrationPlan,
+                                    store: CloudKitMediaStoring,
+                                    planStore: MigrationPlanStore) async {
+        await discardLocalCopiesOfUnmovedItems(&plan, store: store)
+        try? await planStore.save(plan)
+        let failedNames = plan.items.filter { $0.state == .failed }.map(\.recordName)
+        printDebug("run FAILED plan=\(plan.id) failedCount=\(plan.failedCount) of \(plan.items.count) recordNames=\(failedNames)")
+        let firstError = plan.items.first(where: { $0.state == .failed })?.lastError
+        state = .failed(.other(firstError.map { "\(plan.failedCount) item(s) failed: \($0)" }
+                               ?? "\(plan.failedCount) item(s) failed"))
+    }
+
+    /// One item through its step: transfer, then remove the source once verified.
+    /// A removal that finds a stale verification resets the item to `pending`; it is
+    /// re-driven in place once, since the loop is single-pass and would otherwise end
+    /// the run as a silent `.idle` (which the launcher reports as a user cancel). If
+    /// it comes back `pending` AGAIN (the record keeps vanishing), that is a failure.
+    private func drive(_ index: Int,
+                       in plan: inout MigrationPlan,
+                       step: MigrationItemStep,
+                       removesSource: Bool,
+                       context: MigrationRunContext) async throws {
+        for _ in 0..<2 {
+            let entered = plan.items[index].state
+            try await step.transfer(at: index, in: &plan, context: context)
+            if removesSource, plan.items[index].state == .verified {
+                await Self.boundaryHook?(.removingSource(removed: plan.items.filter { $0.state == .sourceDeleted }.count))
+                try await step.removeSource(at: index, in: &plan,
+                                            verifiedThisRun: entered != .verified,
+                                            context: context)
+            }
+            guard plan.items[index].state == .pending else { return }
+        }
+        plan.markFailed(index, MigrationError.verificationFailed(recordName: plan.items[index].recordName))
+        try? await context.savePlan(plan)
+    }
+
+    /// The second pass of a whole album moving back to this device: removes the
+    /// record of every verified item. A cancel is ignored from here on — stopping
+    /// part-way would leave the album half-deleted in CloudKit while it still reads
+    /// as a CloudKit album here — but a pause still stops at an item boundary, and
+    /// the resume comes straight back to this pass. Returns `false` when the run has
+    /// already published its terminal state.
+    private func removeSources(_ plan: inout MigrationPlan,
+                               step: MigrationItemStep,
+                               context: MigrationRunContext,
+                               verifiedThisRun: Set<Int>,
+                               planStore: MigrationPlanStore,
+                               store: CloudKitMediaStoring) async -> Bool {
+        isRemovingSources = true
+        defer { isRemovingSources = false }
+        setPhase(.removingRemoteCopy, plan: plan)
+        var removed = 0
+        for index in plan.items.indices where plan.items[index].state == .verified {
+            await Self.boundaryHook?(.removing(removed: removed))
+            removed += 1
+            if Self.abortAllRequested {
+                store.cancelAll()
+                state = .idle
+                return false
+            }
+            if control == .pauseRequested,
+               await honorPendingControl(&plan, planStore: planStore, store: store) { return false }
+            publishProgress(plan, currentItemName: plan.items[index].mediaID)
+            do {
+                try await step.removeSource(at: index, in: &plan,
+                                            verifiedThisRun: verifiedThisRun.contains(index), context: context)
+                // A stale local copy sends the item back for another download.
+                if plan.items[index].state == .pending {
+                    try await drive(index, in: &plan, step: step, removesSource: true, context: context)
+                }
+            } catch {
+                // The item stays `verified`, so the resume comes straight back here
+                // rather than downloading it again.
+                plan.items[index].lastError = "\(error)"
+                try? await planStore.save(plan)
+                printDebug("run REMOVE FAILED recordName=\(plan.items[index].recordName) error=\(error)")
+                if let storeError = error as? CloudKitMediaStoreError,
+                   case .accountUnavailable = Self.unwrapPartial(storeError) {
+                    state = .failed(.accountUnavailable)
+                } else {
+                    state = .failed(.other("Could not remove the iCloud copy: \(error)"))
+                }
+                currentPhase = nil
+                publishProgress(plan)
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Creates the destination's album record before any media is uploaded into it.
+    /// Every EncMedia record sets `parent` to its EncAlbum, and CloudKit rejects a
+    /// save whose parent is not on the server (`CKError.referenceViolation`), so
+    /// without this every upload would fail the same way. `saveAlbum` is idempotent.
+    ///
+    /// An album this device already holds as a CloudKit album is saved from its
+    /// `album.json`. Otherwise the record takes the album's name ciphertext byte for
+    /// byte and, for a whole album, the hidden flag and cover of the source album.
+    private func saveAlbumRecord(for album: Album,
+                                 source: Album,
+                                 albumID: String,
+                                 store: CloudKitMediaStoring,
+                                 scope: MigrationScope) async -> Bool {
+        let subject = scope == .album ? "This album's" : "The destination album's"
+        guard let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
+                                                                             keyManager: albumManager.keyManager) else {
+            printDebug("run ABORT albumID=\(albumID) — no held key decrypts the album's name")
+            state = .failed(.other("\(subject) key is not on this device."))
+            return false
+        }
+        do {
+            let upload: CloudKitAlbumUpload
+            if let marker = CloudKitAlbumMarker.read(albumID: albumID) {
+                upload = CloudKitAlbumUpload(albumID: albumID,
+                                             encName: marker.encName,
+                                             createdAt: marker.createdAt,
+                                             isHidden: marker.isHidden,
+                                             keyFingerprint: albumFingerprint,
+                                             coverMediaID: marker.recordCoverMediaID)
+            } else {
+                let settings = scope == .album ? source : album
+                let cover = albumManager.getAlbumCoverImageId(album: settings)
+                upload = CloudKitAlbumUpload(albumID: albumID,
+                                             encName: album.encryptedPathComponent,
+                                             createdAt: album.creationDate,
+                                             isHidden: albumManager.isAlbumHidden(settings),
+                                             keyFingerprint: albumFingerprint,
+                                             coverMediaID: cover == CloudKitAlbumMarker.disabledCoverID ? nil : cover)
+            }
+            try await store.saveAlbum(upload)
+            printDebug("run album record ready albumID=\(albumID)")
+            return true
+        } catch {
+            printDebug("run ABORT saveAlbum FAILED albumID=\(albumID) error=\(error)")
+            if case .underlying(let underlying) = Self.unwrapPartial(mapCKError(error)),
+               let ckError = underlying as? CKError, ckError.code == .invalidArguments {
+                // "Cannot create new type EncAlbum in production schema" — the
+                // Production environment never got the schema deploy. Distinct
+                // reason so the alert is actionable instead of "Partial failure".
+                state = .failed(.schemaNotDeployed)
+            } else {
+                let target = scope == .album ? "the album" : "the destination album"
+                state = .failed(.other("Could not create \(target) in iCloud: \(error)"))
+            }
+            return false
+        }
+    }
+
+    /// Keeps both albums' indexes current as an item-scope move lands each item, and
+    /// tells the gallery. Once every component of the item has left the source, a
+    /// source album whose cover it was falls back to its default cover. An album-scope
+    /// move needs none of this: finalize flips the whole album at once.
+    private func recordItemMoved(_ item: MigrationItem,
+                                 of plan: MigrationPlan,
+                                 direction: MigrationDirection,
+                                 source: Album,
+                                 destinationModel: DataStorageModel?,
+                                 destination: Album) async {
+        if plan.items.allSatisfy({ $0.mediaID != item.mediaID || $0.state == .sourceDeleted }) {
+            albumManager.resetAlbumCover(album: source, ifItIs: item.mediaID)
+        }
+        switch direction {
+        case .toCloudKit:
+            await removeFromSourceIndex(item, source: source)
+        case .toLocal:
+            let entry = MediaIndexEntry(
+                id: item.mediaID,
+                hasPhotoComponent: item.mediaType == .photo,
+                hasVideoComponent: item.mediaType == .video,
+                dateEncrypted: nil,
+                dateTaken: item.createdAt,
+                subtypeRawValue: 0
+            )
+            _ = try? await MediaIndexStore(album: destination).upsert([entry])
+            guard let destinationModel else { return }
+            let url = destinationModel.driveURLForMedia(withID: item.mediaID, type: item.mediaType)
+            FileOperationBus.shared.didCreate(EncryptedMedia(source: .url(url), mediaType: item.mediaType, id: item.mediaID))
+        }
+    }
+
+    /// Clears the moved component from the source index. A Live Photo keeps its
+    /// entry, and its place in the grid, until its other component has moved too;
+    /// only then is the grid told it is gone.
+    private func removeFromSourceIndex(_ item: MigrationItem, source: Album) async {
+        guard let entryRemoved = try? await MediaIndexStore(album: source).removeComponent(recordName: item.recordName),
+              entryRemoved else { return }
+        let media = EncryptedMedia(source: .url(URL(fileURLWithPath: "/dev/null")),
+                                   mediaType: item.mediaType, id: item.mediaID)
+        FileOperationBus.shared.didDelete([media])
+    }
+
+    /// Clears the source index component of every item an earlier run finished
+    /// moving to CloudKit. A run killed between an item's `sourceDeleted` checkpoint
+    /// and its index write leaves the entry naming a file that is gone.
+    private func removeLeftoverSourceEntries(of plan: MigrationPlan, source: Album) async {
+        guard let entries = await MediaIndexStore(album: source).current()?.entries else { return }
+        for item in plan.items where item.state == .sourceDeleted {
+            guard let entry = entries.first(where: { $0.id == item.mediaID }),
+                  item.mediaType == .photo ? entry.hasPhotoComponent : entry.hasVideoComponent else { continue }
+            printDebug("run clearing leftover source entry recordName=\(item.recordName)")
+            await removeFromSourceIndex(item, source: source)
+        }
+    }
+
+    /// Flips a drained album's identity to CloudKit. Returns `false` when the run
+    /// already published its terminal state and must return without publishing again.
+    private func finalizeAlbumToCloudKit(_ plan: MigrationPlan,
+                                         album: Album,
+                                         albumID: String,
+                                         planStore: MigrationPlanStore) async -> Bool {
+        // No remaining work — every item is done, or there were none to begin
+        // with (an empty album must still flip to CloudKit rather than wedge
+        // forever with an orphaned zero-item checkpoint that `pendingPlans()`
+        // can never surface).
+        // A zero-item plan for an album whose CloudKit discovery marker already
+        // exists is not an empty album: it is a re-run against an album that
+        // already finalized (source drained, checkpoint deleted). Don't
+        // re-finalize — just drop the zero-item checkpoint this run's plan()
+        // re-created. (Source-dir existence can't be the signal: enumeration
+        // re-creates the directory via `initializeDirectories`.)
+        if plan.items.isEmpty {
+            if CloudKitAlbumMarker.exists(albumID: albumID) {
+                await planStore.delete()
+                state = .idle
+                return true
+            }
+        }
+        // Flip the album's identity to CloudKit (marker + drop drained source dir),
+        // then clean up the now-stale source index and the checkpoint. The bytes
+        // are already durable in CloudKit (verified) and cached locally.
+        // Finalize failure (marker unwritable) must KEEP the checkpoint: the
+        // marker is the album's only discovery mechanism, so destroying the plan
+        // here would leave the album safe in CloudKit but reachable nowhere on
+        // this device, with no retry state. A kept checkpoint retries finalize
+        // on the next resume.
+        do {
+            _ = try albumManager.finalizeMigrationToCloudKit(album: album, albumID: albumID)
+        } catch {
+            printDebug("run FINALIZE FAILED album=\(album.name) error=\(error) — checkpoint kept for retry")
+            state = .failed(.other("Could not finish the album move: \(error)"))
+            currentPhase = nil
+            publishProgress(plan)
+            return false
+        }
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+        await planStore.delete()
+        printDebug("run COMPLETED album=\(album.name) items=\(plan.items.count)")
+        state = .completed
+        return true
     }
 
     // MARK: - Materialization (iCloud Drive sources)
@@ -551,7 +1093,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// returns the exclusive upper bound of the item indices it covered.
     ///
     /// Failures are recorded as `lastError` and the item is left `pending` — never
-    /// marked done here. `migrateItem` owns the skip-versus-fail decision, and it is
+    /// marked done here. `LocalToCloudKitStep` owns the skip-versus-fail decision: it is
     /// the one that can tell "the file is genuinely gone" from "the file is still a
     /// placeholder", which is the difference between finishing an album and silently
     /// abandoning someone's photos in iCloud Drive.
@@ -632,9 +1174,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             return true
         case .cancelRequested:
             store.cancelAll()
-            Self.revertInFlight(&plan)
+            plan.revertInFlight()
             evictUnuploadedMaterializedFiles(plan, sourceModel: sourceModel)
             plan.cancelledAt = Date()
+            await discardLocalCopiesOfUnmovedItems(&plan, store: store)
             try? await planStore.save(plan)
             state = .idle
             currentPhase = nil
@@ -645,11 +1188,41 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         }
     }
 
+    /// An item-scope move back to this device that stops before an item's record is
+    /// deleted must not leave a local copy of it as well, or the item shows in both
+    /// albums. A copy is discarded only while its record is confirmed on the server,
+    /// since otherwise it may be the only one, and the item goes back to download
+    /// again on a resume. An album-scope move keeps its copies: that local album is
+    /// invisible until finalize, so discarding them would only force a re-download.
+    private func discardLocalCopiesOfUnmovedItems(_ plan: inout MigrationPlan,
+                                                  store: CloudKitMediaStoring) async {
+        guard plan.scope == .items, plan.direction == .toLocal,
+              let destination = albums(for: plan)?.destination else { return }
+        let model = LocalStorageModel(album: destination)
+        for index in plan.items.indices where !plan.items[index].state.isDone {
+            let item = plan.items[index]
+            let url = model.driveURLForMedia(withID: item.mediaID, type: item.mediaType)
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+            guard (try? await store.fetchRecordMetadata(recordName: item.recordName)) != nil else {
+                printDebug("kept local copy recordName=\(item.recordName) — its record could not be confirmed in CloudKit")
+                continue
+            }
+            do {
+                try FileManager.default.removeItem(at: url)
+            } catch {
+                printDebug("could not discard local copy recordName=\(item.recordName) error=\(error)")
+                continue
+            }
+            if plan.items[index].state != .failed { plan.items[index].state = .pending }
+            printDebug("discarded local copy recordName=\(item.recordName) — the move stopped with its record still in CloudKit")
+        }
+    }
+
     /// Pushes back to iCloud the files this run downloaded but never got to upload.
     /// Called AFTER `revertInFlight`, so an aborted upload counts as unuploaded.
     private func evictUnuploadedMaterializedFiles(_ plan: MigrationPlan,
                                                   sourceModel: DataStorageModel?) {
-        guard plan.sourceStorage == .icloud, let sourceModel else { return }
+        guard plan.source.storage == .icloud, let sourceModel else { return }
         let urls = plan.items
             .filter { $0.state == .pending || $0.state == .failed }
             .map { sourceModel.driveURLForMedia(withID: $0.mediaID, type: $0.mediaType) }
@@ -661,19 +1234,6 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         ICloudDriveMigrationObserver.shared.confirmEviction(of: evicted)
     }
 
-    private func markFailed(_ plan: inout MigrationPlan, _ index: Int, _ error: Error) {
-        plan.items[index].state = .failed
-        plan.items[index].lastError = "\(error)"
-        printDebug("item FAILED recordName=\(plan.items[index].recordName) error=\(error)")
-    }
-
-    /// Resets any item left mid-upload back to `pending` so a resume re-drives it
-    /// cleanly. `verified`/`sourceDeleted`/`uploaded` work is preserved.
-    static func revertInFlight(_ plan: inout MigrationPlan) {
-        for index in plan.items.indices where plan.items[index].state == .uploading {
-            plan.items[index].state = .pending
-        }
-    }
 
     // MARK: - Pause / Resume / Cancel
 
@@ -689,240 +1249,47 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         await start(album: album)
     }
 
-    /// Stops the migration and reverts any in-flight item to `pending`. The album stays
-    /// fully usable in its source storage (nothing verified was deleted). Aborts an
-    /// upload already in flight and records a durable cancel, so the migration is not
-    /// silently auto-resumed in the background — but the checkpoint is kept so the user
-    /// can still resume on demand (recovering any item that already moved to CloudKit).
+    /// Resumes a paused/failed/partial run of `plan` from its on-disk checkpoint.
+    public func resume(plan: MigrationPlan) async {
+        await start(plan: plan)
+    }
+
+    /// Stops the album's migration to CloudKit. See `cancel(plan:)`.
     public func cancel(album: Album) async {
+        await cancel(planStore: MigrationPlanStore(album: album))
+    }
+
+    /// Stops the run and reverts any in-flight item to `pending`. Nothing verified
+    /// has lost its only copy. Aborts a transfer already in flight and records a
+    /// durable cancel, so the run is not silently auto-resumed in the background —
+    /// but the checkpoint is kept so the user can still resume on demand.
+    public func cancel(plan: MigrationPlan) async {
+        guard let source = sourceAlbum(for: plan) else {
+            control = .cancelRequested
+            activeStore?.cancelAll()
+            return
+        }
+        await cancel(planStore: MigrationPlanStore(sourceAlbum: source, planID: plan.id))
+    }
+
+    private func cancel(planStore: MigrationPlanStore) async {
+        guard !isRemovingSources else {
+            printDebug("cancel IGNORED — the album's iCloud copies are already being removed")
+            return
+        }
         control = .cancelRequested
-        activeStore?.cancelAll()
+        activeStore?.cancelAll()                  // abort a transfer already in flight
         guard state != .running else { return }   // a running loop performs the revert itself
-        let store = MigrationPlanStore(album: album)
-        guard var plan = await store.load() else { state = .idle; currentPhase = nil; return }
-        Self.revertInFlight(&plan)
+        guard var plan = await planStore.load() else { state = .idle; currentPhase = nil; return }
+        plan.revertInFlight()
         plan.cancelledAt = Date()
-        try? await store.save(plan)
+        if let albumID = plan.source.cloudKitAlbumID {
+            await discardLocalCopiesOfUnmovedItems(&plan, store: makeStore(albumID))
+        }
+        try? await planStore.save(plan)
         state = .idle
         currentPhase = nil
         publishProgress(plan)
-    }
-
-    /// One item's resumable state machine. Each phase is guarded by the persisted
-    /// state and advances it exactly one step, persisting before moving on — so a
-    /// crash between any two phases resumes correctly. Re-uploading is avoided by
-    /// re-verifying an interrupted `uploading` item rather than blindly re-saving
-    /// (a stable record name + `ifServerRecordUnchanged` would otherwise conflict).
-    private func migrateItem(at index: Int,
-                             in plan: inout MigrationPlan,
-                             planStore: MigrationPlanStore,
-                             store: CloudKitMediaStoring,
-                             coordinator: CloudKitSyncCoordinator,
-                             sourceModel: DataStorageModel?,
-                             albumIDHash: String,
-                             storedKeys: [PrivateKey]) async throws {
-        let item = plan.items[index]
-        let encURL = sourceModel?.driveURLForMedia(withID: item.mediaID, type: item.mediaType)
-        let previewURL = sourceModel?.previewURLForMedia(withID: item.mediaID)
-
-        if plan.items[index].state == .uploading {
-            if try await isPresentInCloudKit(item, store: store) {
-                plan.items[index].state = .uploaded
-            } else {
-                plan.items[index].state = .pending
-            }
-            try await planStore.save(plan)
-        }
-
-        if plan.items[index].state == .pending || plan.items[index].state == .failed {
-            let sourceIsPresent = plan.sourceStorage == .icloud
-                ? encURL.map(ICloudPlaceholderName.isMaterialized) ?? false
-                : encURL.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
-            guard let encURL, sourceIsPresent else {
-                if let encURL, ICloudPlaceholderName.existsInAnyForm(encURL) {
-                    printDebug("item FAILED recordName=\(item.recordName) — still an iCloud Drive placeholder")
-                    plan.items[index].state = .failed
-                    if plan.items[index].lastError == nil {
-                        plan.items[index].lastError = "iCloud Drive file has not been downloaded yet"
-                    }
-                    try await planStore.save(plan)
-                    return
-                }
-                printDebug("item SKIPPED recordName=\(item.recordName) — source ciphertext missing at \(encURL?.lastPathComponent ?? "<no url>")")
-                plan.items[index].state = .skipped
-                plan.items[index].lastError = "source ciphertext missing"
-                try await planStore.save(plan)
-                return
-            }
-
-            // Which key encrypted THIS file, proven against its own bytes. An album can
-            // hold a file written under another key, so the album's key is an assumption
-            // and the record's `keyFingerprint` is what readers decrypt by — a wrong one
-            // publishes a blob nobody can open. A file whose key is not on this device
-            // fails here and never uploads: a record naming a guessed key is worse than
-            // no record, and the local original is the only copy left.
-            let proven: CloudKitKeyStamp.StampedSource
-            do {
-                proven = try await CloudKitKeyStamp.stampedSourceForUpload(at: encURL,
-                                                                           keyManager: albumManager.keyManager,
-                                                                           storedKeysSnapshot: storedKeys)
-            } catch {
-                printDebug("item FAILED recordName=\(item.recordName) — key not established: \(error)")
-                plan.items[index].state = .failed
-                plan.items[index].lastError = (error as? ErrorDescribable)?.displayDescription
-                    ?? "could not establish which key encrypted this file"
-                try await planStore.save(plan)
-                return
-            }
-
-            plan.items[index].state = .uploading
-            plan.items[index].lastError = nil
-            try await planStore.save(plan)
-
-            defer { proven.cleanUp() }
-            let thumbURL = previewURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
-
-            var uploadFileURL = proven.uploadURL
-            var chunkGeometry: (chunkCount: Int, plaintextLength: Int64)?
-            var reencryptedTemp: URL?
-            if SeekableEncryptedHeader.isSeekableFormat(fileURL: encURL) {
-                let header = try SeekableEncryptedHeader.read(fromFileAt: encURL).header
-                chunkGeometry = (header.chunkCount, Int64(header.plaintextLength))
-            } else if item.mediaType == .video,
-                      FeatureToggle.isEnabled(feature: .cloudKitStorage),
-                      item.sizeBytes >= Int64(SeekableEncryptedFormat.threshold) {
-                setPhase(.preparing, plan: plan, currentItemName: item.mediaID)
-                let header: SeekableEncryptedHeader
-                (uploadFileURL, header) = try await Self.reencryptToSeekable(sourceENC2: encURL,
-                                                                             mediaID: item.mediaID,
-                                                                             keyBytes: proven.key.keyBytes)
-                reencryptedTemp = uploadFileURL
-                chunkGeometry = (header.chunkCount, Int64(header.plaintextLength))
-            }
-            defer { if let reencryptedTemp { try? FileManager.default.removeItem(at: reencryptedTemp) } }
-
-            let descriptor = CloudKitMediaRecordDescriptor(
-                albumID: albumIDHash,
-                mediaID: item.mediaID,
-                recordName: item.recordName,
-                mediaType: item.mediaType,
-                createdAt: item.createdAt,
-                sizeBytes: item.sizeBytes,
-                keyFingerprint: proven.fingerprint,
-                chunkCount: chunkGeometry?.chunkCount ?? 0,
-                plaintextLength: chunkGeometry?.plaintextLength ?? 0
-            )
-            let upload = CloudKitMediaUpload(descriptor: descriptor,
-                                             encryptedFileURL: uploadFileURL,
-                                             encryptedThumbURL: thumbURL)
-            setPhase(.uploading, plan: plan, currentItemName: item.mediaID)
-            do {
-                try await uploadWithRetry(upload, coordinator: coordinator, plan: plan, itemName: item.mediaID)
-            } catch let error as CloudKitMediaStoreError {
-                guard case .conflict = Self.unwrapPartial(error) else { throw error }
-                printDebug("item upload conflict recordName=\(item.recordName) — record already on server, falling through to verify")
-            }
-            printDebug("item uploaded recordName=\(item.recordName)")
-            plan.items[index].state = .uploaded
-            try await planStore.save(plan)
-        }
-
-        if plan.items[index].state == .uploaded {
-            setPhase(.verifying, plan: plan, currentItemName: item.mediaID)
-            guard try await isPresentInCloudKit(item, store: store) else {
-                printDebug("item VERIFY FAILED recordName=\(item.recordName) — refusing to delete the local original")
-                throw MigrationError.verificationFailed(recordName: item.recordName)
-            }
-            plan.items[index].state = .verified
-            try await planStore.save(plan)
-        }
-
-        if plan.items[index].state == .verified {
-            if control == .cancelRequested { throw CloudKitMediaStoreError.cancelled }
-            // An item that ENTERED this call already `verified` carries a verification
-            // from an earlier run — arbitrarily stale (the record may have been erased
-            // from another device, or the zone deleted, since). Never delete a local
-            // original against a stale verification: re-verify with the same cheap
-            // fetch-by-id first, and re-drive the upload if the record is gone.
-            if item.state == .verified {
-                setPhase(.verifying, plan: plan, currentItemName: item.mediaID)
-                guard try await isPresentInCloudKit(item, store: store) else {
-                    printDebug("item STALE VERIFICATION recordName=\(item.recordName) — record gone since the earlier run, re-driving upload")
-                    plan.items[index].state = .pending
-                    plan.items[index].lastError = "stale verification: record no longer in CloudKit"
-                    try await planStore.save(plan)
-                    return
-                }
-            }
-            printDebug("item deleting source recordName=\(item.recordName) verified in CloudKit")
-            setPhase(.removingLocalCopy, plan: plan, currentItemName: item.mediaID)
-            if let encURL { try? FileManager.default.removeItem(at: encURL) }
-            // The preview is NOT deleted: it lives in the global, storage-agnostic
-            // thumbnail directory that the migrated `.cloudKit` album reads from
-            // the same path (mirroring `exportCiphertext` in the reverse
-            // direction). Deleting it would force a thumbnail re-download for
-            // every item — and for a Live Photo would strip the shared preview
-            // before its second component uploads.
-            plan.items[index].state = .sourceDeleted
-            try await planStore.save(plan)
-        }
-    }
-
-    /// Re-encrypts an ENC2 video into ENC3 so migration produces chunk records
-    /// for the user's pre-existing large videos. First implementation uses a
-    /// plaintext temp file (as playback already does today); a streaming
-    /// ENC2-read → ENC3-write pipe is the follow-up that removes the
-    /// plaintext-on-disk window. Embedded metadata is carried across.
-    private static func reencryptToSeekable(sourceENC2: URL,
-                                            mediaID: String,
-                                            keyBytes: [UInt8]) async throws -> (URL, SeekableEncryptedHeader) {
-        let scratchDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("migration-enc3-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: scratchDir, withIntermediateDirectories: true)
-        let plaintextURL = scratchDir.appendingPathComponent("\(mediaID).plain")
-        defer { try? FileManager.default.removeItem(at: plaintextURL) }
-
-        let encrypted = EncryptedMedia(source: .url(sourceENC2), mediaType: .video, id: mediaID)
-        let handler = SecretFileHandler(keyBytes: keyBytes, source: encrypted, targetURL: plaintextURL)
-        _ = try await handler.decryptToURL()
-
-        let metadata = try? await EncryptedMetadataHandler().readMetadata(from: sourceENC2, keyBytes: keyBytes)
-        let metadataJSON = try metadata.map { try SeekableEncryptedFormat.encodeMetadata($0) }
-
-        let destination = scratchDir.appendingPathComponent("\(mediaID).enc3")
-        // Detached: the writer is synchronous and this manager is @MainActor — a
-        // multi-GB encrypt must never run on the main thread.
-        let header = try await Task.detached(priority: .userInitiated) {
-            try SeekableEncryptedWriter(keyBytes: keyBytes)
-                .encrypt(source: plaintextURL, destination: destination, metadata: metadataJSON)
-        }.value
-        return (destination, header)
-    }
-
-    /// Uploads with bounded `retry(after:)` backoff (honoring CloudKit's requested
-    /// delay). Non-retryable errors (quota, account, conflict, …) propagate so the
-    /// run loop can halt or fail the item as appropriate.
-    /// `plan`/`itemName` are carried purely so the backoff can publish `.retrying` —
-    /// a long CloudKit-requested delay is otherwise indistinguishable from a stall.
-    private func uploadWithRetry(_ upload: CloudKitMediaUpload,
-                                 coordinator: CloudKitSyncCoordinator,
-                                 plan: MigrationPlan,
-                                 itemName: String) async throws {
-        var attempt = 0
-        while true {
-            do {
-                _ = try await coordinator.upload(upload, progress: { _ in })
-                return
-            } catch let error as CloudKitMediaStoreError {
-                guard case .retry(let after) = Self.unwrapPartial(error) else { throw error }
-                attempt += 1
-                if attempt > Self.maxRetriesPerItem { throw CloudKitMediaStoreError.retry(after: after) }
-                setPhase(.retrying, plan: plan, currentItemName: itemName)
-                let capped = min(max(after, 0), 30)
-                if capped > 0 { try await Task.sleep(nanoseconds: UInt64(capped * 1_000_000_000)) }
-                setPhase(.uploading, plan: plan, currentItemName: itemName)
-            }
-        }
     }
 
     /// Unwraps a `.partial` to its underlying per-record error. Migration saves are
@@ -940,31 +1307,6 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             return .accountUnavailable
         }
         return error
-    }
-
-    /// Whether the item's record exists in CloudKit with the expected size — the
-    /// verification gate that must pass before a source delete. Uses a strongly-consistent
-    /// fetch-by-record-ID (not the eventually-consistent `fetchMetadata` query), so a
-    /// record saved moments earlier is reliably seen rather than spuriously reported
-    /// missing — which would otherwise fail the item and strand the migration.
-    private func isPresentInCloudKit(_ item: MigrationItem,
-                                     store: CloudKitMediaStoring) async throws -> Bool {
-        guard let metadata = try await store.fetchRecordMetadata(recordName: item.recordName) else {
-            printDebug("verify MISS recordName=\(item.recordName) — record absent from CloudKit after a successful upload")
-            return false
-        }
-        guard metadata.sizeBytes == item.sizeBytes else {
-            printDebug("verify SIZE MISMATCH recordName=\(item.recordName) local=\(item.sizeBytes) remote=\(metadata.sizeBytes)")
-            return false
-        }
-        printDebug("verify ok recordName=\(item.recordName) sizeBytes=\(item.sizeBytes)")
-        return true
-    }
-
-    /// The `.cloudKit` twin of a source album (same name + key) the upload stack
-    /// targets, so the migrated index/blobs land under the album's CloudKit identity.
-    static func cloudKitAlbum(from album: Album) -> Album {
-        Album.cloudKitTwin(of: album)
     }
 
     /// A side-effect-free pre-flight estimate (item count + total bytes) for the
@@ -1014,6 +1356,30 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                     createdAt: createdAt,
                     sizeBytes: size
                 ))
+            }
+        }
+        return items
+    }
+
+    /// Reads every record of a CloudKit album from its synced index into a fresh
+    /// `pending` work item, sized from the size sidecar. Live Photos contribute one
+    /// item per component (each is a record).
+    private func enumerateCloudKitItems(album: Album) async -> [MigrationItem] {
+        let entries = await MediaIndexStore(album: album).current()?.entries ?? []
+        let sizes = await AlbumSizeSidecar(album: album).sizesByRecordName()
+        var items: [MigrationItem] = []
+        for entry in entries {
+            let createdAt = entry.dateTaken ?? entry.dateEncrypted ?? album.creationDate
+            var components: [MediaType] = []
+            if entry.hasPhotoComponent { components.append(.photo) }
+            if entry.hasVideoComponent { components.append(.video) }
+            for type in components {
+                let recordName = CloudKitFileAccess.componentRecordName(mediaID: entry.id, type: type)
+                items.append(MigrationItem(mediaID: entry.id,
+                                           recordName: recordName,
+                                           mediaType: type,
+                                           createdAt: createdAt,
+                                           sizeBytes: sizes[recordName] ?? 0))
             }
         }
         return items

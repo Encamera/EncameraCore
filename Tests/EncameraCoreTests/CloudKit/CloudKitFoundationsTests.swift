@@ -193,4 +193,51 @@ final class CloudKitFoundationsTests: XCTestCase {
         let other = try handlerA.hashPrimaryKey("Work")
         XCTAssertNotEqual(hashA, other)
     }
+
+    // MARK: - InMemoryCloudKitMediaStore reassignAlbum
+
+    /// Seed records under albumA, reassign to albumB, call fetchChanges, verify the
+    /// changed metadata has albumB.
+    func testReassignShowsUpInNextFetchChanges() async throws {
+        let store = InMemoryCloudKitMediaStore()
+        store.seedRecords(albumID: "albumA", mediaCount: 2)
+
+        let names = ["albumA-seeded-0", "albumA-seeded-1"]
+        let notFound = try await store.reassignAlbum(recordNames: names, toAlbumID: "albumB")
+        XCTAssertTrue(notFound.isEmpty, "Both records exist, nothing should be not-found")
+
+        let changes = try await store.fetchChanges(since: nil)
+        let changedAlbumIDs = changes.changed.map(\.albumID)
+        XCTAssertTrue(changedAlbumIDs.allSatisfy { $0 == "albumB" },
+                      "Every record should now belong to albumB, got \(changedAlbumIDs)")
+        XCTAssertEqual(changes.changed.count, 2)
+    }
+
+    /// Reassign a record name that does not exist in the InMemoryCloudKitMediaStore;
+    /// verify it is returned as not-found.
+    func testReassignInMemoryReturnsMissingNames() async throws {
+        let store = InMemoryCloudKitMediaStore()
+        let notFound = try await store.reassignAlbum(recordNames: ["nonexistent"], toAlbumID: "albumB")
+        XCTAssertEqual(notFound, ["nonexistent"])
+    }
+
+    /// confirmAlbum uses the protocol extension and returns the current albumID.
+    func testConfirmAlbumReturnsCurrentAlbumID() async throws {
+        let store = InMemoryCloudKitMediaStore()
+        store.seedRecords(albumID: "albumA", mediaCount: 1)
+
+        let confirmed = try await store.confirmAlbum(recordName: "albumA-seeded-0")
+        XCTAssertEqual(confirmed, "albumA")
+
+        _ = try await store.reassignAlbum(recordNames: ["albumA-seeded-0"], toAlbumID: "albumB")
+        let afterMove = try await store.confirmAlbum(recordName: "albumA-seeded-0")
+        XCTAssertEqual(afterMove, "albumB")
+    }
+
+    /// confirmAlbum returns nil when the record does not exist.
+    func testConfirmAlbumReturnsNilForMissingRecord() async throws {
+        let store = InMemoryCloudKitMediaStore()
+        let result = try await store.confirmAlbum(recordName: "no-such-record")
+        XCTAssertNil(result)
+    }
 }

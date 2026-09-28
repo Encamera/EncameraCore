@@ -42,6 +42,21 @@ final class FakeAssetDatabase: CloudKitDatabaseAdapter, @unchecked Sendable {
     /// every record, which the store's save verification must catch.
     var dropFromSaveResult = 0
 
+    /// Record types whose next save fails with the given error, once each. With
+    /// `afterPersisting`, the records land first and the error is thrown anyway —
+    /// a save the server committed whose reply never reached the device.
+    private var saveFailuresByRecordType: [String: (error: Error, afterPersisting: Bool)] = [:]
+
+    /// Record types whose saves model `.ifServerRecordUnchanged` for a newly built
+    /// record: saving one over a record that already exists fails the whole batch
+    /// with a per-item `serverRecordChanged`, and nothing is written.
+    var rejectsFreshSaveOverExisting: Set<String> = []
+
+    func failNextSave(ofRecordType recordType: String, with error: Error, afterPersisting: Bool = false) {
+        lock.lock(); defer { lock.unlock() }
+        saveFailuresByRecordType[recordType] = (error, afterPersisting)
+    }
+
     init() {
         storageDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("fake-ck-assets-\(UUID().uuidString)", isDirectory: true)
@@ -62,8 +77,32 @@ final class FakeAssetDatabase: CloudKitDatabaseAdapter, @unchecked Sendable {
               savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
               perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord] {
         if let saveError { throw saveError }
+        if let conflict = freshSaveConflict(batch) { throw conflict }
+        let injected = consumeSaveFailure(batch)
+        if let injected, !injected.afterPersisting { throw injected.error }
         performSave(batch, perRecordProgress: perRecordProgress)
+        if let injected { throw injected.error }
         return dropFromSaveResult > 0 ? Array(batch.dropLast(dropFromSaveResult)) : batch
+    }
+
+    private func consumeSaveFailure(_ batch: [CKRecord]) -> (error: Error, afterPersisting: Bool)? {
+        lock.lock(); defer { lock.unlock() }
+        for record in batch {
+            if let failure = saveFailuresByRecordType.removeValue(forKey: record.recordType) { return failure }
+        }
+        return nil
+    }
+
+    private func freshSaveConflict(_ batch: [CKRecord]) -> Error? {
+        lock.lock(); defer { lock.unlock() }
+        var perItem: [CKRecord.ID: Error] = [:]
+        for record in batch where rejectsFreshSaveOverExisting.contains(record.recordType) && records[record.recordID] != nil {
+            perItem[record.recordID] = NSError(domain: CKError.errorDomain, code: CKError.Code.serverRecordChanged.rawValue)
+        }
+        guard !perItem.isEmpty else { return nil }
+        return NSError(domain: CKError.errorDomain,
+                       code: CKError.Code.partialFailure.rawValue,
+                       userInfo: [CKPartialErrorsByItemIDKey: perItem])
     }
 
     /// Clears the observation lists (not the records), so a test can assert on
@@ -74,6 +113,11 @@ final class FakeAssetDatabase: CloudKitDatabaseAdapter, @unchecked Sendable {
         deletedRecordIDBatches = []
         fetchCount = 0
         fetchedRecordNames = []
+    }
+
+    func hasRecord(named recordName: String) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        return records.keys.contains { $0.recordName == recordName }
     }
 
     /// Removes one persisted record, so a test can model a partially-committed

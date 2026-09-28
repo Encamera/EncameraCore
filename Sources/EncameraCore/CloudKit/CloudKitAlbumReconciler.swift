@@ -3,26 +3,32 @@
 //  EncameraCore
 //
 //  Makes CloudKit the authoritative, cross-device source of truth for which albums
-//  exist. Two-way reconcile against the `EncAlbum` records in the zone:
-//   - Pull: a remote album with no local materialization becomes a local discovery
-//     marker (so it shows in the grid and gets its media reconciled); an album the
-//     change feed reports deleted removes the local materialization.
-//   - Push (self-heal): a local `.cloudKit` album that has NEVER been confirmed on
-//     the server is uploaded, so an `EncAlbum` save that failed while offline at
-//     create-time is recovered.
+//  exist. Two-way reconcile against the `EncAlbum` records in the zone, keyed by
+//  the album's `albumID` (the record name):
+//   - Pull: a remote album with no local `album.json` is adopted under its record
+//     id (so it shows in the grid and gets its media reconciled); an album the
+//     change feed reports deleted removes the local materialization, and one it
+//     reports changed has its name, hidden flag and cover rewritten in place.
+//   - Push: an album whose `album.json` is `dirty` holds a local change that has
+//     not reached the record; it is saved, last writer wins, and then marked
+//     clean. A local album that has NEVER been confirmed on the server is
+//     uploaded too (self-heal), so an `EncAlbum` save that failed while offline
+//     at create-time is recovered.
 //
 //  Deletions come from the zone change feed (`deletedAlbumIDs`), not from absence
 //  in `fetchAllAlbums`. That distinction is the whole design: the query's index is
 //  eventually consistent, so absence there is not evidence of anything, and a
-//  reconciler that treated it as a delete would race every fresh create. Absence
-//  is disambiguated locally instead, by whether the album was ever published
-//  — no server-side tombstone required.
+//  reconciler that treated it as a delete would race every fresh create. An album
+//  absent from the query that was never published is pushed (self-heal). One that
+//  was published is looked up by id, which is strongly consistent: it is removed
+//  locally only when that fetch finds no record, and left alone when the fetch
+//  finds it or fails — no server-side tombstone required.
 //
-//  The album-id hash is one-way, so a fresh device recovers the plaintext name by
-//  matching a synced album key against the hash (XChaCha20's MAC rejects wrong keys;
-//  the keyed-hash equality is the authoritative confirmation), then decrypts the
-//  name ciphertext. Albums whose key is not present on this device (key backup off)
-//  cannot be materialized and are reported via the locked-out count.
+//  The album id is a minted UUID that says nothing about the album, so a fresh
+//  device finds the album's key by decrypting the record's `encName` under each
+//  synced key: the name is sealed with an authenticated secretstream, so only the
+//  owning key opens it. Albums whose key is not present on this device (key backup
+//  off) cannot be materialized and are reported via the locked-out count.
 //
 //  `.local` albums are never touched here — only CloudKit albums have `EncAlbum`
 //  records, so a pure-local album never appears on another device.
@@ -99,12 +105,12 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             printDebug("reconcileAlbums storedKeys FAILED error=\(error); proceeding with no keys")
             keys = []
         }
-        var localByHash = localCloudKitAlbumsByHash()
+        var localByID = localCloudKitAlbumsByID()
         var remoteIDs = Set<String>()
         var lockedOut = 0
         var adopted = 0
-        printDebug("reconcileAlbums state keys=\(keys.count) localCloudKitAlbums=\(localByHash.count) remote=\(remote.count)")
-        for albumID in deletedRemotely { localByHash[albumID] = nil }
+        printDebug("reconcileAlbums state keys=\(keys.count) localCloudKitAlbums=\(localByID.count) remote=\(remote.count)")
+        for albumID in deletedRemotely { localByID[albumID] = nil }
 
         for record in remote {
             remoteIDs.insert(record.albumID)
@@ -116,7 +122,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
 
             publishRegistry.markPublished(record.albumID)
 
-            if localByHash[record.albumID] != nil {
+            if localByID[record.albumID] != nil {
                 printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=alreadyMaterialized")
                 continue
             }
@@ -128,12 +134,10 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 continue
             }
             printDebug("reconcileAlbums pull adopt albumID=\(record.albumID) isHidden=\(record.isHidden) createdAt=\(record.createdAt)")
-            albumManager.adoptCloudKitAlbum(name: match.name,
-                                            key: match.key,
-                                            createdAt: record.createdAt,
-                                            isHidden: record.isHidden)
+            albumManager.adoptCloudKitAlbum(record: record, key: match.key)
             if let coverID = record.coverMediaID {
-                let adoptedAlbum = Album(name: match.name, storageOption: .cloudKit, creationDate: record.createdAt, key: match.key)
+                let adoptedAlbum = Album(encryptedName: record.encName, storageOption: .cloudKit,
+                                         creationDate: record.createdAt, key: match.key, albumID: record.albumID)
                 let sidecar = AlbumCoverSidecar(album: adoptedAlbum)
                 Task { try? await sidecar.setCoverMediaID(coverID) }
             }
@@ -142,37 +146,32 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
 
         var pushed = 0
         var deletedLocally = deletedRemotely.count
-        for (hash, album) in localByHash where !remoteIDs.contains(hash) && !pendingDeletes.contains(hash) {
-            if publishRegistry.isPublished(hash) {
-                printDebug("reconcileAlbums delete albumID=\(hash) reason=publishedButAbsentRemotely")
-                albumManager.delete(album: album)
-                publishRegistry.forget(hash)
-                deletedLocally += 1
-                continue
+        for (albumID, album) in localByID where !pendingDeletes.contains(albumID) {
+            let marker = CloudKitAlbumMarker.read(albumID: albumID)
+            let reason: String
+            if remoteIDs.contains(albumID) {
+                guard marker?.dirty == true else { continue }
+                reason = "dirty"
+            } else if publishRegistry.isPublished(albumID) {
+                switch await lookUpByID(albumID) {
+                case .present:
+                    guard marker?.dirty == true else { continue }
+                    reason = "dirty"
+                case .gone:
+                    printDebug("reconcileAlbums delete albumID=\(albumID) reason=publishedAndNotFoundByID")
+                    albumManager.applyRemoteAlbumDeletion(album: album)
+                    publishRegistry.forget(albumID)
+                    deletedLocally += 1
+                    continue
+                case .unknown:
+                    continue
+                }
+            } else {
+                reason = "neverPublished"
             }
 
-            guard let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
-                                                                                 keyManager: keyManager,
-                                                                                 storedKeysSnapshot: keys) else {
-                printDebug("reconcileAlbums push skip albumID=\(hash) reason=noKeyDecryptsTheName")
-                continue
-            }
-            let rawCover = albumManager.getAlbumCoverImageId(album: album)
-            let coverMediaID = (rawCover == nil || rawCover == "none") ? nil : rawCover
-            let upload = CloudKitAlbumUpload(albumID: hash,
-                                             encName: album.encryptedPathComponent,
-                                             createdAt: album.creationDate,
-                                             isHidden: albumManager.isAlbumHidden(album),
-                                             keyFingerprint: albumFingerprint,
-                                             coverMediaID: coverMediaID)
-            printDebug("reconcileAlbums push start albumID=\(hash) isHidden=\(upload.isHidden)")
-            do {
-                try await store.saveAlbum(upload)
-                publishRegistry.markPublished(hash)
+            if await push(album: album, marker: marker, keys: keys, reason: reason) {
                 pushed += 1
-                printDebug("reconcileAlbums push ok albumID=\(hash)")
-            } catch {
-                printDebug("reconcileAlbums push FAILED albumID=\(hash) error=\(error)")
             }
         }
 
@@ -180,15 +179,80 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         return lockedOut
     }
 
-    /// Applies album deletions the zone change feed reports, and returns the ids
-    /// removed. This is the authoritative cross-device delete signal.
+    private enum RecordLookup { case present, gone, unknown }
+
+    /// Settles what a published album's absence from the query means. The query
+    /// index lags a fresh save, so only a fetch by id, which is strongly
+    /// consistent, can say the record is gone. A failed fetch says nothing.
+    private func lookUpByID(_ albumID: String) async -> RecordLookup {
+        do {
+            if try await store.fetchAlbum(albumID: albumID) != nil {
+                printDebug("reconcileAlbums keep albumID=\(albumID) reason=absentFromQueryButFoundByID")
+                return .present
+            }
+            return .gone
+        } catch {
+            printDebug("reconcileAlbums keep albumID=\(albumID) reason=fetchByIDFailed error=\(error)")
+            return .unknown
+        }
+    }
+
+    /// Saves the album's record and, on success, clears the marker's `dirty` flag
+    /// unless the marker changed while the save was in flight. The name, creation
+    /// date, hidden flag and cover come from `album.json` when there is one, so a
+    /// pending local change is what reaches the record.
+    private func push(album: Album, marker: CloudKitAlbumMarker?, keys: [PrivateKey], reason: String) async -> Bool {
+        guard let albumID = album.albumID else { return false }
+        let pushed = marker.map {
+            Album(encryptedName: $0.encName, storageOption: .cloudKit, creationDate: $0.createdAt,
+                  key: album.key, albumID: albumID)
+        } ?? album
+        guard let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: pushed,
+                                                                             keyManager: keyManager,
+                                                                             storedKeysSnapshot: keys) else {
+            printDebug("reconcileAlbums push skip albumID=\(albumID) reason=noKeyDecryptsTheName")
+            return false
+        }
+        let upload = CloudKitAlbumUpload(albumID: albumID,
+                                         encName: pushed.encryptedPathComponent,
+                                         createdAt: pushed.creationDate,
+                                         isHidden: marker?.isHidden ?? false,
+                                         keyFingerprint: albumFingerprint,
+                                         coverMediaID: marker?.recordCoverMediaID)
+        printDebug("reconcileAlbums push start albumID=\(albumID) reason=\(reason) isHidden=\(upload.isHidden)")
+        do {
+            try await store.saveAlbum(upload)
+        } catch {
+            printDebug("reconcileAlbums push FAILED albumID=\(albumID) error=\(error)")
+            return false
+        }
+        publishRegistry.markPublished(albumID)
+        if let marker {
+            do {
+                try CloudKitAlbumMarker.clearDirty(albumID: albumID, ifUnchangedFrom: marker)
+            } catch {
+                printDebug("reconcileAlbums clearDirty FAILED albumID=\(albumID) error=\(error)")
+            }
+        }
+        printDebug("reconcileAlbums push ok albumID=\(albumID)")
+        return true
+    }
+
+    /// Applies what the zone change feed reports about albums and returns the ids
+    /// removed. Deletions here are the authoritative cross-device delete signal.
     ///
-    /// Local removal routes through `AlbumManager.delete` so observers get the
-    /// broadcast, `currentAlbum` is fixed up, and synced-store / hidden-state
-    /// entries are cleaned — the same four things a user-initiated delete does.
+    /// Local removal routes through `AlbumManager.applyRemoteAlbumDeletion` so
+    /// observers get the broadcast, `currentAlbum` is fixed up, and synced-store /
+    /// hidden-state entries are cleaned without touching CloudKit records.
+    ///
+    /// A changed album record rewrites the album's `album.json` in place when its
+    /// name, hidden flag or cover differ — a remote rename changes no id, so nothing
+    /// is deleted, adopted or evicted. A dirty marker is left alone: it holds a local
+    /// change the push step saves over the record.
     private func applyRemoteDeletions() async -> Set<String> {
         var removed: Set<String> = []
-        let localByHash = localCloudKitAlbumsByHash()
+        var metadataApplied = 0
+        let localByID = localCloudKitAlbumsByID()
         var token = await store.loadChangeToken()
         var moreComing = true
 
@@ -205,18 +269,28 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
 
             for albumID in changeSet.deletedAlbumIDs {
                 publishRegistry.forget(albumID)
-                guard let album = localByHash[albumID] else {
+                guard let album = localByID[albumID] else {
                     printDebug("applyRemoteDeletions skip albumID=\(albumID) reason=notMaterializedLocally")
                     continue
                 }
                 printDebug("applyRemoteDeletions delete albumID=\(albumID)")
-                albumManager.delete(album: album)
+                albumManager.applyRemoteAlbumDeletion(album: album)
                 removed.insert(albumID)
             }
             for albumMeta in changeSet.changedAlbums {
                 publishRegistry.markPublished(albumMeta.albumID)
-                if let localAlbum = localByHash[albumMeta.albumID] {
-                    if albumManager.getAlbumCoverImageId(album: localAlbum) == nil {
+                let localAlbum = localByID[albumMeta.albumID]
+                var coverApplied = false
+                if let coverChanged = applyRemoteMetadata(albumMeta) {
+                    metadataApplied += 1
+                    if coverChanged, let localAlbum {
+                        let sidecar = AlbumCoverSidecar(album: localAlbum)
+                        Task { try? await sidecar.setCoverMediaID(albumMeta.coverMediaID) }
+                        coverApplied = true
+                    }
+                }
+                if let localAlbum {
+                    if !coverApplied, albumManager.getAlbumCoverImageId(album: localAlbum) == nil {
                         let sidecar = AlbumCoverSidecar(album: localAlbum)
                         Task { try? await sidecar.setCoverMediaID(albumMeta.coverMediaID) }
                     }
@@ -228,51 +302,89 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         // Committed only after the deletions above were applied, so a failure
         // re-reads the same notices rather than losing them.
         await store.commitChangeToken(token)
-        printDebug("applyRemoteDeletions ok removed=\(removed.count)")
+        if metadataApplied > 0 {
+            albumManager.notifyAlbumsChanged()
+        }
+        printDebug("applyRemoteDeletions ok removed=\(removed.count) metadataApplied=\(metadataApplied)")
         return removed
+    }
+
+    /// Rewrites the album's `album.json` from `record` when the record's name,
+    /// hidden flag or cover differ from it, and returns whether the cover changed.
+    /// Returns nil when nothing was written: no marker on this device, a dirty
+    /// marker, or nothing changed. A record without a cover leaves a cover this
+    /// device turned off as it is, since the record cannot carry that state.
+    private func applyRemoteMetadata(_ record: CloudKitAlbumMetadata) -> Bool? {
+        guard let marker = CloudKitAlbumMarker.read(albumID: record.albumID) else { return nil }
+        if marker.dirty {
+            printDebug("applyRemoteMetadata skip albumID=\(record.albumID) reason=dirty")
+            return nil
+        }
+        let nameChanged = marker.encName != record.encName
+        let hiddenChanged = marker.isHidden != record.isHidden
+        let remoteCover = (record.coverMediaID == nil && marker.coverMediaID == CloudKitAlbumMarker.disabledCoverID)
+            ? marker.coverMediaID
+            : record.coverMediaID
+        let coverChanged = marker.coverMediaID != remoteCover
+        guard nameChanged || hiddenChanged || coverChanged else { return nil }
+        let updated = CloudKitAlbumMarker(encName: record.encName,
+                                          createdAt: record.createdAt,
+                                          isHidden: record.isHidden,
+                                          coverMediaID: remoteCover,
+                                          keyFingerprint: record.keyFingerprint ?? marker.keyFingerprint,
+                                          dirty: false)
+        do {
+            try updated.write(albumID: record.albumID)
+        } catch {
+            printDebug("applyRemoteMetadata write FAILED albumID=\(record.albumID) error=\(error)")
+            return nil
+        }
+        printDebug("applyRemoteMetadata ok albumID=\(record.albumID) name=\(nameChanged) hidden=\(hiddenChanged) cover=\(coverChanged)")
+        return coverChanged
     }
 
     // MARK: - Matching
 
-    /// Find the synced key that owns `record`: the album-name ciphertext decrypts
-    /// under that key AND the keyed hash of the recovered name equals the record name
-    /// (the album id). Pure + `internal` so it can be unit-tested directly.
+    /// Find the synced key that owns `record`: the first key, the record's
+    /// fingerprint first, under which the album-name ciphertext decrypts. The name
+    /// is sealed with an authenticated secretstream, so a wrong key fails its MAC
+    /// and garbage ciphertext fails under every key. Pure + `internal` so it can be
+    /// unit-tested directly.
     static func match(record: CloudKitAlbumMetadata, keys: [PrivateKey]) -> (name: String, key: PrivateKey)? {
         let ordered = record.keyFingerprint
             .flatMap { fingerprint in keys.first { $0.keychainLabel == fingerprint } }
             .map { hinted in [hinted] + keys.filter { $0.keychainLabel != hinted.keychainLabel } }
             ?? keys
         for key in ordered {
-            let name = Album.decryptAlbumName(record.encName, key: key)
-            if SyncedStoreEncryptionHandler.keyedHash(name, keyBytes: key.keyBytes) == record.albumID {
+            if let name = Album.decryptedAlbumName(record.encName, key: key) {
                 printDebug("match hit albumID=\(record.albumID)")
                 return (name, key)
             }
         }
         // Never log the decryption candidates themselves — the recovered name is
-        // user data. Only the hash and the number of keys tried are safe.
+        // user data. Only the album id and the number of keys tried are safe.
         printDebug("match MISS albumID=\(record.albumID) keysTried=\(keys.count)")
         return nil
     }
 
     // MARK: - Local materialization
 
-    private func localCloudKitAlbumsByHash() -> [String: Album] {
-        var byHash: [String: Album] = [:]
-        var unhashable = 0
+    private func localCloudKitAlbumsByID() -> [String: Album] {
+        var byID: [String: Album] = [:]
+        var unidentified = 0
         for album in albumManager.fetchAlbumsFromSources(includingHidden: true)
             where album.storageOption == .cloudKit {
-            if let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) {
-                byHash[hash] = album
+            if let albumID = album.albumID {
+                byID[albumID] = album
             } else {
-                unhashable += 1
+                unidentified += 1
             }
         }
-        if unhashable > 0 {
-            printDebug("localCloudKitAlbumsByHash WARNING unhashableAlbums=\(unhashable) hashed=\(byHash.count)")
+        if unidentified > 0 {
+            printDebug("localCloudKitAlbumsByID WARNING albumsWithoutID=\(unidentified) identified=\(byID.count)")
         }
-        printDebug("localCloudKitAlbumsByHash ok count=\(byHash.count)")
-        return byHash
+        printDebug("localCloudKitAlbumsByID ok count=\(byID.count)")
+        return byID
     }
 
 }

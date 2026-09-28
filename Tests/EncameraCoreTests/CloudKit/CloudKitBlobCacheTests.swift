@@ -4,7 +4,7 @@
 //
 //  The byte-cap eviction must never invalidate the URL `store` is about to
 //  return: `ensureBlobLocal` deletes its download temp and hands that URL to
-//  callers (`exportCiphertext`, the viewer), so a self-evicted entry turns every
+//  callers (the move back to local storage, the viewer), so a self-evicted entry turns every
 //  oversized blob into an unopenable file and permanently blocks the
 //  CloudKit -> local move for its album.
 //
@@ -339,5 +339,137 @@ final class CloudKitBlobCacheTests: XCTestCase {
         XCTAssertEqual(total, 0)
         XCTAssertEqual(onDisk, 0, "Including the files the index never knew about")
         XCTAssertEqual(try measureCacheDirectory().files, 0)
+    }
+
+    // MARK: - Free up space
+
+    private var cacheRoot: URL { tempRoot.appendingPathComponent("cache", isDirectory: true) }
+
+    private func makeUploadQueue() -> CloudKitUploadQueue {
+        CloudKitUploadQueue(baseDir: tempRoot.appendingPathComponent("uploads", isDirectory: true))
+    }
+
+    /// Writes a metadata file at `relativePath` under the cache root.
+    @discardableResult
+    private func plantMetadata(_ relativePath: String, contents: String = "{}") throws -> URL {
+        let url = cacheRoot.appendingPathComponent(relativePath)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(contents.utf8).write(to: url)
+        return url
+    }
+
+    /// The cache root is also where CloudKit album markers and per-album sidecars
+    /// live, so freeing space must take the ciphertext and nothing else.
+    func testFreeUpSpaceKeepsAlbumMarkersAndSidecarsAndDeletesOnlyBlobs() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        let blob = try await cache.store(recordName: "a#0", changeTag: "t", albumID: "album",
+                                         from: sourceFile(bytes: 40))
+        let chunk = try await cache.store(recordName: "v#1#c0", changeTag: "t", albumID: "album",
+                                          from: sourceFile(bytes: 30))
+        let orphan = try plantOrphan(albumID: "album", recordName: "orphan#0", bytes: 60)
+        let marker = try plantMetadata("albums/7F1C0B0E-2B8A-4C47-9C1E-2B57D2A1E001/album.json",
+                                       contents: #"{"encName":"x"}"#)
+        let thumbTags = try plantMetadata("\(CloudKitBlobCache.albumFolderName("album"))/.thumbtags.json")
+
+        try await cache.freeUpSpace(pendingUploads: makeUploadQueue())
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: marker.path), "album.json must survive")
+        XCTAssertEqual(try String(contentsOf: marker, encoding: .utf8), #"{"encName":"x"}"#)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: thumbTags.path), ".thumbtags.json must survive")
+        for gone in [blob, chunk, orphan] {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: gone.path), "\(gone.lastPathComponent) must be deleted")
+        }
+        let total = await cache.totalBytes()
+        let onDisk = await cache.diskBytes()
+        XCTAssertEqual(total, 0)
+        XCTAssertEqual(onDisk, 0, "Metadata is not cached media and is not counted as such")
+        let cachedA = await cache.cachedURL(recordName: "a#0", changeTag: nil)
+        XCTAssertNil(cachedA)
+
+        let reloaded = makeCache(maxBytes: 10_000)
+        let reloadedTotal = await reloaded.totalBytes()
+        XCTAssertEqual(reloadedTotal, 0, "The persisted index must not list the removed blobs")
+        let indexData = try Data(contentsOf: cacheRoot.appendingPathComponent(".cacheindex.json"))
+        let entries = try JSONSerialization.jsonObject(with: indexData) as? [String: Any]
+        XCTAssertEqual(entries?.count, 0, "The persisted index must not list the removed blobs")
+    }
+
+    /// A capture's ciphertext is written into the album folder before the upload
+    /// queue takes it, and a record stays pending until CloudKit confirms it. Either
+    /// may be the only copy on the device.
+    func testFreeUpSpaceNeverDeletesAPendingCapture() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        let queue = makeUploadQueue()
+
+        let pendingSource = try sourceFile(bytes: 50)
+        try await queue.enqueue(CloudKitMediaUpload(albumID: "album", mediaID: "p",
+                                                    mediaType: .photo, createdAt: Date(), sizeBytes: 50,
+                                                    encryptedFileURL: pendingSource, encryptedThumbURL: nil,
+                                                    recordName: "p#0", keyFingerprint: ""))
+        let pendingCached = try await cache.store(recordName: "p#0", changeTag: "t", albumID: "album",
+                                                  from: sourceFile(bytes: 50))
+        let staged = try plantOrphan(albumID: "album", recordName: "s.\(MediaType.photo.encryptedFileExtension)", bytes: 70)
+        let committed = try await cache.store(recordName: "c#0", changeTag: "t", albumID: "album",
+                                              from: sourceFile(bytes: 40))
+
+        try await cache.freeUpSpace(pendingUploads: queue)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: pendingCached.path),
+                      "A blob whose upload is not committed must survive")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: staged.path),
+                      "A capture not yet handed to the upload queue must survive")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: committed.path), "A committed blob must be freed")
+        let stillCached = await cache.cachedURL(recordName: "p#0", changeTag: "t")
+        XCTAssertNotNil(stillCached, "The surviving pending blob stays indexed")
+        let total = await cache.totalBytes()
+        XCTAssertEqual(total, 50)
+        let pendingURL = await queue.pendingFileURL(recordName: "p#0")
+        XCTAssertNotNil(pendingURL, "The queue's own copy is untouched")
+    }
+
+    // MARK: - Relocate
+
+    func testRelocateMovesFileAndRewritesEntry() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        let tag = "t1"
+        _ = try await cache.store(recordName: "rec1", changeTag: tag, albumID: "album-a",
+                                  from: sourceFile(bytes: 80))
+        let persistBefore = await cache.indexPersistCount
+        let bytesBefore = await cache.totalBytes()
+
+        await cache.relocate(recordName: "rec1", toAlbumID: "album-b")
+
+        // The entry resolves under album-b's folder now.
+        let newURL = await cache.cachedURL(recordName: "rec1", changeTag: tag)
+        XCTAssertNotNil(newURL)
+        let expectedFolder = CloudKitBlobCache.albumFolderName("album-b")
+        XCTAssertTrue(newURL!.path.contains(expectedFolder),
+                      "The cached file should live under album-b's folder")
+
+        // The old file is gone.
+        let oldFolder = CloudKitBlobCache.albumFolderName("album-a")
+        let oldPath = tempRoot.appendingPathComponent("cache", isDirectory: true)
+            .appendingPathComponent(oldFolder, isDirectory: true)
+            .appendingPathComponent("rec1")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: oldPath.path),
+                       "The file at the old location must be gone")
+
+        // Byte count unchanged; exactly one persist for the relocate.
+        let bytesAfter = await cache.totalBytes()
+        XCTAssertEqual(bytesAfter, bytesBefore, "totalBytes must be unchanged after a relocate")
+        let persistAfter = await cache.indexPersistCount
+        XCTAssertEqual(persistAfter - persistBefore, 1,
+                       "relocate must persist exactly once")
+    }
+
+    func testRelocateUnknownRecordIsNoOp() async throws {
+        let cache = makeCache(maxBytes: 10_000)
+        let persistBefore = await cache.indexPersistCount
+
+        await cache.relocate(recordName: "nonexistent", toAlbumID: "album-b")
+
+        let persistAfter = await cache.indexPersistCount
+        XCTAssertEqual(persistAfter, persistBefore,
+                       "A no-op relocate must not persist")
     }
 }

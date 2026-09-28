@@ -222,6 +222,19 @@ public struct SeekableEncryptedHeader: Sendable, Equatable {
 
     public var headerLength: Int { Self.fixedSize + encryptedMetadata.count }
 
+    /// The metadata section opened with `keyBytes`, or nil when there is none or
+    /// the key does not authenticate it. The section is AEAD-sealed under the
+    /// file's key, so opening it proves the key without touching a chunk.
+    public func openMetadata(keyBytes: [UInt8]) -> Data? {
+        guard !encryptedMetadata.isEmpty else { return nil }
+        let aad = SeekableEncryptedFormat.metadataAAD(fileID: fileID, plaintextLength: plaintextLength)
+        return Sodium().aead.xchacha20poly1305ietf.decrypt(
+            nonceAndAuthenticatedCipherText: [UInt8](encryptedMetadata),
+            secretKey: keyBytes,
+            additionalData: aad
+        ).map { Data($0) }
+    }
+
     public var geometry: SeekableChunkGeometry {
         SeekableChunkGeometry(chunkSize: chunkSize,
                               plaintextLength: plaintextLength,
@@ -608,16 +621,10 @@ public struct SeekableEncryptedReader: Sendable {
     /// Decrypts the metadata section, if the file carries one.
     public func metadata() throws -> Data? {
         guard !header.encryptedMetadata.isEmpty else { return nil }
-        let aad = SeekableEncryptedFormat.metadataAAD(fileID: header.fileID,
-                                                      plaintextLength: header.plaintextLength)
-        guard let plain = sodium.aead.xchacha20poly1305ietf.decrypt(
-            nonceAndAuthenticatedCipherText: [UInt8](header.encryptedMetadata),
-            secretKey: keyBytes,
-            additionalData: aad
-        ) else {
+        guard let plain = header.openMetadata(keyBytes: keyBytes) else {
             throw SeekableFormatError.metadataAuthenticationFailed
         }
-        return Data(plain)
+        return plain
     }
 
     /// Whole-file decrypt to `destination`, chunk by chunk. The compatibility path:

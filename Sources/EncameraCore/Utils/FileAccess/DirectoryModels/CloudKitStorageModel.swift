@@ -27,9 +27,10 @@ struct CloudKitStorageModel: DataStorageModel {
         self.album = album
     }
 
-    /// Per-album cache directory. Keyed by the SAME deterministic `albumID` the blob
-    /// cache and sync coordinator use (so they share one tree), made filesystem-safe
-    /// via `CloudKitBlobCache.albumFolderName`. No cleartext album name on disk.
+    /// Per-album cache directory. Keyed by the album's `albumID`, the same id the
+    /// blob cache and sync coordinator use (so they share one tree), made
+    /// filesystem-safe via `CloudKitBlobCache.albumFolderName`. No cleartext album
+    /// name on disk, and a rename leaves the directory where it is.
     ///
     /// Pure getter (matches `LocalDirectoryModel.baseURL`): it computes the URL and
     /// performs NO filesystem I/O. Creating the directory here would defeat
@@ -40,8 +41,10 @@ struct CloudKitStorageModel: DataStorageModel {
     /// `Library/Caches` (already excluded from backup), and the blob cache also
     /// excludes each stored file, so no explicit exclusion is needed here.
     var baseURL: URL {
-        let albumID = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) ?? album.id
-        let hash = CloudKitBlobCache.albumFolderName(albumID)
-        return Self.rootURL.appendingPathComponent(hash, isDirectory: true)
+        guard let albumID = album.albumID else {
+            assertionFailure("a CloudKit album has no albumID")
+            return Self.rootURL.appendingPathComponent("unidentified-album", isDirectory: true)
+        }
+        return Self.rootURL.appendingPathComponent(CloudKitBlobCache.albumFolderName(albumID), isDirectory: true)
     }
 }

@@ -77,8 +77,8 @@ final class StreamingChunkSourceTests: XCTestCase {
         }
 
         @discardableResult
-        func uploadChunks(enc3FileURL: URL, mediaRecordName: String, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
-            try await backing.uploadChunks(enc3FileURL: enc3FileURL, mediaRecordName: mediaRecordName, progress: progress)
+        func uploadChunks(enc3FileURL: URL, mediaRecordName: String, existingChunks: ExistingChunkPolicy, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
+            try await backing.uploadChunks(enc3FileURL: enc3FileURL, mediaRecordName: mediaRecordName, existingChunks: existingChunks, progress: progress)
         }
 
         func delete(mediaRecordName: String, chunkCount: Int) async throws {
@@ -141,8 +141,8 @@ final class StreamingChunkSourceTests: XCTestCase {
         }
 
         @discardableResult
-        func uploadChunks(enc3FileURL: URL, mediaRecordName: String, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
-            try await backing.uploadChunks(enc3FileURL: enc3FileURL, mediaRecordName: mediaRecordName, progress: progress)
+        func uploadChunks(enc3FileURL: URL, mediaRecordName: String, existingChunks: ExistingChunkPolicy, progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
+            try await backing.uploadChunks(enc3FileURL: enc3FileURL, mediaRecordName: mediaRecordName, existingChunks: existingChunks, progress: progress)
         }
 
         func delete(mediaRecordName: String, chunkCount: Int) async throws {

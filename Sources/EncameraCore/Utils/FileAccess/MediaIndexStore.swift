@@ -218,13 +218,19 @@ public actor MediaIndexStore {
     /// CloudKit albums keep authoritative membership in this index (not as files on
     /// disk), so counts must come from here, not a directory scan.
     public static func entryCount(for album: Album) -> Int {
+        storedEntries(for: album).count
+    }
+
+    /// Synchronous read of the album's on-disk index, or no entries if there is none
+    /// or it cannot be read.
+    static func storedEntries(for album: Album) -> [MediaIndexEntry] {
         let url = indexURL(for: album)
         guard let data = try? Data(contentsOf: url),
               let plaintext = try? decrypt(data, keyBytes: album.key.keyBytes),
               let entries = try? MediaIndexCodec.decode(plaintext) else {
-            return 0
+            return []
         }
-        return entries.count
+        return entries
     }
 
     /// Deletes the entire on-disk media index cache for all albums. The index

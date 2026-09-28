@@ -59,7 +59,7 @@ public enum StreamingChunkSourceError: Error, Equatable {
 public actor StreamingChunkSource: SeekableChunkProviding, DebugPrintable {
 
     private let store: ChunkedBlobStoring
-    private let mediaRecordName: String
+    public nonisolated let mediaRecordName: String
     private let geometry: SeekableChunkGeometry
     /// Chunks fetched speculatively after each one served, never awaited.
     public nonisolated let readAhead: Int
@@ -308,8 +308,17 @@ public struct ChunkedStreamSession: Sendable {
                                           geometry: header.geometry,
                                           readAhead: readAhead,
                                           fetchDeadline: fetchDeadline)
+        return open(source: source, header: header, keyBytes: keyBytes)
+    }
+
+    /// A session over a chunk source the caller built first — so it can fetch
+    /// chunk 0 and prove which key opens it before choosing the key. Chunks the
+    /// source already holds are served from its cache, not fetched again.
+    public static func open(source: StreamingChunkSource,
+                            header: SeekableEncryptedHeader,
+                            keyBytes: [UInt8]) -> ChunkedStreamSession {
         let reader = SeekableEncryptedReader(keyBytes: keyBytes, header: header, provider: source)
-        return ChunkedStreamSession(mediaRecordName: mediaRecordName,
+        return ChunkedStreamSession(mediaRecordName: source.mediaRecordName,
                                     header: header,
                                     source: source,
                                     reader: reader)

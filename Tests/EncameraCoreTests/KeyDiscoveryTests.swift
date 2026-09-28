@@ -528,4 +528,30 @@ final class KeyDiscoveryTests: XCTestCase {
         XCTAssertEqual(attempts, ["keyB", "keyA", "keyC"])
         XCTAssertEqual(result?.key, keyC)
     }
+
+    // MARK: - Probe from bytes a stream already holds
+
+    /// A streaming reader holds the ENC3 header (from the record) and chunk 0 (its
+    /// first fetch). A probe built from those must prove the key exactly as the
+    /// file-based probe does, and refuse a chunk 0 of the wrong length.
+    func testSeekableProbeFromHeaderAndChunkZeroProvesOnlyTheWritingKey() throws {
+        let right = Array(repeating: UInt8(0x11), count: 32)
+        let wrong = Array(repeating: UInt8(0x22), count: 32)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let source = dir.appendingPathComponent("plain.bin")
+        let enc3 = dir.appendingPathComponent("video.enc3")
+        try Data(repeating: 0x42, count: 3_000).write(to: source)
+        let header = try SeekableEncryptedWriter(keyBytes: right, chunkSize: 1_000).encrypt(source: source, destination: enc3)
+        let file = try Data(contentsOf: enc3)
+        let offset = header.geometry.ciphertextOffset(ofChunk: 0)
+        let chunk0 = Array(file[offset..<(offset + header.geometry.ciphertextSize(ofChunk: 0))])
+
+        let probe = try XCTUnwrap(FirstBlockProbe(seekableHeader: header, chunk0: chunk0))
+        XCTAssertTrue(probe.authenticates(keyBytes: right))
+        XCTAssertFalse(probe.authenticates(keyBytes: wrong))
+        XCTAssertNil(FirstBlockProbe(seekableHeader: header, chunk0: Array(chunk0.dropLast())),
+                     "a short chunk 0 proves nothing and must not build a probe")
+    }
 }

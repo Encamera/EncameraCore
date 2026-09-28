@@ -152,3 +152,81 @@ final class DiskMediaBackendStorageDetailsTests: XCTestCase {
         XCTAssertNil(details?.format)
     }
 }
+
+/// `DiskMediaBackend.loadMetadata` against real ENC2 files: the lightbox's info
+/// sheet reads through it, so the key is resolved per file the way opening the
+/// file resolves it, not assumed to be the album's.
+final class DiskMediaBackendLoadMetadataTests: XCTestCase {
+
+    private let albumKey = PrivateKey(name: "album",
+                                      keyBytes: Array(repeating: 0x51, count: 32),
+                                      creationDate: Date(timeIntervalSince1970: 0))
+    private let otherKey = PrivateKey(name: "other",
+                                      keyBytes: Array(repeating: 0x62, count: 32),
+                                      creationDate: Date(timeIntervalSince1970: 0))
+
+    private static func infoMetadata() -> EncryptedFileMetadata {
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = Date(timeIntervalSince1970: 1_700_000_000)
+        metadata.dimensions = EncryptedFileMetadata.Dimensions(width: 1920, height: 1080)
+        metadata.originalFileSize = 812_000
+        metadata.originalExtension = "jpg"
+        return metadata
+    }
+
+    private func makeBackend(heldKeys: [PrivateKey]) async -> (DiskMediaBackend, DataStorageModel) {
+        let album = Album(name: "DiskMediaBackendLoadMetadataTests-\(UUID().uuidString)",
+                          storageOption: .local,
+                          creationDate: Date(),
+                          key: albumKey)
+        let albumManager = DemoAlbumManager()
+        albumManager.keyManager = DemoKeyManager(keys: heldKeys)
+        let backend = DiskMediaBackend()
+        await backend.configure(for: album, albumManager: albumManager)
+        let model = albumManager.storageModel(for: album)!
+        try? FileManager.default.createDirectory(at: model.baseURL, withIntermediateDirectories: true)
+        let albumDirectory = model.baseURL
+        addTeardownBlock { try? FileManager.default.removeItem(at: albumDirectory) }
+        return (backend, model)
+    }
+
+    /// Writes a stamped ENC2 photo under `key` where the album keeps `id`.
+    private func writePhoto(id: String, key: PrivateKey, model: DataStorageModel) async throws -> InteractableMedia<EncryptedMedia> {
+        let url = model.driveURLForMedia(withID: id, type: .photo)
+        let cleartext = CleartextMedia(source: .data(Data("pixels".utf8)), mediaType: .photo, id: id)
+        _ = try await SecretFileHandlerV2(keyBytes: key.keyBytes, source: cleartext, targetURL: url)
+            .encryptWithMetadata(Self.infoMetadata())
+        KeyStampSlot.writeStamp(key.stampPrefix, url: url)
+        return try InteractableMedia(underlyingMedia: [EncryptedMedia(source: .url(url), mediaType: .photo, id: id)])
+    }
+
+    func testLoadMetadataReadsALocalItemUnderTheAlbumKey() async throws {
+        let (backend, model) = await makeBackend(heldKeys: [albumKey])
+        let media = try await writePhoto(id: UUID().uuidString, key: albumKey, model: model)
+
+        let metadata = try await backend.loadMetadata(for: media)
+
+        XCTAssertEqual(metadata, Self.infoMetadata())
+    }
+
+    func testLoadMetadataReadsALocalItemUnderAnotherHeldKey() async throws {
+        let (backend, model) = await makeBackend(heldKeys: [albumKey, otherKey])
+        let media = try await writePhoto(id: UUID().uuidString, key: otherKey, model: model)
+
+        let metadata = try await backend.loadMetadata(for: media)
+
+        XCTAssertEqual(metadata, Self.infoMetadata())
+    }
+
+    func testLoadMetadataReportsAMissingKeyForALocalItemNoHeldKeyOpens() async throws {
+        let (backend, model) = await makeBackend(heldKeys: [albumKey])
+        let media = try await writePhoto(id: UUID().uuidString, key: otherKey, model: model)
+
+        do {
+            let metadata = try await backend.loadMetadata(for: media)
+            XCTFail("expected missingKeyForMedia, got \(String(describing: metadata))")
+        } catch FileAccessError.missingKeyForMedia(let prefix) {
+            XCTAssertEqual(prefix, otherKey.stampPrefix)
+        }
+    }
+}

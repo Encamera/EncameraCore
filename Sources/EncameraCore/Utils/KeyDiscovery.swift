@@ -331,6 +331,8 @@ struct FirstBlockProbe {
         case secretStream(streamHeader: [UInt8], firstBlock: [UInt8])
         /// ENC3: the decoded header plus chunk 0's AEAD ciphertext.
         case seekable(header: SeekableEncryptedHeader, chunk0: [UInt8])
+        /// ENC3 with no chunk in hand: the header's sealed metadata section.
+        case seekableMetadata(header: SeekableEncryptedHeader)
     }
 
     private let payload: Payload
@@ -345,7 +347,7 @@ struct FirstBlockProbe {
     var streamHeader: [UInt8] {
         switch payload {
         case .secretStream(let h, _): return h
-        case .seekable: return []
+        case .seekable, .seekableMetadata: return []
         }
     }
 
@@ -353,6 +355,7 @@ struct FirstBlockProbe {
         switch payload {
         case .secretStream(_, let b): return b
         case .seekable(_, let b): return b
+        case .seekableMetadata: return []
         }
     }
 
@@ -378,13 +381,7 @@ struct FirstBlockProbe {
                     return nil
                 }
                 self.payload = .seekable(header: header, chunk0: Array(chunk0))
-                let mp = header.mutablePlaintext
-                if mp.count >= SeekableEncryptedHeader.keyStampSize {
-                    let raw: UInt32 = mp.readLE(at: 0)
-                    self.stamp = raw == 0 ? nil : raw
-                } else {
-                    self.stamp = nil
-                }
+                self.stamp = Self.stamp(of: header)
                 return
             }
 
@@ -436,12 +433,42 @@ struct FirstBlockProbe {
         }
     }
 
+    /// An ENC3 probe over bytes a streaming reader already holds: the header from
+    /// the record and chunk 0 from the first fetch. Nil when chunk 0 is not the
+    /// length the header's geometry says it must be.
+    init?(seekableHeader header: SeekableEncryptedHeader, chunk0: [UInt8]) {
+        guard header.geometry.chunkCount > 0,
+              chunk0.count == header.geometry.ciphertextSize(ofChunk: 0) else {
+            return nil
+        }
+        self.payload = .seekable(header: header, chunk0: chunk0)
+        self.stamp = Self.stamp(of: header)
+    }
+
+    /// An ENC3 probe over the header alone, for a reader that wants only the
+    /// metadata: its sealed metadata section stands in for chunk 0. Nil when the
+    /// header carries no metadata section, so there is nothing to prove against.
+    init?(seekableMetadataOf header: SeekableEncryptedHeader) {
+        guard !header.encryptedMetadata.isEmpty else { return nil }
+        self.payload = .seekableMetadata(header: header)
+        self.stamp = Self.stamp(of: header)
+    }
+
+    /// The stamp an ENC3 header carries in the first bytes of its mutable plaintext.
+    private static func stamp(of header: SeekableEncryptedHeader) -> UInt32? {
+        let mp = header.mutablePlaintext
+        guard mp.count >= SeekableEncryptedHeader.keyStampSize else { return nil }
+        let raw: UInt32 = mp.readLE(at: 0)
+        return raw == 0 ? nil : raw
+    }
+
     /// Whether the key authenticates the first block.
     ///
     /// v1/v2: initPull succeeds with a WRONG key — only pull authenticates.
     /// Returning true from initPull alone would defeat the whole verification;
     /// the pull is the proof. ENC3: the AEAD open of chunk 0 with the
-    /// position-bound AAD is the proof.
+    /// position-bound AAD is the proof, or of the metadata section when that is
+    /// all the probe holds.
     func authenticates(keyBytes: KeyBytes) -> Bool {
         let sodium = Sodium()
         switch payload {
@@ -458,6 +485,8 @@ struct FirstBlockProbe {
             return sodium.aead.xchacha20poly1305ietf.decrypt(nonceAndAuthenticatedCipherText: chunk0,
                                                              secretKey: keyBytes,
                                                              additionalData: aad) != nil
+        case .seekableMetadata(let header):
+            return header.openMetadata(keyBytes: keyBytes) != nil
         }
     }
 }

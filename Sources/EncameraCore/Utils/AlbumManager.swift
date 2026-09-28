@@ -19,7 +19,7 @@ public enum AlbumError: Error, CustomStringConvertible {
     /// through `CloudKitMigrationManager`, never the synchronous `moveAlbum`.
     case migrationRequiredForCloudKit
     /// Moving a CloudKit album to another storage means downloading its blobs and
-    /// cleaning up the remote records — `moveCloudKitAlbumToLocal`, never the
+    /// cleaning up the remote records — the migration engine, never the
     /// synchronous `moveAlbum` (which would move raw record-named cache files
     /// into a layout that cannot read them, and leave a live cloud copy behind).
     case downloadRequiredFromCloudKit
@@ -27,11 +27,9 @@ public enum AlbumError: Error, CustomStringConvertible {
     /// album's bytes are safe in CloudKit but the album would be undiscoverable on
     /// this device, so finalize must fail (and be retried) rather than proceed.
     case cloudKitMarkerWriteFailed
-    /// The pre-move index reconcile failed, so the local index may be stale or
-    /// empty. The CloudKit -> local move enumerates every destructive step from
-    /// that index, so proceeding would orphan any record it doesn't know about;
-    /// the move aborts and the album stays fully usable in CloudKit.
-    case cloudReconcileFailed
+    /// A storage move is running on the album. Its plan names the album, so a rename
+    /// waits until the run stops.
+    case moveInProgress
 
     public var description: String {
         switch self {
@@ -51,8 +49,8 @@ public enum AlbumError: Error, CustomStringConvertible {
             return "Moving an album out of iCloud must go through the download flow."
         case .cloudKitMarkerWriteFailed:
             return "Could not finish moving the album — its files are safe in iCloud. Try again."
-        case .cloudReconcileFailed:
-            return "Could not check iCloud for the album's latest contents — nothing was moved. Try again."
+        case .moveInProgress:
+            return L10n.albumMoveInProgressRenameError
         }
     }
 }
@@ -129,9 +127,15 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     private var syncedStoreCancellables = Set<AnyCancellable>()
 
-    /// Sets the hidden state for an album
-    /// Uses synced store if available, falls back to legacy UserDefaults
+    /// Sets the hidden state for an album. A CloudKit album keeps it in `album.json`
+    /// and on its record; other albums use the synced store if available, falling
+    /// back to legacy UserDefaults.
     public func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album) {
+        if album.storageOption == .cloudKit {
+            updateCloudKitAlbumMarker(album) { $0.isHidden = isAlbumHidden }
+            broadcastAlbumsUpdated()
+            return
+        }
         if let syncedStore = albumsSyncedStore {
             do {
                 try syncedStore.setAlbumHidden(album.name, isHidden: isAlbumHidden)
@@ -143,13 +147,15 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         } else {
             legacyDefaults.set(isAlbumHidden, forKey: Self.legacyHiddenKey(albumName: album.name))
         }
-        pushCloudKitAlbumRecord(album)
         broadcastAlbumsUpdated()
     }
 
-    /// Checks if an album is hidden
-    /// Uses synced store if available, falls back to legacy UserDefaults
+    /// Checks if an album is hidden. A CloudKit album reads its `album.json`; other
+    /// albums use the synced store if available, falling back to legacy UserDefaults.
     public func isAlbumHidden(_ album: Album) -> Bool {
+        if album.storageOption == .cloudKit {
+            return cloudKitAlbumMarker(album)?.isHidden ?? false
+        }
         if let syncedStore = albumsSyncedStore {
             do {
                 let hidden = try syncedStore.isAlbumHidden(album.name)
@@ -207,16 +213,31 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                     return mapToAlbum(url, .icloud)
                 }
         }
-        let cloudKitAlbums = CloudKitStorageModel.enumerateAlbumsDirectory()
-            .compactMap { url -> Album? in
-                return mapToAlbum(url, .cloudKit)
+        var hiddenCloudKitAlbumIDs = Set<String>()
+        let cloudKitAlbums = CloudKitAlbumMarker.all().compactMap { entry -> Album? in
+            let album = self.cloudKitAlbum(albumID: entry.albumID, marker: entry.marker, storedKeys: storedKeys)
+            if entry.marker.isHidden { hiddenCloudKitAlbumIDs.insert(entry.albumID) }
+            if album == nil {
+                lockedPlaceholders.append(LockedAlbumPlaceholder(
+                    encryptedDirectoryName: entry.marker.encName,
+                    storageOption: .cloudKit,
+                    creationDate: entry.marker.createdAt
+                ))
             }
+            return album
+        }
         lockedAlbumCount = lockedPlaceholders.count
         lockedAlbums = lockedPlaceholders
         return Set(localAlbums)
             .union(Set(iCloudAlbums))
             .union(Set(cloudKitAlbums))
-            .filter { includingHidden || !isAlbumHidden($0) }
+            .filter { album in
+                if includingHidden { return true }
+                if album.storageOption == .cloudKit, let albumID = album.albumID {
+                    return !hiddenCloudKitAlbumIDs.contains(albumID)
+                }
+                return !isAlbumHidden(album)
+            }
             .sorted(by: { $0.creationDate < $1.creationDate })
     }
 
@@ -275,28 +296,130 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             try? fileManager.removeItem(at: albumURL)
         }
 
-        albumsSyncedStore?.deleteAlbum(name: album.name)
-        removeLegacyHiddenKey(albumName: album.name)
-        removeLegacyCoverImageKey(albumName: album.name)
         if album.storageOption == .cloudKit {
-            let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
-            try? fileManager.removeItem(at: marker)
-            try? fileManager.removeItem(at: MediaIndexStore.indexURL(for: album))
+            removeCloudKitAlbumLocalState(album)
             deleteCloudKitAlbumRecord(album)
+        } else {
+            removeNameKeyedAlbumSettings(albumName: album.name)
         }
 
         albumOperationSubject.send(.albumDeleted(album: album))
         broadcastAlbumsUpdated()
+        fixUpCurrentAlbum(deletedAlbum: album)
+    }
+
+    /// Local-only album removal for the reconciler: cleans up the filesystem,
+    /// synced-store entries, and CloudKit discovery artefacts without touching the
+    /// remote `EncAlbum` record or enqueueing chunk reclaim — the device that
+    /// deleted the album already handled the server side.
+    public func applyRemoteAlbumDeletion(album: Album) {
+        let fileManager = FileManager.default
+        let albumURL = album.storageURL
+
+        if fileManager.fileExists(atPath: albumURL.path) {
+            try? fileManager.removeItem(at: albumURL)
+        }
+
+        if album.storageOption == .cloudKit {
+            removeCloudKitAlbumLocalState(album)
+        } else {
+            removeNameKeyedAlbumSettings(albumName: album.name)
+        }
+
+        albumOperationSubject.send(.albumDeleted(album: album))
+        broadcastAlbumsUpdated()
+        fixUpCurrentAlbum(deletedAlbum: album)
+    }
+
+    /// Removes what this device holds for a CloudKit album besides its blob cache:
+    /// the encrypted preview of every item in its index, `album.json`, the media
+    /// index and the size and cover sidecars. All of it is keyed by the album id, so
+    /// a same-named local album's settings are untouched.
+    ///
+    /// Previews live outside the album, keyed by media id, and the index is the only
+    /// list of what the album held. Once it is gone no sync can name those items
+    /// again, so they go here, before it. A move between CloudKit albums keeps the
+    /// media id, so a preview another CloudKit album still indexes is left to it.
+    private func removeCloudKitAlbumLocalState(_ album: Album) {
+        let fileManager = FileManager.default
+        let mediaIDs = Set(MediaIndexStore.storedEntries(for: album).map(\.id))
+        if !mediaIDs.isEmpty {
+            let stillIndexed = mediaIDsIndexedByOtherCloudKitAlbums(than: album)
+            for mediaID in mediaIDs.subtracting(stillIndexed) {
+                try? fileManager.removeItem(at: CloudKitStorageModel.previewURL(forMediaID: mediaID))
+            }
+        }
+        if let albumID = album.albumID {
+            try? CloudKitAlbumMarker.remove(albumID: albumID)
+        }
+        try? fileManager.removeItem(at: MediaIndexStore.indexURL(for: album))
+        try? fileManager.removeItem(at: AlbumSizeSidecar.sidecarURL(for: album))
+        try? fileManager.removeItem(at: AlbumCoverSidecar.sidecarURL(for: album))
+    }
+
+    private func mediaIDsIndexedByOtherCloudKitAlbums(than album: Album) -> Set<String> {
+        let storedKeys = (try? keyManager.storedKeys()) ?? []
+        var mediaIDs = Set<String>()
+        for entry in CloudKitAlbumMarker.all() where entry.albumID != album.albumID {
+            guard let other = cloudKitAlbum(albumID: entry.albumID, marker: entry.marker,
+                                            storedKeys: storedKeys) else { continue }
+            mediaIDs.formUnion(MediaIndexStore.storedEntries(for: other).map(\.id))
+        }
+        return mediaIDs
+    }
+
+    /// Removes the hidden flag and cover a local or iCloud Drive album keeps under
+    /// its name.
+    private func removeNameKeyedAlbumSettings(albumName: String) {
+        albumsSyncedStore?.deleteAlbum(name: albumName)
+        removeLegacyHiddenKey(albumName: albumName)
+        removeLegacyCoverImageKey(albumName: albumName)
+    }
+
+    /// After deleting the current album, fall back to the first remaining album.
+    private func fixUpCurrentAlbum(deletedAlbum: Album) {
+        guard currentAlbum?.id == deletedAlbum.id else { return }
         currentAlbum = fetchAlbumsFromSources().first
     }
 
     // MARK: - CloudKit album record sync
 
-    /// Upsert the album's `EncAlbum` record so it syncs across devices. Fire-and-forget:
-    /// the on-disk marker already makes the album usable locally, and
-    /// `CloudKitAlbumReconciler` self-heals a failed/offline upload on the next sync.
-    /// No-op for non-CloudKit albums and when CloudKit is unavailable (the store guards
-    /// on account status, so the `try?` simply discards the unavailable error).
+    private func cloudKitAlbumMarker(_ album: Album) -> CloudKitAlbumMarker? {
+        album.albumID.flatMap { CloudKitAlbumMarker.read(albumID: $0) }
+    }
+
+    /// Applies `change` to a CloudKit album's `album.json`, marks it dirty and saves
+    /// the album record from it. The marker stays dirty until a save succeeds, and
+    /// `CloudKitAlbumReconciler` retries dirty markers on every pass. An album with no
+    /// marker is not on this device, so nothing is written.
+    ///
+    /// - Returns: whether `album.json` was written.
+    @discardableResult
+    func updateCloudKitAlbumMarker(_ album: Album, _ change: (inout CloudKitAlbumMarker) -> Void) -> Bool {
+        guard album.storageOption == .cloudKit,
+              let albumID = album.albumID,
+              var marker = CloudKitAlbumMarker.read(albumID: albumID) else {
+            printDebug("updateCloudKitAlbumMarker skip album=\(album.id) reason=noMarker")
+            return false
+        }
+        change(&marker)
+        marker.dirty = true
+        do {
+            try marker.write(albumID: albumID)
+        } catch {
+            printDebug("updateCloudKitAlbumMarker write FAILED albumID=\(albumID) error=\(error)")
+            return false
+        }
+        pushCloudKitAlbumRecord(album)
+        return true
+    }
+
+    /// Upsert the album's `EncAlbum` record from its `album.json` so it syncs across
+    /// devices. Fire-and-forget: the marker already makes the album usable locally.
+    /// A successful save clears the marker's `dirty` flag if the marker is unchanged
+    /// since; a failed one leaves it for `CloudKitAlbumReconciler` to retry. No-op for
+    /// non-CloudKit albums, albums with no marker, and when CloudKit is unavailable
+    /// (the store guards on account status, so the `try?` discards that error).
     ///
     /// Gated on the `cloudKitStorage` feature: `EncAlbum` records only matter when the
     /// CloudKit plane is active, and the gate keeps a real `CloudKitMediaStore` (which
@@ -304,21 +427,27 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     private func pushCloudKitAlbumRecord(_ album: Album) {
         guard FeatureToggle.isEnabled(feature: .cloudKitStorage),
               album.storageOption == .cloudKit,
-              let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes),
-              let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
-                                                                            keyManager: keyManager) else { return }
-        let rawCover = getAlbumCoverImageId(album: album)
-        let coverMediaID = (rawCover == nil || rawCover == "none") ? nil : rawCover
-        let upload = CloudKitAlbumUpload(albumID: hash,
-                                         encName: album.encryptedPathComponent,
-                                         createdAt: album.creationDate,
-                                         isHidden: isAlbumHidden(album),
+              let albumID = album.albumID,
+              let marker = CloudKitAlbumMarker.read(albumID: albumID) else { return }
+        let pushed = Album(encryptedName: marker.encName, storageOption: .cloudKit,
+                           creationDate: marker.createdAt, key: album.key, albumID: albumID)
+        guard let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: pushed,
+                                                                             keyManager: keyManager) else { return }
+        let upload = CloudKitAlbumUpload(albumID: albumID,
+                                         encName: marker.encName,
+                                         createdAt: marker.createdAt,
+                                         isHidden: marker.isHidden,
                                          keyFingerprint: albumFingerprint,
-                                         coverMediaID: coverMediaID)
-        let store = CloudKitStoreProvider.makeStore(hash)
+                                         coverMediaID: marker.recordCoverMediaID)
+        let store = CloudKitStoreProvider.makeStore(albumID)
         Task {
             guard (try? await store.saveAlbum(upload)) != nil else { return }
-            CloudKitAlbumPublishRegistry().markPublished(hash)
+            CloudKitAlbumPublishRegistry().markPublished(albumID)
+            do {
+                try CloudKitAlbumMarker.clearDirty(albumID: albumID, ifUnchangedFrom: marker)
+            } catch {
+                Self.printDebug("pushCloudKitAlbumRecord clearDirty FAILED albumID=\(albumID) error=\(error)")
+            }
         }
     }
 
@@ -341,11 +470,11 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// live). Both paths share the same predicate: `.cloudKit` albums always sync.
     private func deleteCloudKitAlbumRecord(_ album: Album) {
         guard album.storageOption == .cloudKit,
-              let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) else { return }
+              let albumID = album.albumID else { return }
         let queue = CloudKitAlbumDeleteQueue()
-        queue.enqueue(hash)
+        queue.enqueue(albumID)
         let publishRegistry = CloudKitAlbumPublishRegistry()
-        let store = CloudKitStoreProvider.makeStore(hash)
+        let store = CloudKitStoreProvider.makeStore(albumID)
         Task {
             // Queue the chunked members' blob-zone reclaim BEFORE the album
             // record goes: the `.deleteSelf` cascade covers every `EncMedia` and
@@ -357,19 +486,28 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             // next pass — the destructive erase's blob-zone wipe remains the
             // backstop.
             do {
-                let members = try await store.fetchMetadata(albumID: hash, includeThumbnail: false)
+                let members = try await store.fetchMetadata(albumID: albumID, includeThumbnail: false)
                 let mediaDeleteQueue = CloudKitMediaDeleteQueue()
                 for meta in members where meta.chunkCount > 0 {
+                    // A move reassigns the record to another album, and the
+                    // eventually-consistent query may still return it here. Confirm
+                    // the record still belongs HERE before enqueueing a chunk delete
+                    // that would destroy the other album's data.
+                    if let currentOwner = try await store.confirmAlbum(recordName: meta.recordName),
+                       currentOwner != albumID {
+                        Self.printDebug("deleteCloudKitAlbumRecord skip chunk reclaim recordName=\(meta.recordName) — now owned by \(currentOwner)")
+                        continue
+                    }
                     mediaDeleteQueue.enqueue(meta.recordName, chunkCount: meta.chunkCount)
                 }
             } catch {
-                Self.printDebug("deleteCloudKitAlbumRecord chunk enumeration FAILED albumID=\(hash) — chunked members' blob records may be orphaned until erase raw=\(error)")
+                Self.printDebug("deleteCloudKitAlbumRecord chunk enumeration FAILED albumID=\(albumID) — chunked members' blob records may be orphaned until erase raw=\(error)")
                 return
             }
             do {
-                try await store.deleteAlbum(albumID: hash)
-                queue.remove(hash)
-                publishRegistry.forget(hash)
+                try await store.deleteAlbum(albumID: albumID)
+                queue.remove(albumID)
+                publishRegistry.forget(albumID)
             } catch {
                 // Left queued — the album reconciler retries on its next pass.
             }
@@ -380,12 +518,22 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// discovered in CloudKit through the manager, so observers receive the same
     /// broadcasts a locally created album produces (grid refresh, current-album
     /// consistency) instead of the marker appearing behind everyone's back.
-    public func adoptCloudKitAlbum(name: String, key: PrivateKey, createdAt: Date, isHidden: Bool) {
-        let album = Album(name: name, storageOption: .cloudKit, creationDate: createdAt, key: key)
-        let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
-        try? FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
-        if isAlbumHidden(album) != isHidden {
-            setIsAlbumHidden(isHidden, album: album)
+    ///
+    /// `album.json` takes the record's `encName` byte for byte, so the album this
+    /// device shows is the one the record names, under the record's id.
+    public func adoptCloudKitAlbum(record: CloudKitAlbumMetadata, key: PrivateKey) {
+        let album = Album(encryptedName: record.encName, storageOption: .cloudKit,
+                          creationDate: record.createdAt, key: key, albumID: record.albumID)
+        let marker = CloudKitAlbumMarker(encName: record.encName,
+                                         createdAt: record.createdAt,
+                                         isHidden: record.isHidden,
+                                         coverMediaID: record.coverMediaID,
+                                         keyFingerprint: key.keychainLabel,
+                                         dirty: false)
+        do {
+            try marker.write(albumID: record.albumID)
+        } catch {
+            printDebug("adoptCloudKitAlbum marker write FAILED albumID=\(record.albumID) error=\(error)")
         }
         albumOperationSubject.send(.albumCreated(album: album))
         broadcastAlbumsUpdated()
@@ -395,51 +543,64 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     public func setAlbumCoverImage(album: Album, image: InteractableMedia<EncryptedMedia>) {
+        if album.storageOption == .cloudKit {
+            updateCloudKitAlbumMarker(album) { $0.coverMediaID = image.id }
+            return
+        }
         if let syncedStore = albumsSyncedStore {
             do {
                 try syncedStore.setCoverImageId(album.name, coverImageId: image.id)
                 removeLegacyCoverImageKey(albumName: album.name)
-                pushCloudKitAlbumRecord(album)
                 return
             } catch {
                 printDebug("Failed to set cover image in synced store: \(error)")
             }
         }
         legacyDefaults.set(image.id, forKey: Self.legacyCoverImageKey(albumName: album.name))
-        pushCloudKitAlbumRecord(album)
     }
 
     public func removeAlbumCover(album: Album) {
+        if album.storageOption == .cloudKit {
+            updateCloudKitAlbumMarker(album) { $0.coverMediaID = CloudKitAlbumMarker.disabledCoverID }
+            return
+        }
         if let syncedStore = albumsSyncedStore {
             do {
                 try syncedStore.setCoverImageId(album.name, coverImageId: "none")
                 removeLegacyCoverImageKey(albumName: album.name)
-                pushCloudKitAlbumRecord(album)
                 return
             } catch {
                 printDebug("Failed to remove cover image in synced store: \(error)")
             }
         }
         legacyDefaults.set("none", forKey: Self.legacyCoverImageKey(albumName: album.name))
-        pushCloudKitAlbumRecord(album)
     }
 
     public func resetAlbumCover(album: Album) {
+        if album.storageOption == .cloudKit {
+            updateCloudKitAlbumMarker(album) { $0.coverMediaID = nil }
+            // The synced cover cached from the record would otherwise stand in for it.
+            try? FileManager.default.removeItem(at: AlbumCoverSidecar.sidecarURL(for: album))
+            return
+        }
         if let syncedStore = albumsSyncedStore {
             do {
                 try syncedStore.setCoverImageId(album.name, coverImageId: nil)
                 removeLegacyCoverImageKey(albumName: album.name)
-                pushCloudKitAlbumRecord(album)
                 return
             } catch {
                 printDebug("Failed to reset cover image in synced store: \(error)")
             }
         }
         legacyDefaults.removeObject(forKey: Self.legacyCoverImageKey(albumName: album.name))
-        pushCloudKitAlbumRecord(album)
     }
 
+    /// The album's chosen cover: a media id, `"none"` when the cover is turned off,
+    /// or nil when the album picks its own. A CloudKit album reads its `album.json`.
     public func getAlbumCoverImageId(album: Album) -> String? {
+        if album.storageOption == .cloudKit {
+            return cloudKitAlbumMarker(album)?.coverMediaID
+        }
         if let syncedStore = albumsSyncedStore {
             do {
                 if let id = try syncedStore.getCoverImageId(album.name) {
@@ -457,6 +618,20 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             }
         }
         return legacyDefaults.string(forKey: Self.legacyCoverImageKey(albumName: album.name))
+    }
+
+    /// Writes a local album's cover (a media id, or `"none"`) under its name.
+    private func setNameKeyedCoverImageId(_ coverImageId: String, albumName: String) {
+        if let syncedStore = albumsSyncedStore {
+            do {
+                try syncedStore.setCoverImageId(albumName, coverImageId: coverImageId)
+                removeLegacyCoverImageKey(albumName: albumName)
+                return
+            } catch {
+                printDebug("Failed to set cover image in synced store: \(error)")
+            }
+        }
+        legacyDefaults.set(coverImageId, forKey: Self.legacyCoverImageKey(albumName: albumName))
     }
 
     public func isAlbumCoverImageDisabled(album: Album) -> Bool {
@@ -501,7 +676,11 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             return existingAlbum
         }
 
-        let album = Album(name: name, storageOption: storageOption, creationDate: Date(), key: currentKey)
+        let album = Album(name: name,
+                          storageOption: storageOption,
+                          creationDate: Date(),
+                          key: currentKey,
+                          albumID: storageOption == .cloudKit ? UUID().uuidString : nil)
         printDebug("Starting album creation process")
 
         let fileManager = FileManager.default
@@ -523,9 +702,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             attributes: nil
         )
 
-        if storageOption == .cloudKit {
-            let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
-            try? fileManager.createDirectory(at: marker, withIntermediateDirectories: true)
+        if storageOption == .cloudKit, let albumID = album.albumID {
+            try CloudKitAlbumMarker(album: album, isHidden: false, dirty: true).write(albumID: albumID)
             pushCloudKitAlbumRecord(album)
         }
 
@@ -593,24 +771,37 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     /// Completes a resumable local/iCloud -> CloudKit migration by flipping the
     /// album's storage *identity* (the bytes are already in CloudKit + its on-device
-    /// cache; the migration engine uploaded and deleted every file). Writes the
-    /// CloudKit discovery marker so the album is found as a CloudKit album, drops the
-    /// drained source directory so it isn't also discovered as an empty source-storage
-    /// album, and broadcasts the change so the grid refreshes.
+    /// cache; the migration engine uploaded and deleted every file). Writes
+    /// `albums/<albumID>/album.json` so the album is found as a CloudKit album, drops
+    /// the drained source directory so it isn't also discovered as an empty
+    /// source-storage album, and broadcasts the change so the grid refreshes.
+    ///
+    /// The source's hidden flag and cover move into `album.json`, and its name-keyed
+    /// settings are removed once its directory is gone. A move into a CloudKit album
+    /// this device already holds keeps that album's `album.json` as it is.
     @discardableResult
-    public func finalizeMigrationToCloudKit(album: Album) throws -> Album {
-        let cloudKitAlbum = Album.cloudKitTwin(of: album)
-
-        let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(cloudKitAlbum.encryptedPathComponent)
-        try FileManager.default.createDirectory(at: marker, withIntermediateDirectories: true)
-        guard FileManager.default.fileExists(atPath: marker.path) else {
+    public func finalizeMigrationToCloudKit(album: Album, albumID: String) throws -> Album {
+        let cloudKitAlbum: Album
+        if let existing = CloudKitAlbumMarker.read(albumID: albumID) {
+            cloudKitAlbum = Album(encryptedName: existing.encName, storageOption: .cloudKit,
+                                  creationDate: existing.createdAt, key: album.key, albumID: albumID)
+        } else {
+            cloudKitAlbum = Album.cloudKitTwin(of: album, albumID: albumID)
+            try CloudKitAlbumMarker(album: cloudKitAlbum,
+                                    isHidden: isAlbumHidden(album),
+                                    coverMediaID: getAlbumCoverImageId(album: album),
+                                    dirty: true).write(albumID: albumID)
+        }
+        guard CloudKitAlbumMarker.exists(albumID: albumID) else {
             throw AlbumError.cloudKitMarkerWriteFailed
         }
         pushCloudKitAlbumRecord(cloudKitAlbum)
 
         if album.storageOption != .cloudKit {
             let sourceModel = album.storageOption.modelForType.init(album: album)
-            Album.removeDrainedSourceDirectory(at: sourceModel.baseURL)
+            if Album.removeDrainedSourceDirectory(at: sourceModel.baseURL) {
+                removeNameKeyedAlbumSettings(albumName: album.name)
+            }
         }
 
         if currentAlbum?.id == album.id { currentAlbum = cloudKitAlbum }
@@ -619,87 +810,101 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         return cloudKitAlbum
     }
 
-    /// Moves a CloudKit album's contents back to local storage — the reverse of the
-    /// migration engine, in one sitting: materialize every ciphertext locally
-    /// (downloading anything evicted from the blob cache), verify the copies, and
-    /// only THEN remove the cloud plane (media records, album record, discovery
-    /// marker, blob cache, stale indexes). Any failure before the verification
-    /// point leaves the album fully usable in CloudKit; a move is not a copy, so a
-    /// completed move leaves no live remote records to rematerialize elsewhere.
-    public func moveCloudKitAlbumToLocal(album: Album) async throws -> Album {
-        try await moveCloudKitAlbumToLocal(album: album, onProgress: nil)
-    }
-
-    public func moveCloudKitAlbumToLocal(album: Album,
-                                         onProgress: (@Sendable (CloudToLocalMoveProgress) async -> Void)?) async throws -> Album {
-        guard album.storageOption == .cloudKit else {
-            throw AlbumError.albumNotFoundAtSourceLocation
-        }
-        var localAlbum = album
-        localAlbum.storageOption = .local
-        let localModel = LocalStorageModel(album: localAlbum)
-        try localModel.initializeDirectories()
-
-        await onProgress?(CloudToLocalMoveProgress(phase: .preparing, exportedCount: 0, totalCount: 0))
-        let access = await CloudKitFileAccess(album: album, albumManager: self)
-        guard await access.reconcile() else {
-            throw AlbumError.cloudReconcileFailed
-        }
-        let exported = try await access.exportCiphertext(to: localModel) { exportedCount, totalCount in
-            await onProgress?(CloudToLocalMoveProgress(phase: .downloading,
-                                                       exportedCount: exportedCount,
-                                                       totalCount: totalCount))
-        }
-        printDebug("moveCloudKitAlbumToLocal exported=\(exported) album=\(album.name)")
-
-        // The point of no return. A cancel that arrives during the export aborts
-        // cleanly here (local copies are just redundant bytes; the album is still
-        // whole in CloudKit) — but past this check the cloud plane starts coming
-        // down, and aborting mid-teardown would strand deleted records while
-        // the album still reads as CloudKit.
-        try Task.checkCancellation()
-
-        await onProgress?(CloudToLocalMoveProgress(phase: .removingRemoteCopy,
-                                                   exportedCount: exported,
-                                                   totalCount: exported))
-        try await access.deleteAllMedia()
-        if let hash = SyncedStoreEncryptionHandler.keyedHash(album.name, keyBytes: album.key.keyBytes) {
+    /// Completes a whole CloudKit album's move back to local storage. The engine has
+    /// already copied and verified every item into the local layout and removed
+    /// every media record; this drops what is left of the album in CloudKit and on
+    /// this device: the album record, `album.json`, the blob cache, both indexes and
+    /// the sidecars. The album id goes with them; a later move back to CloudKit
+    /// resolves a new one. `album.json` going is what makes the local album
+    /// discoverable, so a failure to remove it throws and the engine keeps its
+    /// checkpoint to retry.
+    ///
+    /// The hidden flag and cover in `album.json` move to the local album's name-keyed
+    /// settings.
+    @discardableResult
+    public func finalizeMigrationToLocal(album: Album) async throws -> Album {
+        let localAlbum = Album.localTwin(of: album)
+        let marker = cloudKitAlbumMarker(album)
+        if let albumID = album.albumID {
             let queue = CloudKitAlbumDeleteQueue()
-            queue.enqueue(hash)
+            queue.enqueue(albumID)
             do {
-                try await CloudKitStoreProvider.makeStore(hash).deleteAlbum(albumID: hash)
-                queue.remove(hash)
-                CloudKitAlbumPublishRegistry().forget(hash)
+                try await CloudKitStoreProvider.makeStore(albumID).deleteAlbum(albumID: albumID)
+                queue.remove(albumID)
+                CloudKitAlbumPublishRegistry().forget(albumID)
             } catch {
-                printDebug("moveCloudKitAlbumToLocal album delete FAILED album=\(album.name) — left queued for retry raw=\(error)")
+                printDebug("finalizeMigrationToLocal album delete FAILED album=\(album.name) — left queued for retry raw=\(error)")
             }
+            try CloudKitAlbumMarker.remove(albumID: albumID)
         }
-
-        let marker = CloudKitStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent)
-        try? FileManager.default.removeItem(at: marker)
         try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).baseURL)
         try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
         try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: localAlbum))
+        try? FileManager.default.removeItem(at: AlbumSizeSidecar.sidecarURL(for: album))
+        try? FileManager.default.removeItem(at: AlbumCoverSidecar.sidecarURL(for: album))
+
+        if let marker {
+            removeNameKeyedAlbumSettings(albumName: localAlbum.name)
+            if marker.isHidden {
+                setIsAlbumHidden(true, album: localAlbum)
+            }
+            if let coverMediaID = marker.coverMediaID {
+                setNameKeyedCoverImageId(coverMediaID, albumName: localAlbum.name)
+            }
+        }
 
         if currentAlbum?.id == album.id { currentAlbum = localAlbum }
         albumOperationSubject.send(.albumMoved(album: localAlbum))
         broadcastAlbumsUpdated()
-        printDebug("moveCloudKitAlbumToLocal completed album=\(album.name) items=\(exported)")
+        printDebug("finalizeMigrationToLocal completed album=\(album.name)")
         return localAlbum
     }
 
+    /// Renames an album in place. A local album's directory moves to the new name's
+    /// ciphertext, carrying its name-keyed hidden flag and cover, and its unfinished
+    /// storage moves: a local album's id is its name, so every plan naming it moves
+    /// with it (`MigrationPlanStore.carryPlans`). A CloudKit album keeps its id and
+    /// everything keyed by it: only `encName` in `album.json` changes, and the record
+    /// is saved from it in the background (see `updateCloudKitAlbumMarker`).
+    ///
+    /// Throws `.albumExists` when any other album on this device, hidden or not and in
+    /// any storage, already has the name, and `.moveInProgress` while a storage move
+    /// is running on the album.
     public func renameAlbum(album: Album, to newName: String) throws -> Album {
         try validateAlbumName(name: newName)
-
-        let existingAlbums = fetchAlbumsFromSources(includingHidden: true)
-
-        if existingAlbums.contains(where: { $0.name == newName }) {
+        if newName == album.name {
+            return album
+        }
+        if CloudKitMigrationManager.isActive(albumID: album.id) {
+            throw AlbumError.moveInProgress
+        }
+        if albumNamed(newName, otherThan: album) != nil {
             throw AlbumError.albumExists
         }
-        guard var albumToUpdate = existingAlbums.first(where: { $0.id == album.id }) else {
+        guard var albumToUpdate = fetchAlbumsFromSources(includingHidden: true).first(where: { $0.id == album.id }) else {
             throw AlbumError.albumNotFoundAtSourceLocation
         }
 
+        if album.storageOption == .cloudKit {
+            albumToUpdate.name = newName
+            let encName = albumToUpdate.encryptedPathComponent
+            guard updateCloudKitAlbumMarker(albumToUpdate, { $0.encName = encName }) else {
+                throw AlbumError.albumNotFoundAtSourceLocation
+            }
+            if currentAlbum?.id == album.id {
+                currentAlbum = albumToUpdate
+            }
+            albumOperationSubject.send(.albumRenamed(album: albumToUpdate))
+            broadcastAlbumsUpdated()
+            return albumToUpdate
+        }
+
+        // The synced store keys the hidden flag and cover by name, so both are read
+        // before the rename and written under the new name after it.
+        let wasHidden = isAlbumHidden(album)
+        let coverId = getAlbumCoverImageId(album: album)
+
+        let renamedFrom = albumToUpdate
         albumToUpdate.name = newName
         let fileManager = FileManager.default
         let oldURL = album.storageURL
@@ -711,6 +916,36 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             throw AlbumError.albumNotFoundAtSourceLocation
         }
 
+        if wasHidden {
+            setIsAlbumHidden(true, album: albumToUpdate)
+        }
+        if let coverId {
+            if let syncedStore = albumsSyncedStore {
+                try? syncedStore.setCoverImageId(albumToUpdate.name, coverImageId: coverId)
+            } else {
+                legacyDefaults.set(coverId, forKey: Self.legacyCoverImageKey(albumName: albumToUpdate.name))
+            }
+        }
+        albumsSyncedStore?.deleteAlbum(name: album.name)
+        removeLegacyHiddenKey(albumName: album.name)
+        removeLegacyCoverImageKey(albumName: album.name)
+
+        do {
+            let carried = try MigrationPlanStore.carryPlans(acrossRenameOf: renamedFrom, to: albumToUpdate,
+                                                            otherAlbums: fetchAlbumsFromSources(includingHidden: true))
+            // A move of the whole album can already have an `album.json` for its
+            // destination, adopted from the server mid-move. Finalize keeps that
+            // marker, so it takes the new name now.
+            for plan in carried where plan.scope == .album {
+                guard let twinID = plan.destination.cloudKitAlbumID else { continue }
+                let twin = Album.cloudKitTwin(of: albumToUpdate, albumID: twinID)
+                let encName = twin.encryptedPathComponent
+                _ = updateCloudKitAlbumMarker(twin) { $0.encName = encName }
+            }
+        } catch {
+            printDebug("renameAlbum could not carry the album's pending moves: \(error)")
+        }
+
         albumOperationSubject.send(.albumRenamed(album: albumToUpdate))
         broadcastAlbumsUpdated()
         if currentAlbum?.id == album.id {
@@ -718,8 +953,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
         return albumToUpdate
     }
-
-
 
     public func storageModel(for album: Album) -> DataStorageModel? {
         album.storageOption.modelForType.init(album: album)
@@ -739,6 +972,26 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
         let storageModel = storageModel(for: album)
         return storageModel?.countOfFiles(matchingFileExtension: [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]) ?? 0
+    }
+
+    /// Builds the CloudKit album a marker describes, with the key that encrypted its
+    /// name. Nil when no held key opens the name: a CloudKit album never falls back
+    /// to the current key, since the name ciphertext always came from a real key.
+    private func cloudKitAlbum(albumID: String,
+                               marker: CloudKitAlbumMarker,
+                               storedKeys: [PrivateKey]) -> Album? {
+        switch keyDiscovery.key(forEncryptedAlbumName: marker.encName,
+                                hint: marker.keyFingerprint,
+                                storedKeysSnapshot: storedKeys) {
+        case .resolved(let key):
+            return Album(encryptedName: marker.encName,
+                         storageOption: .cloudKit,
+                         creationDate: marker.createdAt,
+                         key: key,
+                         albumID: albumID)
+        case .notProvable, .noKnownKey:
+            return nil
+        }
     }
 
     /// Builds the album a directory represents, keyed by the key that actually

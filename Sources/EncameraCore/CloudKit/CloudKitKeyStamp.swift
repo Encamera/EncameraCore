@@ -10,11 +10,12 @@ import Foundation
 /// Establishes which key encrypted a ciphertext file, for every writer that puts a
 /// `keyFingerprint` on a CloudKit record.
 ///
-/// Readers take that field as the answer and decrypt with the key it names, without
-/// re-deriving anything — which is only safe because the field can never be a guess.
-/// This type is what makes that true: a fingerprint reaches a record only after the
-/// key it names has authenticated the very bytes being uploaded, and a file whose key
-/// cannot be established fails its item instead of uploading under an assumption.
+/// Readers try the key that field names first and prove it against the content
+/// (`CloudKitRecordKeyResolver`); when no held key opens the record, the field names
+/// the key the user is missing. So the field must never be a guess: a fingerprint
+/// reaches a record only after the key it names has authenticated the very bytes
+/// being uploaded, and a file whose key cannot be established fails its item instead
+/// of uploading under an assumption.
 ///
 /// The file is always local at this point — a capture writes it to the album's cache
 /// directory, and a migration only reaches an item whose source is materialized — so
@@ -118,7 +119,7 @@ public enum CloudKitKeyStamp: DebugPrintable {
     /// `proveKey`, and additionally leaves the file carrying its own key's stamp.
     ///
     /// This is what closes the loop through CloudKit. A blob is uploaded as raw bytes
-    /// and comes back as raw bytes — `exportCiphertext` is a byte copy — so without a
+    /// and comes back as raw bytes — the move back to local storage is a byte copy — so without a
     /// stamp written before the upload, a CloudKit → local move produces files with
     /// nothing on them naming their key, which is the blind spot the stamp exists to
     /// close.

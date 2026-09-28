@@ -10,12 +10,11 @@
 import Foundation
 
 public protocol ReclaimableCacheEvicting: Sendable {
-    /// Wipes every re-fetchable cached blob.
+    /// Deletes every re-fetchable cached blob.
     ///
     /// Throws deliberately. A swallowed error here would report freed bytes while
-    /// cached ciphertext survived on disk, which is the failure mode
-    /// `CloudKitBlobCache.clearAll()` was made throwing to prevent.
-    func clearAll() async throws
+    /// cached ciphertext survived on disk.
+    func freeUpSpace() async throws
 
     /// What the cache thinks it holds, and what is actually on disk.
     ///
@@ -27,6 +26,10 @@ public protocol ReclaimableCacheEvicting: Sendable {
 }
 
 extension CloudKitBlobCache: ReclaimableCacheEvicting {
+    public func freeUpSpace() async throws {
+        try await freeUpSpace(pendingUploads: .shared)
+    }
+
     public func indexedAndDiskBytes() -> (indexed: Int64, disk: Int64) {
         (totalBytes(), diskBytes())
     }
