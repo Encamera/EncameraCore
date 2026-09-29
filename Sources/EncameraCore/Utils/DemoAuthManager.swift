@@ -42,8 +42,10 @@ public class DemoAuthManager: AuthManager {
         
     }
     
+    public private(set) var biometricAuthorizationCount = 0
+
     public func authorizeWithBiometrics() async throws {
-        
+        biometricAuthorizationCount += 1
     }
     public var useBiometricsForAuth: Bool = true
     
