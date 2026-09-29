@@ -31,7 +31,7 @@ public enum MissingKeyEntryError: Error, ErrorDescribable, Equatable {
     /// The phrase derives a real key, but not the one this media needs.
     /// `required` is nil when the media never named a key — the phrase was
     /// rejected by the decrypt proof rather than by a fingerprint comparison.
-    case wrongKey(entered: UInt32, required: UInt32?)
+    case wrongKey(entered: UInt32, required: RequiredKeyIdentity?)
 
     /// The key could not be tested, because nothing in the album was readable:
     /// an iCloud Drive album of placeholders, or CloudKit blobs not yet in the
@@ -55,7 +55,7 @@ public enum MissingKeyEntryError: Error, ErrorDescribable, Equatable {
             }
             return L10n.MissingKey.wrongKey(
                 KeyFingerprint.displayLabel(stampPrefix: entered),
-                KeyFingerprint.displayLabel(stampPrefix: required)
+                required.displayLabel
             )
         case .couldNotVerify:
             return L10n.MissingKey.couldNotVerify
@@ -74,10 +74,9 @@ public enum MissingKeyEntryError: Error, ErrorDescribable, Equatable {
 /// 1. **The key is never promoted.** `save(key:setNewKeyToCurrent:)` is called
 ///    with `false`, so new media keeps being encrypted with this device's own
 ///    key. The added key is decrypt-only, exactly as ENC-76 specifies.
-/// 2. **The key must actually be the right one.** The stamp prefix is only a
-///    fast pre-check; the accept/reject decision rests on `verify`, an
-///    authenticated decrypt of the media itself. Nothing is written to the
-///    keychain until that proof succeeds.
+/// 2. **The key must actually be the right one.** A key named by the media or
+///    album must match, and `verify`, an authenticated decrypt, must also
+///    succeed. Nothing is written to the keychain until both pass.
 public struct MissingKeyEntry {
 
     private let keyManager: KeyManager
@@ -86,13 +85,26 @@ public struct MissingKeyEntry {
         self.keyManager = keyManager
     }
 
+    /// `addKey(phraseComponents:requiredKey:verify:)` for media, whose only
+    /// key evidence is its stamp.
+    @discardableResult
+    public func addKey(
+        phraseComponents: [String],
+        requiredStampPrefix: UInt32?,
+        verify: (PrivateKey) async -> KeyProofOutcome
+    ) async throws -> PrivateKey {
+        try await addKey(phraseComponents: phraseComponents,
+                         requiredKey: requiredStampPrefix.map(RequiredKeyIdentity.stampPrefix),
+                         verify: verify)
+    }
+
     /// Derives the phrase's key, proves it opens the media, and only then saves
     /// it as a decrypt-only library entry.
     ///
     /// - Parameters:
-    ///   - requiredStampPrefix: the stamp the media carries, when it carries
-    ///     one. Used solely to reject early and to word the error; a nil value
-    ///     weakens the message, never the gate.
+    ///   - requiredKey: the key the media or album names, when it names one.
+    ///     A mismatch is a hard rejection, so a phrase for any other key can
+    ///     never be saved. A nil value leaves `verify` as the only gate.
     ///   - verify: authenticated proof that this key opens the media in
     ///     question — in production `KeyDiscovery.proveFirstBlock`. Tri-state
     ///     rather than Bool: "no readable file to test against" has to stay
@@ -100,7 +112,7 @@ public struct MissingKeyEntry {
     @discardableResult
     public func addKey(
         phraseComponents: [String],
-        requiredStampPrefix: UInt32?,
+        requiredKey: RequiredKeyIdentity?,
         verify: (PrivateKey) async -> KeyProofOutcome
     ) async throws -> PrivateKey {
 
@@ -119,11 +131,11 @@ public struct MissingKeyEntry {
             throw MissingKeyEntryError.alreadyHeld
         }
 
-        // Cheap rejection on the 4-byte stamp before spending an AEAD op. A
-        // prefix collision slips through here and is caught by `verify` below,
-        // which is why the stamp is a pre-check and not the gate.
-        if let requiredStampPrefix, candidate.stampPrefix != requiredStampPrefix {
-            throw MissingKeyEntryError.wrongKey(entered: candidate.stampPrefix, required: requiredStampPrefix)
+        // Rejected before spending an AEAD op. A stamp-prefix collision slips
+        // through here and is caught by `verify` below; a matching fingerprint
+        // that `verify` then disproves means the recorded fingerprint is stale.
+        if let requiredKey, !requiredKey.matches(candidate) {
+            throw MissingKeyEntryError.wrongKey(entered: candidate.stampPrefix, required: requiredKey)
         }
 
         switch await verify(candidate) {

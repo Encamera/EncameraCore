@@ -231,14 +231,31 @@ public struct LockedAlbumPlaceholder: Identifiable, Hashable {
     public let encryptedDirectoryName: String
     public let storageOption: StorageType
     public let creationDate: Date
+    /// The key the album says it needs, when anything on disk names one. Nil
+    /// means unknown, not that no key is needed.
+    public let requiredKey: RequiredKeyIdentity?
 
     public var id: String {
         "\(encryptedDirectoryName)_\(storageOption.rawValue)"
     }
 
-    public init(encryptedDirectoryName: String, storageOption: StorageType, creationDate: Date) {
+    public init(encryptedDirectoryName: String,
+                storageOption: StorageType,
+                creationDate: Date,
+                requiredKey: RequiredKeyIdentity? = nil) {
         self.encryptedDirectoryName = encryptedDirectoryName
         self.storageOption = storageOption
         self.creationDate = creationDate
+        self.requiredKey = requiredKey
+    }
+
+    /// Whether `key` is the key that encrypted this album's name — an
+    /// authenticated decrypt of data that is always on the device, so it never
+    /// waits on a download.
+    public func proveKey(_ key: PrivateKey) -> KeyProofOutcome {
+        guard encryptedDirectoryName.hasPrefix("Album_") else {
+            return .indeterminate
+        }
+        return Album.decryptedAlbumName(encryptedDirectoryName, key: key) != nil ? .proved : .disproved
     }
 }

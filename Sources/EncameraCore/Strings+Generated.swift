@@ -855,6 +855,14 @@ public enum L10n {
     public static let largeImportWarningMessage = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningMessage", fallback: "Leave the app open and connected to WiFi for best results.")
     /// For Faster Imports
     public static let largeImportWarningTitle = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningTitle", fallback: "For Faster Imports")
+    /// A move is already running for one of these albums. Try again when it finishes.
+    public static let moveBusyToast = L10n.tr("Localizable", "AlbumDetailView.MoveBusyToast", fallback: "A move is already running for one of these albums. Try again when it finishes.")
+    /// Move cancelled: %@ %@ moved to %@
+    public static func moveCancelledToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveCancelledToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Move cancelled: %@ %@ moved to %@")
+    }
+    /// Moving to or from an iCloud album isn't available yet
+    public static let moveCloudKitRefusedToast = L10n.tr("Localizable", "AlbumDetailView.MoveCloudKitRefusedToast", fallback: "Moving to or from an iCloud album isn't available yet")
     /// Moved %@ %@ to %@
     public static func movedToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MovedToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Moved %@ %@ to %@")
@@ -862,22 +870,6 @@ public enum L10n {
     /// Failed to move %@ %@
     public static func moveErrorToast(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MoveErrorToast", String(describing: p1), String(describing: p2), fallback: "Failed to move %@ %@")
-    }
-    /// Moved %@ %@, %@ %@ failed
-    public static func movePartialToast(_ p1: Any, _ p2: Any, _ p3: Any, _ p4: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MovePartialToast", String(describing: p1), String(describing: p2), String(describing: p3), String(describing: p4), fallback: "Moved %@ %@, %@ %@ failed")
-    }
-    /// Moving to or from an iCloud album isn't available yet
-    public static let moveCloudKitRefusedToast = L10n.tr("Localizable", "AlbumDetailView.MoveCloudKitRefusedToast", fallback: "Moving to or from an iCloud album isn\u{2019}t available yet")
-    /// A move is already running for one of these albums. Try again when it finishes.
-    public static let moveBusyToast = L10n.tr("Localizable", "AlbumDetailView.MoveBusyToast", fallback: "A move is already running for one of these albums. Try again when it finishes.")
-    /// Move cancelled: %@ %@ moved to %@
-    public static func moveCancelledToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MoveCancelledToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Move cancelled: %@ %@ moved to %@")
-    }
-    /// Upgrade “%@” to the new iCloud sync first, then move items into it
-    public static func moveNeedsUpgradeToast(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MoveNeedsUpgradeToast", String(describing: p1), fallback: "Upgrade \u{201C}%@\u{201D} to the new iCloud sync first, then move items into it")
     }
     /// The album was not moved and stays where it is. %@
     public static func moveFailedAlertMessage(_ p1: Any) -> String {
@@ -887,6 +879,14 @@ public enum L10n {
     public static let moveFailedAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertTitle", fallback: "Couldn't Move Album")
     /// Move Media
     public static let moveMedia = L10n.tr("Localizable", "AlbumDetailView.MoveMedia", fallback: "Move Media")
+    /// Upgrade “%@” to the new iCloud sync first, then move items into it
+    public static func moveNeedsUpgradeToast(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveNeedsUpgradeToast", String(describing: p1), fallback: "Upgrade “%@” to the new iCloud sync first, then move items into it")
+    }
+    /// Moved %@ %@, %@ %@ failed
+    public static func movePartialToast(_ p1: Any, _ p2: Any, _ p3: Any, _ p4: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MovePartialToast", String(describing: p1), String(describing: p2), String(describing: p3), String(describing: p4), fallback: "Moved %@ %@, %@ %@ failed")
+    }
     /// Because you don't have a paid license to Encamera, you will only be able to view 10 items in the app. If you delete items from your photo library, you may not be able to view them without a paid license.
     public static let noLicenseDeletionWarningMessage = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningMessage", fallback: "Because you don't have a paid license to Encamera, you will only be able to view 10 items in the app. If you delete items from your photo library, you may not be able to view them without a paid license.")
     /// I Understand
@@ -1301,8 +1301,6 @@ public enum L10n {
     }
     /// Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.
     public static let partialMessage = L10n.tr("Localizable", "CloudKitMigration.PartialMessage", fallback: "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.")
-    /// Album partially moved
-    public static let partialTitle = L10n.tr("Localizable", "CloudKitMigration.PartialTitle", fallback: "Album partially moved")
     /// Plural format key: "%1$#@moved@ %2$@, %3$#@remaining@"
     public static func partialMoveBannerMessage(_ p1: Int, _ p2: Any, _ p3: Int) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.PartialMoveBannerMessage", p1, String(describing: p2), p3, fallback: "Plural format key: \"%1$#@moved@ %2$@, %3$#@remaining@\"")
@@ -1313,8 +1311,10 @@ public enum L10n {
     }
     /// Discard
     public static let partialMoveDiscard = L10n.tr("Localizable", "CloudKitMigration.PartialMoveDiscard", fallback: "Discard")
-    /// Media Move Incomplete
+    /// ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for a cross-plane media move left incomplete
     public static let partialMoveTitle = L10n.tr("Localizable", "CloudKitMigration.PartialMoveTitle", fallback: "Media Move Incomplete")
+    /// Album partially moved
+    public static let partialTitle = L10n.tr("Localizable", "CloudKitMigration.PartialTitle", fallback: "Album partially moved")
     /// Free up space in iCloud, then resume the move.
     public static let quotaMessage = L10n.tr("Localizable", "CloudKitMigration.QuotaMessage", fallback: "Free up space in iCloud, then resume the move.")
     /// iCloud storage is full
@@ -2077,12 +2077,18 @@ public enum L10n {
     public static let addKeyPromptUnknown = L10n.tr("Localizable", "MissingKey.AddKeyPromptUnknown", fallback: "Enter the key phrase for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.")
     /// Add a key
     public static let addKeyTitle = L10n.tr("Localizable", "MissingKey.AddKeyTitle", fallback: "Add a key")
+    /// This album was encrypted with key %@, which isn't on this device.
+    public static func albumSubtitleWithFingerprint(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "MissingKey.AlbumSubtitleWithFingerprint", String(describing: p1), fallback: "This album was encrypted with key %@, which isn't on this device.")
+    }
     /// Missing Key
     public static let albumTitle = L10n.tr("Localizable", "MissingKey.AlbumTitle", fallback: "Missing Key")
     /// You already have that key on this device.
     public static let alreadyHaveKey = L10n.tr("Localizable", "MissingKey.AlreadyHaveKey", fallback: "You already have that key on this device.")
     /// This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.
     public static let couldNotVerify = L10n.tr("Localizable", "MissingKey.CouldNotVerify", fallback: "This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.")
+    /// Enter Key
+    public static let enterKey = L10n.tr("Localizable", "MissingKey.EnterKey", fallback: "Enter Key")
     /// %d album(s) can't be shown because their key isn't on this device.
     public static func lockedAlbums(_ p1: Int) -> String {
       return L10n.tr("Localizable", "MissingKey.LockedAlbums", p1, fallback: "%d album(s) can't be shown because their key isn't on this device.")

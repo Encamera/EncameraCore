@@ -196,7 +196,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                 lockedPlaceholders.append(LockedAlbumPlaceholder(
                     encryptedDirectoryName: directoryName,
                     storageOption: storageType,
-                    creationDate: creationDate
+                    creationDate: creationDate,
+                    requiredKey: LockedAlbumKeyProbe.requiredKey(albumDirectory: url)
                 ))
             }
             return album
@@ -221,7 +222,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                 lockedPlaceholders.append(LockedAlbumPlaceholder(
                     encryptedDirectoryName: entry.marker.encName,
                     storageOption: .cloudKit,
-                    creationDate: entry.marker.createdAt
+                    creationDate: entry.marker.createdAt,
+                    requiredKey: RequiredKeyIdentity(fingerprintHex: entry.marker.keyFingerprint)
                 ))
             }
             return album

@@ -1353,6 +1353,8 @@
 "MissingKey.CouldNotVerify" = "This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.";
 "MissingKey.AlreadyHaveKey" = "You already have that key on this device.";
 "MissingKey.Added" = "Key added. Your media should open now.";
+"MissingKey.EnterKey" = "Enter Key";
+"MissingKey.AlbumSubtitleWithFingerprint" = "This album was encrypted with key %@, which isn't on this device.";
 
 /* ./Encamera/Settings/StorageInsightsView.swift - Storage Insights screen */
 "StorageInsights.Title" = "Storage";

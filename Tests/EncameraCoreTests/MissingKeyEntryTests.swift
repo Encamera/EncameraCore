@@ -102,7 +102,7 @@ final class MissingKeyEntryTests: XCTestCase {
             guard case .wrongKey(let entered, let required) = error else {
                 return XCTFail("expected .wrongKey, got \(error)")
             }
-            XCTAssertEqual(required, scenario.foreignKey.stampPrefix)
+            XCTAssertEqual(required, .stampPrefix(scenario.foreignKey.stampPrefix))
             XCTAssertNotEqual(entered, scenario.foreignKey.stampPrefix)
             XCTAssertTrue(error.displayDescription.contains(KeyFingerprint.displayLabel(stampPrefix: scenario.foreignKey.stampPrefix)),
                           "the rejection must name the key the media actually needs")
