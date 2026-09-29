@@ -1506,3 +1506,11 @@
 "Onboarding.Premium.Title" = "%d items, always free";
 "Onboarding.Premium.Body1" = "Store up to %d photos and videos in Encamera at no cost.";
 "Onboarding.Premium.Body2" = "Upgrade to Premium when you need more.";
+
+/* ./Encamera/Settings/KeyPhrasePasswordManagerSaver.swift - Key phrase entry saved to the user's password manager */
+"PasswordManager.CredentialUserName" = "Encamera Key Phrase";
+"PasswordManager.CredentialUserNameWithFingerprint" = "Encamera Key Phrase (%@)";
+"PasswordManager.CredentialTitle" = "Encamera";
+"PasswordManager.SaveButton" = "Save to Password Manager";
+"PasswordManager.SaveFailedTitle" = "Couldn't Save Key Phrase";
+"PasswordManager.SaveFailedMessage" = "Your password manager didn't accept the key phrase. Copy it to the clipboard and save it manually instead.";

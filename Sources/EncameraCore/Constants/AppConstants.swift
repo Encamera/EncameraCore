@@ -31,6 +31,10 @@ public enum AppConstants {
     /// interrupts onboarding and redirects to `.main`.
     public static let keychainRestoreQuietGrace: TimeInterval = 5
 
+    /// Host the key phrase is scoped to when saved to the user's password manager.
+    /// Must be listed as a `webcredentials:` associated domain in the app's entitlements.
+    public static let passwordManagerCredentialHost = "www.encamera.app"
+
     // Legacy accessors (prefer URLs enum)
     public static let appStoreURL = URLs.appStore.rawValue
     public static let widgetVimeoLink = URLs.widgetTutorialVideo.url

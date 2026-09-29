@@ -2366,6 +2366,22 @@ public enum L10n {
     /// Encamera never collects your data. Your private moments stay completely yours.
     public static let subheadingText3 = L10n.tr("Localizable", "OnboardingCarousel.SubheadingText3", fallback: "Encamera never collects your data. Your private moments stay completely yours.")
   }
+  public enum PasswordManager {
+    /// Encamera
+    public static let credentialTitle = L10n.tr("Localizable", "PasswordManager.CredentialTitle", fallback: "Encamera")
+    /// Encamera Key Phrase
+    public static let credentialUserName = L10n.tr("Localizable", "PasswordManager.CredentialUserName", fallback: "Encamera Key Phrase")
+    /// Encamera Key Phrase (%@)
+    public static func credentialUserNameWithFingerprint(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "PasswordManager.CredentialUserNameWithFingerprint", String(describing: p1), fallback: "Encamera Key Phrase (%@)")
+    }
+    /// Save to Password Manager
+    public static let saveButton = L10n.tr("Localizable", "PasswordManager.SaveButton", fallback: "Save to Password Manager")
+    /// Your password manager didn't accept the key phrase. Copy it to the clipboard and save it manually instead.
+    public static let saveFailedMessage = L10n.tr("Localizable", "PasswordManager.SaveFailedMessage", fallback: "Your password manager didn't accept the key phrase. Copy it to the clipboard and save it manually instead.")
+    /// Couldn't Save Key Phrase
+    public static let saveFailedTitle = L10n.tr("Localizable", "PasswordManager.SaveFailedTitle", fallback: "Couldn't Save Key Phrase")
+  }
   public enum PaywallView {
     /// Encamera
     public static let appName = L10n.tr("Localizable", "PaywallView.AppName", fallback: "Encamera")
