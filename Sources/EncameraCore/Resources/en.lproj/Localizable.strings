@@ -1065,6 +1065,8 @@
 "UnreadNotificationsIndicator" = "New";
 "AlbumGrid.EmptyState.Title" = "Create your first album";
 "AlbumGrid.EmptyState.Subtitle" = "Everything you add to an album is encrypted on your device. Create one to get started.";
+"AlbumGridItem.StoredInICloud" = "Stored in iCloud";
+"AlbumGridItem.StoredOnDevice" = "Stored on this device";
 "SettingsView.SectionHeader.AppSettings" = "APP SETTINGS";
 "SettingsView.SectionHeader.General" = "GENERAL";
 

@@ -962,6 +962,16 @@ public enum L10n {
       public static let title = L10n.tr("Localizable", "AlbumGrid.EmptyState.Title", fallback: "Create your first album")
     }
   }
+  public enum AlbumGridItem {
+    /// Plural format key: "%#@item_count@"
+    public static func itemCount(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "AlbumGridItem.ItemCount", p1, fallback: "Plural format key: \"%#@item_count@\"")
+    }
+    /// Stored in iCloud
+    public static let storedInICloud = L10n.tr("Localizable", "AlbumGridItem.StoredInICloud", fallback: "Stored in iCloud")
+    /// Stored on this device
+    public static let storedOnDevice = L10n.tr("Localizable", "AlbumGridItem.StoredOnDevice", fallback: "Stored on this device")
+  }
   public enum AlbumSelectionModal {
     /// Select an album to move %@ items to
     public static func description(_ p1: Any) -> String {
