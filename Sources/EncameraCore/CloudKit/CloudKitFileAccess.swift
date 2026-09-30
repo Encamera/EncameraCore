@@ -64,55 +64,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// Transport for streamed chunks. `nil` means the CloudKit store, built
     /// per session; tests hand in an in-memory one.
     private let chunkStore: ChunkedBlobStoring?
-    /// Change tag the local thumbnail file was fetched for, so a remote re-upload
-    /// (new tag) forces a refresh instead of showing stale content. Persisted as a
-    /// sidecar next to the album's blob cache: the facade constructs a fresh
-    /// instance on every album switch while the coordinator's tag map is shared
-    /// via the registry, so a purely in-memory map would treat every revisit as a
-    /// mismatch — deleting good previews and re-downloading every visible
-    /// thumbnail (and, offline, leaving them blank).
-    private var thumbnailTags: [String: String] = [:]
-    private var thumbnailTagsLoaded = false
-
-    private var thumbnailTagsURL: URL {
-        directoryModel.baseURL.appendingPathComponent(".thumbtags.json")
-    }
-
-    private func loadThumbnailTagsIfNeeded() {
-        guard !thumbnailTagsLoaded else { return }
-        thumbnailTagsLoaded = true
-        guard let data = try? Data(contentsOf: thumbnailTagsURL) else {
-            let exists = FileManager.default.fileExists(atPath: thumbnailTagsURL.path)
-            printDebug("loadThumbnailTags \(exists ? "FAILED" : "skip") albumID=\(albumID) reason=\(exists ? "sidecarUnreadable" : "noSidecar")")
-            return
-        }
-        guard let decoded = try? JSONDecoder().decode([String: String].self, from: data) else {
-            printDebug("loadThumbnailTags FAILED albumID=\(albumID) reason=decodeError bytes=\(data.count); every thumbnail will be treated as stale")
-            return
-        }
-        thumbnailTags = decoded
-        printDebug("loadThumbnailTags ok albumID=\(albumID) tags=\(decoded.count)")
-    }
-
-    private func setThumbnailTag(_ tag: String?, for id: String) {
-        loadThumbnailTagsIfNeeded()
-        thumbnailTags[id] = tag
-        guard let data = try? JSONEncoder().encode(thumbnailTags) else {
-            printDebug("setThumbnailTag FAILED id=\(id) reason=encodeError tags=\(thumbnailTags.count)")
-            return
-        }
-        do {
-            try FileManager.default.createDirectory(at: directoryModel.baseURL, withIntermediateDirectories: true)
-        } catch {
-            printDebug("setThumbnailTag WARNING id=\(id) could not create album dir raw=\(error); attempting the write anyway")
-        }
-        do {
-            try data.write(to: thumbnailTagsURL, options: .atomic)
-        } catch {
-            printDebug("setThumbnailTag FAILED id=\(id) tag=\(tag ?? "nil") file=\(thumbnailTagsURL.lastPathComponent) raw=\(error)")
-        }
-    }
-
     /// The album's CloudKit id: the store's change-token namespace, the coordinator
     /// and registry key, and the `albumID` on every record this album owns.
     static func storeNamespace(for album: Album) -> String {
@@ -472,31 +423,45 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     // MARK: - Previews
 
+    /// A thumbnail never changes once created, so any file on disk is served as
+    /// is — including the one `saveSingle` wrote before the upload. CloudKit is
+    /// only asked when there is no local file.
     public func loadMediaPreview(for media: InteractableMedia<some MediaDescribing>) async throws -> PreviewModel {
         let source = media.thumbnailSource!
         let previewURL = directoryModel.previewURLForMedia(withID: source.id)
         let recordName = Self.componentRecordName(mediaID: source.id, type: source.mediaType)
-        let currentTag = await coordinator.currentChangeTag(recordName: recordName)
-        loadThumbnailTagsIfNeeded()
-        let stale = currentTag != nil && thumbnailTags[source.id] != currentTag
-        let missing = !FileManager.default.fileExists(atPath: previewURL.path)
-        if missing || stale {
-            printDebug("loadMediaPreview refetch recordName=\(recordName) reason=\(missing ? "missingLocalFile" : "staleTag") localTag=\(thumbnailTags[source.id] ?? "nil") serverTag=\(currentTag ?? "nil")")
-            try? FileManager.default.removeItem(at: previewURL)
-            do {
-                try await store.fetchThumbnail(recordName: recordName, to: previewURL)
-                setThumbnailTag(currentTag, for: source.id)
-                printDebug("loadMediaPreview thumbnail ok recordName=\(recordName) tag=\(currentTag ?? "nil")")
-            } catch {
-                printDebug("loadMediaPreview thumbnail FAILED recordName=\(recordName) raw=\(error) — tag cleared so the next load retries")
-                setThumbnailTag(nil, for: source.id)
-            }
+        if FileManager.default.fileExists(atPath: previewURL.path) {
+            printDebug("loadMediaPreview thumbnail hit recordName=\(recordName) source=localFile")
         } else {
-            printDebug("loadMediaPreview thumbnail hit recordName=\(recordName) source=localFile tag=\(currentTag ?? "nil")")
+            printDebug("loadMediaPreview fetch recordName=\(recordName) reason=missingLocalFile")
+            do {
+                try await fetchThumbnail(recordName: recordName, to: previewURL)
+                printDebug("loadMediaPreview thumbnail ok recordName=\(recordName)")
+            } catch {
+                printDebug("loadMediaPreview thumbnail FAILED recordName=\(recordName) raw=\(error)")
+            }
         }
         var preview = try await previewAccess.loadMediaPreview(for: source)
         preview.isLivePhoto = media.mediaType == .livePhoto
         return preview
+    }
+
+    /// Downloads into a temporary file and moves it into place, so a concurrent
+    /// reader never sees a partial file and a failed fetch leaves nothing behind.
+    /// When another caller got there first, its thumbnail is kept.
+    private func fetchThumbnail(recordName: String, to previewURL: URL) async throws {
+        let fileManager = FileManager.default
+        let tempURL = fileManager.temporaryDirectory
+            .appendingPathComponent("thumb-\(UUID().uuidString)")
+            .appendingPathExtension(previewURL.pathExtension)
+        defer { try? fileManager.removeItem(at: tempURL) }
+        try await store.fetchThumbnail(recordName: recordName, to: tempURL)
+        try fileManager.createDirectory(at: previewURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        do {
+            try fileManager.moveItem(at: tempURL, to: previewURL)
+        } catch where fileManager.fileExists(atPath: previewURL.path) {
+            printDebug("fetchThumbnail kept existing recordName=\(recordName) — another load wrote it first")
+        }
     }
 
     public func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel {
@@ -746,7 +711,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         return try SeekableEncryptedFormat.decodeMetadata(plain)
     }
 
-    /// Removes the local thumbnail copy + its cached change-tag so the next
+    /// Removes the local thumbnail copy so the next
     /// `loadMediaPreview` re-fetches the eager thumbnail asset from CloudKit.
     ///
     /// Throws when the file exists but could not be removed: the flight check
@@ -755,7 +720,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// An already-absent thumbnail is a successful eviction, not an error.
     public func evictThumbnail(for id: String) throws {
         let url = directoryModel.previewURLForMedia(withID: id)
-        setThumbnailTag(nil, for: id)
         guard FileManager.default.fileExists(atPath: url.path) else {
             printDebug("evictThumbnail ok id=\(id) — no local thumbnail to remove")
             return

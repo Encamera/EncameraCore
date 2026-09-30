@@ -753,30 +753,70 @@ final class CloudKitFileAccessTests: XCTestCase {
         try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
     }
 
-    func testFailedThumbnailFetchDoesNotCacheTag() async throws {
+    func testUploadedPhotoServesLocalThumbnailWithoutFetching() async throws {
         let album = makeAlbum()
         let store = MockCloudKitMediaStore()
-        let albumHash = album.albumID!
-        store.changeSet = CloudKitChangeSet(changed: [
-            CloudKitMediaMetadata(recordName: "p#0", albumID: albumHash, mediaID: "p", mediaType: .photo,
-                                  createdAt: Date(timeIntervalSince1970: 1), sizeBytes: 1, creationDeviceID: "d",
-                                  schemaVersion: 1, recordChangeTag: "t1")
-        ], deleted: [], token: nil, moreComing: false)
         let access = await makeAccess(album: album, store: store)
-        _ = await access.reconcile()
 
-        store.fetchThumbnailWritesFile = true
-        store.fetchThumbnailError = CloudKitMediaStoreError.notFound
+        let id = UUID().uuidString
+        let result = try await access.save(media: try photo(id: id, data: Self.tinyPNG()), metadata: nil, progress: { _ in })
+        let saved = try XCTUnwrap(result)
+        await access.drainUploads()
+        XCTAssertFalse(store.uploadedItems.isEmpty, "The upload must have confirmed so the record carries a change tag")
+
+        let preview = try await access.loadMediaPreview(for: saved)
+
+        XCTAssertNotNil(preview.thumbnailMedia.data.flatMap(UIImage.init(data:)))
+        XCTAssertEqual(store.fetchThumbnailCount, 0, "The thumbnail written at save time must be served from disk after the upload")
+        try? FileManager.default.removeItem(at: thumbnailURL(forMediaID: id))
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+    }
+
+    func testMissingThumbnailIsFetchedOnceThenServedFromDisk() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+        let id = UUID().uuidString
+        let previewURL = thumbnailURL(forMediaID: id)
+        try? FileManager.default.removeItem(at: previewURL)
 
         let media = try InteractableMedia(underlyingMedia: [
-            EncryptedMedia(source: .url(encURL(for: album, id: "p")), mediaType: .photo, id: "p")
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .photo, id: id)
         ])
         for _ in 0..<2 {
             _ = try? await access.loadMediaPreview(for: media)
         }
 
-        XCTAssertEqual(store.fetchThumbnailCount, 2, "A failed thumbnail fetch must be retried, not recorded as current")
-        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+        XCTAssertEqual(store.fetchThumbnailCount, 1, "Once fetched, a thumbnail must never be fetched again")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path))
+        try? FileManager.default.removeItem(at: previewURL)
+    }
+
+    func testFailedThumbnailFetchLeavesNoFileAndRetries() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+        let id = UUID().uuidString
+        let previewURL = thumbnailURL(forMediaID: id)
+        try? FileManager.default.removeItem(at: previewURL)
+
+        store.fetchThumbnailWritesFile = true
+        store.fetchThumbnailError = CloudKitMediaStoreError.notFound
+
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .photo, id: id)
+        ])
+        for _ in 0..<2 {
+            _ = try? await access.loadMediaPreview(for: media)
+        }
+
+        XCTAssertEqual(store.fetchThumbnailCount, 2, "A failed thumbnail fetch must be retried on the next load")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: previewURL.path),
+                       "A failed fetch must not leave a partial file that later loads would treat as the thumbnail")
+    }
+
+    private func thumbnailURL(forMediaID id: String) -> URL {
+        CloudKitStorageModel.previewURL(forMediaID: id)
     }
 
     func testCloudKitAlbumIsDiscoverable() throws {
