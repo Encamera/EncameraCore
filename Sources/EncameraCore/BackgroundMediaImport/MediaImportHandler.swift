@@ -51,25 +51,54 @@ public struct ImportItemFailure: @unchecked Sendable {
 }
 
 /// The outcome of an import run: how many media groups succeeded, how many failed,
-/// and the per-item failure details for the fault-tolerant (preloaded) path.
+/// and the per-item failure details.
 public struct ImportResultSummary: Sendable {
     public let success: Int
     public let failure: Int
     public let failedItems: [ImportItemFailure]
+    /// The run stopped early because the device ran out of space.
+    public let stoppedForSpace: Bool
+    /// Items never tried because the run stopped for space.
+    public let notAttemptedCount: Int
 
-    public init(success: Int, failure: Int, failedItems: [ImportItemFailure] = []) {
+    public init(success: Int, failure: Int, failedItems: [ImportItemFailure] = [], stoppedForSpace: Bool = false, notAttemptedCount: Int = 0) {
         self.success = success
         self.failure = failure
         self.failedItems = failedItems
+        self.stoppedForSpace = stoppedForSpace
+        self.notAttemptedCount = notAttemptedCount
     }
 }
+
+/// Starts imports into an album; `MediaImportHandler` is the live one.
+@MainActor
+public protocol MediaImporting: AnyObject {
+    func startImport(results: [MediaSelectionResult], albumId: String, source: ImportSource, plannedSizes: [Int64?]?) async throws -> ImportResultSummary
+    func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String], userBatchId: String?, plannedSizes: [Int64?]?) async throws -> ImportResultSummary
+}
+
+/// Loads one selected item into temporary cleartext files.
+@MainActor
+public protocol ImportMediaLoading {
+    func loadSingleMedia(from result: MediaSelectionResult) async throws -> LoadedMediaItem
+}
+
+extension MediaLoaderService: ImportMediaLoading {}
+
+/// Writes one media group into the album. Injected so tests can fail a save.
+public typealias ImportSaveOperation = (
+    _ fileAccess: FileAccess,
+    _ media: InteractableMedia<CleartextMedia>,
+    _ metadata: EncryptedFileMetadata?,
+    _ progress: @escaping (Double) -> Void
+) async throws -> Void
 
 // MARK: - Media Import Handler
 
 /// Handles all import-specific logic for importing media into encrypted albums.
 /// Uses BackgroundTaskManager for task state management.
 @MainActor
-public class MediaImportHandler: DebugPrintable {
+public class MediaImportHandler: DebugPrintable, MediaImporting {
     
     public static let shared = MediaImportHandler()
     
@@ -83,12 +112,24 @@ public class MediaImportHandler: DebugPrintable {
     private var activeBackgroundTask: UIBackgroundTaskIdentifier = .invalid
     private var cancellables = Set<AnyCancellable>()
     private var currentImportTask: Task<Void, Error>?
-    private let mediaLoader = MediaLoaderService()
+    private let mediaLoader: ImportMediaLoading
+    private let saveOperation: ImportSaveOperation
+    private var freeSpace: DeviceFreeSpaceProviding
     
     // MARK: - Initialization
     
-    public init(taskManager: BackgroundTaskManager = .shared) {
+    public init(
+        taskManager: BackgroundTaskManager = .shared,
+        freeSpace: DeviceFreeSpaceProviding = LiveDeviceFreeSpace(),
+        mediaLoader: ImportMediaLoading? = nil,
+        saveOperation: ImportSaveOperation? = nil
+    ) {
         self.taskManager = taskManager
+        self.freeSpace = freeSpace
+        self.mediaLoader = mediaLoader ?? MediaLoaderService()
+        self.saveOperation = saveOperation ?? { fileAccess, media, metadata, progress in
+            try await fileAccess.save(media: media, metadata: metadata, progress: progress)
+        }
         setupNotificationObservers()
     }
     
@@ -98,6 +139,11 @@ public class MediaImportHandler: DebugPrintable {
         printDebug("Configuring MediaImportHandler with albumManager")
         self.albumManager = albumManager
     }
+
+    /// Replaces the free-space source, e.g. with a UI-test fake.
+    public func configure(freeSpace: DeviceFreeSpaceProviding) {
+        self.freeSpace = freeSpace
+    }
     
     // MARK: - Public Import API
     
@@ -105,8 +151,12 @@ public class MediaImportHandler: DebugPrintable {
     /// This handles the complete flow: load each item, import it, then cleanup its temp files atomically.
     /// Uses streaming mode for memory efficiency - items are loaded one at a time.
     /// Returns a summary of successful and failed imports.
+    ///
+    /// Every import stops once the device is full. `plannedSizes`, one entry per
+    /// result, lets it stop before an item that won't fit rather than after its
+    /// write fails.
     @discardableResult
-    public func startImport(results: [MediaSelectionResult], albumId: String, source: ImportSource) async throws -> (success: Int, failure: Int) {
+    public func startImport(results: [MediaSelectionResult], albumId: String, source: ImportSource, plannedSizes: [Int64?]? = nil) async throws -> ImportResultSummary {
         printDebug("Starting import from \(results.count) MediaSelectionResults to album: \(albumId)")
         
         _ = try validateAndGetAlbum(albumId: albumId)
@@ -117,15 +167,15 @@ public class MediaImportHandler: DebugPrintable {
             source: source
         )
         
-        let summary = try await executeImportTask(task, mediaSource: .streaming(results))
-        return (summary.success, summary.failure)
+        return try await executeImportTask(task, mediaSource: .streaming(results), plannedSizes: plannedSizes)
     }
     
     /// Start import from preloaded media (e.g., from Files app or Share Extension).
     /// Returns a summary of successful and failed imports, including per-item failure
     /// details so callers can surface skipped files to the user and to analytics.
+    /// `plannedSizes` has one entry per media group (a Live Photo is one group).
     @discardableResult
-    public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = [], userBatchId: String? = nil) async throws -> ImportResultSummary {
+    public func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String] = [], userBatchId: String? = nil, plannedSizes: [Int64?]? = nil) async throws -> ImportResultSummary {
         printDebug("Starting import for \(media.count) media items to album: \(albumId) from source: \(source.rawValue) with \(assetIdentifiers.count) asset identifiers")
         
         _ = try validateAndGetAlbum(albumId: albumId)
@@ -150,7 +200,7 @@ public class MediaImportHandler: DebugPrintable {
             userBatchId: userBatchId
         )
         
-        return try await executeImportTask(task, mediaSource: .preloaded(media))
+        return try await executeImportTask(task, mediaSource: .preloaded(media), plannedSizes: plannedSizes)
     }
     
     /// Pauses an in-progress import task
@@ -238,7 +288,7 @@ public class MediaImportHandler: DebugPrintable {
     
     /// Unified import task execution that supports both preloaded and streaming modes.
     @discardableResult
-    private func executeImportTask(_ task: ImportTask, mediaSource: ImportMediaSource) async throws -> ImportResultSummary {
+    private func executeImportTask(_ task: ImportTask, mediaSource: ImportMediaSource, plannedSizes: [Int64?]? = nil) async throws -> ImportResultSummary {
         printDebug("Executing import task: \(task.id) with source: \(mediaSource.count) items")
 
         let album = try validateAndGetAlbum(albumId: task.albumId)
@@ -257,6 +307,8 @@ public class MediaImportHandler: DebugPrintable {
         var failedItems: [ImportItemFailure] = []
         var collectedAssetIdentifiers: [String] = []
         var wasCancelled = false
+        var stoppedForSpace = false
+        var notAttemptedCount = 0
         let isPreloaded: Bool
         if case .preloaded = mediaSource { isPreloaded = true } else { isPreloaded = false }
 
@@ -265,19 +317,24 @@ public class MediaImportHandler: DebugPrintable {
 
             switch mediaSource {
             case .preloaded(let media):
-                let summary = try await performBatchImport(task: task, media: media, fileAccess: fileAccess)
+                let summary = try await performBatchImport(task: task, media: media, fileAccess: fileAccess, plannedSizes: plannedSizes)
                 successCount = summary.success
                 failureCount = summary.failure
                 failedItems = summary.failedItems
+                stoppedForSpace = summary.stoppedForSpace
+                notAttemptedCount = summary.notAttemptedCount
                 collectedAssetIdentifiers = task.assetIdentifiers
 
             case .streaming(let results):
-                let counts = try await performStreamingImport(task: task, results: results, fileAccess: fileAccess)
-                successCount = counts.success
-                failureCount = counts.failure
-                collectedAssetIdentifiers = counts.assetIdentifiers
+                let outcome = try await performStreamingImport(task: task, results: results, fileAccess: fileAccess, plannedSizes: plannedSizes)
+                successCount = outcome.summary.success
+                failureCount = outcome.summary.failure
+                failedItems = outcome.summary.failedItems
+                stoppedForSpace = outcome.summary.stoppedForSpace
+                notAttemptedCount = outcome.summary.notAttemptedCount
+                collectedAssetIdentifiers = outcome.assetIdentifiers
 
-                if successCount + failureCount < results.count {
+                if successCount + failureCount + notAttemptedCount < results.count {
                     wasCancelled = true
                 }
             }
@@ -290,6 +347,14 @@ public class MediaImportHandler: DebugPrintable {
                 if wasCancelled {
                     self.printDebug("Streaming import was cancelled with \(collectedAssetIdentifiers.count) partial imports")
                     self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: collectedAssetIdentifiers)
+                } else if stoppedForSpace {
+                    self.printDebug("Import stopped for space after \(successCount) imports, \(notAttemptedCount) not attempted")
+                    if successCount > 0 {
+                        let identifiers = isPreloaded ? [] : collectedAssetIdentifiers
+                        self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: successCount, assetIdentifiers: identifiers)
+                    } else {
+                        self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.outOfSpace)
+                    }
                 } else if isPreloaded && successCount == 0 && failureCount > 0 {
                     self.printDebug("Batch import had \(failureCount) failures and no successes - finalizing failed")
                     self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.allImportsFailed(failureCount: failureCount))
@@ -317,7 +382,13 @@ public class MediaImportHandler: DebugPrintable {
             throw error
         }
         
-        return ImportResultSummary(success: successCount, failure: failureCount, failedItems: failedItems)
+        return ImportResultSummary(
+            success: successCount,
+            failure: failureCount,
+            failedItems: failedItems,
+            stoppedForSpace: stoppedForSpace,
+            notAttemptedCount: notAttemptedCount
+        )
     }
 
     /// Legacy overload for backward compatibility with resumeImport
@@ -336,12 +407,15 @@ public class MediaImportHandler: DebugPrintable {
     /// Fault-tolerant per media group: a group that fails to import is recorded and
     /// skipped instead of aborting the whole task, mirroring the streaming path's
     /// per-item catch. Cancellation still propagates so pause/cancel halt the import.
-    private func performBatchImport(task: ImportTask, media: [CleartextMedia], fileAccess: FileAccess) async throws -> ImportResultSummary {
+    /// Stops before a batch that won't fit, and after a batch in which a write
+    /// ran out of space.
+    private func performBatchImport(task: ImportTask, media: [CleartextMedia], fileAccess: FileAccess, plannedSizes: [Int64?]? = nil) async throws -> ImportResultSummary {
         printDebug("Performing batch import for task: \(task.id)")
         let startTime = Date()
         var processedGroups = 0
         var successCount = 0
         var failedItems: [ImportItemFailure] = []
+        var stoppedForSpace = false
 
         let mediaGroups = groupMediaById(media)
         let totalGroups = mediaGroups.count
@@ -353,6 +427,15 @@ public class MediaImportHandler: DebugPrintable {
 
         for (batchIndex, batch) in batches.enumerated() {
             try Task.checkCancellation()
+
+            let batchStart = batchIndex * batchSize
+            let batchSizes = (batchStart..<batchStart + batch.count).map { plannedSize(at: $0, in: plannedSizes) }
+            guard hasRoom(forItemSizes: batchSizes) else {
+                printDebug("Not enough space for batch \(batchIndex + 1) - stopping import")
+                stoppedForSpace = true
+                break
+            }
+
             printDebug("Processing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) media groups")
 
             let outcomes = try await withThrowingTaskGroup(of: MediaGroupOutcome.self) { group -> [MediaGroupOutcome] in
@@ -393,41 +476,70 @@ public class MediaImportHandler: DebugPrintable {
                     successCount += 1
                 case .failure(let failure):
                     failedItems.append(failure)
+                    if ImportSkipReason.isOutOfSpace(failure.error) {
+                        stoppedForSpace = true
+                    }
                 }
             }
 
             processedGroups += batch.count
             printDebug("Completed batch \(batchIndex + 1)/\(batches.count), total processed: \(processedGroups)/\(totalGroups)")
+
+            if stoppedForSpace {
+                printDebug("A write ran out of space - stopping import")
+                break
+            }
         }
 
         printDebug("Batch import completed for task: \(task.id) - success: \(successCount), failed: \(failedItems.count)")
-        return ImportResultSummary(success: successCount, failure: failedItems.count, failedItems: failedItems)
+        return ImportResultSummary(
+            success: successCount,
+            failure: failedItems.count,
+            failedItems: failedItems,
+            stoppedForSpace: stoppedForSpace,
+            notAttemptedCount: totalGroups - processedGroups
+        )
     }
     
     /// Performs streaming import for MediaSelectionResults with sequential processing.
+    ///
+    /// Stops before an item that won't fit, and after an item whose load or
+    /// write ran out of space, so nothing more is downloaded onto a full disk.
     private func performStreamingImport(
         task: ImportTask,
         results: [MediaSelectionResult],
-        fileAccess: FileAccess
-    ) async throws -> (success: Int, failure: Int, assetIdentifiers: [String]) {
+        fileAccess: FileAccess,
+        plannedSizes: [Int64?]? = nil
+    ) async throws -> (summary: ImportResultSummary, assetIdentifiers: [String]) {
         printDebug("Performing streaming import for task: \(task.id) with \(results.count) results")
         let startTime = Date()
         var processedCount = 0
         var successCount = 0
-        var failureCount = 0
+        var failedItems: [ImportItemFailure] = []
         var collectedAssetIdentifiers: [String] = []
+        var attemptedCount = 0
+        var stoppedForSpace = false
         
         for (index, result) in results.enumerated() {
             try Task.checkCancellation()
+
+            guard hasRoom(forItemSizes: [plannedSize(at: index, in: plannedSizes)]) else {
+                printDebug("Not enough space for item \(index + 1) - stopping import")
+                stoppedForSpace = true
+                break
+            }
+            attemptedCount += 1
             
             printDebug("📄 Processing item \(index + 1)/\(results.count)")
             
+            var loaded: LoadedMediaItem?
             do {
-                let loaded = try await mediaLoader.loadSingleMedia(from: result)
+                let item = try await mediaLoader.loadSingleMedia(from: result)
+                loaded = item
                 
                 try await importSingleItem(
-                    mediaGroup: loaded.media,
-                    metadata: loaded.metadata,
+                    mediaGroup: item.media,
+                    metadata: item.metadata,
                     fileAccess: fileAccess,
                     task: task,
                     groupIndex: index,
@@ -437,10 +549,10 @@ public class MediaImportHandler: DebugPrintable {
                 )
                 
                 if task.source.canDeleteTempFilesAfterImport {
-                    deleteTempFiles(for: loaded.media)
+                    deleteTempFiles(for: item.media)
                 }
                 
-                if let assetId = loaded.assetIdentifier {
+                if let assetId = item.assetIdentifier {
                     collectedAssetIdentifiers.append(assetId)
                 }
                 
@@ -449,13 +561,43 @@ public class MediaImportHandler: DebugPrintable {
                 printDebug("✅ Successfully imported item \(index + 1)/\(results.count)")
                 
             } catch {
-                failureCount += 1
+                failedItems.append(ImportItemFailure(id: loaded?.assetIdentifier ?? "\(index)", error: error))
                 printDebug("❌ Error processing item \(index + 1): \(error)")
+                if ImportSkipReason.isOutOfSpace(error) {
+                    if let loaded, task.source.canDeleteTempFilesAfterImport {
+                        deleteTempFiles(for: loaded.media)
+                    }
+                    printDebug("Item \(index + 1) ran out of space - stopping import")
+                    stoppedForSpace = true
+                    break
+                }
             }
         }
         
-        printDebug("📈 Streaming import complete - Processed: \(processedCount)/\(results.count) (Success: \(successCount), Failed: \(failureCount), AssetIDs: \(collectedAssetIdentifiers.count))")
-        return (successCount, failureCount, collectedAssetIdentifiers)
+        printDebug("📈 Streaming import complete - Processed: \(processedCount)/\(results.count) (Success: \(successCount), Failed: \(failedItems.count), AssetIDs: \(collectedAssetIdentifiers.count))")
+        let summary = ImportResultSummary(
+            success: successCount,
+            failure: failedItems.count,
+            failedItems: failedItems,
+            stoppedForSpace: stoppedForSpace,
+            notAttemptedCount: stoppedForSpace ? results.count - attemptedCount : 0
+        )
+        return (summary, collectedAssetIdentifiers)
+    }
+
+    // MARK: - Free Space
+
+    private func plannedSize(at index: Int, in plannedSizes: [Int64?]?) -> Int64? {
+        guard let plannedSizes, plannedSizes.indices.contains(index) else { return nil }
+        return plannedSizes[index]
+    }
+
+    /// Whether writing items of these sizes leaves the reserve untouched.
+    /// Unknown sizes count as zero, so only the reserve is checked for them.
+    private func hasRoom(forItemSizes sizes: [Int64?]) -> Bool {
+        guard let free = freeSpace.availableBytesForImport() else { return true }
+        let needed = sizes.compactMap { $0 }.reduce(Int64(0)) { $0 + ImportSpaceBudget.storedBytes(forItemOfSize: $1) }
+        return free >= ImportSpaceBudget.reserveBytes + needed
     }
     
     // MARK: - Media Processing
@@ -541,7 +683,7 @@ public class MediaImportHandler: DebugPrintable {
         processedGroups: Int
     ) async throws {
         do {
-            try await fileAccess.save(media: interactableMedia, metadata: metadata) { fileProgress in
+            try await saveOperation(fileAccess, interactableMedia, metadata) { fileProgress in
                 Task { @MainActor in
                     self.updateImportProgress(
                         task: task,

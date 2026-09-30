@@ -22,9 +22,15 @@ public enum ImportSkipReason: String, Sendable, CaseIterable {
     case assetNoLongerShared = "asset_no_longer_shared"
     /// The asset is in iCloud and could not be downloaded.
     case assetDownloadFailed = "asset_download_failed"
+    /// The device ran out of storage while writing the item.
+    case outOfSpace = "out_of_space"
 
     /// Classifies an error thrown during normalization or import into a coarse reason.
     public init(error: Error) {
+        if Self.isOutOfSpace(error) {
+            self = .outOfSpace
+            return
+        }
         switch error {
         case BackgroundImportError.assetUnavailable:
             self = .assetNoLongerShared
@@ -59,6 +65,26 @@ public enum ImportSkipReason: String, Sendable, CaseIterable {
             return L10n.AlbumDetailView.importReasonAssetNoLongerShared
         case .assetDownloadFailed:
             return L10n.AlbumDetailView.importReasonAssetDownloadFailed
+        case .outOfSpace:
+            return L10n.AlbumDetailView.importReasonOutOfSpace
         }
+    }
+
+    /// Whether the error, or any error it wraps, is a disk-full write failure.
+    public static func isOutOfSpace(_ error: Error) -> Bool {
+        if case BackgroundImportError.outOfSpace = error {
+            return true
+        }
+        var current: NSError? = error as NSError
+        while let nsError = current {
+            if nsError.domain == NSCocoaErrorDomain && nsError.code == NSFileWriteOutOfSpaceError {
+                return true
+            }
+            if nsError.domain == NSPOSIXErrorDomain && nsError.code == Int(ENOSPC) {
+                return true
+            }
+            current = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return false
     }
 }

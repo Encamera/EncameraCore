@@ -10,7 +10,7 @@ public enum MediaSelectionResult {
     case phPickerResult(PHPickerResult)
     
     /// The asset identifier if available
-    var assetIdentifier: String? {
+    public var assetIdentifier: String? {
         switch self {
         case .phAsset(let asset):
             return asset.localIdentifier

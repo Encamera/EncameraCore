@@ -418,9 +418,7 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
         let refreshDescription = "n/a"
         #endif
 
-        let freeBytes = (try? URL(fileURLWithPath: NSHomeDirectory())
-            .resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
-            .volumeAvailableCapacityForImportantUsage) ?? nil
+        let freeBytes = LiveDeviceFreeSpace().availableBytesForImport()
         let freeDescription = freeBytes.map {
             ByteCountFormatter.string(fromByteCount: $0, countStyle: .file)
         } ?? "unknown"

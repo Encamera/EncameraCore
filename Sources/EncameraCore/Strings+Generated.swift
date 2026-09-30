@@ -841,16 +841,34 @@ public enum L10n {
     public static let importReasonAssetDownloadFailed = L10n.tr("Localizable", "AlbumDetailView.ImportReasonAssetDownloadFailed", fallback: "could not be downloaded from iCloud")
     /// no longer shared with Encamera
     public static let importReasonAssetNoLongerShared = L10n.tr("Localizable", "AlbumDetailView.ImportReasonAssetNoLongerShared", fallback: "no longer shared with Encamera")
+    /// your iPhone ran out of storage
+    public static let importReasonOutOfSpace = L10n.tr("Localizable", "AlbumDetailView.ImportReasonOutOfSpace", fallback: "your iPhone ran out of storage")
     /// file could not be read
     public static let importReasonReadError = L10n.tr("Localizable", "AlbumDetailView.ImportReasonReadError", fallback: "file could not be read")
     /// could not be converted
     public static let importReasonTranscodeFailed = L10n.tr("Localizable", "AlbumDetailView.ImportReasonTranscodeFailed", fallback: "could not be converted")
     /// unsupported format
     public static let importReasonUnsupportedFormat = L10n.tr("Localizable", "AlbumDetailView.ImportReasonUnsupportedFormat", fallback: "unsupported format")
+    /// Imported %@ of %@. Your iPhone is full.
+    public static func importStoppedForSpaceToast(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.ImportStoppedForSpaceToast", String(describing: p1), String(describing: p2), fallback: "Imported %@ of %@. Your iPhone is full.")
+    }
     /// Import
     public static let importToolbarButton = L10n.tr("Localizable", "AlbumDetailView.ImportToolbarButton", fallback: "Import")
     /// Import from Photos
     public static let importToolbarButtonAccessibilityLabel = L10n.tr("Localizable", "AlbumDetailView.ImportToolbarButtonAccessibilityLabel", fallback: "Import from Photos")
+    /// Cancel Import
+    public static let insufficientSpaceCancel = L10n.tr("Localizable", "AlbumDetailView.InsufficientSpaceCancel", fallback: "Cancel Import")
+    /// Change Selection
+    public static let insufficientSpaceChangeSelection = L10n.tr("Localizable", "AlbumDetailView.InsufficientSpaceChangeSelection", fallback: "Change Selection")
+    /// Continue Until Full
+    public static let insufficientSpaceContinue = L10n.tr("Localizable", "AlbumDetailView.InsufficientSpaceContinue", fallback: "Continue Until Full")
+    /// This import needs about %@, but your iPhone has %@ free. About %@ of %@ %@ will fit.
+    public static func insufficientSpaceMessage(_ p1: Any, _ p2: Any, _ p3: Any, _ p4: Any, _ p5: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.InsufficientSpaceMessage", String(describing: p1), String(describing: p2), String(describing: p3), String(describing: p4), String(describing: p5), fallback: "This import needs about %@, but your iPhone has %@ free. About %@ of %@ %@ will fit.")
+    }
+    /// Not Enough Space
+    public static let insufficientSpaceTitle = L10n.tr("Localizable", "AlbumDetailView.InsufficientSpaceTitle", fallback: "Not Enough Space")
     /// Leave the app open and connected to WiFi for best results.
     public static let largeImportWarningMessage = L10n.tr("Localizable", "AlbumDetailView.LargeImportWarningMessage", fallback: "Leave the app open and connected to WiFi for best results.")
     /// For Faster Imports

@@ -243,6 +243,12 @@
 "AlbumDetailView.LargeImportWarningMessage" = "Leave the app open and connected to WiFi for best results.";
 "AlbumDetailView.ImportPartialSkipToast" = "Imported %@ of %@ files. %@ skipped (%@).";
 "AlbumDetailView.ImportFailedAlertTitle" = "Import Failed";
+"AlbumDetailView.InsufficientSpaceTitle" = "Not Enough Space";
+"AlbumDetailView.InsufficientSpaceMessage" = "This import needs about %@, but your iPhone has %@ free. About %@ of %@ %@ will fit.";
+"AlbumDetailView.InsufficientSpaceCancel" = "Cancel Import";
+"AlbumDetailView.InsufficientSpaceContinue" = "Continue Until Full";
+"AlbumDetailView.InsufficientSpaceChangeSelection" = "Change Selection";
+"AlbumDetailView.ImportStoppedForSpaceToast" = "Imported %@ of %@. Your iPhone is full.";
 "AlbumDetailView.ImportFailedAlertMessage" = "None of the selected files could be imported (%@).";
 "AlbumDetailView.MoveFailedAlertTitle" = "Couldn't Move Album";
 "AlbumDetailView.MoveFailedAlertMessage" = "The album was not moved and stays where it is. %@";
@@ -251,6 +257,7 @@
 "AlbumDetailView.ImportReasonReadError" = "file could not be read";
 "AlbumDetailView.ImportReasonAssetNoLongerShared" = "no longer shared with Encamera";
 "AlbumDetailView.ImportReasonAssetDownloadFailed" = "could not be downloaded from iCloud";
+"AlbumDetailView.ImportReasonOutOfSpace" = "your iPhone ran out of storage";
 "AlbumDetailView.CaptureButton" = "Capture";
 "AlbumDetailView.CaptureButtonAccessibilityLabel" = "Take photo";
 "AlbumDetailView.ImportToolbarButton" = "Import";

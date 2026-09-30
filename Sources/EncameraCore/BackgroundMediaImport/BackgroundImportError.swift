@@ -31,6 +31,8 @@ public enum BackgroundImportError: Error, Equatable {
     /// Every item in a batch import failed, so the task is finalized as failed
     /// rather than completed-with-failures.
     case allImportsFailed(failureCount: Int)
+    /// The device ran out of space before anything imported.
+    case outOfSpace
 
     /// Classifies a PhotoKit `info` dictionary into an import error.
     ///
