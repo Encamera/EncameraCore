@@ -779,10 +779,10 @@ public enum L10n {
     public static let renameAlbumTitle = L10n.tr("Localizable", "AddAlbumModal.RenameAlbumTitle", fallback: "Let's rename your\nalbum")
   }
   public enum AlbumDetailView {
-    /// Add media to this album
-    public static let addFirstMedia = L10n.tr("Localizable", "AlbumDetailView.AddFirstMedia", fallback: "Add media to this album")
-    /// Import media from your photo library or open the camera to take a new photo or video for this album
-    public static let addFirstMediaSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstMediaSubtitle", fallback: "Import media from your photo library or open the camera to take a new photo or video for this album")
+    /// Add your first photo or video
+    public static let addFirstMedia = L10n.tr("Localizable", "AlbumDetailView.AddFirstMedia", fallback: "Add your first photo or video")
+    /// Photos and videos you add here are automatically encrypted
+    public static let addFirstMediaSubtitle = L10n.tr("Localizable", "AlbumDetailView.AddFirstMediaSubtitle", fallback: "Photos and videos you add here are automatically encrypted")
     /// Album Cover
     public static let albumCoverMenuTitle = L10n.tr("Localizable", "AlbumDetailView.AlbumCoverMenuTitle", fallback: "Album Cover")
     /// Album is now hidden
@@ -825,8 +825,8 @@ public enum L10n {
     public static let hideAlbumMenuItem = L10n.tr("Localizable", "AlbumDetailView.HideAlbumMenuItem", fallback: "Hide Album")
     /// Hide
     public static let hideAlbumRowTitle = L10n.tr("Localizable", "AlbumDetailView.HideAlbumRowTitle", fallback: "Hide")
-    /// Import Pictures
-    public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Pictures")
+    /// Import Media
+    public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import Media")
     /// None of the selected files could be imported (%@).
     public static func importFailedAlertMessage(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.ImportFailedAlertMessage", String(describing: p1), fallback: "None of the selected files could be imported (%@).")
@@ -913,8 +913,8 @@ public enum L10n {
     public static let noLicenseDeletionWarningTitle = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningTitle", fallback: "⚠️ Important ⚠️")
     /// No media found
     public static let noMediaFound = L10n.tr("Localizable", "AlbumDetailView.NoMediaFound", fallback: "No media found")
-    /// Take a New Picture
-    public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Take a New Picture")
+    /// Open Camera
+    public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Open Camera")
     /// Open Settings
     public static let openSettings = L10n.tr("Localizable", "AlbumDetailView.OpenSettings", fallback: "Open Settings")
     /// Do you want to delete these items from your photo library after importing them? Encamera requires permission to your photo library to do this.
@@ -2252,8 +2252,10 @@ public enum L10n {
       public static let title = L10n.tr("Localizable", "Onboarding.MultiDeviceMode.Title", fallback: "Use Encamera on all your devices")
     }
     public enum NeedKey {
-      /// Without your encryption key, you won't be able to access your existing encrypted files on this device. You can import your key later if you get access to it.
-      public static let body = L10n.tr("Localizable", "Onboarding.NeedKey.body", fallback: "Without your encryption key, you won't be able to access your existing encrypted files on this device. You can import your key later if you get access to it.")
+      /// Without your encryption key, you won't be able to access your existing encrypted files on this device.
+      /// 
+      /// You can import your key later if you get access to it.
+      public static let body = L10n.tr("Localizable", "Onboarding.NeedKey.body", fallback: "Without your encryption key, you won't be able to access your existing encrypted files on this device.\n\nYou can import your key later if you get access to it.")
       /// Continue without key
       public static let continueWithoutKey = L10n.tr("Localizable", "Onboarding.NeedKey.continueWithoutKey", fallback: "Continue without key")
       /// Your existing encrypted files won't be accessible on this device until you import your encryption key.
@@ -2369,7 +2371,7 @@ public enum L10n {
       /// Choose how you'd like to unlock your encrypted files
       public static let subtitle = L10n.tr("Localizable", "Onboarding.UnlockMethod.subtitle", fallback: "Choose how you'd like to unlock your encrypted files")
       /// Unlock method
-      public static let title = L10n.tr("Localizable", "Onboarding.UnlockMethod.title", fallback: "How should you unlock Encamera?")
+      public static let title = L10n.tr("Localizable", "Onboarding.UnlockMethod.title", fallback: "How do you want to unlock Encamera?")
     }
     public enum WelcomeBack {
       /// We found that you've used Encamera on your other device. Import your encryption key from that device to keep your encrypted library in sync.
@@ -2403,7 +2405,7 @@ public enum L10n {
   public enum PasswordManager {
     /// Encamera
     public static let credentialTitle = L10n.tr("Localizable", "PasswordManager.CredentialTitle", fallback: "Encamera")
-    /// Encamera Key Phrase
+    /// ./Encamera/Settings/KeyPhrasePasswordManagerSaver.swift - Key phrase entry saved to the user's password manager
     public static let credentialUserName = L10n.tr("Localizable", "PasswordManager.CredentialUserName", fallback: "Encamera Key Phrase")
     /// Encamera Key Phrase (%@)
     public static func credentialUserNameWithFingerprint(_ p1: Any) -> String {
@@ -2758,10 +2760,8 @@ public enum L10n {
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
     /// Loop Videos
     public static let loopVideos = L10n.tr("Localizable", "Settings.LoopVideos", fallback: "Loop Videos")
-    /// iCloud Multi-Device Mode
-    public static let multiDeviceMode = L10n.tr("Localizable", "Settings.MultiDeviceMode", fallback: "iCloud Multi-Device Mode")
-    /// Your key and passcode sync through iCloud Keychain, so Encamera works seamlessly on your other devices. Turning this off removes them from your other devices.
-    public static let multiDeviceModeDescription = L10n.tr("Localizable", "Settings.MultiDeviceModeDescription", fallback: "Your key and passcode sync through iCloud Keychain, so Encamera works seamlessly on your other devices. Turning this off removes them from your other devices.")
+    /// Sync Across Devices
+    public static let multiDeviceMode = L10n.tr("Localizable", "Settings.MultiDeviceMode", fallback: "Sync Across Devices")
     /// Purchases restored!
     public static let purchasesRestored = L10n.tr("Localizable", "Settings.PurchasesRestored", fallback: "Purchases restored!")
     /// Any valid purchases you made have been restored.
@@ -2791,6 +2791,10 @@ public enum L10n {
       public static func disableDevicesWarning(_ p1: Any) -> String {
         return L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableDevicesWarning", String(describing: p1), fallback: "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.")
       }
+      /// Turn Off
+      public static let disableDrawerConfirm = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableDrawerConfirm", fallback: "Turn Off")
+      /// Turn off iCloud sync?
+      public static let disableDrawerTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableDrawerTitle", fallback: "Turn off iCloud sync?")
       /// Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.
       public static let disableGenericWarning = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableGenericWarning", fallback: "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.")
       /// Turn off iCloud Multi-Device Mode?
@@ -2807,6 +2811,14 @@ public enum L10n {
       public static func enableConflictWarningMultiple(_ p1: Any, _ p2: Any) -> String {
         return L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableConflictWarningMultiple", String(describing: p1), String(describing: p2), fallback: "Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.")
       }
+      /// Turn On
+      public static let enableDrawerConfirm = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableDrawerConfirm", fallback: "Turn On")
+      /// Your credentials and encryption keys will be securely synced via iCloud Keychain.
+      /// 
+      /// Other devices will use this device’s passcode or password to unlock Encamera.
+      public static let enableDrawerSubtitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableDrawerSubtitle", fallback: "Your credentials and encryption keys will be securely synced via iCloud Keychain.\n\nOther devices will use this device’s passcode or password to unlock Encamera.")
+      /// Turn on iCloud sync?
+      public static let enableDrawerTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableDrawerTitle", fallback: "Turn on iCloud sync?")
       /// Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.
       public static let enableSimpleWarning = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableSimpleWarning", fallback: "Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.")
       /// Turn on iCloud Multi-Device Mode?

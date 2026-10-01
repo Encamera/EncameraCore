@@ -338,7 +338,6 @@ Kun jaat sen heidän kanssaan, he voivat purkaa minkä tahansa median salauksen,
 "HideAlbumsTutorial.Subheading1" = "Encamera antaa sinun piilottaa albumeja pää näkymästä lisäyksityisyyden vuoksi.";
 "Storage Settings" = "Tallennusasetukset";
 "AskForReview.AskMeLater" = "Kysy myöhemmin";
-"AlbumDetailView.ImportButton" = "Tuo kuvia";
 "RemovePasscode" = "Tämä poistaa pääsykoodisi. Voit käyttää vain Face ID:tä päästäksesi sovellukseen. Jatketaanko?";
 "Settings.Contact" = "Ota yhteyttä tukeen";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Virhe avaimen ja siihen liittyvien tiedostojen poistossa. Yritä uudelleen tai poista tiedostot manuaalisesti Tiedostot-sovelluksen kautta.";
@@ -487,7 +486,6 @@ Sovellus sulkeutuu, kun poisto on valmis.
 "Settings.BackupKeyPhrase" = "Varmuuskopioi avainlause";
 "HideAlbumsTutorial.Subheading3" = "Muista piilottamiesi albumien nimet, sillä ne eivät näy albumilistassasi.";
 "GlobalImportProgress.ImportCompleted" = "Tuonti valmis";
-"AlbumDetailView.OpenCamera" = "Ota uusi kuva";
 "ConfirmPinCode" = "Vahvista PIN-koodi";
 "OnboardingPermissionsCameraAccessSubheading" = "Tarvitaan valokuvien ottamiseen";
 "PleaseEnterAnAlbumName" = "Anna albumille nimi";

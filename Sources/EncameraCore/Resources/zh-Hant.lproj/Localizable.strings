@@ -329,8 +329,6 @@
 Encamera！";
 "FinishedSubtitle" = "讓我們來建立你的第一個相簿";
 "CreateFirstAlbum" = "建立第一個相簿";
-"AlbumDetailView.ImportButton" = "匯入圖片";
-"AlbumDetailView.OpenCamera" = "拍攝新照片";
 "AlbumDetailView.PhotoAccessAlertTitle" = "匯入後刪除？";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "刪除";
 "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "暫不";

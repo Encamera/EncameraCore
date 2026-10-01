@@ -354,7 +354,6 @@ Ogni chiave archivierà i dati nella propria cartella.
 "PromoFreeTrialTerms" = "60 giorni gratis, poi %@";
 "NotificationBanner.Reddit.Title" = "Sei su Reddit?";
 "NoAlbum" = "Nessun album";
-"AlbumDetailView.OpenCamera" = "Scatta una nuova foto";
 "LetsGo" = "Andiamo!";
 "The media you tried to open could not be decrypted." = "Il media che hai provato ad aprire non può essere decriptato.";
 "TaskDetailCard.StatusRunning" = "In esecuzione";
@@ -539,7 +538,6 @@ Encamera!";
 "OnboardingCarousel.SubheadingText1" = "Criptiamo immediatamente ogni foto e video. Nessun altro può vederli, nemmeno noi.";
 "PurchaseView.BenefitModel.BackupKeychain" = "Esegui il backup del portachiavi su iCloud";
 "Missing camera access" = "Accesso alla fotocamera mancante";
-"AlbumDetailView.ImportButton" = "Importa immagini";
 "Leave a Review" = "Lascia una recensione";
 "ProgressView.StartingDownload" = "Avvio download...";
 "HideAlbumsTutorial.Heading1" = "Tieni i tuoi album privati";

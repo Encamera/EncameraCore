@@ -526,10 +526,10 @@
 "FinishedReadyToUseEncamera" = "You are ready to use\nEncamera!";
 "FinishedSubtitle" = "Let's create your first album";
 "CreateFirstAlbum" = "Create First Album";
-"AlbumDetailView.AddFirstMedia" = "Add media to this album";
-"AlbumDetailView.AddFirstMediaSubtitle" = "Import media from your photo library or open the camera to take a new photo or video for this album";
-"AlbumDetailView.ImportButton" = "Import Pictures";
-"AlbumDetailView.OpenCamera" = "Take a New Picture";
+"AlbumDetailView.AddFirstMedia" = "Add your first photo or video";
+"AlbumDetailView.AddFirstMediaSubtitle" = "Photos and videos you add here are automatically encrypted";
+"AlbumDetailView.ImportButton" = "Import Media";
+"AlbumDetailView.OpenCamera" = "Open Camera";
 "AlbumDetailView.PhotoAccessAlertTitle" = "Delete After Import?";
 "AlbumDetailView.PhotoAccessAlertMessage" = "Do you want to delete these items from your photo library after importing them? Encamera requires permission to your photo library to do this.";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Delete";
@@ -708,13 +708,15 @@
 "Settings.DefaultStorageOption" = "Default Storage Option";
 "Settings.BackupKeyToiCloud" = "Sync Key to iCloud";
 "Settings.BackupKeyToiCloudDescription" = "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.";
-"Settings.MultiDeviceMode" = "iCloud Multi-Device Mode";
+"Settings.MultiDeviceMode" = "Sync Across Devices";
 "Settings.CloudKitUpgradeRow" = "Upgrade iCloud albums";
-"Settings.MultiDeviceModeDescription" = "Your key and passcode sync through iCloud Keychain, so Encamera works seamlessly on your other devices. Turning this off removes them from your other devices.";
 "Settings.MultiDeviceMode.EnableTitle" = "Turn on iCloud Multi-Device Mode?";
 "Settings.MultiDeviceMode.EnableSimpleWarning" = "Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.";
 "Settings.MultiDeviceMode.EnableConflictWarning" = "Your iCloud Keychain already holds a different key. This device uses key %1$@, and your iCloud account already has key %2$@. Encamera keeps both keys — neither one is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other key stays available so its photos can still be opened.";
 "Settings.MultiDeviceMode.EnableConflictWarningMultiple" = "Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.";
+"Settings.MultiDeviceMode.EnableDrawerTitle" = "Turn on iCloud sync?";
+"Settings.MultiDeviceMode.EnableDrawerSubtitle" = "Your credentials and encryption keys will be securely synced via iCloud Keychain.\n\nOther devices will use this device’s passcode or password to unlock Encamera.";
+"Settings.MultiDeviceMode.EnableDrawerConfirm" = "Turn On";
 "Settings.MultiDeviceMode.HoldToEnable" = "Hold to Turn On";
 "Settings.MultiDeviceMode.EnablingIn" = "Turning on in %d";
 "Settings.MultiDeviceMode.FlipFailed" = "Multi-Device Mode could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.";
@@ -727,6 +729,8 @@
 "Settings.MultiDeviceMode.DisableTitle" = "Turn off iCloud Multi-Device Mode?";
 "Settings.MultiDeviceMode.DisableGenericWarning" = "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.";
 "Settings.MultiDeviceMode.DisableDevicesWarning" = "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.";
+"Settings.MultiDeviceMode.DisableDrawerTitle" = "Turn off iCloud sync?";
+"Settings.MultiDeviceMode.DisableDrawerConfirm" = "Turn Off";
 "Settings.BackupKeyChangeFailed" = "Couldn't Change Key Backup";
 "Settings.BackupKeyChangeFailedMessage" = "Your iCloud Keychain refused the change, so this setting was left as it was. Make sure you're signed in to iCloud with Keychain turned on, then try again.";
 "Settings.MultiDeviceMode.HoldToDisable" = "Hold to Turn Off";
@@ -1445,7 +1449,7 @@
 "Onboarding.Story.letsStart" = "Let's start";
 
 /* Unlock method */
-"Onboarding.UnlockMethod.title" = "How should you unlock Encamera?";
+"Onboarding.UnlockMethod.title" = "How do you want to unlock Encamera?";
 "Onboarding.UnlockMethod.subtitle" = "Choose how you'd like to unlock your encrypted files";
 "Onboarding.UnlockMethod.passwordTitle" = "Password (Recommended)";
 "Onboarding.UnlockMethod.passwordLabel" = "More characters for added security";
@@ -1498,7 +1502,7 @@
 
 /* Need key */
 "Onboarding.NeedKey.title" = "You'll need your encryption key";
-"Onboarding.NeedKey.body" = "Without your encryption key, you won't be able to access your existing encrypted files on this device. You can import your key later if you get access to it.";
+"Onboarding.NeedKey.body" = "Without your encryption key, you won't be able to access your existing encrypted files on this device.\n\nYou can import your key later if you get access to it.";
 "Onboarding.NeedKey.continueWithoutKey" = "Continue without key";
 "Onboarding.NeedKey.drawerTitle" = "Continue without your key?";
 "Onboarding.NeedKey.drawerBody" = "Your existing encrypted files won't be accessible on this device until you import your encryption key.";

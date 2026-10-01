@@ -316,8 +316,6 @@ Aplicația se va închide după ce ștergerea este finalizată.";
 Encamera!";
 "FinishedSubtitle" = "Hai să creezi primul tău album";
 "CreateFirstAlbum" = "Creează primul album";
-"AlbumDetailView.ImportButton" = "Importă poze";
-"AlbumDetailView.OpenCamera" = "Fă o poză nouă";
 "AlbumDetailView.PhotoAccessAlertTitle" = "Ștergi după import?";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Șterge";
 "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Nu acum";

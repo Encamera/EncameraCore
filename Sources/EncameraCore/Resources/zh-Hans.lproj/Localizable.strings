@@ -301,8 +301,6 @@
 "FinishedReadyToUseEncamera" = "您已准备好使用\nEncamera！";
 "FinishedSubtitle" = "让我们创建您的第一个相册";
 "CreateFirstAlbum" = "创建第一个相册";
-"AlbumDetailView.ImportButton" = "导入图片";
-"AlbumDetailView.OpenCamera" = "拍摄新照片";
 "AlbumDetailView.PhotoAccessAlertTitle" = "导入后删除？";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "删除";
 "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "暂不";

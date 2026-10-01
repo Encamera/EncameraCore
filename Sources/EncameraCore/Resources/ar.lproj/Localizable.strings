@@ -349,7 +349,6 @@
 "PromoFreeTrialTerms" = "٦٠ يومًا مجانًا، ثم %@";
 "NotificationBanner.Reddit.Title" = "هل أنت على ريديت؟";
 "NoAlbum" = "لا يوجد ألبوم";
-"AlbumDetailView.OpenCamera" = "التقط صورة جديدة";
 "LetsGo" = "هيا بنا!";
 "The media you tried to open could not be decrypted." = "لم يتمكن النظام من فك تشفير الوسائط التي حاولت فتحها.";
 "TaskDetailCard.StatusRunning" = "تشغيل";
@@ -533,7 +532,6 @@
 "OnboardingCarousel.SubheadingText1" = "نقوم بتشفير كل صورة وفيديو فوراً. لا يمكن لأي شخص آخر رؤيتها، حتى نحن.";
 "PurchaseView.BenefitModel.BackupKeychain" = "نسخ سلسلة المفاتيح احتياطيًا إلى iCloud";
 "Missing camera access" = "الوصول إلى الكاميرا مفقود";
-"AlbumDetailView.ImportButton" = "استيراد الصور";
 "Leave a Review" = "اترك تقييمًا";
 "ProgressView.StartingDownload" = "يتم بدء التنزيل...";
 "HideAlbumsTutorial.Heading1" = "احتفظ بألبوماتك خاصة";

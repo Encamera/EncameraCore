@@ -70,7 +70,6 @@
 "Error coding keychain data." = "키체인 데이터 코딩 오류.";
 "OnboardingPermissionsSubheading" = "앱에 액세스하려면 카메라 및 마이크 사용 권한을 부여해야 합니다";
 "IncorrectPinCode" = "잘못된 PIN 코드입니다. 다시 시도해 주세요.";
-"AlbumDetailView.ImportButton" = "사진 가져오기";
 "Photo limit reached" = "사진 제한 도달";
 "EmptyAlbumTakeAPictureActionTitle" = "사진 찍기";
 "RecoveryPhraseCopied" = "복구 구문이 복사되었습니다!";
@@ -130,7 +129,6 @@
 "TakeSurveyTitle" = "3개월 무료 이용을 원하시나요?";
 "ShareKeyExplanation" = "암호화 키를 신뢰하는 사람과 공유하세요.\n\n그들과 공유하면 이 키로 암호화된 미디어를 그들이 해독할 수 있게 됩니다.";
 "DeleteAlbum" = "앨범 삭제";
-"AlbumDetailView.OpenCamera" = "새 사진 찍기";
 "FinishedOnboardingSubtitle" = "일부 미디어를 보호합시다";
 "SetPinCode" = "핀 코드 설정";
 "FinishedReadyToUseEncamera" = "당신은 Encamera를 사용할 준비가 되었습니다!";

@@ -333,8 +333,6 @@
   Encamera !";
   "FinishedSubtitle" = "Créons votre premier album";
   "CreateFirstAlbum" = "Créer le premier album";
-  "AlbumDetailView.ImportButton" = "Importer des images";
-  "AlbumDetailView.OpenCamera" = "Prendre une nouvelle photo";
   "AlbumDetailView.PhotoAccessAlertTitle" = "Supprimer après l'importation ?";
   "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Supprimer";
   "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Pas maintenant";

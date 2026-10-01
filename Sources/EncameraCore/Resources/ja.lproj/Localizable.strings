@@ -381,7 +381,6 @@
 "PromoFreeTrialTerms" = "60日間無料、その後は%@";
 "NotificationBanner.Reddit.Title" = "Redditを使っていますか？";
 "NoAlbum" = "アルバムなし";
-"AlbumDetailView.OpenCamera" = "新しい写真を撮る";
 "LetsGo" = "行こう！";
 "The media you tried to open could not be decrypted." = "開こうとしたメディアは復号できませんでした。";
 "TaskDetailCard.StatusRunning" = "ランニング";
@@ -565,7 +564,6 @@
 "OnboardingCarousel.SubheadingText1" = "すべての写真と動画を即座に暗号化します。他の誰にも見られません。私たちでさえも。";
 "PurchaseView.BenefitModel.BackupKeychain" = "キーチェーンをiCloudにバックアップ";
 "Missing camera access" = "カメラへのアクセスがありません";
-"AlbumDetailView.ImportButton" = "写真をインポート";
 "Leave a Review" = "レビューを書く";
 "ProgressView.StartingDownload" = "ダウンロードを開始しています...";
 "HideAlbumsTutorial.Heading1" = "アルバムを非公開にする";
