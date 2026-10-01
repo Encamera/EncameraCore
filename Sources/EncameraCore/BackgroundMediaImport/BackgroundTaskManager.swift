@@ -189,14 +189,15 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     
     /// Finalizes a task as cancelled with optional partial results.
     /// If assetIdentifiers are provided, they are stored on the task for later deletion from photo library.
-    /// Tasks with partial imports (assetIdentifiers > 0) are kept in the list for history.
+    /// Tasks with partial imports (assetIdentifiers > 0) are kept so the progress pill
+    /// can still offer to delete them; the lasting record is the album's import history.
     /// Tasks without partial imports are removed after a delay.
     public func finalizeTaskCancelled(taskId: String, assetIdentifiers: [String] = []) {
         let shouldRemove = assetIdentifiers.isEmpty
         finalizeTaskStopped(taskId: taskId, state: .cancelled, assetIdentifiers: assetIdentifiers, shouldRemove: shouldRemove)
         
         if !assetIdentifiers.isEmpty {
-            printDebug("Keeping cancelled task \(taskId) in history with \(assetIdentifiers.count) partial imports")
+            printDebug("Keeping cancelled task \(taskId) with \(assetIdentifiers.count) partial imports")
         }
     }
     

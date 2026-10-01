@@ -227,6 +227,23 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         try await executeImportTask(task)
     }
     
+    /// Marks the batches these tasks belong to as deleted from the photo library in
+    /// each album's import history, after their originals were deleted elsewhere
+    /// (the progress pill).
+    public func markDeletedFromLibrary(_ tasks: [ImportTask]) {
+        guard let albumManager else { return }
+        let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
+        for (albumId, albumTasks) in Dictionary(grouping: tasks, by: \.albumId) {
+            guard let album = albums.first(where: { $0.id == albumId }) else { continue }
+            let batchIds = Set(albumTasks.map { $0.userBatchId ?? $0.id })
+            do {
+                try AlbumImportHistory(album: album).markDeletedFromLibrary(ids: batchIds)
+            } catch {
+                printDebug("Could not mark import history deleted for album \(album.name): \(error)")
+            }
+        }
+    }
+
     /// Cancels an import task - delegates to BackgroundTaskManager
     public func cancelImport(taskId: String) {
         printDebug("Cancelling import task: \(taskId)")
@@ -347,20 +364,29 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                 if wasCancelled {
                     self.printDebug("Streaming import was cancelled with \(collectedAssetIdentifiers.count) partial imports")
                     self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: collectedAssetIdentifiers)
+                    self.recordHistory(for: task, album: album, state: .cancelled, importedCount: successCount,
+                                       requestedCount: mediaSource.count, assetIdentifiers: collectedAssetIdentifiers)
                 } else if stoppedForSpace {
                     self.printDebug("Import stopped for space after \(successCount) imports, \(notAttemptedCount) not attempted")
                     if successCount > 0 {
                         let identifiers = isPreloaded ? [] : collectedAssetIdentifiers
                         self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: successCount, assetIdentifiers: identifiers)
+                        self.recordHistory(for: task, album: album, state: .completed, importedCount: successCount,
+                                           requestedCount: mediaSource.count, assetIdentifiers: identifiers)
                     } else {
                         self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.outOfSpace)
                     }
-                } else if isPreloaded && successCount == 0 && failureCount > 0 {
-                    self.printDebug("Batch import had \(failureCount) failures and no successes - finalizing failed")
+                } else if successCount == 0 && failureCount > 0 {
+                    self.printDebug("Import had \(failureCount) failures and no successes - finalizing failed")
                     self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.allImportsFailed(failureCount: failureCount))
                 } else {
                     let completedItems = (isPreloaded && successCount > 0) ? successCount : mediaSource.count
                     self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: completedItems, assetIdentifiers: collectedAssetIdentifiers)
+                    // Preloaded identifiers are the caller's, not per item, so once anything
+                    // failed there is no telling which original did not make it in.
+                    let deletableIdentifiers = isPreloaded && failureCount > 0 ? [] : collectedAssetIdentifiers
+                    self.recordHistory(for: task, album: album, state: .completed, importedCount: successCount,
+                                       requestedCount: mediaSource.count, assetIdentifiers: deletableIdentifiers)
                 }
                 self.endBackgroundTask()
                 self.cleanupTempFilesIfSafe()
@@ -389,6 +415,29 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             stoppedForSpace: stoppedForSpace,
             notAttemptedCount: notAttemptedCount
         )
+    }
+
+    /// Adds the finished batch to the album's import history. An import that
+    /// brought nothing in leaves no record: there is nothing to delete.
+    private func recordHistory(for task: ImportTask,
+                               album: Album,
+                               state: ImportHistoryRecord.State,
+                               importedCount: Int,
+                               requestedCount: Int,
+                               assetIdentifiers: [String]) {
+        guard importedCount > 0 else { return }
+        let record = ImportHistoryRecord(id: task.userBatchId ?? task.id,
+                                         createdAt: task.createdAt,
+                                         source: task.source,
+                                         importedCount: importedCount,
+                                         requestedCount: requestedCount,
+                                         assetIdentifiers: assetIdentifiers,
+                                         state: state)
+        do {
+            try AlbumImportHistory(album: album).append(record)
+        } catch {
+            printDebug("Could not record import history for task \(task.id): \(error)")
+        }
     }
 
     /// Legacy overload for backward compatibility with resumeImport
@@ -521,7 +570,11 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         var stoppedForSpace = false
         
         for (index, result) in results.enumerated() {
-            try Task.checkCancellation()
+            // Cancelling stops the loop but keeps what already landed: the caller
+            // sees fewer processed items than requested and finalizes as cancelled
+            // with these asset identifiers, which the import history needs to offer
+            // deleting exactly the originals that made it in.
+            if Task.isCancelled { break }
 
             guard hasRoom(forItemSizes: [plannedSize(at: index, in: plannedSizes)]) else {
                 printDebug("Not enough space for item \(index + 1) - stopping import")
@@ -560,6 +613,8 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                 processedCount += 1
                 printDebug("✅ Successfully imported item \(index + 1)/\(results.count)")
                 
+            } catch is CancellationError {
+                break
             } catch {
                 failedItems.append(ImportItemFailure(id: loaded?.assetIdentifier ?? "\(index)", error: error))
                 printDebug("❌ Error processing item \(index + 1): \(error)")
@@ -613,6 +668,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         startTime: Date,
         processedGroups: Int
     ) async throws {
+        try await MediaImportTestHooks.beforeSavingItem(at: groupIndex)
         let mediaId = mediaGroup.first?.id ?? "unknown"
         let interactableMedia = try InteractableMedia(underlyingMedia: mediaGroup)
         

@@ -298,6 +298,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             try? fileManager.removeItem(at: albumURL)
         }
 
+        wipeImportHistory(album.id)
         if album.storageOption == .cloudKit {
             removeCloudKitAlbumLocalState(album)
             deleteCloudKitAlbumRecord(album)
@@ -321,6 +322,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         if fileManager.fileExists(atPath: albumURL.path) {
             try? fileManager.removeItem(at: albumURL)
         }
+
+        wipeImportHistory(album.id)
 
         if album.storageOption == .cloudKit {
             removeCloudKitAlbumLocalState(album)
@@ -765,6 +768,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
         var movedAlbum = album
         movedAlbum.storageOption = toStorage
+        wipeImportHistory(album.id, movedAlbum.id)
         albumOperationSubject.send(.albumMoved(album: movedAlbum))
         broadcastAlbumsUpdated()
         printDebug("Completed the move process for album: \(album.name)")
@@ -806,6 +810,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             }
         }
 
+        wipeImportHistory(album.id, cloudKitAlbum.id)
         if currentAlbum?.id == album.id { currentAlbum = cloudKitAlbum }
         albumOperationSubject.send(.albumMoved(album: cloudKitAlbum))
         broadcastAlbumsUpdated()
@@ -854,6 +859,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                 setNameKeyedCoverImageId(coverMediaID, albumName: localAlbum.name)
             }
         }
+        wipeImportHistory(album.id, localAlbum.id)
 
         if currentAlbum?.id == album.id { currentAlbum = localAlbum }
         albumOperationSubject.send(.albumMoved(album: localAlbum))
@@ -948,12 +954,31 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             printDebug("renameAlbum could not carry the album's pending moves: \(error)")
         }
 
+        // A local album's id is its name, so its history file moves with the rename.
+        do {
+            try AlbumImportHistory.moveFile(fromAlbumId: album.id, toAlbumId: albumToUpdate.id)
+        } catch {
+            printDebug("Could not carry import history over to renamed album \(newName): \(error)")
+        }
+
         albumOperationSubject.send(.albumRenamed(album: albumToUpdate))
         broadcastAlbumsUpdated()
         if currentAlbum?.id == album.id {
             currentAlbum = albumToUpdate
         }
         return albumToUpdate
+    }
+
+    /// Removes the import history kept under each album id. Moving an album starts
+    /// its history over: nothing is carried across storage types.
+    private func wipeImportHistory(_ albumIds: String...) {
+        for albumId in albumIds {
+            do {
+                try AlbumImportHistory.deleteFile(forAlbumId: albumId)
+            } catch {
+                printDebug("Could not remove import history for album id \(albumId): \(error)")
+            }
+        }
     }
 
     public func storageModel(for album: Album) -> DataStorageModel? {
