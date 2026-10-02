@@ -213,6 +213,15 @@ public class OnboardingManager: OnboardingManaging {
 }
 
 private extension OnboardingManager {
+    /// An account that never had a passcode. A device that has not switched
+    /// biometrics on for it belongs on the lock screen, whose recovery offers
+    /// the prompt: onboarding would let whoever holds the device set a new
+    /// passcode over the account.
+    var isBiometricsOnlyAccount: Bool {
+        guard let configuration = keyManager.getAuthenticationConfiguration() else { return false }
+        return configuration.isTypeEnabled(.biometrics) && configuration.passcodeType == nil
+    }
+
     @MainActor
     func getOnboardingStateFromDefaults() throws -> OnboardingState {
         let passwordExists = keyManager.passwordExists()
@@ -228,7 +237,7 @@ private extension OnboardingManager {
         do {
             
             let state = try JSONDecoder().decode(OnboardingState.self, from: savedState)
-            if case .completed = state, passwordExists == false && authManager.useBiometricsForAuth == false {
+            if case .completed = state, passwordExists == false && authManager.useBiometricsForAuth == false && !isBiometricsOnlyAccount {
                 return .hasOnboardingAndNoPassword
             }
             

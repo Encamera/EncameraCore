@@ -67,6 +67,44 @@ public enum LockScreenState: Equatable {
         return false
     }
 
+    /// What the recovery screen offers as its way in.
+    public enum RecoveryAction: Equatable {
+        /// Biometrics works here but was never switched on for this device,
+        /// as on a second device that synced a biometrics-only account. A
+        /// successful prompt is the consent.
+        case enableOnThisDevice(AuthenticationMethod)
+        /// The app's Face ID permission is off; only Settings can undo it.
+        case openSettings
+        /// The fix happens outside the app (enrol, set a device passcode,
+        /// unlock the device); re-probe when the user comes back.
+        case retry
+    }
+
+    public var recoveryAction: RecoveryAction? {
+        guard case .noWayIn(let availability) = self else { return nil }
+        switch availability {
+        case .available(let method):
+            return .enableOnThisDevice(method)
+        case .deniedBySystemSettings:
+            return .openSettings
+        case .notEnrolled, .lockedOut, .passcodeNotSet, .noHardware, .unavailable:
+            return .retry
+        }
+    }
+
+    /// Whether turning biometrics on is something the user can actually do,
+    /// so the screen can tell them it is the way in. A device without the
+    /// hardware, or one failing for an unknown reason, has no such step.
+    public var recoveryCanTurnOnBiometrics: Bool {
+        guard case .noWayIn(let availability) = self else { return false }
+        switch availability {
+        case .available, .deniedBySystemSettings, .notEnrolled, .lockedOut, .passcodeNotSet:
+            return true
+        case .noHardware, .unavailable:
+            return false
+        }
+    }
+
     /// The biometry to offer, if any.
     public var biometric: AuthenticationMethod? {
         switch self {

@@ -376,12 +376,12 @@ public class DeviceAuthManager: AuthManager {
     public func authorize(with password: String, using keyManager: KeyManager) throws {
         let newState: AuthManagerState
         do {
-            let check = try keyManager.checkPassword(password)
-            if check {
-                newState = .authenticated(with: .password)
-            } else {
-                newState = .unauthenticated
+            // A check that fails without throwing is still a wrong passcode,
+            // and has to reach the caller's attempt limiter as one.
+            guard try keyManager.checkPassword(password) else {
+                throw AuthManagerError.passwordIncorrect
             }
+            newState = .authenticated(with: .password)
         } catch let keyManagerError as KeyManagerError {
             if keyManagerError == .invalidPassword {
                 throw AuthManagerError.passwordIncorrect

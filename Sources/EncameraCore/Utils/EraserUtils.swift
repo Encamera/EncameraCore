@@ -290,6 +290,7 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
 
     func eraseKeychain() {
         keyManager.clearKeychainData(scope: keyDeletionScope)
+        KeychainPasscodeAttemptStore().clear()
     }
 
     func eraseUserDefaults() {

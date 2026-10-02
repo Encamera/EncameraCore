@@ -1113,6 +1113,8 @@ public enum L10n {
   public enum AuthenticationView {
     /// Encamera can't be unlocked
     public static let cannotUnlock = L10n.tr("Localizable", "AuthenticationView.CannotUnlock", fallback: "Encamera can't be unlocked")
+    /// Can't turn it on? Erase and start over
+    public static let eraseAndStartOver = L10n.tr("Localizable", "AuthenticationView.EraseAndStartOver", fallback: "Can't turn it on? Erase and start over")
     /// Forgot Password? Reset App
     public static let forgotPassword = L10n.tr("Localizable", "AuthenticationView.ForgotPassword", fallback: "Forgot Password? Reset App")
     /// You can retry your password in %@
@@ -1123,6 +1125,16 @@ public enum L10n {
     public static let tooManyAttempts = L10n.tr("Localizable", "AuthenticationView.TooManyAttempts", fallback: "Too many attempts")
     /// Try Again
     public static let tryAgain = L10n.tr("Localizable", "AuthenticationView.TryAgain", fallback: "Try Again")
+    public enum BiometricsOnly {
+      /// This account has no passcode, so %@ is the only way in.
+      public static func explanation(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "AuthenticationView.BiometricsOnly.Explanation", String(describing: p1), fallback: "This account has no passcode, so %@ is the only way in.")
+      }
+      /// Turn on %@ to unlock Encamera
+      public static func title(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "AuthenticationView.BiometricsOnly.Title", String(describing: p1), fallback: "Turn on %@ to unlock Encamera")
+      }
+    }
   }
   public enum BackgroundTaskProgress {
     /// Edit cancelled
@@ -1196,9 +1208,9 @@ public enum L10n {
       }
       /// This device has no biometric unlock, and this account has no passcode.
       public static let noHardware = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NoHardware", fallback: "This device has no biometric unlock, and this account has no passcode.")
-      /// %@ hasn't been turned on for Encamera on this device, and this account has no passcode.
+      /// %@ hasn't been turned on for Encamera on this device yet.
       public static func notEnabled(_ p1: Any) -> String {
-        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NotEnabled", String(describing: p1), fallback: "%@ hasn't been turned on for Encamera on this device, and this account has no passcode.")
+        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NotEnabled", String(describing: p1), fallback: "%@ hasn't been turned on for Encamera on this device yet.")
       }
       /// No face or fingerprint is enrolled on this device. Set one up in Settings, then try again.
       public static let notEnrolled = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NotEnrolled", fallback: "No face or fingerprint is enrolled on this device. Set one up in Settings, then try again.")

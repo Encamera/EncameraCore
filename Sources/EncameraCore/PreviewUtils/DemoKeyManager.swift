@@ -3,12 +3,14 @@ import Combine
 import Sodium
 
 public class DemoKeyManager: KeyManager {
+    public var authenticationConfiguration: AuthenticationConfiguration? = AuthenticationConfiguration(enabledTypes: [.passcode(.password)])
+
     public func getAuthenticationConfiguration() -> AuthenticationConfiguration? {
-        return AuthenticationConfiguration(enabledTypes: [.passcode(.password)])
+        authenticationConfiguration
     }
 
     public func setAuthenticationConfiguration(config: AuthenticationConfiguration) throws {
-
+        authenticationConfiguration = config
     }
 
     private var multiDeviceState: MultiDeviceState?
@@ -28,11 +30,11 @@ public class DemoKeyManager: KeyManager {
     public var isSyncEnabled: Bool = false
     
     public func setPassword(_ password: String, type: PasscodeType) throws {
-
+        self.password = password
     }
     
     public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
-
+        self.password = password
     }
     
     public func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws {
@@ -101,7 +103,7 @@ public class DemoKeyManager: KeyManager {
     }
 
     public func setOrUpdatePassword(_ password: String) throws {
-
+        self.password = password
     }
 
     public func createBackupDocument() throws -> String {

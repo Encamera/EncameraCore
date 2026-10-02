@@ -22,7 +22,6 @@ public enum UserDefaultKey {
     case keyTutorialClosed
     case currentAlbumID
     case showCurrentAlbumOnLaunch
-    case lockoutEnd
     case launchCountKey
     case lastVersionKey
     case photoAddedCount
@@ -36,7 +35,6 @@ public enum UserDefaultKey {
     case gridSortOption
     case showHiddenAlbumsInCameraPicker
     case loopVideos
-    case hasCompletedFirstLockout
     case hasBeenShownHideAlbumTutorial
     case keyBackupPromptLastShown
     case promotionalBannerInteractions
@@ -111,7 +109,6 @@ public enum UserDefaultKey {
              .gridZoomLevel,
              .gridSortOption,
              .currentKey,
-             .hasCompletedFirstLockout,
              .hasBeenShownHideAlbumTutorial:
             return true
 
@@ -121,7 +118,6 @@ public enum UserDefaultKey {
              .viewGalleryCount,
              .reviewRequestedMetric,
              .lastVersionReviewRequested,
-             .lockoutEnd,
              .launchCountKey,
              .lastVersionKey,
              .photoAddedCount,

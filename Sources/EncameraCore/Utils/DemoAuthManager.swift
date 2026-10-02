@@ -39,13 +39,23 @@ public class DemoAuthManager: AuthManager {
         return false
     }
     public func authorize(with password: String, using keyManager: KeyManager) throws {
-        
+        guard (try? keyManager.checkPassword(password)) == true else {
+            throw AuthManagerError.passwordIncorrect
+        }
+        isAuthenticated = true
     }
-    
+
     public private(set) var biometricAuthorizationCount = 0
+    /// Thrown from `authorizeWithBiometrics` when set.
+    public var biometricError: AuthManagerError?
+    /// False models an evaluation that returns without throwing and without
+    /// unlocking, as a debounced or app-cancelled one does.
+    public var biometricUnlocks = true
 
     public func authorizeWithBiometrics() async throws {
         biometricAuthorizationCount += 1
+        if let biometricError { throw biometricError }
+        isAuthenticated = biometricUnlocks
     }
     public var useBiometricsForAuth: Bool = true
     
