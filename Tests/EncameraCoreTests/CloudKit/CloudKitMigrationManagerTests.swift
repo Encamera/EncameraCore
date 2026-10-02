@@ -1405,6 +1405,55 @@ extension CloudKitMigrationManagerTests {
                        "every item is downloaded and verified before the first record is deleted")
     }
 
+    func testAlbumMoveToLocalRingStaysShortOfFullUntilEveryRecordIsRemoved() async throws {
+        let fixture = try makeToLocalFixture(count: 3)
+        defer { cleanup(fixture) }
+        var snapshots: [MigrationProgress] = []
+        let subscription = fixture.manager.$progress.sink { snapshots.append($0) }
+        defer { subscription.cancel() }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(fixture.manager.state, .completed)
+        let live = snapshots.filter { $0.phase != nil }
+        XCTAssertEqual(live.first?.fractionComplete, 0,
+                       "the run opens on an empty ring, not the empty placeholder plan's 100%")
+        let fractions = live.map(\.fractionComplete)
+        XCTAssertEqual(fractions, fractions.sorted(), "the ring never moves backwards")
+
+        let removing = live.filter { $0.phase == .removingRemoteCopy }
+        XCTAssertFalse(removing.isEmpty)
+        XCTAssertTrue(removing.filter { $0.removedCount < $0.removalTotal }.allSatisfy { $0.fractionComplete < 1 },
+                      "the ring is not full while records are still being removed")
+        XCTAssertEqual(removing.first?.fractionComplete ?? 0, 1 - MigrationPlan.sourceRemovalShare, accuracy: 0.0001)
+        XCTAssertEqual(Set(removing.map(\.removalTotal)), [3])
+        XCTAssertEqual(Set(removing.map(\.removedCount)), [0, 1, 2, 3],
+                       "the removed count advances per record for \"Removing X of Y\"")
+        XCTAssertEqual(removing.map(\.removingItemNumber).max(), 3, "the label never reads past \"3 of 3\"")
+        XCTAssertEqual(snapshots.last?.fractionComplete ?? 0, 1, accuracy: 0.0001)
+    }
+
+    func testANewRunOnTheSameManagerDoesNotStartFromTheLastRunsProgress() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer { cleanup(fixture) }
+        // Leave the first run part-way: one item verified, then a pause.
+        try await saveCheckpoint(fixture, states: [.verified, .pending])
+        fixture.store.onFirstProgress = { [weak manager = fixture.manager] in
+            Task { @MainActor in manager?.pause() }
+        }
+        fixture.store.fetchBlobProgressSteps = [0.5]
+        await fixture.manager.start(plan: fixture.plan)
+        XCTAssertGreaterThan(fixture.manager.progress.fractionComplete, 0)
+
+        var snapshots: [MigrationProgress] = []
+        let subscription = fixture.manager.$progress.dropFirst().sink { snapshots.append($0) }
+        defer { subscription.cancel() }
+        fixture.store.onFirstProgress = nil
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(snapshots.first, .idle, "a new run clears the last run's snapshot before anything else")
+    }
+
     func testAlbumMoveToLocalCancelInTheFirstPassLeavesEveryRecord() async throws {
         let fixture = try makeToLocalFixture(count: 2)
         defer { cleanup(fixture) }

@@ -924,6 +924,9 @@
 "BackgroundTaskProgress.MigrateToLocalCanceled" = "Move to this device canceled";
 "BackgroundTaskProgress.MigratingProgress" = "Moving %@ of %@ to iCloud";
 "BackgroundTaskProgress.MigratingBatches" = "Moving %@ albums to iCloud";
+"BackgroundTaskProgress.MigratingToLocalProgress" = "Moving %@ of %@ to this device";
+"BackgroundTaskProgress.MigratingToLocalBatches" = "Moving %@ albums to this device";
+"BackgroundTaskProgress.RemovingFromICloudProgress" = "Removing %@ of %@ from iCloud";
 
 /* ./Encamera/AlbumManagement/AlbumDetailView.swift - Move a local album to iCloud (CloudKit) */
 "CloudKitMigration.AlertTitle" = "Move this album to iCloud?";
@@ -966,6 +969,7 @@
 "CloudKitMigration.OverlayPhaseRemovingLocalCopy" = "Removing local copy";
 "CloudKitMigration.OverlayPhaseDownloading" = "Downloading from iCloud";
 "CloudKitMigration.OverlayPhaseRemovingRemoteCopy" = "Removing iCloud copy";
+"CloudKitMigration.OverlayPhaseRemovingRemoteCopyProgress" = "Removing %@ of %@ from iCloud";
 "CloudKitMigration.OverlayPhaseRetrying" = "Retrying";
 "CloudKitMigration.OverlayItemProgress" = "%@ of %@ items";
 "CloudKitMigration.OverlayTotalSize" = "%@ total";

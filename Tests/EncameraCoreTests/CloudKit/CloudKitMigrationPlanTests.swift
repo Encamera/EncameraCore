@@ -180,8 +180,57 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         ])
         XCTAssertEqual(plan.totalBytes, 1000)
         XCTAssertEqual(plan.migratedBytes, 400)
-        XCTAssertEqual(plan.fractionComplete, 0.4, accuracy: 0.0001)
+        // 100 verified counts all but its removal share; 300 source-deleted counts fully.
+        XCTAssertEqual(plan.fractionComplete, (100 * (1 - MigrationPlan.sourceRemovalShare) + 300) / 1000, accuracy: 0.0001)
         XCTAssertEqual(plan.verifiedCount, 2)
+    }
+
+    func testEveryItemVerifiedIsNotFullWhileSourceRemovalIsStillToDo() {
+        let plan = makePlan(items: [
+            makeItem(size: 100, state: .verified),
+            makeItem(size: 300, state: .verified),
+        ])
+        XCTAssertEqual(plan.fractionComplete, 1 - MigrationPlan.sourceRemovalShare, accuracy: 0.0001)
+        XCTAssertLessThan(plan.fractionComplete, 1)
+    }
+
+    func testRemovalPassAdvancesTheFractionPerItemRemoved() {
+        var items = (0..<4).map { _ in makeItem(size: 100, state: .verified) }
+        var previous = makePlan(items: items).fractionComplete
+        for index in items.indices {
+            items[index].state = .sourceDeleted
+            let fraction = makePlan(items: items).fractionComplete
+            XCTAssertGreaterThan(fraction, previous)
+            previous = fraction
+        }
+        XCTAssertEqual(previous, 1, accuracy: 0.0001)
+    }
+
+    func testItemsWithUnknownSizeStillAdvanceTheFraction() {
+        let plan = makePlan(items: [
+            makeItem(size: 0, state: .sourceDeleted),
+            makeItem(size: 0, state: .pending),
+        ])
+        XCTAssertEqual(plan.fractionComplete, 0.5, accuracy: 0.0001,
+                       "a plan with no sizes must not read as already complete")
+    }
+
+    func testAnUnknownSizeWeighsAsTheAverageKnownItem() {
+        let plan = makePlan(items: [
+            makeItem(size: 100, state: .sourceDeleted),
+            makeItem(size: 300, state: .pending),
+            makeItem(size: 0, state: .sourceDeleted),
+        ])
+        // Unknown weighs 200: (100 + 200) / (100 + 300 + 200).
+        XCTAssertEqual(plan.fractionComplete, 0.5, accuracy: 0.0001)
+    }
+
+    func testSkippedItemsCountAsDone() {
+        let plan = makePlan(items: [
+            makeItem(size: 100, state: .skipped),
+            makeItem(size: 100, state: .sourceDeleted),
+        ])
+        XCTAssertEqual(plan.fractionComplete, 1, accuracy: 0.0001)
     }
 
     func testEmptyPlanIsFullyComplete() {

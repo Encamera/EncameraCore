@@ -80,6 +80,11 @@ public struct MigrationProgress: Equatable, Sendable {
     public var currentItemName: String?
     /// `nil` whenever the manager is idle, completed, failed, paused or cancelled.
     public var phase: MigrationPhase?
+    /// Items whose source copy has been removed.
+    public var removedCount: Int
+    /// Items whose source copy this run removes: every item but a skipped one. The
+    /// denominator of "Removing X of Y".
+    public var removalTotal: Int
 
     public init(fractionComplete: Double = 0,
                 verifiedCount: Int = 0,
@@ -87,7 +92,9 @@ public struct MigrationProgress: Equatable, Sendable {
                 failedCount: Int = 0,
                 totalBytes: Int64 = 0,
                 currentItemName: String? = nil,
-                phase: MigrationPhase? = nil) {
+                phase: MigrationPhase? = nil,
+                removedCount: Int = 0,
+                removalTotal: Int = 0) {
         self.fractionComplete = fractionComplete
         self.verifiedCount = verifiedCount
         self.totalCount = totalCount
@@ -95,6 +102,8 @@ public struct MigrationProgress: Equatable, Sendable {
         self.totalBytes = totalBytes
         self.currentItemName = currentItemName
         self.phase = phase
+        self.removedCount = removedCount
+        self.removalTotal = removalTotal
     }
 
     public static let idle = MigrationProgress()
@@ -107,7 +116,20 @@ public struct MigrationProgress: Equatable, Sendable {
                   failedCount: plan.failedCount,
                   totalBytes: plan.totalBytes,
                   currentItemName: currentItemName,
-                  phase: phase)
+                  phase: phase,
+                  removedCount: plan.sourceDeletedCount,
+                  removalTotal: plan.items.count - plan.skippedCount)
+    }
+
+    /// The 1-based position of the item being removed, for "Removing X of Y". Holds
+    /// at `removalTotal` once the last one is gone.
+    public var removingItemNumber: Int { min(removedCount + 1, removalTotal) }
+}
+
+extension MigrationProgress: CustomStringConvertible {
+    public var description: String {
+        let percent = String(format: "%.1f", fractionComplete * 100)
+        return "fraction=\(percent)% verified=\(verifiedCount)/\(totalCount) removed=\(removedCount)/\(removalTotal) failed=\(failedCount) bytes=\(totalBytes) phase=\(phase?.rawValue ?? "nil") item=\(currentItemName ?? "nil")"
     }
 }
 
@@ -138,7 +160,12 @@ private final class ActiveAlbumIDs: @unchecked Sendable {
 @MainActor
 public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
-    @Published public private(set) var state: MigrationState = .idle
+    @Published public private(set) var state: MigrationState = .idle {
+        didSet {
+            guard state != oldValue else { return }
+            printDebug("state \(oldValue) -> \(state)")
+        }
+    }
     @Published public private(set) var progress: MigrationProgress = .idle
 
     /// Cooperative control checked between items so `pause`/`cancel` (also on the
@@ -163,8 +190,28 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
     /// The single funnel for `progress`. Nothing else may assign it, or the phase
     /// is silently dropped from that snapshot.
+    ///
+    /// A run in flight whose plan has no items yet is the placeholder a whole album
+    /// moving back to this device starts from, before the CloudKit index is read. An
+    /// empty plan reads as complete, so it is published as 0% instead of a full ring.
     private func publishProgress(_ plan: MigrationPlan, currentItemName: String? = nil) {
-        progress = MigrationProgress(plan: plan, currentItemName: currentItemName, phase: currentPhase)
+        var snapshot = MigrationProgress(plan: plan, currentItemName: currentItemName, phase: currentPhase)
+        if plan.items.isEmpty, currentPhase != nil { snapshot.fractionComplete = 0 }
+        progress = snapshot
+        logProgressIfChanged(snapshot)
+    }
+
+    /// The last snapshot `logProgressIfChanged` wrote, so the log carries one line
+    /// per meaningful change rather than one per publish.
+    private var lastLoggedProgress: MigrationProgress?
+
+    /// Logs a progress snapshot when anything but the materializer's percentage
+    /// ticks (published as the item name) changed since the last line.
+    private func logProgressIfChanged(_ snapshot: MigrationProgress) {
+        if snapshot.phase == .materializing, lastLoggedProgress?.phase == .materializing { return }
+        guard snapshot != lastLoggedProgress else { return }
+        lastLoggedProgress = snapshot
+        printDebug("progress \(snapshot)")
     }
 
     /// Sets the phase and republishes immediately. A phase that is only recorded and
@@ -431,6 +478,13 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         defer { claimed.forEach { Self.activeAlbumIDs.remove($0) } }
         control = .running
         destinationAlbum = destination
+        // A manager can drive several runs; none may start from the last one's
+        // snapshot, or the ring opens already part- or fully-drawn.
+        currentPhase = nil
+        lastLoggedProgress = nil
+        progress = .idle
+        printDebug("claim source=\(source.id) destination=\(destination?.id ?? "<resolved by plan>")")
+        defer { printDebug("run ended state=\(state) \(progress)") }
         do {
             let plan = try await makePlan()
             let resolved: Album
@@ -625,6 +679,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                          planStore: MigrationPlanStore) async -> Bool {
         let existing = await planStore.load()
         let enumerated = await enumerateCloudKitItems(album: source)
+        let unsized = enumerated.filter { $0.sizeBytes == 0 }.count
+        printDebug("replan from CloudKit index enumerated=\(enumerated.count) unsized=\(unsized) checkpointItems=\(existing?.items.count ?? 0)")
         do {
             plan = try MigrationPlan.album(source,
                                            items: Self.merge(existing: existing?.items ?? plan.items,
@@ -661,6 +717,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                planStore: MigrationPlanStore) async -> Set<Int>? {
         let removesPerItem = Self.removesSourcePerItem(plan)
         let batchSize = ICloudDriveMigrationBatchSize.current
+        printDebug("transfer pass BEGIN direction=\(plan.direction) scope=\(plan.scope) removesSourcePerItem=\(removesPerItem) \(Self.stateSummary(plan))")
+        defer { printDebug("transfer pass END \(Self.stateSummary(plan))") }
         /// Exclusive upper bound of the item indices already materialized. Only
         /// meaningful for an `.icloud` source; a local album needs no download step.
         var materializedThrough = 0
@@ -680,12 +738,15 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
             publishProgress(plan, currentItemName: plan.items[index].mediaID)
             let entered = plan.items[index].state
+            printDebug("item \(index + 1)/\(plan.items.count) BEGIN recordName=\(plan.items[index].recordName) state=\(entered) sizeBytes=\(plan.items[index].sizeBytes)")
             do {
                 try await drive(index, in: &plan, step: step, removesSource: removesPerItem, context: context)
             } catch {
+                printDebug("item \(index + 1)/\(plan.items.count) ERROR recordName=\(plan.items[index].recordName) error=\(error)")
                 if await recordItemError(error, at: index, in: &plan, context: context,
                                          planStore: planStore) { return nil }
             }
+            printDebug("item \(index + 1)/\(plan.items.count) END recordName=\(plan.items[index].recordName) \(entered) -> \(plan.items[index].state)")
             if entered != .verified, plan.items[index].state == .verified { verifiedThisRun.insert(index) }
             if plan.scope == .items, plan.items[index].state == .sourceDeleted {
                 await recordItemMoved(plan.items[index], of: plan, direction: plan.direction,
@@ -770,9 +831,12 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                               context: MigrationRunContext,
                                               verifiedThisRun: Set<Int>,
                                               planStore: MigrationPlanStore) async -> Bool {
-        guard !Self.removesSourcePerItem(plan),
-              plan.items.allSatisfy({ $0.state == .verified || $0.state.isDone }),
-              plan.items.contains(where: { $0.state == .verified }) else { return true }
+        guard !Self.removesSourcePerItem(plan) else { return true }
+        guard plan.items.allSatisfy({ $0.state == .verified || $0.state.isDone }),
+              plan.items.contains(where: { $0.state == .verified }) else {
+            printDebug("removal pass SKIPPED — not every item is verified or done \(Self.stateSummary(plan))")
+            return true
+        }
         // The last boundary a cancel can stop at: every local copy is verified
         // and no record has been touched, so the album is still whole in CloudKit.
         if await honorPendingControl(&plan, planStore: planStore, store: context.store,
@@ -786,6 +850,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     private func finishRun(_ plan: inout MigrationPlan,
                            context: MigrationRunContext,
                            planStore: MigrationPlanStore) async {
+        printDebug("finish hasRemainingWork=\(plan.hasRemainingWork) \(Self.stateSummary(plan))")
         if !plan.hasRemainingWork {
             guard await finalize(plan, context: context, planStore: planStore) else { return }
         } else if plan.failedCount > 0 {
@@ -886,11 +951,15 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                store: CloudKitMediaStoring) async -> Bool {
         isRemovingSources = true
         defer { isRemovingSources = false }
+        let toRemove = plan.items.indices.filter { plan.items[$0].state == .verified }
+        printDebug("removal pass BEGIN removing \(toRemove.count) record(s) \(Self.stateSummary(plan))")
+        defer { printDebug("removal pass END \(Self.stateSummary(plan))") }
         setPhase(.removingRemoteCopy, plan: plan)
         var removed = 0
-        for index in plan.items.indices where plan.items[index].state == .verified {
+        for index in toRemove where plan.items[index].state == .verified {
             await Self.boundaryHook?(.removing(removed: removed))
             removed += 1
+            printDebug("remove \(removed)/\(toRemove.count) recordName=\(plan.items[index].recordName) verifiedThisRun=\(verifiedThisRun.contains(index))")
             if Self.abortAllRequested {
                 store.cancelAll()
                 state = .idle
@@ -904,8 +973,12 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                             verifiedThisRun: verifiedThisRun.contains(index), context: context)
                 // A stale local copy sends the item back for another download.
                 if plan.items[index].state == .pending {
+                    printDebug("remove \(removed)/\(toRemove.count) recordName=\(plan.items[index].recordName) — stale local copy, downloading again")
                     try await drive(index, in: &plan, step: step, removesSource: true, context: context)
                 }
+                // The step moved the item without this loop republishing; do it
+                // here so the ring and "Removing X of Y" advance per record.
+                publishProgress(plan, currentItemName: plan.items[index].mediaID)
             } catch {
                 // The item stays `verified`, so the resume comes straight back here
                 // rather than downloading it again.
@@ -1418,5 +1491,13 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
     private static func fileSize(at url: URL) -> Int64? {
         url.fileSizeBytes()
+    }
+
+    /// One-line count of the plan's items by state, for the run log.
+    static func stateSummary(_ plan: MigrationPlan) -> String {
+        let counts = Dictionary(grouping: plan.items, by: \.state).mapValues(\.count)
+        let states: [MigrationItemState] = [.pending, .uploading, .uploaded, .verified, .sourceDeleted, .failed, .skipped]
+        let parts = states.compactMap { state in counts[state].map { "\(state.rawValue)=\($0)" } }
+        return "items=\(plan.items.count) [\(parts.joined(separator: " "))]"
     }
 }

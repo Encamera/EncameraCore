@@ -480,6 +480,7 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
                     try await Task.sleep(for: Self.downloadDelay)
                 }
                 try Self.placeCopy(of: cachedURL, at: destinationURL)
+                printDebug("item downloaded recordName=\(item.recordName) bytes=\(destinationURL.fileSizeBytes() ?? -1)")
             }
             plan.items[index].state = .uploaded
             try await context.savePlan(plan)
@@ -501,6 +502,7 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
                 printDebug("item VERIFY FAILED recordName=\(item.recordName) destSize=\(destinationURL.fileSizeBytes() ?? -1) recordOnServer=\(matches != nil)")
                 throw MigrationError.verificationFailed(recordName: item.recordName)
             }
+            printDebug("item verified locally recordName=\(item.recordName)")
             plan.items[index].state = .verified
             try await context.savePlan(plan)
         }
@@ -555,8 +557,12 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
         // it may have been deleted or damaged since. Check it against the record
         // again, and download it again if it no longer matches. A record already
         // gone leaves nothing to compare against and nothing to lose by deleting.
+        // The check runs under the removal phase, not `.verifying`: it is part of
+        // removing this record, and on a resumed removal pass a phase flip per item
+        // makes "Removing X of Y" flicker to "Verifying in iCloud", which describes
+        // the opposite direction.
+        context.setPhase(.removingRemoteCopy, plan, item.mediaID)
         if !verifiedThisRun {
-            context.setPhase(.verifying, plan, item.mediaID)
             var matches: Bool? = false
             if let destinationURL = context.destinationModel?.driveURLForMedia(withID: item.mediaID, type: item.mediaType) {
                 matches = try await Self.localCopy(at: destinationURL, matchesRecordOf: item, store: context.store)
@@ -569,8 +575,9 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
                 return
             }
         }
-        context.setPhase(.removingRemoteCopy, plan, item.mediaID)
+        let started = Date()
         try await context.coordinator.remove(recordName: item.recordName, albumID: context.cloudKitAlbumID)
+        printDebug("item removed from CloudKit recordName=\(item.recordName) in \(String(format: "%.2f", Date().timeIntervalSince(started)))s")
         plan.items[index].state = .sourceDeleted
         try await context.savePlan(plan)
     }

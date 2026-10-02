@@ -1165,6 +1165,14 @@ public enum L10n {
     public static func migratingProgress(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "BackgroundTaskProgress.MigratingProgress", String(describing: p1), String(describing: p2), fallback: "Moving %@ of %@ to iCloud")
     }
+    /// Moving %@ albums to this device
+    public static func migratingToLocalBatches(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "BackgroundTaskProgress.MigratingToLocalBatches", String(describing: p1), fallback: "Moving %@ albums to this device")
+    }
+    /// Moving %@ of %@ to this device
+    public static func migratingToLocalProgress(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "BackgroundTaskProgress.MigratingToLocalProgress", String(describing: p1), String(describing: p2), fallback: "Moving %@ of %@ to this device")
+    }
     /// Move canceled
     public static let moveCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCanceled", fallback: "Move canceled")
     /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations
@@ -1181,6 +1189,10 @@ public enum L10n {
     }
     /// No active tasks
     public static let noActiveTasks = L10n.tr("Localizable", "BackgroundTaskProgress.NoActiveTasks", fallback: "No active tasks")
+    /// Removing %@ of %@ from iCloud
+    public static func removingFromICloudProgress(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "BackgroundTaskProgress.RemovingFromICloudProgress", String(describing: p1), String(describing: p2), fallback: "Removing %@ of %@ from iCloud")
+    }
   }
   public enum BillingFrequency {
     /// 1 Year of Updates
@@ -1321,6 +1333,10 @@ public enum L10n {
     public static let overlayPhaseRemovingLocalCopy = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseRemovingLocalCopy", fallback: "Removing local copy")
     /// Removing iCloud copy
     public static let overlayPhaseRemovingRemoteCopy = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseRemovingRemoteCopy", fallback: "Removing iCloud copy")
+    /// Removing %@ of %@ from iCloud
+    public static func overlayPhaseRemovingRemoteCopyProgress(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseRemovingRemoteCopyProgress", String(describing: p1), String(describing: p2), fallback: "Removing %@ of %@ from iCloud")
+    }
     /// Retrying
     public static let overlayPhaseRetrying = L10n.tr("Localizable", "CloudKitMigration.OverlayPhaseRetrying", fallback: "Retrying")
     /// Uploading

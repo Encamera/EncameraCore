@@ -326,15 +326,43 @@ public struct MigrationPlan: Codable, Sendable {
         }
     }
 
-    /// Byte-weighted fraction in `0...1` (1 when there is no work).
+    /// The share of an item's progress that removing its source copy accounts for.
+    /// A whole album moving back to this device removes nothing until every item has
+    /// downloaded, so without this share the ring sits full for the whole removal
+    /// pass while the move is still running.
+    public static let sourceRemovalShare = 0.2
+
+    /// Fraction in `0...1` (1 when there is no work). Each item is weighted by its
+    /// size, and is complete once its source copy is removed (or it is skipped); a
+    /// `verified` item has done all but `sourceRemovalShare` of its work.
+    ///
+    /// An item whose size is unknown (`0`, e.g. a CloudKit record the size sidecar
+    /// has not seen) is weighted as the average known item, so it still moves the
+    /// ring. With no sizes at all every item weighs the same.
     public var fractionComplete: Double {
-        let total = totalBytes
-        guard total > 0 else { return 1 }
-        return Double(migratedBytes) / Double(total)
+        guard !items.isEmpty else { return 1 }
+        let known = items.lazy.map(\.sizeBytes).filter { $0 > 0 }
+        let knownCount = known.count
+        let fallbackWeight = knownCount > 0 ? Double(known.reduce(0, +)) / Double(knownCount) : 1
+        var done = 0.0
+        var total = 0.0
+        for item in items {
+            let weight = item.sizeBytes > 0 ? Double(item.sizeBytes) : fallbackWeight
+            total += weight
+            switch item.state {
+            case .sourceDeleted, .skipped: done += weight
+            case .verified: done += weight * (1 - Self.sourceRemovalShare)
+            default: break
+            }
+        }
+        return total > 0 ? min(done / total, 1) : 1
     }
 
     public var verifiedCount: Int { items.filter { $0.state == .verified || $0.state == .sourceDeleted }.count }
     public var failedCount: Int { items.filter { $0.state == .failed }.count }
+    /// Items whose source copy is gone.
+    public var sourceDeletedCount: Int { items.filter { $0.state == .sourceDeleted }.count }
+    public var skippedCount: Int { items.filter { $0.state == .skipped }.count }
 
     /// Whether every item is fully done (`sourceDeleted`).
     public var isComplete: Bool { !items.isEmpty && items.allSatisfy { $0.state.isDone } }
