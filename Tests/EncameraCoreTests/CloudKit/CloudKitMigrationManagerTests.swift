@@ -889,15 +889,17 @@ final class CloudKitMigrationManagerTests: XCTestCase {
 
     // MARK: - AlbumManager integration
 
-    func testMoveAlbumToCloudKitIsRejectedInFavorOfMigration() throws {
+    func testMoveAlbumToCloudKitIsRejectedInFavorOfMigration() async throws {
         let keyManager = DemoKeyManager()
         keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
         let album = makeAlbum()
         let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
-        XCTAssertThrowsError(try manager.moveAlbum(album: album, toStorage: .cloudKit)) { error in
-            guard case AlbumError.migrationRequiredForCloudKit = error else {
-                return XCTFail("expected migrationRequiredForCloudKit, got \(error)")
-            }
+        do {
+            _ = try await manager.moveAlbum(album: album, toStorage: .cloudKit)
+            XCTFail("expected migrationRequiredForCloudKit")
+        } catch AlbumError.migrationRequiredForCloudKit {
+        } catch {
+            XCTFail("expected migrationRequiredForCloudKit, got \(error)")
         }
     }
 
@@ -967,7 +969,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         }
     }
 
-    func testMoveToICloudDriveThrowsInAllBuildConfigurations() throws {
+    func testMoveToICloudDriveThrowsInAllBuildConfigurations() async throws {
         let prior = FeatureToggle.isEnabled(feature: .cloudKitStorage)
         FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
         defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: prior) }
@@ -981,10 +983,12 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         try model.initializeDirectories()
         defer { cleanup(album) }
 
-        XCTAssertThrowsError(try manager.moveAlbum(album: album, toStorage: .icloud)) { error in
-            guard case AlbumError.iCloudDriveDeprecated = error else {
-                return XCTFail("expected iCloudDriveDeprecated, got \(error)")
-            }
+        do {
+            _ = try await manager.moveAlbum(album: album, toStorage: .icloud)
+            XCTFail("expected iCloudDriveDeprecated")
+        } catch AlbumError.iCloudDriveDeprecated {
+        } catch {
+            XCTFail("expected iCloudDriveDeprecated, got \(error)")
         }
     }
 

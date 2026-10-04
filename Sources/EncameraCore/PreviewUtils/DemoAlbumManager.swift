@@ -91,7 +91,7 @@ public class DemoAlbumManager: AlbumManaging {
 
     public func delete(album: Album) {
     }
-    public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
+    public func moveAlbum(album: Album, toStorage: StorageType, onProgress: @escaping @Sendable (AlbumMoveProgress) -> Void) async throws -> Album {
         fatalError()
 
     }

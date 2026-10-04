@@ -252,6 +252,9 @@
 "AlbumDetailView.ImportFailedAlertMessage" = "None of the selected files could be imported (%@).";
 "AlbumDetailView.MoveFailedAlertTitle" = "Couldn't Move Album";
 "AlbumDetailView.MoveFailedAlertMessage" = "The album was not moved and stays where it is. %@";
+"AlbumDetailView.MoveLeftItemsInICloudDriveAlertTitle" = "Some Items Stayed in iCloud Drive";
+"AlbumDetailView.MoveLeftItemsInICloudDriveAlertMessage" = "%@ items stayed in iCloud Drive because they couldn't be downloaded. Everything else was moved to This Device, so the album now shows in both places. Try the move again when you're online to move the rest.";
+"AlbumMove.ItemsStayedInICloudDrive" = "%@ items stayed in iCloud Drive because they couldn't be downloaded.";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "unsupported format";
 "AlbumDetailView.ImportReasonTranscodeFailed" = "could not be converted";
 "AlbumDetailView.ImportReasonReadError" = "file could not be read";

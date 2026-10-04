@@ -895,6 +895,12 @@ public enum L10n {
     }
     /// Couldn't Move Album
     public static let moveFailedAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertTitle", fallback: "Couldn't Move Album")
+    /// %@ items stayed in iCloud Drive because they couldn't be downloaded. Everything else was moved to This Device, so the album now shows in both places. Try the move again when you're online to move the rest.
+    public static func moveLeftItemsInICloudDriveAlertMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.MoveLeftItemsInICloudDriveAlertMessage", String(describing: p1), fallback: "%@ items stayed in iCloud Drive because they couldn't be downloaded. Everything else was moved to This Device, so the album now shows in both places. Try the move again when you're online to move the rest.")
+    }
+    /// Some Items Stayed in iCloud Drive
+    public static let moveLeftItemsInICloudDriveAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveLeftItemsInICloudDriveAlertTitle", fallback: "Some Items Stayed in iCloud Drive")
     /// Move Media
     public static let moveMedia = L10n.tr("Localizable", "AlbumDetailView.MoveMedia", fallback: "Move Media")
     /// Upgrade “%@” to the new iCloud sync first, then move items into it
@@ -989,6 +995,12 @@ public enum L10n {
     public static let storedInICloud = L10n.tr("Localizable", "AlbumGridItem.StoredInICloud", fallback: "Stored in iCloud")
     /// Stored on this device
     public static let storedOnDevice = L10n.tr("Localizable", "AlbumGridItem.StoredOnDevice", fallback: "Stored on this device")
+  }
+  public enum AlbumMove {
+    /// %@ items stayed in iCloud Drive because they couldn't be downloaded.
+    public static func itemsStayedInICloudDrive(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumMove.ItemsStayedInICloudDrive", String(describing: p1), fallback: "%@ items stayed in iCloud Drive because they couldn't be downloaded.")
+    }
   }
   public enum AlbumSelectionModal {
     /// Select an album to move %@ items to

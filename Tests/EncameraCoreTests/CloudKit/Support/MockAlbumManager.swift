@@ -85,7 +85,7 @@ final class MockAlbumManager: AlbumManaging {
         Album(name: name, storageOption: storageOption, creationDate: Date(), key: keyManager.currentKey!,
               albumID: storageOption == .cloudKit ? UUID().uuidString : nil)
     }
-    func moveAlbum(album: Album, toStorage: StorageType) throws -> Album { album }
+    func moveAlbum(album: Album, toStorage: StorageType, onProgress: @escaping @Sendable (AlbumMoveProgress) -> Void) async throws -> Album { album }
 
     private(set) var finalizeCallCount = 0
     private(set) var finalizedAlbums: [Album] = []

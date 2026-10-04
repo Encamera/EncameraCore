@@ -6,7 +6,7 @@ import Combine
 
 // MARK: - Album Errors
 
-public enum AlbumError: Error, CustomStringConvertible {
+public enum AlbumError: Error, CustomStringConvertible, Equatable {
     case albumNameError
     case albumExists
     case albumNotFoundAtSourceLocation
@@ -30,6 +30,11 @@ public enum AlbumError: Error, CustomStringConvertible {
     /// A storage move is running on the album. Its plan names the album, so a rename
     /// waits until the run stops.
     case moveInProgress
+    /// An iCloud Drive -> This Device move finished with these files still in
+    /// iCloud Drive, because they could not be downloaded or moved. Everything else
+    /// moved; the iCloud Drive directory was kept, so the album shows in both places
+    /// until the move is retried.
+    case itemsStayedInICloudDrive(filenames: [String])
 
     public var description: String {
         switch self {
@@ -51,6 +56,8 @@ public enum AlbumError: Error, CustomStringConvertible {
             return "Could not finish moving the album — its files are safe in iCloud. Try again."
         case .moveInProgress:
             return L10n.albumMoveInProgressRenameError
+        case .itemsStayedInICloudDrive(let filenames):
+            return L10n.AlbumMove.itemsStayedInICloudDrive("\(filenames.count)")
         }
     }
 }
@@ -264,6 +271,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// - Parameters:
     ///   - keyManager: The key manager for encryption operations
     ///   - syncedDataStore: Optional synced data store for iCloud sync (uses legacy UserDefaults if nil)
+    /// Builds the materializer `moveAlbum` uses to download evicted iCloud Drive
+    /// files before moving them. Replaced in tests, which have no ubiquity container.
+    var makeICloudDriveMaterializer: @MainActor () -> ICloudDriveMaterializing = { ICloudDriveMaterializer() }
+
+    /// Called with each source URL just before `moveAlbum` moves it. Test seam only.
+    var willMoveAlbumItem: ((URL) -> Void)?
+
     required public init(keyManager: KeyManager, syncedDataStore: SyncedDataStore? = nil) {
         self.keyManager = keyManager
 
@@ -720,7 +734,21 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     
-    public func moveAlbum(album: Album, toStorage: StorageType) throws -> Album {
+    /// Moves an iCloud Drive (or local) album's files into local storage.
+    ///
+    /// Runs off the main actor. Every file is downloaded through the iCloud Drive
+    /// materializer before it moves, so an evicted file's `.icloud` placeholder is
+    /// never what lands in local storage. A file that cannot be downloaded or moved
+    /// stays where it is; the source directory is removed only once every file has
+    /// moved, and otherwise the call throws `AlbumError.itemsStayedInICloudDrive`
+    /// naming what stayed, leaving the album readable in both places.
+    ///
+    /// When the destination already holds a file of the same name, identical bytes
+    /// drop the source copy (the destination is a confirmed copy) and different
+    /// bytes keep both, the moved one under a new name.
+    public func moveAlbum(album: Album,
+                          toStorage: StorageType,
+                          onProgress: @escaping @Sendable (AlbumMoveProgress) -> Void) async throws -> Album {
         if toStorage == .icloud {
             throw AlbumError.iCloudDriveDeprecated
         }
@@ -731,39 +759,92 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             throw AlbumError.downloadRequiredFromCloudKit
         }
         let fileManager = FileManager.default
-        let currentStorage = album.storageOption.modelForType.init(album: album)
+        let sourceDirectory = album.storageOption.modelForType.init(album: album).baseURL
         printDebug("Starting the move process for album: \(album.name)")
-        printDebug("Current storage URL: \(currentStorage.baseURL)")
+        printDebug("Current storage URL: \(sourceDirectory)")
 
-        guard fileManager.fileExists(atPath: currentStorage.baseURL.path) else {
+        guard fileManager.fileExists(atPath: sourceDirectory.path) else {
             printDebug("Album not found at the source location.")
             throw AlbumError.albumNotFoundAtSourceLocation
         }
 
-        let newStorage: DataStorageModel = LocalStorageModel(album: album)
-        printDebug("New storage URL: \(newStorage.baseURL)")
+        let destinationDirectory = LocalStorageModel(album: album).baseURL
+        printDebug("New storage URL: \(destinationDirectory)")
 
-        if !fileManager.fileExists(atPath: newStorage.baseURL.path) {
+        if !fileManager.fileExists(atPath: destinationDirectory.path) {
             printDebug("Destination directory does not exist. Creating new directory.")
-            try fileManager.createDirectory(at: newStorage.baseURL, withIntermediateDirectories: true, attributes: nil)
+            try fileManager.createDirectory(at: destinationDirectory, withIntermediateDirectories: true, attributes: nil)
         }
 
-        let enumerator = fileManager.enumerator(at: currentStorage.baseURL, includingPropertiesForKeys: nil)
-        while let sourceURL = enumerator?.nextObject() as? URL {
-            let destinationURL = newStorage.baseURL.appendingPathComponent(sourceURL.lastPathComponent)
+        let entries = try fileManager.contentsOfDirectory(at: sourceDirectory, includingPropertiesForKeys: [.isDirectoryKey], options: [])
+        var files: [URL] = []
+        var stayed: [String] = []
+        var seen = Set<String>()
+        for entry in entries {
+            if (try? entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
+                printDebug("Leaving directory \(entry.lastPathComponent) in place; only files are moved")
+                stayed.append(entry.lastPathComponent)
+                continue
+            }
+            // A `.<name>.icloud` placeholder stands for `<name>`; the file moved is
+            // always the materialized one, never the placeholder.
+            let name = ICloudPlaceholderName.materializedFilename(from: entry.lastPathComponent)
+            guard seen.insert(name).inserted else { continue }
+            files.append(sourceDirectory.appendingPathComponent(name))
+        }
 
-            if fileManager.fileExists(atPath: destinationURL.path) {
-                printDebug("File already exists at destination: \(destinationURL.path). Implementing merge logic.")
-                // Implement your logic for handling duplicate files
-            } else {
-                printDebug("Moving file from \(sourceURL.path) to \(destinationURL.path)")
-                try fileManager.moveItem(at: sourceURL, to: destinationURL)
+        let total = files.count
+        var completed = 0
+        onProgress(AlbumMoveProgress(completed: 0, total: total))
+
+        let materializer = await makeICloudDriveMaterializer()
+        let batchSize = max(ICloudDriveMigrationBatchSize.current, 1)
+        for batchStart in stride(from: 0, to: files.count, by: batchSize) {
+            let batch = Array(files[batchStart..<min(batchStart + batchSize, files.count)])
+            let results = await materializer.materialize(batch, inAlbumDirectory: sourceDirectory, onProgress: { _ in })
+            for url in batch {
+                defer {
+                    completed += 1
+                    onProgress(AlbumMoveProgress(completed: completed, total: total))
+                }
+                switch results[url] {
+                case .success(let downloaded)?:
+                    guard ICloudPlaceholderName.isMaterialized(downloaded) else {
+                        printDebug("\(url.lastPathComponent) is still a placeholder after download; leaving it in iCloud Drive")
+                        stayed.append(url.lastPathComponent)
+                        continue
+                    }
+                    do {
+                        try moveDownloadedAlbumItem(downloaded, into: destinationDirectory)
+                    } catch {
+                        printDebug("Could not move \(url.lastPathComponent): \(error); leaving it in iCloud Drive")
+                        stayed.append(url.lastPathComponent)
+                    }
+                case .failure(let error)?:
+                    printDebug("Could not download \(url.lastPathComponent): \(error); leaving it in iCloud Drive")
+                    stayed.append(url.lastPathComponent)
+                case nil:
+                    printDebug("No download result for \(url.lastPathComponent); leaving it in iCloud Drive")
+                    stayed.append(url.lastPathComponent)
+                }
             }
         }
 
-        if let contents = try? fileManager.contentsOfDirectory(atPath: currentStorage.baseURL.path), contents.isEmpty {
-            printDebug("Source directory is empty after moving files. Deleting source directory.")
-            try fileManager.removeItem(at: currentStorage.baseURL)
+        if stayed.isEmpty {
+            let leftovers = (try? fileManager.contentsOfDirectory(atPath: sourceDirectory.path)) ?? []
+            if leftovers.isEmpty {
+                printDebug("Source directory is empty after moving files. Deleting source directory.")
+                try fileManager.removeItem(at: sourceDirectory)
+            } else {
+                printDebug("Source directory still holds \(leftovers.count) item(s); keeping it")
+                stayed = leftovers
+            }
+        }
+
+        guard stayed.isEmpty else {
+            printDebug("Move of album \(album.name) left \(stayed.count) item(s) in place: \(stayed)")
+            broadcastAlbumsUpdated()
+            throw AlbumError.itemsStayedInICloudDrive(filenames: stayed.sorted())
         }
 
         var movedAlbum = album
@@ -773,6 +854,39 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         broadcastAlbumsUpdated()
         printDebug("Completed the move process for album: \(album.name)")
         return movedAlbum
+    }
+
+    /// Moves one downloaded file into `destinationDirectory`, resolving a name
+    /// collision: identical bytes drop the source copy, different bytes keep both.
+    private func moveDownloadedAlbumItem(_ sourceURL: URL, into destinationDirectory: URL) throws {
+        let fileManager = FileManager.default
+        let destinationURL = destinationDirectory.appendingPathComponent(sourceURL.lastPathComponent)
+        willMoveAlbumItem?(sourceURL)
+
+        guard fileManager.fileExists(atPath: destinationURL.path) else {
+            try fileManager.moveItem(at: sourceURL, to: destinationURL)
+            return
+        }
+        if fileManager.contentsEqual(atPath: sourceURL.path, andPath: destinationURL.path) {
+            printDebug("\(sourceURL.lastPathComponent) already exists at the destination with identical contents; removing the source copy")
+            try fileManager.removeItem(at: sourceURL)
+            return
+        }
+        let keptURL = Self.uniqueDestinationURL(for: sourceURL.lastPathComponent, in: destinationDirectory)
+        printDebug("\(sourceURL.lastPathComponent) differs from the file already at the destination; keeping both, moved copy saved as \(keptURL.lastPathComponent)")
+        try fileManager.moveItem(at: sourceURL, to: keptURL)
+    }
+
+    /// `<id>-<n>.<extensions>` for the first `n` not already taken in `directory`.
+    static func uniqueDestinationURL(for filename: String, in directory: URL) -> URL {
+        let stem = filename.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? filename
+        let suffix = filename.dropFirst(stem.count)
+        var index = 1
+        while true {
+            let candidate = directory.appendingPathComponent("\(stem)-\(index)\(suffix)")
+            if !FileManager.default.fileExists(atPath: candidate.path) { return candidate }
+            index += 1
+        }
     }
 
     /// Completes a resumable local/iCloud -> CloudKit migration by flipping the

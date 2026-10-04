@@ -31,7 +31,12 @@ public protocol AlbumManaging {
     func restoreCurrentAlbumFromUserDefaults()
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
     func storageModel(for album: Album) -> DataStorageModel?
-    func moveAlbum(album: Album, toStorage: StorageType) throws -> Album
+    /// Moves a local or iCloud Drive album to local storage, downloading evicted
+    /// files first. Throws `AlbumError.itemsStayedInICloudDrive` when some files
+    /// could not be moved; the album then stays in both places. See `AlbumManager`.
+    func moveAlbum(album: Album,
+                   toStorage: StorageType,
+                   onProgress: @escaping @Sendable (AlbumMoveProgress) -> Void) async throws -> Album
     /// Flips a drained local or iCloud Drive album to the CloudKit album `albumID`:
     /// writes its marker and drops the drained source directory. See `AlbumManager`.
     @discardableResult func finalizeMigrationToCloudKit(album: Album, albumID: String) throws -> Album
@@ -56,7 +61,28 @@ public protocol AlbumManaging {
     func notifyAlbumsChanged()
 }
 
+/// How far an album move has got: `completed` of `total` files handled, whether
+/// they moved or stayed behind.
+public struct AlbumMoveProgress: Equatable, Sendable {
+    public let completed: Int
+    public let total: Int
+
+    public init(completed: Int, total: Int) {
+        self.completed = completed
+        self.total = total
+    }
+
+    public var fractionComplete: Double {
+        total > 0 ? Double(completed) / Double(total) : 0
+    }
+}
+
 public extension AlbumManaging {
+
+    /// `moveAlbum` without progress reporting.
+    func moveAlbum(album: Album, toStorage: StorageType) async throws -> Album {
+        try await moveAlbum(album: album, toStorage: toStorage, onProgress: { _ in })
+    }
     /// Default: delegates to the full `delete` for conformers that don't need a
     /// local-only path (previews, test doubles).
     func applyRemoteAlbumDeletion(album: Album) {
