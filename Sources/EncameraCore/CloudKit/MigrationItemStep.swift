@@ -24,6 +24,9 @@ struct MigrationRunContext {
     let cloudKitAlbumID: String
     let coordinator: CloudKitSyncCoordinator
     let store: CloudKitMediaStoring
+    /// Where captures wait before they reach CloudKit. A move back to this device
+    /// copies an item still waiting there from its durable file.
+    let uploadQueue: CloudKitUploadQueue
     /// Saves the plan after each state transition.
     let savePlan: (MigrationPlan) async throws -> Void
     let storedKeys: [PrivateKey]
@@ -493,9 +496,10 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
             context.setPhase(.verifying, plan, item.mediaID)
             // Checked against the record on the server, never against the cached
             // blob the copy was made from: a truncated cache entry agrees with the
-            // truncated copy it produced. A record the server does not have (gone,
-            // or still waiting in the upload queue) proves nothing either way.
-            let matches = try await Self.localCopy(at: destinationURL, matchesRecordOf: item, store: context.store)
+            // truncated copy it produced. A record the server does not have is
+            // checked against the capture's durable file when it is still waiting
+            // in the upload queue; otherwise it proves nothing either way.
+            let matches = try await Self.localCopy(at: destinationURL, matchesSourceOf: item, context: context)
             guard matches == true else {
                 if matches == false {
                     // The cached blob is the likeliest source of a short copy. Evict
@@ -568,7 +572,7 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
         if !verifiedThisRun {
             var matches: Bool? = false
             if let destinationURL = context.destinationModel?.driveURLForMedia(withID: item.mediaID, type: item.mediaType) {
-                matches = try await Self.localCopy(at: destinationURL, matchesRecordOf: item, store: context.store)
+                matches = try await Self.localCopy(at: destinationURL, matchesSourceOf: item, context: context)
             }
             if matches == false {
                 printDebug("item STALE VERIFICATION recordName=\(item.recordName) — local copy missing or no longer matches the record, downloading again")
@@ -579,9 +583,39 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
             }
         }
         let started = Date()
-        try await context.coordinator.remove(recordName: item.recordName, albumID: context.cloudKitAlbumID)
+        // A capture still waiting to upload has its durable file as the source copy.
+        // Its local copy is verified, so the queue entry goes, and with it the
+        // upload that would otherwise land in an album about to be deleted. One that
+        // reached the server in the meantime is removed like any other record.
+        if let queued = await context.uploadQueue.pendingItem(recordName: item.recordName) {
+            let onServer = try await context.store.fetchRecordMetadata(recordName: item.recordName) != nil
+            await context.uploadQueue.cancel(recordName: item.recordName)
+            printDebug("item cancelled queued upload recordName=\(item.recordName) onServer=\(onServer)")
+            try await context.coordinator.remove(recordName: item.recordName, albumID: context.cloudKitAlbumID,
+                                                 wasPending: !onServer,
+                                                 pendingChunkCount: onServer ? 0 : queued.chunkCount)
+        } else {
+            try await context.coordinator.remove(recordName: item.recordName, albumID: context.cloudKitAlbumID)
+        }
         printDebug("item removed from CloudKit recordName=\(item.recordName) in \(String(format: "%.2f", Date().timeIntervalSince(started)))s")
         plan.items[index].state = .sourceDeleted
         try await context.savePlan(plan)
+    }
+
+    /// Whether the file at `url` is a full copy of the item's source: the record on
+    /// the server or, for a capture the server does not have yet, the durable file
+    /// it waits in. `nil` when neither exists, so there is nothing to compare against.
+    static func localCopy(at url: URL,
+                          matchesSourceOf item: MigrationItem,
+                          context: MigrationRunContext) async throws -> Bool? {
+        if let matches = try await localCopy(at: url, matchesRecordOf: item, store: context.store) {
+            return matches
+        }
+        guard let queuedURL = await context.uploadQueue.pendingFileURL(recordName: item.recordName) else { return nil }
+        let matches = FileManager.default.contentsEqual(atPath: url.path, andPath: queuedURL.path)
+        if !matches {
+            printDebug("local copy MISMATCH recordName=\(item.recordName) — differs from the queued capture")
+        }
+        return matches
     }
 }

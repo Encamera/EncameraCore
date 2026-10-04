@@ -1287,6 +1287,10 @@ public enum L10n {
     public static let accountUnavailableMessage = L10n.tr("Localizable", "CloudKitMigration.AccountUnavailableMessage", fallback: "Sign in to iCloud in Settings, then resume the move.")
     /// iCloud is unavailable
     public static let accountUnavailableTitle = L10n.tr("Localizable", "CloudKitMigration.AccountUnavailableTitle", fallback: "iCloud is unavailable")
+    /// New items kept arriving in this album while it moved, so the move stopped before finishing. Nothing was lost. Resume the move to bring the new items over.
+    public static let albumKeptGainingItems = L10n.tr("Localizable", "CloudKitMigration.AlbumKeptGainingItems", fallback: "New items kept arriving in this album while it moved, so the move stopped before finishing. Nothing was lost. Resume the move to bring the new items over.")
+    /// This album still has items in iCloud that haven't been moved, so it was left in iCloud. Resume the move to bring them over.
+    public static let albumStillHasItems = L10n.tr("Localizable", "CloudKitMigration.AlbumStillHasItems", fallback: "This album still has items in iCloud that haven't been moved, so it was left in iCloud. Resume the move to bring them over.")
     /// Not now
     public static let alertCancel = L10n.tr("Localizable", "CloudKitMigration.AlertCancel", fallback: "Not now")
     /// Move to iCloud
@@ -1303,6 +1307,8 @@ public enum L10n {
     }
     /// ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud
     public static let bannerMessage = L10n.tr("Localizable", "CloudKitMigration.BannerMessage", fallback: "This album is split between this device and iCloud.")
+    /// This album is moving to This Device. Choose another album to take photos, or wait until the move finishes.
+    public static let captureBlockedMovingToLocal = L10n.tr("Localizable", "CloudKitMigration.CaptureBlockedMovingToLocal", fallback: "This album is moving to This Device. Choose another album to take photos, or wait until the move finishes.")
     /// Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.
     public static func driveAlertMessage(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.DriveAlertMessage", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.")
@@ -1323,6 +1329,8 @@ public enum L10n {
     public static let failedTitle = L10n.tr("Localizable", "CloudKitMigration.FailedTitle", fallback: "The move to iCloud didn't finish")
     /// The move to this device didn't finish
     public static let failedToLocalTitle = L10n.tr("Localizable", "CloudKitMigration.FailedToLocalTitle", fallback: "The move to this device didn't finish")
+    /// Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.
+    public static let membershipCheckFailed = L10n.tr("Localizable", "CloudKitMigration.MembershipCheckFailed", fallback: "Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.")
     /// Stop the move
     public static let overlayCancel = L10n.tr("Localizable", "CloudKitMigration.OverlayCancel", fallback: "Stop the move")
     /// %@ couldn't be moved yet
@@ -1389,6 +1397,8 @@ public enum L10n {
     public static let quotaTitle = L10n.tr("Localizable", "CloudKitMigration.QuotaTitle", fallback: "iCloud storage is full")
     /// Resume
     public static let resume = L10n.tr("Localizable", "CloudKitMigration.Resume", fallback: "Resume")
+    /// This album is moving to This Device, so nothing can be added to it until the move finishes.
+    public static let saveBlockedMovingToLocal = L10n.tr("Localizable", "CloudKitMigration.SaveBlockedMovingToLocal", fallback: "This album is moving to This Device, so nothing can be added to it until the move finishes.")
     /// iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.
     public static let schemaNotDeployedMessage = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedMessage", fallback: "iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.")
     /// iCloud can't accept this album yet

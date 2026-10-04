@@ -106,8 +106,11 @@ final class MockAlbumManager: AlbumManaging {
     /// Set to make `finalizeMigrationToLocal` throw, so tests can exercise the
     /// kept-checkpoint retry path.
     var finalizeToLocalError: Error?
-    func finalizeMigrationToLocal(album: Album) async throws -> Album {
+    /// The record names each `finalizeMigrationToLocal` was told the move removed.
+    private(set) var finalizeToLocalMovedRecordNames: [Set<String>] = []
+    func finalizeMigrationToLocal(album: Album, movedRecordNames: Set<String>) async throws -> Album {
         finalizeToLocalCallCount += 1
+        finalizeToLocalMovedRecordNames.append(movedRecordNames)
         if let finalizeToLocalError { throw finalizeToLocalError }
         if let albumID = album.albumID {
             try? CloudKitAlbumMarker.remove(albumID: albumID)

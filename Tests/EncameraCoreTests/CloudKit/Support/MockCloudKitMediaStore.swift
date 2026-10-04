@@ -437,6 +437,10 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
 
     var fetchChangesErrorOnce: Error?
     var fetchChangesDelayNanos: UInt64 = 0
+    /// Answers for the next `fetchChanges` calls, in order, before `changeSet`
+    /// answers again — so one reader (a reconcile) can see a different feed from a
+    /// later one, as when a record never made it into this device's index.
+    var nextChangeSets: [CloudKitChangeSet] = []
     func fetchChanges(since token: CKServerChangeToken?) async throws -> CloudKitChangeSet {
         log(.fetchChanges)
         locked { _fetchChangesCount += 1 }
@@ -444,7 +448,27 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         if fetchChangesDelayNanos > 0 { try? await Task.sleep(nanoseconds: fetchChangesDelayNanos) }
         if let error = fetchChangesErrorOnce { fetchChangesErrorOnce = nil; throw error }
         if let fetchChangesError { throw fetchChangesError }
+        if let next = locked({ nextChangeSets.isEmpty ? nil : nextChangeSets.removeFirst() }) { return next }
         return changeSet
+    }
+
+    /// Adds a photo record for `albumID` to the change feed and to lookups by name,
+    /// as another device's upload would, and returns its record name.
+    @discardableResult
+    func addServerRecord(albumID: String, mediaID: String = UUID().uuidString, sizeBytes: Int64 = 10) -> String {
+        let recordName = MediaRecordName.componentRecordName(mediaID: mediaID, type: .photo)
+        let record = CloudKitMediaMetadata(recordName: recordName, albumID: albumID, mediaID: mediaID,
+                                           mediaType: .photo, createdAt: Date(), sizeBytes: sizeBytes,
+                                           creationDeviceID: "other-device", schemaVersion: 1,
+                                           recordChangeTag: "tag")
+        locked {
+            changeSet = CloudKitChangeSet(changed: changeSet.changed + [record], deleted: changeSet.deleted,
+                                          changedAlbums: changeSet.changedAlbums,
+                                          deletedAlbumIDs: changeSet.deletedAlbumIDs,
+                                          token: changeSet.token, moreComing: changeSet.moreComing)
+            metadataToReturn.append(record)
+        }
+        return recordName
     }
 
     private(set) var committedTokenCount = 0

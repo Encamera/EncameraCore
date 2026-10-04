@@ -42,8 +42,10 @@ public protocol AlbumManaging {
     @discardableResult func finalizeMigrationToCloudKit(album: Album, albumID: String) throws -> Album
     /// Completes a whole CloudKit album's move back to local storage once the engine
     /// has copied and verified every item and removed every record: drops the album
-    /// record and this device's CloudKit identity for the album. See `AlbumManager`.
-    @discardableResult func finalizeMigrationToLocal(album: Album) async throws -> Album
+    /// record and this device's CloudKit identity for the album. `movedRecordNames`
+    /// are the records the move brought home and removed; any other member of the
+    /// album makes it refuse. See `AlbumManager`.
+    @discardableResult func finalizeMigrationToLocal(album: Album, movedRecordNames: Set<String>) async throws -> Album
     func renameAlbum(album: Album, to newName: String) throws -> Album
     func validateAlbumName(name: String) throws
     func albumMediaCount(album: Album) -> Int
@@ -129,7 +131,7 @@ public extension AlbumManaging {
     /// remove the CloudKit discovery marker so the local album is discovered.
     /// `AlbumManager` overrides this to also delete the album record and broadcast.
     @discardableResult
-    func finalizeMigrationToLocal(album: Album) async throws -> Album {
+    func finalizeMigrationToLocal(album: Album, movedRecordNames: Set<String>) async throws -> Album {
         if let albumID = album.albumID {
             try CloudKitAlbumMarker.remove(albumID: albumID)
         }

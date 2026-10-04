@@ -247,15 +247,20 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// Test seam: the chunk store the run's coordinator reads chunked blobs through.
     /// `nil` keeps the coordinator's default, the live CloudKit chunk store.
     private let chunkStoreOverride: ChunkedBlobStoring?
+    /// The queue captures wait in before they reach CloudKit. A move back to this
+    /// device brings home what is still waiting there for the album.
+    private let uploadQueue: CloudKitUploadQueue
 
     public init(albumManager: AlbumManaging,
                 storeFactory: (@Sendable (String) -> CloudKitMediaStoring)? = nil,
                 materializer: ICloudDriveMaterializing? = nil,
-                chunkStore: ChunkedBlobStoring? = nil) {
+                chunkStore: ChunkedBlobStoring? = nil,
+                uploadQueue: CloudKitUploadQueue = .shared) {
         self.albumManager = albumManager
         self.storeFactoryOverride = storeFactory
         self.materializer = materializer ?? ICloudDriveMaterializer()
         self.chunkStoreOverride = chunkStore
+        self.uploadQueue = uploadQueue
     }
 
     private func makeStore(_ namespace: String) -> CloudKitMediaStoring {
@@ -616,6 +621,15 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
         state = .running
         setPhase(.preparing, plan: initialPlan)
+        if initialPlan.scope == .album {
+            MigrationRunRoles.shared.begin(source: source.id, destination: destination.id,
+                                           direction: initialPlan.direction)
+        }
+        defer {
+            if initialPlan.scope == .album {
+                MigrationRunRoles.shared.end(source: source.id, destination: destination.id)
+            }
+        }
 
         printDebug("run start plan=\(initialPlan.id) scope=\(initialPlan.scope) source=\(source.name)/\(source.storageOption) destination=\(destination.name)/\(destination.storageOption) items=\(initialPlan.items.count) albumID=\(albumID)")
 
@@ -636,10 +650,88 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                     sourceModel: context.sourceModel) { return }
 
         let step: MigrationItemStep = plan.direction == .toCloudKit ? LocalToCloudKitStep() : CloudKitToLocalStep()
-        guard let verifiedThisRun = await transferItems(&plan, step: step, context: context, planStore: planStore),
-              await removeSourcesOnceAllVerified(&plan, step: step, context: context,
-                                                 verifiedThisRun: verifiedThisRun, planStore: planStore) else { return }
+        var passes = 0
+        while true {
+            passes += 1
+            guard let verifiedThisRun = await transferItems(&plan, step: step, context: context, planStore: planStore),
+                  await removeSourcesOnceAllVerified(&plan, step: step, context: context,
+                                                     verifiedThisRun: verifiedThisRun, planStore: planStore) else { return }
+            guard plan.scope == .album, plan.direction == .toLocal, !plan.hasRemainingWork else { break }
+            let outcome = await absorbUnplannedMembers(&plan, context: context, planStore: planStore, pass: passes)
+            if outcome == .stopped { return }
+            if outcome == .none { break }
+        }
         await finishRun(&plan, context: context, planStore: planStore)
+    }
+
+    // MARK: - Run: unplanned members of an album moving back
+
+    /// How many transfer and removal passes a whole album moving back to this device
+    /// runs before it gives up on an album that keeps gaining members.
+    static let maxMoveBackPasses = 3
+
+    private enum MembershipOutcome: Equatable {
+        /// Nothing outside the plan points at the album: it may be finalized.
+        case none
+        /// Members outside the plan were merged into it for another pass.
+        case absorbed
+        /// The run has stopped and published its terminal state.
+        case stopped
+    }
+
+    /// Before a whole album moving back to this device is finalized, checks what
+    /// still points at its album record: finalize deletes the record, and the
+    /// server deletes every media record parented to it. A record another device
+    /// added after planning, one this device's index never held, or a capture still
+    /// waiting in the upload queue is merged into the plan as `pending` so another
+    /// pass brings it home. Items the plan already removed are not members, nor are
+    /// skipped items the server no longer holds.
+    ///
+    /// After `maxMoveBackPasses` passes that each found new members, the run fails
+    /// with the album record and every remaining record intact, and the checkpoint
+    /// kept for a resume.
+    private func absorbUnplannedMembers(_ plan: inout MigrationPlan,
+                                        context: MigrationRunContext,
+                                        planStore: MigrationPlanStore,
+                                        pass: Int) async -> MembershipOutcome {
+        let members: CloudKitAlbumMembers
+        do {
+            members = try await CloudKitAlbumMembership.members(ofAlbumID: context.cloudKitAlbumID,
+                                                               store: context.store,
+                                                               uploadQueue: context.uploadQueue)
+        } catch {
+            printDebug("membership check FAILED albumID=\(context.cloudKitAlbumID) error=\(error) — not finalizing")
+            endRun(.failed(.other(L10n.CloudKitMigration.membershipCheckFailed)), plan: plan)
+            return .stopped
+        }
+        let unplanned = members.excluding(Set(plan.items.filter { $0.state == .sourceDeleted }.map(\.recordName)))
+        guard !unplanned.isEmpty else { return .none }
+        printDebug("membership pass=\(pass) found records=\(unplanned.records.map(\.recordName)) queued=\(unplanned.queuedUploads.map(\.recordName))")
+        var fresh: [MigrationItem] = unplanned.records.map { record in
+            MigrationItem(mediaID: record.mediaID, recordName: record.recordName, mediaType: record.mediaType,
+                          createdAt: record.createdAt, sizeBytes: record.sizeBytes)
+        }
+        for queued in unplanned.queuedUploads where !fresh.contains(where: { $0.recordName == queued.recordName }) {
+            fresh.append(MigrationItem(mediaID: queued.mediaID, recordName: queued.recordName,
+                                       mediaType: queued.mediaType, createdAt: queued.createdAt,
+                                       sizeBytes: queued.sizeBytes))
+        }
+        let freshNames = Set(fresh.map(\.recordName))
+        plan.items = plan.items.filter { !freshNames.contains($0.recordName) } + fresh
+        do {
+            try await planStore.save(plan)
+        } catch {
+            printDebug("run ABORT — could not checkpoint the merged plan: \(error)")
+            endRun(.failed(.other("\(error)")), plan: plan)
+            return .stopped
+        }
+        guard pass < Self.maxMoveBackPasses else {
+            printDebug("run FAILED — the album kept gaining members after \(pass) passes; album record kept, new members checkpointed")
+            endRun(.failed(.other(L10n.CloudKitMigration.albumKeptGainingItems)), plan: plan)
+            return .stopped
+        }
+        publishProgress(plan)
+        return .absorbed
     }
 
     // MARK: - Run setup
@@ -701,6 +793,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             cache: CloudKitBlobCache.shared,
             indexStore: MediaIndexStore(album: cloudAlbum),
             sizeSidecar: AlbumSizeSidecar(album: cloudAlbum),
+            uploadQueue: uploadQueue,
             chunkStore: chunkStoreOverride
         )
         return MigrationRunContext(
@@ -711,6 +804,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             cloudKitAlbumID: albumID,
             coordinator: coordinator,
             store: store,
+            uploadQueue: uploadQueue,
             savePlan: { plan in try await planStore.save(plan) },
             // The key library, read once for the whole run rather than per item: the
             // keychain query behind it is a full `SecItemCopyMatching`.
@@ -970,7 +1064,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                       album: Album,
                                       planStore: MigrationPlanStore) async -> Bool {
         do {
-            _ = try await albumManager.finalizeMigrationToLocal(album: album)
+            _ = try await albumManager.finalizeMigrationToLocal(
+                album: album,
+                movedRecordNames: Set(plan.items.filter { $0.state == .sourceDeleted }.map(\.recordName)))
         } catch {
             printDebug("run FINALIZE FAILED album=\(album.name) error=\(error) — checkpoint kept for retry")
             endRun(.failed(.other("Could not finish the album move: \(error)")), plan: plan)

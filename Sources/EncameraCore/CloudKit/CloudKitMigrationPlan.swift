@@ -488,6 +488,9 @@ public actor EncryptedPlanStore<Plan: Codable & Sendable>: DebugPrintable {
                                                 withIntermediateDirectories: true)
         try encrypted.write(to: url, options: .atomic)
         excludeFromBackup(url)
+        if let plan = plan as? MigrationPlan {
+            MigrationPlanStore.recordDestination(of: plan, planURL: url)
+        }
         return encrypted.count
     }
 
@@ -503,6 +506,9 @@ public actor EncryptedPlanStore<Plan: Codable & Sendable>: DebugPrintable {
     public func delete() {
         do {
             try FileManager.default.removeItem(at: planURL)
+            if Plan.self == MigrationPlan.self {
+                MigrationPlanStore.removeDestinationMarker(besidePlanAt: planURL)
+            }
             printDebug("delete ok file=\(planURL.lastPathComponent)")
         } catch {
             printDebug("delete FAILED file=\(planURL.lastPathComponent) error=\(error)")
@@ -583,7 +589,12 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
     }
 
     private static func sourceHash(_ album: Album) -> String {
-        SHA256.hash(data: Data(album.id.utf8)).map { String(format: "%02x", $0) }.joined()
+        sourceHash(albumID: album.id)
+    }
+
+    /// The plan directory name for the album whose `Album.id` is `albumID`.
+    static func sourceHash(albumID: String) -> String {
+        SHA256.hash(data: Data(albumID.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     /// Every readable plan whose source is `album`, both scopes. Also removes this
@@ -636,6 +647,7 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
             try write(renamed, to: newDirectory.appendingPathComponent(file.lastPathComponent),
                       keyBytes: newAlbum.key.keyBytes)
             try fileManager.removeItem(at: file)
+            removeDestinationMarker(besidePlanAt: file)
             carried.append(renamed)
         }
         if (try? fileManager.contentsOfDirectory(atPath: oldDirectory.path))?.isEmpty == true {

@@ -172,6 +172,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     public func save(media: InteractableMedia<CleartextMedia>,
                      metadata: EncryptedFileMetadata?,
                      progress: @escaping @Sendable (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
+        try refuseIfAlbumIsMovingToLocal("save")
         if await store.accountAvailable() {
             do {
                 try await store.ensureZoneExists()
@@ -194,6 +195,15 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         }
         printDebug("save ok albumID=\(albumID) components=\(encrypted.count)")
         return try InteractableMedia(underlyingMedia: encrypted)
+    }
+
+    /// Keeps new media out of an album whose move back to this device is running:
+    /// that run deletes the album record when it finishes, and the server deletes
+    /// every media record still parented to it.
+    private func refuseIfAlbumIsMovingToLocal(_ operation: String) throws {
+        guard MigrationPlanStore.refusesNewMedia(albumID: album.id) else { return }
+        printDebug("\(operation) REFUSED albumID=\(albumID) — the album is moving to this device")
+        throw AlbumMoveGuardError.moveInProgress
     }
 
     /// A unique CloudKit record name per media component. Photo and video
@@ -802,6 +812,7 @@ extension CloudKitFileAccess {
     /// the local side relocates the blob cache, upserts the target index, and
     /// emits a bus event so the gallery refreshes.
     public func move(media: InteractableMedia<EncryptedMedia>, progress: ((FileLoadingStatus) -> Void)? = nil) async throws {
+        try refuseIfAlbumIsMovingToLocal("move")
         // Collect record names for all components.
         var recordNames: [String] = []
         for component in media.underlyingMedia {

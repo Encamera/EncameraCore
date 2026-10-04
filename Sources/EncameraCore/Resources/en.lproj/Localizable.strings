@@ -977,6 +977,11 @@
 "CloudKitMigration.OverlayItemProgress" = "%@ of %@ items";
 "CloudKitMigration.OverlayTotalSize" = "%@ total";
 "CloudKitMigration.OverlayTimeRemaining" = "About %@ remaining";
+"CloudKitMigration.CaptureBlockedMovingToLocal" = "This album is moving to This Device. Choose another album to take photos, or wait until the move finishes.";
+"CloudKitMigration.SaveBlockedMovingToLocal" = "This album is moving to This Device, so nothing can be added to it until the move finishes.";
+"CloudKitMigration.AlbumKeptGainingItems" = "New items kept arriving in this album while it moved, so the move stopped before finishing. Nothing was lost. Resume the move to bring the new items over.";
+"CloudKitMigration.MembershipCheckFailed" = "Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.";
+"CloudKitMigration.AlbumStillHasItems" = "This album still has items in iCloud that haven't been moved, so it was left in iCloud. Resume the move to bring them over.";
 "CloudKitMigration.OverlayFailedItems" = "%@ couldn't be moved yet";
 "CloudKitMigration.OverlayKeepOpen" = "Keep Encamera open. You can switch apps, but don't force-quit. You may need to be connected to Wi-Fi for this to complete, depending on your system settings.";
 "CloudKitMigration.OverlayCancel" = "Stop the move";

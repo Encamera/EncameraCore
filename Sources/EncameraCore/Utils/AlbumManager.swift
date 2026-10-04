@@ -35,6 +35,9 @@ public enum AlbumError: Error, CustomStringConvertible, Equatable {
     /// moved; the iCloud Drive directory was kept, so the album shows in both places
     /// until the move is retried.
     case itemsStayedInICloudDrive(filenames: [String])
+    /// The album record still has members outside the move (records on the server
+    /// or captures waiting to upload), so deleting it would delete them too.
+    case albumStillHasMembers
 
     public var description: String {
         switch self {
@@ -58,6 +61,8 @@ public enum AlbumError: Error, CustomStringConvertible, Equatable {
             return L10n.albumMoveInProgressRenameError
         case .itemsStayedInICloudDrive(let filenames):
             return L10n.AlbumMove.itemsStayedInICloudDrive("\(filenames.count)")
+        case .albumStillHasMembers:
+            return L10n.CloudKitMigration.albumStillHasItems
         }
     }
 }
@@ -942,15 +947,28 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     ///
     /// The hidden flag and cover in `album.json` move to the local album's name-keyed
     /// settings.
+    ///
+    /// The album record is deleted only after `CloudKitAlbumMembership` finds nothing
+    /// but `movedRecordNames` pointing at it: every media record parents to it with
+    /// `.deleteSelf`, so the delete would take any other member with it. Otherwise,
+    /// or when the check cannot run, it throws before touching anything, leaving
+    /// the record, `album.json`, the blob cache and the indexes as they are.
     @discardableResult
-    public func finalizeMigrationToLocal(album: Album) async throws -> Album {
+    public func finalizeMigrationToLocal(album: Album, movedRecordNames: Set<String>) async throws -> Album {
         let localAlbum = Album.localTwin(of: album)
         let marker = cloudKitAlbumMarker(album)
         if let albumID = album.albumID {
+            let store = CloudKitStoreProvider.makeStore(albumID)
+            let remaining = try await CloudKitAlbumMembership.members(ofAlbumID: albumID, store: store)
+                .excluding(movedRecordNames)
+            guard remaining.isEmpty else {
+                printDebug("finalizeMigrationToLocal REFUSED album=\(album.name) — records=\(remaining.records.count) queued=\(remaining.queuedUploads.count) still point at the album record")
+                throw AlbumError.albumStillHasMembers
+            }
             let queue = CloudKitAlbumDeleteQueue()
             queue.enqueue(albumID)
             do {
-                try await CloudKitStoreProvider.makeStore(albumID).deleteAlbum(albumID: albumID)
+                try await store.deleteAlbum(albumID: albumID)
                 queue.remove(albumID)
                 CloudKitAlbumPublishRegistry().forget(albumID)
             } catch {

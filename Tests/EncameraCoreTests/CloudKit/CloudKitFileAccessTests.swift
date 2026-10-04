@@ -156,6 +156,61 @@ final class CloudKitFileAccessTests: XCTestCase {
         try? FileManager.default.removeItem(at: encURL(for: album, id: id))
     }
 
+    /// While a move back to this device is running on an album, a save into it is
+    /// refused before anything is encrypted or uploaded: the run deletes the album
+    /// record when it finishes, and the record would take the new media with it.
+    @MainActor
+    func testSaveIntoAnAlbumMovingToLocalThrowsMoveInProgress() async throws {
+        let album = makeAlbum()
+        let albumID = try XCTUnwrap(album.albumID)
+        let localModel = LocalStorageModel(album: Album.localTwin(of: album))
+        let moveStore = MockCloudKitMediaStore()
+        moveStore.addServerRecord(albumID: albumID)
+        moveStore.blobContents = Data(repeating: 0xAA, count: 10)
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = album.key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        albumManager.albumsOnDisk = [album]
+        try CloudKitAlbumMarker(album: album, isHidden: false).write(albumID: albumID)
+        let gate = AsyncGate()
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            if case .removing = boundary { await gate.enter() }
+        }
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            try? CloudKitAlbumMarker.remove(albumID: albumID)
+            try? FileManager.default.removeItem(at: localModel.baseURL)
+            try? FileManager.default.removeItem(at: MigrationPlanStore.directoryURL(forSource: album))
+        }
+        let manager = CloudKitMigrationManager(albumManager: albumManager, storeFactory: { _ in moveStore })
+        let plan = try MigrationPlan.album(album, items: [])
+        let run = Task { await manager.start(plan: plan) }
+        await gate.waitUntilEntered()
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: album.id), .source(.toLocal, isRunning: true),
+                       "precondition: the move back is holding the album")
+
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+        let id = UUID().uuidString
+        do {
+            _ = try await access.save(media: photo(id: id, data: Data("late capture".utf8)), metadata: nil,
+                                      progress: { _ in })
+            XCTFail("a save into an album moving to this device must be refused")
+        } catch let error as AlbumMoveGuardError {
+            XCTAssertEqual(error, .moveInProgress)
+        }
+        await access.drainUploads()
+        XCTAssertTrue(store.uploadCalls.isEmpty, "nothing is uploaded")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: encURL(for: album, id: id).path),
+                       "nothing is written for the refused capture")
+
+        await gate.release()
+        _ = await run.value
+        XCTAssertEqual(manager.state, .completed)
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: album.id), .none,
+                       "the album stops refusing once the run is over")
+    }
+
     /// Every ordinary capture/import — not just the one-time migration path — must
     /// stamp the record with the key that encrypted it, so the census can name the
     /// key a library needs. Guards the `keyFingerprint:` argument at the

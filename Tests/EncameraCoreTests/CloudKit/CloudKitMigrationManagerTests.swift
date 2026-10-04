@@ -1323,7 +1323,8 @@ extension CloudKitMigrationManagerTests {
 
     /// A CloudKit album whose `count` photo records the mock store reports through
     /// its change feed, so the engine's reconcile builds the index the plan comes from.
-    private func makeToLocalFixture(count: Int, chunkStore: ChunkedBlobStoring? = nil) throws -> ToLocalFixture {
+    private func makeToLocalFixture(count: Int, chunkStore: ChunkedBlobStoring? = nil,
+                                    uploadQueue: CloudKitUploadQueue = .shared) throws -> ToLocalFixture {
         let album = makeAlbum(storage: .cloudKit)
         let local = Album.localTwin(of: album)
         let keyManager = DemoKeyManager()
@@ -1332,7 +1333,7 @@ extension CloudKitMigrationManagerTests {
         albumManager.albumsOnDisk = [album]
         let store = MockCloudKitMediaStore()
         let manager = CloudKitMigrationManager(albumManager: albumManager, storeFactory: { _ in store },
-                                               chunkStore: chunkStore)
+                                               chunkStore: chunkStore, uploadQueue: uploadQueue)
         let hash = try XCTUnwrap(album.albumID)
         let ids = (0..<count).map { _ in UUID().uuidString }
         store.changeSet = CloudKitChangeSet(
@@ -2383,5 +2384,214 @@ extension CloudKitMigrationManagerTests {
                                                      key: source.key.keyBytes, into: scratch)
             XCTAssertTrue(readBack == plaintext, "the video on the server decrypts to the original")
         }
+    }
+}
+
+// MARK: - Members a move back to this device did not plan
+
+extension CloudKitMigrationManagerTests {
+
+    /// A record another device adds to the album while its records are being removed
+    /// is brought home and removed too, and only then does the album record go.
+    func testAlbumMoveToLocalMovesARecordAddedToTheServerAfterPlanning() async throws {
+        let store = MockCloudKitMediaStore()
+        let harness = makeTransportHarness(store: store)
+        let albumID = UUID().uuidString
+        let cloudAlbum = Album(name: "late-\(UUID().uuidString)", storageOption: .cloudKit, creationDate: Date(),
+                               key: harness.key, albumID: albumID)
+        let localModel = LocalStorageModel(album: Album.localTwin(of: cloudAlbum))
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanupCloudKitAlbum(albumID: albumID, key: harness.key, name: cloudAlbum.name)
+            try? FileManager.default.removeItem(at: localModel.baseURL)
+        }
+        try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
+        store.addServerRecord(albumID: albumID)
+        store.addServerRecord(albumID: albumID)
+        store.blobContents = Data(repeating: 0xAB, count: 10)
+        let lateID = UUID().uuidString
+        let late = Box<String?>(nil)
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard late.value == nil, case .removing(removed: 1) = boundary else { return }
+            late.value = store.addServerRecord(albumID: albumID, mediaID: lateID)
+        }
+
+        await harness.engine.start(plan: try MigrationPlan.album(cloudAlbum, items: []))
+
+        XCTAssertEqual(harness.engine.state, .completed)
+        let lateRecord = try XCTUnwrap(late.value, "precondition: the record arrived during the removal pass")
+        XCTAssertEqual(try Data(contentsOf: localModel.driveURLForMedia(withID: lateID, type: .photo)), store.blobContents,
+                       "the late record is downloaded into the local album")
+        XCTAssertTrue(store.deleteCalls.contains(lateRecord), "and its record is removed like the planned ones")
+        XCTAssertEqual(store.deletedAlbumCalls, [albumID])
+        let order = store.callOrder
+        let lateDelete = try XCTUnwrap(order.firstIndex(of: .delete(recordName: lateRecord)))
+        let albumDelete = try XCTUnwrap(order.firstIndex(of: .deleteAlbum(albumID: albumID)))
+        XCTAssertLessThan(lateDelete, albumDelete,
+                          "the album record goes only after the late record's local copy is safe")
+    }
+
+    /// An album that gains a member on every pass ends the run as a retryable
+    /// failure before its record is deleted, with the newest member checkpointed.
+    func testAlbumMoveToLocalKeepsTheAlbumRecordWhileUnplannedMembersKeepArriving() async throws {
+        let fixture = try makeToLocalFixture(count: 1)
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(fixture)
+        }
+        let albumID = try XCTUnwrap(fixture.album.albumID)
+        let store = fixture.store
+        let arrivals = Box<[String]>([])
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard case .removing(removed: 0) = boundary else { return }
+            arrivals.value.append(store.addServerRecord(albumID: albumID))
+        }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(fixture.manager.state, .failed(.other(L10n.CloudKitMigration.albumKeptGainingItems)))
+        XCTAssertEqual(arrivals.value.count, CloudKitMigrationManager.maxMoveBackPasses,
+                       "every pass found a new member")
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalCallCount, 0, "the album record is never deleted")
+        XCTAssertTrue(store.deletedAlbumCalls.isEmpty)
+        let newest = try XCTUnwrap(arrivals.value.last)
+        XCTAssertFalse(store.deleteCalls.contains(newest), "the newest member's record is left alone")
+        for recordName in arrivals.value.dropLast() {
+            let mediaID = MediaRecordName.mediaID(from: recordName)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: fixture.localURL(mediaID).path),
+                          "a member brought home earlier is in the local album before its record goes")
+        }
+        let loaded = await MigrationPlanStore(album: fixture.album).load()
+        let persisted = try XCTUnwrap(loaded, "the checkpoint is kept for a resume")
+        XCTAssertEqual(persisted.items.first { $0.recordName == newest }?.state, .pending,
+                       "the newest member is checkpointed, so a resume brings it home")
+    }
+
+    /// A capture still waiting to upload into the album is copied home from its
+    /// queue file, and its queue entry is cancelled rather than uploaded later into
+    /// an album that no longer exists.
+    func testAlbumMoveToLocalBringsHomeACaptureStillInTheUploadQueue() async throws {
+        let queueDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CloudKitUploads-move-\(UUID().uuidString)", isDirectory: true)
+        let queue = CloudKitUploadQueue(baseDir: queueDir)
+        let fixture = try makeToLocalFixture(count: 1, uploadQueue: queue)
+        defer {
+            cleanup(fixture)
+            try? FileManager.default.removeItem(at: queueDir)
+        }
+        let albumID = try XCTUnwrap(fixture.album.albumID)
+        let captureID = UUID().uuidString
+        let captureRecord = CloudKitFileAccess.componentRecordName(mediaID: captureID, type: .photo)
+        let captureBytes = Data(repeating: 0xCD, count: 24)
+        let captureFile = FileManager.default.temporaryDirectory.appendingPathComponent("\(captureID).enc")
+        try captureBytes.write(to: captureFile)
+        try await queue.enqueue(CloudKitMediaUpload(albumID: albumID, mediaID: captureID, mediaType: .photo,
+                                                    createdAt: Date(), sizeBytes: Int64(captureBytes.count),
+                                                    encryptedFileURL: captureFile, encryptedThumbURL: nil,
+                                                    recordName: captureRecord, keyFingerprint: ""))
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(fixture.manager.state, .completed)
+        XCTAssertEqual(try Data(contentsOf: fixture.localURL(captureID)), captureBytes,
+                       "the queued capture lands in the local album byte for byte")
+        let stillQueued = await queue.all()
+        XCTAssertTrue(stillQueued.isEmpty, "its queue entry is cancelled")
+        XCTAssertTrue(fixture.store.uploadCalls.isEmpty, "nothing is uploaded into the album on its way out")
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalMovedRecordNames.last,
+                       Set(fixture.recordNames + [captureRecord]))
+    }
+
+    /// A record the server holds but this device's index never got (the reconcile
+    /// read a feed without it) is found by the check before finalize and moved.
+    func testAlbumMoveToLocalRecoversARecordMissingFromTheLocalIndex() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(fixture)
+        }
+        let albumID = try XCTUnwrap(fixture.album.albumID)
+        fixture.store.nextChangeSets = [fixture.store.changeSet]
+        let missingID = UUID().uuidString
+        let missing = fixture.store.addServerRecord(albumID: albumID, mediaID: missingID)
+        let plannedAtFirstItem = Box<Int?>(nil)
+        let manager = fixture.manager
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard plannedAtFirstItem.value == nil, case .transferred = boundary else { return }
+            plannedAtFirstItem.value = manager.progress.totalCount
+        }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(plannedAtFirstItem.value, 2, "precondition: the plan was built without the record")
+        XCTAssertEqual(fixture.manager.state, .completed)
+        XCTAssertEqual(try Data(contentsOf: fixture.localURL(missingID)), fixture.store.blobContents,
+                       "the record missing from the index is brought home")
+        XCTAssertTrue(fixture.store.deleteCalls.contains(missing))
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalCallCount, 1)
+    }
+
+    /// A saved album-scope plan gives its source and its destination a role, with no
+    /// run in flight and without decrypting the plan; deleting the plan clears both.
+    func testPlanRoleReportsBothEndsOfAPersistedMove() async throws {
+        let album = makeAlbum(storage: .cloudKit)
+        let local = Album.localTwin(of: album)
+        let store = MigrationPlanStore(album: album)
+        defer { try? FileManager.default.removeItem(at: MigrationPlanStore.directoryURL(forSource: album)) }
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: album.id), .none)
+
+        try await store.save(try MigrationPlan.album(album, items: []))
+
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: album.id), .source(.toLocal, isRunning: false))
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: local.id), .destination(.toLocal, isRunning: false))
+        XCTAssertFalse(MigrationPlanStore.planRole(forAlbumID: album.id).refusesNewMedia,
+                       "a move that is not running refuses nothing")
+        await store.delete()
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: album.id), .none)
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: local.id), .none)
+    }
+
+    /// Called directly, finalize refuses to delete an album record that still has a
+    /// member the move did not remove, and leaves everything on this device as it was.
+    func testFinalizeMigrationToLocalRefusesToDeleteANonEmptyAlbumRecord() async throws {
+        let store = MockCloudKitMediaStore()
+        let harness = makeTransportHarness(store: store)
+        let albumID = UUID().uuidString
+        let cloudAlbum = Album(name: "full-\(UUID().uuidString)", storageOption: .cloudKit, creationDate: Date(),
+                               key: harness.key, albumID: albumID)
+        defer {
+            cleanupCloudKitAlbum(albumID: albumID, key: harness.key, name: cloudAlbum.name)
+            try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: cloudAlbum))
+        }
+        try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
+        try await AlbumSizeSidecar(album: cloudAlbum).apply(updates: ["kept#0": 1])
+        let remainingID = UUID().uuidString
+        _ = try await MediaIndexStore(album: cloudAlbum).upsert([
+            MediaIndexEntry(id: remainingID, hasPhotoComponent: true, hasVideoComponent: false,
+                            dateEncrypted: nil, dateTaken: Date(), subtypeRawValue: 0)
+        ])
+        let cacheDir = CloudKitStorageModel(album: cloudAlbum).baseURL
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        try Data([1]).write(to: cacheDir.appendingPathComponent("cached.bin"))
+        let moved = store.addServerRecord(albumID: albumID)
+        let remaining = store.addServerRecord(albumID: albumID, mediaID: remainingID)
+
+        do {
+            _ = try await harness.albumManager.finalizeMigrationToLocal(album: cloudAlbum, movedRecordNames: [moved])
+            XCTFail("finalize must refuse while a member it did not move points at the album")
+        } catch AlbumError.albumStillHasMembers {
+        }
+
+        XCTAssertTrue(store.deletedAlbumCalls.isEmpty, "the album record is not deleted")
+        XCTAssertNotNil(CloudKitAlbumMarker.read(albumID: albumID), "album.json is kept")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: MediaIndexStore.indexURL(for: cloudAlbum).path),
+                      "the index is kept")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: cacheDir.appendingPathComponent("cached.bin").path),
+                      "the blob cache is kept")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: AlbumSizeSidecar.sidecarURL(for: cloudAlbum).path))
+
+        _ = try await harness.albumManager.finalizeMigrationToLocal(album: cloudAlbum,
+                                                                     movedRecordNames: [moved, remaining])
+        XCTAssertEqual(store.deletedAlbumCalls, [albumID], "with every member moved, the record goes")
     }
 }
