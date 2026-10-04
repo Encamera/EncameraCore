@@ -29,6 +29,8 @@ struct MigrationRunContext {
     let storedKeys: [PrivateKey]
     let keyManager: KeyManager
     let isCancelRequested: () -> Bool
+    /// Records that an item failed because its key is not on this device.
+    let noteMissingKey: () -> Void
     let setPhase: (MigrationPhase?, MigrationPlan, String?) -> Void
 }
 
@@ -161,6 +163,7 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                                                                            storedKeysSnapshot: context.storedKeys)
             } catch {
                 printDebug("item FAILED recordName=\(item.recordName) — key not established: \(error)")
+                if case .missingKey = error as? CloudKitKeyStamp.Failure { context.noteMissingKey() }
                 plan.items[index].state = .failed
                 plan.items[index].lastError = (error as? ErrorDescribable)?.displayDescription
                     ?? "could not establish which key encrypted this file"

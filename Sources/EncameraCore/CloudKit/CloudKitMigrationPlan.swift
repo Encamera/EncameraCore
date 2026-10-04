@@ -135,6 +135,57 @@ public enum MigrationDirection: Sendable, Equatable {
     case toLocal
 }
 
+/// How the last run of a plan ended in failure, persisted so launch-time resume and
+/// the upgrade offer can tell an automatic retry of a failed plan from a run the
+/// user started. Written when a run ends `.failed`; cleared when the user starts one.
+public struct MigrationLastFailure: Codable, Sendable, Equatable {
+    public enum Category: String, Codable, Sendable {
+        /// iCloud is full.
+        case quota
+        /// A key the run needed is not on this device.
+        case missingKey
+        /// No usable iCloud account.
+        case accountUnavailable
+        /// Anything else; retried automatically.
+        case other
+    }
+
+    /// How long a quota failure holds off automatic resume. Space freed in iCloud
+    /// is not observable, so the plan is retried once the window has passed.
+    public static let quotaRetryInterval: TimeInterval = 24 * 60 * 60
+
+    public let category: Category
+    public let date: Date
+    /// The keys on this device when a `.missingKey` failure was recorded, so a key
+    /// added since re-enables automatic resume. Empty for other categories.
+    public let heldKeyNames: [KeyName]
+
+    public init(category: Category, date: Date, heldKeyNames: [KeyName] = []) {
+        self.category = category
+        self.date = date
+        self.heldKeyNames = heldKeyNames
+    }
+
+    /// Whether launch-time resume should leave the plan alone. A quota failure waits
+    /// out `quotaRetryInterval`, a lost account waits for one to be available, and a
+    /// missing key waits for a key that was not held at the failure. Every other
+    /// failure is retried.
+    public func blocksAutomaticResume(now: Date,
+                                      isAccountAvailable: Bool,
+                                      heldKeyNames current: [KeyName]) -> Bool {
+        switch category {
+        case .quota:
+            return now.timeIntervalSince(date) < Self.quotaRetryInterval
+        case .accountUnavailable:
+            return !isAccountAvailable
+        case .missingKey:
+            return Set(current).isSubset(of: Set(heldKeyNames))
+        case .other:
+            return false
+        }
+    }
+}
+
 public enum MigrationPlanError: Error, Equatable {
     /// Only local/iCloud Drive -> CloudKit and CloudKit -> local are transfers.
     case unsupportedStoragePair(source: StorageType, destination: StorageType)
@@ -172,6 +223,9 @@ public struct MigrationPlan: Codable, Sendable {
     /// already-uploaded item), but launch-time auto-resume skips it — so a cancel is
     /// durable and is never silently restarted in the background. Cleared on re-plan.
     public var cancelledAt: Date?
+    /// How the last run ended, when it failed. Kept across a re-plan so an automatic
+    /// resume still knows the plan failed; cleared when the user starts a run.
+    public var lastFailure: MigrationLastFailure?
 
     /// Total over the storage pair, which the initializer restricts to the two
     /// supported transfers.
@@ -186,7 +240,8 @@ public struct MigrationPlan: Codable, Sendable {
                 items: [MigrationItem],
                 createdAt: Date,
                 version: Int = MigrationPlan.currentVersion,
-                cancelledAt: Date? = nil) throws {
+                cancelledAt: Date? = nil,
+                lastFailure: MigrationLastFailure? = nil) throws {
         try Self.validate(id: id, source: source, destination: destination, scope: scope)
         self.id = id
         self.source = source
@@ -196,10 +251,11 @@ public struct MigrationPlan: Codable, Sendable {
         self.createdAt = createdAt
         self.version = version
         self.cancelledAt = cancelledAt
+        self.lastFailure = lastFailure
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, source, destination, scope, items, createdAt, version, cancelledAt
+        case id, source, destination, scope, items, createdAt, version, cancelledAt, lastFailure
     }
 
     /// Rejects any other version and any plan the initializer would reject, so a
@@ -215,7 +271,8 @@ public struct MigrationPlan: Codable, Sendable {
                       items: try container.decode([MigrationItem].self, forKey: .items),
                       createdAt: try container.decode(Date.self, forKey: .createdAt),
                       version: version,
-                      cancelledAt: try container.decodeIfPresent(Date.self, forKey: .cancelledAt))
+                      cancelledAt: try container.decodeIfPresent(Date.self, forKey: .cancelledAt),
+                      lastFailure: try container.decodeIfPresent(MigrationLastFailure.self, forKey: .lastFailure))
     }
 
     private static func validate(id: String,
@@ -249,7 +306,8 @@ public struct MigrationPlan: Codable, Sendable {
                                  items: items,
                                  createdAt: createdAt,
                                  version: version,
-                                 cancelledAt: cancelledAt)
+                                 cancelledAt: cancelledAt,
+                                 lastFailure: lastFailure)
     }
 
     // MARK: Factories
@@ -481,6 +539,22 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
     /// The store for `album`'s album-scope plan, whichever direction it runs.
     public init(album: Album) {
         self.init(sourceAlbum: album, planID: MigrationPlan.albumPlanID)
+    }
+
+    // MARK: Last failure
+
+    /// Stamps the checkpoint with how its run failed. No-op when there is no plan.
+    public func recordLastFailure(_ failure: MigrationLastFailure) async {
+        guard var plan = load() else { return }
+        plan.lastFailure = failure
+        try? save(plan)
+    }
+
+    /// Clears the checkpoint's failure, for a run the user started.
+    public func clearLastFailure() async {
+        guard var plan = load(), plan.lastFailure != nil else { return }
+        plan.lastFailure = nil
+        try? save(plan)
     }
 
     // MARK: File location

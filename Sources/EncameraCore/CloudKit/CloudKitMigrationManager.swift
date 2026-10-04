@@ -28,6 +28,14 @@ public enum MigrationFailureReason: Equatable, Sendable {
     case other(String)
 }
 
+/// Who started a run. A run the user started clears the plan's `lastFailure`; an
+/// automatic resume (launch, background task) keeps it, so a plan that failed is
+/// still known as failed while it is retried in the background.
+public enum MigrationRunTrigger: Sendable {
+    case user
+    case automaticResume
+}
+
 public enum MigrationState: Equatable, Sendable {
     case idle
     case planning
@@ -176,6 +184,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// Set while a whole album's CloudKit records are being removed, when a cancel
     /// is no longer honored.
     private var isRemovingSources = false
+    /// Set when the run stopped because a key it needed is not on this device, so
+    /// the persisted failure can say so. Reset at every claim.
+    private var failedForMissingKey = false
 
     /// The store backing the run currently in flight, so `cancel()` can abort an
     /// in-progress upload immediately instead of waiting for it to finish.
@@ -323,8 +334,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         let enumerated = await enumerateItems(album: album)
         let merged = Self.merge(existing: existing?.items ?? [], enumerated: enumerated)
 
-        let plan = try MigrationPlan.album(album, items: merged, createdAt: existing?.createdAt ?? Date(),
+        var plan = try MigrationPlan.album(album, items: merged, createdAt: existing?.createdAt ?? Date(),
                                            cloudKitAlbumID: cloudKitAlbumID)
+        plan.lastFailure = existing?.lastFailure
         try await store.save(plan)
 
         publishProgress(plan)
@@ -345,6 +357,37 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         var result: [MigrationPlan] = []
         for album in albumManager.fetchAlbumsFromSources(includingHidden: true) {
             result += await MigrationPlanStore.plans(for: album).filter { $0.cancelledAt == nil }
+        }
+        return result
+    }
+
+    /// `pendingPlans()` without the plans whose last run failed in a way an automatic
+    /// retry cannot fix yet (see `MigrationLastFailure.blocksAutomaticResume`): a full
+    /// iCloud inside its retry window, a missing account, or a missing key with no key
+    /// added since. Those stay on disk, resumable by the user.
+    public func autoResumablePlans(now: Date = Date()) async -> [MigrationPlan] {
+        var result: [MigrationPlan] = []
+        var heldKeyNames: [KeyName]?
+        var isAccountAvailable: Bool?
+        for plan in await pendingPlans() {
+            guard let failure = plan.lastFailure else {
+                result.append(plan)
+                continue
+            }
+            if failure.category == .missingKey, heldKeyNames == nil {
+                heldKeyNames = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.name)
+            }
+            if failure.category == .accountUnavailable, isAccountAvailable == nil {
+                let namespace = plan.destination.cloudKitAlbumID ?? plan.source.cloudKitAlbumID ?? plan.source.albumID
+                isAccountAvailable = await makeStore(namespace).accountAvailable()
+            }
+            if failure.blocksAutomaticResume(now: now,
+                                             isAccountAvailable: isAccountAvailable ?? true,
+                                             heldKeyNames: heldKeyNames ?? []) {
+                printDebug("autoResume SKIP plan=\(plan.id) source=\(plan.source.albumID) lastFailure=\(failure.category) at=\(failure.date)")
+                continue
+            }
+            result.append(plan)
         }
         return result
     }
@@ -435,9 +478,12 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     ///
     /// The CloudKit album it lands in is resolved while planning, so only the source
     /// is claimed up front; the destination is claimed once the plan names it.
+    ///
+    /// A `.user` start clears the plan's `lastFailure`; an `.automaticResume` keeps it.
     @discardableResult
-    public func start(album: Album) async -> Bool {
-        await claimAndRun(source: album, destination: nil) {
+    public func start(album: Album, trigger: MigrationRunTrigger = .user) async -> Bool {
+        await claimAndRun(source: album, destination: nil,
+                          planID: MigrationPlan.albumPlanID, trigger: trigger) {
             try await self.plan(album: album)
         }
     }
@@ -447,16 +493,19 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// was written are included. Returns `false` when either album is already being
     /// moved by another run in this process, or when an album the plan names is gone.
     @discardableResult
-    public func start(plan: MigrationPlan) async -> Bool {
+    public func start(plan: MigrationPlan, trigger: MigrationRunTrigger = .user) async -> Bool {
         if plan.scope == .album, plan.direction == .toCloudKit, let source = sourceAlbum(for: plan) {
-            return await start(album: source)
+            return await start(album: source, trigger: trigger)
         }
+        var plan = plan
+        if trigger == .user { plan.lastFailure = nil }
         guard let albums = albums(for: plan) else {
             printDebug("start ABORT plan=\(plan.id) — source or destination album not found")
             state = .failed(.other("The album this move belongs to is no longer on this device."))
             return false
         }
-        return await claimAndRun(source: albums.source, destination: albums.destination) { plan }
+        return await claimAndRun(source: albums.source, destination: albums.destination,
+                                 planID: plan.id, trigger: trigger) { plan }
     }
 
     /// Claims both albums, then plans and runs. The check-and-claim is atomic on the
@@ -466,8 +515,13 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// A nil `destination` is a move to CloudKit whose album the plan resolves: it is
     /// claimed after planning, and a destination already claimed by another run ends
     /// this one as `.idle` with `false`.
+    ///
+    /// When the run ends `.failed`, the failure is written to the plan's checkpoint
+    /// (`MigrationLastFailure`); a `.user` start clears it before anything runs.
     private func claimAndRun(source: Album,
                              destination: Album?,
+                             planID: String,
+                             trigger: MigrationRunTrigger,
                              makePlan: () async throws -> MigrationPlan) async -> Bool {
         guard !Self.abortAllRequested,
               !Self.activeAlbumIDs.contains(source.id),
@@ -485,38 +539,66 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         progress = .idle
         printDebug("claim source=\(source.id) destination=\(destination?.id ?? "<resolved by plan>")")
         defer { printDebug("run ended state=\(state) \(progress)") }
-        do {
-            let plan = try await makePlan()
-            let resolved: Album
-            if let destination {
-                resolved = destination
-            } else {
-                guard let albumID = plan.destination.cloudKitAlbumID else {
-                    state = .failed(.other("The move has no destination album"))
-                    return true
-                }
-                resolved = Album.cloudKitTwin(of: source, albumID: albumID)
-                guard !Self.activeAlbumIDs.contains(resolved.id) else {
-                    printDebug("start ABORT — destination album=\(resolved.id) is already being moved into")
-                    state = .idle
-                    return false
-                }
-                Self.activeAlbumIDs.insert(resolved.id)
-                claimed.append(resolved.id)
-                destinationAlbum = resolved
-            }
-            await run(plan, source: source, destination: resolved)
-        } catch let MigrationError.invalidSourceStorage(storage) {
-            state = .failed(.other("Cannot migrate a \(storage.rawValue) album"))
-        } catch MigrationError.cloudKitAlbumLookupFailed(let reason) {
-            printDebug("start ABORT — could not look up the destination album: \(reason)")
-            state = .failed(.other("Could not look up the album in iCloud. Check your connection and try again."))
-        } catch CloudKitMediaStoreError.accountUnavailable {
-            state = .failed(.accountUnavailable)
-        } catch {
-            state = .failed(.other("\(error)"))
+        failedForMissingKey = false
+        let planStore = MigrationPlanStore(sourceAlbum: source, planID: planID)
+        if trigger == .user {
+            await planStore.clearLastFailure()
         }
-        return true
+        func runClaimed() async -> Bool {
+            do {
+                let plan = try await makePlan()
+                let resolved: Album
+                if let destination {
+                    resolved = destination
+                } else {
+                    guard let albumID = plan.destination.cloudKitAlbumID else {
+                        state = .failed(.other("The move has no destination album"))
+                        return true
+                    }
+                    resolved = Album.cloudKitTwin(of: source, albumID: albumID)
+                    guard !Self.activeAlbumIDs.contains(resolved.id) else {
+                        printDebug("start ABORT — destination album=\(resolved.id) is already being moved into")
+                        state = .idle
+                        return false
+                    }
+                    Self.activeAlbumIDs.insert(resolved.id)
+                    claimed.append(resolved.id)
+                    destinationAlbum = resolved
+                }
+                await run(plan, source: source, destination: resolved)
+            } catch let MigrationError.invalidSourceStorage(storage) {
+                state = .failed(.other("Cannot migrate a \(storage.rawValue) album"))
+            } catch MigrationError.cloudKitAlbumLookupFailed(let reason) {
+                printDebug("start ABORT — could not look up the destination album: \(reason)")
+                state = .failed(.other("Could not look up the album in iCloud. Check your connection and try again."))
+            } catch CloudKitMediaStoreError.accountUnavailable {
+                state = .failed(.accountUnavailable)
+            } catch {
+                state = .failed(.other("\(error)"))
+            }
+            return true
+        }
+
+        let claimedRun = await runClaimed()
+        if case .failed(let reason) = state {
+            await planStore.recordLastFailure(lastFailure(for: reason))
+        }
+        return claimedRun
+    }
+
+    /// The failure to persist for a run that ended `.failed(reason)`.
+    private func lastFailure(for reason: MigrationFailureReason) -> MigrationLastFailure {
+        let now = Date()
+        switch reason {
+        case .quota:
+            return MigrationLastFailure(category: .quota, date: now)
+        case .accountUnavailable:
+            return MigrationLastFailure(category: .accountUnavailable, date: now)
+        case .schemaNotDeployed, .other:
+            guard failedForMissingKey else { return MigrationLastFailure(category: .other, date: now) }
+            let held = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.name)
+            return MigrationLastFailure(category: .missingKey, date: now, heldKeyNames: held)
+        }
     }
 
     /// Drives every not-yet-done item through transfer -> verify -> remove-source,
@@ -635,6 +717,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             storedKeys: (try? albumManager.keyManager.storedKeys()) ?? [],
             keyManager: albumManager.keyManager,
             isCancelRequested: { [weak self] in self?.control == .cancelRequested },
+            noteMissingKey: { [weak self] in self?.failedForMissingKey = true },
             setPhase: { [weak self] phase, plan, itemName in
                 self?.setPhase(phase, plan: plan, currentItemName: itemName)
             }
@@ -1016,6 +1099,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         guard let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
                                                                              keyManager: albumManager.keyManager) else {
             printDebug("run ABORT albumID=\(albumID) — no held key decrypts the album's name")
+            failedForMissingKey = true
             state = .failed(.other("\(subject) key is not on this device."))
             return false
         }

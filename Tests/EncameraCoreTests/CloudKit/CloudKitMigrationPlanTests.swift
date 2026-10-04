@@ -9,6 +9,7 @@
 //
 
 import XCTest
+import UIKit
 import CryptoKit
 @testable import EncameraCore
 
@@ -168,6 +169,87 @@ final class CloudKitMigrationPlanTests: XCTestCase {
             XCTAssertEqual(try XCTUnwrap(decoded.cancelledAt).timeIntervalSinceReferenceDate,
                            cancelled.timeIntervalSinceReferenceDate, accuracy: 0.001)
         }
+    }
+
+    // MARK: - Last failure
+
+    /// The failure a run ends on is written to the checkpoint, survives
+    /// encode/decode and a re-plan, and is cleared by a run the user starts.
+    @MainActor
+    func testLastFailureRoundTripsAndClearsOnUserResume() async throws {
+        let failure = MigrationLastFailure(category: .missingKey,
+                                           date: Date(timeIntervalSinceReferenceDate: 760_000_000),
+                                           heldKeyNames: ["a", "b"])
+        var plan = makePlan(items: [makeItem()])
+        plan.lastFailure = failure
+        let key = randomKey()
+        let url = try makeTempPlanURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        try await MigrationPlanStore(keyBytes: key, planURL: url).save(plan)
+        let reloaded = await MigrationPlanStore(keyBytes: key, planURL: url).load()
+        XCTAssertEqual(reloaded?.lastFailure, failure, "the failure survives the encrypted round trip")
+        let decoded = try JSONDecoder().decode(MigrationPlan.self, from: JSONEncoder().encode(plan))
+        XCTAssertEqual(decoded.lastFailure, failure)
+        XCTAssertNil(try JSONDecoder().decode(MigrationPlan.self,
+                                              from: JSONEncoder().encode(makePlan(items: []))).lastFailure,
+                     "a plan written without a failure reads back without one")
+
+        // A real run that hits a full iCloud records it on the checkpoint.
+        let album = makeAlbum()
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = album.key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        let store = MockCloudKitMediaStore()
+        store.reflectUploadsInMetadata = true
+        store.uploadErrorOnce = CloudKitMediaStoreError.quotaExceeded
+        let manager = CloudKitMigrationManager(albumManager: albumManager, storeFactory: { _ in store })
+        let model = LocalStorageModel(album: album)
+        defer {
+            try? FileManager.default.removeItem(at: model.baseURL)
+            removePlans(album)
+            if let markerID = CloudKitAlbumMarker.albumID(matching: album) {
+                try? CloudKitAlbumMarker.remove(albumID: markerID)
+            }
+            try? MediaIndexStore.clearAllIndexes()
+        }
+        try model.initializeDirectories()
+        let backend = DiskMediaBackend()
+        await backend.configure(for: album, albumManager: albumManager)
+        let png = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { ctx in
+            UIColor.green.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
+        }.pngData() ?? Data()
+        for _ in 0..<2 {
+            let media = try InteractableMedia(underlyingMedia: [
+                CleartextMedia(source: .data(png), mediaType: .photo, id: UUID().uuidString)
+            ])
+            _ = try await backend.save(media: media, metadata: nil, progress: { _ in })
+        }
+
+        let before = Date()
+        await manager.start(album: album)
+        XCTAssertEqual(manager.state, .failed(.quota))
+        let failedLoaded = await MigrationPlanStore(album: album).load()
+        let recorded = try XCTUnwrap(failedLoaded?.lastFailure, "a failed run stamps the checkpoint")
+        XCTAssertEqual(recorded.category, .quota)
+        XCTAssertGreaterThanOrEqual(recorded.date, before)
+
+        let replanned = try await manager.plan(album: album)
+        XCTAssertEqual(replanned.lastFailure, recorded, "a re-plan keeps the failure")
+
+        // The user's Resume clears it before the first item moves.
+        var failureSeenMidRun: MigrationLastFailure?? = .none
+        CloudKitMigrationManager.boundaryHook = { _ in
+            if case .none = failureSeenMidRun {
+                failureSeenMidRun = .some(await MigrationPlanStore(album: album).load()?.lastFailure)
+            }
+        }
+        defer { CloudKitMigrationManager.boundaryHook = nil }
+        await manager.resume(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        let seen = try XCTUnwrap(failureSeenMidRun, "the run reached an item boundary")
+        XCTAssertNil(seen, "a user start clears the persisted failure")
     }
 
     // MARK: - Progress math

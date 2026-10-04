@@ -1403,6 +1403,8 @@ public enum L10n {
     public static let `continue` = L10n.tr("Localizable", "CloudKitUpgrade.Continue", fallback: "Continue")
     /// Estimated time
     public static let estimatedTime = L10n.tr("Localizable", "CloudKitUpgrade.EstimatedTime", fallback: "Estimated time")
+    /// Not now
+    public static let failedNotNow = L10n.tr("Localizable", "CloudKitUpgrade.FailedNotNow", fallback: "Not now")
     /// Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.
     public static let howItWorksBody = L10n.tr("Localizable", "CloudKitUpgrade.HowItWorksBody", fallback: "Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.")
     /// How the upgrade works

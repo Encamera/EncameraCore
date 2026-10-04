@@ -1438,6 +1438,7 @@
 "CloudKitUpgrade.PauseMessage" = "You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.";
 "CloudKitUpgrade.PauseContinue" = "Continue upgrading";
 "CloudKitUpgrade.PausePause" = "Pause Update";
+"CloudKitUpgrade.FailedNotNow" = "Not now";
 "CloudKitUpgrade.CompleteTitle" = "Upgrade complete";
 "CloudKitUpgrade.CompleteBody" = "Your photos will now sync faster and more reliably across your devices.";
 "CloudKitUpgrade.AlbumCardTitle" = "Get better syncing for this album";
