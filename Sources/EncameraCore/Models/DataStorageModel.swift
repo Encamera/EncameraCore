@@ -18,6 +18,9 @@ public protocol DataStorageModel: DebugPrintable {
     func initializeDirectories() throws
     static var rootURL: URL { get }
     static var albumsURL: URL { get }
+    /// Whether `rootURL` names a real place. False only for iCloud Drive when the
+    /// ubiquity container cannot be reached.
+    static var isRootAvailable: Bool { get }
     static func enumerateAlbumsDirectory() -> [URL]
 }
 
@@ -109,6 +112,8 @@ extension DataStorageModel {
         rootURL.appendingPathComponent(AlbumDirectoryNaming.albumsDirectory, isDirectory: true)
     }
 
+    public static var isRootAvailable: Bool { true }
+
 
     /// Every album directory in this storage plane, in both layouts.
     ///
@@ -117,6 +122,7 @@ extension DataStorageModel {
     /// plaintext album name, and a prefix test drops them silently — leaving a
     /// user with intact files and an empty grid.
     public static func enumerateAlbumsDirectory() -> [URL] {
+        guard isRootAvailable else { return [] }
         var results = enumeratorForStorageDirectory(
             at: albumsURL,
             onlyDirectories: true

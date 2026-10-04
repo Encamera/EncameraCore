@@ -11,7 +11,7 @@ import Foundation
 
 public protocol ICloudDriveSizing: Sendable {
     /// Whether iCloud Drive can be asked at all. Answered before any album URL is
-    /// built: `iCloudStorageModel.rootURL` traps on a device with no container.
+    /// built: with no container, `iCloudStorageModel.rootURL` is only a placeholder.
     var isReachable: Bool { get }
 
     /// Logical byte size per file in the album directory, keyed by the materialized

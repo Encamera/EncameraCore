@@ -126,4 +126,50 @@ final class AlbumDirectoryDiscoveryTests: XCTestCase {
         XCTAssertEqual(discovered.first?.deletingLastPathComponent().standardizedFileURL,
                        albums.standardizedFileURL)
     }
+
+    // MARK: - iCloud Drive account without a container
+
+    /// A device with an iCloud account but a nil ubiquity container URL used to
+    /// crash here (`iCloudStorageModel.rootURL` trapped), on every launch, because
+    /// `AlbumManager.init` lists albums straight after unlock. Falling back to the
+    /// local Documents directory instead would list every root-level legacy local
+    /// album a second time as iCloud Drive, so that layout is seeded too.
+    func testFetchAlbumsFromSourcesSurvivesANilContainerWithAToken() throws {
+        let savedSource = iCloudStorageModel.containerSource
+        let savedOverride = iCloudStorageModel.testContainerRootOverride
+        var seeded: [URL] = []
+        defer {
+            iCloudStorageModel.containerSource = savedSource
+            iCloudStorageModel.testContainerRootOverride = savedOverride
+            seeded.forEach { try? FileManager.default.removeItem(at: $0) }
+        }
+        iCloudStorageModel.testContainerRootOverride = nil
+        iCloudStorageModel.containerSource = .init(hasIdentityToken: { true },
+                                                   containerURL: { nil })
+
+        let key = PrivateKey(name: AppConstants.defaultKeyName,
+                             keyBytes: Array(repeating: 0x7E, count: 32),
+                             creationDate: Date())
+        let suffix = UUID().uuidString.prefix(8)
+        let migrated = Album(name: "NoContainer-albums-\(suffix)", storageOption: .local,
+                             creationDate: Date(), key: key)
+        let legacy = Album(name: "NoContainer-root-\(suffix)", storageOption: .local,
+                           creationDate: Date(), key: key)
+        for (album, parent) in [(migrated, LocalStorageModel.albumsURL), (legacy, LocalStorageModel.rootURL)] {
+            let url = parent.appendingPathComponent(album.encryptedPathComponent, isDirectory: true)
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            seeded.append(url)
+        }
+
+        let keyManager = DemoKeyManager(keys: [key])
+        keyManager.currentKey = key
+        let albums = AlbumManager(keyManager: keyManager).fetchAlbumsFromSources(includingHidden: true)
+
+        for name in [migrated.name, legacy.name] {
+            let matches = albums.filter { $0.name == name }
+            XCTAssertEqual(matches.count, 1, "\(name) must be listed exactly once")
+            XCTAssertEqual(matches.first?.storageOption, .local)
+        }
+        XCTAssertFalse(albums.contains { $0.storageOption == .icloud })
+    }
 }

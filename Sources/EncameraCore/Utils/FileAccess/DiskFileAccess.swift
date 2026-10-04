@@ -812,8 +812,8 @@ extension DiskFileAccess {
         }
     }
 
-    /// The iCloud Documents root (`iCloudStorageModel.rootURL` without its
-    /// fatalError), resolved once. Nil when no ubiquity container exists.
+    /// The iCloud Documents root (`iCloudStorageModel.rootURL` without its test
+    /// override or placeholder), resolved once. Nil when no ubiquity container exists.
     private static let ubiquityDocumentsURL: URL? = FileManager.default
         .url(forUbiquityContainerIdentifier: nil)?
         .appendingPathComponent("Documents")

@@ -24,9 +24,17 @@ public struct DataStorageAvailabilityUtil {
     public static func isStorageTypeAvailable(type: StorageType) -> StorageType.Availability {
         switch type {
         case .icloud:
-            if iCloudStorageModel.testContainerRootOverride == nil,
-               FileManager.default.ubiquityIdentityToken == nil {
+            if iCloudStorageModel.testContainerRootOverride != nil {
+                return .available
+            }
+            guard iCloudStorageModel.containerSource.hasIdentityToken() else {
                 return .unavailable(reason: L10n.noICloudAccountFoundOnThisDevice)
+            }
+            // An account can be present while its container is unreachable; every
+            // iCloud Drive path needs the container, so that counts as unavailable.
+            // Not shown to users: pickers report iCloud Drive as deprecated first.
+            guard iCloudStorageModel.containerDocumentsURL != nil else {
+                return .unavailable(reason: "iCloud Drive container is unavailable")
             }
             return .available
         case .local:

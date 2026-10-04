@@ -13,23 +13,94 @@ public class iCloudStorageModel: DataStorageModel {
     /// Test seam substituting the ubiquity container root, so the deprecated
     /// iCloud Drive storage can be exercised where no real container exists — unit
     /// tests and simulator UI tests, neither of which has one (`rootURL` would
-    /// otherwise `fatalError`). Nil in production: the real container is the only
+    /// otherwise point at `unavailableContainerRoot`). Nil in production: the real container is the only
     /// source there, and nothing in the app sets this outside a `UITestMode` hook.
     ///
     /// Setting it also makes `DataStorageAvailabilityUtil.isStorageTypeAvailable(.icloud)`
-    /// report `.available`, since the ubiquity token is the production signal for
-    /// exactly the same question ("is there a container to read from").
+    /// report `.available`, since the token and container lookup are the production
+    /// signal for exactly the same question ("is there a container to read from").
     nonisolated(unsafe) public static var testContainerRootOverride: URL?
 
+    /// Where the ubiquity container is looked up. Production asks `FileManager`;
+    /// tests substitute it to simulate states no test host can produce on demand,
+    /// such as a signed-in account whose container URL is nil. Replacing it drops
+    /// the cached resolution.
+    public struct ContainerSource {
+        public var hasIdentityToken: () -> Bool
+        public var containerURL: () -> URL?
+
+        public init(hasIdentityToken: @escaping () -> Bool, containerURL: @escaping () -> URL?) {
+            self.hasIdentityToken = hasIdentityToken
+            self.containerURL = containerURL
+        }
+
+        public static let fileManager = ContainerSource(
+            hasIdentityToken: { FileManager.default.ubiquityIdentityToken != nil },
+            containerURL: { FileManager.default.url(forUbiquityContainerIdentifier: nil) }
+        )
+    }
+
+    nonisolated(unsafe) public static var containerSource: ContainerSource = .fileManager {
+        didSet {
+            containerLock.lock()
+            cachedContainerResolution = nil
+            containerLock.unlock()
+        }
+    }
+
+    private static let containerLock = NSLock()
+    /// The outer optional is "not resolved yet"; the inner one is the lookup's result.
+    nonisolated(unsafe) private static var cachedContainerResolution: URL??
+
+    /// The container's `Documents` directory, or nil when there is no iCloud account
+    /// or the account's container cannot be reached.
+    ///
+    /// `url(forUbiquityContainerIdentifier:)` can block, so the lookup runs once per
+    /// signed-in account (`resolveContainerInBackground` does it off the main thread
+    /// at launch) and is cached, nil included. Losing the identity token drops the
+    /// cache so a later sign-in is looked up afresh.
+    static var containerDocumentsURL: URL? {
+        containerLock.lock()
+        defer { containerLock.unlock() }
+        guard containerSource.hasIdentityToken() else {
+            cachedContainerResolution = nil
+            return nil
+        }
+        if let cachedContainerResolution {
+            return cachedContainerResolution
+        }
+        let resolved = containerSource.containerURL()?.appendingPathComponent("Documents")
+        cachedContainerResolution = .some(resolved)
+        return resolved
+    }
+
+    /// Resolves the container on a background queue so the first synchronous reader
+    /// (album listing right after unlock) does not do the blocking lookup on the main
+    /// thread.
+    public static func resolveContainerInBackground() {
+        DispatchQueue.global(qos: .utility).async {
+            _ = containerDocumentsURL
+        }
+    }
+
+    /// Whether iCloud Drive storage has a container to read from right now.
+    public static var isRootAvailable: Bool {
+        testContainerRootOverride != nil || containerDocumentsURL != nil
+    }
+
+    /// Stands in for the container when it is unavailable. It sits under a file, so
+    /// it can never exist as a directory: reads find nothing and writes fail, rather
+    /// than landing in (and being listed twice from) the local Documents directory.
+    static let unavailableContainerRoot = URL(fileURLWithPath: "/dev/null", isDirectory: false)
+        .appendingPathComponent("UnavailableUbiquityContainer", isDirectory: true)
+
+    /// Never traps: with no container this is `unavailableContainerRoot`. Callers
+    /// gate on `isRootAvailable` (or `DataStorageAvailabilityUtil`) before relying on it.
     public static var rootURL: URL {
         if let testContainerRootOverride {
             return testContainerRootOverride
         }
-        guard let driveURL = FileManager.default
-            .url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") else {
-            fatalError("Could not get drive url")
-        }
-        return driveURL
+        return containerDocumentsURL ?? unavailableContainerRoot
     }
 
     public var storageType: StorageType {

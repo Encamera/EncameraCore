@@ -436,9 +436,10 @@ enum LegacyICloudDriveSweep {
         }
     }
 
-    /// `iCloudStorageModel.rootURL` deliberately NOT used: it `fatalError`s when the
-    /// ubiquity container is absent, which is precisely the fresh-install-not-signed-
-    /// in case this probe runs in. Same resolution order, minus the crash.
+    /// `iCloudStorageModel.rootURL` deliberately NOT used: it substitutes a placeholder
+    /// root when the ubiquity container is absent, which is precisely the
+    /// fresh-install-not-signed-in case this probe runs in. Same resolution order,
+    /// but absence stays visible as nil.
     ///
     /// The `testContainerRootOverride` branch is honoured for parity with the rest
     /// of the app, but note an override pointing at a scratch directory yields no

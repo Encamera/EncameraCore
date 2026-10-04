@@ -63,8 +63,8 @@ public struct DestructiveOnboardingReport: Equatable, Sendable {
 }
 
 /// Removes files left in the DEPRECATED iCloud Drive container. Reuses the same
-/// root resolution as the onboarding probe's legacy sweep, which never crashes on
-/// a missing ubiquity container (unlike `iCloudStorageModel.rootURL`).
+/// root resolution as the onboarding probe's legacy sweep, which reports a missing
+/// ubiquity container as nil rather than a placeholder root.
 enum LegacyICloudDriveEraser {
     /// `(removed count, first error description)`. A `nil` container is "nothing to
     /// remove", not a failure: a fresh install not signed into iCloud has no legacy

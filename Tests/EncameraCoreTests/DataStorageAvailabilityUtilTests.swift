@@ -5,14 +5,20 @@ import XCTest
 final class DataStorageAvailabilityUtilTests: XCTestCase {
 
     private var originalToggle: Bool!
+    private var originalContainerSource: iCloudStorageModel.ContainerSource!
+    private var originalContainerOverride: URL?
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         originalToggle = FeatureToggle.isEnabled(feature: .cloudKitStorage)
+        originalContainerSource = iCloudStorageModel.containerSource
+        originalContainerOverride = iCloudStorageModel.testContainerRootOverride
     }
 
     override func tearDownWithError() throws {
         FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: originalToggle)
+        iCloudStorageModel.containerSource = originalContainerSource
+        iCloudStorageModel.testContainerRootOverride = originalContainerOverride
         try super.tearDownWithError()
     }
 
@@ -33,6 +39,25 @@ final class DataStorageAvailabilityUtilTests: XCTestCase {
                       "No iCloud account on this host — readability is account-gated.")
 
         FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
+
+        XCTAssertEqual(DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud), .available)
+    }
+
+    /// A signed-in account whose container cannot be reached must not count as
+    /// available: every iCloud Drive path needs the container URL.
+    func testICloudDriveIsUnavailableWhenTokenPresentButContainerURLNil() {
+        iCloudStorageModel.testContainerRootOverride = nil
+        iCloudStorageModel.containerSource = .init(hasIdentityToken: { true },
+                                                   containerURL: { nil })
+
+        XCTAssertNotEqual(DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud), .available)
+    }
+
+    func testICloudDriveIsAvailableWhenTokenAndContainerArePresent() {
+        iCloudStorageModel.testContainerRootOverride = nil
+        let container = FileManager.default.temporaryDirectory
+        iCloudStorageModel.containerSource = .init(hasIdentityToken: { true },
+                                                   containerURL: { container })
 
         XCTAssertEqual(DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud), .available)
     }
