@@ -358,23 +358,19 @@ final class CloudKitBlobCacheTests: XCTestCase {
         return url
     }
 
-    /// The cache root is also where CloudKit album markers and per-album sidecars
-    /// live, so freeing space must take the ciphertext and nothing else.
-    func testFreeUpSpaceKeepsAlbumMarkersAndSidecarsAndDeletesOnlyBlobs() async throws {
+    /// The cache root also holds per-album sidecars, so freeing space must take the
+    /// ciphertext and nothing else.
+    func testFreeUpSpaceKeepsSidecarsAndDeletesOnlyBlobs() async throws {
         let cache = makeCache(maxBytes: 10_000)
         let blob = try await cache.store(recordName: "a#0", changeTag: "t", albumID: "album",
                                          from: sourceFile(bytes: 40))
         let chunk = try await cache.store(recordName: "v#1#c0", changeTag: "t", albumID: "album",
                                           from: sourceFile(bytes: 30))
         let orphan = try plantOrphan(albumID: "album", recordName: "orphan#0", bytes: 60)
-        let marker = try plantMetadata("albums/7F1C0B0E-2B8A-4C47-9C1E-2B57D2A1E001/album.json",
-                                       contents: #"{"encName":"x"}"#)
         let thumbTags = try plantMetadata("\(CloudKitBlobCache.albumFolderName("album"))/.thumbtags.json")
 
         try await cache.freeUpSpace(pendingUploads: makeUploadQueue())
 
-        XCTAssertTrue(FileManager.default.fileExists(atPath: marker.path), "album.json must survive")
-        XCTAssertEqual(try String(contentsOf: marker, encoding: .utf8), #"{"encName":"x"}"#)
         XCTAssertTrue(FileManager.default.fileExists(atPath: thumbTags.path), ".thumbtags.json must survive")
         for gone in [blob, chunk, orphan] {
             XCTAssertFalse(FileManager.default.fileExists(atPath: gone.path), "\(gone.lastPathComponent) must be deleted")
@@ -471,5 +467,66 @@ final class CloudKitBlobCacheTests: XCTestCase {
         let persistAfter = await cache.indexPersistCount
         XCTAssertEqual(persistAfter, persistBefore,
                        "A no-op relocate must not persist")
+    }
+
+    // MARK: - Album markers
+
+    /// iOS purges `Library/Caches` when storage runs low. A CloudKit album created
+    /// offline exists on the device only as its marker, so the purge must not take
+    /// the album, its hidden flag, or the link from its queued captures to it.
+    func testPurgingBlobCacheKeepsUnpublishedHiddenAlbum() async throws {
+        let key = PrivateKey(name: "purge-\(UUID().uuidString.prefix(6))",
+                             keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) }, creationDate: Date())
+        let albumID = UUID().uuidString
+        let album = Album(name: "Private-\(UUID().uuidString)", storageOption: .cloudKit,
+                          creationDate: Date(), key: key, albumID: albumID)
+        try CloudKitAlbumMarker(album: album, isHidden: true, dirty: true).write(albumID: albumID)
+        addTeardownBlock { try? CloudKitAlbumMarker.remove(albumID: albumID) }
+
+        let queue = CloudKitUploadQueue(baseDir: tempRoot.appendingPathComponent("uploads", isDirectory: true))
+        let capture = tempRoot.appendingPathComponent("capture.encimage")
+        try Data(repeating: 0x42, count: 64).write(to: capture)
+        try await queue.enqueue(CloudKitMediaUpload(albumID: albumID, mediaID: "m1", mediaType: .photo,
+                                                    createdAt: Date(), sizeBytes: 64,
+                                                    encryptedFileURL: capture, encryptedThumbURL: nil,
+                                                    recordName: "m1#0"))
+        let albumCacheFolder = CloudKitStorageModel(album: album).baseURL
+        try FileManager.default.createDirectory(at: albumCacheFolder, withIntermediateDirectories: true)
+        try Data(repeating: 0xEE, count: 32).write(to: albumCacheFolder.appendingPathComponent("cached#0"))
+
+        try FileManager.default.removeItem(at: CloudKitBlobCache.defaultBaseDir)
+
+        let keyManager = DemoKeyManager(keys: [key])
+        keyManager.currentKey = key
+        let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+        let listed = try XCTUnwrap(manager.fetchAlbumsFromSources(includingHidden: true)
+            .first { $0.albumID == albumID }, "the album must still be listed")
+        XCTAssertEqual(listed.name, album.name)
+        XCTAssertTrue(manager.isAlbumHidden(listed), "the album must come back hidden")
+        XCTAssertFalse(manager.fetchAlbumsFromSources(includingHidden: false).contains { $0.albumID == albumID })
+        XCTAssertEqual(CloudKitAlbumMarker.read(albumID: albumID)?.dirty, true, "it still has to be published")
+
+        let queued = await queue.all().filter { $0.albumID == albumID }
+        XCTAssertEqual(queued.map(\.recordName), ["m1#0"], "the queued capture still names the album")
+        let pendingFile = await queue.pendingFileURL(recordName: "m1#0")
+        XCTAssertNotNil(pendingFile)
+    }
+
+    /// "Erase All Data" clears the shared cache, and with it every album marker.
+    func testClearAllRemovesTheAlbumMarkersRootItWasGiven() async throws {
+        let markers = tempRoot.appendingPathComponent("markers", isDirectory: true)
+        let marker = markers.appendingPathComponent("album-1/album.json")
+        try FileManager.default.createDirectory(at: marker.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("{}".utf8).write(to: marker)
+        let unrelated = CloudKitBlobCache(baseDir: cacheRoot, maxBytes: 10_000)
+        try await unrelated.clearAll()
+        XCTAssertTrue(FileManager.default.fileExists(atPath: marker.path), "a cache not given the root leaves it")
+
+        let cache = CloudKitBlobCache(baseDir: cacheRoot, albumMarkersDir: markers, maxBytes: 10_000)
+        _ = try await cache.store(recordName: "a", changeTag: nil, albumID: "album", from: sourceFile(bytes: 40))
+        try await cache.clearAll()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: markers.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: cacheRoot.path))
     }
 }

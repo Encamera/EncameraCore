@@ -2,10 +2,11 @@
 //  CloudKitAlbumMarker.swift
 //  EncameraCore
 //
-//  The on-device record of a CloudKit album: `albums/<albumID>/album.json` under
-//  `CloudKitStorageModel.albumsURL`. Its presence is what makes a CloudKit album
-//  discoverable here, and it carries what the album list needs to show the album
-//  offline. The name is only ever stored as ciphertext (`encName`).
+//  The on-device record of a CloudKit album: `<albumID>/album.json` under
+//  `CloudKitAlbumMarker.rootDirectoryURL` in Application Support. Its presence is
+//  what makes a CloudKit album discoverable here, and it carries what the album
+//  list needs to show the album offline. The name is only ever stored as
+//  ciphertext (`encName`).
 //
 
 import Foundation
@@ -77,8 +78,25 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
         name.removingPercentEncoding
     }
 
+    // MARK: - Location
+
+    /// Where markers live: Application Support, never Caches. A marker is the only
+    /// record of an album that has not been published yet, and it holds changes not
+    /// yet saved to the album record (a rename, the hidden flag, a disabled cover),
+    /// so it must survive the OS purging caches.
+    ///
+    /// Included in the device backup, like the upload queue (`CloudKitUploadQueue`):
+    /// a restored queue holds captures for albums that may exist only as a marker, and
+    /// without the marker no coordinator is ever built for them. A marker holds the
+    /// name only as ciphertext.
+    public static var rootDirectoryURL: URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return base.appendingPathComponent("CloudKitAlbums", isDirectory: true)
+    }
+
     public static func directoryURL(albumID: String) -> URL {
-        CloudKitStorageModel.albumsURL
+        rootDirectoryURL
             .appendingPathComponent(directoryName(forAlbumID: albumID), isDirectory: true)
     }
 
@@ -129,7 +147,7 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
     /// without a readable `album.json` is not an album.
     public static func all() -> [(albumID: String, marker: CloudKitAlbumMarker)] {
         let contents = (try? FileManager.default.contentsOfDirectory(
-            at: CloudKitStorageModel.albumsURL,
+            at: rootDirectoryURL,
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles])) ?? []
         return contents.compactMap { url in

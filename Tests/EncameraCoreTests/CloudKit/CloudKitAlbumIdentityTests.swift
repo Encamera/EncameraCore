@@ -160,9 +160,28 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
 
         XCTAssertEqual(CloudKitAlbumMarker.directoryURL(albumID: albumID).deletingLastPathComponent().standardizedFileURL,
                        CloudKitStorageModel.albumsURL.standardizedFileURL,
-                       "the marker directory sits directly under albums/")
+                       "the marker directory sits directly under the marker root")
         XCTAssertEqual(CloudKitAlbumMarker.read(albumID: albumID), marker)
         XCTAssertTrue(CloudKitAlbumMarker.all().contains { $0.albumID == albumID })
+    }
+
+    // MARK: - Marker location
+
+    /// iOS purges `Library/Caches` under storage pressure, and a marker is the only
+    /// record of an album that has not been published.
+    func testMarkerRootIsNotUnderCaches() throws {
+        let caches = try XCTUnwrap(FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first)
+        let cachesPath = caches.standardizedFileURL.resolvingSymlinksInPath().path
+        for url in [CloudKitAlbumMarker.rootDirectoryURL,
+                    CloudKitAlbumMarker.directoryURL(albumID: UUID().uuidString),
+                    CloudKitStorageModel.albumsURL] {
+            let path = url.standardizedFileURL.resolvingSymlinksInPath().path
+            XCTAssertFalse(path.hasPrefix(cachesPath + "/"), "\(path) is under Caches")
+        }
+        let appSupport = try XCTUnwrap(FileManager.default.urls(for: .applicationSupportDirectory,
+                                                               in: .userDomainMask).first)
+        XCTAssertTrue(CloudKitAlbumMarker.rootDirectoryURL.standardizedFileURL.path
+            .hasPrefix(appSupport.standardizedFileURL.path + "/"))
     }
 
     // MARK: - Enumeration
@@ -221,8 +240,8 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         XCTAssertFalse(manager.fetchAlbumsFromSources(includingHidden: true).contains { $0.albumID == albumID })
     }
 
-    /// The markers live under the blob cache's root, so "Free up space" on the
-    /// storage screen must leave every CloudKit album listed.
+    /// "Free up space" on the storage screen empties the blob cache, and must leave
+    /// every CloudKit album listed.
     func testFreeUpSpaceKeepsEveryCloudKitAlbumListed() async throws {
         let key = makeKey()
         let albums = (0..<2).map { _ in cloudKitAlbum(key: key) }

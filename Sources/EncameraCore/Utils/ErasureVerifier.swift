@@ -113,6 +113,7 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
 
         if scope == .allData {
             directories.append(("cloudKitBlobs", CloudKitBlobCache.defaultBaseDir))
+            directories.append(("cloudKitAlbumMarkers", CloudKitAlbumMarker.rootDirectoryURL))
             directories.append(("localAlbums", LocalStorageModel.albumsURL))
         }
 
@@ -317,6 +318,7 @@ public struct DefaultLocalDataVerifier: LocalDataVerifying, DebugPrintable {
 
     public func verifyBlobCache() -> ErasureVerdict {
         var names = Self.files(under: CloudKitBlobCache.defaultBaseDir).map { "cache/\($0)" }
+        names += Self.files(under: CloudKitAlbumMarker.rootDirectoryURL).map { "markers/\($0)" }
         names += Self.files(under: CloudKitUploadQueue.defaultBaseDir).map { "uploads/\($0)" }
         return .residue("cached or queued files", names: names, hint: .files)
     }

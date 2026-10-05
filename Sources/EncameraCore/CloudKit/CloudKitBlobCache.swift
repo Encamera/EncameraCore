@@ -6,7 +6,8 @@
 //  Option A unlocks ("iCloud is the backend, local is an evictable cache",
 //  decision doc §3). Holds the *encrypted* ENC2 file only; it is re-fetchable
 //  and never the source of truth, so it lives under Caches and is excluded from
-//  backup. `.local` albums never touch this cache.
+//  backup. `.local` albums never touch this cache. The CloudKit album markers are
+//  NOT cache: they live in Application Support (`CloudKitAlbumMarker`).
 //
 
 import Foundation
@@ -47,11 +48,17 @@ public actor CloudKitBlobCache: DebugPrintable {
     /// The process-wide cache. All coordinators share ONE instance so the on-disk
     /// `.cacheindex.json` has a single in-memory owner — separate instances writing
     /// it from divergent snapshots would clobber each other.
-    public static let shared = CloudKitBlobCache()
+    public static let shared = CloudKitBlobCache(albumMarkersDir: CloudKitAlbumMarker.rootDirectoryURL)
+
+    /// The CloudKit album markers' root, which `clearAll` removes with the cache.
+    /// Only the shared cache names it; any other instance leaves markers alone.
+    private let albumMarkersDir: URL?
 
     public init(baseDir: URL = CloudKitBlobCache.defaultBaseDir,
+                albumMarkersDir: URL? = nil,
                 maxBytes: Int64 = 500 * 1024 * 1024) {
         self.baseDir = baseDir
+        self.albumMarkersDir = albumMarkersDir
         self.maxBytes = maxBytes
         loadIndex()
     }
@@ -389,12 +396,12 @@ public actor CloudKitBlobCache: DebugPrintable {
         let modified: Date
     }
 
-    /// Every cached blob under `baseDir`. Excludes the index sidecar, the hidden
-    /// per-album sidecars, and the `albums/` tree of CloudKit album markers, none of
-    /// which is cached media. An absent directory enumerates as nothing, which is the
-    /// right answer for a cache that has never been written.
+    /// Every cached blob under `baseDir`. Excludes the index sidecar and the hidden
+    /// per-album sidecars, neither of which is cached media. An absent directory
+    /// enumerates as nothing, which is the right answer for a cache that has never
+    /// been written.
     private func enumerateCacheFiles() -> [CacheFile] {
-        let keys: [URLResourceKey] = [.isRegularFileKey, .isDirectoryKey, .fileSizeKey,
+        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey,
                                       .totalFileAllocatedSizeKey, .contentModificationDateKey]
         guard let enumerator = FileManager.default.enumerator(at: baseDir,
                                                              includingPropertiesForKeys: keys,
@@ -402,15 +409,9 @@ public actor CloudKitBlobCache: DebugPrintable {
             return []
         }
         let basePath = baseDir.standardizedFileURL.path
-        let markersPath = baseDir.appendingPathComponent(AlbumDirectoryNaming.albumsDirectory,
-                                                         isDirectory: true).standardizedFileURL.path
         var files: [CacheFile] = []
         for case let url as URL in enumerator {
             guard let values = try? url.resourceValues(forKeys: Set(keys)) else { continue }
-            if values.isDirectory == true {
-                if url.standardizedFileURL.path == markersPath { enumerator.skipDescendants() }
-                continue
-            }
             guard values.isRegularFile == true else { continue }
             guard url.lastPathComponent != indexFileURL.lastPathComponent else { continue }
             let path = url.standardizedFileURL.path
@@ -426,14 +427,23 @@ public actor CloudKitBlobCache: DebugPrintable {
     }
 
     /// Wipes the entire on-disk cache (every album folder and the `.cacheindex.json`
-    /// sidecar) and clears the in-memory index. Used by "Erase All Data" so no
-    /// cached ciphertext blobs survive a full reset.
+    /// sidecar), the CloudKit album markers when this cache was given their root, and
+    /// clears the in-memory index. Used by "Erase All Data" so no cached ciphertext
+    /// blobs or album markers survive a full reset.
     ///
     /// The index is cleared only after the on-disk removal actually succeeded, so it
     /// keeps tracking whatever survived a failed erase.
     public func clearAll() throws {
         let entryCount = index.count
         let bytes = totalBytes()
+        if let albumMarkersDir, FileManager.default.fileExists(atPath: albumMarkersDir.path) {
+            do {
+                try FileManager.default.removeItem(at: albumMarkersDir)
+            } catch {
+                printDebug("clearAll FAILED removing album markers dir=\(albumMarkersDir.lastPathComponent) raw=\(error)")
+                throw error
+            }
+        }
         guard FileManager.default.fileExists(atPath: baseDir.path) else {
             index.removeAll()
             printDebug("clearAll ok (nothing on disk) entries=\(entryCount)")
@@ -452,10 +462,10 @@ public actor CloudKitBlobCache: DebugPrintable {
     /// "Free up space" on the storage screen: deletes the cached ciphertext and
     /// nothing else, then writes an index that lists only what survived.
     ///
-    /// The cache root is also where CloudKit album markers (`albums/<albumID>/album.json`)
-    /// and per-album sidecars such as `.thumbtags.json` live, and a marker is the only
-    /// way this device knows a CloudKit album exists. `enumerateCacheFiles` never
-    /// yields those, so they stay.
+    /// CloudKit album markers live in Application Support, outside the cache root, so
+    /// they are never touched here. Hidden per-album sidecars such as
+    /// `.thumbtags.json` sit under the cache root; `enumerateCacheFiles` never yields
+    /// those, so they stay too.
     ///
     /// A blob that may be the only copy on the device stays too: a record the upload
     /// queue still holds, and a capture's ciphertext that `CloudKitFileAccess` has

@@ -19,6 +19,12 @@ struct CloudKitStorageModel: DataStorageModel {
         CloudKitBlobCache.defaultBaseDir
     }
 
+    /// The album markers' root in Application Support, not `rootURL/albums`: the
+    /// blob cache root is in Caches, which the OS may purge.
+    static var albumsURL: URL {
+        CloudKitAlbumMarker.rootDirectoryURL
+    }
+
     var storageType: StorageType { .cloudKit }
 
     let album: Album
