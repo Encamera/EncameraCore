@@ -30,6 +30,13 @@
 //  owning key opens it. Albums whose key is not present on this device (key backup
 //  off) cannot be materialized and are reported via the locked-out count.
 //
+//  An album a whole-album move is still filling is not adopted: one this device's
+//  plan names as its destination (`MigrationPlanStore.planRole`), or one whose
+//  record another device flagged `migrationInProgress`. Adopting it would list a
+//  half-filled second album beside the one being moved, and deleting that
+//  "duplicate" would cascade to every record already moved. It is adopted on the
+//  first pass after the move finalizes.
+//
 //  `.local` albums are never touched here — only CloudKit albums have `EncAlbum`
 //  records, so a pure-local album never appears on another device.
 //
@@ -43,17 +50,20 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     private let albumManager: AlbumManaging
     private let deleteQueue: CloudKitAlbumDeleteQueue
     private let publishRegistry: CloudKitAlbumPublishRegistry
+    private let uploadQueue: CloudKitUploadQueue
 
     public init(store: CloudKitMediaStoring,
                 keyManager: KeyManager,
                 albumManager: AlbumManaging,
                 deleteQueue: CloudKitAlbumDeleteQueue = CloudKitAlbumDeleteQueue(),
-                publishRegistry: CloudKitAlbumPublishRegistry = CloudKitAlbumPublishRegistry()) {
+                publishRegistry: CloudKitAlbumPublishRegistry = CloudKitAlbumPublishRegistry(),
+                uploadQueue: CloudKitUploadQueue = .shared) {
         self.store = store
         self.keyManager = keyManager
         self.albumManager = albumManager
         self.deleteQueue = deleteQueue
         self.publishRegistry = publishRegistry
+        self.uploadQueue = uploadQueue
     }
 
     /// Reconcile album existence between CloudKit and the local filesystem markers.
@@ -75,6 +85,16 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         var pendingDeletes = deleteQueue.pending()
         printDebug("reconcileAlbums deleteDrain start pending=\(pendingDeletes.count)")
         for albumID in pendingDeletes.sorted() {
+            switch await drainDecision(for: albumID) {
+            case .delete:
+                break
+            case .keepQueued:
+                continue
+            case .abandon:
+                deleteQueue.remove(albumID)
+                pendingDeletes.remove(albumID)
+                continue
+            }
             do {
                 try await store.deleteAlbum(albumID: albumID)
                 deleteQueue.remove(albumID)
@@ -124,6 +144,15 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
 
             if localByID[record.albumID] != nil {
                 printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=alreadyMaterialized")
+                continue
+            }
+
+            if case .destination = MigrationPlanStore.planRole(forAlbumID: Self.cloudKitAlbumKey(record.albumID)) {
+                printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=destinationOfALocalMove")
+                continue
+            }
+            if record.migrationInProgress {
+                printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=migrationInProgress")
                 continue
             }
 
@@ -177,6 +206,45 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
 
         printDebug("reconcileAlbums ok remote=\(remote.count) adopted=\(adopted) deletedLocally=\(deletedLocally) pushed=\(pushed) lockedOut=\(lockedOut) stillPendingDeletes=\(pendingDeletes.count)")
         return lockedOut
+    }
+
+    /// `Album.id` of the CloudKit album whose record name is `albumID`, the key
+    /// `MigrationPlanStore.planRole(forAlbumID:)` takes.
+    private static func cloudKitAlbumKey(_ albumID: String) -> String {
+        "\(albumID)_\(StorageType.cloudKit.rawValue)"
+    }
+
+    private enum DrainDecision { case delete, keepQueued, abandon }
+
+    /// Whether a queued album delete may be issued now. Every `EncMedia` parents to
+    /// its album with `.deleteSelf`, so the delete takes every member with it.
+    ///
+    /// - An album a move on this device names (source or destination) keeps its
+    ///   delete queued while it has members, and while the check cannot run.
+    /// - An entry queued with `requiresNoMembers` (a move back to this device that
+    ///   could not delete the emptied record) is dropped when the album has members
+    ///   again: another device added them after the move, and they are not this
+    ///   device's to delete. The album is then adopted like any other.
+    /// - Any other queued delete is the user's, and goes ahead.
+    private func drainDecision(for albumID: String) async -> DrainDecision {
+        let role = MigrationPlanStore.planRole(forAlbumID: Self.cloudKitAlbumKey(albumID))
+        let requiresNoMembers = deleteQueue.requiresNoMembers(albumID)
+        guard role != .none || requiresNoMembers else { return .delete }
+        let members: CloudKitAlbumMembers
+        do {
+            members = try await CloudKitAlbumMembership.members(ofAlbumID: albumID, store: store,
+                                                                uploadQueue: uploadQueue)
+        } catch {
+            printDebug("reconcileAlbums deleteDrain keep albumID=\(albumID) reason=membershipCheckFailed error=\(error)")
+            return .keepQueued
+        }
+        guard !members.isEmpty else { return .delete }
+        if role != .none {
+            printDebug("reconcileAlbums deleteDrain keep albumID=\(albumID) reason=moveInProgress records=\(members.records.count) queued=\(members.queuedUploads.count)")
+            return .keepQueued
+        }
+        printDebug("reconcileAlbums deleteDrain ABANDON albumID=\(albumID) reason=albumHasMembers records=\(members.records.count) queued=\(members.queuedUploads.count)")
+        return .abandon
     }
 
     private enum RecordLookup { case present, gone, unknown }

@@ -260,6 +260,10 @@ public struct CloudKitAlbumUpload: Sendable {
     /// The `mediaID` of the media item chosen as the album's cover image, or `nil`
     /// when no explicit cover is set (fall back to most-recent).
     public let coverMediaID: String?
+    /// `EncAlbum.migrationInProgress` to write: `true` while a whole-album move to
+    /// CloudKit fills the album, `false` when it finalizes. `nil` leaves the
+    /// record's current value alone, so a rename or cover change mid-move keeps it.
+    public let migrationInProgress: Bool?
 
     public init(albumID: String,
                 encName: String,
@@ -267,7 +271,9 @@ public struct CloudKitAlbumUpload: Sendable {
                 isHidden: Bool,
                 keyFingerprint: String,
                 coverMediaID: String? = nil,
+                migrationInProgress: Bool? = nil,
                 schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
+        self.migrationInProgress = migrationInProgress
         self.keyFingerprint = keyFingerprint
         self.albumID = albumID
         self.encName = encName
@@ -296,6 +302,9 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
     /// The `mediaID` of the cover image, extracted from `EncAlbum.coverMediaRef`.
     /// `nil` when the record carries no reference (pre-existing or unset).
     public let coverMediaID: String?
+    /// `EncAlbum.migrationInProgress`: a move on some device is still filling the
+    /// album, so a device that has not adopted it yet must not.
+    public let migrationInProgress: Bool
 
     public init(albumID: String,
                 encName: String,
@@ -304,7 +313,9 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
                 schemaVersion: Int64,
                 keyFingerprint: String?,
                 recordChangeTag: String?,
-                coverMediaID: String? = nil) {
+                coverMediaID: String? = nil,
+                migrationInProgress: Bool = false) {
+        self.migrationInProgress = migrationInProgress
         self.albumID = albumID
         self.encName = encName
         self.createdAt = createdAt

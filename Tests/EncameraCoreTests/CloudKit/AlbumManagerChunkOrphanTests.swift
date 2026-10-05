@@ -41,7 +41,7 @@ final class AlbumManagerChunkOrphanTests: XCTestCase {
         let manager = AlbumManager(keyManager: keyManager)
         let album = makeCloudKitAlbum()
 
-        manager.delete(album: album)
+        try manager.delete(album: album)
 
         // Wait for the async Task inside deleteCloudKitAlbumRecord to finish.
         let deadline = Date().addingTimeInterval(5)
@@ -93,7 +93,7 @@ final class AlbumManagerChunkOrphanTests: XCTestCase {
         let manager = AlbumManager(keyManager: keyManager)
         let album = makeCloudKitAlbum()
 
-        manager.delete(album: album)
+        try manager.delete(album: album)
 
         let deadline = Date().addingTimeInterval(5)
         while store.fetchMetadataCalls.isEmpty, Date() < deadline {

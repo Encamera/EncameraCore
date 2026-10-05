@@ -255,6 +255,8 @@
 "AlbumDetailView.MoveLeftItemsInICloudDriveAlertTitle" = "Some Items Stayed in iCloud Drive";
 "AlbumDetailView.MoveLeftItemsInICloudDriveAlertMessage" = "%@ items stayed in iCloud Drive because they couldn't be downloaded. Everything else was moved to This Device, so the album now shows in both places. Try the move again when you're online to move the rest.";
 "AlbumMove.ItemsStayedInICloudDrive" = "%@ items stayed in iCloud Drive because they couldn't be downloaded.";
+"AlbumDetailView.DeleteBlockedByMoveTitle" = "Can't Delete Album";
+"AlbumDetailView.DeleteBlockedByMoveMessage" = "This album is part of a move that hasn't finished, so it can't be deleted yet. Finish or resume the move first. Nothing was deleted.";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "unsupported format";
 "AlbumDetailView.ImportReasonTranscodeFailed" = "could not be converted";
 "AlbumDetailView.ImportReasonReadError" = "file could not be read";

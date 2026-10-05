@@ -221,6 +221,55 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         }
     }
 
+    /// The album record is flagged before the first upload, so other devices leave
+    /// the half-filled album alone, and cleared when the move finalizes, so they
+    /// adopt it.
+    func testFinalizeToCloudKitClearsTheMigrationInProgressFlag() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer { cleanup(album) }
+        _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        let saves = store.savedAlbumCalls
+        let albumID = try XCTUnwrap(saves.first?.albumID)
+        XCTAssertEqual(saves.first?.migrationInProgress, true,
+                       "the record is flagged when the move creates it, before any item uploads")
+        let firstUpload = try XCTUnwrap(store.callOrder.firstIndex { if case .upload = $0 { return true }; return false })
+        let firstAlbumSave = try XCTUnwrap(store.callOrder.firstIndex(of: .saveAlbum(albumID: albumID)))
+        XCTAssertLessThan(firstAlbumSave, firstUpload)
+        XCTAssertEqual(saves.last?.migrationInProgress, false, "finalize clears the flag")
+        let finalRecord = try await store.fetchAlbum(albumID: albumID)
+        XCTAssertEqual(finalRecord?.migrationInProgress, false, "the finalized album reads as unflagged")
+        XCTAssertEqual(albumManager.finalizeCallCount, 1)
+    }
+
+    /// A finalize whose flag clear fails keeps the checkpoint, so a resume clears it.
+    func testAFailedFlagClearKeepsTheCheckpointForRetry() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer { cleanup(album) }
+        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+        store.onUploadStarted = { store.saveAlbumError = CloudKitMediaStoreError.retry(after: 1) }
+
+        await manager.start(album: album)
+
+        guard case .failed = manager.state else { return XCTFail("expected .failed, got \(manager.state)") }
+        XCTAssertEqual(albumManager.finalizeCallCount, 0, "the album does not flip while the record is still flagged")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: MigrationPlanStore.planURL(for: album).path),
+                      "the checkpoint is kept for the retry")
+
+        store.saveAlbumError = nil
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        XCTAssertEqual(store.savedAlbumCalls.last?.migrationInProgress, false)
+    }
+
     func testSourceNotDeletedWhenVerifyFails() async throws {
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
@@ -362,7 +411,11 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
         await manager.start(album: album)
 
-        XCTAssertEqual(store.savedAlbumCalls.count, 1, "the album record is created up front, before the item loop")
+        let firstUpload = try XCTUnwrap(store.callOrder.firstIndex { if case .upload = $0 { return true }; return false })
+        let savesBeforeUploads = store.callOrder[..<firstUpload].filter { if case .saveAlbum = $0 { return true }; return false }
+        XCTAssertEqual(savesBeforeUploads.count, 1, "the album record is created up front, before the item loop")
+        XCTAssertEqual(store.savedAlbumCalls.map(\.migrationInProgress), [true, false],
+                       "the only other save is finalize clearing the in-progress flag")
         XCTAssertEqual(manager.state, .completed,
                        "uploads succeed because the parent album record already exists on the server")
         XCTAssertEqual(store.uploadCalls.count, 2)

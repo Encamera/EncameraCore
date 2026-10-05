@@ -369,11 +369,13 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         if let saveAlbumError { throw saveAlbumError }
         locked {
             _savedAlbumCalls.append(album)
+            let migrationInProgress = album.migrationInProgress ?? _albums[album.albumID]?.migrationInProgress ?? false
             _albums[album.albumID] = CloudKitAlbumMetadata(
                 albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
                 isHidden: album.isHidden, schemaVersion: album.schemaVersion,
                 keyFingerprint: album.keyFingerprint.isEmpty ? nil : album.keyFingerprint,
-                recordChangeTag: "albumtag", coverMediaID: album.coverMediaID)
+                recordChangeTag: "albumtag", coverMediaID: album.coverMediaID,
+                migrationInProgress: migrationInProgress)
         }
     }
 

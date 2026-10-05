@@ -254,11 +254,13 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
     public func saveAlbum(_ album: CloudKitAlbumUpload) async throws {
         let tag = "albumtag-\(album.albumID)"
         locked {
+            let migrationInProgress = album.migrationInProgress ?? albums[album.albumID]?.migrationInProgress ?? false
             albums[album.albumID] = CloudKitAlbumMetadata(
                 albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
                 isHidden: album.isHidden, schemaVersion: album.schemaVersion,
                 keyFingerprint: album.keyFingerprint.isEmpty ? nil : album.keyFingerprint,
-                recordChangeTag: tag, coverMediaID: album.coverMediaID
+                recordChangeTag: tag, coverMediaID: album.coverMediaID,
+                migrationInProgress: migrationInProgress
             )
         }
         persist()
@@ -402,6 +404,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             let keyFingerprint: String?
             let recordChangeTag: String?
             let coverMediaID: String?
+            let migrationInProgress: Bool?
         }
 
         let records: [Record]
@@ -423,7 +426,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                 AlbumRecord(albumID: $0.albumID, encName: $0.encName, createdAt: $0.createdAt,
                             isHidden: $0.isHidden, schemaVersion: $0.schemaVersion,
                             keyFingerprint: $0.keyFingerprint, recordChangeTag: $0.recordChangeTag,
-                            coverMediaID: $0.coverMediaID)
+                            coverMediaID: $0.coverMediaID, migrationInProgress: $0.migrationInProgress)
             }
             self.deletedAlbumIDs = deletedAlbumIDs
             self.deletedRecordNames = deletedRecordNames
@@ -446,7 +449,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                         albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
                         isHidden: album.isHidden, schemaVersion: album.schemaVersion,
                         keyFingerprint: album.keyFingerprint, recordChangeTag: album.recordChangeTag,
-                        coverMediaID: album.coverMediaID)
+                        coverMediaID: album.coverMediaID, migrationInProgress: album.migrationInProgress ?? false)
                 }
                 store.deletedAlbumIDs = deletedAlbumIDs
                 store.deletedRecordNames = deletedRecordNames

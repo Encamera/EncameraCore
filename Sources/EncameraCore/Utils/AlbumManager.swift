@@ -309,7 +309,17 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         restoreCurrentAlbumFromUserDefaults()
     }
 
-    public func delete(album: Album) {
+    /// Deletes the album and everything in it. Throws `AlbumError.moveInProgress`,
+    /// touching nothing, when the album is the source or destination of a
+    /// whole-album move this device knows about (running, paused or failed), or
+    /// when any move is running on it: the move's items live on both sides until it
+    /// finalizes, and a CloudKit album's record takes every media record already
+    /// moved into it with it.
+    public func delete(album: Album) throws {
+        if Self.isInAMove(album) {
+            printDebug("delete REFUSED album=\(album.id) — a move names the album")
+            throw AlbumError.moveInProgress
+        }
         let fileManager = FileManager.default
         let albumURL = album.storageURL
 
@@ -328,6 +338,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         albumOperationSubject.send(.albumDeleted(album: album))
         broadcastAlbumsUpdated()
         fixUpCurrentAlbum(deletedAlbum: album)
+    }
+
+    /// Whether a storage move holds `album`: a whole-album plan on this device names
+    /// it, or a run of either scope is moving items in or out of it.
+    static func isInAMove(_ album: Album) -> Bool {
+        MigrationPlanStore.planRole(forAlbumID: album.id) != .none
+            || CloudKitMigrationManager.isActive(albumID: album.id)
     }
 
     /// Local-only album removal for the reconciler: cleans up the filesystem,
@@ -526,6 +543,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                 }
             } catch {
                 Self.printDebug("deleteCloudKitAlbumRecord chunk enumeration FAILED albumID=\(albumID) — chunked members' blob records may be orphaned until erase raw=\(error)")
+                return
+            }
+            // A move that started on the album since `delete` checked it leaves the
+            // delete queued: the reconciler's drain issues it only once the
+            // membership check finds nothing the move put there.
+            if Self.isInAMove(album) {
+                Self.printDebug("deleteCloudKitAlbumRecord deferred albumID=\(albumID) — a move now names the album; left queued for the reconciler")
                 return
             }
             do {
@@ -966,7 +990,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                 throw AlbumError.albumStillHasMembers
             }
             let queue = CloudKitAlbumDeleteQueue()
-            queue.enqueue(albumID)
+            queue.enqueue(albumID, requiresNoMembers: true)
             do {
                 try await store.deleteAlbum(albumID: albumID)
                 queue.remove(albumID)

@@ -17,7 +17,8 @@ public protocol AlbumManaging {
     var defaultStorageForAlbum: StorageType { get set }
     var currentAlbum: Album? { get set }
     var currentAlbumMediaCount: Int? { get }
-    func delete(album: Album)
+    /// Throws `AlbumError.moveInProgress` for an album a storage move names.
+    func delete(album: Album) throws
     /// Removes the album locally without touching CloudKit records — the device
     /// that deleted the album already handled the server side. Used by
     /// the reconciler when the change feed reports a deletion.
@@ -88,7 +89,7 @@ public extension AlbumManaging {
     /// Default: delegates to the full `delete` for conformers that don't need a
     /// local-only path (previews, test doubles).
     func applyRemoteAlbumDeletion(album: Album) {
-        delete(album: album)
+        try? delete(album: album)
     }
 
     /// Default no-op for lightweight conformers (previews, test doubles).

@@ -251,6 +251,9 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             record[CloudKitSchema.EncAlbum.isHidden] = Int64(album.isHidden ? 1 : 0) as CKRecordValue
             record[CloudKitSchema.EncAlbum.schemaVersion] = album.schemaVersion as CKRecordValue
             record[CloudKitSchema.EncAlbum.keyFingerprint] = album.keyFingerprint as CKRecordValue
+            if let migrationInProgress = album.migrationInProgress {
+                record[CloudKitSchema.EncAlbum.migrationInProgress] = Int64(migrationInProgress ? 1 : 0) as CKRecordValue
+            }
             if let coverMediaID = album.coverMediaID {
                 let coverRecordName = MediaRecordName.componentRecordName(mediaID: coverMediaID, type: .photo)
                 let coverRecordID = CKRecord.ID(recordName: coverRecordName, zoneID: zoneID)
@@ -439,6 +442,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         let isHidden = ((record[CloudKitSchema.EncAlbum.isHidden] as? Int64) ?? 0) != 0
         let schemaVersion = (record[CloudKitSchema.EncAlbum.schemaVersion] as? Int64) ?? CloudKitSchema.currentSchemaVersion
         let keyFingerprint = record[CloudKitSchema.EncAlbum.keyFingerprint] as? String
+        let migrationInProgress = ((record[CloudKitSchema.EncAlbum.migrationInProgress] as? Int64) ?? 0) != 0
         let coverMediaID: String?
         if let ref = record[CloudKitSchema.EncAlbum.coverMediaRef] as? CKRecord.Reference {
             coverMediaID = MediaRecordName.mediaID(from: ref.recordID.recordName)
@@ -452,7 +456,8 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                      schemaVersion: schemaVersion,
                                      keyFingerprint: keyFingerprint,
                                      recordChangeTag: record.recordChangeTag,
-                                     coverMediaID: coverMediaID)
+                                     coverMediaID: coverMediaID,
+                                     migrationInProgress: migrationInProgress)
     }
 
     // MARK: - Metadata sync (asset-free, optional eager thumbnail)

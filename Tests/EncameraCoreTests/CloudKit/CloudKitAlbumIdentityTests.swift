@@ -535,7 +535,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: coverSidecarURL.path), "precondition")
         try harness.syncedStore.setAlbumHidden(album.name, isHidden: true)
 
-        harness.manager.delete(album: album)
+        try harness.manager.delete(album: album)
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: coverSidecarURL.path), "the cover sidecar")
         XCTAssertFalse(FileManager.default.fileExists(atPath: CloudKitAlbumMarker.directoryURL(albumID: albumID).path),
@@ -626,7 +626,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         let previews = try await seedIndexedItemsWithPreviews(["ld-\(UUID().uuidString)", "ld-\(UUID().uuidString)"],
                                                               in: album)
 
-        harness.manager.delete(album: album)
+        try harness.manager.delete(album: album)
 
         for preview in previews {
             XCTAssertFalse(FileManager.default.fileExists(atPath: preview.path),

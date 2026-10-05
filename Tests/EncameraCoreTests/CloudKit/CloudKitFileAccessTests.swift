@@ -702,7 +702,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let keyManager = DemoKeyManager()
         keyManager.currentKey = album.key
         let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
-        albumManager.delete(album: album)
+        try albumManager.delete(album: album)
         defer {
             CloudKitAlbumDeleteQueue().remove(hash)
             CloudKitAlbumPublishRegistry().forget(hash)

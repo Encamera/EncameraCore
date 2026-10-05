@@ -14,12 +14,15 @@ import XCTest
 final class CloudKitAlbumReconcilerTests: XCTestCase {
 
     private var markerIDs: [String] = []
+    private var cleanups: [() -> Void] = []
 
     override func tearDown() {
         for albumID in markerIDs {
             try? CloudKitAlbumMarker.remove(albumID: albumID)
         }
         markerIDs = []
+        cleanups.reversed().forEach { $0() }
+        cleanups = []
         super.tearDown()
     }
 
@@ -89,6 +92,36 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
               albumID: UUID().uuidString)
     }
 
+    /// An empty upload queue of the test's own, so the membership check never sees
+    /// another test's (or the app's) waiting captures.
+    private func freshUploadQueue() -> CloudKitUploadQueue {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("reconciler-upload-queue-\(UUID().uuidString)", isDirectory: true)
+        cleanups.append { try? FileManager.default.removeItem(at: dir) }
+        return CloudKitUploadQueue(baseDir: dir)
+    }
+
+    /// A media record in `albumID` as the zone change feed reports it.
+    private func member(of albumID: String) -> CloudKitMediaMetadata {
+        let mediaID = UUID().uuidString
+        return CloudKitMediaMetadata(recordName: CloudKitFileAccess.componentRecordName(mediaID: mediaID, type: .photo),
+                                     albumID: albumID, mediaID: mediaID, mediaType: .photo, createdAt: Date(),
+                                     sizeBytes: 10, creationDeviceID: "other-device", schemaVersion: 1,
+                                     recordChangeTag: "tag")
+    }
+
+    /// A paused whole-album move on this device from a local album into the CloudKit
+    /// album `albumID`: its plan on disk, and nothing running.
+    private func pendingMoveToCloudKit(into albumID: String, key: PrivateKey) async throws -> MigrationPlanStore {
+        let source = Album(name: "Moving-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: key)
+        let planStore = MigrationPlanStore(album: source)
+        try await planStore.save(try MigrationPlan.album(source, items: [], cloudKitAlbumID: albumID))
+        cleanups.append {
+            try? FileManager.default.removeItem(at: MigrationPlanStore.directoryURL(forSource: source))
+        }
+        return planStore
+    }
+
     private func freshDeleteQueue(_ name: String = #function) -> CloudKitAlbumDeleteQueue {
         CloudKitAlbumDeleteQueue(defaults: makeIsolatedDefaults(name))
     }
@@ -104,6 +137,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                 albums: [Album],
                                 deleteQueue: CloudKitAlbumDeleteQueue? = nil,
                                 publishRegistry: CloudKitAlbumPublishRegistry? = nil,
+                                uploadQueue: CloudKitUploadQueue? = nil,
                                 function: String = #function) -> (CloudKitAlbumReconciler, MockAlbumManager) {
         let keyManager = DemoKeyManager()
         keyManager.storedKeysValue = keys
@@ -114,7 +148,8 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                                  keyManager: keyManager,
                                                  albumManager: albumManager,
                                                  deleteQueue: deleteQueue ?? freshDeleteQueue(function),
-                                                 publishRegistry: publishRegistry ?? freshPublishRegistry(function))
+                                                 publishRegistry: publishRegistry ?? freshPublishRegistry(function),
+                                                 uploadQueue: uploadQueue ?? freshUploadQueue())
         return (reconciler, albumManager)
     }
 
@@ -616,6 +651,147 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertEqual(queue.pending(), [albumID], "an unconfirmed delete stays queued for the next pass")
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty)
         XCTAssertTrue(store.savedAlbumCalls.isEmpty, "a pending-delete album must not be pushed back up")
+    }
+
+    // MARK: - Albums a move is still filling
+
+    func test_reconcile_skipsAdoptingTheDestinationOfAnInFlightPlan() async throws {
+        let key = makeKey(5)
+        let record = uuidRecord(name: "Vacation", key: key)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        let planStore = try await pendingMoveToCloudKit(into: record.albumID, key: key)
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
+                      "the album a move on this device is filling must not show up as a second album")
+
+        await planStore.delete()
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
+                       "once the plan is gone the album is adopted normally")
+    }
+
+    func test_reconcile_doesNotAdoptARemoteAlbumFlaggedMigrationInProgress() async throws {
+        let key = makeKey(5)
+        let unflagged = uuidRecord(name: "Vacation", key: key)
+        let record = CloudKitAlbumMetadata(albumID: unflagged.albumID, encName: unflagged.encName,
+                                           createdAt: unflagged.createdAt, isHidden: false,
+                                           schemaVersion: unflagged.schemaVersion,
+                                           keyFingerprint: unflagged.keyFingerprint,
+                                           recordChangeTag: "tag", migrationInProgress: true)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
+                      "an album another device is still moving into CloudKit is not adopted here")
+
+        try await store.saveAlbum(CloudKitAlbumUpload(albumID: record.albumID, encName: record.encName,
+                                                      createdAt: record.createdAt, isHidden: false,
+                                                      keyFingerprint: key.keychainLabel,
+                                                      migrationInProgress: false))
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
+                       "the album is adopted once the moving device clears the flag")
+    }
+
+    // MARK: - Queued deletes and the membership check
+
+    /// A move back to this device whose album-record delete could not reach the
+    /// server is queued. If another device has since added media to the album, the
+    /// delete would cascade to it: the delete is dropped and the album adopted.
+    func test_reconcile_dropsAQueuedMoveBackDeleteOnceTheAlbumHasMembersAgain() async {
+        let key = makeKey(5)
+        let record = uuidRecord(name: "Trips", key: key)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        store.changeSet = CloudKitChangeSet(changed: [member(of: record.albumID)], deleted: [], token: nil, moreComing: false)
+        let queue = freshDeleteQueue()
+        queue.enqueue(record.albumID, requiresNoMembers: true)
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertTrue(store.deletedAlbumCalls.isEmpty, "an album with members must not be deleted")
+        XCTAssertTrue(queue.pending().isEmpty, "the stale delete intent is dropped")
+        XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
+                       "the album and the media another device added show up here")
+    }
+
+    func test_reconcile_drainsAQueuedMoveBackDeleteWhenTheAlbumIsEmpty() async {
+        let key = makeKey(5)
+        let record = uuidRecord(name: "Trips", key: key)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        let queue = freshDeleteQueue()
+        queue.enqueue(record.albumID, requiresNoMembers: true)
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(store.deletedAlbumCalls, [record.albumID])
+        XCTAssertTrue(queue.pending().isEmpty)
+        XCTAssertFalse(queue.requiresNoMembers(record.albumID), "a drained entry leaves no guard behind")
+        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty)
+    }
+
+    func test_reconcile_keepsAMembershipGuardedDeleteQueuedWhenTheCheckFails() async {
+        let key = makeKey(5)
+        let record = uuidRecord(name: "Trips", key: key)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        store.fetchChangesError = CloudKitMediaStoreError.retry(after: 1)
+        let queue = freshDeleteQueue()
+        queue.enqueue(record.albumID, requiresNoMembers: true)
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertTrue(store.deletedAlbumCalls.isEmpty, "no delete without a completed membership check")
+        XCTAssertEqual(queue.pending(), [record.albumID], "the delete waits for the next pass")
+        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty)
+    }
+
+    /// A user's delete of an album no move names still cascades, as the user asked.
+    func test_reconcile_drainsAUserDeleteOfAnAlbumWithMembers() async {
+        let key = makeKey(5)
+        let record = uuidRecord(name: "Doomed", key: key)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        store.changeSet = CloudKitChangeSet(changed: [member(of: record.albumID)], deleted: [], token: nil, moreComing: false)
+        let queue = freshDeleteQueue()
+        queue.enqueue(record.albumID)
+        let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(store.deletedAlbumCalls, [record.albumID])
+        XCTAssertTrue(queue.pending().isEmpty)
+    }
+
+    func test_reconcile_keepsAQueuedDeleteOfAMoveDestinationWhileItHasMembers() async throws {
+        let key = makeKey(5)
+        let record = uuidRecord(name: "Vacation", key: key)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        store.changeSet = CloudKitChangeSet(changed: [member(of: record.albumID)], deleted: [], token: nil, moreComing: false)
+        _ = try await pendingMoveToCloudKit(into: record.albumID, key: key)
+        let queue = freshDeleteQueue()
+        queue.enqueue(record.albumID)
+        let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertTrue(store.deletedAlbumCalls.isEmpty,
+                      "the destination of a move on this device keeps the media already moved into it")
+        XCTAssertEqual(queue.pending(), [record.albumID])
     }
 
     // MARK: - In-memory store album CRUD

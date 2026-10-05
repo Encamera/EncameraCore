@@ -825,7 +825,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         case .toCloudKit:
             return await saveAlbumRecord(for: context.destination, source: context.source,
                                          albumID: context.cloudKitAlbumID, store: context.store,
-                                         scope: plan.scope)
+                                         scope: plan.scope,
+                                         migrationInProgress: plan.scope == .album ? true : nil)
         case .toLocal:
             // Bring the index current first so the move sees records uploaded from
             // another device moments ago rather than silently leaving them behind.
@@ -1046,8 +1047,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                           planStore: MigrationPlanStore) async -> Bool {
         switch (plan.scope, plan.direction) {
         case (.album, .toCloudKit):
-            return await finalizeAlbumToCloudKit(plan, album: context.source, albumID: context.cloudKitAlbumID,
-                                                 planStore: planStore)
+            return await finalizeAlbumToCloudKit(plan, context: context, planStore: planStore)
         case (.album, .toLocal):
             return await finalizeAlbumToLocal(plan, album: context.source, planStore: planStore)
         case (.items, _):
@@ -1186,11 +1186,17 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// An album this device already holds as a CloudKit album is saved from its
     /// `album.json`. Otherwise the record takes the album's name ciphertext byte for
     /// byte and, for a whole album, the hidden flag and cover of the source album.
+    ///
+    /// `migrationInProgress` is written to `EncAlbum.migrationInProgress` when set:
+    /// a whole-album move flags the record before its first upload and clears it in
+    /// `finalizeAlbumToCloudKit`, so other devices leave the half-filled album
+    /// unadopted. `nil` leaves the record's value alone.
     private func saveAlbumRecord(for album: Album,
                                  source: Album,
                                  albumID: String,
                                  store: CloudKitMediaStoring,
-                                 scope: MigrationScope) async -> Bool {
+                                 scope: MigrationScope,
+                                 migrationInProgress: Bool?) async -> Bool {
         let subject = scope == .album ? "This album's" : "The destination album's"
         guard let albumFingerprint = CloudKitKeyStamp.provenAlbumFingerprint(for: album,
                                                                              keyManager: albumManager.keyManager) else {
@@ -1207,7 +1213,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                              createdAt: marker.createdAt,
                                              isHidden: marker.isHidden,
                                              keyFingerprint: albumFingerprint,
-                                             coverMediaID: marker.recordCoverMediaID)
+                                             coverMediaID: marker.recordCoverMediaID,
+                                             migrationInProgress: migrationInProgress)
             } else {
                 let settings = scope == .album ? source : album
                 let cover = albumManager.getAlbumCoverImageId(album: settings)
@@ -1216,10 +1223,11 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                              createdAt: album.creationDate,
                                              isHidden: albumManager.isAlbumHidden(settings),
                                              keyFingerprint: albumFingerprint,
-                                             coverMediaID: cover == CloudKitAlbumMarker.disabledCoverID ? nil : cover)
+                                             coverMediaID: cover == CloudKitAlbumMarker.disabledCoverID ? nil : cover,
+                                             migrationInProgress: migrationInProgress)
             }
             try await store.saveAlbum(upload)
-            printDebug("run album record ready albumID=\(albumID)")
+            printDebug("run album record ready albumID=\(albumID) migrationInProgress=\(migrationInProgress.map(String.init) ?? "unchanged")")
             return true
         } catch {
             printDebug("run ABORT saveAlbum FAILED albumID=\(albumID) error=\(error)")
@@ -1296,9 +1304,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// Flips a drained album's identity to CloudKit. Returns `false` when the run
     /// already published its terminal state and must return without publishing again.
     private func finalizeAlbumToCloudKit(_ plan: MigrationPlan,
-                                         album: Album,
-                                         albumID: String,
+                                         context: MigrationRunContext,
                                          planStore: MigrationPlanStore) async -> Bool {
+        let album = context.source
+        let albumID = context.cloudKitAlbumID
         // No remaining work — every item is done, or there were none to begin
         // with (an empty album must still flip to CloudKit rather than wedge
         // forever with an orphaned zero-item checkpoint that `pendingPlans()`
@@ -1324,6 +1333,18 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         // here would leave the album safe in CloudKit but reachable nowhere on
         // this device, with no retry state. A kept checkpoint retries finalize
         // on the next resume.
+        //
+        // The record's `migrationInProgress` flag is cleared first, so other devices
+        // adopt the album once it is whole. A failed clear also keeps the
+        // checkpoint: the album stays hidden elsewhere until a resume clears it.
+        guard await saveAlbumRecord(for: context.destination, source: album, albumID: albumID,
+                                    store: context.store, scope: plan.scope,
+                                    migrationInProgress: false) else {
+            printDebug("run FINALIZE FAILED album=\(album.name) — could not clear migrationInProgress; checkpoint kept for retry")
+            currentPhase = nil
+            publishProgress(plan)
+            return false
+        }
         do {
             _ = try albumManager.finalizeMigrationToCloudKit(album: album, albumID: albumID)
         } catch {

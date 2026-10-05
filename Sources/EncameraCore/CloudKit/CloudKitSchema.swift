@@ -110,6 +110,12 @@ public enum CloudKitSchema {
         /// cascade-delete the album. Absent on records that predate this field or
         /// when no explicit cover is set.
         public static let coverMediaRef  = "coverMediaRef"   // CKRecord.Reference(.none) -> EncMedia
+        /// 1 while a whole-album move to CloudKit is still filling the album, 0 once
+        /// the moving device has finalized it. Another device leaves a flagged album
+        /// unadopted, so it never lists a half-filled twin of an album it still shows
+        /// in its old storage. Absent on records that predate the field, and on
+        /// albums no move created; both read as 0.
+        public static let migrationInProgress = "migrationInProgress" // Int64 (0/1)
     }
 
     /// Bumped when the record layout changes; written to `schemaVersion`.

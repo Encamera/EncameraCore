@@ -13,12 +13,19 @@
 //  The queue holds the local *intent*, independently of how the deletion reaches
 //  the server — a real record delete, which cascades to the album's media.
 //
+//  An entry enqueued with `requiresNoMembers` (a move back to this device that
+//  finalized while offline) was meant to delete an album the move had emptied.
+//  The reconciler drains such an entry only after `CloudKitAlbumMembership` finds
+//  nothing pointing at the album; another device may have added media meanwhile.
+//
 
 import Foundation
 
 public struct CloudKitAlbumDeleteQueue: DebugPrintable {
 
     private static let storageKey = "cloudkit_pending_album_deletes_v1"
+    /// The subset of `storageKey` whose delete must wait for an empty membership check.
+    private static let requiresNoMembersKey = "cloudkit_pending_album_deletes_requiring_no_members_v1"
 
     /// `enqueue`/`remove` are read-modify-write over one defaults key, and the two
     /// writers run on different executors (`AlbumManager.delete` on the caller's
@@ -48,20 +55,38 @@ public struct CloudKitAlbumDeleteQueue: DebugPrintable {
         return set
     }
 
-    public func enqueue(_ albumID: String) {
+    /// Whether the queued delete of `albumID` may only be issued once nothing
+    /// points at the album any more.
+    public func requiresNoMembers(_ albumID: String) -> Bool {
+        Self.lock.withLock { read(Self.requiresNoMembersKey).contains(albumID) }
+    }
+
+    /// Queues the delete of `albumID`. With `requiresNoMembers`, the reconciler
+    /// issues it only after a membership check finds the album empty.
+    public func enqueue(_ albumID: String, requiresNoMembers: Bool = false) {
         Self.lock.withLock {
+            if requiresNoMembers {
+                var guarded = read(Self.requiresNoMembersKey)
+                if guarded.insert(albumID).inserted {
+                    defaults.set(Array(guarded), forKey: Self.requiresNoMembersKey)
+                }
+            }
             var set = read()
             guard set.insert(albumID).inserted else {
                 printDebug("enqueue skip albumID=\(albumID) reason=alreadyQueued pending=\(set.count)")
                 return
             }
             defaults.set(Array(set), forKey: Self.storageKey)
-            printDebug("enqueue ok albumID=\(albumID) pending=\(set.count)")
+            printDebug("enqueue ok albumID=\(albumID) requiresNoMembers=\(requiresNoMembers) pending=\(set.count)")
         }
     }
 
     public func remove(_ albumID: String) {
         Self.lock.withLock {
+            var guarded = read(Self.requiresNoMembersKey)
+            if guarded.remove(albumID) != nil {
+                defaults.set(Array(guarded), forKey: Self.requiresNoMembersKey)
+            }
             var set = read()
             guard set.remove(albumID) != nil else {
                 printDebug("remove skip albumID=\(albumID) reason=notQueued pending=\(set.count)")
@@ -72,7 +97,7 @@ public struct CloudKitAlbumDeleteQueue: DebugPrintable {
         }
     }
 
-    private func read() -> Set<String> {
-        Set(defaults.stringArray(forKey: Self.storageKey) ?? [])
+    private func read(_ key: String = Self.storageKey) -> Set<String> {
+        Set(defaults.stringArray(forKey: key) ?? [])
     }
 }

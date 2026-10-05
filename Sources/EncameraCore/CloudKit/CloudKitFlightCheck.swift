@@ -320,10 +320,10 @@ public final class CloudKitFlightCheck: DebugPrintable {
                 try? await cascadeCloud.delete(media: [cascadeProbe])
             }
             if let cascadeAlbum {
-                albumManager.delete(album: cascadeAlbum)
+                try? albumManager.delete(album: cascadeAlbum)
             }
             if let album {
-                albumManager.delete(album: album)
+                try? albumManager.delete(album: album)
             }
         }
     }
@@ -342,7 +342,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
         let testAlbums = albumManager.fetchAlbumsFromSources(includingHidden: true)
             .filter { $0.name.hasPrefix(testAlbumNamePrefix) }
         for album in testAlbums {
-            albumManager.delete(album: album)
+            try? albumManager.delete(album: album)
         }
         return testAlbums.count
     }
@@ -750,7 +750,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
         }
         guard landed else { throw FlightCheckError.childNeverReachedServer(recordName: childRecordName) }
 
-        albumManager.delete(album: album)
+        try albumManager.delete(album: album)
         cascadeAlbum = nil
         cascadeCloud = nil
 

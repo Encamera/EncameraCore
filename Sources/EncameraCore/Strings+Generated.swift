@@ -801,6 +801,10 @@ public enum L10n {
     public static let coverImageRemovedToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageRemovedToast", fallback: "Cover image disabled")
     /// Cover image defaults to latest item
     public static let coverImageResetToast = L10n.tr("Localizable", "AlbumDetailView.CoverImageResetToast", fallback: "Cover image defaults to latest item")
+    /// This album is part of a move that hasn't finished, so it can't be deleted yet. Finish or resume the move first. Nothing was deleted.
+    public static let deleteBlockedByMoveMessage = L10n.tr("Localizable", "AlbumDetailView.DeleteBlockedByMoveMessage", fallback: "This album is part of a move that hasn't finished, so it can't be deleted yet. Finish or resume the move first. Nothing was deleted.")
+    /// Can't Delete Album
+    public static let deleteBlockedByMoveTitle = L10n.tr("Localizable", "AlbumDetailView.DeleteBlockedByMoveTitle", fallback: "Can't Delete Album")
     /// Do you want to delete %@ %@?
     public static func deleteSelectedMedia(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.DeleteSelectedMedia", String(describing: p1), String(describing: p2), fallback: "Do you want to delete %@ %@?")
