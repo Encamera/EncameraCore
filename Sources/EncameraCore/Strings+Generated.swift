@@ -3054,8 +3054,16 @@ public enum L10n {
     public static func stalled(_ p1: Int) -> String {
       return L10n.tr("Localizable", "SyncStatusBar.Stalled", p1, fallback: "%d items could not be uploaded")
     }
+    /// iCloud storage is full. Free up space to keep syncing.
+    public static let storageFull = L10n.tr("Localizable", "SyncStatusBar.StorageFull", fallback: "iCloud storage is full. Free up space to keep syncing.")
+    /// iCloud storage is full. %d items are waiting to upload.
+    public static func storageFullStalled(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "SyncStatusBar.StorageFullStalled", p1, fallback: "iCloud storage is full. %d items are waiting to upload.")
+    }
     /// ./Encamera/Components/SyncStatusBar.swift
     public static let title = L10n.tr("Localizable", "SyncStatusBar.Title", fallback: "iCloud sync")
+    /// Can't reach iCloud
+    public static let unreachable = L10n.tr("Localizable", "SyncStatusBar.Unreachable", fallback: "Can't reach iCloud")
     /// Uploading %d of %d to iCloud
     public static func uploading(_ p1: Int, _ p2: Int) -> String {
       return L10n.tr("Localizable", "SyncStatusBar.Uploading", p1, p2, fallback: "Uploading %d of %d to iCloud")

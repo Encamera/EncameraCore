@@ -251,7 +251,11 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
 
     // MARK: Albums
 
+    /// When set, every `saveAlbum` throws it.
+    public var saveAlbumError: Error?
+
     public func saveAlbum(_ album: CloudKitAlbumUpload) async throws {
+        if let saveAlbumError { throw saveAlbumError }
         let tag = "albumtag-\(album.albumID)"
         locked {
             let migrationInProgress = album.migrationInProgress ?? albums[album.albumID]?.migrationInProgress ?? false
@@ -369,7 +373,11 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
 
     public func cancelAll() {}
 
-    public func accountAvailable() async -> Bool { true }
+    /// What `accountAvailable()` answers. Clear it to stand in for a device
+    /// signed out of iCloud.
+    public var isAccountAvailable = true
+
+    public func accountAvailable() async -> Bool { isAccountAvailable }
 
     // MARK: - Persistence
 

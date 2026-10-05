@@ -39,6 +39,10 @@ public actor CloudKitUploader: DebugPrintable {
     /// a tight loop. In memory only: after a relaunch everything is eligible
     /// again, which is the behaviour we want on a fresh start.
     private var nextAttemptAfter: [String: Date] = [:]
+    /// Records that gave up because iCloud storage is full, so a pass can say why
+    /// its stalled items are stuck. In memory, like `nextAttemptAfter`: the first
+    /// pass after a relaunch retries every given-up item and finds out again.
+    private var blockedByFullStorage: Set<String> = []
     private var hasSwept = false
 
     public init(queue: CloudKitUploadQueue = .shared,
@@ -172,8 +176,10 @@ public actor CloudKitUploader: DebugPrintable {
     /// backlog that drains — or one whose items are freed by `retryFailed` —
     /// clears the status bar rather than leaving a stale count on screen.
     private func reportPassFinished() async {
-        let stalled = await queue.givenUp().count
-        await reporter().reportUploadsFinished(stalled: stalled)
+        let givenUp = Set(await queue.givenUp().map(\.recordName))
+        blockedByFullStorage.formIntersection(givenUp)
+        await reporter().reportUploadsFinished(stalled: givenUp.count,
+                                               storageFull: !blockedByFullStorage.isEmpty)
     }
 
     /// Returns true when the item reached CloudKit.
@@ -218,6 +224,7 @@ public actor CloudKitUploader: DebugPrintable {
             return false
         case .quotaExceeded:
             await queue.giveUp(recordName: item.recordName, reason: error)
+            blockedByFullStorage.insert(item.recordName)
             nextAttemptAfter[item.recordName] = nil
             return false
         case .accountUnavailable:

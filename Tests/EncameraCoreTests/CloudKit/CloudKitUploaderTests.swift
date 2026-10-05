@@ -140,9 +140,28 @@ final class CloudKitUploaderTests: XCTestCase {
         let stalled = await stalledCount()
         XCTAssertEqual(stalled, 1, "the pass reports the item as stalled")
         let activity = await MainActor.run { reporter.activity }
-        XCTAssertEqual(activity, .stalled(count: 1), "the status bar shows stalled, not up to date")
+        XCTAssertEqual(activity, .storageFull(stalled: 1), "the status bar says iCloud is full, not up to date")
         XCTAssertTrue(FileManager.default.fileExists(atPath: upload.encryptedFileURL.path),
                       "giving up keeps the only copy of the capture")
+    }
+
+    /// After the user frees space, the retried item lands and the bar stops
+    /// saying iCloud is full.
+    func testStorageFullClearsOnceTheItemUploads() async throws {
+        let upload = try await enqueueCapture()
+        store.uploadFailures[upload.recordName] = partial(.quotaExceeded, for: upload.recordName)
+        await drain()
+        let blocked = await MainActor.run { reporter.activity }
+        XCTAssertEqual(blocked, .storageFull(stalled: 1))
+
+        store.uploadFailures[upload.recordName] = nil
+        await uploader.retryFailed()
+        await drain()
+
+        let given = await queue.givenUp()
+        XCTAssertTrue(given.isEmpty)
+        let activity = await MainActor.run { reporter.activity }
+        XCTAssertEqual(activity, .idle)
     }
 
     // MARK: - Conflict
@@ -196,6 +215,8 @@ final class CloudKitUploaderTests: XCTestCase {
         }
         let stalled = await stalledCount()
         XCTAssertEqual(stalled, 2, "both show as stalled")
+        let activity = await MainActor.run { reporter.activity }
+        XCTAssertEqual(activity, .stalled(count: 2), "a conflict is not a full iCloud")
     }
 
     // MARK: - Cancelled

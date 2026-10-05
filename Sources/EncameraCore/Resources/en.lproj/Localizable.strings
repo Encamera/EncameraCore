@@ -1171,6 +1171,9 @@
 "SyncStatusBar.Uploading" = "Uploading %d of %d to iCloud";
 "SyncStatusBar.Stalled" = "%d items could not be uploaded";
 "SyncStatusBar.UpToDate" = "iCloud is up to date";
+"SyncStatusBar.Unreachable" = "Can't reach iCloud";
+"SyncStatusBar.StorageFull" = "iCloud storage is full. Free up space to keep syncing.";
+"SyncStatusBar.StorageFullStalled" = "iCloud storage is full. %d items are waiting to upload.";
 
 /* ./Encamera/ImageViewing/MediaViewingError.swift - iCloud Error Messages */
 "ICloudError.FileNotDownloaded" = "This file is stored in iCloud and needs to be downloaded. Please check your internet connection and try again.";

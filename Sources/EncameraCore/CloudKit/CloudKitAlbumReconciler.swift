@@ -43,6 +43,36 @@
 
 import Foundation
 
+/// How a `CloudKitAlbumReconciler.reconcileAlbums()` pass ended.
+public enum CloudKitAlbumReconcileResult: Equatable, Sendable {
+    /// The zone was read. `lockedOutCount` is the number of remote albums that
+    /// could not be materialized for lack of a matching (synced) key;
+    /// `storageFull` is whether an album save was refused because iCloud storage
+    /// is full.
+    case succeeded(lockedOutCount: Int, storageFull: Bool = false)
+    /// No iCloud account is signed in or reachable; nothing was read.
+    case accountUnavailable
+    /// The album query failed, so this pass learned nothing about the server.
+    case fetchFailed
+
+    /// The locked-out count, or 0 when the pass never got that far.
+    public var lockedOutCount: Int {
+        if case .succeeded(let count, _) = self { return count }
+        return 0
+    }
+
+    /// Whether an album save was refused because iCloud storage is full.
+    public var storageFull: Bool {
+        if case .succeeded(_, let storageFull) = self { return storageFull }
+        return false
+    }
+
+    public var succeeded: Bool {
+        if case .succeeded = self { return true }
+        return false
+    }
+}
+
 public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable {
 
     private let store: CloudKitMediaStoring
@@ -66,15 +96,21 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         self.uploadQueue = uploadQueue
     }
 
+    /// Whether an iCloud account is available to reconcile against.
+    public func accountAvailable() async -> Bool {
+        await store.accountAvailable()
+    }
+
     /// Reconcile album existence between CloudKit and the local filesystem markers.
-    /// Returns the number of remote albums that could NOT be materialized for lack of
-    /// a matching (synced) key — surfaced to the UI as "needs key backup".
+    /// A successful pass carries the number of remote albums that could NOT be
+    /// materialized for lack of a matching (synced) key — surfaced to the UI as
+    /// "needs key backup".
     @discardableResult
-    public func reconcileAlbums() async -> Int {
+    public func reconcileAlbums() async -> CloudKitAlbumReconcileResult {
         printDebug("reconcileAlbums start")
         guard await store.accountAvailable() else {
             printDebug("reconcileAlbums skip reason=accountUnavailable")
-            return 0
+            return .accountUnavailable
         }
 
         // 0. Drain pending local delete intents FIRST: a delete made offline or
@@ -115,7 +151,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             printDebug("reconcileAlbums fetchAllAlbums ok remoteCount=\(remote.count)")
         } catch {
             printDebug("reconcileAlbums fetchAllAlbums FAILED error=\(error)")
-            return 0
+            return .fetchFailed
         }
 
         let keys: [PrivateKey]
@@ -174,6 +210,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         }
 
         var pushed = 0
+        var storageFull = false
         var deletedLocally = deletedRemotely.count
         for (albumID, album) in localByID where !pendingDeletes.contains(albumID) {
             let marker = CloudKitAlbumMarker.read(albumID: albumID)
@@ -199,13 +236,15 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 reason = "neverPublished"
             }
 
-            if await push(album: album, marker: marker, keys: keys, reason: reason) {
-                pushed += 1
+            switch await push(album: album, marker: marker, keys: keys, reason: reason) {
+            case .pushed: pushed += 1
+            case .storageFull: storageFull = true
+            case .failed: break
             }
         }
 
-        printDebug("reconcileAlbums ok remote=\(remote.count) adopted=\(adopted) deletedLocally=\(deletedLocally) pushed=\(pushed) lockedOut=\(lockedOut) stillPendingDeletes=\(pendingDeletes.count)")
-        return lockedOut
+        printDebug("reconcileAlbums ok remote=\(remote.count) adopted=\(adopted) deletedLocally=\(deletedLocally) pushed=\(pushed) lockedOut=\(lockedOut) storageFull=\(storageFull) stillPendingDeletes=\(pendingDeletes.count)")
+        return .succeeded(lockedOutCount: lockedOut, storageFull: storageFull)
     }
 
     /// `Album.id` of the CloudKit album whose record name is `albumID`, the key
@@ -265,12 +304,14 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         }
     }
 
+    private enum PushOutcome { case pushed, failed, storageFull }
+
     /// Saves the album's record and, on success, clears the marker's `dirty` flag
     /// unless the marker changed while the save was in flight. The name, creation
     /// date, hidden flag and cover come from `album.json` when there is one, so a
     /// pending local change is what reaches the record.
-    private func push(album: Album, marker: CloudKitAlbumMarker?, keys: [PrivateKey], reason: String) async -> Bool {
-        guard let albumID = album.albumID else { return false }
+    private func push(album: Album, marker: CloudKitAlbumMarker?, keys: [PrivateKey], reason: String) async -> PushOutcome {
+        guard let albumID = album.albumID else { return .failed }
         let pushed = marker.map {
             Album(encryptedName: $0.encName, storageOption: .cloudKit, creationDate: $0.createdAt,
                   key: album.key, albumID: albumID)
@@ -279,7 +320,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                                                                              keyManager: keyManager,
                                                                              storedKeysSnapshot: keys) else {
             printDebug("reconcileAlbums push skip albumID=\(albumID) reason=noKeyDecryptsTheName")
-            return false
+            return .failed
         }
         let upload = CloudKitAlbumUpload(albumID: albumID,
                                          encName: pushed.encryptedPathComponent,
@@ -292,7 +333,8 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             try await store.saveAlbum(upload)
         } catch {
             printDebug("reconcileAlbums push FAILED albumID=\(albumID) error=\(error)")
-            return false
+            if case .quotaExceeded = mapCKError(error) { return .storageFull }
+            return .failed
         }
         publishRegistry.markPublished(albumID)
         if let marker {
@@ -303,7 +345,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             }
         }
         printDebug("reconcileAlbums push ok albumID=\(albumID)")
-        return true
+        return .pushed
     }
 
     /// Applies what the zone change feed reports about albums and returns the ids

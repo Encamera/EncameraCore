@@ -21,6 +21,9 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     /// key can appear mid-wait (`.restoringKeyMaterial` re-derives it), which
     /// fires `keyPublisher` and would otherwise start a sync early.
     private let isReadyToSync: @Sendable () -> Bool
+    /// Nil means `CloudKitSyncStatusReporter.shared`, which can only be read on
+    /// the main actor.
+    private let statusReporter: CloudKitSyncStatusReporter?
     private var observer: NSObjectProtocol?
     private var keyLibraryObserver: NSObjectProtocol?
 
@@ -35,9 +38,11 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     public init(albumManager: AlbumManaging,
                 observeNotifications: Bool = true,
                 isReadyToSync: @escaping @Sendable () -> Bool = { true },
+                statusReporter: CloudKitSyncStatusReporter? = nil,
                 makeReconciler: (@Sendable (AlbumManaging) -> CloudKitAlbumReconciler)? = nil) {
         self.albumManager = albumManager
         self.isReadyToSync = isReadyToSync
+        self.statusReporter = statusReporter
         self.makeReconciler = makeReconciler ?? { albumManager in
             CloudKitAlbumReconciler(store: CloudKitStoreProvider.makeStore(""),
                                     keyManager: albumManager.keyManager,
@@ -57,6 +62,11 @@ public actor CloudKitAlbumsSync: DebugPrintable {
                 Task { await self?.syncAll() }
             }
         }
+    }
+
+    private func reporter() async -> CloudKitSyncStatusReporter {
+        if let statusReporter { return statusReporter }
+        return await CloudKitSyncStatusReporter.shared
     }
 
     deinit {
@@ -131,10 +141,21 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         }
         printDebug("performSyncAll start featureEnabled=\(featureEnabled) hasCloudKitAlbums=\(hasCloudKitAlbums)")
 
-        await CloudKitSyncStatusReporter.shared.reportCheckStarted()
+        // The reconcile still runs without a local CloudKit album (it adopts
+        // albums other devices created), but only a check against an available
+        // account on behalf of a CloudKit album is reported. Otherwise the bar
+        // would tell local-only and signed-out users that iCloud is up to date.
+        let reconciler = makeReconciler(albumManager)
+        let reportsCheck = hasCloudKitAlbums ? await reconciler.accountAvailable() : false
+        if reportsCheck {
+            await reporter().reportCheckStarted()
+        } else {
+            printDebug("performSyncAll status unreported reason=\(hasCloudKitAlbums ? "accountUnavailable" : "noCloudKitAlbums")")
+        }
 
-        albumsNeedingKey = await makeReconciler(albumManager).reconcileAlbums()
-        printDebug("performSyncAll reconcileAlbums done albumsNeedingKey=\(albumsNeedingKey)")
+        let result = await reconciler.reconcileAlbums()
+        albumsNeedingKey = result.lockedOutCount
+        printDebug("performSyncAll reconcileAlbums done result=\(result)")
         await LockedAlbumsReporter.shared.report(lockedAlbumCount: albumsNeedingKey)
 
         let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
@@ -145,7 +166,9 @@ public actor CloudKitAlbumsSync: DebugPrintable {
             _ = await access.reconcile()
         }
         await CloudKitUploader.shared.kick()
-        await CloudKitSyncStatusReporter.shared.reportCheckFinished()
+        if reportsCheck {
+            await reporter().reportCheckFinished(succeeded: result.succeeded, storageFull: result.storageFull)
+        }
         printDebug("performSyncAll ok albumCount=\(albums.count) albumsNeedingKey=\(albumsNeedingKey)")
     }
 }

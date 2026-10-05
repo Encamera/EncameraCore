@@ -9,6 +9,7 @@
 //
 
 import XCTest
+import CloudKit
 @testable import EncameraCore
 
 final class CloudKitAlbumReconcilerTests: XCTestCase {
@@ -219,7 +220,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                               recordChangeTag: "tag"))
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums()
+        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
 
         XCTAssertEqual(lockedOut, 1)
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
@@ -231,7 +232,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(uuidRecord(name: "Elsewhere", key: makeKey(9)))
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [makeKey(1), makeKey(2)], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums()
+        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
 
         XCTAssertEqual(lockedOut, 1)
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty)
@@ -245,12 +246,40 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let store = MockCloudKitMediaStore()
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [local])
 
-        let lockedOut = await reconciler.reconcileAlbums()
+        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
 
         XCTAssertEqual(lockedOut, 0)
         XCTAssertEqual(store.savedAlbumCalls.map { $0.albumID }, [local.albumID])
         XCTAssertEqual(store.savedAlbumCalls.first?.keyFingerprint, key.keychainLabel,
                        "the self-heal push must stamp the album with the key that encrypts it")
+    }
+
+    /// An album save refused for storage arrives as a per-record quota error
+    /// wrapped in `.partial`, like every single-record save failure.
+    func test_reconcile_reportsStorageFullWhenAnAlbumSaveHitsTheQuota() async throws {
+        let key = makeKey(5)
+        let local = localAlbum("OnlyHere", key: key)
+        let albumID = try XCTUnwrap(local.albumID)
+        let store = MockCloudKitMediaStore()
+        store.saveAlbumError = CloudKitMediaStoreError.partial(failed: [albumID: CKErrorFactory.error(.quotaExceeded)])
+        let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [local])
+
+        let result = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(result, .succeeded(lockedOutCount: 0, storageFull: true))
+        XCTAssertEqual(store.saveAlbumAttemptCount, 1)
+    }
+
+    func test_reconcile_otherAlbumSaveFailureIsNotStorageFull() async {
+        let key = makeKey(5)
+        let store = MockCloudKitMediaStore()
+        store.saveAlbumError = CloudKitMediaStoreError.retry(after: 1)
+        let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [localAlbum("OnlyHere", key: key)])
+
+        let result = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(result, .succeeded(lockedOutCount: 0))
+        XCTAssertFalse(result.storageFull)
     }
 
     func test_reconcile_reportsLockedOutWhenKeyMissing() async {
@@ -259,7 +288,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(remoteRecord(name: "Remote", key: absentOwner))
         let (reconciler, _) = makeReconciler(store: store, keys: [makeKey(1)], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums()
+        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
 
         XCTAssertEqual(lockedOut, 1)
         XCTAssertTrue(store.savedAlbumCalls.isEmpty)
@@ -383,7 +412,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.accountAvailableValue = false
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [local])
 
-        let lockedOut = await reconciler.reconcileAlbums()
+        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
 
         XCTAssertEqual(lockedOut, 0)
         XCTAssertEqual(store.fetchChangesCount, 0, "no account means the zone is never read")
@@ -396,6 +425,43 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertEqual(store.fetchChangesCount, 1)
         XCTAssertEqual(store.fetchAllAlbumsCount, 1)
         XCTAssertEqual(store.savedAlbumCalls.map { $0.albumID }, [local.albumID])
+    }
+
+    func test_reconcile_reportsAccountUnavailable() async {
+        let key = makeKey(5)
+        let store = MockCloudKitMediaStore()
+        store.accountAvailableValue = false
+        store.seedAlbum(remoteRecord(name: "Remote", key: makeKey(9)))
+        let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [localAlbum("Offline", key: key)])
+
+        let result = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(result, .accountUnavailable,
+                       "a pass with no account must say so, not pass for a clean reconcile with 0 locked out")
+        XCTAssertFalse(result.succeeded)
+        XCTAssertEqual(result.lockedOutCount, 0)
+        XCTAssertEqual(store.fetchAllAlbumsCount, 0)
+    }
+
+    func test_reconcile_reportsFetchFailure() async {
+        let key = makeKey(5)
+        let store = MockCloudKitMediaStore()
+        store.fetchAllAlbumsError = CloudKitMediaStoreError.underlying(NSError(domain: "test", code: 1))
+        store.seedAlbum(remoteRecord(name: "Remote", key: makeKey(9)))
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
+
+        let result = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(result, .fetchFailed,
+                       "a failed album query must say so, not pass for a clean reconcile with 0 locked out")
+        XCTAssertFalse(result.succeeded)
+        XCTAssertEqual(store.fetchAllAlbumsCount, 1)
+        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty)
+
+        store.fetchAllAlbumsError = nil
+        let retry = await reconciler.reconcileAlbums()
+        XCTAssertEqual(retry, .succeeded(lockedOutCount: 1),
+                       "once the fetch works the pass succeeds and counts the unreadable album")
     }
 
     func test_reconcile_doesNotRePushAlbumAlreadyRemote() async {
@@ -418,7 +484,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(remoteRecord(name: "FromOtherDevice", key: key, isHidden: true))
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums()
+        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
 
         XCTAssertEqual(lockedOut, 0)
         XCTAssertEqual(albumManager.adoptedAlbums.map { $0.name }, ["FromOtherDevice"],
@@ -433,7 +499,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(record)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums()
+        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
 
         XCTAssertEqual(lockedOut, 0)
         XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
