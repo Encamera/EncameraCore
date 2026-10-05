@@ -115,10 +115,18 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
     /// unqueued: unreadable for the rest of the session and never reclaimed from
     /// the zone. The migration back into iCloud racing a user delete is exactly
     /// where that interleaving lives.
+    ///
+    /// - Parameter holdPastConfirmation: keep the claim active after the delete is
+    ///   confirmed, until the record is republished. For an item whose upload may
+    ///   still be in flight: its save can land after the confirmation, and a sync
+    ///   that fetched it must not unmark the record before the upload sees the mark.
     @discardableResult
-    func claimDeletion(of recordName: String, chunkCount: Int = 0, queueRemoteDelete: Bool) -> CloudKitDeleteClaim {
+    func claimDeletion(of recordName: String,
+                       chunkCount: Int = 0,
+                       queueRemoteDelete: Bool,
+                       holdPastConfirmation: Bool = false) -> CloudKitDeleteClaim {
         Self.lock.withLock {
-            let claim = session.claim(recordName)
+            let claim = session.claim(recordName, holdPastConfirmation: holdPastConfirmation)
             guard queueRemoteDelete else {
                 printDebug("claimDeletion ok recordName=\(recordName) queued=false — nothing to delete remotely")
                 return claim
@@ -147,6 +155,7 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
                 return false
             }
             removeLocked(recordName)
+            session.retire(claim, for: recordName)
             return true
         }
     }
@@ -215,9 +224,11 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
     }
 
     /// Marks `recordName` deleted without claiming or queueing it. Used for
-    /// feed-observed deletes where no local `confirmDelete` will follow: reads
-    /// fail closed, but the claim generation stays untouched so an in-flight
-    /// local delete's confirmation is not stranded by a spurious bump.
+    /// deletes learned from the server — a feed delete, or a record a full fetch
+    /// no longer returned — where no local `confirmDelete` will follow: reads fail
+    /// closed, but the claim generation stays untouched so an in-flight local
+    /// delete's confirmation is not stranded by a spurious bump, and no claim is
+    /// left active, so the record unmarks if a later fetch returns it.
     func markDeletedFromFeed(_ recordName: String) {
         Self.lock.withLock {
             session.markOnly(recordName)
@@ -226,7 +237,8 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
 
     /// Drops the mark for a record the server has just reported as live, unless a
     /// delete is still queued for it — in which case the delete has not been
-    /// issued yet and must keep winning.
+    /// issued yet and must keep winning — or its claim is still active, as one
+    /// taken for an item deleted mid-upload stays until the record is republished.
     func clearKnownDeletedIfNotQueued(_ recordName: String) {
         Self.lock.withLock {
             guard read()[recordName] == nil else {

@@ -368,19 +368,24 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// deleted while the token was expired (or before an index rebuild) keeps its
     /// index entry, its cached blob and its preview for the life of the install.
     ///
-    /// Items still waiting in the upload queue are exempt. They are legitimately in
-    /// the index and legitimately absent from the server — that is what "pending
+    /// Items waiting in the upload queue are exempt. They are legitimately in the
+    /// index and legitimately absent from the server — that is what "pending
     /// upload" means — and reaping them would delete a just-captured photo before
-    /// its bytes ever left the device.
+    /// its bytes ever left the device. That covers items pending when the fetch
+    /// started (`pendingUploadBeforeFetch`) as well as now: an upload that
+    /// completes while the fetch is suspended has left the queue but may be
+    /// missing from a snapshot taken before its save landed.
+    ///
+    /// A reaped record is marked without a claim, so it reads as deleted until a
+    /// later fetch returns it, and then becomes readable again.
     private func reap(from entries: inout [MediaIndexEntry],
                       seen: Set<MediaComponent>,
+                      pendingUploadBeforeFetch: Set<MediaComponent>,
                       pendingDeletes: inout [EncryptedMedia],
                       pendingCreates: inout [EncryptedMedia],
                       sizeRemovals: inout Set<String>,
                       removedRecordNames: inout [String]) async {
-        let pendingUpload = Set(await uploadQueue.all().map {
-            MediaComponent(mediaID: $0.mediaID, mediaType: $0.mediaType)
-        })
+        let pendingUpload = pendingUploadBeforeFetch.union(await pendingUploadComponents())
         var reaped = 0
         var exempt = 0
 
@@ -399,7 +404,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                                                                      type: component.mediaType)
                 let entryRemoved = entries.removeComponent(recordName: recordName)
                 removedRecordNames.append(recordName)
-                deleteQueue.claimDeletion(of: recordName, queueRemoteDelete: false)
+                deleteQueue.markDeletedFromFeed(recordName)
                 changeTags[recordName] = nil
                 sizeRemovals.insert(recordName)
                 await cache.evict(recordName: recordName)
@@ -414,6 +419,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         }
 
         printDebug("reap done albumID=\(self.albumID) reaped=\(reaped) exemptPendingUpload=\(exempt) seen=\(seen.count) entriesRemaining=\(entries.count)")
+    }
+
+    /// The components waiting in the upload queue, in the form the reap compares.
+    private func pendingUploadComponents() async -> Set<MediaComponent> {
+        Set(await uploadQueue.all().map {
+            MediaComponent(mediaID: $0.mediaID, mediaType: $0.mediaType)
+        })
     }
 
     private func performSync(albumID: String) async throws {
@@ -438,6 +450,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             token = nil
         }
         let startedWithoutToken = token == nil
+        // Taken before the first fetch so the reap still exempts an upload that
+        // completes while the fetch is suspended.
+        let pendingUploadBeforeFetch = startedWithoutToken ? await pendingUploadComponents() : []
         var seen: Set<MediaComponent> = []
         var snapshotComplete = false
 
@@ -534,6 +549,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         if startedWithoutToken, snapshotComplete {
             await reap(from: &entries,
                        seen: seen,
+                       pendingUploadBeforeFetch: pendingUploadBeforeFetch,
                        pendingDeletes: &pendingDeletes,
                        pendingCreates: &pendingCreates,
                        sizeRemovals: &sizeRemovals,
@@ -1097,7 +1113,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         // idempotent, and the drain treats `.notFound` as done.
         let claim = deleteQueue.claimDeletion(of: recordName,
                                               chunkCount: wasPending ? pendingChunkCount : 0,
-                                              queueRemoteDelete: true)
+                                              queueRemoteDelete: true,
+                                              holdPastConfirmation: wasPending)
         changeTags[recordName] = nil
         await cache.evict(recordName: recordName)
 

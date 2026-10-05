@@ -1074,6 +1074,161 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                        "An item still waiting to upload must survive the reap that took the orphan")
     }
 
+    /// The coordinator is an actor, so a capture's upload can run to completion
+    /// while a from-scratch fetch is suspended. The fetch's snapshot predates the
+    /// save and the queue no longer lists the capture by the time the reap runs, so
+    /// only the pending set taken before the fetch keeps it from being reaped.
+    func testReapExemptsUploadThatCompletesDuringFetch() async throws {
+        let store = MockCloudKitMediaStore()
+        let queue = CloudKitUploadQueue(baseDir: tempRoot.appendingPathComponent("q-\(UUID().uuidString)"))
+        let index = makeIndexStore()
+        let deleteQueue = makeDeleteQueue()
+        let coord = CloudKitSyncCoordinator(albumID: "a1",
+                                            store: store,
+                                            cache: makeCache(),
+                                            indexStore: index,
+                                            bus: FileOperationBus(),
+                                            uploadQueue: queue,
+                                            deleteQueue: deleteQueue)
+
+        let recordName = MediaRecordName.componentRecordName(mediaID: "capture", type: .photo)
+        let capturedFile = tempRoot.appendingPathComponent("capture.blob")
+        try Data("ciphertext".utf8).write(to: capturedFile)
+        let queued = try await queue.enqueue(CloudKitMediaUpload(albumID: "a1",
+                                                                 mediaID: "capture",
+                                                                 mediaType: .photo,
+                                                                 createdAt: Date(),
+                                                                 sizeBytes: 10,
+                                                                 encryptedFileURL: capturedFile,
+                                                                 encryptedThumbURL: nil,
+                                                                 recordName: recordName))
+        try await coord.registerLocally(queued)
+        let previewURL = CloudKitStorageModel.previewURL(forMediaID: "capture")
+        try FileManager.default.createDirectory(at: previewURL.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try Data("thumbnail".utf8).write(to: previewURL)
+        addTeardownBlock { try? FileManager.default.removeItem(at: previewURL) }
+
+        // The server answered the full fetch before the capture's save landed.
+        store.changeSet = CloudKitChangeSet(changed: [], deleted: [],
+                                            token: nil, moreComing: false, snapshotComplete: true)
+        let gate = AsyncGate()
+        store.fetchChangesGate = gate
+
+        let sync = Task { try await coord.sync(albumID: "a1") }
+        await gate.waitUntilEntered()
+
+        _ = try await coord.upload(queued, progress: { _ in }, alreadyVisibleLocally: true)
+        await queue.complete(recordName: recordName)
+        let stillQueued = await queue.all()
+        XCTAssertTrue(stillQueued.isEmpty, "Precondition: the upload left the queue while the fetch was suspended")
+
+        await gate.release()
+        try await sync.value
+
+        let afterSync = await ids(index)
+        XCTAssertEqual(afterSync, ["capture"], "A capture uploaded during the fetch must stay indexed")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path),
+                      "A capture uploaded during the fetch must keep its preview")
+        XCTAssertFalse(deleteQueue.isKnownDeleted(recordName),
+                       "A capture uploaded during the fetch must not be marked deleted")
+        let url = try await coord.ensureBlobLocal(recordName: recordName, albumID: "a1", progress: { _ in })
+        XCTAssertEqual(try Data(contentsOf: url), Data("ciphertext".utf8), "The capture must stay readable")
+    }
+
+    /// A reap only says a full fetch did not return the record. When a later fetch
+    /// returns it, it is live, and it must become readable in this session rather
+    /// than after a relaunch.
+    func testReapedRecordBecomesReadableWhenItReappears() async throws {
+        let store = MockCloudKitMediaStore()
+        let deleteQueue = makeDeleteQueue()
+        let (coord, index, _) = makeCoordinator(store: store, deleteQueue: deleteQueue)
+        let recordName = MediaRecordName.componentRecordName(mediaID: "x", type: .photo)
+        let record = metaComponent(recordName: recordName, mediaID: "x", type: .photo)
+
+        store.changeSet = CloudKitChangeSet(changed: [record], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+
+        store.changeSet = CloudKitChangeSet(changed: [], deleted: [],
+                                            token: nil, moreComing: false, snapshotComplete: true)
+        try await coord.sync(albumID: "a1")
+        let afterReap = await ids(index)
+        XCTAssertEqual(afterReap, [], "Precondition: the full fetch reaped the record")
+        do {
+            _ = try await coord.ensureBlobLocal(recordName: recordName, albumID: "a1", progress: { _ in })
+            XCTFail("Precondition: a reaped record reads as deleted")
+        } catch CloudKitMediaStoreError.notFound {}
+
+        store.changeSet = CloudKitChangeSet(changed: [record], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+
+        let afterReturn = await ids(index)
+        XCTAssertEqual(afterReturn, ["x"])
+        XCTAssertFalse(deleteQueue.isKnownDeleted(recordName), "The record the server returned is live")
+        let url = try await coord.ensureBlobLocal(recordName: recordName, albumID: "a1", progress: { _ in })
+        XCTAssertEqual(try Data(contentsOf: url), store.blobContents,
+                       "A reaped record that comes back must be readable without a relaunch")
+    }
+
+    /// A claim the record has been republished past, or whose delete the server has
+    /// confirmed, no longer stands for a delete in progress — so a later mark (a
+    /// reap) must not be held in place by it when the server returns the record.
+    func testReleasedClaimIsNotActive() {
+        let queue = makeDeleteQueue()
+
+        queue.claimDeletion(of: "released", queueRemoteDelete: false)
+        queue.forgetDeletion(of: "released")
+        queue.markDeletedFromFeed("released")
+        queue.clearKnownDeletedIfNotQueued("released")
+        XCTAssertFalse(queue.isKnownDeleted("released"),
+                       "A released claim must not keep a record the server returned marked")
+
+        let claim = queue.claimDeletion(of: "confirmed", queueRemoteDelete: true)
+        XCTAssertTrue(queue.confirmDelete(of: "confirmed", claimedAs: claim))
+        queue.clearKnownDeletedIfNotQueued("confirmed")
+        XCTAssertFalse(queue.isKnownDeleted("confirmed"),
+                       "A confirmed claim must not keep a record the server returned marked")
+
+        queue.claimDeletion(of: "outstanding", queueRemoteDelete: false)
+        queue.clearKnownDeletedIfNotQueued("outstanding")
+        XCTAssertTrue(queue.isKnownDeleted("outstanding"),
+                      "A claim still outstanding keeps the record marked")
+    }
+
+    /// Deleting an item still waiting to upload can be confirmed before its
+    /// in-flight save lands. A sync that then fetches the landed record must not
+    /// unmark it, or the upload keeps the record the user deleted.
+    func testAPendingItemDeletedMidUploadIsNotUnmarkedByAFetchedCopy() async throws {
+        let store = MockCloudKitMediaStore()
+        let deleteQueue = makeDeleteQueue()
+        let (coord, _, _) = makeCoordinator(store: store, deleteQueue: deleteQueue)
+        let recordName = MediaRecordName.componentRecordName(mediaID: "m1", type: .photo)
+        let upload = CloudKitMediaUpload(albumID: "a1", mediaID: "m1", mediaType: .photo,
+                                         createdAt: Date(timeIntervalSince1970: 555), sizeBytes: 1,
+                                         encryptedFileURL: URL(fileURLWithPath: "/tmp/m1.blob"),
+                                         encryptedThumbURL: nil, recordName: recordName)
+
+        // The save has landed, so the next fetch returns the record.
+        let landed = CloudKitChangeSet(changed: [metaComponent(recordName: recordName, mediaID: "m1", type: .photo)],
+                                       deleted: [], token: nil, moreComing: false)
+        store.onUploadStarted = { [weak coord, store] in
+            guard let coord else { return }
+            try? await coord.remove(recordName: recordName, albumID: "a1", wasPending: true)
+            store.changeSet = landed
+            try? await coord.sync(albumID: "a1")
+        }
+
+        do {
+            _ = try await coord.upload(upload, progress: { _ in })
+            XCTFail("An upload whose item was deleted while it ran must not report success")
+        } catch CloudKitMediaStoreError.cancelled {}
+
+        XCTAssertTrue(deleteQueue.isKnownDeleted(recordName),
+                      "The fetched copy must not unmark a record deleted while its upload ran")
+        XCTAssertEqual(store.deleteCalls.filter { $0 == recordName }.count, 2,
+                       "The delete and the record that landed after it must both be removed")
+    }
+
     /// A merge that adds a component (Live Photo video arriving after the photo)
     /// changes the entry, so the gallery must be told to refresh.
     func testLivePhotoMergeEmitsRefresh() async throws {

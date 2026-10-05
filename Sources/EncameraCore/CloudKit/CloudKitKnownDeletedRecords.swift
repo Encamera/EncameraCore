@@ -68,6 +68,15 @@ final class CloudKitKnownDeletedRecords: @unchecked Sendable {
     /// match. Absent means "never claimed this session", which is generation 0 —
     /// what a queue entry restored from a previous launch is claimed under.
     private var generations: [String: UInt64] = [:]
+    /// Record names with a claim that has been neither released nor confirmed.
+    /// `clearKnownDeletedIfNotQueued` leaves these marked: the delete they stand
+    /// for has not finished, so a fetched copy must not win over it.
+    private var activeClaims: Set<String> = []
+    /// Claims that stay active after their delete is confirmed, until the record
+    /// is republished. Taken for an item deleted while its upload may still be in
+    /// flight: the upload's save can land after the delete is confirmed, and the
+    /// mark is what makes that upload reclaim its record instead of keeping it.
+    private var claimsHeldPastConfirmation: Set<String> = []
     /// Record names a drain has a server delete in flight for, and the
     /// republishes waiting for that delete to finish before they upload.
     private var deletesInFlight: Set<String> = []
@@ -80,9 +89,18 @@ final class CloudKitKnownDeletedRecords: @unchecked Sendable {
     }
 
     /// Marks the record and takes the next claim on it.
-    func claim(_ recordName: String) -> CloudKitDeleteClaim {
+    ///
+    /// - Parameter holdPastConfirmation: keep the claim active after `retire`, so
+    ///   only a republish (`release`) lets a fetched copy unmark the record.
+    func claim(_ recordName: String, holdPastConfirmation: Bool = false) -> CloudKitDeleteClaim {
         lock.withLock {
             names.insert(recordName)
+            activeClaims.insert(recordName)
+            if holdPastConfirmation {
+                claimsHeldPastConfirmation.insert(recordName)
+            } else {
+                claimsHeldPastConfirmation.remove(recordName)
+            }
             let next = (generations[recordName] ?? 0) + 1
             generations[recordName] = next
             return CloudKitDeleteClaim(generation: next)
@@ -105,16 +123,29 @@ final class CloudKitKnownDeletedRecords: @unchecked Sendable {
     func release(_ recordName: String) {
         lock.withLock {
             names.remove(recordName)
+            activeClaims.remove(recordName)
+            claimsHeldPastConfirmation.remove(recordName)
             guard let current = generations[recordName] else { return }
             generations[recordName] = current + 1
         }
     }
 
-    /// Whether a claim has ever been issued for `recordName` this session and has
-    /// not been retired. Used by `clearKnownDeletedIfNotQueued` to avoid unmarking
-    /// a record whose delete was claimed but never queued (wasPending path).
+    /// Ends `claim` once the server has confirmed its delete, unless it was taken
+    /// with `holdPastConfirmation`. The record stays marked; only the claim stops
+    /// counting as active. A superseded claim changes nothing.
+    func retire(_ claim: CloudKitDeleteClaim, for recordName: String) {
+        lock.withLock {
+            guard (generations[recordName] ?? 0) == claim.generation,
+                  !claimsHeldPastConfirmation.contains(recordName) else { return }
+            activeClaims.remove(recordName)
+        }
+    }
+
+    /// Whether `recordName` has a claim this session that has been neither
+    /// released nor retired. Used by `clearKnownDeletedIfNotQueued`, so a record
+    /// whose delete is still in progress is not unmarked by a fetched copy.
     func hasActiveClaim(_ recordName: String) -> Bool {
-        lock.withLock { generations[recordName] != nil }
+        lock.withLock { activeClaims.contains(recordName) }
     }
 
     /// Inserts `recordName` into `names` without touching `generations`. Used for
@@ -162,6 +193,8 @@ final class CloudKitKnownDeletedRecords: @unchecked Sendable {
         lock.withLock {
             names.removeAll()
             generations.removeAll()
+            activeClaims.removeAll()
+            claimsHeldPastConfirmation.removeAll()
             deletesInFlight.removeAll()
             inFlightWaiters.values.joined().forEach { $0.resume() }
             inFlightWaiters.removeAll()
