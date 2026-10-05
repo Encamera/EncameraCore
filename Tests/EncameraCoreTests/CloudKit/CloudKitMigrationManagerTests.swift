@@ -2795,3 +2795,118 @@ extension CloudKitMigrationManagerTests {
         XCTAssertEqual(store.deletedAlbumCalls, [albumID], "with every member moved, the record goes")
     }
 }
+
+// MARK: - Captures still waiting to upload when an album moves back to this device
+
+extension CloudKitMigrationManagerTests {
+
+    private struct QueuedCapture {
+        let mediaID: String
+        let recordName: String
+        let bytes: Data
+    }
+
+    /// A capture as the camera leaves it in a CloudKit album: its ciphertext waits in
+    /// the upload queue and `registerLocally` has put it in the album's index, so the
+    /// move plans it like any record the server holds.
+    private func registerQueuedCapture(in fixture: ToLocalFixture,
+                                       queue: CloudKitUploadQueue) async throws -> QueuedCapture {
+        let albumID = try XCTUnwrap(fixture.album.albumID)
+        let mediaID = UUID().uuidString
+        let recordName = CloudKitFileAccess.componentRecordName(mediaID: mediaID, type: .photo)
+        let bytes = Data(repeating: 0xCD, count: 24)
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(mediaID).enc")
+        try bytes.write(to: file)
+        let upload = CloudKitMediaUpload(albumID: albumID, mediaID: mediaID, mediaType: .photo,
+                                         createdAt: Date(), sizeBytes: Int64(bytes.count),
+                                         encryptedFileURL: file, encryptedThumbURL: nil,
+                                         recordName: recordName, keyFingerprint: "")
+        try await queue.enqueue(upload)
+        try? FileManager.default.removeItem(at: file)
+        let coordinator = CloudKitSyncCoordinator(albumID: albumID, store: fixture.store,
+                                                  cache: CloudKitBlobCache.shared,
+                                                  indexStore: MediaIndexStore(album: fixture.album),
+                                                  uploadQueue: queue)
+        try await coordinator.registerLocally(upload)
+        return QueuedCapture(mediaID: mediaID, recordName: recordName, bytes: bytes)
+    }
+
+    private func makeUploadQueue() -> (CloudKitUploadQueue, URL) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CloudKitUploads-queued-\(UUID().uuidString)", isDirectory: true)
+        return (CloudKitUploadQueue(baseDir: dir), dir)
+    }
+
+    /// With iCloud full a capture never uploads, so the server never has its record.
+    /// The move verifies its local copy against the queue file instead, cancels the
+    /// queue entry, and finishes, with every item in the local album.
+    func testMoveToLocalCompletesWithQueuedCaptures() async throws {
+        let (queue, queueDir) = makeUploadQueue()
+        let fixture = try makeToLocalFixture(count: 2, uploadQueue: queue)
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(fixture)
+            try? FileManager.default.removeItem(at: queueDir)
+        }
+        let capture = try await registerQueuedCapture(in: fixture, queue: queue)
+        let plannedAtFirstItem = Box<Int?>(nil)
+        let manager = fixture.manager
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard plannedAtFirstItem.value == nil, case .transferred = boundary else { return }
+            plannedAtFirstItem.value = manager.progress.totalCount
+        }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(plannedAtFirstItem.value, 3, "precondition: the capture is planned from the album's index")
+        XCTAssertEqual(fixture.manager.state, .completed)
+        for id in fixture.ids {
+            XCTAssertEqual(try Data(contentsOf: fixture.localURL(id)), fixture.store.blobContents)
+        }
+        XCTAssertEqual(try Data(contentsOf: fixture.localURL(capture.mediaID)), capture.bytes,
+                       "the queued capture lands in the local album byte for byte")
+        let albumID = try XCTUnwrap(fixture.album.albumID)
+        let stillQueued = await queue.all().filter { $0.albumID == albumID }
+        XCTAssertTrue(stillQueued.isEmpty, "the album has nothing left in the upload queue")
+        XCTAssertTrue(fixture.store.uploadCalls.isEmpty, "nothing is uploaded into the album on its way out")
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalCallCount, 1)
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalMovedRecordNames.last,
+                       Set(fixture.recordNames + [capture.recordName]),
+                       "finalize counts the capture as moved")
+    }
+
+    /// A queued capture whose upload lands after its local copy verified, but before
+    /// the removal pass reaches it, is removed from the server like any other record,
+    /// and its queue entry is still cancelled.
+    func testMoveToLocalQueuedCaptureThatLandsMidRunIsRemovedFromServer() async throws {
+        let (queue, queueDir) = makeUploadQueue()
+        let fixture = try makeToLocalFixture(count: 2, uploadQueue: queue)
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(fixture)
+            try? FileManager.default.removeItem(at: queueDir)
+        }
+        let capture = try await registerQueuedCapture(in: fixture, queue: queue)
+        let albumID = try XCTUnwrap(fixture.album.albumID)
+        let store = fixture.store
+        let landed = Box(false)
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard !landed.value, case .removing(removed: 0) = boundary else { return }
+            landed.value = true
+            _ = store.addServerRecord(albumID: albumID, mediaID: capture.mediaID,
+                                      sizeBytes: Int64(capture.bytes.count))
+        }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertTrue(landed.value, "precondition: the record landed before the removal pass")
+        XCTAssertEqual(fixture.manager.state, .completed)
+        XCTAssertEqual(try Data(contentsOf: fixture.localURL(capture.mediaID)), capture.bytes)
+        XCTAssertTrue(store.deleteCalls.contains(capture.recordName),
+                      "the record that landed mid-run is deleted from the server")
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalMovedRecordNames.last,
+                       Set(fixture.recordNames + [capture.recordName]))
+        let stillQueued = await queue.all().filter { $0.albumID == albumID }
+        XCTAssertTrue(stillQueued.isEmpty, "its queue entry is cancelled")
+    }
+}
