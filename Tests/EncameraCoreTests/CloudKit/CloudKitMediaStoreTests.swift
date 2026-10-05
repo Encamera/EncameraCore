@@ -750,6 +750,44 @@ final class CloudKitMediaStoreTests: XCTestCase {
         }
     }
 
+    /// A per-record error wrapped in `.partialFailure` classifies the same as the
+    /// bare error, so callers switching on `.conflict`, `.quotaExceeded` or
+    /// `.notFound` recognise it.
+    func testPerRecordErrorsWrappedInPartialFailureCollapse() {
+        func wrapped(_ errors: [String: CKError.Code]) -> CloudKitMediaStoreError {
+            mapCKError(CKErrorFactory.error(
+                .partialFailure,
+                userInfo: [CKPartialErrorsByItemIDKey: Dictionary(uniqueKeysWithValues: errors.map {
+                    (CloudKitTestFactory.recordID($0.key) as AnyHashable, CKErrorFactory.error($0.value) as Error)
+                })]
+            ))
+        }
+        guard case .conflict = wrapped(["m1": .serverRecordChanged]) else {
+            return XCTFail("a single wrapped conflict must map to .conflict")
+        }
+        guard case .quotaExceeded = wrapped(["m1": .quotaExceeded]) else {
+            return XCTFail("a single wrapped quota failure must map to .quotaExceeded")
+        }
+        guard case .notFound = wrapped(["m1": .unknownItem, "m2": .unknownItem]) else {
+            return XCTFail("records that all failed unknownItem must map to .notFound")
+        }
+        guard case .quotaExceeded = wrapped(["m1": .quotaExceeded, "m2": .quotaExceeded]) else {
+            return XCTFail("records that all failed on quota must map to .quotaExceeded")
+        }
+        guard case .partial(let failed) = wrapped(["m1": .unknownItem, "m2": .quotaExceeded]) else {
+            return XCTFail("disagreeing records must stay partial")
+        }
+        XCTAssertEqual(Set(failed.keys), ["m1", "m2"])
+        guard case .partial = wrapped(["m1": .internalError, "m2": .internalError]) else {
+            return XCTFail("several records failing with an uncollapsible error must stay partial")
+        }
+        guard case .conflict = mapCKError(CloudKitMediaStoreError.partial(
+            failed: ["m1": CKErrorFactory.error(.serverRecordChanged)]
+        )) else {
+            return XCTFail("an already-typed single-record partial collapses too")
+        }
+    }
+
     func testFetchChangesRecognizesTokenExpiryWrappedInPartialFailure() async {
         let mock = MockCloudKitDatabase()
         let zoneID = CKRecordZone.ID(zoneName: CloudKitSchema.zoneName)

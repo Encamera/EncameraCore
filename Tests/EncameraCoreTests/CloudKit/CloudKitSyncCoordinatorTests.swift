@@ -524,6 +524,49 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertTrue(queue.pending().isEmpty, "A confirmed delete drains")
     }
 
+    /// An item still in the upload queue may already be in CloudKit: the save
+    /// committed, then the app was killed before the queue cleared the item.
+    /// Deleting it must still reach the record, through the delete queue.
+    func testRemovingPendingItemQueuesRemoteDelete() async throws {
+        let store = MockCloudKitMediaStore()
+        let queue = makeDeleteQueue()
+        let (coord, _, _) = makeCoordinator(store: store, deleteQueue: queue)
+
+        let source = tempRoot.appendingPathComponent("landed.photo")
+        try Data("ciphertext".utf8).write(to: source)
+        _ = try await store.upload(CloudKitMediaUpload(albumID: "a1", mediaID: "m1", mediaType: .photo,
+                                                       createdAt: Date(timeIntervalSince1970: 100),
+                                                       sizeBytes: 10, encryptedFileURL: source,
+                                                       encryptedThumbURL: nil, recordName: "m1"),
+                                   progress: { _ in })
+        XCTAssertEqual(store.liveRecordNames, ["m1"], "the save landed before the kill")
+
+        store.deleteErrorOnce = CloudKitMediaStoreError.retry(after: 1)
+        try await coord.remove(recordName: "m1", albumID: "a1", wasPending: true)
+        XCTAssertEqual(queue.pending(), ["m1"], "a pending item's delete is queued like any other")
+
+        store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+
+        XCTAssertEqual(store.deleteCalls, ["m1", "m1"], "the drain retries the delete")
+        XCTAssertFalse(store.liveRecordNames.contains("m1"), "the landed record is gone from CloudKit")
+        XCTAssertTrue(queue.pending().isEmpty, "the confirmed delete drains")
+    }
+
+    /// The common case: the pending item never reached CloudKit. Its delete is
+    /// issued anyway, finds nothing, and counts as done.
+    func testRemovingPendingItemThatNeverLandedConfirmsTheDelete() async throws {
+        let store = MockCloudKitMediaStore()
+        let queue = makeDeleteQueue()
+        let (coord, _, _) = makeCoordinator(store: store, deleteQueue: queue)
+        store.deleteError = CloudKitMediaStoreError.notFound
+
+        try await coord.remove(recordName: "m1", albumID: "a1", wasPending: true)
+
+        XCTAssertEqual(store.deleteCalls, ["m1"])
+        XCTAssertTrue(queue.pending().isEmpty, "an absent record counts as deleted")
+    }
+
     /// When resolveChunkCount returns unknownChunkCount (transient fetch failure),
     /// remove() must NOT delete the commit record — otherwise drainPendingDeletes
     /// cannot resolve geometry (the record is gone → nil → 0) and the chunk records

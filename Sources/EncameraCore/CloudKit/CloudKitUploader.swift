@@ -26,6 +26,9 @@ public actor CloudKitUploader: DebugPrintable {
 
     private let queue: CloudKitUploadQueue
     private let registry: CloudKitCoordinatorRegistry
+    /// Nil means `CloudKitSyncStatusReporter.shared`, which can only be read on
+    /// the main actor.
+    private let statusReporter: CloudKitSyncStatusReporter?
 
     private var drainTask: Task<Void, Never>?
     /// Set when work arrives while a drain is running, so the running pass loops
@@ -39,9 +42,16 @@ public actor CloudKitUploader: DebugPrintable {
     private var hasSwept = false
 
     public init(queue: CloudKitUploadQueue = .shared,
-                registry: CloudKitCoordinatorRegistry = .shared) {
+                registry: CloudKitCoordinatorRegistry = .shared,
+                statusReporter: CloudKitSyncStatusReporter? = nil) {
         self.queue = queue
         self.registry = registry
+        self.statusReporter = statusReporter
+    }
+
+    private func reporter() async -> CloudKitSyncStatusReporter {
+        if let statusReporter { return statusReporter }
+        return await CloudKitSyncStatusReporter.shared
     }
 
     // MARK: - Triggering
@@ -142,8 +152,7 @@ public actor CloudKitUploader: DebugPrintable {
                 printDebug("drain cancelled, stopping between items")
                 break
             }
-            await CloudKitSyncStatusReporter.shared.reportUploadProgress(completed: uploaded,
-                                                                        total: items.count)
+            await reporter().reportUploadProgress(completed: uploaded, total: items.count)
             if let notBefore = nextAttemptAfter[item.recordName], notBefore > Date() {
                 deferredCount += 1
                 continue
@@ -164,7 +173,7 @@ public actor CloudKitUploader: DebugPrintable {
     /// clears the status bar rather than leaving a stale count on screen.
     private func reportPassFinished() async {
         let stalled = await queue.givenUp().count
-        await CloudKitSyncStatusReporter.shared.reportUploadsFinished(stalled: stalled)
+        await reporter().reportUploadsFinished(stalled: stalled)
     }
 
     /// Returns true when the item reached CloudKit.
@@ -176,37 +185,109 @@ public actor CloudKitUploader: DebugPrintable {
         do {
             _ = try await coordinator.upload(upload, progress: { _ in }, alreadyVisibleLocally: true)
         } catch {
-            await classify(error, for: item)
-            return false
+            guard await resolve(error, for: item, upload: upload, using: coordinator) else { return false }
         }
 
-        // Only now is it safe to drop the durable copy: `coordinator.upload` has
-        // both put the bytes in CloudKit and stored them in the blob cache.
+        // Only now is it safe to drop the durable copy: the bytes are in CloudKit
+        // and in the blob cache — stored by `coordinator.upload`, or by
+        // `adoptLandedUpload` for a record an earlier attempt committed.
         await queue.complete(recordName: item.recordName)
         nextAttemptAfter[item.recordName] = nil
         return true
     }
 
-    /// Decides whether an error is worth trying again. Getting this wrong in the
-    /// permanent direction strands a photo; getting it wrong in the retryable
-    /// direction just means pointless attempts — so anything unrecognised is
-    /// treated as retryable.
-    private func classify(_ error: Error, for item: CloudKitPendingUpload) async {
+    /// Decides what a failed upload means for its queue item. Getting this wrong
+    /// in the permanent direction strands a photo; getting it wrong in the
+    /// retryable direction just means pointless attempts — so anything
+    /// unrecognised is treated as retryable.
+    ///
+    /// `mapCKError` collapses a per-record error wrapped in `.partial`, which is
+    /// how CloudKit reports a single-record save's conflict or quota failure.
+    ///
+    /// - Returns: true when the record turns out to be in CloudKit already, so
+    ///   the caller completes the item.
+    private func resolve(_ error: Error,
+                         for item: CloudKitPendingUpload,
+                         upload: CloudKitMediaUpload,
+                         using coordinator: CloudKitSyncCoordinator) async -> Bool {
         switch mapCKError(error) {
+        case .conflict:
+            return await resolveConflict(error, for: item, upload: upload, using: coordinator)
+        case .cancelled:
+            await dropIfDeleted(item, error: error, using: coordinator)
+            return false
         case .quotaExceeded:
             await queue.giveUp(recordName: item.recordName, reason: error)
             nextAttemptAfter[item.recordName] = nil
+            return false
         case .accountUnavailable:
             await queue.recordAttempt(recordName: item.recordName, error: error)
             nextAttemptAfter[item.recordName] = Date().addingTimeInterval(300)
+            return false
         case .retry(let after):
             await queue.recordAttempt(recordName: item.recordName, error: error)
             nextAttemptAfter[item.recordName] = Date().addingTimeInterval(after)
+            return false
         default:
-            await queue.recordAttempt(recordName: item.recordName, error: error)
-            let attempts = min((await queue.all().first { $0.recordName == item.recordName })?.attempts ?? 1, 6)
-            nextAttemptAfter[item.recordName] = Date().addingTimeInterval(pow(2, Double(attempts)))
+            await backOff(item, error: error)
+            return false
         }
+    }
+
+    /// The save found a record under this name already. Almost always it is this
+    /// item's own, committed by an earlier attempt that was killed before the
+    /// queue cleared it — retrying would conflict forever. Adopt it when it
+    /// matches; give up, keeping the file, when it is someone else's.
+    private func resolveConflict(_ error: Error,
+                                 for item: CloudKitPendingUpload,
+                                 upload: CloudKitMediaUpload,
+                                 using coordinator: CloudKitSyncCoordinator) async -> Bool {
+        let match: CloudKitSyncCoordinator.LandedUploadMatch
+        do {
+            match = try await coordinator.adoptLandedUpload(upload, alreadyVisibleLocally: true)
+        } catch {
+            if case .cancelled = mapCKError(error) {
+                await dropIfDeleted(item, error: error, using: coordinator)
+            } else {
+                await backOff(item, error: error)
+            }
+            return false
+        }
+        switch match {
+        case .adopted:
+            printDebug("conflict resolved recordName=\(item.recordName) — adopted the record an earlier attempt committed")
+            return true
+        case .missing:
+            // Deleted since the save conflicted, so a plain retry can land.
+            await backOff(item, error: error)
+        case .notThisItem:
+            printDebug("conflict unresolved recordName=\(item.recordName) — the record in CloudKit is not this item's")
+            await queue.giveUp(recordName: item.recordName, reason: CloudKitUploadConflict(recordName: item.recordName))
+            nextAttemptAfter[item.recordName] = nil
+        }
+        return false
+    }
+
+    /// An upload that landed after the item was deleted on this device: the
+    /// coordinator has already reclaimed the fresh record, so the queue item —
+    /// and its durable copy — goes too. Any other cancellation (the drain itself
+    /// being stopped) is retried, because the photo is still wanted.
+    private func dropIfDeleted(_ item: CloudKitPendingUpload,
+                               error: Error,
+                               using coordinator: CloudKitSyncCoordinator) async {
+        if await coordinator.isDeletedOnThisDevice(recordName: item.recordName) {
+            printDebug("cancelled recordName=\(item.recordName) — deleted on this device, dropping the queue item")
+            await queue.cancel(recordName: item.recordName)
+            nextAttemptAfter[item.recordName] = nil
+        } else {
+            await backOff(item, error: error)
+        }
+    }
+
+    private func backOff(_ item: CloudKitPendingUpload, error: Error) async {
+        await queue.recordAttempt(recordName: item.recordName, error: error)
+        let attempts = min((await queue.all().first { $0.recordName == item.recordName })?.attempts ?? 1, 6)
+        nextAttemptAfter[item.recordName] = Date().addingTimeInterval(pow(2, Double(attempts)))
     }
 
     // MARK: - Recovery
@@ -217,5 +298,15 @@ public actor CloudKitUploader: DebugPrintable {
         await queue.retryGivenUp()
         nextAttemptAfter.removeAll()
         kick()
+    }
+}
+
+/// Why an upload gave up on a conflict: CloudKit already holds a record under
+/// this item's name, and its album or size says it is not this item.
+public struct CloudKitUploadConflict: Error, CustomStringConvertible {
+    public let recordName: String
+
+    public var description: String {
+        "A different record named \(recordName) is already in iCloud"
     }
 }

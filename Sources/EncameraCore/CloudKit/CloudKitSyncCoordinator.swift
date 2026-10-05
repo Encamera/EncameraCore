@@ -611,46 +611,65 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 }
             }
 
-            do {
-                let issued = try await issueQueuedDelete(of: recordName, claimedAs: claim) {
-                    do {
-                        try await store.delete(recordName: recordName)
-                        printDebug("drainPendingDeletes ok recordName=\(recordName)")
-                    } catch CloudKitMediaStoreError.notFound {
-                        printDebug("drainPendingDeletes skip recordName=\(recordName) — already gone from the zone")
-                    }
-                }
-                guard issued else {
-                    skipSupersededDelete(recordName, outstanding: &outstanding)
-                    continue
-                }
-            } catch {
-                printDebug("drainPendingDeletes FAILED recordName=\(recordName) — left queued raw=\(error)")
-                continue
-            }
-
-            if chunkCount > 0 {
-                do {
-                    let issued = try await issueQueuedDelete(of: recordName, claimedAs: claim) {
-                        try await chunkStore.delete(mediaRecordName: recordName, chunkCount: chunkCount)
-                    }
-                    guard issued else {
-                        skipSupersededDelete(recordName, outstanding: &outstanding)
-                        continue
-                    }
-                    printDebug("drainPendingDeletes chunks ok recordName=\(recordName) chunkCount=\(chunkCount)")
-                } catch {
-                    printDebug("drainPendingDeletes chunks FAILED recordName=\(recordName) chunkCount=\(chunkCount) — left queued raw=\(error)")
-                    continue
-                }
-            }
-
-            if deleteQueue.confirmDelete(of: recordName, claimedAs: claim) {
+            switch await issueQueuedDeletes(of: recordName, chunkCount: chunkCount, claimedAs: claim) {
+            case .confirmed:
                 outstanding.remove(recordName)
+            case .superseded:
+                skipSupersededDelete(recordName, outstanding: &outstanding)
+            case .failed, .unconfirmed:
+                continue
             }
         }
         printDebug("drainPendingDeletes done albumID=\(self.albumID) stillPending=\(outstanding.count)")
         return outstanding
+    }
+
+    private enum QueuedDeleteOutcome {
+        /// Both legs are gone and the queue entry was dropped.
+        case confirmed
+        /// Both legs are gone, but a newer claim now owns the entry.
+        case unconfirmed
+        /// A grant was refused: the entry was republished, or is held elsewhere.
+        case superseded
+        /// A leg failed; the entry stays queued for the next drain.
+        case failed
+    }
+
+    /// Deletes a queued entry's `EncMedia` record (an absent one counts as done),
+    /// then its `chunkCount` chunk records, each leg under its own grant, and
+    /// confirms the entry when both are gone.
+    private func issueQueuedDeletes(of recordName: String,
+                                    chunkCount: Int,
+                                    claimedAs claim: CloudKitDeleteClaim) async -> QueuedDeleteOutcome {
+        do {
+            let issued = try await issueQueuedDelete(of: recordName, claimedAs: claim) {
+                do {
+                    try await store.delete(recordName: recordName)
+                    printDebug("drainPendingDeletes ok recordName=\(recordName)")
+                } catch CloudKitMediaStoreError.notFound {
+                    printDebug("drainPendingDeletes skip recordName=\(recordName) — already gone from the zone")
+                }
+            }
+            guard issued else { return .superseded }
+        } catch {
+            printDebug("drainPendingDeletes FAILED recordName=\(recordName) — left queued raw=\(error)")
+            return .failed
+        }
+
+        if chunkCount > 0 {
+            do {
+                let issued = try await issueQueuedDelete(of: recordName, claimedAs: claim) {
+                    try await chunkStore.delete(mediaRecordName: recordName, chunkCount: chunkCount)
+                }
+                guard issued else { return .superseded }
+                printDebug("drainPendingDeletes chunks ok recordName=\(recordName) chunkCount=\(chunkCount)")
+            } catch {
+                printDebug("drainPendingDeletes chunks FAILED recordName=\(recordName) chunkCount=\(chunkCount) — left queued raw=\(error)")
+                return .failed
+            }
+        }
+
+        return deleteQueue.confirmDelete(of: recordName, claimedAs: claim) ? .confirmed : .unconfirmed
     }
 
     /// Runs one server delete for a queued entry, holding the queue's in-flight
@@ -963,8 +982,63 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             throw CloudKitMediaStoreError.cancelled
         }
 
-        if let tag = ref.recordChangeTag { changeTags[ref.recordName] = tag }
         deleteQueue.forgetDeletion(of: ref.recordName)
+        return try await recordLanded(item, ref: ref, alreadyVisibleLocally: alreadyVisibleLocally)
+    }
+
+    /// Adopts a record an earlier attempt of this upload already committed — the
+    /// app was killed between the save and the queue clearing the item, so the
+    /// retry's save conflicts with its own record. Fetches the record by id and
+    /// does the post-upload bookkeeping only when its album and size match `item`,
+    /// so a conflict on someone else's record is never taken for ours.
+    ///
+    /// - Throws: `.cancelled` when the item has been deleted on this device since
+    ///   the save, as `upload` does for a save that lands after a delete; anything
+    ///   the metadata fetch throws.
+    public func adoptLandedUpload(_ item: CloudKitMediaUpload,
+                                  alreadyVisibleLocally: Bool = false) async throws -> LandedUploadMatch {
+        guard let landed = try await store.fetchRecordMetadata(recordName: item.recordName) else {
+            printDebug("adoptLandedUpload MISS recordName=\(item.recordName) — no record on the server")
+            return .missing
+        }
+        guard landed.albumID == item.albumID, landed.sizeBytes == item.sizeBytes else {
+            printDebug("adoptLandedUpload MISMATCH recordName=\(item.recordName) albumID=\(landed.albumID)/\(item.albumID) sizeBytes=\(landed.sizeBytes)/\(item.sizeBytes)")
+            return .notThisItem
+        }
+        if isKnownDeleted(item.recordName) {
+            printDebug("adoptLandedUpload skip recordName=\(item.recordName) — deleted on this device since the save")
+            throw CloudKitMediaStoreError.cancelled
+        }
+        _ = try await recordLanded(item,
+                                   ref: CloudKitMediaRef(recordName: item.recordName,
+                                                         recordChangeTag: landed.recordChangeTag),
+                                   alreadyVisibleLocally: alreadyVisibleLocally)
+        printDebug("adoptLandedUpload ok recordName=\(item.recordName)")
+        return .adopted
+    }
+
+    /// What `adoptLandedUpload` found under the item's record name.
+    public enum LandedUploadMatch: Sendable, Equatable {
+        /// The record matched and is now recorded locally as uploaded.
+        case adopted
+        /// The server has no such record.
+        case missing
+        /// A record is there, but its album or size is not this item's.
+        case notThisItem
+    }
+
+    /// Whether `recordName` has been deleted on this device this session — the
+    /// condition under which `upload` reclaims a record and throws `.cancelled`.
+    public func isDeletedOnThisDevice(recordName: String) -> Bool {
+        isKnownDeleted(recordName)
+    }
+
+    /// Local bookkeeping for a record that is in CloudKit: change tag, chunk
+    /// geometry, blob cache, index and sizes.
+    private func recordLanded(_ item: CloudKitMediaUpload,
+                              ref: CloudKitMediaRef,
+                              alreadyVisibleLocally: Bool) async throws -> CloudKitMediaRef {
+        if let tag = ref.recordChangeTag { changeTags[ref.recordName] = tag }
         let headerBytes = item.chunkCount > 0
             ? (try? SeekableEncryptedHeader.read(fromFileAt: item.encryptedFileURL))?.bytes
             : nil
@@ -1006,18 +1080,24 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// appearing to do nothing. Until the queue drains, `performSync` refuses to
     /// re-materialize the record from its still-live remote copy.
     ///
-    /// - Parameter wasPending: true when the item was still in the upload queue,
-    ///   i.e. it (almost certainly) never reached CloudKit, so there is nothing to
-    ///   delete remotely. "Almost": an upload may land while this delete runs, so
-    ///   the record is still marked as known-deleted, which `upload` checks
-    ///   after its store call.
+    /// - Parameter wasPending: true when the item was still in the upload queue.
+    ///   Its record may still be in CloudKit — a save that committed before a
+    ///   kill leaves the item queued — so the remote delete is queued and issued
+    ///   like any other; an absent record counts as deleted. An upload may also
+    ///   land while this delete runs, so the record is marked as known-deleted,
+    ///   which `upload` checks after its store call.
     /// - Parameter pendingChunkCount: chunk geometry of an item that was still in
     ///   the upload queue, from its queue entry. A partially-drained chunked
     ///   upload may have committed chunk records even though its `EncMedia` never
     ///   landed, so those are reclaimed here too.
     public func remove(recordName: String, albumID: String, wasPending: Bool = false, pendingChunkCount: Int = 0) async throws {
         printDebug("remove start recordName=\(recordName) albumID=\(albumID) wasPending=\(wasPending)")
-        let claim = deleteQueue.claimDeletion(of: recordName, queueRemoteDelete: !wasPending)
+        // A pending item is queued too: its save may have landed before the kill
+        // that kept it in the upload queue. Deleting an absent record is
+        // idempotent, and the drain treats `.notFound` as done.
+        let claim = deleteQueue.claimDeletion(of: recordName,
+                                              chunkCount: wasPending ? pendingChunkCount : 0,
+                                              queueRemoteDelete: true)
         changeTags[recordName] = nil
         await cache.evict(recordName: recordName)
 
@@ -1061,15 +1141,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                     }
                 }
             }
-        } else if pendingChunkCount > 0 {
-            deleteQueue.enqueue(recordName, chunkCount: pendingChunkCount)
-            do {
-                try await chunkStore.delete(mediaRecordName: recordName, chunkCount: pendingChunkCount)
-                deleteQueue.confirmDelete(of: recordName, claimedAs: claim)
-                printDebug("remove pendingChunks ok recordName=\(recordName) chunkCount=\(pendingChunkCount)")
-            } catch {
-                printDebug("remove pendingChunks FAILED recordName=\(recordName) chunkCount=\(pendingChunkCount) — left queued raw=\(error)")
-            }
+        } else {
+            let outcome = await issueQueuedDeletes(of: recordName, chunkCount: pendingChunkCount, claimedAs: claim)
+            printDebug("remove pending recordName=\(recordName) chunkCount=\(pendingChunkCount) outcome=\(outcome)")
         }
 
         let entryRemoved: Bool

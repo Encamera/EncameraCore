@@ -61,10 +61,58 @@ public enum CloudKitMediaStoreError: Error, CustomStringConvertible {
     }
 }
 
+extension CloudKitMediaStoreError {
+
+    /// What a `.partial` amounts to when its failed records agree, so a wrapped
+    /// per-record error is classified the same as the bare one. `mapCKError`
+    /// applies this to every partial failure it maps; call it directly only on a
+    /// `.partial` built by hand.
+    ///
+    /// - Not `.partial`, or no failed records: `self`, unchanged.
+    /// - One failed record: that record's error, mapped — whatever case it is.
+    /// - Several failed records that all map to the same one of `.notFound`,
+    ///   `.conflict`, `.quotaExceeded`, `.accountUnavailable`, `.zoneNotFound` or
+    ///   `.changeTokenExpired`: that case. A collapsed `.conflict` carries no
+    ///   server record, since there is more than one.
+    /// - Anything else stays `.partial`, keeping exactly which records failed:
+    ///   records not listed succeeded, and batch callers must keep them.
+    public var unwrappingPartial: CloudKitMediaStoreError {
+        guard case .partial(let failed) = self, !failed.isEmpty else { return self }
+        let mapped = failed.values.map(mapCKError)
+        if mapped.count == 1 { return mapped[0] }
+        let kinds = Set(mapped.map(\.collapsibleKind))
+        guard kinds.count == 1, let kind = kinds.first, let kind else { return self }
+        switch kind {
+        case .notFound: return .notFound
+        case .conflict: return .conflict(serverRecord: nil)
+        case .quotaExceeded: return .quotaExceeded
+        case .accountUnavailable: return .accountUnavailable
+        case .zoneNotFound: return .zoneNotFound
+        case .changeTokenExpired: return .changeTokenExpired
+        }
+    }
+
+    private enum CollapsibleKind: Hashable {
+        case notFound, conflict, quotaExceeded, accountUnavailable, zoneNotFound, changeTokenExpired
+    }
+
+    private var collapsibleKind: CollapsibleKind? {
+        switch self {
+        case .notFound: return .notFound
+        case .conflict: return .conflict
+        case .quotaExceeded: return .quotaExceeded
+        case .accountUnavailable: return .accountUnavailable
+        case .zoneNotFound: return .zoneNotFound
+        case .changeTokenExpired: return .changeTokenExpired
+        default: return nil
+        }
+    }
+}
+
 /// Translate a raw error into the typed model. Pure and side-effect free so it is
 /// trivially unit-testable with synthetic `CKError`s.
 public func mapCKError(_ error: Error) -> CloudKitMediaStoreError {
-    if let already = error as? CloudKitMediaStoreError { return already }
+    if let already = error as? CloudKitMediaStoreError { return already.unwrappingPartial }
     guard let ckError = error as? CKError else { return .underlying(error) }
     let userInfo = (error as NSError).userInfo
 
@@ -84,20 +132,10 @@ public func mapCKError(_ error: Error) -> CloudKitMediaStoreError {
     case .serverRecordChanged:
         return .conflict(serverRecord: ckError.serverRecord)
     case .partialFailure:
-        // Zone-scoped failures (token expired / zone gone) reach the op level
-        // wrapped in `.partialFailure`. When every underlying error agrees on
-        // one of those cases, unwrap it so recovery paths keyed on the typed
-        // case (`drainSync`'s full resync, zone recreation) still fire.
-        let perItem = Array((ckError.partialErrorsByItemID ?? [:]).values)
-        if !perItem.isEmpty {
-            let mapped = perItem.map(mapCKError)
-            if mapped.allSatisfy({ if case .changeTokenExpired = $0 { return true } else { return false } }) {
-                return .changeTokenExpired
-            }
-            if mapped.allSatisfy({ if case .zoneNotFound = $0 { return true } else { return false } }) {
-                return .zoneNotFound
-            }
-        }
+        // Per-record failures (conflict, quota, unknownItem) and zone-scoped ones
+        // (token expired, zone gone) reach the op level wrapped in
+        // `.partialFailure`. Collapse the ones whose records agree, so a switch
+        // on the typed case recognises them; see `unwrappingPartial`.
         var failed: [String: Error] = [:]
         for (key, value) in ckError.partialErrorsByItemID ?? [:] {
             if let recordID = key as? CKRecord.ID {
@@ -106,7 +144,7 @@ public func mapCKError(_ error: Error) -> CloudKitMediaStoreError {
                 failed["\(key)"] = value
             }
         }
-        return .partial(failed: failed)
+        return CloudKitMediaStoreError.partial(failed: failed).unwrappingPartial
     case .zoneBusy, .serviceUnavailable, .requestRateLimited, .networkUnavailable, .networkFailure:
         let after = (userInfo[CKErrorRetryAfterKey] as? TimeInterval) ?? defaultRetryInterval
         return .retry(after: after)

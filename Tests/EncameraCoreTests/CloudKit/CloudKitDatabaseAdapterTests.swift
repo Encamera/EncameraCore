@@ -5,7 +5,7 @@
 //  The adapter's error-surfacing contract: per-record failures of an
 //  overall-successful CKModifyRecordsOperation must reach callers in the same
 //  `.partialFailure` shape a failed operation produces — carrying EVERY failed
-//  record — so `mapCKError`/`unwrapPartial` handle them deterministically
+//  record — so `mapCKError` handles them deterministically
 //  (Dictionary.first would leak an arbitrary raw error instead).
 //
 
@@ -31,18 +31,20 @@ final class CloudKitDatabaseAdapterTests: XCTestCase {
                        "every per-record failure is carried — never an arbitrary Dictionary.first pick")
     }
 
-    func testSinglePerRecordSaveFailureMatchesTheDocumentedPartialShape() {
+    /// A single record's failure is classified the same as the bare error, so a
+    /// caller switching on `.conflict` recognises a wrapped one.
+    func testSinglePerRecordSaveFailureMapsToItsUnderlyingError() {
         let failures: [CKRecord.ID: Error] = [
             CKRecord.ID(recordName: "r1"): CKErrorFactory.error(.serverRecordChanged),
         ]
 
         let mapped = mapCKError(CKDatabaseAdapter.perRecordSaveFailureError(failures))
 
-        guard case .partial = mapped else {
-            return XCTFail("expected the wrapped .partial shape the migration manager unwraps, got \(mapped)")
+        guard case .conflict = mapped else {
+            return XCTFail("a single-record partial must map to its underlying error, got \(mapped)")
         }
         guard case .conflict = CloudKitMigrationManager.unwrapPartial(mapped) else {
-            return XCTFail("a single-record partial must unwrap to its underlying error")
+            return XCTFail("unwrapping an already-unwrapped error leaves it as it is")
         }
     }
 

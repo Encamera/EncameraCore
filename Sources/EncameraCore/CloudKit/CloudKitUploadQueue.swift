@@ -340,8 +340,8 @@ public actor CloudKitUploadQueue: DebugPrintable {
 
     /// Drops an item the user deleted before it ever uploaded, removing its
     /// durable copy. Distinct from `complete` in intent — nothing reached
-    /// CloudKit — and the caller needs to know whether the item was pending,
-    /// because a never-uploaded record has nothing to delete remotely.
+    /// CloudKit, as far as the queue knows — and the caller needs to know whether
+    /// the item was pending, to delete with the queue's chunk geometry.
     @discardableResult
     public func cancel(recordName: String) -> Bool {
         loadIfNeeded()

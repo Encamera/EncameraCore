@@ -159,7 +159,7 @@ These are three different things and the difference matters.
 
 Resume on that alert restarts the run that failed. The launcher keeps the failed plan (`blockedPlan`) beside `blockingReason`, and the alert carries it. A failed item move, in either direction, resumes from its own checkpoint, so the rest of its source album stays where it is; only a failed whole-album migration re-plans the album. An item move that has since finished or been discarded has nothing to resume, and Resume refreshes the album's grid and banner instead.
 
-`quotaExceeded`, `accountUnavailable` and friends usually arrive wrapped in a CloudKit *partial failure*, because a save is a `CKModifyRecordsOperation` whose per-record errors are reported that way. `unwrapPartial` unwraps single-record partials so those cases are actually recognised, and unwraps multi-record partials only when every record agrees.
+`quotaExceeded`, `accountUnavailable` and friends usually arrive wrapped in a CloudKit *partial failure*, because a save is a `CKModifyRecordsOperation` whose per-record errors are reported that way. `mapCKError` (through `CloudKitMediaStoreError.unwrappingPartial`) unwraps single-record partials so those cases are actually recognised, and unwraps multi-record partials only when every record agrees.
 
 ## Resuming
 

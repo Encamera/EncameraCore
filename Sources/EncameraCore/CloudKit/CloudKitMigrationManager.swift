@@ -1595,19 +1595,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
     /// Unwraps a `.partial` to its underlying per-record error. Migration saves are
     /// single-record operations, so a partial failure carries exactly one error —
-    /// the operation's real failure. With several, unwrap only when every record
-    /// agrees (e.g. quota fails them all identically); otherwise keep `.partial`.
+    /// the operation's real failure. The rules are the store-wide ones in
+    /// `CloudKitMediaStoreError.unwrappingPartial`.
     static func unwrapPartial(_ error: CloudKitMediaStoreError) -> CloudKitMediaStoreError {
-        guard case .partial(let failed) = error, !failed.isEmpty else { return error }
-        let mapped = failed.values.map { unwrapPartial(mapCKError($0)) }
-        if mapped.count == 1 { return mapped[0] }
-        if mapped.allSatisfy({ if case .quotaExceeded = $0 { return true } else { return false } }) {
-            return .quotaExceeded
-        }
-        if mapped.allSatisfy({ if case .accountUnavailable = $0 { return true } else { return false } }) {
-            return .accountUnavailable
-        }
-        return error
+        error.unwrappingPartial
     }
 
     /// A side-effect-free pre-flight estimate (item count + total bytes) for the

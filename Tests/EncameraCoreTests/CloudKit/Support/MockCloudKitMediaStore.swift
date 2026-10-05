@@ -116,6 +116,8 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// models the live-record set the real store's census queries. `_uploadedItems`
     /// is a log of attempts and does neither.
     private var _liveRecords: [String: CloudKitMediaUpload] = [:]
+    /// Names of the records `_liveRecords` holds.
+    var liveRecordNames: Set<String> { locked { Set(_liveRecords.keys) } }
     /// Blob bytes read at upload time, keyed by record name — the moment CloudKit
     /// would read the file. The holding-folder copy is deleted once the upload
     /// completes, so asserting on the file afterwards is impossible.
