@@ -164,6 +164,56 @@ public struct CloudKitMediaDeleteQueue: DebugPrintable, @unchecked Sendable {
         }
     }
 
+    /// Republishes `recordName`: drops both halves, as `forgetDeletion` does, then
+    /// waits out any server delete a drain already has in flight for it, so the
+    /// upload that follows cannot land before that delete does and be removed by it.
+    ///
+    /// Dropping the entry first is what stops the drain from issuing anything
+    /// further for the name: its next `beginRemoteDelete` (the chunk leg, or a
+    /// drain that snapshotted the entry earlier) finds the entry gone and refuses.
+    func forgetDeletionAfterDeletesInFlight(of recordName: String) async {
+        forgetDeletion(of: recordName)
+        await withCheckedContinuation { (waiter: CheckedContinuation<Void, Never>) in
+            if !session.waitForDeleteInFlight(recordName, waiter) {
+                waiter.resume()
+            } else {
+                printDebug("forgetDeletion waiting recordName=\(recordName) — a drain's delete is in flight")
+            }
+        }
+    }
+
+    /// Takes the right to issue one server delete (the `EncMedia` record, or its
+    /// chunks) for a queued entry. Granted only while the entry is still queued,
+    /// `claim` is still current, and no other delete of the name is in flight —
+    /// checked in one lock acquisition, so a republish either lands before this
+    /// and is seen, or after and waits for `endRemoteDelete`.
+    ///
+    /// Every grant must be paired with `endRemoteDelete`.
+    func beginRemoteDelete(of recordName: String, claimedAs claim: CloudKitDeleteClaim) -> Bool {
+        Self.lock.withLock {
+            guard read()[recordName] != nil else {
+                printDebug("beginRemoteDelete refused recordName=\(recordName) reason=noLongerQueued")
+                return false
+            }
+            guard session.isCurrent(claim, for: recordName) else {
+                printDebug("beginRemoteDelete refused recordName=\(recordName) reason=claimSuperseded")
+                return false
+            }
+            guard session.beginDeleteInFlight(recordName) else {
+                printDebug("beginRemoteDelete refused recordName=\(recordName) reason=deleteAlreadyInFlight")
+                return false
+            }
+            return true
+        }
+    }
+
+    /// Ends a delete granted by `beginRemoteDelete` and releases any republish
+    /// waiting on it.
+    func endRemoteDelete(of recordName: String) {
+        let waiters = Self.lock.withLock { session.endDeleteInFlight(recordName) }
+        waiters.forEach { $0.resume() }
+    }
+
     /// Marks `recordName` deleted without claiming or queueing it. Used for
     /// feed-observed deletes where no local `confirmDelete` will follow: reads
     /// fail closed, but the claim generation stays untouched so an in-flight

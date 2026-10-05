@@ -160,8 +160,12 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// whether it is live: an explicit upload of a name supersedes any delete still
     /// pending for it, and because both marks are process-wide the coordinator that
     /// republishes need not be the one that queued the delete.
-    private func forgetDeletion(of recordName: String) {
-        deleteQueue.forgetDeletion(of: recordName)
+    ///
+    /// Waits out a server delete a drain already has in flight for the name, on
+    /// any coordinator, so the republished record cannot land first and then be
+    /// removed by it.
+    private func forgetDeletion(of recordName: String) async {
+        await deleteQueue.forgetDeletionAfterDeletesInFlight(of: recordName)
     }
 
     /// Deletes the local encrypted preview for a media id.
@@ -578,6 +582,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// A record that is genuinely gone drains on `.notFound` — deleting is
     /// idempotent, so this needs no "is it still there?" round-trip. Only
     /// transient failures stay queued.
+    ///
+    /// The snapshot below goes stale while the drain awaits the server, so each
+    /// server call — the `EncMedia` delete and the chunk delete separately — is
+    /// issued only after the queue confirms the entry is still queued under the
+    /// claim the snapshot saw. A record republished after the snapshot (an
+    /// album moved back into iCloud reuses its record names) drops its entry,
+    /// and the drain then issues nothing more for it.
     private func drainPendingDeletes() async -> Set<String> {
         let claims = deleteQueue.pendingClaims()
         let entries = deleteQueue.pendingEntries()
@@ -601,10 +612,18 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             }
 
             do {
-                try await store.delete(recordName: recordName)
-                printDebug("drainPendingDeletes ok recordName=\(recordName)")
-            } catch CloudKitMediaStoreError.notFound {
-                printDebug("drainPendingDeletes skip recordName=\(recordName) — already gone from the zone")
+                let issued = try await issueQueuedDelete(of: recordName, claimedAs: claim) {
+                    do {
+                        try await store.delete(recordName: recordName)
+                        printDebug("drainPendingDeletes ok recordName=\(recordName)")
+                    } catch CloudKitMediaStoreError.notFound {
+                        printDebug("drainPendingDeletes skip recordName=\(recordName) — already gone from the zone")
+                    }
+                }
+                guard issued else {
+                    skipSupersededDelete(recordName, outstanding: &outstanding)
+                    continue
+                }
             } catch {
                 printDebug("drainPendingDeletes FAILED recordName=\(recordName) — left queued raw=\(error)")
                 continue
@@ -612,7 +631,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
             if chunkCount > 0 {
                 do {
-                    try await chunkStore.delete(mediaRecordName: recordName, chunkCount: chunkCount)
+                    let issued = try await issueQueuedDelete(of: recordName, claimedAs: claim) {
+                        try await chunkStore.delete(mediaRecordName: recordName, chunkCount: chunkCount)
+                    }
+                    guard issued else {
+                        skipSupersededDelete(recordName, outstanding: &outstanding)
+                        continue
+                    }
                     printDebug("drainPendingDeletes chunks ok recordName=\(recordName) chunkCount=\(chunkCount)")
                 } catch {
                     printDebug("drainPendingDeletes chunks FAILED recordName=\(recordName) chunkCount=\(chunkCount) — left queued raw=\(error)")
@@ -626,6 +651,31 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         }
         printDebug("drainPendingDeletes done albumID=\(self.albumID) stillPending=\(outstanding.count)")
         return outstanding
+    }
+
+    /// Runs one server delete for a queued entry, holding the queue's in-flight
+    /// grant for its duration so a republish of the name waits for it to finish.
+    /// - Returns: false, without running `operation`, when the entry is no longer
+    ///   queued under `claim` or another delete of it is already in flight.
+    private func issueQueuedDelete(of recordName: String,
+                                   claimedAs claim: CloudKitDeleteClaim,
+                                   _ operation: () async throws -> Void) async throws -> Bool {
+        guard deleteQueue.beginRemoteDelete(of: recordName, claimedAs: claim) else { return false }
+        defer { deleteQueue.endRemoteDelete(of: recordName) }
+        try await operation()
+        return true
+    }
+
+    /// A drain refused to act on a snapshotted entry. A republished record is live
+    /// again and must not be held back from the change feed; anything still queued
+    /// (a newer delete, or one another drain is issuing) stays outstanding.
+    private func skipSupersededDelete(_ recordName: String, outstanding: inout Set<String>) {
+        if deleteQueue.pending().contains(recordName) {
+            printDebug("drainPendingDeletes skip recordName=\(recordName) — still queued under a newer claim or in flight elsewhere")
+        } else {
+            printDebug("drainPendingDeletes skip recordName=\(recordName) — republished since the snapshot")
+            outstanding.remove(recordName)
+        }
     }
 
     // MARK: - Blob residency
@@ -883,7 +933,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                        progress: @escaping @Sendable (Double) -> Void,
                        alreadyVisibleLocally: Bool = false) async throws -> CloudKitMediaRef {
         printDebug("upload start recordName=\(item.recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes)")
-        forgetDeletion(of: item.recordName)
+        await forgetDeletion(of: item.recordName)
         let ref: CloudKitMediaRef
         do {
             do {

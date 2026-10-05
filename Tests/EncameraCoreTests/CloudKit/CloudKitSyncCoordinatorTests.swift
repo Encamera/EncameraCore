@@ -43,13 +43,15 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
     private func makeCoordinator(store: MockCloudKitMediaStore,
                                  bus: FileOperationBus = FileOperationBus(),
                                  deleteQueue: CloudKitMediaDeleteQueue? = nil,
-                                 sizeSidecar: AlbumSizeSidecar? = nil)
+                                 sizeSidecar: AlbumSizeSidecar? = nil,
+                                 chunkStore: ChunkedBlobStoring? = nil)
         -> (CloudKitSyncCoordinator, MediaIndexStore, CloudKitBlobCache) {
         let index = makeIndexStore()
         let cache = makeCache()
         let coord = CloudKitSyncCoordinator(albumID: "a1", store: store, cache: cache, indexStore: index,
                                             sizeSidecar: sizeSidecar,
-                                            bus: bus, deleteQueue: deleteQueue ?? makeDeleteQueue())
+                                            bus: bus, deleteQueue: deleteQueue ?? makeDeleteQueue(),
+                                            chunkStore: chunkStore)
         return (coord, index, cache)
     }
 
@@ -123,6 +125,42 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         var landed: Bool { lock.withLock { _landed } }
 
         func record() { lock.withLock { _landed = true } }
+    }
+
+    /// Records chunk deletes and nothing else, so a test can prove a drain did or
+    /// did not reach the blob zone.
+    private actor ChunkDeleteRecorder: ChunkedBlobStoring {
+        private(set) var deletes: [(mediaRecordName: String, chunkCount: Int)] = []
+
+        func uploadChunks(enc3FileURL: URL, mediaRecordName: String,
+                          existingChunks: ExistingChunkPolicy,
+                          progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
+            throw ChunkedBlobError.chunkNotFound(mediaRecordName)
+        }
+
+        func fetchChunk(mediaRecordName: String, index: Int) async throws -> Data {
+            throw ChunkedBlobError.chunkNotFound(mediaRecordName)
+        }
+
+        func delete(mediaRecordName: String, chunkCount: Int) async throws {
+            deletes.append((mediaRecordName, chunkCount))
+        }
+
+        var deletedNames: [String] { deletes.map(\.mediaRecordName) }
+    }
+
+    private func photoUpload(_ mediaID: String) -> CloudKitMediaUpload {
+        CloudKitMediaUpload(albumID: "a1", mediaID: mediaID, mediaType: .photo,
+                            createdAt: Date(timeIntervalSince1970: 555), sizeBytes: 1,
+                            encryptedFileURL: URL(fileURLWithPath: "/tmp/\(mediaID).blob"),
+                            encryptedThumbURL: nil)
+    }
+
+    /// Polls until `condition` holds, failing the test if it does not within a second.
+    private func waitUntil(_ condition: @escaping @Sendable () -> Bool) async throws {
+        try await withTimeout(seconds: 1) {
+            while !condition() { try await Task.sleep(nanoseconds: 1_000_000) }
+        }
     }
 
     private struct TestTimeout: Error {}
@@ -1238,6 +1276,103 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertTrue(entries.isEmpty, "A photo deleted mid-upload must not be resurrected in the index")
         XCTAssertEqual(store.deleteCalls.filter { $0 == "m1" }.count, 2,
                        "Both the delete itself and the record that landed after it must be removed")
+    }
+
+    // MARK: - Drain against a republish
+
+    /// The drain works from a snapshot of the queue, and an album moved back into
+    /// iCloud republishes the same record names while it runs. A record uploaded
+    /// after the snapshot is live again, and its local original is deleted once it
+    /// verifies — so the stale entry must not delete it.
+    func testDrainSkipsRecordRepublishedAfterSnapshot() async throws {
+        let store = MockCloudKitMediaStore()
+        let queue = makeDeleteQueue()
+        let (coord, _, _) = makeCoordinator(store: store, deleteQueue: queue)
+        let earlier = photoUpload("a")
+        let republished = photoUpload("x")
+        XCTAssertLessThan(earlier.recordName, republished.recordName, "Precondition: the drain reaches the gated entry first")
+
+        queue.claimDeletion(of: earlier.recordName, queueRemoteDelete: true)
+        queue.claimDeletion(of: republished.recordName, queueRemoteDelete: true)
+        let gate = AsyncGate()
+        store.deleteGates[earlier.recordName] = gate
+
+        let sync = Task { try await coord.sync(albumID: "a1") }
+        await gate.waitUntilEntered()
+
+        _ = try await coord.upload(republished, progress: { _ in })
+        await gate.release()
+        try await sync.value
+
+        XCTAssertEqual(store.deleteCalls, [earlier.recordName],
+                       "The drain deleted a record republished after its snapshot")
+        XCTAssertTrue(queue.pending().isEmpty)
+    }
+
+    /// The same race, landing between the two legs of one entry: the `EncMedia`
+    /// delete is already on the wire when the record is republished. The upload
+    /// waits for that delete, and the chunk leg — which would delete the
+    /// republished video's chunks, whose record names are the same — never runs.
+    func testDrainSkipsChunkDeleteWhenRecordRepublishedBetweenLegs() async throws {
+        let store = MockCloudKitMediaStore()
+        let queue = makeDeleteQueue()
+        let chunks = ChunkDeleteRecorder()
+        let (coord, _, _) = makeCoordinator(store: store, deleteQueue: queue, chunkStore: chunks)
+        let republished = photoUpload("x")
+        let name = republished.recordName
+
+        queue.claimDeletion(of: name, chunkCount: 3, queueRemoteDelete: true)
+        let gate = AsyncGate()
+        store.deleteGates[name] = gate
+
+        let sync = Task { try await coord.sync(albumID: "a1") }
+        await gate.waitUntilEntered()
+
+        let upload = Task { try await coord.upload(republished, progress: { _ in }) }
+        try await waitUntil { !queue.pending().contains(name) }
+        XCTAssertFalse(store.callOrder.contains(.upload(recordName: name)),
+                       "The upload must wait for the delete already in flight, not race it to the server")
+
+        await gate.release()
+        try await sync.value
+        _ = try await upload.value
+
+        let chunkDeletes = await chunks.deletedNames
+        XCTAssertEqual(chunkDeletes, [], "The chunk leg ran after the record was republished")
+        XCTAssertEqual(store.deleteCalls, [name])
+        let order = store.callOrder.filter { $0 == .delete(recordName: name) || $0 == .upload(recordName: name) }
+        XCTAssertEqual(order, [.delete(recordName: name), .upload(recordName: name)],
+                       "The republish must land after the in-flight delete, or the delete removes it")
+        XCTAssertTrue(queue.pending().isEmpty)
+    }
+
+    /// The guard on the two tests above: an entry nothing has republished drains
+    /// exactly as before — the record, then its chunks, and `.notFound` counts as
+    /// done.
+    func testDrainStillDeletesCurrentEntries() async throws {
+        let store = MockCloudKitMediaStore()
+        let queue = makeDeleteQueue()
+        let chunks = ChunkDeleteRecorder()
+        let (coord, _, _) = makeCoordinator(store: store, deleteQueue: queue, chunkStore: chunks)
+        let gone = photoUpload("a").recordName
+        let photo = photoUpload("b").recordName
+        let video = photoUpload("c").recordName
+
+        queue.claimDeletion(of: gone, queueRemoteDelete: true)
+        queue.claimDeletion(of: photo, queueRemoteDelete: true)
+        queue.claimDeletion(of: video, chunkCount: 4, queueRemoteDelete: true)
+        store.deleteErrorOnce = CloudKitMediaStoreError.notFound
+
+        try await coord.sync(albumID: "a1")
+
+        XCTAssertEqual(store.deleteCalls, [gone, photo, video])
+        let chunkDeletes = await chunks.deletes
+        XCTAssertEqual(chunkDeletes.map(\.mediaRecordName), [video])
+        XCTAssertEqual(chunkDeletes.map(\.chunkCount), [4])
+        XCTAssertTrue(queue.pending().isEmpty, "Every current entry, including the one already gone, is confirmed")
+
+        try await coord.sync(albumID: "a1")
+        XCTAssertEqual(store.deleteCalls, [gone, photo, video], "A drained delete is not retried")
     }
 
     func testUploadEntryUsesCreatedAtForSorting() async throws {

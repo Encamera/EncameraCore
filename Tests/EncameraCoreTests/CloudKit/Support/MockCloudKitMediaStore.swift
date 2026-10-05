@@ -268,11 +268,15 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// Observation hook invoked on every delete, so a test can record the
     /// interleaving of record deletes with other traffic (e.g. chunk deletes).
     var onDelete: ((String) -> Void)?
+    /// Suspends `delete` of the named record, after it is logged, until the test
+    /// releases the gate — the server call is in flight. See `AsyncGate`.
+    var deleteGates: [String: AsyncGate] = [:]
 
     func delete(recordName: String) async throws {
         log(.delete(recordName: recordName))
         locked { _deleteCalls.append(recordName) }
         onDelete?(recordName)
+        if let gate = locked({ deleteGates[recordName] }) { await gate.enter() }
         if let deleteError { throw deleteError }
         if let deleteErrorOnce { self.deleteErrorOnce = nil; throw deleteErrorOnce }
         locked { _liveRecords[recordName] = nil }

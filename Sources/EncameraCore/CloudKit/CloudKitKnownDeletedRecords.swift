@@ -68,6 +68,10 @@ final class CloudKitKnownDeletedRecords: @unchecked Sendable {
     /// match. Absent means "never claimed this session", which is generation 0 —
     /// what a queue entry restored from a previous launch is claimed under.
     private var generations: [String: UInt64] = [:]
+    /// Record names a drain has a server delete in flight for, and the
+    /// republishes waiting for that delete to finish before they upload.
+    private var deletesInFlight: Set<String> = []
+    private var inFlightWaiters: [String: [CheckedContinuation<Void, Never>]] = [:]
 
     private init() {}
 
@@ -127,6 +131,30 @@ final class CloudKitKnownDeletedRecords: @unchecked Sendable {
         lock.withLock { _ = names.remove(recordName) }
     }
 
+    /// Marks a server delete of `recordName` as in flight. False when one already is.
+    func beginDeleteInFlight(_ recordName: String) -> Bool {
+        lock.withLock { deletesInFlight.insert(recordName).inserted }
+    }
+
+    /// Clears the in-flight mark and hands back the waiters for the caller to
+    /// resume once it has dropped every lock.
+    func endDeleteInFlight(_ recordName: String) -> [CheckedContinuation<Void, Never>] {
+        lock.withLock {
+            deletesInFlight.remove(recordName)
+            return inFlightWaiters.removeValue(forKey: recordName) ?? []
+        }
+    }
+
+    /// Parks `waiter` until the delete in flight for `recordName` ends. False,
+    /// with the waiter left unparked, when no delete is in flight.
+    func waitForDeleteInFlight(_ recordName: String, _ waiter: CheckedContinuation<Void, Never>) -> Bool {
+        lock.withLock {
+            guard deletesInFlight.contains(recordName) else { return false }
+            inFlightWaiters[recordName, default: []].append(waiter)
+            return true
+        }
+    }
+
     /// Empties everything. For tests: an instance outlives every one of them, so a
     /// name one test marks would otherwise make another test's read of the same
     /// name fail closed.
@@ -134,6 +162,9 @@ final class CloudKitKnownDeletedRecords: @unchecked Sendable {
         lock.withLock {
             names.removeAll()
             generations.removeAll()
+            deletesInFlight.removeAll()
+            inFlightWaiters.values.joined().forEach { $0.resume() }
+            inFlightWaiters.removeAll()
         }
     }
 }
