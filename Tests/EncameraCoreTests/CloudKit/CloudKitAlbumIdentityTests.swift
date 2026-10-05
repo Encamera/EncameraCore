@@ -279,17 +279,15 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
     func testFinalizedResolutionFindsTheCloudKitAlbumByNameAndKey() throws {
         let key = makeKey()
         let local = Album(name: "Moved-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: key)
-        let manager = makeManager(keys: [key], currentKey: key)
-        XCTAssertFalse(manager.hasFinalizedToCloudKit(album: local))
+        XCTAssertNil(CloudKitAlbumMarker.albumID(matching: local))
 
         let albumID = UUID().uuidString
         try writeMarker(CloudKitAlbumMarker(album: Album.cloudKitTwin(of: local, albumID: albumID), isHidden: false),
                         albumID: albumID)
 
-        XCTAssertTrue(manager.hasFinalizedToCloudKit(album: local))
         XCTAssertEqual(CloudKitAlbumMarker.albumID(matching: local), albumID)
         let otherKey = Album(name: local.name, storageOption: .local, creationDate: Date(), key: makeKey())
-        XCTAssertFalse(manager.hasFinalizedToCloudKit(album: otherKey), "the same name under another key is another album")
+        XCTAssertNil(CloudKitAlbumMarker.albumID(matching: otherKey), "the same name under another key is another album")
     }
 
     // MARK: - Adoption

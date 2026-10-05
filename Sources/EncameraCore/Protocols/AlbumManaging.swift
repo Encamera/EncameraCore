@@ -139,16 +139,20 @@ public extension AlbumManaging {
         return Album.localTwin(of: album)
     }
 
-    /// Whether a CloudKit album with this album's name and key exists on this
-    /// device — i.e. whether a migration actually finalized. A CloudKit album's id is
-    /// not derivable from its name, so this scans the `album.json` markers
-    /// `finalizeMigrationToCloudKit` writes (and `fetchAlbumsFromSources` derives its
-    /// `.cloudKit` albums from) for an `encName` that decrypts under the album's key
-    /// to its name. It is the one true answer to "did this album really move",
-    /// available to callers outside this module that must not report a migration
-    /// they did not achieve. Before finalize there is no marker, so it is false.
-    func hasFinalizedToCloudKit(album: Album) -> Bool {
-        CloudKitAlbumMarker.albumID(matching: album) != nil
+    /// Whether a whole-album move out of `album` has finished: no migration plan
+    /// names the album, and its source storage no longer lists it. This is the
+    /// answer to "did this album really move" for callers that must not report a
+    /// move they did not achieve.
+    ///
+    /// It deliberately ignores CloudKit markers. A marker with the album's name and
+    /// key can exist while the move is still running or has failed (the reconciler
+    /// adopts the destination's record mid-run), or for an unrelated same-named
+    /// CloudKit album, so marker existence says nothing about whether this album's
+    /// source was drained. The answer is keyed on `album.id` alone, which includes
+    /// the source storage, so no other album can make it true.
+    func hasFinishedMoving(album: Album) -> Bool {
+        guard MigrationPlanStore.planRole(forAlbumID: album.id) == .none else { return false }
+        return !fetchAlbumsFromSources(includingHidden: true).contains { $0.id == album.id }
     }
 
     /// Default no-op so lightweight test/demo conformers need not implement it.

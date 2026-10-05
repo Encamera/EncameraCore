@@ -1002,6 +1002,52 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertEqual(Album.decryptedAlbumName(marker.encName, key: album.key), album.name)
     }
 
+    /// The upgrade's completion oracle must not read a CloudKit marker with the
+    /// album's name and key as "moved": the reconciler can adopt the destination's
+    /// record mid-run. While the album's plan exists the move has not finished,
+    /// whether or not the source is still listed.
+    func testUpgradeCompletionOracleIsFalseWhileAPlanForTheAlbumExists() async throws {
+        let priorMakeStore = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in InMemoryCloudKitMediaStore() }
+        defer { CloudKitStoreProvider.makeStore = priorMakeStore }
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        store.uploadErrorOnce = CloudKitMediaStoreError.quotaExceeded
+        defer { cleanup(album) }
+        let oracleKeys = DemoKeyManager(keys: [album.key])
+        oracleKeys.currentKey = album.key
+        let oracle = AlbumManager(keyManager: oracleKeys, syncedDataStore: nil)
+
+        _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+        let adoptedID = UUID().uuidString
+        try CloudKitAlbumMarker(album: Album.cloudKitTwin(of: album, albumID: adoptedID), isHidden: false)
+            .write(albumID: adoptedID)
+        defer { try? CloudKitAlbumMarker.remove(albumID: adoptedID) }
+        XCTAssertEqual(CloudKitAlbumMarker.albumID(matching: album), adoptedID,
+                       "precondition: a marker with the album's name and key exists")
+        XCTAssertFalse(oracle.hasFinishedMoving(album: album), "the source still lists the album")
+
+        await manager.start(album: album)
+        XCTAssertEqual(manager.state, .failed(.quota), "precondition: the run halted")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: MigrationPlanStore.planURL(for: album).path),
+                      "precondition: the halted run kept its plan")
+        XCTAssertFalse(oracle.hasFinishedMoving(album: album))
+
+        // With the source out of the listing, the plan alone keeps the answer false.
+        let sourceURL = album.storageOption.modelForType.init(album: album).baseURL
+        let asideURL = sourceURL.deletingLastPathComponent().appendingPathComponent("aside-\(UUID().uuidString)")
+        try FileManager.default.moveItem(at: sourceURL, to: asideURL)
+        XCTAssertFalse(oracle.fetchAlbumsFromSources(includingHidden: true).contains { $0.id == album.id },
+                       "precondition: the source no longer lists the album")
+        XCTAssertFalse(oracle.hasFinishedMoving(album: album), "a remaining plan is not a finished move")
+        try FileManager.default.moveItem(at: asideURL, to: sourceURL)
+
+        await manager.resume(album: album)
+        XCTAssertEqual(manager.state, .completed)
+        XCTAssertTrue(oracle.hasFinishedMoving(album: album), "no plan and no source: the move finished")
+    }
+
     // MARK: - iCloud Drive deprecation is unconditional
 
     func testCreateICloudDriveAlbumThrowsInAllBuildConfigurations() throws {
