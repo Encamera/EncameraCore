@@ -2080,6 +2080,88 @@ extension CloudKitMigrationManagerTests {
         XCTAssertEqual(albums.count, 3, "no album is minted beside the adopted one")
     }
 
+    /// A second device on 3.0.0 creates a CloudKit "Default Album" under the synced
+    /// key, and this device adopts it, so a CloudKit album with the iCloud Drive
+    /// album's name and key is already listed when the upgrade runs. The legacy
+    /// album moves into that album, its source is drained, and nothing lists it
+    /// as an iCloud Drive album any more.
+    func testUpgradeOfALegacyAlbumMergesIntoAnExistingSameNameSameKeyCloudKitAlbum() async throws {
+        try await withSameNamedCloudKitAlbum(itemCount: 2) { album, existingID, manager, albumManager, store, oracle in
+            await manager.start(album: album)
+
+            XCTAssertEqual(manager.state, .completed)
+            XCTAssertEqual(store.uploadCalls.count, 2, "every legacy item is moved")
+            XCTAssertEqual(Set(store.uploadedItems.map(\.albumID)), [existingID],
+                           "the media lands in the existing CloudKit album")
+            XCTAssertEqual(albumManager.finalizedAlbums.map(\.albumID), [existingID])
+            XCTAssertEqual(store.fetchAllAlbumsCount, 0, "the existing album is resolved from this device's marker")
+            XCTAssertEqual(CloudKitAlbumMarker.albumID(matching: album), existingID, "no second CloudKit album is created")
+            self.assertLegacySourceIsDrained(album, existingID: existingID, oracle: oracle)
+        }
+    }
+
+    /// The same merge for a legacy album with nothing in it: there is nothing to
+    /// upload, but its empty iCloud Drive directory must still go, or the source
+    /// keeps listing it and the upgrade is offered again.
+    func testUpgradeOfAnEmptyLegacyAlbumIntoAnExistingSameNameCloudKitAlbumRemovesTheSource() async throws {
+        try await withSameNamedCloudKitAlbum(itemCount: 0) { album, existingID, manager, albumManager, store, oracle in
+            await manager.start(album: album)
+
+            XCTAssertTrue(store.uploadCalls.isEmpty)
+            XCTAssertEqual(albumManager.finalizeCallCount, 0, "the existing CloudKit album is not re-finalized")
+            XCTAssertEqual(CloudKitAlbumMarker.albumID(matching: album), existingID)
+            self.assertLegacySourceIsDrained(album, existingID: existingID, oracle: oracle)
+        }
+    }
+
+    /// Runs `body` with a legacy iCloud Drive "Default Album" holding `itemCount`
+    /// photos and a CloudKit album with the same name and key already on this
+    /// device. `oracle` is a real `AlbumManager` reading the same disk state.
+    private func withSameNamedCloudKitAlbum(
+        itemCount: Int,
+        _ body: (Album, String, CloudKitMigrationManager, MockAlbumManager, MockCloudKitMediaStore, AlbumManager) async throws -> Void
+    ) async throws {
+        let priorMakeStore = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in InMemoryCloudKitMediaStore() }
+        defer { CloudKitStoreProvider.makeStore = priorMakeStore }
+        try await withICloudDriveRoot {
+            let key = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+            let album = Album(name: "Default Album", storageOption: .icloud, creationDate: Date(), key: key)
+            let (manager, albumManager, store) = makeExecutableManager(for: album)
+            store.reflectUploadsInMetadata = true
+            defer { cleanup(album) }
+            _ = try await seedLocalAlbum(count: itemCount, albumManager: albumManager, album: album)
+
+            let existingID = UUID().uuidString
+            try CloudKitAlbumMarker(album: Album.cloudKitTwin(of: album, albumID: existingID), isHidden: false)
+                .write(albumID: existingID)
+            defer { try? CloudKitAlbumMarker.remove(albumID: existingID) }
+
+            let oracleKeys = DemoKeyManager(keys: [key])
+            oracleKeys.currentKey = key
+            let oracle = AlbumManager(keyManager: oracleKeys, syncedDataStore: nil)
+            let listed = oracle.fetchAlbumsFromSources(includingHidden: true).filter { $0.name == album.name }
+            XCTAssertEqual(Set(listed.map(\.storageOption)), [.icloud, .cloudKit],
+                           "precondition: both the legacy album and the same-named CloudKit album are listed")
+            XCTAssertFalse(oracle.hasFinishedMoving(album: album), "precondition: the legacy album has not moved")
+
+            try await body(album, existingID, manager, albumManager, store, oracle)
+        }
+    }
+
+    private func assertLegacySourceIsDrained(_ album: Album, existingID: String, oracle: AlbumManager,
+                                             file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertFalse(FileManager.default.fileExists(atPath: iCloudStorageModel(album: album).baseURL.path),
+                       "the iCloud Drive source directory is removed", file: file, line: line)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: MigrationPlanStore.planURL(for: album).path),
+                       "no checkpoint is left", file: file, line: line)
+        let listed = oracle.fetchAlbumsFromSources(includingHidden: true).filter { $0.name == album.name }
+        XCTAssertEqual(listed.map(\.albumID), [existingID], "only the CloudKit album is listed", file: file, line: line)
+        XCTAssertFalse(listed.contains { $0.storageOption == .icloud },
+                       "no legacy album is left for the upgrade to offer", file: file, line: line)
+        XCTAssertTrue(oracle.hasFinishedMoving(album: album), file: file, line: line)
+    }
+
     func testAMoveToCloudKitDoesNotAdoptAnAlbumQueuedForDeletion() async throws {
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)

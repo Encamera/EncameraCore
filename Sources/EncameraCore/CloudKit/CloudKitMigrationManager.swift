@@ -1316,13 +1316,16 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         // forever with an orphaned zero-item checkpoint that `pendingPlans()`
         // can never surface).
         // A zero-item plan for an album whose CloudKit discovery marker already
-        // exists is not an empty album: it is a re-run against an album that
-        // already finalized (source drained, checkpoint deleted). Don't
-        // re-finalize — just drop the zero-item checkpoint this run's plan()
-        // re-created. (Source-dir existence can't be the signal: enumeration
-        // re-creates the directory via `initializeDirectories`.)
+        // exists has nothing to move into that album: it is a re-run against an
+        // album that already finalized, or an empty source whose name and key
+        // match an existing CloudKit album. Don't re-finalize the destination.
+        // Remove the source directory if it is still there and drained, so the
+        // source stops listing the album (enumeration can re-create it via
+        // `initializeDirectories`), then drop the zero-item checkpoint this
+        // run's plan() re-created.
         if plan.items.isEmpty {
             if CloudKitAlbumMarker.exists(albumID: albumID) {
+                removeDrainedSource(of: album, cloudKitAlbumID: albumID)
                 await planStore.delete()
                 state = .idle
                 return true
@@ -1362,6 +1365,26 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         printDebug("run COMPLETED album=\(album.name) items=\(plan.items.count)")
         state = .completed
         return true
+    }
+
+    /// Removes `album`'s source directory when it still exists and holds no files,
+    /// so the source no longer lists an album whose CloudKit album already exists,
+    /// and tells the album list it changed. A directory with any file left in it is
+    /// kept. A current album that was the source becomes the CloudKit album.
+    private func removeDrainedSource(of album: Album, cloudKitAlbumID: String) {
+        guard let baseURL = albumManager.storageModel(for: album)?.baseURL,
+              FileManager.default.fileExists(atPath: baseURL.path),
+              Album.removeDrainedSourceDirectory(at: baseURL) else { return }
+        printDebug("run removed drained source album=\(album.name) — its CloudKit album already exists")
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+        if albumManager.currentAlbum?.id == album.id,
+           let marker = CloudKitAlbumMarker.read(albumID: cloudKitAlbumID) {
+            var albumManager = albumManager
+            albumManager.currentAlbum = Album(encryptedName: marker.encName, storageOption: .cloudKit,
+                                              creationDate: marker.createdAt, key: album.key,
+                                              albumID: cloudKitAlbumID)
+        }
+        albumManager.notifyAlbumsChanged()
     }
 
     // MARK: - Materialization (iCloud Drive sources)
