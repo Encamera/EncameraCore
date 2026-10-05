@@ -172,4 +172,51 @@ final class AlbumDirectoryDiscoveryTests: XCTestCase {
         }
         XCTAssertFalse(albums.contains { $0.storageOption == .icloud })
     }
+
+    /// A move back to this device creates the local album's directory at the start
+    /// of the run. Until finalize the album is the CloudKit one, so the list shows
+    /// only that, or a user could delete the "duplicate" mid-move. The real
+    /// `AlbumManager` listing is used, with the album's real directories.
+    @MainActor
+    func testFetchAlbumsFromSourcesHidesTheToLocalTwinWhileItsPlanExists() async throws {
+        let key = PrivateKey(name: "key", keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
+                             creationDate: Date())
+        let albumID = UUID().uuidString
+        let cloudAlbum = Album(name: "twin-\(UUID().uuidString)", storageOption: .cloudKit,
+                               creationDate: Date(), key: key, albumID: albumID)
+        let twin = Album.localTwin(of: cloudAlbum)
+        let keyManager = DemoKeyManager(keys: [key])
+        keyManager.currentKey = key
+        let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+        defer {
+            try? CloudKitAlbumMarker.remove(albumID: albumID)
+            try? FileManager.default.removeItem(at: LocalStorageModel(album: twin).baseURL)
+            try? FileManager.default.removeItem(at: MigrationPlanStore.directoryURL(forSource: cloudAlbum))
+        }
+        try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
+        try LocalStorageModel(album: twin).initializeDirectories()
+        let planStore = MigrationPlanStore(album: cloudAlbum)
+        try await planStore.save(try MigrationPlan.album(cloudAlbum, items: []))
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: twin.id), .destination(.toLocal, isRunning: false),
+                       "precondition: the plan names the local album as its destination")
+
+        let listedIDs = { Set(albumManager.fetchAlbumsFromSources(includingHidden: true).map(\.id)) }
+        XCTAssertTrue(listedIDs().contains(cloudAlbum.id), "the CloudKit album stays listed")
+        XCTAssertFalse(listedIDs().contains(twin.id), "the twin a move back is filling is not listed")
+        XCTAssertFalse(albumManager.fetchAlbumsFromSources().contains { $0.id == twin.id })
+        XCTAssertFalse(albumManager.hasFinishedMoving(album: cloudAlbum),
+                       "hiding the twin does not make the source read as moved")
+        XCTAssertFalse(albumManager.hasFinishedMoving(album: twin))
+
+        // Finalize removes the CloudKit album before the plan: the local album shows
+        // at once, so the album never drops out of the list.
+        try CloudKitAlbumMarker.remove(albumID: albumID)
+        XCTAssertTrue(listedIDs().contains(twin.id), "with the CloudKit album gone, the local album is the album")
+        try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
+
+        // Without a plan, a same-named local album is an album in its own right.
+        await planStore.delete()
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: twin.id), .none)
+        XCTAssertTrue(listedIDs().isSuperset(of: [cloudAlbum.id, twin.id]))
+    }
 }

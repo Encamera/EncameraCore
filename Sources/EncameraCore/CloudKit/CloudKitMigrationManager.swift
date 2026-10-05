@@ -877,8 +877,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     // MARK: - Run: transfer pass
 
     /// A whole album moving back to this device removes nothing until every item
-    /// has verified: the local album stays invisible here until finalize flips its
-    /// storage, so removing a record per item would take it off every other device
+    /// has verified: the local album stays out of the album list until finalize
+    /// flips its storage (`AlbumManager.fetchAlbumsFromSources` hides the twin a
+    /// move back is filling), so removing a record per item would take it off every other device
     /// while this one cannot show it yet. Everything else removes each source copy
     /// as soon as its destination copy verifies.
     private static func removesSourcePerItem(_ plan: MigrationPlan) -> Bool {
@@ -1159,8 +1160,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                 // here so the ring and "Removing X of Y" advance per record.
                 publishProgress(plan, currentItemName: plan.items[index].mediaID)
             } catch {
-                // The item stays `verified`, so the resume comes straight back here
-                // rather than downloading it again.
+                // An item whose record could not be removed stays `verified`, so the
+                // resume comes straight back here rather than downloading it again.
+                // One whose fresh download failed goes back to `pending`.
+                plan.revertInFlight()
                 plan.items[index].lastError = "\(error)"
                 try? await planStore.save(plan)
                 printDebug("run REMOVE FAILED recordName=\(plan.items[index].recordName) error=\(error)")
@@ -1466,8 +1469,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// deleted must not leave a local copy of it as well, or the item shows in both
     /// albums. A copy is discarded only while its record is confirmed on the server,
     /// since otherwise it may be the only one, and the item goes back to download
-    /// again on a resume. An album-scope move keeps its copies: that local album is
-    /// invisible until finalize, so discarding them would only force a re-download.
+    /// again on a resume. An album-scope move keeps its copies: its plan stays on
+    /// disk after a cancel, and `AlbumManager.fetchAlbumsFromSources` hides the local
+    /// twin while that plan exists, so discarding them would only force a re-download.
     private func discardLocalCopiesOfUnmovedItems(_ plan: inout MigrationPlan,
                                                   store: CloudKitMediaStoring) async {
         guard plan.scope == .items, plan.direction == .toLocal,

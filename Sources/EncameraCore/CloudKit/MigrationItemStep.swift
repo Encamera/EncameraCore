@@ -48,8 +48,10 @@ protocol MigrationItemStep {
 
     /// Removes the source copy of a `verified` item, leaving it `sourceDeleted`.
     /// `verifiedThisRun` is false when the item entered the run already `verified`,
-    /// so its verification may be stale. A step that finds it stale resets the item
-    /// to `pending` and returns, and the run loop re-drives it.
+    /// so its verification may be stale; when true, a step may check the copy
+    /// against what it recorded at verification instead of asking the server. A
+    /// step that finds it stale resets the item to `pending` and returns, and the
+    /// run loop re-drives it.
     func removeSource(at index: Int,
                       in plan: inout MigrationPlan,
                       verifiedThisRun: Bool,
@@ -463,6 +465,7 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
             context.setPhase(.downloading, plan, item.mediaID)
             plan.items[index].state = .uploading
             plan.items[index].lastError = nil
+            plan.items[index].verifiedSizeBytes = nil
             try await context.savePlan(plan)
 
             // A copy an earlier run left that still matches the record is this
@@ -511,6 +514,7 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
             }
             printDebug("item verified locally recordName=\(item.recordName)")
             plan.items[index].state = .verified
+            plan.items[index].verifiedSizeBytes = destinationURL.fileSizeBytes()
             try await context.savePlan(plan)
         }
     }
@@ -560,27 +564,32 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
         let item = plan.items[index]
         // A cancel requested mid-item stops BEFORE the irreversible delete.
         if context.isCancelRequested() { throw CloudKitMediaStoreError.cancelled }
-        // A verification from an earlier run says nothing about the local copy now:
-        // it may have been deleted or damaged since. Check it against the record
-        // again, and download it again if it no longer matches. A record already
+        // The local copy may have been deleted or damaged since it verified, even
+        // earlier in this run, so it is checked before every record delete. One
+        // verified in this run is compared with the size it had then, which needs
+        // no request; an older verification is checked against the record again. A
+        // copy that no longer matches goes back to download again. A record already
         // gone leaves nothing to compare against and nothing to lose by deleting.
         // The check runs under the removal phase, not `.verifying`: it is part of
         // removing this record, and on a resumed removal pass a phase flip per item
         // makes "Removing X of Y" flicker to "Verifying in iCloud", which describes
         // the opposite direction.
         context.setPhase(.removingRemoteCopy, plan, item.mediaID)
-        if !verifiedThisRun {
-            var matches: Bool? = false
-            if let destinationURL = context.destinationModel?.driveURLForMedia(withID: item.mediaID, type: item.mediaType) {
+        var matches: Bool? = false
+        if let destinationURL = context.destinationModel?.driveURLForMedia(withID: item.mediaID, type: item.mediaType) {
+            if verifiedThisRun, let verifiedSize = item.verifiedSizeBytes {
+                matches = destinationURL.fileSizeBytes() == verifiedSize
+            } else {
                 matches = try await Self.localCopy(at: destinationURL, matchesSourceOf: item, context: context)
             }
-            if matches == false {
-                printDebug("item STALE VERIFICATION recordName=\(item.recordName) — local copy missing or no longer matches the record, downloading again")
-                plan.items[index].state = .pending
-                plan.items[index].lastError = "stale verification: local copy missing or does not match the record"
-                try await context.savePlan(plan)
-                return
-            }
+        }
+        if matches == false {
+            printDebug("item STALE VERIFICATION recordName=\(item.recordName) verifiedThisRun=\(verifiedThisRun) — local copy missing or no longer matches, downloading again")
+            plan.items[index].state = .pending
+            plan.items[index].verifiedSizeBytes = nil
+            plan.items[index].lastError = "stale verification: local copy missing or does not match the record"
+            try await context.savePlan(plan)
+            return
         }
         let started = Date()
         // A capture still waiting to upload has its durable file as the source copy.

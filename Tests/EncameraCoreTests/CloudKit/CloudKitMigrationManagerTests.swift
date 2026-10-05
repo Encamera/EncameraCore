@@ -1702,6 +1702,107 @@ extension CloudKitMigrationManagerTests {
         XCTAssertEqual(fixture.store.deleteCalls.sorted(), fixture.recordNames.sorted())
     }
 
+    /// The removal pass re-checks every local copy before its record goes, including
+    /// copies verified earlier in the same run. Here the local album disappears (as
+    /// when a user deletes what looks like a duplicate) between the two passes.
+    func testAlbumMoveToLocalRemovalPassKeepsTheRecordWhenALocalCopyVerifiedThisRunDisappears() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(fixture)
+        }
+        let localDirectory = LocalStorageModel(album: fixture.local).baseURL
+        let removed = Box(false)
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard !removed.value, case .removing(removed: 0) = boundary else { return }
+            removed.value = true
+            try? FileManager.default.removeItem(at: localDirectory)
+        }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertTrue(removed.value, "precondition: the local copies went after every item verified this run")
+        XCTAssertTrue(fixture.store.deleteCalls.isEmpty, "no record goes while its local copy is missing")
+        guard case .failed = fixture.manager.state else {
+            return XCTFail("expected a failed run, got \(fixture.manager.state)")
+        }
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalCallCount, 0)
+        let persisted = await MigrationPlanStore(album: fixture.album).load()
+        XCTAssertEqual(persisted?.items.map(\.state), [.pending, .verified],
+                       "the missing copy goes back to download; the rest wait for the resume")
+
+        CloudKitMigrationManager.boundaryHook = nil
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(fixture.manager.state, .completed)
+        XCTAssertEqual(fixture.store.deleteCalls.sorted(), fixture.recordNames.sorted())
+        for id in fixture.ids {
+            XCTAssertEqual(fixture.localURL(id).fileSizeBytes(), 10, "every item came home before its record went")
+        }
+    }
+
+    func testAlbumMoveToLocalRemovalPassRedownloadsATruncatedCopyVerifiedThisRun() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(fixture)
+        }
+        let truncatedURL = fixture.localURL(fixture.ids[0])
+        let truncated = Box(false)
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard !truncated.value, case .removing(removed: 0) = boundary else { return }
+            truncated.value = true
+            try? Data(repeating: 0xAA, count: 3).write(to: truncatedURL)
+        }
+        let sizeAtDelete = Box<Int64?>(nil)
+        let truncatedRecord = fixture.recordNames[0]
+        fixture.store.onDelete = { recordName in
+            guard recordName == truncatedRecord else { return }
+            sizeAtDelete.value = truncatedURL.fileSizeBytes() ?? -1
+        }
+        var phases: [MigrationPhase] = []
+        let subscription = fixture.manager.$progress.sink { if let phase = $0.phase { phases.append(phase) } }
+        defer { subscription.cancel() }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertTrue(truncated.value, "precondition: the copy was cut short after it verified this run")
+        XCTAssertEqual(fixture.manager.state, .completed)
+        XCTAssertEqual(sizeAtDelete.value, 10, "the record goes only once a full copy is back")
+        XCTAssertEqual(fixture.store.deleteCalls.sorted(), fixture.recordNames.sorted())
+        XCTAssertEqual(truncatedURL.fileSizeBytes(), 10)
+        let firstRemoval = try XCTUnwrap(phases.firstIndex(of: .removingRemoteCopy))
+        XCTAssertTrue(phases[firstRemoval...].contains(.downloading), "the truncated copy is downloaded again")
+    }
+
+    /// A cancelled move back keeps its plan for a resume, and with it the local
+    /// directory and copies. The album list shows only the CloudKit album.
+    func testAlbumMoveToLocalCancelLeavesNoVisibleLocalTwin() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer { cleanup(fixture) }
+        let plan = fixture.plan
+        fixture.store.fetchBlobProgressSteps = [0.5]
+        fixture.store.onFirstProgress = { [weak manager = fixture.manager] in
+            Task { @MainActor in await manager?.cancel(plan: plan) }
+        }
+        let listingKeys = DemoKeyManager(keys: [fixture.album.key])
+        listingKeys.currentKey = fixture.album.key
+        let listing = AlbumManager(keyManager: listingKeys, syncedDataStore: nil)
+
+        await fixture.manager.start(plan: plan)
+
+        XCTAssertEqual(fixture.manager.state, .idle)
+        let persisted = await MigrationPlanStore(album: fixture.album).load()
+        XCTAssertNotNil(persisted?.cancelledAt, "precondition: the cancel is durable")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: LocalStorageModel(album: fixture.local).baseURL.path),
+                      "precondition: the run created the local directory")
+        let listed = listing.fetchAlbumsFromSources(includingHidden: true)
+        XCTAssertTrue(listed.contains { $0.id == fixture.album.id }, "the CloudKit album is still the album")
+        XCTAssertFalse(listed.contains { $0.storageOption == .local && $0.name == fixture.album.name },
+                       "a cancelled move back leaves no visible local album")
+        XCTAssertFalse(listing.fetchAlbumsFromSources().contains { $0.id == fixture.local.id })
+    }
+
     func testAlbumMoveToLocalFromAShortChunkedAssemblyRemovesNoRecordAndBringsTheFullVideoHomeOnResume() async throws {
         let chunkStore = InMemoryChunkedBlobStore()
         let fixture = try makeToLocalFixture(count: 0, chunkStore: chunkStore)

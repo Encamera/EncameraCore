@@ -242,7 +242,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
         lockedAlbumCount = lockedPlaceholders.count
         lockedAlbums = lockedPlaceholders
-        return Set(localAlbums)
+        return Set(Self.excludingMoveBackTwins(localAlbums, cloudKitAlbums: cloudKitAlbums))
             .union(Set(iCloudAlbums))
             .union(Set(cloudKitAlbums))
             .filter { album in
@@ -253,6 +253,30 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                 return !isAlbumHidden(album)
             }
             .sorted(by: { $0.creationDate < $1.creationDate })
+    }
+
+    /// Leaves out the local album a move back to this device is filling. Its
+    /// directory exists from the start of the run, but until finalize the album is
+    /// the CloudKit one: listing both shows a duplicate the user could delete, or
+    /// save into, mid-move. A local album is hidden only while a CloudKit album it
+    /// is the twin of is still listed and a plan names it the destination of a move
+    /// back, running or not (a cancelled move keeps its plan for a resume). Once
+    /// finalize removes the CloudKit album, the local one shows even before the
+    /// plan is deleted. A move's source is never hidden: `planRole` reports the
+    /// album's own plan first.
+    ///
+    /// Only a local album sharing its name and key with a listed CloudKit album
+    /// costs a plan lookup, so the listing stays cheap.
+    static func excludingMoveBackTwins(_ localAlbums: [Album], cloudKitAlbums: [Album]) -> [Album] {
+        let twinIDs = Set(cloudKitAlbums.map { Album.localTwin(of: $0).id })
+        guard !twinIDs.isEmpty else { return localAlbums }
+        return localAlbums.filter { album in
+            guard twinIDs.contains(album.id),
+                  case .destination(.toLocal, _) = MigrationPlanStore.planRole(forAlbumID: album.id) else {
+                return true
+            }
+            return false
+        }
     }
 
     public func restoreCurrentAlbumFromUserDefaults() {

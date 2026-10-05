@@ -57,6 +57,10 @@ public struct MigrationItem: Codable, Sendable, Equatable {
     /// the state machine + stable `recordName`, not this.
     public var operationID: String?
     public var lastError: String?
+    /// The size of the destination copy when a move back to this device verified
+    /// it. The removal pass compares the local file against it before deleting the
+    /// record of an item verified in the same run, without asking the server again.
+    public var verifiedSizeBytes: Int64?
 
     public init(mediaID: String,
                 recordName: String,
