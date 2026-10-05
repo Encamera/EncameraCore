@@ -1282,6 +1282,26 @@ public enum L10n {
     /// No promotional banners available
     public static let noBannersAvailable = L10n.tr("Localizable", "CMS.NoBannersAvailable", fallback: "No promotional banners available")
   }
+  public enum CameraCapture {
+    /// Camera capture: blocked shutter and save failures
+    public static let blockedNoAlbum = L10n.tr("Localizable", "CameraCapture.BlockedNoAlbum", fallback: "There's no album to save to. Choose or unlock an album to take photos.")
+    /// Choose Album
+    public static let chooseAlbum = L10n.tr("Localizable", "CameraCapture.ChooseAlbum", fallback: "Choose Album")
+    /// Delete
+    public static let deleteCapture = L10n.tr("Localizable", "CameraCapture.DeleteCapture", fallback: "Delete")
+    /// Open Albums
+    public static let openAlbums = L10n.tr("Localizable", "CameraCapture.OpenAlbums", fallback: "Open Albums")
+    /// Encamera couldn't save this photo. Try saving it again, or delete it.
+    public static let photoSaveFailedMessage = L10n.tr("Localizable", "CameraCapture.PhotoSaveFailedMessage", fallback: "Encamera couldn't save this photo. Try saving it again, or delete it.")
+    /// Photo Not Saved
+    public static let photoSaveFailedTitle = L10n.tr("Localizable", "CameraCapture.PhotoSaveFailedTitle", fallback: "Photo Not Saved")
+    /// Try Again
+    public static let tryAgain = L10n.tr("Localizable", "CameraCapture.TryAgain", fallback: "Try Again")
+    /// Encamera couldn't save this video. The recording is still on this device, unencrypted, until you save it again or delete it.
+    public static let videoSaveFailedMessage = L10n.tr("Localizable", "CameraCapture.VideoSaveFailedMessage", fallback: "Encamera couldn't save this video. The recording is still on this device, unencrypted, until you save it again or delete it.")
+    /// Video Not Saved
+    public static let videoSaveFailedTitle = L10n.tr("Localizable", "CameraCapture.VideoSaveFailedTitle", fallback: "Video Not Saved")
+  }
   public enum ChangingYourAuthenticationMethodWillRequireSettingUpANewPINOrPassword {
     /// Changing your authentication method will require setting up a new PIN or password. Would you like to continue?
     public static let wouldYouLikeToContinue = L10n.tr("Localizable", "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?", fallback: "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?")

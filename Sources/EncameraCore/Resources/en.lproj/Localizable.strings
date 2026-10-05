@@ -1553,3 +1553,14 @@
 "PasswordManager.SaveButton" = "Save to Password Manager";
 "PasswordManager.SaveFailedTitle" = "Couldn't Save Key Phrase";
 "PasswordManager.SaveFailedMessage" = "Your password manager didn't accept the key phrase. Copy it to the clipboard and save it manually instead.";
+
+/* Camera capture: blocked shutter and save failures */
+"CameraCapture.BlockedNoAlbum" = "There's no album to save to. Choose or unlock an album to take photos.";
+"CameraCapture.OpenAlbums" = "Open Albums";
+"CameraCapture.ChooseAlbum" = "Choose Album";
+"CameraCapture.PhotoSaveFailedTitle" = "Photo Not Saved";
+"CameraCapture.PhotoSaveFailedMessage" = "Encamera couldn't save this photo. Try saving it again, or delete it.";
+"CameraCapture.VideoSaveFailedTitle" = "Video Not Saved";
+"CameraCapture.VideoSaveFailedMessage" = "Encamera couldn't save this video. The recording is still on this device, unencrypted, until you save it again or delete it.";
+"CameraCapture.TryAgain" = "Try Again";
+"CameraCapture.DeleteCapture" = "Delete";
