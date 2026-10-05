@@ -1491,6 +1491,10 @@ public enum L10n {
     public static func deleteConfirmMessage(_ p1: Any) -> String {
       return L10n.tr("Localizable", "CompletedImportHistory.DeleteConfirmMessage", String(describing: p1), fallback: "This will delete %@ photo(s) from your Photo Library.")
     }
+    /// This will delete %@ photo(s) from your Photo Library. %@ imported photo(s) are no longer in Encamera, so their originals will be kept.
+    public static func deleteConfirmMessageSkipping(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "CompletedImportHistory.DeleteConfirmMessageSkipping", String(describing: p1), String(describing: p2), fallback: "This will delete %@ photo(s) from your Photo Library. %@ imported photo(s) are no longer in Encamera, so their originals will be kept.")
+    }
     /// Delete from Photo Library?
     public static let deleteConfirmTitle = L10n.tr("Localizable", "CompletedImportHistory.DeleteConfirmTitle", fallback: "Delete from Photo Library?")
     /// Delete from Camera Roll
@@ -1825,6 +1829,14 @@ public enum L10n {
     public static let playLivePhoto = L10n.tr("Localizable", "GalleryView.PlayLivePhoto", fallback: "Live Photo - Hold to View")
   }
   public enum GlobalImportProgress {
+    /// This will delete %@ photo(s) from your Photo Library.
+    public static func deleteCountMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "GlobalImportProgress.DeleteCountMessage", String(describing: p1), fallback: "This will delete %@ photo(s) from your Photo Library.")
+    }
+    /// This will delete %@ photo(s) from your Photo Library. %@ imported photo(s) are no longer in Encamera, so their originals will be kept.
+    public static func deleteCountMessageSkipping(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "GlobalImportProgress.DeleteCountMessageSkipping", String(describing: p1), String(describing: p2), fallback: "This will delete %@ photo(s) from your Photo Library. %@ imported photo(s) are no longer in Encamera, so their originals will be kept.")
+    }
     /// Delete from Photo Library?
     public static let deleteFromPhotoLibraryAlert = L10n.tr("Localizable", "GlobalImportProgress.DeleteFromPhotoLibraryAlert", fallback: "Delete from Photo Library?")
     /// This will delete all imported photos from your Photo Library.

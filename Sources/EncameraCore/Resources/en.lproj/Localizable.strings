@@ -903,6 +903,8 @@
 "GlobalImportProgress.PreparingProgress" = "Preparing files...";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "Delete from Photo Library?";
 "GlobalImportProgress.DeleteFromPhotoLibraryMessage" = "This will delete all imported photos from your Photo Library.";
+"GlobalImportProgress.DeleteCountMessage" = "This will delete %@ photo(s) from your Photo Library.";
+"GlobalImportProgress.DeleteCountMessageSkipping" = "This will delete %@ photo(s) from your Photo Library. %@ imported photo(s) are no longer in Encamera, so their originals will be kept.";
 "GlobalImportProgress.PhotosDeleted" = "Photos deleted";
 "GlobalImportProgress.Remaining" = "Remaining";
 
@@ -1027,6 +1029,7 @@
 "CompletedImportHistory.ViewImportHistory" = "View Import History";
 "CompletedImportHistory.DeleteConfirmTitle" = "Delete from Photo Library?";
 "CompletedImportHistory.DeleteConfirmMessage" = "This will delete %@ photo(s) from your Photo Library.";
+"CompletedImportHistory.DeleteConfirmMessageSkipping" = "This will delete %@ photo(s) from your Photo Library. %@ imported photo(s) are no longer in Encamera, so their originals will be kept.";
 
 /* ./Encamera/Components/ImportProgress/ImportTaskDetailsView.swift */
 "ImportTaskDetailsView.Title" = "Import Tasks";

@@ -69,6 +69,10 @@ public struct ImportTask: BackgroundFileTask {
         progress.state
     }
     public private(set) var assetIdentifiers: [String]
+    /// The album media id each imported original became, keyed by asset id; `nil`
+    /// when the import cannot say (preloaded media carries the caller's asset ids
+    /// without a per-item pairing). Without it the pill offers no deletion.
+    public private(set) var mediaIdsByAssetId: [String: String]?
     /// Identifier for the user-initiated batch. Multiple ImportTasks with the same userBatchId
     /// were created from the same user selection (e.g., when selecting 20 photos from the photo picker,
     /// they may be split into multiple technical batches for processing efficiency).
@@ -129,9 +133,19 @@ public struct ImportTask: BackgroundFileTask {
     
     /// Creates a copy of this task with updated asset identifiers.
     /// Used for streaming imports where asset IDs are collected during processing.
-    public func withAssetIdentifiers(_ newAssetIdentifiers: [String]) -> ImportTask {
+    public func withAssetIdentifiers(_ newAssetIdentifiers: [String], mediaIdsByAssetId: [String: String]? = nil) -> ImportTask {
         var copy = self
         copy.assetIdentifiers = newAssetIdentifiers
+        copy.mediaIdsByAssetId = mediaIdsByAssetId
         return copy
+    }
+
+    /// The task's originals split by whether `liveMediaIds` (the album's media
+    /// index) still holds their imported copies.
+    public func libraryOriginals(liveMediaIds: Set<String>) -> LibraryOriginals {
+        guard let mediaIdsByAssetId, !assetIdentifiers.isEmpty else { return .none }
+        return LibraryOriginals(mediaIdsByAssetId: mediaIdsByAssetId,
+                                assetIdentifiers: assetIdentifiers,
+                                liveMediaIds: liveMediaIds)
     }
 }

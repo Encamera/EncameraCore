@@ -155,7 +155,7 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     }
     
     /// Finalizes a task as completed
-    public func finalizeTaskCompleted(taskId: String, totalItems: Int, assetIdentifiers: [String] = []) {
+    public func finalizeTaskCompleted(taskId: String, totalItems: Int, assetIdentifiers: [String] = [], mediaIdsByAssetId: [String: String]? = nil) {
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
             printDebug("Cannot finalize task - not found: \(taskId)")
             return
@@ -173,7 +173,7 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         )
         
         currentTasks[taskIndex].progress = completedProgress
-        applyAssetIdentifiers(assetIdentifiers, at: taskIndex)
+        applyAssetIdentifiers(assetIdentifiers, mediaIdsByAssetId: mediaIdsByAssetId, at: taskIndex)
         publishProgress(for: currentTasks[taskIndex])
         printDebug("Task completed successfully: \(taskId)")
 
@@ -192,9 +192,10 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     /// Tasks with partial imports (assetIdentifiers > 0) are kept so the progress pill
     /// can still offer to delete them; the lasting record is the album's import history.
     /// Tasks without partial imports are removed after a delay.
-    public func finalizeTaskCancelled(taskId: String, assetIdentifiers: [String] = []) {
+    public func finalizeTaskCancelled(taskId: String, assetIdentifiers: [String] = [], mediaIdsByAssetId: [String: String]? = nil) {
         let shouldRemove = assetIdentifiers.isEmpty
-        finalizeTaskStopped(taskId: taskId, state: .cancelled, assetIdentifiers: assetIdentifiers, shouldRemove: shouldRemove)
+        finalizeTaskStopped(taskId: taskId, state: .cancelled, assetIdentifiers: assetIdentifiers,
+                            mediaIdsByAssetId: mediaIdsByAssetId, shouldRemove: shouldRemove)
         
         if !assetIdentifiers.isEmpty {
             printDebug("Keeping cancelled task \(taskId) with \(assetIdentifiers.count) partial imports")
@@ -202,14 +203,15 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     }
     
     /// Private helper to finalize a task that has stopped (failed or cancelled).
-    private func finalizeTaskStopped(taskId: String, state: FileTaskState, assetIdentifiers: [String], shouldRemove: Bool) {
+    private func finalizeTaskStopped(taskId: String, state: FileTaskState, assetIdentifiers: [String],
+                                     mediaIdsByAssetId: [String: String]? = nil, shouldRemove: Bool) {
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
             printDebug("Cannot finalize task - not found: \(taskId)")
             return
         }
         
         currentTasks[taskIndex].progress.state = state
-        applyAssetIdentifiers(assetIdentifiers, at: taskIndex)
+        applyAssetIdentifiers(assetIdentifiers, mediaIdsByAssetId: mediaIdsByAssetId, at: taskIndex)
         publishProgress(for: currentTasks[taskIndex])
 
         if shouldRemove {
@@ -223,12 +225,12 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     /// Stores partial-import asset identifiers on the task at `taskIndex`.
     /// Only `ImportTask` tracks them — every other task type imports nothing from
     /// the photo library, so this is a no-op for them, exactly as before.
-    private func applyAssetIdentifiers(_ assetIdentifiers: [String], at taskIndex: Int) {
+    private func applyAssetIdentifiers(_ assetIdentifiers: [String], mediaIdsByAssetId: [String: String]?, at taskIndex: Int) {
         guard !assetIdentifiers.isEmpty,
               let importTask = currentTasks[taskIndex] as? ImportTask else {
             return
         }
-        currentTasks[taskIndex] = importTask.withAssetIdentifiers(assetIdentifiers)
+        currentTasks[taskIndex] = importTask.withAssetIdentifiers(assetIdentifiers, mediaIdsByAssetId: mediaIdsByAssetId)
         printDebug("Updated task \(importTask.id) with \(assetIdentifiers.count) asset identifiers")
     }
 

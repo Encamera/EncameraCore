@@ -323,6 +323,9 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         var failureCount = 0
         var failedItems: [ImportItemFailure] = []
         var collectedAssetIdentifiers: [String] = []
+        // Which album item each original became; `nil` for preloaded media, whose
+        // asset ids are the caller's and not paired with items.
+        var collectedMediaIds: [String: String]?
         var wasCancelled = false
         var stoppedForSpace = false
         var notAttemptedCount = 0
@@ -350,6 +353,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                 stoppedForSpace = outcome.summary.stoppedForSpace
                 notAttemptedCount = outcome.summary.notAttemptedCount
                 collectedAssetIdentifiers = outcome.assetIdentifiers
+                collectedMediaIds = outcome.mediaIdsByAssetId
 
                 if successCount + failureCount + notAttemptedCount < results.count {
                     wasCancelled = true
@@ -363,16 +367,20 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             await MainActor.run {
                 if wasCancelled {
                     self.printDebug("Streaming import was cancelled with \(collectedAssetIdentifiers.count) partial imports")
-                    self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: collectedAssetIdentifiers)
+                    self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: collectedAssetIdentifiers,
+                                                           mediaIdsByAssetId: collectedMediaIds)
                     self.recordHistory(for: task, album: album, state: .cancelled, importedCount: successCount,
-                                       requestedCount: mediaSource.count, assetIdentifiers: collectedAssetIdentifiers)
+                                       requestedCount: mediaSource.count, assetIdentifiers: collectedAssetIdentifiers,
+                                       mediaIdsByAssetId: collectedMediaIds)
                 } else if stoppedForSpace {
                     self.printDebug("Import stopped for space after \(successCount) imports, \(notAttemptedCount) not attempted")
                     if successCount > 0 {
                         let identifiers = isPreloaded ? [] : collectedAssetIdentifiers
-                        self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: successCount, assetIdentifiers: identifiers)
+                        self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: successCount, assetIdentifiers: identifiers,
+                                                               mediaIdsByAssetId: collectedMediaIds)
                         self.recordHistory(for: task, album: album, state: .completed, importedCount: successCount,
-                                           requestedCount: mediaSource.count, assetIdentifiers: identifiers)
+                                           requestedCount: mediaSource.count, assetIdentifiers: identifiers,
+                                           mediaIdsByAssetId: collectedMediaIds)
                     } else {
                         self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.outOfSpace)
                     }
@@ -381,12 +389,14 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                     self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.allImportsFailed(failureCount: failureCount))
                 } else {
                     let completedItems = (isPreloaded && successCount > 0) ? successCount : mediaSource.count
-                    self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: completedItems, assetIdentifiers: collectedAssetIdentifiers)
+                    self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: completedItems, assetIdentifiers: collectedAssetIdentifiers,
+                                                           mediaIdsByAssetId: collectedMediaIds)
                     // Preloaded identifiers are the caller's, not per item, so once anything
                     // failed there is no telling which original did not make it in.
                     let deletableIdentifiers = isPreloaded && failureCount > 0 ? [] : collectedAssetIdentifiers
                     self.recordHistory(for: task, album: album, state: .completed, importedCount: successCount,
-                                       requestedCount: mediaSource.count, assetIdentifiers: deletableIdentifiers)
+                                       requestedCount: mediaSource.count, assetIdentifiers: deletableIdentifiers,
+                                       mediaIdsByAssetId: collectedMediaIds)
                 }
                 self.endBackgroundTask()
                 self.cleanupTempFilesIfSafe()
@@ -395,7 +405,8 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             let partialIdentifiers = !collectedAssetIdentifiers.isEmpty ? collectedAssetIdentifiers : task.assetIdentifiers
             await MainActor.run {
                 self.printDebug("Import was cancelled with \(partialIdentifiers.count) asset identifiers")
-                self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: partialIdentifiers)
+                self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: partialIdentifiers,
+                                                       mediaIdsByAssetId: collectedMediaIds)
                 self.endBackgroundTask()
                 self.cleanupTempFilesIfSafe()
             }
@@ -424,7 +435,8 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                                state: ImportHistoryRecord.State,
                                importedCount: Int,
                                requestedCount: Int,
-                               assetIdentifiers: [String]) {
+                               assetIdentifiers: [String],
+                               mediaIdsByAssetId: [String: String]?) {
         guard importedCount > 0 else { return }
         let record = ImportHistoryRecord(id: task.userBatchId ?? task.id,
                                          createdAt: task.createdAt,
@@ -432,6 +444,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                                          importedCount: importedCount,
                                          requestedCount: requestedCount,
                                          assetIdentifiers: assetIdentifiers,
+                                         mediaIdsByAssetId: mediaIdsByAssetId,
                                          state: state)
         do {
             try AlbumImportHistory(album: album).append(record)
@@ -559,13 +572,14 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         results: [MediaSelectionResult],
         fileAccess: FileAccess,
         plannedSizes: [Int64?]? = nil
-    ) async throws -> (summary: ImportResultSummary, assetIdentifiers: [String]) {
+    ) async throws -> (summary: ImportResultSummary, assetIdentifiers: [String], mediaIdsByAssetId: [String: String]) {
         printDebug("Performing streaming import for task: \(task.id) with \(results.count) results")
         let startTime = Date()
         var processedCount = 0
         var successCount = 0
         var failedItems: [ImportItemFailure] = []
         var collectedAssetIdentifiers: [String] = []
+        var mediaIdsByAssetId: [String: String] = [:]
         var attemptedCount = 0
         var stoppedForSpace = false
         
@@ -607,6 +621,9 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                 
                 if let assetId = item.assetIdentifier {
                     collectedAssetIdentifiers.append(assetId)
+                    if let mediaId = item.media.first?.id {
+                        mediaIdsByAssetId[assetId] = mediaId
+                    }
                 }
                 
                 successCount += 1
@@ -637,7 +654,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             stoppedForSpace: stoppedForSpace,
             notAttemptedCount: stoppedForSpace ? results.count - attemptedCount : 0
         )
-        return (summary, collectedAssetIdentifiers)
+        return (summary, collectedAssetIdentifiers, mediaIdsByAssetId)
     }
 
     // MARK: - Free Space

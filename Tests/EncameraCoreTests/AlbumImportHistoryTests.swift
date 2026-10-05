@@ -37,6 +37,7 @@ final class AlbumImportHistoryTests: XCTestCase {
                             importedCount: assets.count,
                             requestedCount: assets.count,
                             assetIdentifiers: assets,
+                            mediaIdsByAssetId: Dictionary(uniqueKeysWithValues: assets.map { ($0, "media-\($0)") }),
                             state: state)
     }
 
@@ -129,6 +130,65 @@ final class AlbumImportHistoryTests: XCTestCase {
 
         try history.append(record("fresh"))
         XCTAssertEqual(history.records().map(\.id), ["fresh"])
+    }
+
+    // MARK: - Asset id ↔ media id
+
+    func testRecordRoundTripsMediaIdsPerAsset() throws {
+        let history = makeHistory()
+        let mapping = ["asset-1": "media-A", "asset-2": "media-B"]
+        try history.append(ImportHistoryRecord(id: "batch", createdAt: Date(), source: .photos,
+                                               importedCount: 2, requestedCount: 2,
+                                               assetIdentifiers: ["asset-1", "asset-2"],
+                                               mediaIdsByAssetId: mapping, state: .completed))
+
+        let stored = try XCTUnwrap(makeHistory().records().first)
+        XCTAssertEqual(stored.mediaIdsByAssetId, mapping)
+        XCTAssertTrue(stored.isVerifiable)
+
+        let plaintext = try MediaIndexStore.decrypt(Data(contentsOf: history.fileURL), keyBytes: key)
+        let payload = try JSONDecoder().decode(AlbumImportHistory.Payload.self, from: plaintext)
+        XCTAssertEqual(payload.version, 2, "Records carrying the mapping are written as version 2")
+    }
+
+    func testV1RecordDecodesWithoutMediaIds() throws {
+        // A version 1 file, as written before records paired assets with media.
+        let v2 = try JSONEncoder().encode(AlbumImportHistory.Payload(records: [record("legacy", assets: ["a", "b"])]))
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: v2) as? [String: Any])
+        json["version"] = 1
+        json["records"] = (json["records"] as? [[String: Any]])?.map { record -> [String: Any] in
+            var record = record
+            record.removeValue(forKey: "mediaIdsByAssetId")
+            return record
+        }
+        let v1 = try JSONSerialization.data(withJSONObject: json)
+        XCTAssertNil(v1.range(of: Data("mediaIdsByAssetId".utf8)))
+        let history = makeHistory()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try MediaIndexStore.encrypt(v1, keyBytes: key).write(to: history.fileURL)
+
+        let legacy = try XCTUnwrap(history.records().first)
+        XCTAssertEqual(legacy.id, "legacy")
+        XCTAssertEqual(legacy.assetIdentifiers, ["a", "b"])
+        XCTAssertNil(legacy.mediaIdsByAssetId)
+        XCTAssertFalse(legacy.isVerifiable, "A record without media ids cannot be checked against the album")
+        XCTAssertFalse(legacy.canDeleteFromLibrary, "so it never offers deleting originals")
+        XCTAssertEqual(legacy.libraryOriginals(liveMediaIds: ["media-a", "media-b"]).liveAssetIdentifiers, [])
+    }
+
+    func testLiveAssetIdsExcludeMediaNoLongerInIndex() {
+        let batch = ImportHistoryRecord(id: "batch", createdAt: Date(), source: .photos,
+                                        importedCount: 3, requestedCount: 3,
+                                        assetIdentifiers: ["asset-1", "asset-2", "asset-3"],
+                                        mediaIdsByAssetId: ["asset-1": "media-1", "asset-2": "media-2", "asset-3": "media-3"],
+                                        state: .completed)
+
+        let originals = batch.libraryOriginals(liveMediaIds: ["media-1", "media-3", "unrelated"])
+
+        XCTAssertEqual(originals.liveAssetIdentifiers, ["asset-1", "asset-3"])
+        XCTAssertEqual(originals.goneCount, 1)
+        XCTAssertTrue(batch.libraryOriginals(liveMediaIds: []).isEmpty, "An empty album keeps every original")
+        XCTAssertEqual(batch.libraryOriginals(liveMediaIds: []).goneCount, 3)
     }
 
     func testFileLocationIsKeyedByAlbumIdHash() {

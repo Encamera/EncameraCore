@@ -20,6 +20,10 @@ public struct ImportHistoryRecord: Codable, Identifiable, Equatable, Sendable {
     /// includes an item that failed or was never reached, so deleting them can
     /// only remove originals the album actually holds.
     public let assetIdentifiers: [String]
+    /// The album media id each original was imported as, keyed by asset id.
+    /// `nil` on records written before the mapping existed (payload version 1):
+    /// those cannot be checked against the album, so they never delete anything.
+    public let mediaIdsByAssetId: [String: String]?
     public let state: State
     public var deletedFromLibraryAt: Date?
 
@@ -29,6 +33,7 @@ public struct ImportHistoryRecord: Codable, Identifiable, Equatable, Sendable {
                 importedCount: Int,
                 requestedCount: Int,
                 assetIdentifiers: [String],
+                mediaIdsByAssetId: [String: String]? = nil,
                 state: State,
                 deletedFromLibraryAt: Date? = nil) {
         self.id = id
@@ -37,13 +42,64 @@ public struct ImportHistoryRecord: Codable, Identifiable, Equatable, Sendable {
         self.importedCount = importedCount
         self.requestedCount = requestedCount
         self.assetIdentifiers = assetIdentifiers
+        self.mediaIdsByAssetId = mediaIdsByAssetId
         self.state = state
         self.deletedFromLibraryAt = deletedFromLibraryAt
     }
 
-    /// Whether the history can still offer to delete this batch's originals.
+    /// Whether the record says which album item each original became, so its
+    /// originals can be checked against what the album still holds.
+    public var isVerifiable: Bool {
+        mediaIdsByAssetId != nil
+    }
+
+    /// Whether the batch may offer deleting its originals at all. Whether any of
+    /// them can still go depends on the album: see `libraryOriginals(liveMediaIds:)`.
     public var canDeleteFromLibrary: Bool {
-        !assetIdentifiers.isEmpty && deletedFromLibraryAt == nil
+        isVerifiable && !assetIdentifiers.isEmpty && deletedFromLibraryAt == nil
+    }
+
+    /// Splits the batch's originals into those whose imported copy is still in the
+    /// album (`liveMediaIds`, the album's media index) and those whose copy is gone.
+    public func libraryOriginals(liveMediaIds: Set<String>) -> LibraryOriginals {
+        guard canDeleteFromLibrary, let mediaIdsByAssetId else {
+            return LibraryOriginals(liveAssetIdentifiers: [], goneCount: 0)
+        }
+        return LibraryOriginals(mediaIdsByAssetId: mediaIdsByAssetId,
+                                assetIdentifiers: assetIdentifiers,
+                                liveMediaIds: liveMediaIds)
+    }
+}
+
+/// The photo-library originals of an import, split by whether the album still
+/// holds their imported copies. Only `liveAssetIdentifiers` may be deleted.
+public struct LibraryOriginals: Equatable, Sendable {
+    /// Originals whose imported copy is in the album now.
+    public let liveAssetIdentifiers: [String]
+    /// Originals whose imported copy is no longer in the album.
+    public let goneCount: Int
+
+    public init(liveAssetIdentifiers: [String], goneCount: Int) {
+        self.liveAssetIdentifiers = liveAssetIdentifiers
+        self.goneCount = goneCount
+    }
+
+    /// Keeps the assets whose mapped media id is in `liveMediaIds`. An asset with
+    /// no mapped media id counts as gone.
+    public init(mediaIdsByAssetId: [String: String], assetIdentifiers: [String], liveMediaIds: Set<String>) {
+        let live = assetIdentifiers.filter { assetId in
+            mediaIdsByAssetId[assetId].map(liveMediaIds.contains) ?? false
+        }
+        self.init(liveAssetIdentifiers: live, goneCount: assetIdentifiers.count - live.count)
+    }
+
+    public static let none = LibraryOriginals(liveAssetIdentifiers: [], goneCount: 0)
+
+    public var isEmpty: Bool { liveAssetIdentifiers.isEmpty }
+
+    public static func + (lhs: LibraryOriginals, rhs: LibraryOriginals) -> LibraryOriginals {
+        LibraryOriginals(liveAssetIdentifiers: lhs.liveAssetIdentifiers + rhs.liveAssetIdentifiers,
+                         goneCount: lhs.goneCount + rhs.goneCount)
     }
 }
 
@@ -66,8 +122,10 @@ public struct AlbumImportHistory {
     /// `userInfo` key carrying the changed album's id.
     public static let albumIdKey = "albumId"
 
-    private struct Payload: Codable {
-        var version: Int = 1
+    /// Version 2 added `mediaIdsByAssetId`; version 1 records decode with it `nil`.
+    struct Payload: Codable {
+        static let currentVersion = 2
+        var version: Int = Payload.currentVersion
         var records: [ImportHistoryRecord]
     }
 
@@ -102,6 +160,13 @@ public struct AlbumImportHistory {
             return []
         }
         return payload.records.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    /// The ids of the media the album holds now, from its media index. No index
+    /// reads as an empty album, so nothing is offered for deletion until the
+    /// index shows the imported copy is there.
+    public static func liveMediaIds(in album: Album) -> Set<String> {
+        Set(MediaIndexStore.storedEntries(for: album).map(\.id))
     }
 
     // MARK: - Writing
