@@ -122,7 +122,13 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// under a name no key has ever carried. See `matchAlbumToKeyIfNeeded`.
     private lazy var keyDiscovery = KeyDiscovery(keyManager: keyManager)
 
+    /// Which key, if any, opens the media of a directory album whose name key is
+    /// absent. See `albumFromReadableContents`.
+    let lockedContentProbes = LockedAlbumContentProbeCache()
+
     /// Albums found on disk whose key is not on this device, as of the last scan.
+    /// A directory album whose media a held key opens is listed instead, even when
+    /// its name cannot be read (see `albumFromReadableContents`).
     ///
     /// They are deliberately absent from `fetchAlbumsFromSources` — an album cannot be
     /// shown, counted, or written to without the key that encrypted it — but dropping
@@ -201,15 +207,19 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
             guard let creationDate else { return nil }
             let album = self.matchAlbumToKeyIfNeeded(albumName: directoryName,
+                                                     directoryURL: url,
                                                      storageType: storageType,
                                                      creationDate: creationDate,
                                                      storedKeys: storedKeys)
             if album == nil {
+                let probed = self.lockedContentProbes.outcome(for: url,
+                                                              keyLibrary: self.keyLibraryIdentity(storedKeys: storedKeys))
                 lockedPlaceholders.append(LockedAlbumPlaceholder(
                     encryptedDirectoryName: directoryName,
                     storageOption: storageType,
                     creationDate: creationDate,
-                    requiredKey: LockedAlbumKeyProbe.requiredKey(albumDirectory: url)
+                    requiredKey: LockedAlbumKeyProbe.requiredKey(albumDirectory: url),
+                    contentsUnreadable: probed == .noneOpened
                 ))
             }
             return album
@@ -1216,12 +1226,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// authenticates. Names cannot identify a key here: every key is named
     /// `encamera_default_key`.
     ///
-    /// A locked album returns nil rather than taking the current key. `Album.key` feeds
-    /// the album's name, its identity, its media index and its CloudKit hash, so
-    /// attaching a key that cannot read it does not degrade gracefully — it produces an
-    /// album that is a different album, and writes new media under a key the rest of
-    /// its contents do not share.
+    /// When no held key opens the name, the album does not simply take the current
+    /// key. `Album.key` feeds the album's media index and its CloudKit hash and is the
+    /// key new media is written under, so a key that cannot read the album's contents
+    /// would write media its other contents do not share. It takes a key only once a
+    /// probe shows that key opens the media (`albumFromReadableContents`), and is
+    /// otherwise reported locked.
     private func matchAlbumToKeyIfNeeded(albumName: String,
+                                         directoryURL: URL,
                                          storageType: StorageType,
                                          creationDate: Date,
                                          storedKeys: [PrivateKey]) -> Album? {
@@ -1234,7 +1246,70 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             guard let key = keyManager.currentKey else { return nil }
             return Album(encryptedName: albumName, storageOption: storageType, creationDate: creationDate, key: key)
         case .noKnownKey:
+            return albumFromReadableContents(albumName: albumName,
+                                             directoryURL: directoryURL,
+                                             storageType: storageType,
+                                             creationDate: creationDate,
+                                             storedKeys: storedKeys)
+        }
+    }
+
+    /// The album a directory represents when no held key opens its name but one
+    /// opens its media, keyed by that key. Up to 2.9.x every directory album opened
+    /// under the current key, so media imported then was encrypted with a key that
+    /// never encrypted the name.
+    ///
+    /// The directory name stays the album's `name` (and so its identity and path);
+    /// views show `displayName`. Media no held key opens stays in the grid as a
+    /// missing-key tile, the same as any other file whose key is absent.
+    ///
+    /// The probe reads files, so it never runs here: the first listing reports the
+    /// album locked and starts a background probe, whose result is cached for this
+    /// key library and announced with `albumsUpdated` when it changes anything.
+    private func albumFromReadableContents(albumName: String,
+                                           directoryURL: URL,
+                                           storageType: StorageType,
+                                           creationDate: Date,
+                                           storedKeys: [PrivateKey]) -> Album? {
+        let keyLibrary = keyLibraryIdentity(storedKeys: storedKeys)
+        guard let outcome = lockedContentProbes.outcome(for: directoryURL, keyLibrary: keyLibrary) else {
+            startContentProbe(directoryURL: directoryURL, storedKeys: storedKeys, keyLibrary: keyLibrary)
             return nil
         }
+        guard case .readable(let key, _) = outcome else {
+            return nil
+        }
+        return Album(encryptedName: albumName, storageOption: storageType, creationDate: creationDate, key: key)
+    }
+
+    @discardableResult
+    func startContentProbe(directoryURL: URL,
+                           storedKeys: [PrivateKey],
+                           keyLibrary: Set<String>) -> Task<LockedAlbumContentProbe.Outcome, Never> {
+        let keyManager = self.keyManager
+        return lockedContentProbes.probe(directory: directoryURL, keyLibrary: keyLibrary, run: {
+            await LockedAlbumContentProbe.probe(albumDirectory: directoryURL,
+                                                keyManager: keyManager,
+                                                storedKeys: storedKeys)
+        }, onFinished: { [weak self] outcome in
+            guard outcome != .nothingTested else { return }
+            DispatchQueue.main.async {
+                self?.broadcastAlbumsUpdated()
+            }
+        })
+    }
+
+    /// Identifies the keys a probe ran against, so adding a key re-probes.
+    func keyLibraryIdentity(storedKeys: [PrivateKey]) -> Set<String> {
+        var labels = Set(storedKeys.map(\.keychainLabel))
+        if let currentKey = keyManager.currentKey {
+            labels.insert(currentKey.keychainLabel)
+        }
+        return labels
+    }
+
+    /// Waits for the content probes the last listing started. For tests.
+    func waitForLockedContentProbes() async {
+        await lockedContentProbes.waitForProbes()
     }
 }

@@ -2193,6 +2193,10 @@ public enum L10n {
     public static let addKeyPromptUnknown = L10n.tr("Localizable", "MissingKey.AddKeyPromptUnknown", fallback: "Enter the key phrase for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.")
     /// Add a key
     public static let addKeyTitle = L10n.tr("Localizable", "MissingKey.AddKeyTitle", fallback: "Add a key")
+    /// None of this album's photos or videos could be opened with any key on this device.
+    public static let albumContentsUnreadable = L10n.tr("Localizable", "MissingKey.AlbumContentsUnreadable", fallback: "None of this album's photos or videos could be opened with any key on this device.")
+    /// Name unavailable
+    public static let albumNameUnavailable = L10n.tr("Localizable", "MissingKey.AlbumNameUnavailable", fallback: "Name unavailable")
     /// This album was encrypted with key %@, which isn't on this device.
     public static func albumSubtitleWithFingerprint(_ p1: Any) -> String {
       return L10n.tr("Localizable", "MissingKey.AlbumSubtitleWithFingerprint", String(describing: p1), fallback: "This album was encrypted with key %@, which isn't on this device.")

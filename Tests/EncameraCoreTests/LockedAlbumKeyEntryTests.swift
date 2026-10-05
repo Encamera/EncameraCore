@@ -19,7 +19,15 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
 
     override func tearDownWithError() throws {
         try? FileManager.default.removeItem(at: tempDirectory)
+        for url in createdAlbumDirectories {
+            try? FileManager.default.removeItem(at: url)
+        }
+        createdAlbumDirectories = []
     }
+
+    /// Album directories created in the app's real local albums directory, which
+    /// `AlbumManager` reads with no injection point.
+    private var createdAlbumDirectories: [URL] = []
 
     /// A device holding only its own key, and an album whose name is encrypted
     /// under the key `foreignPhrase` derives.
@@ -202,5 +210,187 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
         try await writeMedia(named: "b", in: tempDirectory, key: nil, stamp: true)
 
         XCTAssertNil(LockedAlbumKeyProbe.requiredKey(albumDirectory: tempDirectory))
+    }
+
+    // MARK: - Albums whose name key is missing
+
+    /// A local album directory whose name is encrypted under `nameKey`, as a
+    /// device that held `nameKey` when it created the album left it.
+    private func seedLocalAlbumDirectory(nameKey: PrivateKey) throws -> URL {
+        let album = Album(name: "LAKE-\(UUID().uuidString.prefix(8))", storageOption: .local, creationDate: Date(), key: nameKey)
+        let url = LocalStorageModel.albumsURL.appendingPathComponent(album.encryptedPathComponent, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        createdAlbumDirectories.append(url)
+        return url
+    }
+
+    private func albumManager(holding keys: [PrivateKey], current: PrivateKey) -> AlbumManager {
+        let keyManager = DemoKeyManager(keys: keys)
+        keyManager.currentKey = current
+        return AlbumManager(keyManager: keyManager)
+    }
+
+    /// Lists albums the way the grid does, waits for the content probes the
+    /// first listing starts, and lists again.
+    private func listAfterProbing(_ manager: AlbumManager) async -> [Album] {
+        _ = manager.fetchAlbumsFromSources(includingHidden: true)
+        await manager.waitForLockedContentProbes()
+        return manager.fetchAlbumsFromSources(includingHidden: true)
+    }
+
+    private func diskAccess(for album: Album, keys: [PrivateKey], current: PrivateKey) async -> DiskFileAccess {
+        let keyManager = DemoKeyManager(keys: keys)
+        keyManager.currentKey = current
+        let demoManager = DemoAlbumManager()
+        demoManager.keyManager = keyManager
+        let access = DiskFileAccess()
+        await access.configure(for: album, albumManager: demoManager)
+        return access
+    }
+
+    private func encryptedMedia(_ name: String, in directory: URL) -> EncryptedMedia {
+        EncryptedMedia(source: directory.appendingPathComponent("\(name).\(MediaType.photo.encryptedFileExtension)"),
+                       mediaType: .photo,
+                       id: name)
+    }
+
+    /// Up to 2.9.x a directory album opened under the current key whatever key
+    /// named it, so a device whose key was K2 imported K2 media into an album named
+    /// under K1. With K1 absent, that album must open under K2 and keep its directory.
+    func testAlbumNamedUnderMissingKeyWithCurrentKeyContentsIsReachable() async throws {
+        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let directory = try seedLocalAlbumDirectory(nameKey: nameKey)
+        try await writeMedia(named: "one", in: directory, key: deviceKey, stamp: false)
+        try await writeMedia(named: "two", in: directory, key: deviceKey, stamp: false)
+        let manager = albumManager(holding: [deviceKey], current: deviceKey)
+
+        let albums = await listAfterProbing(manager)
+
+        let album = try XCTUnwrap(albums.first { $0.encryptedPathComponent == directory.lastPathComponent },
+                                  "an album whose media the current key opens must be listed")
+        XCTAssertEqual(album.key, deviceKey)
+        XCTAssertEqual(album.storageURL.standardizedFileURL, directory.standardizedFileURL, "nothing is renamed on disk")
+        XCTAssertTrue(album.isNameUnavailable)
+        XCTAssertEqual(album.displayName, L10n.MissingKey.albumNameUnavailable)
+        XCTAssertFalse(manager.lockedAlbums.contains { $0.encryptedDirectoryName == directory.lastPathComponent })
+
+        let access = await diskAccess(for: album, keys: [deviceKey], current: deviceKey)
+        let decrypted = try await access.loadMediaInMemory(media: encryptedMedia("one", in: directory), progress: { _ in })
+        guard case .data(let data) = decrypted.source else {
+            return XCTFail("expected in-memory data")
+        }
+        XCTAssertEqual(data, Data(repeating: 7, count: 30000))
+    }
+
+    /// K2 and K1 media in one album: the album is listed under K2, and the K1
+    /// media is reported as needing a missing key, which the grid shows as a
+    /// locked tile.
+    func testAlbumWithMixedKeyContentsIsSurfacedPartially() async throws {
+        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let directory = try seedLocalAlbumDirectory(nameKey: nameKey)
+        try await writeMedia(named: "mine", in: directory, key: deviceKey, stamp: false)
+        try await writeMedia(named: "theirs", in: directory, key: nameKey, stamp: false)
+        let manager = albumManager(holding: [deviceKey], current: deviceKey)
+
+        let albums = await listAfterProbing(manager)
+
+        let album = try XCTUnwrap(albums.first { $0.encryptedPathComponent == directory.lastPathComponent })
+        XCTAssertEqual(album.key, deviceKey)
+
+        let outcome = await LockedAlbumContentProbe.probe(albumDirectory: directory,
+                                                          keyManager: manager.keyManager,
+                                                          storedKeys: [deviceKey])
+        XCTAssertEqual(outcome, .readable(key: deviceKey,
+                                          lockedFileNames: ["theirs.\(MediaType.photo.encryptedFileExtension)"]))
+
+        let access = await diskAccess(for: album, keys: [deviceKey], current: deviceKey)
+        _ = try await access.loadMediaInMemory(media: encryptedMedia("mine", in: directory), progress: { _ in })
+        do {
+            _ = try await access.loadMediaInMemory(media: encryptedMedia("theirs", in: directory), progress: { _ in })
+            XCTFail("media under the absent key must not open")
+        } catch FileAccessError.missingKeyForMedia {
+            // The grid renders this as a missing-key tile.
+        }
+    }
+
+    func testAlbumWithNoReadableContentsStaysLocked() async throws {
+        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let directory = try seedLocalAlbumDirectory(nameKey: nameKey)
+        try await writeMedia(named: "a", in: directory, key: nameKey, stamp: false)
+        try await writeMedia(named: "b", in: directory, key: nameKey, stamp: false)
+        let manager = albumManager(holding: [deviceKey], current: deviceKey)
+
+        let albums = await listAfterProbing(manager)
+
+        XCTAssertFalse(albums.contains { $0.encryptedPathComponent == directory.lastPathComponent })
+        let placeholder = try XCTUnwrap(manager.lockedAlbums.first { $0.encryptedDirectoryName == directory.lastPathComponent })
+        XCTAssertTrue(placeholder.contentsUnreadable, "the placeholder must say no key on this device opens its contents")
+    }
+
+    func testContentProbeIsBoundedPerAlbum() async throws {
+        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let fileCount = LockedAlbumContentProbe.maxFilesSampled * 3
+        for index in 0..<fileCount {
+            try await writeMedia(named: "file-\(index)", in: tempDirectory, key: nameKey, stamp: false)
+        }
+        let keyManager = DemoKeyManager(keys: [deviceKey])
+        keyManager.currentKey = deviceKey
+        var probed: [URL] = []
+
+        let outcome = await LockedAlbumContentProbe.probe(albumDirectory: tempDirectory,
+                                                          keyManager: keyManager,
+                                                          storedKeys: [deviceKey],
+                                                          onFileProbed: { probed.append($0) })
+
+        XCTAssertEqual(outcome, .noneOpened)
+        XCTAssertEqual(probed.count, LockedAlbumContentProbe.maxFilesSampled)
+        XCTAssertEqual(Set(probed).count, probed.count)
+    }
+
+    /// A probe's result is reused for the session, and a key added later
+    /// invalidates it.
+    func testContentProbeResultIsCachedPerKeyLibrary() async throws {
+        let cache = LockedAlbumContentProbeCache()
+        XCTAssertNil(cache.outcome(for: tempDirectory, keyLibrary: ["a"]))
+
+        _ = await cache.probe(directory: tempDirectory, keyLibrary: ["a"], run: { .noneOpened }).value
+
+        XCTAssertEqual(cache.outcome(for: tempDirectory, keyLibrary: ["a"]), .noneOpened)
+        XCTAssertNil(cache.outcome(for: tempDirectory, keyLibrary: ["a", "b"]))
+    }
+
+    func testUserNameWithTheAlbumPrefixIsNotReportedUnavailable() {
+        let album = Album(name: "Album_2024", storageOption: .local, creationDate: Date(), key: deviceKey)
+
+        XCTAssertFalse(album.isNameUnavailable)
+        XCTAssertEqual(album.displayName, "Album_2024")
+    }
+
+    // MARK: - Locked album alert
+
+    /// The Enter Key flow relies on the alert naming the key, so an album whose
+    /// contents no key opens must still lead with it.
+    func testAlertNamesTheRequiredKeyWhenNoContentsOpened() throws {
+        let key = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let required = RequiredKeyIdentity.stampPrefix(key.stampPrefix)
+        let placeholder = LockedAlbumPlaceholder(encryptedDirectoryName: "Album_x",
+                                                 storageOption: .local,
+                                                 creationDate: Date(),
+                                                 requiredKey: required,
+                                                 contentsUnreadable: true)
+
+        let keyLine = L10n.MissingKey.albumSubtitleWithFingerprint(required.displayLabel)
+        XCTAssertTrue(placeholder.lockedAlertMessage.hasPrefix(keyLine))
+        XCTAssertTrue(placeholder.lockedAlertMessage.contains(L10n.MissingKey.albumContentsUnreadable))
+    }
+
+    func testAlertWithoutAKnownKeyExplainsNoContentsOpened() {
+        let unreadable = LockedAlbumPlaceholder(encryptedDirectoryName: "Album_x", storageOption: .local,
+                                                creationDate: Date(), contentsUnreadable: true)
+        let unprobed = LockedAlbumPlaceholder(encryptedDirectoryName: "Album_x", storageOption: .local,
+                                              creationDate: Date())
+
+        XCTAssertEqual(unreadable.lockedAlertMessage, L10n.MissingKey.albumContentsUnreadable)
+        XCTAssertEqual(unprobed.lockedAlertMessage, L10n.MissingKey.subtitleUnknown)
     }
 }

@@ -56,6 +56,30 @@ public struct Album: Codable, Identifiable, Hashable {
         return "\(name)_\(storageOption.rawValue)"
     }
 
+    /// True when the album's name is ciphertext its own key cannot open: a
+    /// directory album named under a key this device does not hold, opened under
+    /// the key that reads its media. `name` then holds that ciphertext, which keeps
+    /// the album's identity and directory stable, and views show `displayName`.
+    ///
+    /// Only a string shaped like an encrypted name (the prefix plus a decodable
+    /// header and tag) is tested, so a user's own name such as "Album_2024" is
+    /// never mistaken for one.
+    public var isNameUnavailable: Bool {
+        Self.isWellFormedEncryptedName(name) && Self.decryptedAlbumName(name, key: key) == nil
+    }
+
+    /// The name to show the user.
+    public var displayName: String {
+        isNameUnavailable ? L10n.MissingKey.albumNameUnavailable : name
+    }
+
+    private static func isWellFormedEncryptedName(_ candidate: String) -> Bool {
+        guard candidate.hasPrefix("Album_") else { return false }
+        let base64 = candidate.dropFirst("Album_".count).replacingOccurrences(of: "_", with: "/")
+        guard let data = Data(base64Encoded: base64) else { return false }
+        return data.count > SecretStream.XChaCha20Poly1305.HeaderBytes + SecretStream.XChaCha20Poly1305.ABytes
+    }
+
     public var storageURL: URL {
         storageOption.modelForType.init(album: self).baseURL
     }
@@ -234,6 +258,9 @@ public struct LockedAlbumPlaceholder: Identifiable, Hashable {
     /// The key the album says it needs, when anything on disk names one. Nil
     /// means unknown, not that no key is needed.
     public let requiredKey: RequiredKeyIdentity?
+    /// True when the album's media was sampled and no key on this device opened
+    /// any of it. False also covers "not checked yet" and "nothing to check".
+    public let contentsUnreadable: Bool
 
     public var id: String {
         "\(encryptedDirectoryName)_\(storageOption.rawValue)"
@@ -242,11 +269,30 @@ public struct LockedAlbumPlaceholder: Identifiable, Hashable {
     public init(encryptedDirectoryName: String,
                 storageOption: StorageType,
                 creationDate: Date,
-                requiredKey: RequiredKeyIdentity? = nil) {
+                requiredKey: RequiredKeyIdentity? = nil,
+                contentsUnreadable: Bool = false) {
         self.encryptedDirectoryName = encryptedDirectoryName
         self.storageOption = storageOption
         self.creationDate = creationDate
         self.requiredKey = requiredKey
+        self.contentsUnreadable = contentsUnreadable
+    }
+
+    /// The locked-album alert's message. A known key always leads, since the
+    /// Enter Key flow asks for that key; a probe that opened nothing adds a
+    /// sentence after it, or stands alone when the key is unknown.
+    public var lockedAlertMessage: String {
+        let keyLine = requiredKey.map { L10n.MissingKey.albumSubtitleWithFingerprint($0.displayLabel) }
+        switch (keyLine, contentsUnreadable) {
+        case (let keyLine?, true):
+            return "\(keyLine) \(L10n.MissingKey.albumContentsUnreadable)"
+        case (let keyLine?, false):
+            return keyLine
+        case (nil, true):
+            return L10n.MissingKey.albumContentsUnreadable
+        case (nil, false):
+            return L10n.MissingKey.subtitleUnknown
+        }
     }
 
     /// Whether `key` is the key that encrypted this album's name — an
