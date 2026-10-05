@@ -279,13 +279,20 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
     }
 
+    /// Picks the album the camera and the launch flow start from. A selected album
+    /// that still exists is kept, hidden or not; otherwise the saved selection is
+    /// restored, hidden or not. Only when neither exists does it fall back to the
+    /// oldest visible album, so a hidden album is never chosen on the user's behalf.
     public func restoreCurrentAlbumFromUserDefaults() {
-        let albums = fetchAlbumsFromSources()
+        let albums = fetchAlbumsFromSources(includingHidden: true)
+        if let currentAlbum, albums.contains(where: { $0.id == currentAlbum.id }) {
+            return
+        }
         if let currentAlbumID = UserDefaultUtils.string(forKey: .currentAlbumID),
            let foundAlbum = albums.first(where: { $0.id == currentAlbumID }) {
             currentAlbum = foundAlbum
         } else {
-            currentAlbum = albums.first
+            currentAlbum = fetchAlbumsFromSources().first
         }
     }
 
