@@ -183,7 +183,7 @@ There are three ways an interrupted move gets picked back up — any scope, eith
 
 # Direction 2: CloudKit → local
 
-A whole CloudKit album moves back to this device through the same engine, as an album-scope plan with a CloudKit source. `CloudKitMigrationLauncher.startCloudToLocal(album:)` builds it and awaits the run.
+A whole CloudKit album moves back to this device through the same engine, as an album-scope plan with a CloudKit source. `CloudKitMigrationLauncher.moveToLocal(album:)` builds it and awaits the run.
 
 1. **Reconcile the index first.** A record another device uploaded moments ago has to be included, or it would be left orphaned in the cloud. A *failed* reconcile aborts the run — the plan is built from the local index, so a stale or empty index (fresh device, transient error) would move nothing and still delete the album.
 2. **Check the name is free.** The move becomes the local directory named by the album's current `encName`, so if any other album on this device (hidden ones included) already has the name, the run fails with `L10n.albumExistsError` before anything is transferred.
