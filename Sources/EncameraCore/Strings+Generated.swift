@@ -1371,6 +1371,8 @@ public enum L10n {
     public static let moveToLocalNeedsSpaceTitle = L10n.tr("Localizable", "CloudKitMigration.MoveToLocalNeedsSpaceTitle", fallback: "Not Enough Space")
     /// Stop the move
     public static let overlayCancel = L10n.tr("Localizable", "CloudKitMigration.OverlayCancel", fallback: "Stop the move")
+    /// Every item is already on this device. This last step can't be stopped, or the album would be left half-removed from iCloud.
+    public static let overlayCancelUnavailable = L10n.tr("Localizable", "CloudKitMigration.OverlayCancelUnavailable", fallback: "Every item is already on this device. This last step can't be stopped, or the album would be left half-removed from iCloud.")
     /// %@ couldn't be moved yet
     public static func overlayFailedItems(_ p1: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.OverlayFailedItems", String(describing: p1), fallback: "%@ couldn't be moved yet")

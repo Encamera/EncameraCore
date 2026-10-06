@@ -10,6 +10,8 @@ import Combine
 
 /// Closure type for task cancellation handlers
 public typealias TaskCancellationHandler = () -> Void
+/// A cancellation handler that may refuse: returns whether the task will stop.
+public typealias RefusableTaskCancellationHandler = () -> Bool
 
 /// Generic task manager for tracking and observing long-running background tasks.
 /// Uses the BackgroundFileTask protocol to support any task type (imports, exports, etc.)
@@ -33,8 +35,15 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     
     // MARK: - Cancellation Handlers
     
+    private enum CancellationHandler {
+        /// Always stops the task; runs after the task is marked cancelled.
+        case unconditional(TaskCancellationHandler)
+        /// Decides whether the task stops; the task is marked cancelled only if so.
+        case refusable(RefusableTaskCancellationHandler)
+    }
+
     /// Registered cancellation handlers for each task
-    private var cancellationHandlers: [String: TaskCancellationHandler] = [:]
+    private var cancellationHandlers: [String: CancellationHandler] = [:]
     
     // MARK: - Time Estimation State
     
@@ -110,7 +119,17 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     /// The handler will be called when cancelTask is invoked for this task
     public func registerCancellationHandler(for taskId: String, handler: @escaping TaskCancellationHandler) {
         printDebug("Registering cancellation handler for task: \(taskId)")
-        cancellationHandlers[taskId] = handler
+        cancellationHandlers[taskId] = .unconditional(handler)
+    }
+
+    /// Registers a handler that can refuse the cancel, for a task that cannot stop
+    /// at every point. On a refusal `cancelTask` leaves the task running and the
+    /// handler registered, so the task is never shown as cancelled while its work
+    /// goes on.
+    public func registerRefusableCancellationHandler(for taskId: String,
+                                                     handler: @escaping RefusableTaskCancellationHandler) {
+        printDebug("Registering refusable cancellation handler for task: \(taskId)")
+        cancellationHandlers[taskId] = .refusable(handler)
     }
     
     /// Removes the cancellation handler for a task
@@ -123,22 +142,32 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     /// Note: The task is NOT automatically removed - the handler is responsible for calling
     /// finalizeTaskCancelled() which will decide whether to keep the task (for partial imports)
     /// or remove it after a delay.
+    /// A handler registered with `registerRefusableCancellationHandler(for:handler:)` can
+    /// refuse, which leaves the task's state and handler untouched.
     public func cancelTask(taskId: String) {
         printDebug("Cancelling task: \(taskId)")
         guard task(withId: taskId) != nil else {
             printDebug("Failed to find task to cancel: \(taskId)")
             return
         }
-        
-        markTaskCancelled(taskId: taskId)
-        
-        if let handler = cancellationHandlers[taskId] {
+
+        switch cancellationHandlers[taskId] {
+        case .refusable(let handler)?:
+            printDebug("Invoking refusable cancellation handler for task: \(taskId)")
+            guard handler() else {
+                printDebug("Cancellation refused for task: \(taskId)")
+                return
+            }
+            markTaskCancelled(taskId: taskId)
+        case .unconditional(let handler)?:
+            markTaskCancelled(taskId: taskId)
             printDebug("Invoking cancellation handler for task: \(taskId)")
             handler()
-        } else {
+        case nil:
+            markTaskCancelled(taskId: taskId)
             removeTaskAfterDelay(taskId: taskId)
         }
-        
+
         unregisterCancellationHandler(for: taskId)
     }
     

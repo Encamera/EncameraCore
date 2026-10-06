@@ -994,6 +994,7 @@
 "CloudKitMigration.OverlayFailedItems" = "%@ couldn't be moved yet";
 "CloudKitMigration.OverlayKeepOpen" = "Keep Encamera open. You can switch apps, but don't force-quit. You may need to be connected to Wi-Fi for this to complete, depending on your system settings.";
 "CloudKitMigration.OverlayCancel" = "Stop the move";
+"CloudKitMigration.OverlayCancelUnavailable" = "Every item is already on this device. This last step can't be stopped, or the album would be left half-removed from iCloud.";
 
 /* ./Encamera/Lightbox/LightboxController.swift - Edit Mode */
 "Lightbox.Edit" = "Edit";

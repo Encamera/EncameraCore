@@ -30,6 +30,8 @@ public struct MigrationTask: BackgroundFileTask {
     public var progress: ImportProgressUpdate
     public var state: FileTaskState { progress.state }
     public let assetIdentifiers: [String] = []
+    /// A move cannot be stopped once its iCloud copies are being removed.
+    public var isCancelable: Bool { progress.acceptsCancel }
 
     public init(id: String = UUID().uuidString,
                 albumName: String,

@@ -24,8 +24,11 @@ public struct ImportProgressUpdate {
     /// Replaces the floating pill's "X of Y" line when the task is in a step that
     /// line cannot describe, such as a storage move removing its iCloud copies.
     public let statusText: String?
+    /// `false` while the task is in a step it finishes regardless of a cancel, so
+    /// the progress UI offers no Cancel there.
+    public let acceptsCancel: Bool
 
-    public init(taskId: String, currentFileIndex: Int, totalFiles: Int, currentFileProgress: Double, overallProgress: Double, currentFileName: String?, state: FileTaskState, estimatedTimeRemaining: TimeInterval?, statusText: String? = nil) {
+    public init(taskId: String, currentFileIndex: Int, totalFiles: Int, currentFileProgress: Double, overallProgress: Double, currentFileName: String?, state: FileTaskState, estimatedTimeRemaining: TimeInterval?, statusText: String? = nil, acceptsCancel: Bool = true) {
         self.taskId = taskId
         self.currentFileIndex = currentFileIndex
         self.totalFiles = totalFiles
@@ -35,6 +38,7 @@ public struct ImportProgressUpdate {
         self.state = state
         self.estimatedTimeRemaining = estimatedTimeRemaining
         self.statusText = statusText
+        self.acceptsCancel = acceptsCancel
     }
 }
 

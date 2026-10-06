@@ -93,6 +93,9 @@ public struct MigrationProgress: Equatable, Sendable {
     /// Items whose source copy this run removes: every item but a skipped one. The
     /// denominator of "Removing X of Y".
     public var removalTotal: Int
+    /// Whether a cancel would stop the run. `false` while a whole album's iCloud
+    /// copies are being removed, which the run finishes regardless.
+    public var acceptsCancel: Bool
 
     public init(fractionComplete: Double = 0,
                 verifiedCount: Int = 0,
@@ -102,7 +105,8 @@ public struct MigrationProgress: Equatable, Sendable {
                 currentItemName: String? = nil,
                 phase: MigrationPhase? = nil,
                 removedCount: Int = 0,
-                removalTotal: Int = 0) {
+                removalTotal: Int = 0,
+                acceptsCancel: Bool = true) {
         self.fractionComplete = fractionComplete
         self.verifiedCount = verifiedCount
         self.totalCount = totalCount
@@ -112,6 +116,7 @@ public struct MigrationProgress: Equatable, Sendable {
         self.phase = phase
         self.removedCount = removedCount
         self.removalTotal = removalTotal
+        self.acceptsCancel = acceptsCancel
     }
 
     public static let idle = MigrationProgress()
@@ -208,6 +213,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     private func publishProgress(_ plan: MigrationPlan, currentItemName: String? = nil) {
         var snapshot = MigrationProgress(plan: plan, currentItemName: currentItemName, phase: currentPhase)
         if plan.items.isEmpty, currentPhase != nil { snapshot.fractionComplete = 0 }
+        snapshot.acceptsCancel = acceptsCancel
         progress = snapshot
         logProgressIfChanged(snapshot)
     }
@@ -1553,6 +1559,26 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// Resumes a paused/failed/partial run of `plan` from its on-disk checkpoint.
     public func resume(plan: MigrationPlan) async {
         await start(plan: plan)
+    }
+
+    /// Whether a cancel would stop the run now. `false` once a whole album's
+    /// CloudKit records are being removed, when `cancel(plan:)` is ignored.
+    public var acceptsCancel: Bool { !isRemovingSources }
+
+    /// Cancels the run unless it is past the point a cancel is honored, and says
+    /// which. The request is recorded before this returns, so the run cannot reach
+    /// its removal pass between an accepted request and the cancel taking effect;
+    /// the rest of `cancel(plan:)` follows asynchronously.
+    @discardableResult
+    public func requestCancel(plan: MigrationPlan) -> Bool {
+        guard acceptsCancel else {
+            printDebug("cancel REFUSED — the album's iCloud copies are already being removed")
+            return false
+        }
+        control = .cancelRequested
+        activeStore?.cancelAll()
+        Task { await cancel(plan: plan) }
+        return true
     }
 
     /// Stops the album's migration to CloudKit. See `cancel(plan:)`.
