@@ -193,7 +193,8 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             // rewrites every chunk.
             var uploadFileURL = proven.uploadURL
             var chunkGeometry: (chunkCount: Int, plaintextLength: Int64)?
-            var reencryptedTemp: URL?
+            var reencryptScratch: URL?
+            defer { if let reencryptScratch { MigrationReencryptScratch.release(reencryptScratch) } }
             if SeekableEncryptedHeader.isSeekableFormat(fileURL: encURL) {
                 let header = try SeekableEncryptedHeader.read(fromFileAt: encURL).header
                 chunkGeometry = (header.chunkCount, Int64(header.plaintextLength))
@@ -201,14 +202,15 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                       FeatureToggle.isEnabled(feature: .cloudKitStorage),
                       item.sizeBytes >= Int64(SeekableEncryptedFormat.threshold) {
                 context.setPhase(.preparing, plan, item.mediaID)
-                let header: SeekableEncryptedHeader
-                (uploadFileURL, header) = try await Self.reencryptToSeekable(sourceENC2: encURL,
-                                                                             mediaID: item.mediaID,
-                                                                             keyBytes: proven.key.keyBytes)
-                reencryptedTemp = uploadFileURL
-                chunkGeometry = (header.chunkCount, Int64(header.plaintextLength))
+                // Throws, failing the item with its original kept, when the ENC3
+                // output does not decrypt back to the original's plaintext.
+                let reencrypted = try await Self.reencryptToSeekable(sourceENC2: encURL,
+                                                                     mediaID: item.mediaID,
+                                                                     keyBytes: proven.key.keyBytes)
+                reencryptScratch = reencrypted.scratchDirectory
+                uploadFileURL = reencrypted.url
+                chunkGeometry = (reencrypted.header.chunkCount, Int64(reencrypted.header.plaintextLength))
             }
-            defer { if let reencryptedTemp { try? FileManager.default.removeItem(at: reencryptedTemp) } }
 
             let descriptor = CloudKitMediaRecordDescriptor(
                 albumID: context.cloudKitAlbumID,
@@ -226,7 +228,7 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             let upload = CloudKitMediaUpload(descriptor: descriptor,
                                              encryptedFileURL: uploadFileURL,
                                              encryptedThumbURL: thumbURL,
-                                             existingChunks: reencryptedTemp == nil ? .resumeByProbe : .overwrite)
+                                             existingChunks: reencryptScratch == nil ? .resumeByProbe : .overwrite)
             context.setPhase(.uploading, plan, item.mediaID)
             do {
                 try await Self.uploadWithRetry(upload, coordinator: context.coordinator, plan: plan, itemName: item.mediaID, setPhase: context.setPhase)
@@ -403,35 +405,65 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
         return .present
     }
 
+    /// Runs on the re-encrypted ENC3 file before it is verified. Tests use it to
+    /// stand in for a writer that produces a corrupt or short file.
+    static var afterReencryptWriteForTesting: ((URL) throws -> Void)?
+
     /// Re-encrypts an ENC2 video into ENC3 so migration produces chunk records
-    /// for the user's pre-existing large videos. First implementation uses a
-    /// plaintext temp file (as playback already does today); a streaming
-    /// ENC2-read -> ENC3-write pipe is the follow-up that removes the
-    /// plaintext-on-disk window. Embedded metadata is carried across.
+    /// for the user's pre-existing large videos, then decrypts the result through
+    /// the playback reader and compares it with the plaintext it came from (see
+    /// `ReencryptVerifier`): the ENC3 file is the copy that replaces the original,
+    /// so one that does not play back is rejected here, before upload. Embedded
+    /// metadata is carried across.
+    ///
+    /// The plaintext is written to a scratch directory (as playback already does
+    /// today). The caller releases `scratchDirectory`, which holds the returned
+    /// file, once it is uploaded; on a throw it is already gone, and one left by a
+    /// crash is removed by the next `TempFileAccess.cleanupTemporaryFiles()`. A
+    /// streaming ENC2-read -> ENC3-write pipe would keep the plaintext off disk
+    /// altogether.
     static func reencryptToSeekable(sourceENC2: URL,
                                     mediaID: String,
-                                    keyBytes: [UInt8]) async throws -> (URL, SeekableEncryptedHeader) {
-        let scratchDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("migration-enc3-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: scratchDir, withIntermediateDirectories: true)
-        let plaintextURL = scratchDir.appendingPathComponent("\(mediaID).plain")
-        defer { try? FileManager.default.removeItem(at: plaintextURL) }
+                                    keyBytes: [UInt8]) async throws
+        -> (url: URL, header: SeekableEncryptedHeader, scratchDirectory: URL) {
+        let scratchDir = try MigrationReencryptScratch.makeDirectory()
+        do {
+            let plaintextURL = scratchDir.appendingPathComponent("\(mediaID).plain")
+            defer { try? FileManager.default.removeItem(at: plaintextURL) }
 
-        let encrypted = EncryptedMedia(source: .url(sourceENC2), mediaType: .video, id: mediaID)
-        let handler = SecretFileHandler(keyBytes: keyBytes, source: encrypted, targetURL: plaintextURL)
-        _ = try await handler.decryptToURL()
+            let encrypted = EncryptedMedia(source: .url(sourceENC2), mediaType: .video, id: mediaID)
+            let handler = SecretFileHandler(keyBytes: keyBytes, source: encrypted, targetURL: plaintextURL)
+            _ = try await handler.decryptToURL()
 
-        let metadata = try? await EncryptedMetadataHandler().readMetadata(from: sourceENC2, keyBytes: keyBytes)
-        let metadataJSON = try metadata.map { try SeekableEncryptedFormat.encodeMetadata($0) }
+            let metadata = try? await EncryptedMetadataHandler().readMetadata(from: sourceENC2, keyBytes: keyBytes)
+            let metadataJSON = try metadata.map { try SeekableEncryptedFormat.encodeMetadata($0) }
 
-        let destination = scratchDir.appendingPathComponent("\(mediaID).enc3")
-        // Detached: the writer is synchronous and this manager is @MainActor — a
-        // multi-GB encrypt must never run on the main thread.
-        let header = try await Task.detached(priority: .userInitiated) {
-            try SeekableEncryptedWriter(keyBytes: keyBytes)
-                .encrypt(source: plaintextURL, destination: destination, metadata: metadataJSON)
-        }.value
-        return (destination, header)
+            let destination = scratchDir.appendingPathComponent("\(mediaID).enc3")
+            // Detached: the writer is synchronous and this manager is @MainActor — a
+            // multi-GB encrypt must never run on the main thread.
+            let header = try await Task.detached(priority: .userInitiated) {
+                try SeekableEncryptedWriter(keyBytes: keyBytes)
+                    .encrypt(source: plaintextURL, destination: destination, metadata: metadataJSON)
+            }.value
+            try afterReencryptWriteForTesting?(destination)
+
+            do {
+                try await Task.detached(priority: .userInitiated) {
+                    try await ReencryptVerifier.verify(enc3: destination,
+                                                       plaintext: plaintextURL,
+                                                       keyBytes: keyBytes,
+                                                       writtenHeader: header,
+                                                       metadata: metadataJSON)
+                }.value
+            } catch {
+                printDebug("re-encrypt VERIFY FAILED mediaID=\(mediaID) — keeping the original: \(error)")
+                throw error
+            }
+            return (destination, header, scratchDir)
+        } catch {
+            MigrationReencryptScratch.release(scratchDir)
+            throw error
+        }
     }
 }
 

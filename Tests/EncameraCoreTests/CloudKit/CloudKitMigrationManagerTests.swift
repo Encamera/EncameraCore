@@ -2571,6 +2571,160 @@ extension CloudKitMigrationManagerTests {
         }
     }
 
+    // MARK: - Re-encryption verification
+
+    /// The `migration-enc3-*` directories currently in the process's tmp.
+    private func migrationScratchDirectories() -> Set<String> {
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: FileManager.default.temporaryDirectory.path)) ?? []
+        return Set(entries.filter { $0.hasPrefix(MigrationReencryptScratch.directoryPrefix) })
+    }
+
+    /// Runs a move of an album holding one large legacy video, with `tamper`
+    /// applied to the re-encrypted file before it is verified. Returns what the
+    /// test needs to judge the outcome.
+    private func migrateLegacyVideo(tamper: @escaping (_ enc3: URL, _ original: URL) throws -> Void,
+                                    _ check: (_ manager: CloudKitMigrationManager,
+                                              _ album: Album,
+                                              _ server: ChunkedServer,
+                                              _ video: (id: String, plaintext: Data),
+                                              _ scratch: URL) async throws -> Void) async throws {
+        try await withCloudKitStorageEnabled {
+            let album = makeAlbum()
+            let server = ChunkedServer()
+            let (manager, _) = makeChunkedManager(for: album, server: server)
+            let scratch = try scratchDirectory()
+            defer {
+                LocalToCloudKitStep.afterReencryptWriteForTesting = nil
+                cleanup(album)
+                try? FileManager.default.removeItem(at: scratch)
+            }
+
+            let video = try await seedLegacyChunkSizedVideo(in: album, scratch: scratch)
+            let original = album.storageOption.modelForType.init(album: album)
+                .driveURLForMedia(withID: video.id, type: .video)
+            LocalToCloudKitStep.afterReencryptWriteForTesting = { try tamper($0, original) }
+            await manager.start(album: album)
+            try await check(manager, album, server, video, scratch)
+        }
+    }
+
+    private func assertItemFailedAndOriginalKept(manager: CloudKitMigrationManager,
+                                                 album: Album,
+                                                 server: ChunkedServer,
+                                                 video: (id: String, plaintext: Data),
+                                                 rejectedBecause reason: String,
+                                                 file: StaticString = #filePath,
+                                                 line: UInt = #line) async throws {
+        let model = album.storageOption.modelForType.init(album: album)
+        let original = model.driveURLForMedia(withID: video.id, type: .video)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: original.path),
+                      "the ENC2 original must be kept when its ENC3 copy is bad", file: file, line: line)
+        let recordName = MediaRecordName.componentRecordName(mediaID: video.id, type: .video)
+        XCTAssertFalse(server.database.hasRecord(named: recordName),
+                       "a bad ENC3 copy must never be uploaded", file: file, line: line)
+        XCTAssertEqual(server.chunkRecordNames(of: recordName), [], file: file, line: line)
+        let loaded = await MigrationPlanStore(album: album).load()
+        let plan = try XCTUnwrap(loaded, file: file, line: line)
+        let item = plan.items.first(where: { $0.mediaID == video.id })
+        XCTAssertEqual(item?.state, .failed, "the item fails", file: file, line: line)
+        XCTAssertTrue(item?.lastError?.contains(reason) == true,
+                      "the re-encryption check rejected the copy before upload; lastError=\(item?.lastError ?? "nil")",
+                      file: file, line: line)
+        guard case .failed = manager.state else {
+            return XCTFail("expected the run to end failed, got \(manager.state)", file: file, line: line)
+        }
+    }
+
+    func testReencryptedENC3DecryptsToTheOriginalPlaintextBeforeTheSourceIsDeleted() async throws {
+        var capturedENC3: Data?
+        var originalExistedAtWrite = false
+        try await migrateLegacyVideo(tamper: { enc3, original in
+            capturedENC3 = try Data(contentsOf: enc3)
+            originalExistedAtWrite = FileManager.default.fileExists(atPath: original.path)
+        }) { manager, album, server, video, scratch in
+            XCTAssertTrue(originalExistedAtWrite, "precondition: the original was still there when the ENC3 copy was made")
+            XCTAssertEqual(manager.state, .completed)
+            let model = album.storageOption.modelForType.init(album: album)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: model.driveURLForMedia(withID: video.id, type: .video).path),
+                           "the original is deleted once its copy is verified")
+
+            // The ENC3 file the move produced, read through the playback reader.
+            let enc3URL = scratch.appendingPathComponent("captured.enc3")
+            try XCTUnwrap(capturedENC3, "the move re-encrypted the video").write(to: enc3URL)
+            let reader = try SeekableEncryptedReader.forFile(enc3URL, keyBytes: album.key.keyBytes)
+            let decrypted = try await reader.plaintext(range: 0..<reader.geometry.plaintextLength)
+            XCTAssertTrue(decrypted == video.plaintext, "the ENC3 copy decrypts to the original's plaintext")
+
+            let recordName = MediaRecordName.componentRecordName(mediaID: video.id, type: .video)
+            let albumID = try XCTUnwrap(server.database.allRecords
+                .first { $0.recordID.recordName == recordName }
+                .flatMap { $0[CloudKitSchema.EncMedia.albumID] as? String })
+            let readBack = try await server.readBack(recordName: recordName, albumID: albumID,
+                                                     key: album.key.keyBytes, into: scratch)
+            XCTAssertTrue(readBack == video.plaintext, "the video on the server decrypts to the original")
+        }
+    }
+
+    /// A chunk whose ciphertext changed after it was written does not
+    /// authenticate; the reader playback uses would refuse to play it.
+    func testCorruptENC3OutputFailsTheItemAndKeepsTheOriginal() async throws {
+        var scratchDirectory: URL?
+        try await migrateLegacyVideo(tamper: { enc3, _ in
+            scratchDirectory = enc3.deletingLastPathComponent()
+            let header = try SeekableEncryptedHeader.read(fromFileAt: enc3).header
+            let geometry = header.geometry
+            let offset = geometry.ciphertextOffset(ofChunk: geometry.chunkCount / 2) + 100
+            let handle = try FileHandle(forUpdating: enc3)
+            defer { try? handle.close() }
+            try handle.seek(toOffset: UInt64(offset))
+            let byte = try XCTUnwrap(handle.read(upToCount: 1)).first ?? 0
+            try handle.seek(toOffset: UInt64(offset))
+            try handle.write(contentsOf: Data([byte ^ 0xFF]))
+        }) { manager, album, server, video, _ in
+            try await assertItemFailedAndOriginalKept(manager: manager, album: album, server: server, video: video,
+                                                      rejectedBecause: "chunkUnreadable")
+        }
+        let dir = try XCTUnwrap(scratchDirectory)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path),
+                       "a rejected re-encryption removes its scratch directory")
+    }
+
+    /// A short ENC3 file: what a writer that misses a short source read, or a
+    /// write cut off part way, leaves behind.
+    func testTruncatedENC3OutputFailsTheItemAndKeepsTheOriginal() async throws {
+        try await migrateLegacyVideo(tamper: { enc3, _ in
+            let size = try XCTUnwrap(FileManager.default.attributesOfItem(atPath: enc3.path)[.size] as? NSNumber).uint64Value
+            let handle = try FileHandle(forUpdating: enc3)
+            defer { try? handle.close() }
+            try handle.truncate(atOffset: size - 1_000)
+        }) { manager, album, server, video, _ in
+            try await assertItemFailedAndOriginalKept(manager: manager, album: album, server: server, video: video,
+                                                      rejectedBecause: "fileSizeMismatch")
+        }
+    }
+
+    /// The scratch directory holds the decrypted video, so the whole directory
+    /// goes once the upload is done, not only the files in it.
+    func testReencryptRemovesItsScratchDirectory() async throws {
+        let before = migrationScratchDirectories()
+        var scratchDirectory: URL?
+        var plaintextPresentDuringReencrypt = false
+        try await migrateLegacyVideo(tamper: { enc3, _ in
+            let dir = enc3.deletingLastPathComponent()
+            scratchDirectory = dir
+            plaintextPresentDuringReencrypt = ((try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? [])
+                .contains { $0.hasSuffix(".plain") }
+        }) { manager, _, _, _, _ in
+            XCTAssertEqual(manager.state, .completed)
+        }
+        let dir = try XCTUnwrap(scratchDirectory, "the move re-encrypted the video")
+        XCTAssertTrue(dir.lastPathComponent.hasPrefix(MigrationReencryptScratch.directoryPrefix))
+        XCTAssertTrue(plaintextPresentDuringReencrypt, "precondition: the scratch directory held the plaintext")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path), "the scratch directory is removed")
+        XCTAssertEqual(migrationScratchDirectories().subtracting(before), [],
+                       "no migration-enc3 directory is left behind")
+    }
+
     /// An ENC3 source is uploaded byte for byte on every attempt, so a resume keeps
     /// every chunk already on the server and sends only the missing ones.
     func testAResumedENC3MigrationUploadsOnlyTheMissingChunks() async throws {

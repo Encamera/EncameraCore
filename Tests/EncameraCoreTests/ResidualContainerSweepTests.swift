@@ -79,6 +79,51 @@ final class ResidualContainerSweepTests: XCTestCase {
             atPath: root.appendingPathComponent("Library/Caches/junk.bin").path))
     }
 
+    /// A move to iCloud decrypts a large video into `tmp/migration-enc3-<uuid>/`
+    /// to re-encrypt it. A crash or jetsam there skips its cleanup, so the next
+    /// launch's temp-file cleanup removes the directory.
+    @MainActor
+    func testLaunchSweepRemovesLeftoverMigrationEnc3Directories() throws {
+        let tmp = FileManager.default.temporaryDirectory
+        let leftover = tmp.appendingPathComponent("\(MigrationReencryptScratch.directoryPrefix)\(UUID().uuidString)",
+                                                  isDirectory: true)
+        let unrelated = tmp.appendingPathComponent("sweep-unrelated-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            try? FileManager.default.removeItem(at: leftover)
+            try? FileManager.default.removeItem(at: unrelated)
+        }
+        for dir in [leftover, unrelated] {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        try Data(repeating: 0x2A, count: 32).write(to: leftover.appendingPathComponent("video.plain"))
+        try Data(repeating: 0x2A, count: 32).write(to: leftover.appendingPathComponent("video.enc3"))
+        try Data(repeating: 0x2A, count: 32).write(to: unrelated.appendingPathComponent("keep.bin"))
+
+        TempFileAccess.cleanupTemporaryFiles()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: leftover.path),
+                       "a leftover migration-enc3 directory survived the launch sweep")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: unrelated.appendingPathComponent("keep.bin").path),
+                      "the sweep only removes migration-enc3 directories")
+    }
+
+    /// The same cleanup runs when the app goes to the background, possibly while
+    /// a move is re-encrypting; the directory that move is using stays.
+    func testMigrationEnc3SweepLeavesADirectoryInUse() throws {
+        let inUse = try MigrationReencryptScratch.makeDirectory(in: root)
+        let leftover = root.appendingPathComponent("\(MigrationReencryptScratch.directoryPrefix)\(UUID().uuidString)",
+                                                   isDirectory: true)
+        try FileManager.default.createDirectory(at: leftover, withIntermediateDirectories: true)
+
+        XCTAssertEqual(MigrationReencryptScratch.sweepLeftovers(in: root), 1)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: inUse.path), "a directory in use must survive")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: leftover.path))
+
+        MigrationReencryptScratch.release(inUse)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: inUse.path))
+    }
+
     /// The roots have to resolve to something real, or every test above passes
     /// against a sweep that runs over nothing.
     func testContainerRootsIncludeTheAppHomeDirectory() {

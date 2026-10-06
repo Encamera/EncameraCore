@@ -5,7 +5,13 @@ public class TempFileAccess: DebugPrintable {
     @MainActor public static func cleanupTemporaryFiles() {
         printDebug("TempFileAccess.cleanupTemporaryFiles() called")
         printDebug("BackgroundTaskManager.shared.isProcessing: \(BackgroundTaskManager.shared.isProcessing)")
-        
+
+        // Decrypted video a move to iCloud left behind when the app was killed
+        // mid re-encryption. Independent of imports, and skips the directories a
+        // move running in this process is still using.
+        let sweptScratch = MigrationReencryptScratch.sweepLeftovers()
+        printDebug("Removed \(sweptScratch) leftover migration re-encrypt directories")
+
         if !BackgroundTaskManager.shared.isProcessing {
             printDebug("isProcessing is false - proceeding with cleanup")
             deleteDirectory(at: URL.tempMediaDirectory)
