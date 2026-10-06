@@ -1355,6 +1355,20 @@ public enum L10n {
     public static let failedToLocalTitle = L10n.tr("Localizable", "CloudKitMigration.FailedToLocalTitle", fallback: "The move to this device didn't finish")
     /// Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.
     public static let membershipCheckFailed = L10n.tr("Localizable", "CloudKitMigration.MembershipCheckFailed", fallback: "Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.")
+    /// Move to This Device
+    public static let moveToLocalAlertConfirm = L10n.tr("Localizable", "CloudKitMigration.MoveToLocalAlertConfirm", fallback: "Move to This Device")
+    /// This downloads %@ %@ (%@) to this iPhone and then removes them from iCloud. The album will be removed from your other devices. Keep Encamera open until it finishes. Once the iCloud copies are being removed, the move can't be stopped.
+    public static func moveToLocalAlertMessage(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.MoveToLocalAlertMessage", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "This downloads %@ %@ (%@) to this iPhone and then removes them from iCloud. The album will be removed from your other devices. Keep Encamera open until it finishes. Once the iCloud copies are being removed, the move can't be stopped.")
+    }
+    /// Move this album to This Device?
+    public static let moveToLocalAlertTitle = L10n.tr("Localizable", "CloudKitMigration.MoveToLocalAlertTitle", fallback: "Move this album to This Device?")
+    /// Moving this album to this iPhone needs about %@, but only %@ is free. Free up space and try again. The album stays in iCloud.
+    public static func moveToLocalNeedsSpaceMessage(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.MoveToLocalNeedsSpaceMessage", String(describing: p1), String(describing: p2), fallback: "Moving this album to this iPhone needs about %@, but only %@ is free. Free up space and try again. The album stays in iCloud.")
+    }
+    /// Not Enough Space
+    public static let moveToLocalNeedsSpaceTitle = L10n.tr("Localizable", "CloudKitMigration.MoveToLocalNeedsSpaceTitle", fallback: "Not Enough Space")
     /// Stop the move
     public static let overlayCancel = L10n.tr("Localizable", "CloudKitMigration.OverlayCancel", fallback: "Stop the move")
     /// %@ couldn't be moved yet

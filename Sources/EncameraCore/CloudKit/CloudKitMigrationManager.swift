@@ -1611,6 +1611,17 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         return (items.count, items.reduce(0) { $0 + $1.sizeBytes })
     }
 
+    /// The side-effect-free pre-flight for moving a CloudKit album to this device:
+    /// how many items the user sees in the album, and the size of every record the
+    /// move downloads. A record with no size in the sidecar is `nil` (unknown).
+    /// Writes no checkpoint, so declining the confirmation leaves nothing to resume.
+    public func estimateMoveToLocal(album: Album) async -> (itemCount: Int, recordSizes: [Int64?]) {
+        guard album.storageOption == .cloudKit else { return (0, []) }
+        let items = await enumerateCloudKitItems(album: album)
+        let itemCount = Set(items.map(\.mediaID)).count
+        return (itemCount, items.map { $0.sizeBytes > 0 ? $0.sizeBytes : nil })
+    }
+
     // MARK: - Enumeration
 
     /// Reads every encrypted component of the source album into a fresh `pending`

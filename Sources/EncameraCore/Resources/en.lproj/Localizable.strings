@@ -941,6 +941,11 @@
 "CloudKitMigration.DriveAlertMessage" = "Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.";
 "CloudKitMigration.AlertConfirm" = "Move to iCloud";
 "CloudKitMigration.AlertCancel" = "Not now";
+"CloudKitMigration.MoveToLocalAlertTitle" = "Move this album to This Device?";
+"CloudKitMigration.MoveToLocalAlertMessage" = "This downloads %@ %@ (%@) to this iPhone and then removes them from iCloud. The album will be removed from your other devices. Keep Encamera open until it finishes. Once the iCloud copies are being removed, the move can't be stopped.";
+"CloudKitMigration.MoveToLocalAlertConfirm" = "Move to This Device";
+"CloudKitMigration.MoveToLocalNeedsSpaceTitle" = "Not Enough Space";
+"CloudKitMigration.MoveToLocalNeedsSpaceMessage" = "Moving this album to this iPhone needs about %@, but only %@ is free. Free up space and try again. The album stays in iCloud.";
 "CloudKitMigration.EstimateLessThanAMinute" = "less than a minute";
 "CloudKitMigration.EstimateMinutes" = "%@ minutes";
 "CloudKitMigration.EstimateOverAnHour" = "more than an hour";
