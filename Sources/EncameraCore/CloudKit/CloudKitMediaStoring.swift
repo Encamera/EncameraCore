@@ -174,17 +174,23 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
     /// `nil` on a monolithic record — and on a chunked one whose fetch's
     /// `desiredKeys` did not include the header.
     public let encHeader: Data?
+    /// The server's `CKRecord.creationDate`: when the record first reached
+    /// iCloud, unlike `createdAt`, which is when the media was captured. Re-parenting
+    /// the record does not change it. `nil` when not read from the server.
+    public let recordCreationDate: Date?
 
     public init(descriptor: CloudKitMediaRecordDescriptor,
                 creationDeviceID: String,
                 schemaVersion: Int64,
                 recordChangeTag: String?,
-                encHeader: Data? = nil) {
+                encHeader: Data? = nil,
+                recordCreationDate: Date? = nil) {
         self.descriptor = descriptor
         self.creationDeviceID = creationDeviceID
         self.schemaVersion = schemaVersion
         self.recordChangeTag = recordChangeTag
         self.encHeader = encHeader
+        self.recordCreationDate = recordCreationDate
     }
 
     /// Flat convenience over `init(descriptor:...)`.
@@ -305,6 +311,9 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
     /// `EncAlbum.migrationInProgress`: a move on some device is still filling the
     /// album, so a device that has not adopted it yet must not.
     public let migrationInProgress: Bool
+    /// The server's `CKRecord.modificationDate`: the last time any device saved
+    /// the record. `nil` when not read from the server.
+    public let recordModificationDate: Date?
 
     public init(albumID: String,
                 encName: String,
@@ -314,8 +323,10 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
                 keyFingerprint: String?,
                 recordChangeTag: String?,
                 coverMediaID: String? = nil,
-                migrationInProgress: Bool = false) {
+                migrationInProgress: Bool = false,
+                recordModificationDate: Date? = nil) {
         self.migrationInProgress = migrationInProgress
+        self.recordModificationDate = recordModificationDate
         self.albumID = albumID
         self.encName = encName
         self.createdAt = createdAt

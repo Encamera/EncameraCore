@@ -768,6 +768,119 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                        "the album is adopted once the moving device clears the flag")
     }
 
+    // MARK: - Abandoned migrationInProgress flags
+
+    private static let day: TimeInterval = 24 * 60 * 60
+
+    /// `record` flagged `migrationInProgress`, last saved `savedAgo` seconds ago.
+    private func flagged(_ record: CloudKitAlbumMetadata, savedAgo: TimeInterval) -> CloudKitAlbumMetadata {
+        CloudKitAlbumMetadata(albumID: record.albumID, encName: record.encName, createdAt: record.createdAt,
+                              isHidden: false, schemaVersion: record.schemaVersion,
+                              keyFingerprint: record.keyFingerprint, recordChangeTag: "tag",
+                              migrationInProgress: true,
+                              recordModificationDate: Date().addingTimeInterval(-savedAgo))
+    }
+
+    /// A media record in `albumID` that first reached iCloud `uploadedAgo` seconds ago.
+    private func member(of albumID: String, uploadedAgo: TimeInterval) -> CloudKitMediaMetadata {
+        let mediaID = UUID().uuidString
+        return CloudKitMediaMetadata(descriptor: CloudKitMediaRecordDescriptor(
+                                         albumID: albumID, mediaID: mediaID,
+                                         recordName: CloudKitFileAccess.componentRecordName(mediaID: mediaID, type: .photo),
+                                         mediaType: .photo, createdAt: Date().addingTimeInterval(-400 * Self.day),
+                                         sizeBytes: 10, keyFingerprint: "fp"),
+                                     creationDeviceID: "other-device", schemaVersion: 1, recordChangeTag: "tag",
+                                     recordCreationDate: Date().addingTimeInterval(-uploadedAgo))
+    }
+
+    /// The moving device lost its plan (restored to a new phone) and never cleared
+    /// the flag: nothing has touched the album for longer than the window.
+    func test_reconcile_adoptsAStaleMigrationInProgressAlbum() async throws {
+        let key = makeKey(5)
+        let stale = CloudKitAlbumMembership.abandonedMoveFlagAge + Self.day
+        let record = flagged(uuidRecord(name: "Vacation", key: key), savedAgo: stale)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        store.metadataToReturn = [member(of: record.albumID, uploadedAgo: stale),
+                                  member(of: record.albumID, uploadedAgo: stale + Self.day)]
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
+                       "an album whose move went quiet for the whole window is adopted")
+        XCTAssertTrue(store.savedAlbumCalls.isEmpty, "the flag is left on the record; every device applies the same rule")
+    }
+
+    func test_reconcile_adoptsAStaleMigrationInProgressAlbumWithNoMedia() async throws {
+        let key = makeKey(5)
+        let record = flagged(uuidRecord(name: "Vacation", key: key),
+                             savedAgo: CloudKitAlbumMembership.abandonedMoveFlagAge + Self.day)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
+                       "a move that flagged the album and then vanished before its first upload is abandoned too")
+    }
+
+    func test_reconcile_stillSkipsAFreshMigrationInProgressAlbum() async throws {
+        let key = makeKey(5)
+        let record = flagged(uuidRecord(name: "Vacation", key: key),
+                             savedAgo: CloudKitAlbumMembership.abandonedMoveFlagAge - Self.day)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
+                      "a move that saved the album record inside the window is still filling it")
+    }
+
+    /// A long move on a slow connection saves the album record once, at the start
+    /// of the run, then only uploads media: the newest upload is what shows it is alive.
+    func test_reconcile_stillSkipsAFlaggedAlbumAMoveIsStillUploadingInto() async throws {
+        let key = makeKey(5)
+        let stale = CloudKitAlbumMembership.abandonedMoveFlagAge + Self.day
+        let record = flagged(uuidRecord(name: "Vacation", key: key), savedAgo: stale)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        store.metadataToReturn = [member(of: record.albumID, uploadedAgo: stale),
+                                  member(of: record.albumID, uploadedAgo: 60 * 60),
+                                  member(of: "another-album", uploadedAgo: stale)]
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
+                      "an item uploaded into the album an hour ago means the move is still filling it")
+
+        store.metadataToReturn = [member(of: record.albumID, uploadedAgo: stale),
+                                  member(of: "another-album", uploadedAgo: 60 * 60)]
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
+                       "only the album's own media count as activity")
+    }
+
+    func test_reconcile_stillSkipsAnOldFlaggedAlbumWhoseMediaCannotBeRead() async throws {
+        let key = makeKey(5)
+        let record = flagged(uuidRecord(name: "Vacation", key: key),
+                             savedAgo: CloudKitAlbumMembership.abandonedMoveFlagAge + Self.day)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        store.fetchMetadataError = CloudKitMediaStoreError.retry(after: 1)
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
+                      "without the album's media the move cannot be shown to be abandoned")
+    }
+
     // MARK: - Queued deletes and the membership check
 
     /// A move back to this device whose album-record delete could not reach the

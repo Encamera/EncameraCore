@@ -292,8 +292,11 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             return local
         }
         let records: [CloudKitAlbumMetadata]
+        let queryStart = Date()
+        printDebug("resolve querying the server's albums")
         do {
             records = try await makeStore("").fetchAllAlbums()
+            printDebug("resolve server albums=\(records.count) in \(Int(Date().timeIntervalSince(queryStart) * 1000))ms")
         } catch let error as CloudKitMediaStoreError {
             let unwrapped = Self.unwrapPartial(error)
             if case .accountUnavailable = unwrapped { throw unwrapped }
@@ -342,7 +345,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             cloudKitAlbumID = try await resolveCloudKitAlbumID(for: album)
         }
 
+        let enumerateStart = Date()
         let enumerated = await enumerateItems(album: album)
+        printDebug("plan enumerated items=\(enumerated.count) in \(Int(Date().timeIntervalSince(enumerateStart) * 1000))ms")
         let merged = Self.merge(existing: existing?.items ?? [], enumerated: enumerated)
 
         var plan = try MigrationPlan.album(album, items: merged, createdAt: existing?.createdAt ?? Date(),
@@ -1199,7 +1204,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// `migrationInProgress` is written to `EncAlbum.migrationInProgress` when set:
     /// a whole-album move flags the record before its first upload and clears it in
     /// `finalizeAlbumToCloudKit`, so other devices leave the half-filled album
-    /// unadopted. `nil` leaves the record's value alone.
+    /// unadopted. `nil` leaves the record's value alone. A record already flagged is
+    /// not saved again for `true`: the save would refresh its modification date, and
+    /// a move that resumes and fails on every launch would keep the flag from ever
+    /// reading as abandoned (`CloudKitAlbumMembership.isBeingFilled`).
     private func saveAlbumRecord(for album: Album,
                                  source: Album,
                                  albumID: String,
@@ -1213,6 +1221,11 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             failedForMissingKey = true
             state = .failed(.other("\(subject) key is not on this device."))
             return false
+        }
+        if migrationInProgress == true,
+           (try? await store.fetchAlbum(albumID: albumID))?.migrationInProgress == true {
+            printDebug("run album record ready albumID=\(albumID) migrationInProgress=true — already flagged, not re-saved")
+            return true
         }
         do {
             let upload: CloudKitAlbumUpload

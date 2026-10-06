@@ -457,7 +457,8 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                      keyFingerprint: keyFingerprint,
                                      recordChangeTag: record.recordChangeTag,
                                      coverMediaID: coverMediaID,
-                                     migrationInProgress: migrationInProgress)
+                                     migrationInProgress: migrationInProgress,
+                                     recordModificationDate: record.modificationDate)
     }
 
     // MARK: - Metadata sync (asset-free, optional eager thumbnail)
@@ -715,7 +716,8 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                      creationDeviceID: creationDeviceID,
                                      schemaVersion: schemaVersion,
                                      recordChangeTag: record.recordChangeTag,
-                                     encHeader: encHeader)
+                                     encHeader: encHeader,
+                                     recordCreationDate: record.creationDate)
     }
 
     // MARK: - Token persistence

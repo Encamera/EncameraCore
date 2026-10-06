@@ -228,3 +228,49 @@ public enum CloudKitAlbumMembership: DebugPrintable {
         return members
     }
 }
+
+// MARK: - Abandoned move flag
+
+extension CloudKitAlbumMembership {
+
+    /// How long an album flagged `migrationInProgress` must go without activity
+    /// before the flag is treated as abandoned. Activity is a save of the album
+    /// record or a new media record in the album. A move uploads into the album
+    /// item by item and saves the flagged record only once, so a move whose device
+    /// lost its plan (restored to a new phone, app erased), or that has not
+    /// uploaded anything in this long, goes quiet for it. Device tests shorten it
+    /// with `-UITestAbandonedMoveFlagAge`.
+    public static var abandonedMoveFlagAge: TimeInterval = 7 * 24 * 60 * 60
+
+    /// Whether a whole-album move to CloudKit is still filling the album `record`
+    /// describes, so a device that has not adopted the album must not, and a merge
+    /// must not fold it.
+    ///
+    /// An unflagged album is not being filled. A flagged one is, unless both its
+    /// record and its newest media record are older than `abandonedMoveFlagAge`.
+    /// Any date that cannot be read, or a member query that fails, counts as
+    /// activity: the album stays hidden one more pass rather than being adopted
+    /// half-filled.
+    public static func isBeingFilled(_ record: CloudKitAlbumMetadata,
+                                     store: CloudKitMediaStoring,
+                                     now: Date = Date()) async -> Bool {
+        guard record.migrationInProgress else { return false }
+        let cutoff = now.addingTimeInterval(-abandonedMoveFlagAge)
+        guard let saved = record.recordModificationDate, saved < cutoff else { return true }
+        let records: [CloudKitMediaMetadata]
+        do {
+            records = try await store.fetchMetadata(albumID: record.albumID, includeThumbnail: false)
+        } catch {
+            printDebug("isBeingFilled albumID=\(record.albumID) assumed=true reason=memberQueryFailed error=\(error)")
+            return true
+        }
+        let newest = records.filter { $0.albumID == record.albumID }
+            .map { $0.recordCreationDate ?? .distantFuture }
+            .max()
+        if let newest, newest >= cutoff {
+            return true
+        }
+        printDebug("isBeingFilled albumID=\(record.albumID) false reason=flagAbandoned recordSaved=\(saved) newestMember=\(newest.map(String.init(describing:)) ?? "none")")
+        return false
+    }
+}

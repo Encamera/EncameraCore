@@ -154,13 +154,14 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
 
         let thumb = item.encryptedThumbURL.flatMap { try? Data(contentsOf: $0) } ?? Data()
         let tag = "tag-\(item.recordName)"
-        let metadata = CloudKitMediaMetadata(descriptor: item.descriptor,
-                                             creationDeviceID: DeviceIdentity.current,
-                                             schemaVersion: item.schemaVersion,
-                                             recordChangeTag: tag,
-                                             encHeader: encHeader)
         // Keyed by recordName so a Live Photo's two components don't collide.
         locked {
+            let metadata = CloudKitMediaMetadata(descriptor: item.descriptor,
+                                                 creationDeviceID: DeviceIdentity.current,
+                                                 schemaVersion: item.schemaVersion,
+                                                 recordChangeTag: tag,
+                                                 encHeader: encHeader,
+                                                 recordCreationDate: records[item.recordName]?.metadata.recordCreationDate ?? Date())
             records[item.recordName] = Stored(metadata: metadata,
                                               blob: blob,
                                               thumbnail: thumb,
@@ -264,8 +265,35 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                 isHidden: album.isHidden, schemaVersion: album.schemaVersion,
                 keyFingerprint: album.keyFingerprint.isEmpty ? nil : album.keyFingerprint,
                 recordChangeTag: tag, coverMediaID: album.coverMediaID,
-                migrationInProgress: migrationInProgress
+                migrationInProgress: migrationInProgress,
+                recordModificationDate: Date()
             )
+        }
+        persist()
+    }
+
+    /// Dates an album record's last save, and every media record in it, to `date`,
+    /// as if nothing had written to the album since.
+    public func backdate(albumID: String, to date: Date) {
+        locked {
+            if let album = albums[albumID] {
+                albums[albumID] = CloudKitAlbumMetadata(
+                    albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
+                    isHidden: album.isHidden, schemaVersion: album.schemaVersion,
+                    keyFingerprint: album.keyFingerprint, recordChangeTag: album.recordChangeTag,
+                    coverMediaID: album.coverMediaID, migrationInProgress: album.migrationInProgress,
+                    recordModificationDate: date)
+            }
+            for (name, stored) in records where stored.metadata.albumID == albumID {
+                var stored = stored
+                stored.metadata = CloudKitMediaMetadata(descriptor: stored.metadata.descriptor,
+                                                        creationDeviceID: stored.metadata.creationDeviceID,
+                                                        schemaVersion: stored.metadata.schemaVersion,
+                                                        recordChangeTag: stored.metadata.recordChangeTag,
+                                                        encHeader: stored.metadata.encHeader,
+                                                        recordCreationDate: date)
+                records[name] = stored
+            }
         }
         persist()
     }
@@ -337,7 +365,8 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                     descriptor: newDesc,
                     creationDeviceID: stored.metadata.creationDeviceID,
                     schemaVersion: stored.metadata.schemaVersion,
-                    recordChangeTag: "reassign-\(saveTag)-\(name)"
+                    recordChangeTag: "reassign-\(saveTag)-\(name)",
+                    recordCreationDate: stored.metadata.recordCreationDate
                 )
                 records[name] = stored
             }
@@ -401,6 +430,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             let blob: Data
             let thumbnail: Data
             let keyFingerprint: String
+            let recordCreationDate: Date?
         }
 
         struct AlbumRecord: Codable {
@@ -413,6 +443,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             let recordChangeTag: String?
             let coverMediaID: String?
             let migrationInProgress: Bool?
+            let recordModificationDate: Date?
         }
 
         let records: [Record]
@@ -428,13 +459,15 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                        recordChangeTag: stored.metadata.recordChangeTag,
                        encHeader: stored.metadata.encHeader,
                        blob: stored.blob, thumbnail: stored.thumbnail,
-                       keyFingerprint: stored.keyFingerprint)
+                       keyFingerprint: stored.keyFingerprint,
+                       recordCreationDate: stored.metadata.recordCreationDate)
             }
             self.albums = albums.map {
                 AlbumRecord(albumID: $0.albumID, encName: $0.encName, createdAt: $0.createdAt,
                             isHidden: $0.isHidden, schemaVersion: $0.schemaVersion,
                             keyFingerprint: $0.keyFingerprint, recordChangeTag: $0.recordChangeTag,
-                            coverMediaID: $0.coverMediaID, migrationInProgress: $0.migrationInProgress)
+                            coverMediaID: $0.coverMediaID, migrationInProgress: $0.migrationInProgress,
+                            recordModificationDate: $0.recordModificationDate)
             }
             self.deletedAlbumIDs = deletedAlbumIDs
             self.deletedRecordNames = deletedRecordNames
@@ -447,7 +480,8 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                                                          creationDeviceID: record.creationDeviceID,
                                                          schemaVersion: record.schemaVersion,
                                                          recordChangeTag: record.recordChangeTag,
-                                                         encHeader: record.encHeader)
+                                                         encHeader: record.encHeader,
+                                                         recordCreationDate: record.recordCreationDate)
                     store.records[record.descriptor.recordName] = Stored(metadata: metadata, blob: record.blob,
                                                               thumbnail: record.thumbnail,
                                                               keyFingerprint: record.keyFingerprint)
@@ -457,7 +491,8 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                         albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
                         isHidden: album.isHidden, schemaVersion: album.schemaVersion,
                         keyFingerprint: album.keyFingerprint, recordChangeTag: album.recordChangeTag,
-                        coverMediaID: album.coverMediaID, migrationInProgress: album.migrationInProgress ?? false)
+                        coverMediaID: album.coverMediaID, migrationInProgress: album.migrationInProgress ?? false,
+                        recordModificationDate: album.recordModificationDate)
                 }
                 store.deletedAlbumIDs = deletedAlbumIDs
                 store.deletedRecordNames = deletedRecordNames

@@ -381,7 +381,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
                 isHidden: album.isHidden, schemaVersion: album.schemaVersion,
                 keyFingerprint: album.keyFingerprint.isEmpty ? nil : album.keyFingerprint,
                 recordChangeTag: "albumtag", coverMediaID: album.coverMediaID,
-                migrationInProgress: migrationInProgress)
+                migrationInProgress: migrationInProgress, recordModificationDate: Date())
         }
     }
 

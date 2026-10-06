@@ -270,6 +270,47 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertEqual(store.savedAlbumCalls.last?.migrationInProgress, false)
     }
 
+    /// A move that fails on every resume saves the flagged record once, so its
+    /// modification date ages and the flag can read as abandoned elsewhere.
+    func testAResumeOfAFailingMoveDoesNotResaveTheFlaggedRecord() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer { cleanup(album) }
+        let ids = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+        try Data(repeating: 0xAB, count: 64).write(to: sourceEncURL(album: album, id: ids[0]))
+
+        await manager.start(album: album)
+        guard case .failed = manager.state else { return XCTFail("expected .failed, got \(manager.state)") }
+        let albumID = try XCTUnwrap(store.savedAlbumCalls.first?.albumID)
+        let flaggedAt = try await store.fetchAlbum(albumID: albumID)?.recordModificationDate
+
+        await manager.start(album: album, trigger: .automaticResume)
+
+        guard case .failed = manager.state else { return XCTFail("expected .failed, got \(manager.state)") }
+        XCTAssertEqual(store.savedAlbumCalls.map(\.migrationInProgress), [true],
+                       "the resume finds the record already flagged and leaves it unsaved")
+        let record = try await store.fetchAlbum(albumID: albumID)
+        XCTAssertEqual(record?.migrationInProgress, true)
+        XCTAssertEqual(record?.recordModificationDate, flaggedAt)
+    }
+
+    /// When the record cannot be read, the run saves it rather than assume it exists:
+    /// every upload needs its parent on the server.
+    func testAnUnreadableAlbumRecordIsSavedFlagged() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        store.fetchAlbumError = CloudKitMediaStoreError.retry(after: 1)
+        defer { cleanup(album) }
+        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        XCTAssertEqual(store.savedAlbumCalls.map(\.migrationInProgress), [true, false])
+    }
+
     func testSourceNotDeletedWhenVerifyFails() async throws {
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)

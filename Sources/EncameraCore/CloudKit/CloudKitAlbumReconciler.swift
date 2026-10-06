@@ -35,7 +35,11 @@
 //  record another device flagged `migrationInProgress`. Adopting it would list a
 //  half-filled second album beside the one being moved, and deleting that
 //  "duplicate" would cascade to every record already moved. It is adopted on the
-//  first pass after the move finalizes.
+//  first pass after the move finalizes, or once the flag is abandoned: the device
+//  that set it lost its plan, and neither the record nor the album's media has
+//  changed for `CloudKitAlbumMembership.abandonedMoveFlagAge`. The flag is left on
+//  the record; this device does not own the move, and every device applies the
+//  same rule.
 //
 //  `.local` albums are never touched here — only CloudKit albums have `EncAlbum`
 //  records, so a pure-local album never appears on another device.
@@ -187,7 +191,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                 printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=destinationOfALocalMove")
                 continue
             }
-            if record.migrationInProgress {
+            if await CloudKitAlbumMembership.isBeingFilled(record, store: store) {
                 printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=migrationInProgress")
                 continue
             }
