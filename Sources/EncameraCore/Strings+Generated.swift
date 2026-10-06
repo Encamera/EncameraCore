@@ -1491,6 +1491,8 @@ public enum L10n {
     public static let laterTitle = L10n.tr("Localizable", "CloudKitUpgrade.LaterTitle", fallback: "Upgrade later?")
     /// Update now
     public static let laterUpdateNow = L10n.tr("Localizable", "CloudKitUpgrade.LaterUpdateNow", fallback: "Update now")
+    /// Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.
+    public static let otherDevicesNeedUpdate = L10n.tr("Localizable", "CloudKitUpgrade.OtherDevicesNeedUpdate", fallback: "Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.")
     /// Continue upgrading
     public static let pauseContinue = L10n.tr("Localizable", "CloudKitUpgrade.PauseContinue", fallback: "Continue upgrading")
     /// You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.

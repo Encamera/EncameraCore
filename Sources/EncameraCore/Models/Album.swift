@@ -145,22 +145,68 @@ public struct Album: Codable, Identifiable, Hashable {
     /// or partially-written file) is preserved rather than silently destroyed. A
     /// not-fully-drained directory is left in place (the album simply remains
     /// discoverable in its source storage). Returns whether the directory is now gone.
+    ///
+    /// The delete goes through `NSFileCoordinator` with `.forDeleting`, and the
+    /// directory is checked again for regular files inside the coordinated block. In
+    /// iCloud Drive another device (one still on 2.10.0, say) can save into the album
+    /// right up to the delete; the coordinated re-check keeps a file that arrived
+    /// after the first check, rather than racing the directory delete against it.
     @discardableResult
     public static func removeDrainedSourceDirectory(at baseURL: URL) -> Bool {
+        removeDrainedSourceDirectory(at: baseURL, beforeCoordinatedDelete: nil)
+    }
+
+    /// `beforeCoordinatedDelete` runs after the uncoordinated check and before the
+    /// coordinated one, so tests can land a file in that window.
+    @discardableResult
+    static func removeDrainedSourceDirectory(at baseURL: URL,
+                                             beforeCoordinatedDelete: (() -> Void)?) -> Bool {
         let fileManager = FileManager.default
         guard fileManager.fileExists(atPath: baseURL.path) else { return true }
-        if let enumerator = fileManager.enumerator(at: baseURL,
-                                                   includingPropertiesForKeys: [.isRegularFileKey]) {
-            for case let url as URL in enumerator {
-                let isRegularFile = (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) ?? false
-                if isRegularFile {
-                    printDebug("removeDrainedSourceDirectory KEPT \(baseURL.lastPathComponent) — leftover file \(url.lastPathComponent)")
-                    return false
-                }
+        if let leftover = firstRegularFile(in: baseURL) {
+            printDebug("removeDrainedSourceDirectory KEPT \(baseURL.lastPathComponent) — leftover file \(leftover.lastPathComponent)")
+            return false
+        }
+        beforeCoordinatedDelete?()
+
+        var removed = false
+        var coordinationError: NSError?
+        NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: baseURL,
+                                                         options: .forDeleting,
+                                                         error: &coordinationError) { url in
+            guard fileManager.fileExists(atPath: url.path) else {
+                removed = true
+                return
+            }
+            if let leftover = firstRegularFile(in: url) {
+                printDebug("removeDrainedSourceDirectory KEPT \(url.lastPathComponent) — file arrived before the delete: \(leftover.lastPathComponent)")
+                return
+            }
+            do {
+                try fileManager.removeItem(at: url)
+                removed = true
+            } catch {
+                printDebug("removeDrainedSourceDirectory could not remove \(url.lastPathComponent): \(error)")
             }
         }
-        try? fileManager.removeItem(at: baseURL)
-        return true
+        if let coordinationError {
+            printDebug("removeDrainedSourceDirectory coordination failed for \(baseURL.lastPathComponent): \(coordinationError)")
+            return false
+        }
+        return removed
+    }
+
+    private static func firstRegularFile(in directory: URL) -> URL? {
+        guard let enumerator = FileManager.default.enumerator(at: directory,
+                                                              includingPropertiesForKeys: [.isRegularFileKey]) else {
+            return nil
+        }
+        for case let url as URL in enumerator {
+            if (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) ?? false {
+                return url
+            }
+        }
+        return nil
     }
 
     // MARK: - Encrypt Album Name

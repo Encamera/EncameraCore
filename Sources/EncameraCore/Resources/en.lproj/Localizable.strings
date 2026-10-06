@@ -1442,6 +1442,7 @@
 "CloudKitUpgrade.IntroTitle" = "Faster, more reliable iCloud sync";
 "CloudKitUpgrade.IntroBody" = "To start using the new syncing experience, your photo library needs a one-time upgrade.";
 "CloudKitUpgrade.IntroSecurity" = "Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.";
+"CloudKitUpgrade.OtherDevicesNeedUpdate" = "Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.";
 "CloudKitUpgrade.Continue" = "Continue";
 "CloudKitUpgrade.SeeHowItWorks" = "See how it works";
 "CloudKitUpgrade.HowItWorksTitle" = "How the upgrade works";
