@@ -183,10 +183,21 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             printDebug("save WARNING albumID=\(albumID) account unavailable at save time; zone not ensured")
         }
         printDebug("save start albumID=\(albumID) components=\(media.underlyingMedia.count) mediaType=\(media.mediaType)")
+        // A Live Photo's components share one thumbnail file, keyed by media id.
+        // It belongs to the photo: saving the photo first means the video's
+        // record can carry it, and the video never rewrites it while the grid,
+        // already showing the photo, is reading it.
+        let isLivePhoto = media.mediaType == .livePhoto
+        let components = isLivePhoto
+            ? media.underlyingMedia.sorted { $0.mediaType == .photo && $1.mediaType != .photo }
+            : media.underlyingMedia
         var encrypted: [EncryptedMedia] = []
-        for item in media.underlyingMedia {
+        for item in components {
             try Task.checkCancellation()
-            let encMedia = try await saveSingle(item, metadata: metadata, progress: progress)
+            let encMedia = try await saveSingle(item,
+                                                writesPreview: !(isLivePhoto && item.mediaType == .video),
+                                                metadata: metadata,
+                                                progress: progress)
             encrypted.append(encMedia)
         }
         guard !encrypted.isEmpty else {
@@ -213,6 +224,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     }
 
     private func saveSingle(_ item: CleartextMedia,
+                            writesPreview: Bool,
                             metadata: EncryptedFileMetadata?,
                             progress: @escaping @Sendable (Double) -> Void) async throws -> EncryptedMedia {
         let encURL = directoryModel.driveURLForMedia(withID: item.id, type: item.mediaType)
@@ -242,10 +254,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             sub.cancel()
         }
 
-        do {
-            _ = try await previewAccess.createPreview(for: item)
-        } catch {
-            printDebug("saveSingle preview FAILED mediaID=\(item.id) mediaType=\(item.mediaType) raw=\(error)")
+        if writesPreview {
+            do {
+                _ = try await previewAccess.createPreview(for: item)
+            } catch {
+                printDebug("saveSingle preview FAILED mediaID=\(item.id) mediaType=\(item.mediaType) raw=\(error)")
+            }
         }
         let previewURL = directoryModel.previewURLForMedia(withID: item.id)
         let thumbURL = FileManager.default.fileExists(atPath: previewURL.path) ? previewURL : nil

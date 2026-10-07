@@ -416,6 +416,38 @@ final class CloudKitFileAccessTests: XCTestCase {
         }
     }
 
+    func testLivePhotoThumbnailComesFromThePhotoAndTheVideoNeverRewritesIt() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+
+        let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("live-\(UUID().uuidString).mov")
+        try await EncryptedStreamResourceLoaderTests.writeTinyMovie(to: movieURL, seconds: 1)
+        defer { try? FileManager.default.removeItem(at: movieURL) }
+
+        let id = UUID().uuidString
+        let videoPart = CleartextMedia(source: .url(movieURL), mediaType: .video, id: id)
+        let photoPart = CleartextMedia(source: .data(Self.tinyPNG()), mediaType: .photo, id: id)
+        let live = try InteractableMedia(underlyingMedia: [videoPart, photoPart])
+        XCTAssertEqual(live.mediaType, .livePhoto)
+
+        let result = try await access.save(media: live, metadata: nil, progress: { _ in })
+        let saved = try XCTUnwrap(result)
+        await access.drainUploads()
+
+        let preview = try await access.loadMediaPreview(for: saved)
+        XCTAssertNil(preview.videoDuration, "The thumbnail must be the photo's, not one rewritten from the video")
+        XCTAssertTrue(preview.isLivePhoto)
+        let videoUpload = try XCTUnwrap(store.uploadedItems.first { $0.recordName.hasSuffix("#\(MediaType.video.rawValue)") })
+        XCTAssertNotNil(videoUpload.encryptedThumbURL, "The photo is saved first, so the video record carries its thumbnail")
+
+        try? FileManager.default.removeItem(at: thumbnailURL(forMediaID: id))
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+        for type in [MediaType.photo, .video] {
+            try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).driveURLForMedia(withID: id, type: type))
+        }
+    }
+
     func testCloudKitAlbumRoutesToCloudEvenWhenFlagOff() async throws {
         let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
         FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
