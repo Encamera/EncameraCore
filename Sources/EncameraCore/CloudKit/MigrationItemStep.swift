@@ -260,8 +260,17 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                 break
             }
             plan.items[index].state = .verified
+            if let encURL {
+                plan.items[index].verifiedSizeBytes = encURL.fileSizeBytes()
+                plan.items[index].verifiedModificationDate = Self.modificationDate(of: encURL)
+            }
             try await context.savePlan(plan)
         }
+    }
+
+    /// The file's content modification date, or nil when it cannot be read.
+    static func modificationDate(of url: URL) -> Date? {
+        try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
     }
 
     func removeSource(at index: Int,
@@ -300,7 +309,14 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             }
             printDebug("item deleting source recordName=\(item.recordName) verified in CloudKit")
             context.setPhase(.removingLocalCopy, plan, item.mediaID)
-            if let encURL { try? FileManager.default.removeItem(at: encURL) }
+            if let encURL {
+                try? FileManager.default.removeItem(at: encURL)
+                // An evicted iCloud Drive original may be on disk only as its
+                // `.icloud` brick.
+                if plan.source.storage == .icloud {
+                    try? FileManager.default.removeItem(at: ICloudPlaceholderName.placeholderURL(forMaterialized: encURL))
+                }
+            }
             // The preview is NOT deleted: it lives in the global, storage-agnostic
             // thumbnail directory that the migrated `.cloudKit` album reads from
             // the same path (as `CloudKitToLocalStep` relies on in the
@@ -587,12 +603,14 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
     }
 
     /// Deletes the record. The verified local copy is the one the destination album
-    /// reads, so this never removes the last copy.
+    /// reads, so this never removes the last copy. The item is `sourceDeleted` only
+    /// once the server delete is confirmed; one left in the delete queue is
+    /// `removalPending`, and a later run issues it again.
     func removeSource(at index: Int,
                       in plan: inout MigrationPlan,
                       verifiedThisRun: Bool,
                       context: MigrationRunContext) async throws {
-        guard plan.items[index].state == .verified else { return }
+        guard plan.items[index].state == .verified || plan.items[index].state == .removalPending else { return }
         let item = plan.items[index]
         // A cancel requested mid-item stops BEFORE the irreversible delete.
         if context.isCancelRequested() { throw CloudKitMediaStoreError.cancelled }
@@ -624,6 +642,7 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
             return
         }
         let started = Date()
+        let outcome: CloudKitRemoveOutcome
         // A capture still waiting to upload has its durable file as the source copy.
         // Its local copy is verified, so the queue entry goes, and with it the
         // upload that would otherwise land in an album about to be deleted. One that
@@ -632,14 +651,16 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
             let onServer = try await context.store.fetchRecordMetadata(recordName: item.recordName) != nil
             await context.uploadQueue.cancel(recordName: item.recordName)
             printDebug("item cancelled queued upload recordName=\(item.recordName) onServer=\(onServer)")
-            try await context.coordinator.remove(recordName: item.recordName, albumID: context.cloudKitAlbumID,
-                                                 wasPending: !onServer,
-                                                 pendingChunkCount: onServer ? 0 : queued.chunkCount)
+            outcome = try await context.coordinator.remove(recordName: item.recordName,
+                                                           albumID: context.cloudKitAlbumID,
+                                                           wasPending: !onServer,
+                                                           pendingChunkCount: onServer ? 0 : queued.chunkCount)
         } else {
-            try await context.coordinator.remove(recordName: item.recordName, albumID: context.cloudKitAlbumID)
+            outcome = try await context.coordinator.remove(recordName: item.recordName,
+                                                           albumID: context.cloudKitAlbumID)
         }
-        printDebug("item removed from CloudKit recordName=\(item.recordName) in \(String(format: "%.2f", Date().timeIntervalSince(started)))s")
-        plan.items[index].state = .sourceDeleted
+        printDebug("item removed from CloudKit recordName=\(item.recordName) outcome=\(outcome) in \(String(format: "%.2f", Date().timeIntervalSince(started)))s")
+        plan.items[index].state = outcome == .confirmed ? .sourceDeleted : .removalPending
         try await context.savePlan(plan)
     }
 

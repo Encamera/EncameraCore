@@ -33,12 +33,12 @@ Read `MIGRATION.md` before touching `CloudKitMigrationManager.swift`, `CloudKitM
 
 - **Checkpoint after every state transition, not periodically.** One transition per write is what makes resume exact.
 - **One run per album per process.** The engine's static active set is claimed atomically on the main actor. Don't add an `await` between the check and the claim, and don't let a second surface drive the same plan.
-- **Cancel is durable, pause is not.** A cancel stamps `cancelledAt` so background auto-resume skips the plan; a pause leaves it freely resumable. Don't collapse the two.
+- **Cancel rolls back, pause resumes.** A whole-album cancel rolls the move back and deletes the plan (`rollBack(plan:)`); an item move's cancel, or a rollback that cannot finish, stamps `cancelledAt` so background auto-resume skips the plan. A pause leaves it freely resumable. Don't collapse the two.
 - **Terminal states belong to `run()`.** Publishing `.completed` or `.failed` from planning tears the UI binding down before the work happens.
 - **Publish progress through `publishProgress`/`setPhase` only.** A direct assignment silently drops the phase, and a phase that isn't published is invisible to the UI.
 - **A surviving plan file always means unfinished business** — including one with no per-item work left, which means finalize failed and must be retried.
 - **An `.icloud` source is materialized batch by batch before upload.** Evicted files enumerate as placeholders the engine would otherwise terminally skip; a file still a placeholder fails rather than skips.
-- **A whole album moving back to local runs two passes.** Nothing is deleted from CloudKit until every item has verified locally, and a cancel is ignored once the deletes start. Don't collapse it to per-item removal: the local album is invisible here until finalize.
+- **A whole-album move runs two passes, in both directions.** No source copy is deleted until every item has verified at the destination, and a cancel is ignored once the deletes start. Don't collapse it to per-item removal: a stopped move must leave its source whole, and a move back's local album is invisible here until finalize. A move back's item is `sourceDeleted` only once its record delete is confirmed; a queued one stays `removalPending` and blocks finalize.
 
 ## Build & test
 

@@ -414,6 +414,27 @@ final class ICloudDriveMigrationTests: XCTestCase {
                        "each batch starts with nothing from the previous batch still on disk")
     }
 
+    func testICloudDriveAlbumMoveEvictsEachVerifiedFile() async throws {
+        ICloudDriveMigrationBatchSize.current = 3
+        let h = try await makeHarness(count: 3)
+        defer { CloudKitMigrationManager.boundaryHook = nil }
+        let urls = h.mediaIDs.map { encURL(album: h.album, id: $0) }
+        var atRemoval: (materialized: Int, present: Int)?
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard atRemoval == nil, case .removing(removed: 0) = boundary else { return }
+            atRemoval = (urls.filter(ICloudPlaceholderName.isMaterialized).count,
+                         urls.filter(ICloudPlaceholderName.existsInAnyForm).count)
+        }
+
+        await h.manager.start(album: h.album)
+
+        XCTAssertEqual(h.manager.state, .completed)
+        XCTAssertEqual(atRemoval?.materialized, 0, "each original goes back to iCloud Drive once it verifies")
+        XCTAssertEqual(atRemoval?.present, 3, "nothing is deleted from iCloud Drive before the removal pass")
+        XCTAssertEqual(urls.filter(ICloudPlaceholderName.existsInAnyForm).count, 0,
+                       "the removal pass deletes the evicted originals")
+    }
+
     // MARK: - Stopping mid-batch
 
     func testCancelEvictsFilesDownloadedButNotYetUploaded() async throws {
@@ -436,8 +457,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         XCTAssertEqual(h.albumManager.finalizeCallCount, 0)
 
         let loaded = await MigrationPlanStore(album: h.album).load()
-        let plan = try XCTUnwrap(loaded)
-        XCTAssertNotNil(plan.cancelledAt, "a cancel stays durable and resumable")
+        XCTAssertNil(loaded, "the cancel rolls the move back")
     }
 
     // MARK: - Progress reporting

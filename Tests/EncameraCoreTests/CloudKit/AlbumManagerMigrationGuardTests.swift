@@ -105,4 +105,66 @@ final class AlbumManagerMigrationGuardTests: XCTestCase {
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: album.storageURL.path))
     }
+
+    /// A paused move is not cancelled: launch resumes it, so it still blocks the delete.
+    func testDeleteStillRefusesAPausedMove() async throws {
+        let source = try makeLocalAlbum()
+        let planStore = MigrationPlanStore(album: source)
+        try await planStore.save(try MigrationPlan.album(source, items: [], cloudKitAlbumID: UUID().uuidString))
+        cleanups.append { await planStore.delete() }
+
+        XCTAssertThrowsError(try makeManager().delete(album: source)) { error in
+            guard case AlbumError.moveInProgress = error else {
+                return XCTFail("expected AlbumError.moveInProgress, got \(error)")
+            }
+        }
+    }
+
+    /// Cancelling a move to iCloud rolls it back and deletes its plan, so the
+    /// album can be deleted without resuming the move.
+    @MainActor
+    func testDeleteAfterCancelledMoveToCloudKitDeletesWithoutResuming() async throws {
+        let source = try makeLocalAlbum()
+        let planStore = MigrationPlanStore(album: source)
+        try await planStore.save(try MigrationPlan.album(source, items: [], cloudKitAlbumID: UUID().uuidString,
+                                                         cloudKitAlbumCreatedByMove: true))
+        cleanups.append { await planStore.delete() }
+        let manager = makeManager()
+        let migration = CloudKitMigrationManager(albumManager: manager, storeFactory: { [store] _ in store! })
+
+        await migration.cancel(album: source)
+        try manager.delete(album: source)
+
+        let checkpoint = await planStore.load()
+        XCTAssertNil(checkpoint, "the cancel rolled the move back")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: source.storageURL.path), "the album is deleted")
+    }
+
+    /// Cancelling a move back to this device rolls it back too, and the iCloud
+    /// album it came from can then be deleted.
+    @MainActor
+    func testDeleteAfterCancelledMoveToLocalDeletesWithoutResuming() async throws {
+        let albumID = UUID().uuidString
+        let cloudAlbum = Album(name: "guard-\(UUID().uuidString)", storageOption: .cloudKit, creationDate: Date(),
+                               key: key, albumID: albumID)
+        try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
+        cleanups.append { try? CloudKitAlbumMarker.remove(albumID: albumID) }
+        let twin = Album.localTwin(of: cloudAlbum)
+        try LocalStorageModel(album: twin).initializeDirectories()
+        cleanups.append { try? FileManager.default.removeItem(at: twin.storageURL) }
+        let planStore = MigrationPlanStore(album: cloudAlbum)
+        try await planStore.save(try MigrationPlan.album(cloudAlbum, items: []))
+        cleanups.append { await planStore.delete() }
+        let manager = makeManager()
+        let migration = CloudKitMigrationManager(albumManager: manager, storeFactory: { [store] _ in store! })
+
+        await migration.cancel(album: cloudAlbum)
+        try manager.delete(album: cloudAlbum)
+
+        let checkpoint = await planStore.load()
+        XCTAssertNil(checkpoint, "the cancel rolled the move back")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: twin.storageURL.path), "the local copies went with it")
+        try await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertEqual(store.deletedAlbumCalls, [albumID], "the iCloud album is deleted")
+    }
 }

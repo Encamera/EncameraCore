@@ -228,7 +228,7 @@ final class CloudKitUploaderTests: XCTestCase {
         let upload = try await enqueueCapture()
         let coordinator = self.coordinator!
         store.onUploadStarted = {
-            try? await coordinator.remove(recordName: upload.recordName, albumID: Self.albumID)
+            _ = try? await coordinator.remove(recordName: upload.recordName, albumID: Self.albumID)
         }
 
         await drain()

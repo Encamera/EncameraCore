@@ -1106,7 +1106,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     ///   the upload queue, from its queue entry. A partially-drained chunked
     ///   upload may have committed chunk records even though its `EncMedia` never
     ///   landed, so those are reclaimed here too.
-    public func remove(recordName: String, albumID: String, wasPending: Bool = false, pendingChunkCount: Int = 0) async throws {
+    ///
+    /// - Returns: `.confirmed` when the server delete went through (or the record was
+    ///   already gone), `.queued` when it is left in the delete queue for a later
+    ///   drain.
+    @discardableResult
+    public func remove(recordName: String, albumID: String, wasPending: Bool = false,
+                       pendingChunkCount: Int = 0) async throws -> CloudKitRemoveOutcome {
         printDebug("remove start recordName=\(recordName) albumID=\(albumID) wasPending=\(wasPending)")
         // A pending item is queued too: its save may have landed before the kill
         // that kept it in the upload queue. Deleting an absent record is
@@ -1175,6 +1181,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         printDebug("remove ok recordName=\(recordName) entryRemoved=\(entryRemoved) stillQueued=\(deleteQueue.pending().count)")
 
         emitDeletion(mediaID: MediaRecordName.mediaID(from: recordName), entryRemoved: entryRemoved)
+        return deleteQueue.pending().contains(recordName) ? .queued : .confirmed
     }
 
     /// Emit a delete when the whole item is gone, otherwise a refresh so the
@@ -1320,4 +1327,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         let url = URL(fileURLWithPath: "/cloudkit/\(albumID)/\(recordName)")
         return EncryptedMedia(source: url, mediaType: mediaType, id: recordName)
     }
+}
+
+/// Whether `CloudKitSyncCoordinator.remove` deleted the record on the server or left
+/// the delete queued for a later drain.
+public enum CloudKitRemoveOutcome: Equatable, Sendable {
+    case confirmed
+    case queued
 }

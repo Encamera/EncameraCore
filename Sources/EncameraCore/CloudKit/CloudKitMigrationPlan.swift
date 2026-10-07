@@ -24,6 +24,10 @@ public enum MigrationItemState: String, Codable, Sendable {
     case uploaded         // record saved, not yet verified
     case verified         // confirmed present in CloudKit with matching size/changeTag
     case sourceDeleted    // local original removed -> item fully done
+    /// A move back to this device asked CloudKit to delete the record, but the
+    /// delete is still queued. The record may be live, so the album cannot finalize
+    /// until a later run confirms it gone.
+    case removalPending
     case failed           // retryable failure recorded in `lastError`
     case skipped          // nothing to migrate (source ciphertext missing) -> terminal
 
@@ -57,10 +61,15 @@ public struct MigrationItem: Codable, Sendable, Equatable {
     /// the state machine + stable `recordName`, not this.
     public var operationID: String?
     public var lastError: String?
-    /// The size of the destination copy when a move back to this device verified
-    /// it. The removal pass compares the local file against it before deleting the
-    /// record of an item verified in the same run, without asking the server again.
+    /// The size of the copy the removal pass is about to act on, recorded when the
+    /// item verified: the destination copy of a move back to this device, the local
+    /// original of a move to CloudKit. The removal pass compares the file against it
+    /// before deleting anything, without asking the server again.
     public var verifiedSizeBytes: Int64?
+    /// The local original's modification date when a move to CloudKit verified it.
+    /// An original rewritten since (a rotation, say) is not what CloudKit holds, so
+    /// the removal pass keeps it.
+    public var verifiedModificationDate: Date?
 
     public init(mediaID: String,
                 recordName: String,
@@ -91,11 +100,30 @@ public struct MigrationEndpoint: Codable, Sendable, Equatable {
     public let albumName: String
     public let storage: StorageType
     public let cloudKitAlbumID: String?
+    /// Whether the move created this CloudKit album rather than adopting one that
+    /// already existed, here or on another device. Only an album the move created
+    /// may be deleted when the move is rolled back. Absent in a plan written before
+    /// the field existed, which reads as adopted.
+    public let createdByMove: Bool
 
-    public init(albumName: String, storage: StorageType, cloudKitAlbumID: String? = nil) {
+    public init(albumName: String, storage: StorageType, cloudKitAlbumID: String? = nil,
+                createdByMove: Bool = false) {
         self.albumName = albumName
         self.storage = storage
         self.cloudKitAlbumID = cloudKitAlbumID
+        self.createdByMove = createdByMove
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case albumName, storage, cloudKitAlbumID, createdByMove
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(albumName: try container.decode(String.self, forKey: .albumName),
+                  storage: try container.decode(StorageType.self, forKey: .storage),
+                  cloudKitAlbumID: try container.decodeIfPresent(String.self, forKey: .cloudKitAlbumID),
+                  createdByMove: try container.decodeIfPresent(Bool.self, forKey: .createdByMove) ?? false)
     }
 
     public init(album: Album) {
@@ -114,7 +142,8 @@ public struct MigrationEndpoint: Codable, Sendable, Equatable {
     /// The same endpoint under another album name. Storage and `cloudKitAlbumID` are
     /// kept, so a move to CloudKit still lands in the album it resolved.
     public func renamed(to albumName: String) -> MigrationEndpoint {
-        MigrationEndpoint(albumName: albumName, storage: storage, cloudKitAlbumID: cloudKitAlbumID)
+        MigrationEndpoint(albumName: albumName, storage: storage, cloudKitAlbumID: cloudKitAlbumID,
+                          createdByMove: createdByMove)
     }
 
     /// The name to show for this endpoint. A CloudKit album is found by its id, since
@@ -322,16 +351,19 @@ public struct MigrationPlan: Codable, Sendable {
     /// `cloudKitAlbumID` is the id of the CloudKit album a move to CloudKit lands in.
     /// It is persisted in the destination endpoint so a resume reuses it; nil until
     /// the engine has resolved it, and always nil for a move to local storage.
+    /// `cloudKitAlbumCreatedByMove` says whether the engine created that album.
     public static func album(_ album: Album,
                              items: [MigrationItem],
                              createdAt: Date = Date(),
-                             cloudKitAlbumID: String? = nil) throws -> MigrationPlan {
+                             cloudKitAlbumID: String? = nil,
+                             cloudKitAlbumCreatedByMove: Bool = false) throws -> MigrationPlan {
         let destination: StorageType = album.storageOption == .cloudKit ? .local : .cloudKit
         return try MigrationPlan(id: albumPlanID,
                                  source: MigrationEndpoint(album: album),
                                  destination: MigrationEndpoint(albumName: album.name,
                                                                 storage: destination,
-                                                                cloudKitAlbumID: destination == .cloudKit ? cloudKitAlbumID : nil),
+                                                                cloudKitAlbumID: destination == .cloudKit ? cloudKitAlbumID : nil,
+                                                                createdByMove: destination == .cloudKit && cloudKitAlbumCreatedByMove),
                                  scope: .album,
                                  items: items,
                                  createdAt: createdAt)
@@ -382,7 +414,7 @@ public struct MigrationPlan: Codable, Sendable {
     public var migratedBytes: Int64 {
         items.reduce(0) { acc, item in
             switch item.state {
-            case .verified, .sourceDeleted: return acc + item.sizeBytes
+            case .verified, .removalPending, .sourceDeleted: return acc + item.sizeBytes
             default: return acc
             }
         }
@@ -413,14 +445,18 @@ public struct MigrationPlan: Codable, Sendable {
             total += weight
             switch item.state {
             case .sourceDeleted, .skipped: done += weight
-            case .verified: done += weight * (1 - Self.sourceRemovalShare)
+            case .verified, .removalPending: done += weight * (1 - Self.sourceRemovalShare)
             default: break
             }
         }
         return total > 0 ? min(done / total, 1) : 1
     }
 
-    public var verifiedCount: Int { items.filter { $0.state == .verified || $0.state == .sourceDeleted }.count }
+    public var verifiedCount: Int {
+        items.filter { $0.state == .verified || $0.state == .removalPending || $0.state == .sourceDeleted }.count
+    }
+    /// Items whose record delete is queued but not confirmed.
+    public var removalPendingCount: Int { items.filter { $0.state == .removalPending }.count }
     public var failedCount: Int { items.filter { $0.state == .failed }.count }
     /// Items whose source copy is gone.
     public var sourceDeletedCount: Int { items.filter { $0.state == .sourceDeleted }.count }

@@ -1325,12 +1325,16 @@ public enum L10n {
     }
     /// ./Encamera/AlbumManagement/AlbumDetailView.swift - Move a local album to iCloud (CloudKit)
     public static let alertTitle = L10n.tr("Localizable", "CloudKitMigration.AlertTitle", fallback: "Move this album to iCloud?")
-    /// %@ moved, %@ still on this device
+    /// %@ copied to iCloud, %@ still to copy
     public static func bannerCounts(_ p1: Any, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "CloudKitMigration.BannerCounts", String(describing: p1), String(describing: p2), fallback: "%@ moved, %@ still on this device")
+      return L10n.tr("Localizable", "CloudKitMigration.BannerCounts", String(describing: p1), String(describing: p2), fallback: "%@ copied to iCloud, %@ still to copy")
     }
     /// ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud
-    public static let bannerMessage = L10n.tr("Localizable", "CloudKitMigration.BannerMessage", fallback: "This album is split between this device and iCloud.")
+    public static let bannerMessage = L10n.tr("Localizable", "CloudKitMigration.BannerMessage", fallback: "Everything is still on this device. Resume to finish moving the album to iCloud, or cancel the move.")
+    /// Cancel Move
+    public static let cancelMove = L10n.tr("Localizable", "CloudKitMigration.CancelMove", fallback: "Cancel Move")
+    /// The move couldn't be cancelled. Nothing was lost. Check your connection and try again, or resume the move.
+    public static let cancelMoveFailed = L10n.tr("Localizable", "CloudKitMigration.CancelMoveFailed", fallback: "The move couldn't be cancelled. Nothing was lost. Check your connection and try again, or resume the move.")
     /// This album is moving to This Device. Choose another album to take photos, or wait until the move finishes.
     public static let captureBlockedMovingToLocal = L10n.tr("Localizable", "CloudKitMigration.CaptureBlockedMovingToLocal", fallback: "This album is moving to This Device. Choose another album to take photos, or wait until the move finishes.")
     /// Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.
@@ -1353,6 +1357,12 @@ public enum L10n {
     public static let failedTitle = L10n.tr("Localizable", "CloudKitMigration.FailedTitle", fallback: "The move to iCloud didn't finish")
     /// The move to this device didn't finish
     public static let failedToLocalTitle = L10n.tr("Localizable", "CloudKitMigration.FailedToLocalTitle", fallback: "The move to this device didn't finish")
+    /// Everything is on this device, but iCloud hasn't confirmed that it removed every item yet. Resume to finish, or cancel the move to keep the album in iCloud.
+    public static let finishingICloudCleanupMessage = L10n.tr("Localizable", "CloudKitMigration.FinishingICloudCleanupMessage", fallback: "Everything is on this device, but iCloud hasn't confirmed that it removed every item yet. Resume to finish, or cancel the move to keep the album in iCloud.")
+    /// Everything is on this device, but iCloud hasn't confirmed that it removed every item yet, so the move isn't finished. It will try again automatically, or you can resume it now.
+    public static let iCloudCleanupPending = L10n.tr("Localizable", "CloudKitMigration.ICloudCleanupPending", fallback: "Everything is on this device, but iCloud hasn't confirmed that it removed every item yet, so the move isn't finished. It will try again automatically, or you can resume it now.")
+    /// This item changed after it was copied to iCloud, so it was kept on this device. The copy in iCloud is the earlier version.
+    public static let itemChangedDuringMove = L10n.tr("Localizable", "CloudKitMigration.ItemChangedDuringMove", fallback: "This item changed after it was copied to iCloud, so it was kept on this device. The copy in iCloud is the earlier version.")
     /// Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.
     public static let membershipCheckFailed = L10n.tr("Localizable", "CloudKitMigration.MembershipCheckFailed", fallback: "Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.")
     /// Move to This Device
@@ -1429,8 +1439,16 @@ public enum L10n {
     public static let partialMoveDiscard = L10n.tr("Localizable", "CloudKitMigration.PartialMoveDiscard", fallback: "Discard")
     /// ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for a cross-plane media move left incomplete
     public static let partialMoveTitle = L10n.tr("Localizable", "CloudKitMigration.PartialMoveTitle", fallback: "Media Move Incomplete")
-    /// Album partially moved
-    public static let partialTitle = L10n.tr("Localizable", "CloudKitMigration.PartialTitle", fallback: "Album partially moved")
+    /// %@ copied to this device, %@ still to copy
+    public static func partialMoveToLocalCounts(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "CloudKitMigration.PartialMoveToLocalCounts", String(describing: p1), String(describing: p2), fallback: "%@ copied to this device, %@ still to copy")
+    }
+    /// The album is still in iCloud. Resume to finish moving it to this device, or cancel the move.
+    public static let partialMoveToLocalMessage = L10n.tr("Localizable", "CloudKitMigration.PartialMoveToLocalMessage", fallback: "The album is still in iCloud. Resume to finish moving it to this device, or cancel the move.")
+    /// Move to this device not finished
+    public static let partialMoveToLocalTitle = L10n.tr("Localizable", "CloudKitMigration.PartialMoveToLocalTitle", fallback: "Move to this device not finished")
+    /// Move to iCloud not finished
+    public static let partialTitle = L10n.tr("Localizable", "CloudKitMigration.PartialTitle", fallback: "Move to iCloud not finished")
     /// Free up space in iCloud, then resume the move.
     public static let quotaMessage = L10n.tr("Localizable", "CloudKitMigration.QuotaMessage", fallback: "Free up space in iCloud, then resume the move.")
     /// iCloud storage is full

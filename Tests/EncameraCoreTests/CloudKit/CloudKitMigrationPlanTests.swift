@@ -650,4 +650,22 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         XCTAssertEqual(plan.cancelledAt, goldenPlan().cancelledAt)
         XCTAssertEqual(plan.version, MigrationPlan.currentVersion)
     }
+
+    func testAnEndpointWrittenBeforeCreatedByMoveExistedReadsAsAdopted() throws {
+        let json = Data(#"{"albumName":"Trip","storage":"cloudKit","cloudKitAlbumID":"A1"}"#.utf8)
+
+        let endpoint = try JSONDecoder().decode(MigrationEndpoint.self, from: json)
+
+        XCTAssertEqual(endpoint.cloudKitAlbumID, "A1")
+        XCTAssertFalse(endpoint.createdByMove, "an album the plan cannot vouch for is never deleted on rollback")
+    }
+
+    func testCreatedByMoveRoundTripsAndSurvivesARename() throws {
+        let endpoint = MigrationEndpoint(albumName: "Trip", storage: .cloudKit, cloudKitAlbumID: "A1", createdByMove: true)
+
+        let decoded = try JSONDecoder().decode(MigrationEndpoint.self, from: JSONEncoder().encode(endpoint))
+
+        XCTAssertEqual(decoded, endpoint)
+        XCTAssertTrue(endpoint.renamed(to: "Holiday").createdByMove)
+    }
 }

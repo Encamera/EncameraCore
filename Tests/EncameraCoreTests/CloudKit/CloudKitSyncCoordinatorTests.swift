@@ -503,6 +503,30 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(store.deleteCalls, ["m1", "m1", "m1"], "A drained delete is not retried again")
     }
 
+    func testRemoveReportsQueuedWhenRemoteDeleteFails() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coord, _, _) = makeCoordinator(store: store)
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+        store.deleteError = CloudKitMediaStoreError.retry(after: 1)
+
+        let outcome = try await coord.remove(recordName: "m1", albumID: "a1")
+
+        XCTAssertEqual(outcome, .queued, "a delete the server refused is only queued")
+    }
+
+    func testRemoveReportsConfirmedOnNotFound() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coord, _, _) = makeCoordinator(store: store)
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync(albumID: "a1")
+        store.deleteError = CloudKitMediaStoreError.notFound
+
+        let outcome = try await coord.remove(recordName: "m1", albumID: "a1")
+
+        XCTAssertEqual(outcome, .confirmed, "a record already gone counts as deleted")
+    }
+
     /// The retry survives the process: the intent lives in the queue, not in the
     /// coordinator that formed it.
     func testAQueuedDeleteIsRetriedByAFreshCoordinator() async throws {
@@ -1213,7 +1237,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                        deleted: [], token: nil, moreComing: false)
         store.onUploadStarted = { [weak coord, store] in
             guard let coord else { return }
-            try? await coord.remove(recordName: recordName, albumID: "a1", wasPending: true)
+            _ = try? await coord.remove(recordName: recordName, albumID: "a1", wasPending: true)
             store.changeSet = landed
             try? await coord.sync(albumID: "a1")
         }
@@ -1456,7 +1480,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
         store.onUploadStarted = { [weak coord] in
             guard let coord else { return }
-            try? await coord.remove(recordName: "m1", albumID: "a1")
+            _ = try? await coord.remove(recordName: "m1", albumID: "a1")
         }
         let upload = CloudKitMediaUpload(albumID: "a1", mediaID: "m1", mediaType: .photo,
                                          createdAt: Date(timeIntervalSince1970: 555), sizeBytes: 1,

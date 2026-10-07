@@ -959,12 +959,18 @@
 "CloudKitMigration.FailedToLocalTitle" = "The move to this device didn't finish";
 "CloudKitMigration.FailedMessage" = "Something went wrong: %@. You may need to be connected to Wi-Fi to continue. You can resume the move.";
 "CloudKitMigration.Resume" = "Resume";
-"CloudKitMigration.PartialTitle" = "Album partially moved";
+"CloudKitMigration.PartialTitle" = "Move to iCloud not finished";
 "CloudKitMigration.PartialMessage" = "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.";
 
 /* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud */
-"CloudKitMigration.BannerMessage" = "This album is split between this device and iCloud.";
-"CloudKitMigration.BannerCounts" = "%@ moved, %@ still on this device";
+"CloudKitMigration.BannerMessage" = "Everything is still on this device. Resume to finish moving the album to iCloud, or cancel the move.";
+"CloudKitMigration.BannerCounts" = "%@ copied to iCloud, %@ still to copy";
+"CloudKitMigration.CancelMove" = "Cancel Move";
+"CloudKitMigration.CancelMoveFailed" = "The move couldn't be cancelled. Nothing was lost. Check your connection and try again, or resume the move.";
+"CloudKitMigration.PartialMoveToLocalTitle" = "Move to this device not finished";
+"CloudKitMigration.PartialMoveToLocalMessage" = "The album is still in iCloud. Resume to finish moving it to this device, or cancel the move.";
+"CloudKitMigration.PartialMoveToLocalCounts" = "%@ copied to this device, %@ still to copy";
+"CloudKitMigration.FinishingICloudCleanupMessage" = "Everything is on this device, but iCloud hasn't confirmed that it removed every item yet. Resume to finish, or cancel the move to keep the album in iCloud.";
 
 /* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for a cross-plane media move left incomplete */
 "CloudKitMigration.PartialMoveTitle" = "Media Move Incomplete";
@@ -990,6 +996,8 @@
 "CloudKitMigration.SaveBlockedMovingToLocal" = "This album is moving to This Device, so nothing can be added to it until the move finishes.";
 "CloudKitMigration.AlbumKeptGainingItems" = "New items kept arriving in this album while it moved, so the move stopped before finishing. Nothing was lost. Resume the move to bring the new items over.";
 "CloudKitMigration.MembershipCheckFailed" = "Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.";
+"CloudKitMigration.ItemChangedDuringMove" = "This item changed after it was copied to iCloud, so it was kept on this device. The copy in iCloud is the earlier version.";
+"CloudKitMigration.ICloudCleanupPending" = "Everything is on this device, but iCloud hasn't confirmed that it removed every item yet, so the move isn't finished. It will try again automatically, or you can resume it now.";
 "CloudKitMigration.AlbumStillHasItems" = "This album still has items in iCloud that haven't been moved, so it was left in iCloud. Resume the move to bring them over.";
 "CloudKitMigration.OverlayFailedItems" = "%@ couldn't be moved yet";
 "CloudKitMigration.OverlayKeepOpen" = "Keep Encamera open. You can switch apps, but don't force-quit. You may need to be connected to Wi-Fi for this to complete, depending on your system settings.";

@@ -745,7 +745,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         }
     }
 
-    func testCancelIsDurableAndNotAutoResumed() async throws {
+    func testCancelRollsTheMoveBackAndLeavesNothingToResume() async throws {
         let album = makeAlbum()
         let (manager, albumManager, _) = makeExecutableManager(for: album)
         albumManager.albumsOnDisk = [album]
@@ -760,7 +760,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         await manager.cancel(album: album)
 
         let persisted = await MigrationPlanStore(album: album).load()
-        XCTAssertNotNil(persisted?.cancelledAt, "an explicit cancel is recorded durably on the checkpoint")
+        XCTAssertNil(persisted, "an explicit cancel rolls the move back and deletes its plan")
         let pendingAfterCancel = await manager.pendingPlans()
         XCTAssertTrue(pendingAfterCancel.isEmpty,
                       "a cancelled migration is never silently auto-resumed on the next launch")
@@ -783,7 +783,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: ids[0]).path),
                       "the local original is untouched")
         let plan = await MigrationPlanStore(album: album).load()
-        XCTAssertNotNil(plan?.cancelledAt, "the cancel must be durable so background auto-resume skips it")
+        XCTAssertNil(plan, "the cancel rolls the move back, so nothing is left to auto-resume")
     }
 
     func testCancelDuringPreflightOfEmptyAlbumDoesNotFinalize() async throws {
@@ -799,7 +799,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
 
         XCTAssertEqual(store.ensureZoneCalls, 1, "the run must have reached the preflight the cancel lands in")
         let persisted = await MigrationPlanStore(album: album).load()
-        XCTAssertNotNil(persisted?.cancelledAt, "the cancel, not an unrelated abort, must be what stopped the run")
+        XCTAssertNil(persisted, "the cancel, not an unrelated abort, must be what stopped the run: it deletes the plan")
         XCTAssertEqual(albumManager.finalizeCallCount, 0,
                        "an explicit cancel must not flip the album to CloudKit")
         XCTAssertEqual(manager.state, .idle)
@@ -1496,6 +1496,7 @@ extension CloudKitMigrationManagerTests {
         cleanup(fixture.album)
         try? FileManager.default.removeItem(at: LocalStorageModel(album: fixture.local).baseURL)
         try? FileManager.default.removeItem(at: MigrationPlanStore.directoryURL(forSource: fixture.album))
+        fixture.recordNames.forEach { CloudKitMediaDeleteQueue().forgetDeletion(of: $0) }
     }
 
     /// Writes a checkpoint for the fixture with the given per-item states, and the
@@ -1614,7 +1615,7 @@ extension CloudKitMigrationManagerTests {
         XCTAssertTrue(fixture.store.deleteCalls.isEmpty, "a cancel before the removal pass leaves the album whole in CloudKit")
         XCTAssertEqual(fixture.albumManager.finalizeToLocalCallCount, 0)
         let persisted = await MigrationPlanStore(album: fixture.album).load()
-        XCTAssertNotNil(persisted?.cancelledAt, "the cancel is durable")
+        XCTAssertNil(persisted, "the cancel rolls the move back")
     }
 
     func testAlbumMoveToLocalIgnoresACancelOnceRecordsAreBeingRemoved() async throws {
@@ -1816,8 +1817,8 @@ extension CloudKitMigrationManagerTests {
         XCTAssertTrue(phases[firstRemoval...].contains(.downloading), "the truncated copy is downloaded again")
     }
 
-    /// A cancelled move back keeps its plan for a resume, and with it the local
-    /// directory and copies. The album list shows only the CloudKit album.
+    /// A cancelled move back is rolled back: its plan and local copies go, and the
+    /// album list shows only the CloudKit album.
     func testAlbumMoveToLocalCancelLeavesNoVisibleLocalTwin() async throws {
         let fixture = try makeToLocalFixture(count: 2)
         defer { cleanup(fixture) }
@@ -1834,9 +1835,9 @@ extension CloudKitMigrationManagerTests {
 
         XCTAssertEqual(fixture.manager.state, .idle)
         let persisted = await MigrationPlanStore(album: fixture.album).load()
-        XCTAssertNotNil(persisted?.cancelledAt, "precondition: the cancel is durable")
-        XCTAssertTrue(FileManager.default.fileExists(atPath: LocalStorageModel(album: fixture.local).baseURL.path),
-                      "precondition: the run created the local directory")
+        XCTAssertNil(persisted, "the cancel rolls the move back")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: LocalStorageModel(album: fixture.local).baseURL.path),
+                       "the local directory the run created goes with it")
         let listed = listing.fetchAlbumsFromSources(includingHidden: true)
         XCTAssertTrue(listed.contains { $0.id == fixture.album.id }, "the CloudKit album is still the album")
         XCTAssertFalse(listed.contains { $0.storageOption == .local && $0.name == fixture.album.name },
@@ -2068,6 +2069,37 @@ extension CloudKitMigrationManagerTests {
         let second = try await manager.plan(album: album)
         XCTAssertEqual(second.destination.cloudKitAlbumID, albumID, "a re-plan reuses the persisted id")
         XCTAssertEqual(store.fetchAllAlbumsCount, 1, "the server is asked once; a re-plan never resolves again")
+    }
+
+    func testPlanRecordsThatTheMoveCreatedItsCloudKitAlbum() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, _) = makeExecutableManager(for: album)
+        defer { cleanup(album) }
+        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+
+        let first = try await manager.plan(album: album)
+        let second = try await manager.plan(album: album)
+
+        XCTAssertTrue(first.destination.createdByMove, "a minted album is the move's own")
+        XCTAssertTrue(second.destination.createdByMove, "a re-plan keeps it")
+    }
+
+    func testPlanRecordsAnAdoptedCloudKitAlbumAsNotCreatedByTheMove() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        defer { cleanup(album) }
+        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+        let serverAlbumID = UUID().uuidString
+        store.seedAlbum(CloudKitAlbumMetadata(albumID: serverAlbumID, encName: album.encryptedPathComponent,
+                                              createdAt: Date(), isHidden: false,
+                                              schemaVersion: CloudKitSchema.currentSchemaVersion,
+                                              keyFingerprint: "fp", recordChangeTag: "tag",
+                                              coverMediaID: nil, migrationInProgress: false))
+
+        let plan = try await manager.plan(album: album)
+
+        XCTAssertEqual(plan.destination.cloudKitAlbumID, serverAlbumID, "precondition: the server's album is adopted")
+        XCTAssertFalse(plan.destination.createdByMove)
     }
 
     func testACrashAfterTheAlbumRecordSaveResumesIntoTheSameAlbum() async throws {
@@ -3185,5 +3217,383 @@ extension CloudKitMigrationManagerTests {
                        Set(fixture.recordNames + [capture.recordName]))
         let stillQueued = await queue.all().filter { $0.albumID == albumID }
         XCTAssertTrue(stillQueued.isEmpty, "its queue entry is cancelled")
+    }
+}
+
+// MARK: - A whole album moving to CloudKit removes its originals last
+
+extension CloudKitMigrationManagerTests {
+
+    func testAlbumMoveToCloudKitKeepsEveryLocalOriginalUntilAllItemsVerify() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer { cleanup(album) }
+        let ids = try await seedLocalAlbum(count: 3, albumManager: albumManager, album: album)
+        let plan = try await manager.plan(album: album)
+        let lastRecord = try XCTUnwrap(plan.items.last?.recordName)
+        store.uploadFailures[lastRecord] = CloudKitMediaStoreError.underlying(NSError(domain: "test", code: 1))
+
+        await manager.start(album: album)
+
+        guard case .failed = manager.state else { return XCTFail("expected a failed run, got \(manager.state)") }
+        for id in ids {
+            XCTAssertTrue(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path),
+                          "no original goes while any item has not verified")
+        }
+        let persistedPlan = await MigrationPlanStore(album: album).load()
+        let persisted = try XCTUnwrap(persistedPlan)
+        XCTAssertEqual(persisted.items.filter { $0.state == .verified }.count, 2)
+        XCTAssertEqual(persisted.items.first { $0.recordName == lastRecord }?.state, .failed)
+        XCTAssertFalse(persisted.items.contains { $0.state == .sourceDeleted })
+    }
+
+    func testAlbumMoveToCloudKitRemovesOriginalsOnlyAfterTheLastItemVerifies() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(album)
+        }
+        let ids = try await seedLocalAlbum(count: 3, albumManager: albumManager, album: album)
+        let urls = ids.map { sourceEncURL(album: album, id: $0) }
+        let presentAtFirstRemoval = Box<Int?>(nil)
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard presentAtFirstRemoval.value == nil, case .removing(removed: 0) = boundary else { return }
+            presentAtFirstRemoval.value = urls.filter { FileManager.default.fileExists(atPath: $0.path) }.count
+        }
+        var phases: [MigrationPhase] = []
+        let subscription = manager.$progress.sink { if let phase = $0.phase { phases.append(phase) } }
+        defer { subscription.cancel() }
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        XCTAssertEqual(presentAtFirstRemoval.value, 3, "every original is still there when the removal pass starts")
+        for url in urls { XCTAssertFalse(FileManager.default.fileExists(atPath: url.path)) }
+        let firstRemoval = try XCTUnwrap(phases.firstIndex(of: .removingLocalCopy))
+        XCTAssertFalse(phases[firstRemoval...].contains(.uploading), "nothing uploads once removal has started")
+    }
+
+    func testAlbumMoveToCloudKitIgnoresCancelDuringRemovalPass() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(album)
+        }
+        let ids = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+        let plan = try await manager.plan(album: album)
+        let accepted = Box<Bool?>(nil)
+        CloudKitMigrationManager.boundaryHook = { [weak manager] boundary in
+            guard accepted.value == nil, case .removing(removed: 0) = boundary else { return }
+            accepted.value = await MainActor.run { manager?.requestCancel(plan: plan) }
+        }
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(accepted.value, false, "a cancel is refused once originals are being removed")
+        XCTAssertEqual(manager.state, .completed)
+        for id in ids {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path))
+        }
+    }
+
+    func testAlbumMoveToCloudKitResumedAfterKillInRemovalPassFinishes() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(album)
+        }
+        let ids = try await seedLocalAlbum(count: 3, albumManager: albumManager, album: album)
+        CloudKitMigrationManager.boundaryHook = { [weak manager] boundary in
+            guard case .removing(removed: 1) = boundary else { return }
+            await MainActor.run { manager?.pause() }
+        }
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .paused)
+        let stoppedPlan = await MigrationPlanStore(album: album).load()
+        let stopped = try XCTUnwrap(stoppedPlan)
+        XCTAssertEqual(stopped.items.map(\.state).filter { $0 == .sourceDeleted }.count, 1)
+        XCTAssertEqual(stopped.items.map(\.state).filter { $0 == .verified }.count, 2)
+
+        CloudKitMigrationManager.boundaryHook = nil
+        let uploadsBeforeResume = store.uploadCalls.count
+        let lookupsBeforeResume = store.fetchRecordMetadataCount
+        let resumed = CloudKitMigrationManager(albumManager: albumManager, storeFactory: { _ in store })
+        await resumed.start(album: album)
+
+        XCTAssertEqual(resumed.state, .completed)
+        XCTAssertEqual(store.uploadCalls.count, uploadsBeforeResume, "the resume goes straight back to removing")
+        XCTAssertGreaterThanOrEqual(store.fetchRecordMetadataCount - lookupsBeforeResume, 2,
+                                    "each item verified by the earlier run is checked against the server again")
+        for id in ids {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path))
+        }
+    }
+
+    func testAlbumMoveToCloudKitFailsAnOriginalChangedSinceVerification() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(album)
+        }
+        let ids = try await seedLocalAlbum(count: 3, albumManager: albumManager, album: album)
+        let plan = try await manager.plan(album: album)
+        let changedItem = try XCTUnwrap(plan.items.first)
+        let changedURL = sourceEncURL(album: album, id: changedItem.mediaID)
+        let touched = Box(false)
+        CloudKitMigrationManager.boundaryHook = { boundary in
+            guard !touched.value, case .transferred(verified: 3) = boundary else { return }
+            touched.value = true
+            // A rewrite of the same length: only the modification date gives it away.
+            try? FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: 60)],
+                                                   ofItemAtPath: changedURL.path)
+        }
+
+        await manager.start(album: album)
+
+        XCTAssertTrue(touched.value, "precondition: the original changed after every item verified")
+        guard case .failed = manager.state else { return XCTFail("expected a failed run, got \(manager.state)") }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: changedURL.path), "the changed original is kept")
+        for id in ids where id != changedItem.mediaID {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path),
+                           "the rest of the pass goes ahead")
+        }
+        let persistedPlan = await MigrationPlanStore(album: album).load()
+        let persisted = try XCTUnwrap(persistedPlan)
+        let item = try XCTUnwrap(persisted.items.first { $0.recordName == changedItem.recordName })
+        XCTAssertEqual(item.state, .failed)
+        XCTAssertEqual(item.lastError, L10n.CloudKitMigration.itemChangedDuringMove)
+        XCTAssertEqual(albumManager.finalizeCallCount, 0, "the album does not flip with an item left behind")
+    }
+}
+
+// MARK: - A move back finalizes only once every record delete is confirmed
+
+extension CloudKitMigrationManagerTests {
+
+    func testAlbumMoveToLocalWithQueuedDeletesDoesNotFinalize() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer { cleanup(fixture) }
+        fixture.store.deleteError = CloudKitMediaStoreError.retry(after: 1)
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(fixture.manager.state, .failed(.other(L10n.CloudKitMigration.iCloudCleanupPending)))
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalCallCount, 0,
+                       "the album record stays while its media deletes are only queued")
+        XCTAssertTrue(fixture.store.deletedAlbumCalls.isEmpty)
+        let persisted = await MigrationPlanStore(album: fixture.album).load()
+        XCTAssertEqual(persisted?.items.map(\.state), [.removalPending, .removalPending],
+                       "the plan survives with every queued delete recorded")
+    }
+
+    func testResumePromotesRemovalPendingOnceDeletesConfirm() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer { cleanup(fixture) }
+        fixture.store.deleteError = CloudKitMediaStoreError.retry(after: 1)
+        await fixture.manager.start(plan: fixture.plan)
+        let pending = await MigrationPlanStore(album: fixture.album).load()
+        XCTAssertEqual(pending?.removalPendingCount, 2, "precondition: both deletes are only queued")
+
+        fixture.store.deleteError = nil
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(fixture.manager.state, .completed)
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalCallCount, 1)
+        XCTAssertEqual(fixture.albumManager.finalizeToLocalMovedRecordNames.last, Set(fixture.recordNames))
+        for id in fixture.ids {
+            XCTAssertEqual(fixture.localURL(id).fileSizeBytes(), 10, "the local copies were kept throughout")
+        }
+    }
+}
+
+// MARK: - A cancel, or a move the other way, rolls an unfinished move back
+
+extension CloudKitMigrationManagerTests {
+
+    func testAlbumMoveToCloudKitCancelledBeforeRemovalRollsBackAndLeavesAlbumLocalAndWhole() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(album)
+        }
+        let ids = try await seedLocalAlbum(count: 3, albumManager: albumManager, album: album)
+        let plan = try await manager.plan(album: album)
+        let albumID = try XCTUnwrap(plan.destination.cloudKitAlbumID)
+        CloudKitMigrationManager.boundaryHook = { [weak manager] boundary in
+            guard case .transferred(verified: 2) = boundary else { return }
+            _ = await MainActor.run { manager?.requestCancel(plan: plan) }
+        }
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .idle)
+        for id in ids {
+            XCTAssertTrue(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path),
+                          "every original is still on this device")
+        }
+        let checkpoint = await MigrationPlanStore(album: album).load()
+        XCTAssertNil(checkpoint, "no plan is left behind")
+        XCTAssertEqual(Set(store.deleteCalls), Set(plan.items.prefix(2).map(\.recordName)),
+                       "exactly the uploaded records are deleted")
+        XCTAssertEqual(store.deletedAlbumCalls, [albumID], "the album the move created goes too")
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: album.id), .none)
+    }
+
+    func testCancelledMoveToCloudKitKeepsAnAdoptedAlbumRecordAndClearsItsFlag() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(album)
+        }
+        _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+        let serverAlbumID = UUID().uuidString
+        store.seedAlbum(CloudKitAlbumMetadata(albumID: serverAlbumID, encName: album.encryptedPathComponent,
+                                              createdAt: Date(), isHidden: false,
+                                              schemaVersion: CloudKitSchema.currentSchemaVersion,
+                                              keyFingerprint: "fp", recordChangeTag: "tag",
+                                              coverMediaID: nil, migrationInProgress: false))
+        let plan = try await manager.plan(album: album)
+        XCTAssertEqual(plan.destination.cloudKitAlbumID, serverAlbumID, "precondition: the move adopts the server's album")
+        CloudKitMigrationManager.boundaryHook = { [weak manager] boundary in
+            guard case .transferred(verified: 1) = boundary else { return }
+            _ = await MainActor.run { manager?.requestCancel(plan: plan) }
+        }
+
+        await manager.start(album: album)
+
+        XCTAssertTrue(store.deletedAlbumCalls.isEmpty, "an album the move did not create is never deleted")
+        XCTAssertEqual(store.deleteCalls, [plan.items[0].recordName], "only this move's record goes")
+        XCTAssertEqual(store.savedAlbumCalls.last?.albumID, serverAlbumID)
+        XCTAssertEqual(store.savedAlbumCalls.last?.migrationInProgress, false, "the album is listed everywhere again")
+        let checkpoint = await MigrationPlanStore(album: album).load()
+        XCTAssertNil(checkpoint)
+    }
+
+    func testCancelledMoveBackRemovesTheTwinAndThePlan() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer {
+            CloudKitMigrationManager.boundaryHook = nil
+            cleanup(fixture)
+        }
+        let plan = fixture.plan
+        CloudKitMigrationManager.boundaryHook = { [weak manager = fixture.manager] boundary in
+            guard case .transferred(verified: 1) = boundary else { return }
+            _ = await MainActor.run { manager?.requestCancel(plan: plan) }
+        }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(fixture.manager.state, .idle)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: LocalStorageModel(album: fixture.local).baseURL.path),
+                       "the local copies go with the twin")
+        XCTAssertTrue(fixture.store.deleteCalls.isEmpty, "no record is touched")
+        let checkpoint = await MigrationPlanStore(album: fixture.album).load()
+        XCTAssertNil(checkpoint)
+    }
+
+    func testRollBackOfUnfinishedMoveToCloudKitQueuesDeletesForUploadedRecords() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer { cleanup(album) }
+        let ids = try await seedLocalAlbum(count: 3, albumManager: albumManager, album: album)
+        albumManager.albumsOnDisk = [album]
+        let plan = try await manager.plan(album: album)
+        let lastRecord = try XCTUnwrap(plan.items.last?.recordName)
+        store.uploadFailures[lastRecord] = CloudKitMediaStoreError.underlying(NSError(domain: "test", code: 1))
+        await manager.start(album: album)
+        guard case .failed = manager.state else { return XCTFail("precondition: the move failed part-way") }
+        store.deleteError = CloudKitMediaStoreError.retry(after: 1)
+
+        let rolledBack = await manager.rollBack(plan: plan)
+
+        XCTAssertTrue(rolledBack)
+        let uploaded = Set(plan.items.prefix(2).map(\.recordName))
+        XCTAssertTrue(uploaded.isSubset(of: CloudKitMediaDeleteQueue().pending()),
+                      "deletes that cannot run now are queued for the next drain")
+        for id in ids {
+            XCTAssertTrue(FileManager.default.fileExists(atPath: sourceEncURL(album: album, id: id).path))
+        }
+        let checkpoint = await MigrationPlanStore(album: album).load()
+        XCTAssertNil(checkpoint)
+        uploaded.forEach { CloudKitMediaDeleteQueue().forgetDeletion(of: $0) }
+    }
+
+    func testMoveBackDuringUnfinishedMoveToLocalWithdrawsDeletesWithoutReuploading() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer { cleanup(fixture) }
+        fixture.store.deleteError = CloudKitMediaStoreError.retry(after: 1)
+        await fixture.manager.start(plan: fixture.plan)
+        let pending = await MigrationPlanStore(album: fixture.album).load()
+        XCTAssertEqual(pending?.removalPendingCount, 2, "precondition: both deletes are only queued")
+
+        let rolledBack = await fixture.manager.rollBack(plan: fixture.plan)
+
+        XCTAssertTrue(rolledBack)
+        XCTAssertTrue(fixture.store.uploadCalls.isEmpty, "records that were never deleted are not uploaded again")
+        XCTAssertTrue(CloudKitMediaDeleteQueue().pending().isDisjoint(with: fixture.recordNames),
+                      "no queued delete is left to reach a record the album keeps")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: LocalStorageModel(album: fixture.local).baseURL.path))
+        let checkpoint = await MigrationPlanStore(album: fixture.album).load()
+        XCTAssertNil(checkpoint)
+        let index = await MediaIndexStore(album: fixture.album).current()?.entries.map(\.id) ?? []
+        XCTAssertEqual(Set(index), Set(fixture.ids), "the iCloud album lists both items again")
+    }
+
+    func testMoveBackReuploadsOnlyItemsWhoseDeleteWasConfirmed() async throws {
+        let cloudAlbum = makeAlbum(storage: .cloudKit)
+        let albumID = try XCTUnwrap(cloudAlbum.albumID)
+        let twin = Album.localTwin(of: cloudAlbum)
+        let (manager, albumManager, store) = makeExecutableManager(for: cloudAlbum)
+        store.reflectUploadsInMetadata = true
+        albumManager.albumsOnDisk = [cloudAlbum]
+        try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
+        defer {
+            cleanup(twin)
+            cleanup(cloudAlbum)
+            try? FileManager.default.removeItem(at: MigrationPlanStore.planURL(sourceAlbum: twin,
+                                                                               planID: CloudKitMigrationManager.rollbackPlanID))
+        }
+        let ids = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: twin)
+        let model = LocalStorageModel(album: twin)
+        let items = ids.enumerated().map { offset, id -> MigrationItem in
+            let size = model.driveURLForMedia(withID: id, type: .photo).fileSizeBytes() ?? 0
+            var item = MigrationItem(mediaID: id,
+                                     recordName: CloudKitFileAccess.componentRecordName(mediaID: id, type: .photo),
+                                     mediaType: .photo, createdAt: Date(), sizeBytes: size,
+                                     state: offset == 0 ? .sourceDeleted : .verified)
+            item.verifiedSizeBytes = size
+            return item
+        }
+        // The second record is still on the server; the first was deleted.
+        store.metadataToReturn = [CloudKitMediaMetadata(recordName: items[1].recordName, albumID: albumID,
+                                                        mediaID: ids[1], mediaType: .photo, createdAt: Date(),
+                                                        sizeBytes: items[1].sizeBytes, creationDeviceID: "mock",
+                                                        schemaVersion: 1, recordChangeTag: "tag")]
+        let plan = try MigrationPlan.album(cloudAlbum, items: items)
+        try await MigrationPlanStore(album: cloudAlbum).save(plan)
+
+        let rolledBack = await manager.rollBack(plan: plan)
+
+        XCTAssertTrue(rolledBack)
+        XCTAssertEqual(store.uploadCalls, [ids[0]], "only the item whose record was deleted is uploaded again")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: model.baseURL.path), "the twin is gone")
+        let checkpoint = await MigrationPlanStore(album: cloudAlbum).load()
+        XCTAssertNil(checkpoint)
     }
 }
