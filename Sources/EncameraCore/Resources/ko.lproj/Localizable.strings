@@ -884,3 +884,4 @@
 "PhotoDeletion.FailedMessage" = "사진 라이브러리에서 삭제할 수 없습니다: %@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "더 많은 미디어를 선택하거나 전체 접근 권한을 허용하세요";
 "CustomPhotoPicker.LimitedAccessTitle" = "제한된 접근";
+"AlbumNameValidator.Forbidden" = "앨범 이름은 \".\" 또는 \"..\"이 될 수 없으며, \"/\"나 \":\"를 포함할 수 없습니다.";

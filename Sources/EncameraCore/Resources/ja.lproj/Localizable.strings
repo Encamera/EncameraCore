@@ -896,3 +896,4 @@
 "PhotoDeletion.FailedMessage" = "写真ライブラリから削除できませんでした：%@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "さらにメディアを選択するか、フルアクセスを許可してください";
 "CustomPhotoPicker.LimitedAccessTitle" = "アクセスが制限されています";
+"AlbumNameValidator.Forbidden" = "アルバム名は「.」や「..」にはできません。また、「/」や「:」を含めることもできません。";

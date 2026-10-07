@@ -893,3 +893,4 @@ Encamera！";
 "PhotoDeletion.FailedMessage" = "無法從您的相簿刪除：%@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "選擇更多媒體或授予完整存取權限";
 "CustomPhotoPicker.LimitedAccessTitle" = "有限存取";
+"AlbumNameValidator.Forbidden" = "專輯名稱不能是「.」或「..」，也不能包含「/」或「:」。";

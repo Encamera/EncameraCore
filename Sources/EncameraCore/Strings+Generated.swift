@@ -1006,6 +1006,10 @@ public enum L10n {
       return L10n.tr("Localizable", "AlbumMove.ItemsStayedInICloudDrive", String(describing: p1), fallback: "%@ items stayed in iCloud Drive because they couldn't be downloaded.")
     }
   }
+  public enum AlbumNameValidator {
+    /// ./EncameraCore/Utils/AlbumNameValidator.swift
+    public static let forbidden = L10n.tr("Localizable", "AlbumNameValidator.Forbidden", fallback: "Album names can't be \".\" or \"..\", or contain \"/\" or \":\".")
+  }
   public enum AlbumSelectionModal {
     /// Select an album to move %@ items to
     public static func description(_ p1: Any) -> String {

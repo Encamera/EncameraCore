@@ -895,3 +895,4 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "PhotoDeletion.FailedMessage" = "Kuvakirjastostasi ei voitu poistaa: %@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Valitse lisää mediaa tai myönnä täysi käyttöoikeus";
 "CustomPhotoPicker.LimitedAccessTitle" = "Rajoitettu käyttöoikeus";
+"AlbumNameValidator.Forbidden" = "Albumien nimet eivät voi olla \".\" tai \"..\", eivätkä ne saa sisältää \"/\" tai \":\".";

@@ -35,6 +35,8 @@
 "Password is too short, <%@" = "Password is too short, <%@";
 "Passwords do not match." = "Passwords do not match.";
 "Password is too long, >%@" = "Password is too long, >%@";
+/* ./EncameraCore/Utils/AlbumNameValidator.swift */
+"AlbumNameValidator.Forbidden" = "Album names can't be \".\" or \"..\", or contain \"/\" or \":\".";
 /* ./EncameraCore/Utils/DataStorageUserDefaultsSetting.swift */
 "No iCloud account found on this device." = "No iCloud account found on this device.";
 /* ./EncameraCore/Utils/SettingsManager.swift */

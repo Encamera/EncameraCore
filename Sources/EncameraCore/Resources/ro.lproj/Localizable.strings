@@ -880,3 +880,4 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "PhotoDeletion.FailedMessage" = "Nu s-a putut șterge din biblioteca ta foto: %@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Selectează mai multe fișiere media sau acordă acces complet";
 "CustomPhotoPicker.LimitedAccessTitle" = "Acces limitat";
+"AlbumNameValidator.Forbidden" = "Numele albumelor nu pot fi „.” sau „..”, și nu pot conține „/” sau „:”.";

@@ -898,3 +898,4 @@ album";
 "PhotoDeletion.FailedMessage" = "Impossible de supprimer de votre photothèque : %@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Sélectionnez plus de médias ou accordez un accès complet";
 "CustomPhotoPicker.LimitedAccessTitle" = "Accès limité";
+"AlbumNameValidator.Forbidden" = "Les noms d'album ne peuvent pas être « . » ou « .. », ni contenir « / » ou « : ».";

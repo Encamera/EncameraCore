@@ -182,6 +182,109 @@ final class AlbumsDirectoryMigrationUtilTests: XCTestCase {
         XCTAssertFalse(util.hasMigrated(.icloud))
     }
 
+    /// A plaintext album name can contain dots. The reverse-DNS exclusion must
+    /// not strand these at the root.
+    func testMovesPlaintextAlbumsWithDottedNamesIntoAlbumsSubdir() throws {
+        _ = try seedAlbum("Trip 2.0", at: rootURL)
+        _ = try seedAlbum("Nov. 2023", at: rootURL)
+
+        XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
+
+        XCTAssertFalse(exists(rootURL.appendingPathComponent("Trip 2.0")))
+        XCTAssertFalse(exists(rootURL.appendingPathComponent("Nov. 2023")))
+        XCTAssertTrue(exists(albumsURL.appendingPathComponent("Trip 2.0")))
+        XCTAssertTrue(exists(albumsURL.appendingPathComponent("Nov. 2023")))
+    }
+
+    /// Every name here round-trips through `URL.lastPathComponent` and
+    /// `appendingPathComponent` on the way from root to `albums/`. Percent,
+    /// hash, ampersand, question mark and colon are the characters a URL
+    /// encodes; trailing dot and space, decomposed Unicode, backslash and the
+    /// base64 alphabet are the rest of what a keyboard or an encrypted name
+    /// can produce.
+    func testMovesAlbumsWithURLSensitiveNamesIntoAlbumsSubdir() throws {
+        let names = [
+            "Summer 100%", "Q&A #1?", "Trip: Rome", "Nov.", "Trip ",
+            "Ka\u{0308}se", "Trip\\Rome", "Trip;Rome", "Album_abc+def==",
+        ]
+        for name in names {
+            _ = try seedAlbum(name, at: rootURL)
+        }
+
+        XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
+
+        for name in names {
+            XCTAssertFalse(exists(rootURL.appendingPathComponent(name)), "\(name.debugDescription) left at root")
+            let sentinel = albumsURL.appendingPathComponent(name).appendingPathComponent("sentinel.bin")
+            XCTAssertEqual(try Data(contentsOf: sentinel), Data([0x01, 0x02, 0x03]), "\(name.debugDescription) not under albums/")
+        }
+    }
+
+    /// A dot-prefixed plaintext album is an album; iCloud Drive's `.Trash` is
+    /// the one dot-prefixed sibling at a root that must never move.
+    func testMovesDotPrefixedAlbumsButLeavesTrashAtRoot() throws {
+        _ = try seedAlbum(".secret", at: rootURL)
+        _ = try seedPlainDirectory(".Trash", at: rootURL)
+
+        XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
+
+        XCTAssertFalse(exists(rootURL.appendingPathComponent(".secret")))
+        XCTAssertTrue(exists(albumsURL.appendingPathComponent(".secret")))
+        XCTAssertTrue(exists(rootURL.appendingPathComponent(".Trash")))
+        XCTAssertFalse(exists(albumsURL.appendingPathComponent(".Trash")))
+    }
+
+    /// A ".secret" album 2.10.0 left at the root moves into `albums/` with
+    /// its contents; filesystem bookkeeping beside it stays where it is.
+    func testDottedPlaintextAlbumIsMigrated() throws {
+        _ = try seedAlbum(".secret", at: rootURL)
+        _ = try seedPlainDirectory(".fseventsd", at: rootURL)
+
+        XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
+
+        let sentinel = albumsURL.appendingPathComponent(".secret").appendingPathComponent("sentinel.bin")
+        XCTAssertEqual(try Data(contentsOf: sentinel), Data([0x01, 0x02, 0x03]))
+        XCTAssertFalse(exists(rootURL.appendingPathComponent(".secret")))
+        XCTAssertTrue(exists(rootURL.appendingPathComponent(".fseventsd")))
+        XCTAssertFalse(exists(albumsURL.appendingPathComponent(".fseventsd")))
+    }
+
+    func testLeavesReverseDNSCacheDirectoriesUntouched() throws {
+        _ = try seedPlainDirectory("me.freas.encamera.revenuecat.etags", at: rootURL)
+        _ = try seedAlbum("Album_aaa", at: rootURL)
+
+        XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
+
+        XCTAssertTrue(exists(rootURL.appendingPathComponent("me.freas.encamera.revenuecat.etags")))
+        XCTAssertFalse(exists(albumsURL.appendingPathComponent("me.freas.encamera.revenuecat.etags")))
+        XCTAssertTrue(exists(albumsURL.appendingPathComponent("Album_aaa")))
+    }
+
+    func testRecoversRevenueCatDirectoryMisplacedByV2Migration() throws {
+        try FileManager.default.createDirectory(at: albumsURL, withIntermediateDirectories: true)
+        _ = try seedPlainDirectory("me.freas.encamera.revenuecat.etags", at: albumsURL)
+        _ = try seedAlbum("Album_aaa", at: albumsURL)
+
+        util.performMigration(at: rootURL, into: albumsURL)
+
+        XCTAssertTrue(exists(rootURL.appendingPathComponent("me.freas.encamera.revenuecat.etags")),
+                       "RevenueCat directory should be moved back to root")
+        XCTAssertFalse(exists(albumsURL.appendingPathComponent("me.freas.encamera.revenuecat.etags")),
+                        "RevenueCat directory should no longer be under albums/")
+        XCTAssertTrue(exists(albumsURL.appendingPathComponent("Album_aaa")),
+                       "Real albums must stay under albums/")
+    }
+
+    func testLeavesAnyRevenueCatVariantAtRoot() throws {
+        _ = try seedPlainDirectory("RevenueCat_Cache", at: rootURL)
+        _ = try seedAlbum("Album_aaa", at: rootURL)
+
+        XCTAssertTrue(util.performMigration(at: rootURL, into: albumsURL))
+
+        XCTAssertTrue(exists(rootURL.appendingPathComponent("RevenueCat_Cache")))
+        XCTAssertFalse(exists(albumsURL.appendingPathComponent("RevenueCat_Cache")))
+    }
+
     func testIgnoresFilesThatLookLikeAlbums() throws {
         let bogus = rootURL.appendingPathComponent("Album_justAFile")
         XCTAssertTrue(FileManager.default.createFile(atPath: bogus.path, contents: Data()))

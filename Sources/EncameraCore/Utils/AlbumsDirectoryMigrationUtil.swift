@@ -34,8 +34,9 @@ public final class AlbumsDirectoryMigrationUtil: DebugPrintable {
     }
 
     private func migrate(storageType: StorageType) {
-        guard !hasMigrated(storageType) else { return }
         let model = storageType.modelForType
+        recoverMisplacedRevenueCat(in: model.albumsURL, backTo: model.rootURL)
+        guard !hasMigrated(storageType) else { return }
         if performMigration(at: model.rootURL, into: model.albumsURL) {
             markMigrated(storageType)
         }
@@ -49,6 +50,8 @@ public final class AlbumsDirectoryMigrationUtil: DebugPrintable {
     /// reports as legacy data. Exposed as `internal` for testing.
     @discardableResult
     func performMigration(at rootURL: URL, into albumsURL: URL) -> Bool {
+        recoverMisplacedRevenueCat(in: albumsURL, backTo: rootURL)
+
         let candidates: [URL]
         do {
             candidates = try legacyAlbumCandidates(at: rootURL, albumsURL: albumsURL)
@@ -95,6 +98,37 @@ public final class AlbumsDirectoryMigrationUtil: DebugPrintable {
             let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             guard isDirectory else { return false }
             return url.deletingLastPathComponent().standardizedFileURL != standardizedAlbumsURL
+        }
+    }
+
+    /// Moves RevenueCat's directories out of `albumsURL` and back to `rootURL`.
+    /// An earlier V2 migration treated them as albums and moved them; the SDK
+    /// keeps writing to the root and expects its caches there. Runs on every
+    /// launch, not only before the flag is set, because those devices already
+    /// carry the flag. A directory already present at the root is left alone.
+    private func recoverMisplacedRevenueCat(in albumsURL: URL, backTo rootURL: URL) {
+        guard fileManager.fileExists(atPath: albumsURL.path) else { return }
+        guard let contents = try? fileManager.contentsOfDirectory(
+            at: albumsURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: []
+        ) else { return }
+
+        for url in contents {
+            guard url.lastPathComponent.lowercased().contains("revenuecat") else { continue }
+            let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            guard isDirectory else { continue }
+            let destURL = rootURL.appendingPathComponent(url.lastPathComponent)
+            guard !fileManager.fileExists(atPath: destURL.path) else {
+                printDebug("Recovery destination exists, skipping: \(url.lastPathComponent)")
+                continue
+            }
+            do {
+                try fileManager.moveItem(at: url, to: destURL)
+                printDebug("Recovered misplaced directory: \(url.lastPathComponent)")
+            } catch {
+                printDebug("Failed to recover \(url.lastPathComponent): \(error)")
+            }
         }
     }
 

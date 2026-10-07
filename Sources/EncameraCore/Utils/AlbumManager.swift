@@ -8,6 +8,7 @@ import Combine
 
 public enum AlbumError: Error, CustomStringConvertible, Equatable {
     case albumNameError
+    case albumNameForbidden
     case albumExists
     case albumNotFoundAtSourceLocation
     case noCurrentKeySet
@@ -43,6 +44,8 @@ public enum AlbumError: Error, CustomStringConvertible, Equatable {
         switch self {
         case .albumNameError:
             return L10n.albumNameInvalid
+        case .albumNameForbidden:
+            return L10n.AlbumNameValidator.forbidden
         case .albumExists:
             return L10n.aKeyWithThisNameAlreadyExists
         case .albumNotFoundAtSourceLocation:
@@ -754,6 +757,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     @discardableResult public func create(name: String, storageOption: StorageType) throws -> Album  {
+        try validateAlbumName(name: name)
         if storageOption == .icloud {
             throw AlbumError.iCloudDriveDeprecated
         }
@@ -1183,9 +1187,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     public func validateAlbumName(name: String) throws {
-        guard name.count > 0 else {
-            throw KeyManagerError.keyNameError
-        }
+        try AlbumNameValidator.validate(name)
     }
 
     public func albumMediaCount(album: Album) -> Int {

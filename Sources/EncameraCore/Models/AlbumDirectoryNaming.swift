@@ -33,21 +33,59 @@ public enum AlbumDirectoryNaming {
         albumsDirectory,
         AppConstants.previewDirectory,
         "thumbs",
-        "revenuecat",
         "inbox",          // created by iOS document interaction, never by us
-        ".trash"
+        ".trash",         // iCloud Drive
+        // Volume bookkeeping a filesystem or the Files app can leave at a root.
+        ".trashes",
+        ".fseventsd",
+        ".spotlight-v100",
+        ".documentrevisions-v100",
+        ".temporaryitems"
     ]
 
-    /// Whether `name` is an album directory. Dot-prefixed names are always
-    /// excluded: they are filesystem and iCloud bookkeeping, never albums. So is
-    /// anything the RevenueCat SDK puts beside the albums: its current caches are
-    /// named `<bundle id>.revenuecat.<purpose>` and appear as soon as the first
-    /// purchases response lands, which can be before the directory migration runs
-    /// on a launch that follows an erase.
+    /// Substrings that mark a directory as SDK infrastructure, not an album.
+    private static let reservedSubstrings: [String] = [
+        "revenuecat"
+    ]
+
+    /// Whether `name` is an album directory.
+    ///
+    /// Excluded: the reserved siblings above (filesystem bookkeeping included),
+    /// RevenueCat's directories and bundle-identifier-shaped names (SDK caches,
+    /// with or without a hiding dot in front). Every other dot is
+    /// allowed — a pre-encryption album is named whatever the user typed, and
+    /// "Trip 2.0", "Nov. 2023" and ".secret" are all albums.
     public static func isAlbumDirectoryName(_ name: String) -> Bool {
-        guard !name.hasPrefix(".") else { return false }
-        let lowercased = name.lowercased()
-        guard !lowercased.contains(".revenuecat.") else { return false }
-        return !reservedNames.contains(lowercased)
+        let lower = name.lowercased()
+        if reservedNames.contains(lower) { return false }
+        if reservedSubstrings.contains(where: { lower.contains($0) }) { return false }
+        if isReverseDNSName(name) { return false }
+        return true
+    }
+
+    /// Whether `name` is a bundle identifier — `com.vendor.thing`, the form
+    /// SDK caches take, sometimes hidden as `.com.vendor.thing`: a known
+    /// top-level domain followed by two or more labels from the
+    /// bundle-identifier alphabet. Matching on the domain rather than the
+    /// shape keeps "trip.to.paris" or "Mr.Mrs.Smith" as the album names they are.
+    private static func isReverseDNSName(_ name: String) -> Bool {
+        let labels = name.drop(while: { $0 == "." })
+            .split(separator: ".", omittingEmptySubsequences: false)
+        guard labels.count >= 3, topLevelDomains.contains(String(labels[0])) else { return false }
+        return labels.allSatisfy(isBundleIdentifierLabel)
+    }
+
+    /// The domains bundle identifiers are published under. RevenueCat's cache
+    /// is `me.freas.…`; the rest are the ones SDK vendors use.
+    private static let topLevelDomains: Set<String> = [
+        "com", "net", "org", "io", "me", "co", "dev", "app"
+    ]
+
+    private static let bundleIdentifierLabelCharacters = CharacterSet(
+        charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+    )
+
+    private static func isBundleIdentifierLabel(_ label: Substring) -> Bool {
+        !label.isEmpty && label.unicodeScalars.allSatisfy(bundleIdentifierLabelCharacters.contains)
     }
 }

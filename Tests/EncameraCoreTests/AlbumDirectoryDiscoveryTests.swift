@@ -105,13 +105,185 @@ final class AlbumDirectoryDiscoveryTests: XCTestCase {
         XCTAssertEqual(discoveredNames(), ["met"])
     }
 
-    func testExcludesFilesAndDotDirectories() throws {
-        try seedDirectory(".Trash", at: root)
+    func testExcludesFilesAndBookkeepingDotDirectories() throws {
+        for name in [".Trash", ".fseventsd", ".Spotlight-V100", ".me.freas.encamera.revenuecat.etags"] {
+            try seedDirectory(name, at: root)
+        }
         XCTAssertTrue(FileManager.default.createFile(
             atPath: root.appendingPathComponent("loose.encimage").path, contents: Data()))
         try seedDirectory("met", at: root)
 
         XCTAssertEqual(discoveredNames(), ["met"])
+    }
+
+    /// 2.10.0 lists a pre-encryption album whose name starts with a dot, so it
+    /// must still be listed after the upgrade, both where 2.10.0's migration
+    /// put it (`albums/`) and at the root on a device that never ran it.
+    func testDiscoversADotPrefixedPreEncryptionAlbum() throws {
+        try seedDirectory(".secret", at: try seedAlbumsSubdirectory())
+        try seedDirectory(".hidden trip", at: root)
+        try seedDirectory(".Trash", at: root)
+
+        XCTAssertEqual(discoveredNames(), [".secret", ".hidden trip"])
+    }
+
+    /// End to end through the real listing: a dot-prefixed plaintext album in
+    /// local storage is listed, with its media counted.
+    @MainActor
+    func testFetchAlbumsFromSourcesListsADotPrefixedLocalAlbumWithItsMedia() throws {
+        let key = PrivateKey(name: "key", keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
+                             creationDate: Date())
+        let keyManager = DemoKeyManager(keys: [key])
+        keyManager.currentKey = key
+        let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+        let name = ".secret-\(UUID().uuidString)"
+        let directory = LocalStorageModel.albumsURL.appendingPathComponent(name, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        XCTAssertTrue(FileManager.default.createFile(
+            atPath: directory.appendingPathComponent("\(UUID().uuidString).\(MediaType.photo.encryptedFileExtension)").path,
+            contents: Data([0x01])))
+
+        let listed = albumManager.fetchAlbumsFromSources(includingHidden: true).first { $0.name == name }
+
+        let album = try XCTUnwrap(listed, "the dot-prefixed album is listed")
+        XCTAssertEqual(album.storageOption, .local)
+        XCTAssertEqual(albumManager.albumMediaCount(album: album), 1, "its media is found")
+    }
+
+    /// A pre-encryption album's directory name is whatever the user typed, dots
+    /// included. Excluding every dotted name to keep SDK caches out made these
+    /// albums vanish from the grid with their files intact.
+    func testDiscoversPlaintextAlbumNamesContainingDots() throws {
+        try seedDirectory("Trip 2.0", at: root)
+        try seedDirectory("Nov. 2023", at: root)
+
+        XCTAssertEqual(discoveredNames(), ["Trip 2.0", "Nov. 2023"])
+    }
+
+    /// The other side of the dotted-name rule: a reverse-DNS SDK cache that is
+    /// not RevenueCat's has no reserved substring to catch it, so its shape alone
+    /// must keep it out of the grid.
+    func testExcludesReverseDNSDirectoriesThatAreNotRevenueCat() throws {
+        try seedDirectory("com.apple.CloudDocs", at: root)
+        try seedDirectory("met", at: root)
+
+        XCTAssertEqual(discoveredNames(), ["met"])
+    }
+
+    // MARK: - Naming rule permutations
+    //
+    // Album names went unvalidated for years, so a pre-encryption album
+    // directory can be named with anything a keyboard produces. These
+    // drive `isAlbumDirectoryName` directly: the discovery tests above prove the
+    // rule is wired in; these prove the rule itself.
+
+    private func assertAlbums(_ names: [String], file: StaticString = #filePath, line: UInt = #line) {
+        for name in names {
+            XCTAssertTrue(AlbumDirectoryNaming.isAlbumDirectoryName(name),
+                          "\(name.debugDescription) should be an album", file: file, line: line)
+        }
+    }
+
+    private func assertNotAlbums(_ names: [String], file: StaticString = #filePath, line: UInt = #line) {
+        for name in names {
+            XCTAssertFalse(AlbumDirectoryNaming.isAlbumDirectoryName(name),
+                           "\(name.debugDescription) should not be an album", file: file, line: line)
+        }
+    }
+
+    func testNamingRuleAcceptsUserTypedShapes() {
+        assertAlbums([
+            "Trip.",                // trailing dot
+            "Trip..2",              // empty component
+            "com.apple",            // two components is not reverse-DNS
+            "Trip\u{00A0}2.0.1",    // non-breaking space
+            "Summer 100%",
+            "Q&A #1?",
+            "Trip: Rome",
+            "Revenue Catalog",      // not the "revenuecat" substring
+            "Album_abc+def==",      // encrypted-name alphabet
+        ])
+    }
+
+    func testNamingRuleExcludesReverseDNSAndBookkeepingShapes() {
+        assertNotAlbums([
+            "com.apple.CloudDocs",
+            "me.freas.encamera.revenuecat.etags",
+            "com.google.firebase_crashlytics",   // underscore label
+            "com.crashlytics.data-v2",           // hyphen label
+            ".Trash",
+            ".com.apple.bookkeeping",
+            "RevenueCat",
+            "REVENUECAT_cache",
+            "Albums",
+            "INBOX",
+        ])
+    }
+
+    /// Bundle identifiers are ASCII. A dotted name with letters outside ASCII
+    /// cannot be an SDK cache, whatever its component count.
+    func testNamingRuleTreatsNonASCIIDottedNamesAsAlbums() {
+        assertAlbums([
+            "日本.旅行.2023",
+            "Trip.to.París",
+            "Ünen.mit.Ömer",
+        ])
+    }
+
+    /// A reverse-DNS name starts with a top-level domain, which is letters.
+    /// A name whose first label is numeric is a version, a date, or a score.
+    func testNamingRuleTreatsVersionLikeNamesAsAlbums() {
+        assertAlbums([
+            "1.2.3",
+            "2023.11.05",
+            "v1.2.3",
+            "3.14.15.92",
+        ])
+    }
+
+    /// Bundle identifiers are written with a lowercase top-level domain. A
+    /// capitalized first label is a person, a title, or a sentence.
+    func testNamingRuleTreatsCapitalizedDottedNamesAsAlbums() {
+        assertAlbums([
+            "Mr.Mrs.Smith",
+            "Dr.J.Smith",
+            "Trip.To.Paris",
+        ])
+    }
+
+    /// A leading dot was typeable too, and the rule that predates `albums/`
+    /// showed those albums. Only `.Trash` and dot-prefixed bundle identifiers
+    /// are bookkeeping.
+    func testNamingRuleTreatsDotPrefixedUserNamesAsAlbums() {
+        assertAlbums([
+            ".secret",
+            ".2023",
+            ".Trip 2.0",
+        ])
+        assertNotAlbums([
+            ".Trash",
+            ".trash",
+            ".com.apple.bookkeeping",
+        ])
+    }
+
+    /// Only a name that starts with a top-level domain SDKs actually publish
+    /// under is a cache. Three lowercase words with dots between them is a
+    /// name.
+    func testNamingRuleOnlyExcludesKnownTopLevelDomains() {
+        assertAlbums([
+            "photos.from.rome",
+            "trip.to.paris",
+            "www.example.photos",
+        ])
+        assertNotAlbums([
+            "me.freas.encamera.revenuecat.etags",
+            "com.apple.CloudDocs",
+            "net.example.cache",
+            "org.example.cache",
+            "io.example.cache",
+        ])
     }
 
     /// A root copy left behind by a failed move must not double the album in the

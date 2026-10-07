@@ -103,9 +103,7 @@ public class DemoAlbumManager: AlbumManaging {
     }
 
     public func validateAlbumName(name: String) throws {
-        guard !name.isEmpty else {
-            throw AlbumError.albumNameError
-        }
+        try AlbumNameValidator.validate(name)
     }
 
 }

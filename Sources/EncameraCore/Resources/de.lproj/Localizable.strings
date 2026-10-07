@@ -1015,3 +1015,4 @@
 "PhotoDeletion.FailedMessage" = "Konnte nicht aus deiner Fotomediathek gelöscht werden: %@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Wählen Sie weitere Medien aus oder gewähren Sie vollen Zugriff";
 "CustomPhotoPicker.LimitedAccessTitle" = "Eingeschränkter Zugriff";
+"AlbumNameValidator.Forbidden" = "Albumnamen dürfen nicht \".\" oder \"..\" sein und dürfen kein \"/\" oder \":\" enthalten.";

@@ -861,3 +861,4 @@
 "PhotoDeletion.FailedMessage" = "无法从您的照片库中删除：%@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "选择更多媒体或授予完全访问权限";
 "CustomPhotoPicker.LimitedAccessTitle" = "受限访问";
+"AlbumNameValidator.Forbidden" = "专辑名称不能为“.”或“..”，也不能包含“/”或“:”。";

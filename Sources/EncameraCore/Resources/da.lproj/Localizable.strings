@@ -867,3 +867,4 @@ Encamera!";
 "PhotoDeletion.FailedMessage" = "Kunne ikke slette fra dit fotobibliotek: %@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Vælg mere medie eller giv fuld adgang";
 "CustomPhotoPicker.LimitedAccessTitle" = "Begrænset adgang";
+"AlbumNameValidator.Forbidden" = "Albumnavne kan ikke være \".\" eller \"..\", eller indeholde \"/\" eller \":\".";

@@ -871,3 +871,4 @@ album";
 "PhotoDeletion.FailedMessage" = "Impossibile eliminare dalla tua libreria fotografica: %@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Seleziona altri media o concedi l'accesso completo";
 "CustomPhotoPicker.LimitedAccessTitle" = "Accesso limitato";
+"AlbumNameValidator.Forbidden" = "I nomi degli album non possono essere \".\" o \"..\", né contenere \"/\" o \":\".";

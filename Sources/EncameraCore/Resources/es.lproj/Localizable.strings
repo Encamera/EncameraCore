@@ -1014,3 +1014,4 @@
 "PhotoDeletion.FailedMessage" = "No se pudo eliminar de tu biblioteca de fotos: %@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Selecciona más medios o concede acceso completo";
 "CustomPhotoPicker.LimitedAccessTitle" = "Acceso limitado";
+"AlbumNameValidator.Forbidden" = "Los nombres de los álbumes no pueden ser \".\" o \"..\", ni contener \"/\" o \":\".";

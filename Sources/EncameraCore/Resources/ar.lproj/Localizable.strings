@@ -865,3 +865,4 @@
 "PhotoDeletion.FailedMessage" = "تعذر الحذف من مكتبة الصور الخاصة بك: %@";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "حدد المزيد من الوسائط أو امنح حق الوصول الكامل";
 "CustomPhotoPicker.LimitedAccessTitle" = "وصول محدود";
+"AlbumNameValidator.Forbidden" = "لا يمكن أن تكون أسماء الألبومات \".\" أو \"..\"، أو تحتوي على \"/\" أو \":\".";
