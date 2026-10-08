@@ -1459,7 +1459,7 @@
 "StorageInsights.FreeUpSpace" = "Free up space";
 "StorageInsights.ClearUp" = "Clear up %@";
 "StorageInsights.FreeUpSpaceTitle" = "Free up %@?";
-"StorageInsights.FreeUpSpaceMessage" = "This removes downloaded copies of media that is also stored in iCloud, along with previews and album indexes. None of your photos or videos are deleted — anything you open next will download again from iCloud.";
+"StorageInsights.FreeUpSpaceMessage" = "This removes downloaded copies of media that is also stored in iCloud. None of your photos or videos are deleted — anything you open next will download again from iCloud.";
 "StorageInsights.FreeUpSpaceConfirm" = "Free up space";
 "StorageInsights.Freeing" = "Freeing up space…";
 "StorageInsights.FreedTitle" = "Space freed";

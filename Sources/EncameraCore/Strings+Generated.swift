@@ -3126,8 +3126,8 @@ public enum L10n {
     public static let freeUpSpaceFailedMessage = L10n.tr("Localizable", "StorageInsights.FreeUpSpaceFailedMessage", fallback: "Some cached files could not be removed. Nothing was deleted from your photos or videos.")
     /// Couldn't free up space
     public static let freeUpSpaceFailedTitle = L10n.tr("Localizable", "StorageInsights.FreeUpSpaceFailedTitle", fallback: "Couldn't free up space")
-    /// This removes downloaded copies of media that is also stored in iCloud, along with previews and album indexes. None of your photos or videos are deleted — anything you open next will download again from iCloud.
-    public static let freeUpSpaceMessage = L10n.tr("Localizable", "StorageInsights.FreeUpSpaceMessage", fallback: "This removes downloaded copies of media that is also stored in iCloud, along with previews and album indexes. None of your photos or videos are deleted — anything you open next will download again from iCloud.")
+    /// This removes downloaded copies of media that is also stored in iCloud. None of your photos or videos are deleted — anything you open next will download again from iCloud.
+    public static let freeUpSpaceMessage = L10n.tr("Localizable", "StorageInsights.FreeUpSpaceMessage", fallback: "This removes downloaded copies of media that is also stored in iCloud. None of your photos or videos are deleted — anything you open next will download again from iCloud.")
     /// Free up %@?
     public static func freeUpSpaceTitle(_ p1: Any) -> String {
       return L10n.tr("Localizable", "StorageInsights.FreeUpSpaceTitle", String(describing: p1), fallback: "Free up %@?")

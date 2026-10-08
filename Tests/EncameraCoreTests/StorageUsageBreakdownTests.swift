@@ -12,9 +12,9 @@ final class StorageUsageBreakdownTests: XCTestCase {
         XCTAssertEqual(breakdown.totalDeviceBytes, 5_000_000)
     }
 
-    /// Every re-fetchable bucket contributes, so adding a bucket later without
-    /// updating the accessor fails here rather than under-reporting on screen.
-    func testReclaimableBytesSumsEveryRefetchableBucket() {
+    /// Only the cache "Free up space" deletes counts. Previews and indexes are kept,
+    /// and a counted bucket the button cannot clear keeps it enabled forever.
+    func testReclaimableBytesIsOnlyTheCloudCache() {
         let breakdown = StorageUsageBreakdown(
             localMediaBytes: 1_000,
             cachedCloudBytes: 200,
@@ -22,7 +22,7 @@ final class StorageUsageBreakdownTests: XCTestCase {
             indexBytes: 4
         )
 
-        XCTAssertEqual(breakdown.reclaimableBytes, 234)
+        XCTAssertEqual(breakdown.reclaimableBytes, 200)
         XCTAssertEqual(breakdown.totalDeviceBytes, 1_234)
     }
 
@@ -113,7 +113,7 @@ final class StorageUsageBreakdownTests: XCTestCase {
         XCTAssertEqual(breakdown.localMediaBytes, 303)
         XCTAssertEqual(breakdown.cachedCloudBytes, 31)
         XCTAssertEqual(breakdown.totalDeviceBytes, 341)
-        XCTAssertEqual(breakdown.reclaimableBytes, 38)
+        XCTAssertEqual(breakdown.reclaimableBytes, 31)
     }
 
     func testScalarInitializerMapsOntoTheTypedModel() {

@@ -105,15 +105,15 @@ public struct StorageUsageBreakdown: Sendable, Equatable {
         localMediaBytes + cachedCloudBytes + thumbnailBytes + indexBytes
     }
 
-    /// The bytes the user can free without losing anything: re-fetchable cache plus
-    /// regenerable thumbnails and indexes.
+    /// The bytes the user can free without losing anything: the re-fetchable cache,
+    /// which is all "Free up space" deletes.
     ///
     /// Never includes local media. "Free up space" is wired to this number, so the
     /// moment local media leaks in, the button starts deleting photos.
     /// Invariant: `0 <= reclaimableBytes <= totalDeviceBytes`, which holds because
     /// these terms are a subset of that sum.
     public var reclaimableBytes: Int64 {
-        cachedCloudBytes + thumbnailBytes + indexBytes
+        cachedCloudBytes
     }
 
     /// True when there is nothing on disk to show — the screen renders its empty
