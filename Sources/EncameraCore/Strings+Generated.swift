@@ -134,14 +134,14 @@ public enum L10n {
   public static let coolPicture = L10n.tr("Localizable", "CoolPicture", fallback: "That's a cool picture!")
   /// Copied to Clipboard
   public static let copiedToClipboard = L10n.tr("Localizable", "Copied to Clipboard", fallback: "Copied to Clipboard")
-  /// Copy Phrase to Clipboard
-  public static let copyPhrase = L10n.tr("Localizable", "CopyPhrase", fallback: "Copy Phrase to Clipboard")
+  /// Copy Recovery Key to Clipboard
+  public static let copyPhrase = L10n.tr("Localizable", "CopyPhrase", fallback: "Copy Recovery Key to Clipboard")
   /// Write down or copy these words in the right order and save them somewhere safe.
   /// 
-  /// This phrase is used to generate the encryption key that encrypts your media.
+  /// This recovery key is used to generate the encryption key that encrypts your media.
   /// 
-  /// It's important to save this key in case you lose your device.
-  public static let copyPhraseInstructions = L10n.tr("Localizable", "CopyPhraseInstructions", fallback: "Write down or copy these words in the right order and save them somewhere safe.\n\nThis phrase is used to generate the encryption key that encrypts your media.\n\nIt's important to save this key in case you lose your device.")
+  /// It's important to save your recovery key in case you lose your device.
+  public static let copyPhraseInstructions = L10n.tr("Localizable", "CopyPhraseInstructions", fallback: "Write down or copy these words in the right order and save them somewhere safe.\n\nThis recovery key is used to generate the encryption key that encrypts your media.\n\nIt's important to save your recovery key in case you lose your device.")
   /// ./EncameraCore/Utils/KeyManager.swift
   public static let couldNotDeleteKeychainItems = L10n.tr("Localizable", "Could not delete keychain items.", fallback: "Could not delete keychain items.")
   /// Could not rename album.
@@ -232,10 +232,10 @@ public enum L10n {
   public static let encryptionKey = L10n.tr("Localizable", "Encryption Key", fallback: "Encryption Key")
   /// Enter Promo Code
   public static let enterPromoCode = L10n.tr("Localizable", "Enter Promo Code", fallback: "Enter Promo Code")
-  /// Enter Key Phrase
-  public static let enterKeyPhrase = L10n.tr("Localizable", "EnterKeyPhrase", fallback: "Enter Key Phrase")
-  /// Enter the key phrase you want to import. Separate each word with a space.
-  public static let enterKeyPhraseDescription = L10n.tr("Localizable", "EnterKeyPhraseDescription", fallback: "Enter the key phrase you want to import. Separate each word with a space.")
+  /// Enter Recovery Key
+  public static let enterKeyPhrase = L10n.tr("Localizable", "EnterKeyPhrase", fallback: "Enter Recovery Key")
+  /// Enter the recovery key you want to import. Separate each word with a space.
+  public static let enterKeyPhraseDescription = L10n.tr("Localizable", "EnterKeyPhraseDescription", fallback: "Enter the recovery key you want to import. Separate each word with a space.")
   /// Enter Passcode
   public static let enterPasscode = L10n.tr("Localizable", "EnterPasscode", fallback: "Enter Passcode")
   /// Enter your password
@@ -258,8 +258,8 @@ public enum L10n {
   public static let errorDeletingAllFiles = L10n.tr("Localizable", "Error deleting all files", fallback: "Error deleting all files")
   /// ./Encamera/KeyManagement/KeyEntry.swift
   public static let errorSavingKey = L10n.tr("Localizable", "Error saving key", fallback: "Error saving key")
-  /// Error importing key phrase
-  public static let errorImportingKeyPhrase = L10n.tr("Localizable", "ErrorImportingKeyPhrase", fallback: "Error importing key phrase")
+  /// Error importing recovery key
+  public static let errorImportingKeyPhrase = L10n.tr("Localizable", "ErrorImportingKeyPhrase", fallback: "Error importing recovery key")
   /// Error saving password
   public static let errorSavingPassword = L10n.tr("Localizable", "ErrorSavingPassword", fallback: "Error saving password")
   /// Face ID
@@ -315,8 +315,8 @@ public enum L10n {
   public static let importFromPhotos = L10n.tr("Localizable", "Import from photos", fallback: "Import from Photos")
   /// Importing... Please wait
   public static let importingPleaseWait = L10n.tr("Localizable", "ImportingPleaseWait", fallback: "Importing... Please wait")
-  /// Import Key Phrase
-  public static let importKeyPhrase = L10n.tr("Localizable", "ImportKeyPhrase", fallback: "Import Key Phrase")
+  /// Import Recovery Key
+  public static let importKeyPhrase = L10n.tr("Localizable", "ImportKeyPhrase", fallback: "Import Recovery Key")
   /// Import the selected images to your currently active key album
   public static let importSelectedImages = L10n.tr("Localizable", "ImportSelectedImages", fallback: "Import the selected images to your currently active key album")
   /// I'm Sure
@@ -460,10 +460,10 @@ public enum L10n {
   public static let openSystemSettings = L10n.tr("Localizable", "OpenSystemSettings", fallback: "Go to Settings")
   /// Or
   public static let or = L10n.tr("Localizable", "Or", fallback: "Or")
-  /// Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.
-  public static let overwriteAreYouSure = L10n.tr("Localizable", "OverwriteAreYouSure", fallback: "Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.")
-  /// Overwrite Key Phrase?
-  public static let overwriteKeyPhrase = L10n.tr("Localizable", "OverwriteKeyPhrase", fallback: "Overwrite Key Phrase?")
+  /// Are you sure you want to overwrite your current recovery key? You will not be able to access any media encrypted with the current recovery key.
+  public static let overwriteAreYouSure = L10n.tr("Localizable", "OverwriteAreYouSure", fallback: "Are you sure you want to overwrite your current recovery key? You will not be able to access any media encrypted with the current recovery key.")
+  /// Overwrite Recovery Key?
+  public static let overwriteKeyPhrase = L10n.tr("Localizable", "OverwriteKeyPhrase", fallback: "Overwrite Recovery Key?")
   /// Password
   public static let password = L10n.tr("Localizable", "Password", fallback: "Password")
   /// Password incorrect
@@ -535,8 +535,8 @@ public enum L10n {
   public static let purchaseProduct = L10n.tr("Localizable", "PurchaseProduct", fallback: "Purchase")
   /// Widget
   public static let quicklyTakePictures = L10n.tr("Localizable", "QuicklyTakePictures", fallback: "Quickly take pictures and video.")
-  /// Recovery Phrase Copied!
-  public static let recoveryPhraseCopied = L10n.tr("Localizable", "RecoveryPhraseCopied", fallback: "Recovery Phrase Copied!")
+  /// Recovery Key Copied!
+  public static let recoveryPhraseCopied = L10n.tr("Localizable", "RecoveryPhraseCopied", fallback: "Recovery Key Copied!")
   /// Rename
   public static let rename = L10n.tr("Localizable", "Rename", fallback: "Rename")
   /// Repeat Password
@@ -749,8 +749,8 @@ public enum L10n {
   public static let youTookYourFirstPhoto📸🥳 = L10n.tr("Localizable", "You took your first photo! 📸 🥳", fallback: "You took your first photo! 📸 🥳")
   /// Your Keys
   public static let yourKeys = L10n.tr("Localizable", "Your Keys", fallback: "Your Keys")
-  /// Key Backup
-  public static let yourRecoveryPhrase = L10n.tr("Localizable", "YourRecoveryPhrase", fallback: "Key Backup")
+  /// Recovery Key
+  public static let yourRecoveryPhrase = L10n.tr("Localizable", "YourRecoveryPhrase", fallback: "Recovery Key")
   public enum AddAlbumModal {
     /// Let's rename your
     /// album
@@ -1805,10 +1805,10 @@ public enum L10n {
     public static let newPaywall = L10n.tr("Localizable", "FeatureToggles.NewPaywall", fallback: "New Paywall")
     /// Use the redesigned paywall instead of the classic purchase screen
     public static let newPaywallDescription = L10n.tr("Localizable", "FeatureToggles.NewPaywallDescription", fallback: "Use the redesigned paywall instead of the classic purchase screen")
-    /// Recovery Phrase
-    public static let recoveryPhrase = L10n.tr("Localizable", "FeatureToggles.RecoveryPhrase", fallback: "Recovery Phrase")
-    /// Enable recovery phrase feature
-    public static let recoveryPhraseDescription = L10n.tr("Localizable", "FeatureToggles.RecoveryPhraseDescription", fallback: "Enable recovery phrase feature")
+    /// Recovery Key
+    public static let recoveryPhrase = L10n.tr("Localizable", "FeatureToggles.RecoveryPhrase", fallback: "Recovery Key")
+    /// Enable recovery key feature
+    public static let recoveryPhraseDescription = L10n.tr("Localizable", "FeatureToggles.RecoveryPhraseDescription", fallback: "Enable recovery key feature")
     /// Changing RevenueCat mode requires restarting the app. Continue?
     public static let revenuecatToggleMessage = L10n.tr("Localizable", "FeatureToggles.RevenuecatToggleMessage", fallback: "Changing RevenueCat mode requires restarting the app. Continue?")
     /// Restart Required
@@ -1931,10 +1931,10 @@ public enum L10n {
     }
     /// Continue
     public static let `continue` = L10n.tr("Localizable", "GuidedSync.Continue", fallback: "Continue")
-    /// Enter key phrase instead
-    public static let enterManually = L10n.tr("Localizable", "GuidedSync.EnterManually", fallback: "Enter key phrase instead")
-    /// A key arrived from another device, but it isn't the one your photos here need. Enter your key phrase instead, or keep waiting for the right device to sync.
-    public static let mismatchBody = L10n.tr("Localizable", "GuidedSync.MismatchBody", fallback: "A key arrived from another device, but it isn't the one your photos here need. Enter your key phrase instead, or keep waiting for the right device to sync.")
+    /// Enter recovery key instead
+    public static let enterManually = L10n.tr("Localizable", "GuidedSync.EnterManually", fallback: "Enter recovery key instead")
+    /// A key arrived from another device, but it isn't the one your photos here need. Enter your recovery key instead, or keep waiting for the right device to sync.
+    public static let mismatchBody = L10n.tr("Localizable", "GuidedSync.MismatchBody", fallback: "A key arrived from another device, but it isn't the one your photos here need. Enter your recovery key instead, or keep waiting for the right device to sync.")
     /// That's a different key
     public static let mismatchTitle = L10n.tr("Localizable", "GuidedSync.MismatchTitle", fallback: "That's a different key")
     /// Keep waiting
@@ -2050,10 +2050,10 @@ public enum L10n {
     public enum Confirm {
       /// Replace
       public static let action = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Action", fallback: "Replace")
-      /// This key phrase will become the one Encamera uses for new media. Your current key phrase is kept, so everything already encrypted with it stays readable.
-      public static let message = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Message", fallback: "This key phrase will become the one Encamera uses for new media. Your current key phrase is kept, so everything already encrypted with it stays readable.")
-      /// Replace Key Phrase?
-      public static let title = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Title", fallback: "Replace Key Phrase?")
+      /// This recovery key will become the one Encamera uses for new media. Your current recovery key is kept, so everything already encrypted with it stays readable.
+      public static let message = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Message", fallback: "This recovery key will become the one Encamera uses for new media. Your current recovery key is kept, so everything already encrypted with it stays readable.")
+      /// Replace Recovery Key?
+      public static let title = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Title", fallback: "Replace Recovery Key?")
     }
     public enum RestartRequired {
       /// After changing your key, the app will restart.
@@ -2081,18 +2081,18 @@ public enum L10n {
     }
     /// Key saved. We'll verify it against your photos when they load.
     public static let offlineAccepted = L10n.tr("Localizable", "KeyEntry.OfflineAccepted", fallback: "Key saved. We'll verify it against your photos when they load.")
-    /// Enter the key phrase for your Encamera account. Your existing photos are encrypted with it.
-    public static let prompt = L10n.tr("Localizable", "KeyEntry.Prompt", fallback: "Enter the key phrase for your Encamera account. Your existing photos are encrypted with it.")
-    /// Enter your key phrase. We couldn't reach your existing photos to check it now — we'll verify it when they load.
-    public static let promptUnknown = L10n.tr("Localizable", "KeyEntry.PromptUnknown", fallback: "Enter your key phrase. We couldn't reach your existing photos to check it now — we'll verify it when they load.")
-    /// Enter the key phrase for key %@. Your existing photos are encrypted with it.
+    /// Enter the recovery key for your Encamera account. Your existing photos are encrypted with it.
+    public static let prompt = L10n.tr("Localizable", "KeyEntry.Prompt", fallback: "Enter the recovery key for your Encamera account. Your existing photos are encrypted with it.")
+    /// Enter your recovery key. We couldn't reach your existing photos to check it now — we'll verify it when they load.
+    public static let promptUnknown = L10n.tr("Localizable", "KeyEntry.PromptUnknown", fallback: "Enter your recovery key. We couldn't reach your existing photos to check it now — we'll verify it when they load.")
+    /// Enter the recovery key for key %@. Your existing photos are encrypted with it.
     public static func promptWithFingerprint(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "KeyEntry.PromptWithFingerprint", String(describing: p1), fallback: "Enter the key phrase for key %@. Your existing photos are encrypted with it.")
+      return L10n.tr("Localizable", "KeyEntry.PromptWithFingerprint", String(describing: p1), fallback: "Enter the recovery key for key %@. Your existing photos are encrypted with it.")
     }
     /// Verify and continue
     public static let submit = L10n.tr("Localizable", "KeyEntry.Submit", fallback: "Verify and continue")
     /// ./Encamera/Onboarding/OnboardingKeyEntryView.swift - Manual key-phrase entry with fingerprint validation (ENC-92)
-    public static let title = L10n.tr("Localizable", "KeyEntry.Title", fallback: "Enter your key phrase")
+    public static let title = L10n.tr("Localizable", "KeyEntry.Title", fallback: "Enter your recovery key")
     /// Checking your key…
     public static let verifying = L10n.tr("Localizable", "KeyEntry.Verifying", fallback: "Checking your key…")
   }
@@ -2107,8 +2107,8 @@ public enum L10n {
     public static func disabledFromDeviceOn(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "KeyMissing.DisabledFromDeviceOn", String(describing: p1), String(describing: p2), fallback: "iCloud key backup was turned off from %@ on %@, which removes the key from all other devices.")
     }
-    /// Enter Key Phrase
-    public static let enterKeyPhrase = L10n.tr("Localizable", "KeyMissing.EnterKeyPhrase", fallback: "Enter Key Phrase")
+    /// Enter Recovery Key
+    public static let enterKeyPhrase = L10n.tr("Localizable", "KeyMissing.EnterKeyPhrase", fallback: "Enter Recovery Key")
     /// Start fresh on this device
     public static let startFresh = L10n.tr("Localizable", "KeyMissing.StartFresh", fallback: "Start fresh on this device")
     /// Your encryption key isn't available on this device, so existing photos can't be decrypted.
@@ -2119,12 +2119,22 @@ public enum L10n {
   public enum KeyPhrase {
     /// My Key Has Been Stored
     public static let continueButton = L10n.tr("Localizable", "KeyPhrase.ContinueButton", fallback: "My Key Has Been Stored")
-    /// Copy Key Phrase
-    public static let copyButton = L10n.tr("Localizable", "KeyPhrase.CopyButton", fallback: "Copy Key Phrase")
-    /// This is your unique encryption key phrase. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.
-    public static let subtitle = L10n.tr("Localizable", "KeyPhrase.Subtitle", fallback: "This is your unique encryption key phrase. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.")
+    /// Copied to clipboard
+    public static let copiedToClipboard = L10n.tr("Localizable", "KeyPhrase.CopiedToClipboard", fallback: "Copied to clipboard")
+    /// Copy Recovery Key
+    public static let copyButton = L10n.tr("Localizable", "KeyPhrase.CopyButton", fallback: "Copy Recovery Key")
+    /// Copy to clipboard
+    public static let copyToClipboard = L10n.tr("Localizable", "KeyPhrase.CopyToClipboard", fallback: "Copy to clipboard")
+    /// We can't recover this key if it's lost
+    public static let lossWarning = L10n.tr("Localizable", "KeyPhrase.LossWarning", fallback: "We can't recover this key if it's lost")
+    /// This key unlocks your encrypted albums. Keep a copy somewhere safe in case you ever need it.
+    public static let privacyKeySubtitle = L10n.tr("Localizable", "KeyPhrase.PrivacyKeySubtitle", fallback: "This key unlocks your encrypted albums. Keep a copy somewhere safe in case you ever need it.")
+    /// Your recovery key
+    public static let privacyKeyTitle = L10n.tr("Localizable", "KeyPhrase.PrivacyKeyTitle", fallback: "Your recovery key")
+    /// This is your unique recovery key. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.
+    public static let subtitle = L10n.tr("Localizable", "KeyPhrase.Subtitle", fallback: "This is your unique recovery key. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.")
     /// Key Phrase Display Screen
-    public static let title = L10n.tr("Localizable", "KeyPhrase.Title", fallback: "Your Encryption Key Phrase")
+    public static let title = L10n.tr("Localizable", "KeyPhrase.Title", fallback: "Your Recovery Key")
   }
   public enum Lightbox {
     /// ./Encamera/Lightbox/LightboxController.swift - Edit Mode
@@ -2219,12 +2229,12 @@ public enum L10n {
     public static let added = L10n.tr("Localizable", "MissingKey.Added", fallback: "Key added. Your media should open now.")
     /// Add this key
     public static let addKey = L10n.tr("Localizable", "MissingKey.AddKey", fallback: "Add this key")
-    /// Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.
+    /// Enter the recovery key for key %@. It will only be used to open existing media — new photos keep using this device's key.
     public static func addKeyPrompt(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "MissingKey.AddKeyPrompt", String(describing: p1), fallback: "Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.")
+      return L10n.tr("Localizable", "MissingKey.AddKeyPrompt", String(describing: p1), fallback: "Enter the recovery key for key %@. It will only be used to open existing media — new photos keep using this device's key.")
     }
-    /// Enter the key phrase for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.
-    public static let addKeyPromptUnknown = L10n.tr("Localizable", "MissingKey.AddKeyPromptUnknown", fallback: "Enter the key phrase for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.")
+    /// Enter the recovery key for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.
+    public static let addKeyPromptUnknown = L10n.tr("Localizable", "MissingKey.AddKeyPromptUnknown", fallback: "Enter the recovery key for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.")
     /// Add a key
     public static let addKeyTitle = L10n.tr("Localizable", "MissingKey.AddKeyTitle", fallback: "Add a key")
     /// None of this album's photos or videos could be opened with any key on this device.
@@ -2239,8 +2249,8 @@ public enum L10n {
     public static let albumTitle = L10n.tr("Localizable", "MissingKey.AlbumTitle", fallback: "Missing Key")
     /// You already have that key on this device.
     public static let alreadyHaveKey = L10n.tr("Localizable", "MissingKey.AlreadyHaveKey", fallback: "You already have that key on this device.")
-    /// This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.
-    public static let couldNotVerify = L10n.tr("Localizable", "MissingKey.CouldNotVerify", fallback: "This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.")
+    /// This recovery key couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.
+    public static let couldNotVerify = L10n.tr("Localizable", "MissingKey.CouldNotVerify", fallback: "This recovery key couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.")
     /// Enter Key
     public static let enterKey = L10n.tr("Localizable", "MissingKey.EnterKey", fallback: "Enter Key")
     /// %d album(s) can't be shown because their key isn't on this device.
@@ -2257,12 +2267,12 @@ public enum L10n {
     }
     /// ENC-99 - Media encrypted with a key this device does not hold (placeholder copy; design in ENC-103)
     public static let title = L10n.tr("Localizable", "MissingKey.Title", fallback: "This photo needs a different key")
-    /// That key phrase is for key %@, but this media needs key %@.
+    /// That recovery key is for key %@, but this media needs key %@.
     public static func wrongKey(_ p1: Any, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "MissingKey.WrongKey", String(describing: p1), String(describing: p2), fallback: "That key phrase is for key %@, but this media needs key %@.")
+      return L10n.tr("Localizable", "MissingKey.WrongKey", String(describing: p1), String(describing: p2), fallback: "That recovery key is for key %@, but this media needs key %@.")
     }
-    /// That key phrase doesn't open this media.
-    public static let wrongKeyUnknown = L10n.tr("Localizable", "MissingKey.WrongKeyUnknown", fallback: "That key phrase doesn't open this media.")
+    /// That recovery key doesn't open this media.
+    public static let wrongKeyUnknown = L10n.tr("Localizable", "MissingKey.WrongKeyUnknown", fallback: "That recovery key doesn't open this media.")
   }
   public enum Notification {
     /// Unknown notification identifier
@@ -2532,17 +2542,17 @@ public enum L10n {
     /// Encamera
     public static let credentialTitle = L10n.tr("Localizable", "PasswordManager.CredentialTitle", fallback: "Encamera")
     /// ./Encamera/Settings/KeyPhrasePasswordManagerSaver.swift - Key phrase entry saved to the user's password manager
-    public static let credentialUserName = L10n.tr("Localizable", "PasswordManager.CredentialUserName", fallback: "Encamera Key Phrase")
-    /// Encamera Key Phrase (%@)
+    public static let credentialUserName = L10n.tr("Localizable", "PasswordManager.CredentialUserName", fallback: "Encamera Recovery Key")
+    /// Encamera Recovery Key (%@)
     public static func credentialUserNameWithFingerprint(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "PasswordManager.CredentialUserNameWithFingerprint", String(describing: p1), fallback: "Encamera Key Phrase (%@)")
+      return L10n.tr("Localizable", "PasswordManager.CredentialUserNameWithFingerprint", String(describing: p1), fallback: "Encamera Recovery Key (%@)")
     }
     /// Save to Password Manager
     public static let saveButton = L10n.tr("Localizable", "PasswordManager.SaveButton", fallback: "Save to Password Manager")
-    /// Your password manager didn't accept the key phrase. Copy it to the clipboard and save it manually instead.
-    public static let saveFailedMessage = L10n.tr("Localizable", "PasswordManager.SaveFailedMessage", fallback: "Your password manager didn't accept the key phrase. Copy it to the clipboard and save it manually instead.")
-    /// Couldn't Save Key Phrase
-    public static let saveFailedTitle = L10n.tr("Localizable", "PasswordManager.SaveFailedTitle", fallback: "Couldn't Save Key Phrase")
+    /// Your password manager didn't accept the recovery key. Copy it to the clipboard and save it manually instead.
+    public static let saveFailedMessage = L10n.tr("Localizable", "PasswordManager.SaveFailedMessage", fallback: "Your password manager didn't accept the recovery key. Copy it to the clipboard and save it manually instead.")
+    /// Couldn't Save Recovery Key
+    public static let saveFailedTitle = L10n.tr("Localizable", "PasswordManager.SaveFailedTitle", fallback: "Couldn't Save Recovery Key")
   }
   public enum PaywallView {
     /// Encamera
@@ -2791,9 +2801,53 @@ public enum L10n {
       public static let unlimitedStorage = L10n.tr("Localizable", "PurchaseView.BenefitModel.UnlimitedStorage", fallback: "Unlimited storage for photos & videos")
     }
   }
+  public enum RecoveryKey {
+    public enum Intro {
+      /// Your recovery key is needed to recover your media on a new device
+      public static let row1 = L10n.tr("Localizable", "RecoveryKey.Intro.Row1", fallback: "Your recovery key is needed to recover your media on a new device")
+      /// Keep it somewhere safe, like a password manager
+      public static let row2 = L10n.tr("Localizable", "RecoveryKey.Intro.Row2", fallback: "Keep it somewhere safe, like a password manager")
+      /// If you lose it, we can't recover your media for you
+      public static let row3 = L10n.tr("Localizable", "RecoveryKey.Intro.Row3", fallback: "If you lose it, we can't recover your media for you")
+      /// Save your recovery key
+      public static let title = L10n.tr("Localizable", "RecoveryKey.Intro.Title", fallback: "Save your recovery key")
+    }
+    public enum Prompt {
+      /// Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.
+      public static let body = L10n.tr("Localizable", "RecoveryKey.Prompt.Body", fallback: "Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.")
+      /// Maybe later
+      public static let later = L10n.tr("Localizable", "RecoveryKey.Prompt.Later", fallback: "Maybe later")
+      /// Save recovery key
+      public static let save = L10n.tr("Localizable", "RecoveryKey.Prompt.Save", fallback: "Save recovery key")
+      /// Recovery key prompt after the first item lands in a new album, and the save-recovery-key flow behind it
+      public static let title = L10n.tr("Localizable", "RecoveryKey.Prompt.Title", fallback: "Never lose access to your media")
+    }
+    public enum Saved {
+      /// Make sure you save a copy somewhere safe. You can always find your key in Settings.
+      public static let body = L10n.tr("Localizable", "RecoveryKey.Saved.Body", fallback: "Make sure you save a copy somewhere safe. You can always find your key in Settings.")
+      /// I've saved my key
+      public static let confirm = L10n.tr("Localizable", "RecoveryKey.Saved.Confirm", fallback: "I've saved my key")
+      /// I'll do it later
+      public static let later = L10n.tr("Localizable", "RecoveryKey.Saved.Later", fallback: "I'll do it later")
+      /// Have you saved your recovery key?
+      public static let title = L10n.tr("Localizable", "RecoveryKey.Saved.Title", fallback: "Have you saved your recovery key?")
+    }
+    public enum Storage {
+      /// Backed up automatically. Recoverable if you switch devices or lose your iPhone.
+      public static let iCloudLabel = L10n.tr("Localizable", "RecoveryKey.Storage.ICloudLabel", fallback: "Backed up automatically. Recoverable if you switch devices or lose your iPhone.")
+      /// iCloud (Recommended)
+      public static let iCloudTitle = L10n.tr("Localizable", "RecoveryKey.Storage.ICloudTitle", fallback: "iCloud (Recommended)")
+      /// Only you have access. We can't recover it for you.
+      public static let subtitle = L10n.tr("Localizable", "RecoveryKey.Storage.Subtitle", fallback: "Only you have access. We can't recover it for you.")
+      /// Stored locally only. Not backed up. You'll need to export and manage it yourself.
+      public static let thisIPhoneLabel = L10n.tr("Localizable", "RecoveryKey.Storage.ThisIPhoneLabel", fallback: "Stored locally only. Not backed up. You'll need to export and manage it yourself.")
+      /// Where should we save your recovery key?
+      public static let title = L10n.tr("Localizable", "RecoveryKey.Storage.Title", fallback: "Where should we save your recovery key?")
+    }
+  }
   public enum RestoringFromICloud {
-    /// Enter key phrase instead
-    public static let enterKeyPhrase = L10n.tr("Localizable", "RestoringFromICloud.EnterKeyPhrase", fallback: "Enter key phrase instead")
+    /// Enter recovery key instead
+    public static let enterKeyPhrase = L10n.tr("Localizable", "RestoringFromICloud.EnterKeyPhrase", fallback: "Enter recovery key instead")
     /// Finishing restore…
     public static let finishingRestore = L10n.tr("Localizable", "RestoringFromICloud.FinishingRestore", fallback: "Finishing restore…")
     /// Set up as a new device
@@ -2878,8 +2932,8 @@ public enum L10n {
     public static let backupKeyChangeFailed = L10n.tr("Localizable", "Settings.BackupKeyChangeFailed", fallback: "Couldn't Change Key Backup")
     /// Your iCloud Keychain refused the change, so this setting was left as it was. Make sure you're signed in to iCloud with Keychain turned on, then try again.
     public static let backupKeyChangeFailedMessage = L10n.tr("Localizable", "Settings.BackupKeyChangeFailedMessage", fallback: "Your iCloud Keychain refused the change, so this setting was left as it was. Make sure you're signed in to iCloud with Keychain turned on, then try again.")
-    /// Backup Key Phrase
-    public static let backupKeyPhrase = L10n.tr("Localizable", "Settings.BackupKeyPhrase", fallback: "Backup Key Phrase")
+    /// Backup Recovery Key
+    public static let backupKeyPhrase = L10n.tr("Localizable", "Settings.BackupKeyPhrase", fallback: "Backup Recovery Key")
     /// Sync Key to iCloud
     public static let backupKeyToiCloud = L10n.tr("Localizable", "Settings.BackupKeyToiCloud", fallback: "Sync Key to iCloud")
     /// If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.
@@ -2902,8 +2956,8 @@ public enum L10n {
     public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
     /// Hidden Albums
     public static let hiddenAlbums = L10n.tr("Localizable", "Settings.HiddenAlbums", fallback: "Hidden Albums")
-    /// Import Key Phrase
-    public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Key Phrase")
+    /// Import Recovery Key
+    public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Recovery Key")
     /// Loop Videos
     public static let loopVideos = L10n.tr("Localizable", "Settings.LoopVideos", fallback: "Loop Videos")
     /// Sync Across Devices

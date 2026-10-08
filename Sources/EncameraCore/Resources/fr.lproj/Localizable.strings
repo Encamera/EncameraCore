@@ -580,7 +580,6 @@ album";
 
 "BlackFridayTitle" = "LE BLACK FRIDAY EST LÀ !";
 "BlackFridaySubtitle" = "Ne manquez pas cette offre ! La promotion se termine bientôt !";
-"FeatureToggles.RecoveryPhraseDescription" = "Activer la fonctionnalité de phrase de récupération";
 "FeatureToggles.RevenuecatToggleTitle" = "Redémarrage requis";
 "CMS.LoadingError" = "Échec du chargement des bannières promotionnelles";
 "FeatureToggles.EnableVideoDescription" = "Activer l'enregistrement et la lecture vidéo";
@@ -595,7 +594,6 @@ album";
 "FeatureToggles.Title" = "Commutateurs de fonctionnalités";
 "FeatureToggles.HideAlbumDescription" = "Masquer l'album de la vue principale";
 "FeatureToggles.RevenuecatToggleMessage" = "Changer le mode RevenueCat nécessite de redémarrer l'application. Continuer ?";
-"FeatureToggles.RecoveryPhrase" = "Phrase de récupération";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "Impossible de charger les abonnements";
 "FeatureToggles.EnableTestRevenueCat" = "Tester RevenueCat";
 "FeatureToggles.HideAlbum" = "Masquer l’album";

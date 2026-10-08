@@ -385,9 +385,7 @@
 
 "IncorrectPinCode" = "Código PIN incorrecto. Por favor, inténtelo de nuevo.";
 "ThanksForPurchasingLifetimeSubtitle" = "Eres genial y pronto desbloquearás nuevos beneficios.";
-"OverwriteKeyPhrase" = "¿Sobrescribir frase clave?";
 "SettingsFaceIdDisabled" = "El Face ID está desactivado";
-"ErrorImportingKeyPhrase" = "Error al importar la frase clave";
 "EmptyAlbumImportPhotosActionTitle" = "Importar Imágenes";
 "FinishedReadyToUseEncamera" = "¡Estás listo para usar\nEncamera!";
 "PostPurchaseView.ReviewButton" = "Ayúdanos con una reseña";
@@ -404,13 +402,10 @@
 "PostPurchaseView.ThanksForYourPurchase" = "¡Gracias por tu compra!";
 "**Purchased: %@**" = "**Comprado: %@**";
 "ErrorSavingPassword" = "Error al guardar la contraseña";
-"YourRecoveryPhrase" = "Tu Frase de Recuperación";
 "PostPurchaseView.Subtext2" = "Mientras tanto, agradeceríamos mucho si pudieras ayudarnos con una reseña en la App Store";
 "FinishedOnboardingTitle" = "¡Estás listo para usar Encamera!";
 "Enable Face ID" = "Habilitar Face ID";
-"EnterKeyPhrase" = "Introducir frase clave";
 "SaveAmount %@ $@" = "GUARDAR %@";
-"OverwriteAreYouSure" = "¿Estás seguro de que deseas sobrescribir tu frase clave actual? No podrás acceder a ningún medio cifrado con la frase clave actual.";
 "SetPinCode" = "Establecer código PIN";
 "EmptyAlbumTakeAPictureSubtitle" = "Abre tu cámara y toma una foto";
 "EmptyAlbumTakeAPictureActionTitle" = "Toma una foto";
@@ -427,11 +422,9 @@
 "Use PIN instead" = "Usar PIN en su lugar";
 "ImSure" = "Estoy seguro";
 "RepeatPinCode" = "Repetir Código PIN";
-"ImportKeyPhrase" = "Frase Clave de Importación";
 "EmptyAlbumImportPhotosSubtitle" = "Importar fotos de tu carrete";
 "PurchaseProduct" = "Compra";
 "IForgot" = "Olvidé";
-"EnterKeyPhraseDescription" = "Introduce la frase clave que quieres importar. Separa cada palabra con un espacio.\nEsto sobrescribirá tu frase clave actual.";
 "TakeSurveyButtonText" = "Realizar encuesta";
 "PinCodeMismatch" = "Los códigos PIN no son iguales";
 "ThanksForPurchasingLifetime" = "¡Gracias por comprar una licencia de por vida!";
@@ -475,14 +468,9 @@
 "UnlockWithPin" = "Desbloquear";
 "SavePinCode" = "Guardar código PIN";
 "OpenSystemSettings" = "Ir a Configuración";
-"Settings.BackupKeyPhrase" = "Frase de Respaldo";
-"Settings.ImportKeyPhrase" = "Importar Frase de Respaldo";
 "MediaSelectionTray.ItemSelected" = "Elemento Seleccionado";
 "NotificationListTitle" = "Notificaciones";
 "MediaSelectionTray.SelectMedia" = "Seleccionar Medios";
-"CopyPhraseInstructions" = "Escribe o copia estas palabras en el orden correcto y guárdalas en un lugar seguro.\n\nEsta frase se usa para generar la clave de cifrado que encripta tus medios.\n\nEs importante guardar esta clave en caso de que pierdas tu dispositivo.";
-"RecoveryPhraseCopied" = "¡Frase de recuperación copiada!";
-"CopyPhrase" = "Copiar frase al portapapeles";
 
 "AlbumDetailView.PhotoAccessAlertTitle" = "¿Eliminar después de importar?";
 "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "No ahora";
@@ -692,9 +680,6 @@
 "Settings.BackupKeyToiCloudDescription" = "Si está habilitado, su clave se respaldará automáticamente en su iCloud Keychain. Si pierde su dispositivo, aún tendrá acceso a los archivos almacenados en iCloud si elige esta opción.";
 "KeyPhrase.ContinueButton" = "Mi clave ha sido almacenada";
 "MainHomeView.BackupEncryptionKey" = "Haga una copia de seguridad de su clave de cifrado";
-"KeyPhrase.Subtitle" = "Esta es su frase de clave de cifrado única. Si la pierde y obtiene un nuevo teléfono, nunca podrá acceder a sus fotos y videos cifrados nuevamente. Por favor, guárdela en un lugar seguro.";
-"KeyPhrase.Title" = "Tu frase de clave de cifrado";
-"KeyPhrase.CopyButton" = "Copiar frase de clave";
 "MainHomeView.ViewTheKey" = "Ver la clave";
 "MainHomeView.KeyBackupWarning" = "No podrás ver tu contenido multimedia sin esta clave.";
 "Settings.CopiedToClipboard" = "Copiado al portapapeles";
@@ -712,7 +697,6 @@
 
 "BlackFridayTitle" = "¡EL BLACK FRIDAY YA ESTÁ AQUÍ!";
 "BlackFridaySubtitle" = "¡No te lo pierdas! ¡La oferta termina pronto!";
-"FeatureToggles.RecoveryPhraseDescription" = "Habilitar la función de frase de recuperación";
 "FeatureToggles.RevenuecatToggleTitle" = "Reinicio requerido";
 "CMS.LoadingError" = "No se pudieron cargar los banners promocionales";
 "FeatureToggles.EnableVideoDescription" = "Habilitar grabación y reproducción de video";
@@ -727,7 +711,6 @@
 "FeatureToggles.Title" = "Alternadores de funciones";
 "FeatureToggles.HideAlbumDescription" = "Ocultar álbum de la vista principal";
 "FeatureToggles.RevenuecatToggleMessage" = "Cambiar el modo de RevenueCat requiere reiniciar la aplicación. ¿Continuar?";
-"FeatureToggles.RecoveryPhrase" = "Frase de recuperación";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "No se pueden cargar las suscripciones";
 "FeatureToggles.EnableTestRevenueCat" = "Probar RevenueCat";
 "FeatureToggles.HideAlbum" = "Ocultar álbum";

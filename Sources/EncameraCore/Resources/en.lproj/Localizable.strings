@@ -428,10 +428,15 @@
 "Encryption Key" = "Encryption Key";
 
 /* Key Phrase Display Screen */
-"KeyPhrase.Title" = "Your Encryption Key Phrase";
-"KeyPhrase.Subtitle" = "This is your unique encryption key phrase. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.";
-"KeyPhrase.CopyButton" = "Copy Key Phrase";
+"KeyPhrase.Title" = "Your Recovery Key";
+"KeyPhrase.Subtitle" = "This is your unique recovery key. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.";
+"KeyPhrase.CopyButton" = "Copy Recovery Key";
 "KeyPhrase.ContinueButton" = "My Key Has Been Stored";
+"KeyPhrase.PrivacyKeyTitle" = "Your recovery key";
+"KeyPhrase.PrivacyKeySubtitle" = "This key unlocks your encrypted albums. Keep a copy somewhere safe in case you ever need it.";
+"KeyPhrase.CopyToClipboard" = "Copy to clipboard";
+"KeyPhrase.CopiedToClipboard" = "Copied to clipboard";
+"KeyPhrase.LossWarning" = "We can't recover this key if it's lost";
 
 "New Album Subheading" = "Set the name for this encrypted photo album.";
 
@@ -677,22 +682,22 @@
 
 "ThanksForPurchasingLifetime" = "Thanks for purchasing a lifetime license!";
 "ThanksForPurchasingLifetimeSubtitle" = "You rock and you will unlock new benefits soon.";
-"ImportKeyPhrase" = "Import Key Phrase";
-"CopyPhrase" = "Copy Phrase to Clipboard";
-"CopyPhraseInstructions" = "Write down or copy these words in the right order and save them somewhere safe.\n\nThis phrase is used to generate the encryption key that encrypts your media.\n\nIt's important to save this key in case you lose your device.";
-"YourRecoveryPhrase" = "Key Backup";
-"RecoveryPhraseCopied" = "Recovery Phrase Copied!";
-"EnterKeyPhrase" = "Enter Key Phrase";
-"EnterKeyPhraseDescription" = "Enter the key phrase you want to import. Separate each word with a space.";
+"ImportKeyPhrase" = "Import Recovery Key";
+"CopyPhrase" = "Copy Recovery Key to Clipboard";
+"CopyPhraseInstructions" = "Write down or copy these words in the right order and save them somewhere safe.\n\nThis recovery key is used to generate the encryption key that encrypts your media.\n\nIt's important to save your recovery key in case you lose your device.";
+"YourRecoveryPhrase" = "Recovery Key";
+"RecoveryPhraseCopied" = "Recovery Key Copied!";
+"EnterKeyPhrase" = "Enter Recovery Key";
+"EnterKeyPhraseDescription" = "Enter the recovery key you want to import. Separate each word with a space.";
 "NotificationListTitle" = "Notifications";
 "Import" = "Import";
-"OverwriteKeyPhrase" = "Overwrite Key Phrase?";
-"OverwriteAreYouSure" = "Are you sure you want to overwrite your current key phrase? You will not be able to access any media encrypted with the current key phrase.";
+"OverwriteKeyPhrase" = "Overwrite Recovery Key?";
+"OverwriteAreYouSure" = "Are you sure you want to overwrite your current recovery key? You will not be able to access any media encrypted with the current recovery key.";
 "ImSure" = "I'm Sure";
-"ImportKeyPhrase.Confirm.Title" = "Replace Key Phrase?";
-"ImportKeyPhrase.Confirm.Message" = "This key phrase will become the one Encamera uses for new media. Your current key phrase is kept, so everything already encrypted with it stays readable.";
+"ImportKeyPhrase.Confirm.Title" = "Replace Recovery Key?";
+"ImportKeyPhrase.Confirm.Message" = "This recovery key will become the one Encamera uses for new media. Your current recovery key is kept, so everything already encrypted with it stays readable.";
 "ImportKeyPhrase.Confirm.Action" = "Replace";
-"ErrorImportingKeyPhrase" = "Error importing key phrase";
+"ErrorImportingKeyPhrase" = "Error importing recovery key";
 "ImportKeyPhrase.RestartRequired.Title" = "Restart Required";
 "ImportKeyPhrase.RestartRequired.Message" = "After changing your key, the app will restart.";
 "PostPurchaseView.ThanksForYourPurchase" = "Thanks for your purchase!";
@@ -724,8 +729,8 @@
 "Settings.RevenueCatCustomerId" = "RevenueCat Customer ID";
 "Settings.CopiedToClipboard" = "Copied to clipboard";
 "Settings.Contact" = "Contact Support";
-"Settings.BackupKeyPhrase" = "Backup Key Phrase";
-"Settings.ImportKeyPhrase" = "Import Key Phrase";
+"Settings.BackupKeyPhrase" = "Backup Recovery Key";
+"Settings.ImportKeyPhrase" = "Import Recovery Key";
 "Settings.DefaultStorageOption" = "Default Storage Option";
 "Settings.BackupKeyToiCloud" = "Sync Key to iCloud";
 "Settings.BackupKeyToiCloudDescription" = "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.";
@@ -1142,8 +1147,8 @@
 "FeatureToggles.Title" = "Feature Toggles";
 "FeatureToggles.EnableVideo" = "Enable Video";
 "FeatureToggles.EnableVideoDescription" = "Enable video recording and playback";
-"FeatureToggles.RecoveryPhrase" = "Recovery Phrase";
-"FeatureToggles.RecoveryPhraseDescription" = "Enable recovery phrase feature";
+"FeatureToggles.RecoveryPhrase" = "Recovery Key";
+"FeatureToggles.RecoveryPhraseDescription" = "Enable recovery key feature";
 "FeatureToggles.HideAlbum" = "Hide Album";
 "FeatureToggles.HideAlbumDescription" = "Hide album from main view";
 "FeatureToggles.ShowMoveToAlbum" = "Move to Album";
@@ -1314,7 +1319,7 @@
 "RestoringFromICloud.Title" = "Restoring from iCloud…";
 "RestoringFromICloud.Subtitle" = "Looking for your Encamera account from another device. This usually takes a few seconds.";
 "RestoringFromICloud.SetUpAsNew" = "Set up as a new device";
-"RestoringFromICloud.EnterKeyPhrase" = "Enter key phrase instead";
+"RestoringFromICloud.EnterKeyPhrase" = "Enter recovery key instead";
 "RestoringFromICloud.FinishingRestore" = "Finishing restore…";
 /* ./Encamera/Onboarding/OnboardingHostingView.swift - Welcome back takeover for synced accounts */
 "WelcomeBack.Title" = "Welcome back!";
@@ -1366,10 +1371,10 @@
 "ReturningUser.Destructive.PartialFailureBody" = "Some of your data could not be deleted and still remains in iCloud. No new key was created. Please try again to finish deleting.";
 "ReturningUser.Destructive.FailedBody" = "Something went wrong and the deletion did not finish. Your iCloud data has not been fully deleted. Please try again.";
 /* ./Encamera/Onboarding/OnboardingKeyEntryView.swift - Manual key-phrase entry with fingerprint validation (ENC-92) */
-"KeyEntry.Title" = "Enter your key phrase";
-"KeyEntry.Prompt" = "Enter the key phrase for your Encamera account. Your existing photos are encrypted with it.";
-"KeyEntry.PromptWithFingerprint" = "Enter the key phrase for key %@. Your existing photos are encrypted with it.";
-"KeyEntry.PromptUnknown" = "Enter your key phrase. We couldn't reach your existing photos to check it now — we'll verify it when they load.";
+"KeyEntry.Title" = "Enter your recovery key";
+"KeyEntry.Prompt" = "Enter the recovery key for your Encamera account. Your existing photos are encrypted with it.";
+"KeyEntry.PromptWithFingerprint" = "Enter the recovery key for key %@. Your existing photos are encrypted with it.";
+"KeyEntry.PromptUnknown" = "Enter your recovery key. We couldn't reach your existing photos to check it now — we'll verify it when they load.";
 "KeyEntry.Submit" = "Verify and continue";
 "KeyEntry.Verifying" = "Checking your key…";
 "KeyEntry.FingerprintMismatch" = "That's not the key these photos need. You entered key %@, but they need key %@.";
@@ -1379,7 +1384,7 @@
 "GuidedSync.Body" = "On your other device, open Encamera and turn on iCloud Multi-Device Mode in Settings. Your key will sync to this device automatically.";
 "GuidedSync.BodyNamed" = "On %@, open Encamera and turn on iCloud Multi-Device Mode in Settings. Your key will sync to this device automatically.";
 "GuidedSync.Waiting" = "Waiting for your key to arrive…";
-"GuidedSync.EnterManually" = "Enter key phrase instead";
+"GuidedSync.EnterManually" = "Enter recovery key instead";
 "GuidedSync.SuccessTitle" = "Key synced";
 "GuidedSync.SuccessBody" = "Your key arrived from your other device. You're all set to continue on this device.";
 "GuidedSync.Continue" = "Continue";
@@ -1387,7 +1392,7 @@
 "GuidedSync.TimeoutBody" = "Your key hasn't arrived yet. Make sure iCloud Keychain is turned on: check Settings → iCloud → Passwords & Keychain on both devices, then try again.";
 "GuidedSync.Retry" = "Keep waiting";
 "GuidedSync.MismatchTitle" = "That's a different key";
-"GuidedSync.MismatchBody" = "A key arrived from another device, but it isn't the one your photos here need. Enter your key phrase instead, or keep waiting for the right device to sync.";
+"GuidedSync.MismatchBody" = "A key arrived from another device, but it isn't the one your photos here need. Enter your recovery key instead, or keep waiting for the right device to sync.";
 /* ./Encamera/EncameraApp.swift - Credential conflict prompt (two accounts detected) */
 "CredentialConflict.Title" = "Another account found";
 "CredentialConflict.Message" = "This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?";
@@ -1400,7 +1405,7 @@
 "KeyMissing.DisabledFromDevice" = "iCloud key backup was turned off from %@, which removes the key from all other devices.";
 "KeyMissing.DisabledFromDeviceOn" = "iCloud key backup was turned off from %@ on %@, which removes the key from all other devices.";
 "KeyMissing.AnotherDevice" = "another device";
-"KeyMissing.EnterKeyPhrase" = "Enter Key Phrase";
+"KeyMissing.EnterKeyPhrase" = "Enter Recovery Key";
 "KeyMissing.StartFresh" = "Start fresh on this device";
 
 /* ENC-99 - Media encrypted with a key this device does not hold (placeholder copy; design in ENC-103) */
@@ -1412,11 +1417,11 @@
 "MissingKey.AlbumTitle" = "Missing Key";
 "MissingKey.LockedAlbums" = "%d album(s) can't be shown because their key isn't on this device.";
 "MissingKey.AddKeyTitle" = "Add a key";
-"MissingKey.AddKeyPrompt" = "Enter the key phrase for key %@. It will only be used to open existing media — new photos keep using this device's key.";
-"MissingKey.AddKeyPromptUnknown" = "Enter the key phrase for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.";
-"MissingKey.WrongKey" = "That key phrase is for key %@, but this media needs key %@.";
-"MissingKey.WrongKeyUnknown" = "That key phrase doesn't open this media.";
-"MissingKey.CouldNotVerify" = "This key phrase couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.";
+"MissingKey.AddKeyPrompt" = "Enter the recovery key for key %@. It will only be used to open existing media — new photos keep using this device's key.";
+"MissingKey.AddKeyPromptUnknown" = "Enter the recovery key for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.";
+"MissingKey.WrongKey" = "That recovery key is for key %@, but this media needs key %@.";
+"MissingKey.WrongKeyUnknown" = "That recovery key doesn't open this media.";
+"MissingKey.CouldNotVerify" = "This recovery key couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.";
 "MissingKey.AlreadyHaveKey" = "You already have that key on this device.";
 "MissingKey.Added" = "Key added. Your media should open now.";
 "MissingKey.EnterKey" = "Enter Key";
@@ -1580,12 +1585,12 @@
 "Onboarding.Premium.Body2" = "Upgrade to Premium when you need more.";
 
 /* ./Encamera/Settings/KeyPhrasePasswordManagerSaver.swift - Key phrase entry saved to the user's password manager */
-"PasswordManager.CredentialUserName" = "Encamera Key Phrase";
-"PasswordManager.CredentialUserNameWithFingerprint" = "Encamera Key Phrase (%@)";
+"PasswordManager.CredentialUserName" = "Encamera Recovery Key";
+"PasswordManager.CredentialUserNameWithFingerprint" = "Encamera Recovery Key (%@)";
 "PasswordManager.CredentialTitle" = "Encamera";
 "PasswordManager.SaveButton" = "Save to Password Manager";
-"PasswordManager.SaveFailedTitle" = "Couldn't Save Key Phrase";
-"PasswordManager.SaveFailedMessage" = "Your password manager didn't accept the key phrase. Copy it to the clipboard and save it manually instead.";
+"PasswordManager.SaveFailedTitle" = "Couldn't Save Recovery Key";
+"PasswordManager.SaveFailedMessage" = "Your password manager didn't accept the recovery key. Copy it to the clipboard and save it manually instead.";
 
 /* Camera capture: blocked shutter and save failures */
 "CameraCapture.BlockedNoAlbum" = "There's no album to save to. Choose or unlock an album to take photos.";
@@ -1597,3 +1602,22 @@
 "CameraCapture.VideoSaveFailedMessage" = "Encamera couldn't save this video. The recording is still on this device, unencrypted, until you save it again or delete it.";
 "CameraCapture.TryAgain" = "Try Again";
 "CameraCapture.DeleteCapture" = "Delete";
+
+/* Recovery key prompt after the first item lands in a new album, and the save-recovery-key flow behind it */
+"RecoveryKey.Prompt.Title" = "Never lose access to your media";
+"RecoveryKey.Prompt.Body" = "Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.";
+"RecoveryKey.Prompt.Save" = "Save recovery key";
+"RecoveryKey.Prompt.Later" = "Maybe later";
+"RecoveryKey.Intro.Title" = "Save your recovery key";
+"RecoveryKey.Intro.Row1" = "Your recovery key is needed to recover your media on a new device";
+"RecoveryKey.Intro.Row2" = "Keep it somewhere safe, like a password manager";
+"RecoveryKey.Intro.Row3" = "If you lose it, we can't recover your media for you";
+"RecoveryKey.Storage.Title" = "Where should we save your recovery key?";
+"RecoveryKey.Storage.Subtitle" = "Only you have access. We can't recover it for you.";
+"RecoveryKey.Storage.ICloudTitle" = "iCloud (Recommended)";
+"RecoveryKey.Storage.ICloudLabel" = "Backed up automatically. Recoverable if you switch devices or lose your iPhone.";
+"RecoveryKey.Storage.ThisIPhoneLabel" = "Stored locally only. Not backed up. You'll need to export and manage it yourself.";
+"RecoveryKey.Saved.Title" = "Have you saved your recovery key?";
+"RecoveryKey.Saved.Body" = "Make sure you save a copy somewhere safe. You can always find your key in Settings.";
+"RecoveryKey.Saved.Confirm" = "I've saved my key";
+"RecoveryKey.Saved.Later" = "I'll do it later";

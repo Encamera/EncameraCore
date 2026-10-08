@@ -24,14 +24,12 @@
 "Deletion Error" = "Errore di eliminazione";
 "iCloudStorageFeatureRowTitle" = "Archiviazione e backup iCloud";
 "AuthenticationMethod.TapToDisableBanner" = "Tocca per disabilitare il metodo selezionato";
-"YourRecoveryPhrase" = "Backup delle chiavi";
 "AuthenticationMethod.TextDescription.PinCode" = "Codice PIN";
 "ProtectionLevel.Strong" = "Protezione avanzata";
 "Enter Promo Code" = "Inserisci codice promozionale";
 "Tap to Upgrade" = "Tocca per eseguire l'upgrade";
 "Touch ID" = "Touch ID";
 "GetPremium" = "Ottieni Premium";
-"Settings.ImportKeyPhrase" = "Importa Frase Chiave";
 "CustomPhotoPicker.SwipeInstruction" = "Tieni premuto e scorri per selezionare più foto";
 "AuthenticationMethod.SecurityLevel.FaceID" = "Bassa protezione";
 "TaskDetailCard.StatusPaused" = "In pausa";
@@ -93,7 +91,6 @@
 "PurchaseView.BenefitModel.ComingSoon" = "Prossimamente";
 "Congratulations!" = "Congratulazioni!";
 "Error.Alert.Title" = "Errore";
-"Settings.BackupKeyPhrase" = "Frase Chiave di Backup";
 "TakeSurveyTitle" = "Vuoi 3 mesi gratis?";
 "FinishedOnboardingSubtitle" = "Proteggiamo alcuni media";
 "Notification.ImageSecurityReminder.Body" = "Puoi anche salvare i video nei tuoi album, non solo le immagini. Provalo ora e metti al sicuro qualche video!";
@@ -114,7 +111,6 @@
 "Select a place to keep media for this key." = "Seleziona un luogo dove conservare i media per questa chiave.";
 "AlbumDetailView.PhotoAccessRequired" = "Accesso alle foto richiesto";
 "CreateFirstAlbum" = "Crea il primo album";
-"ErrorImportingKeyPhrase" = "Errore nell'importazione della parola chiave";
 "" = "";
 "AuthenticationMethod.ConfirmDisableFaceID" = "Vuoi davvero disabilitare %@?";
 "Error saving key" = "Errore durante il salvataggio della chiave";
@@ -141,7 +137,6 @@ Questa frase viene utilizzata per generare la chiave di crittografia che protegg
 "Close" = "Chiudi";
 "MainHomeView.KeyBackupWarning" = "Non potrai visualizzare i tuoi file multimediali senza questa chiave.";
 "AuthenticationMethod.TextDescription.FaceID" = "Face ID";
-"EnterKeyPhrase" = "Inserisci frase chiave";
 "SetAPasswordWarning" = "Imposta una password per accedere all'app. Assicurati di conservarla in un luogo sicuro: non potrai recuperarla in seguito.";
 "Back to album" = "Torna all'album";
 "Share Image" = "Condividi immagine";
@@ -194,7 +189,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "Subscribed" = "Iscritto";
 "VIDEO" = "VIDEO";
 "Where do you want to save this key's media?" = "Dove vuoi salvare i media di questa chiave?";
-"KeyPhrase.Subtitle" = "Questa è la tua frase chiave di crittografia unica. Se la perdi e cambi telefono, non potrai mai più accedere alle tue foto e ai tuoi video crittografati. Salvala in un luogo sicuro.";
 "AuthenticationView.RetryIn" = "Puoi riprovare la password tra %@";
 "SaveLocally" = "Salva su questo dispositivo";
 "PhotoPickerWrapper.FasterImport" = "Importazione più veloce";
@@ -255,14 +249,12 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "Create an unlimited number of keys." = "Crea un numero illimitato di chiavi.";
 "CustomPhotoPicker.GrantAccessMessage" = "Per utilizzare la selezione tramite scorrimento, concedi l'accesso completo alla tua libreria foto. Puoi modificare questa impostazione in Impostazioni.";
 "**Purchased: %@**" = "**Acquistato: %@**";
-"KeyPhrase.Title" = "La tua frase chiave di cifratura";
 "Key length: %@" = "Lunghezza chiave: %@";
 "Restore Purchases" = "Ripristina acquisti";
 "You took your first photo! 📸 🥳" = "Hai scattato la tua prima foto! 📸 🥳";
 "No key available." = "Nessuna chiave disponibile.";
 "TakeSurveyButtonText" = "Partecipa al sondaggio";
 "Use %@?" = "Usare %@?";
-"ImportKeyPhrase" = "Importa frase chiave";
 "SelectProduct" = "Seleziona un prodotto";
 "IRemember" = "Ricordo il mio codice di accesso";
 "MakeSureYouRememberYourPin" = "Assicurati di ricordare il tuo codice PIN!";
@@ -298,7 +290,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "KeyTutorialText" = "Non explicabo officia aut odit ex eum ipsum libero.";
 "Password is too short, <%@" = "La password è troppo corta, <%@";
 "AddPhotosToThisAlbum" = "AGGIUNGI FOTO A QUESTO ALBUM";
-"OverwriteKeyPhrase" = "Sovrascrivere la frase chiave?";
 "SaveAmount %@ $@" = "SALVA %@";
 "HideAlbumsTutorial.Subheading2" = "Per accedere a un album nascosto, basta cercare il suo nome nella barra di ricerca.";
 "New Password" = "Nuova password";
@@ -308,7 +299,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "Settings.GiveInstantFeedback" = "Fornisci feedback immediato";
 "GlobalImportProgress.ImportCompleted" = "Importazione completata";
 "Share" = "Condividi";
-"OverwriteAreYouSure" = "Sei sicuro di voler sovrascrivere la tua frase chiave attuale? Non potrai più accedere ai contenuti multimediali crittografati con la frase chiave attuale.";
 "ChangePasscode" = "Cambia codice di accesso";
 "Done" = "Fatto";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Errore nell'eliminazione della chiave e dei file associati. Riprova oppure prova a eliminare i file manualmente tramite l'app File.";
@@ -316,7 +306,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "PhotoPickerWrapper.SwipeDescription" = "Seleziona più foto con un solo swipe";
 "HideAlbumsTutorial.Subheading4" = "Per nascondere un album, aprilo e tocca il menu con tre puntini, quindi seleziona 'Nascondi album'.";
 "ThanksForPurchasingLifetimeSubtitle" = "Sei fantastico e presto sbloccherai nuovi vantaggi.";
-"EnterKeyPhraseDescription" = "Inserisci la frase chiave che vuoi importare. Separa ogni parola con uno spazio.";
 "PhotoPickerWrapper.FasterImportDescription" = "Importa le foto molto più rapidamente";
 "FaceIDOnlyAlert.Message" = "Passare solo a Face ID cancellerà il tuo PIN/password attuale. Potrai sbloccare l'app solo usando Face ID.";
 "MediaSelectionTray.MoveToAlbum" = "Sposta in Album";
@@ -363,7 +352,6 @@ Ogni chiave archivierà i dati nella propria cartella.
 "Save Key to iCloud" = "Salva chiave su iCloud";
 "AddPhotos" = "Aggiungi foto";
 "Biometrics unavailable" = "Dati biometrici non disponibili";
-"RecoveryPhraseCopied" = "Frase di recupero copiata!";
 "Not authenticated for this operation." = "Non autenticato per questa operazione.";
 "OpenSettings" = "Apri Impostazioni";
 "PhotoPickerWrapper.UpgradeToFullAccess" = "Aggiorna a Accesso Completo";
@@ -387,7 +375,6 @@ Ogni chiave archivierà i dati nella propria cartella.
 "Local" = "Locale";
 "PhotoPickerWrapper.GrantAccessDescription" = "Concedi l'accesso completo alle tue foto per abilitare la selezione multipla scorrendo!";
 "Erasing in %@" = "Cancellazione in %@";
-"KeyPhrase.CopyButton" = "Copia frase chiave";
 "EmptyAlbumTakeAPictureSubtitle" = "Apri la fotocamera e scatta una foto";
 "Notification.InactiveUserReminder.Title" = "Le tue immagini potrebbero essere a rischio 🚨";
 "Paste the private key here." = "Incolla qui la chiave privata.";
@@ -395,7 +382,6 @@ Ogni chiave archivierà i dati nella propria cartella.
 "CustomPhotoPicker.Add" = "Aggiungi";
 "%@ must be set" = "%@ deve essere impostato";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "PIN a 6 cifre";
-"CopyPhrase" = "Copia frase negli appunti";
 "Settings" = "Impostazioni";
 "Upgrade Today!" = "Aggiorna oggi!";
 "Saved to Device" = "Salvato sul dispositivo";
@@ -569,7 +555,6 @@ album";
 
 "BlackFridayTitle" = "IL BLACK FRIDAY È ARRIVATO!";
 "BlackFridaySubtitle" = "Non lasciarti scappare l'offerta! L'affare termina presto!";
-"FeatureToggles.RecoveryPhraseDescription" = "Abilita la funzione frase di recupero";
 "FeatureToggles.RevenuecatToggleTitle" = "Riavvio richiesto";
 "CMS.LoadingError" = "Impossibile caricare i banner promozionali";
 "FeatureToggles.EnableVideoDescription" = "Abilita registrazione e riproduzione video";
@@ -584,7 +569,6 @@ album";
 "FeatureToggles.Title" = "Interruttori delle funzionalità";
 "FeatureToggles.HideAlbumDescription" = "Nascondi album dalla vista principale";
 "FeatureToggles.RevenuecatToggleMessage" = "La modifica della modalità RevenueCat richiede il riavvio dell'app. Continuare?";
-"FeatureToggles.RecoveryPhrase" = "Frase di recupero";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "Impossibile caricare gli abbonamenti";
 "FeatureToggles.EnableTestRevenueCat" = "Test RevenueCat";
 "FeatureToggles.HideAlbum" = "Nascondi album";

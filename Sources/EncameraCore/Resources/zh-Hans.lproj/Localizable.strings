@@ -218,9 +218,6 @@
 "Enable %@ to quickly and securely gain access to the app." = "启用%@以快速且安全地访问该应用。";
 "Enable %@" = "启用%@";
 "Encryption Key" = "加密密钥";
-"KeyPhrase.Title" = "您的加密密钥短语";
-"KeyPhrase.Subtitle" = "这是您的唯一加密密钥短语。如果您丢失了它并更换了新手机，您将无法再次访问您的加密照片和视频。请将其保存在安全的地方。";
-"KeyPhrase.CopyButton" = "复制密钥短语";
 "KeyPhrase.ContinueButton" = "我的密钥已被存储";
 "New Album Subheading" = "为此加密相册设置名称。";
 "AlbumName" = "相册名称";
@@ -356,18 +353,8 @@
 "PurchaseView.BenefitModel.ComingSoon" = "即将推出";
 "ThanksForPurchasingLifetime" = "感谢您购买终身许可证！";
 "ThanksForPurchasingLifetimeSubtitle" = "你太棒了，很快就会解锁新的福利。";
-"ImportKeyPhrase" = "导入关键短语";
-"CopyPhrase" = "将短语复制到剪贴板";
-"CopyPhraseInstructions" = "按照正确的顺序写下或复制这些词，并将它们保存在安全的地方。\n\n这个短语用于生成加密您的媒体的加密密钥。\n\n保存这个密钥很重要，以防您丢失设备。";
-"YourRecoveryPhrase" = "密钥备份";
-"RecoveryPhraseCopied" = "恢复短语已复制！";
-"EnterKeyPhrase" = "输入密钥短语";
-"EnterKeyPhraseDescription" = "输入您想要导入的密钥短语。每个单词之间用空格分隔。";
 "NotificationListTitle" = "通知";
-"OverwriteKeyPhrase" = "覆盖关键短语？";
-"OverwriteAreYouSure" = "您确定要覆盖当前的关键短语吗？您将无法访问使用当前关键短语加密的任何媒体。";
 "ImSure" = "我确定";
-"ErrorImportingKeyPhrase" = "导入关键短语时出错";
 "PostPurchaseView.ThanksForYourPurchase" = "感谢您的购买！";
 "PostPurchaseView.Subtext1" = "您是Encamera的早期支持者之一，我们感谢您的支持！";
 "PostPurchaseView.Subtext2" = "同时，如果您能在应用商店为我们写个评论，我们将非常感激";
@@ -395,8 +382,6 @@
 "Notification.Scheduling.Error" = "错误安排通知：%@";
 "Settings.Version" = "版本";
 "Settings.Contact" = "联系支持";
-"Settings.BackupKeyPhrase" = "备份密钥短语";
-"Settings.ImportKeyPhrase" = "导入密钥短语";
 "Settings.DefaultStorageOption" = "默认存储选项";
 "Settings.BackupKeyToiCloud" = "同步密钥到iCloud";
 "Settings.BackupKeyToiCloudDescription" = "如果启用，您的密钥将自动备份到您的iCloud钥匙串。如果您丢失设备，选择此选项后，您仍然可以访问存储在iCloud上的文件。";
@@ -559,7 +544,6 @@
 
 "BlackFridayTitle" = "黑色星期五来了！";
 "BlackFridaySubtitle" = "不要错过！优惠即将结束！";
-"FeatureToggles.RecoveryPhraseDescription" = "启用恢复短语功能";
 "FeatureToggles.RevenuecatToggleTitle" = "需要重启";
 "CMS.LoadingError" = "促销横幅加载失败";
 "FeatureToggles.EnableVideoDescription" = "启用视频录制和回放";
@@ -574,7 +558,6 @@
 "FeatureToggles.Title" = "功能开关";
 "FeatureToggles.HideAlbumDescription" = "在主视图中隐藏相册";
 "FeatureToggles.RevenuecatToggleMessage" = "更改 RevenueCat 模式需要重启应用。是否继续？";
-"FeatureToggles.RecoveryPhrase" = "恢复短语";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "无法加载订阅";
 "FeatureToggles.EnableTestRevenueCat" = "测试 RevenueCat";
 "FeatureToggles.HideAlbum" = "隐藏相册";

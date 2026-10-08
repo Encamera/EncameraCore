@@ -24,14 +24,12 @@
 "Deletion Error" = "削除エラー";
 "iCloudStorageFeatureRowTitle" = "iCloudストレージとバックアップ";
 "AuthenticationMethod.TapToDisableBanner" = "タップして選択した方法を無効にする";
-"YourRecoveryPhrase" = "キーのバックアップ";
 "AuthenticationMethod.TextDescription.PinCode" = "暗証番号";
 "ProtectionLevel.Strong" = "強力な保護";
 "Enter Promo Code" = "プロモコードを入力";
 "Tap to Upgrade" = "アップグレードするにはタップ";
 "Touch ID" = "Touch ID";
 "GetPremium" = "プレミアムにする";
-"Settings.ImportKeyPhrase" = "キーフレーズをインポート";
 "CustomPhotoPicker.SwipeInstruction" = "長押ししてスワイプすると複数の写真を選択できます";
 "AuthenticationMethod.SecurityLevel.FaceID" = "保護レベル低";
 "TaskDetailCard.StatusPaused" = "一時停止中";
@@ -93,7 +91,6 @@
 "PurchaseView.BenefitModel.ComingSoon" = "近日公開";
 "Congratulations!" = "おめでとうございます！";
 "Error.Alert.Title" = "エラー";
-"Settings.BackupKeyPhrase" = "バックアップキーフレーズ";
 "TakeSurveyTitle" = "3か月無料で利用しますか？";
 "FinishedOnboardingSubtitle" = "メディアを安全に保護しましょう";
 "Notification.ImageSecurityReminder.Body" = "画像だけでなく、動画もアルバムに保存できます。今すぐ試して、いくつか保存しましょう！";
@@ -125,7 +122,6 @@
 "Select a place to keep media for this key." = "この鍵のメディアを保存する場所を選択してください。";
 "AlbumDetailView.PhotoAccessRequired" = "写真へのアクセスが必要です";
 "CreateFirstAlbum" = "最初のアルバムを作成";
-"ErrorImportingKeyPhrase" = "キーフレーズのインポート中にエラーが発生しました";
 "" = "";
 "AuthenticationMethod.ConfirmDisableFaceID" = "本当に%@を無効にしますか？";
 "Error saving key" = "キーの保存中にエラーが発生しました";
@@ -152,7 +148,6 @@
 "Close" = "閉じる";
 "MainHomeView.KeyBackupWarning" = "このキーがないとメディアを表示できません。";
 "AuthenticationMethod.TextDescription.FaceID" = "Face ID";
-"EnterKeyPhrase" = "キーフレーズを入力";
 "SetAPasswordWarning" = "アプリにアクセスするためのパスワードを設定してください。後から復元できないため、安全な場所に保管してください。";
 "Back to album" = "アルバムに戻る";
 "Share Image" = "画像を共有";
@@ -205,7 +200,6 @@
 "Subscribed" = "登録済み";
 "VIDEO" = "ビデオ";
 "Where do you want to save this key's media?" = "このキーのメディアをどこに保存しますか？";
-"KeyPhrase.Subtitle" = "これはあなた専用の暗号化キーのフレーズです。これを失い新しい携帯電話にした場合、暗号化された写真や動画には二度とアクセスできません。必ず安全な場所に保存してください。";
 "AuthenticationView.RetryIn" = "パスワードの再入力は%@後に可能です";
 "SaveLocally" = "このデバイスに保存";
 "PhotoPickerWrapper.FasterImport" = "高速インポート";
@@ -266,14 +260,12 @@
 "Create an unlimited number of keys." = "無制限にキーを作成できます。";
 "CustomPhotoPicker.GrantAccessMessage" = "スワイプ選択を使用するには、写真ライブラリへのフルアクセスを許可してください。設定で変更できます。";
 "**Purchased: %@**" = "**購入済み: %@**";
-"KeyPhrase.Title" = "あなたの暗号化キー フレーズ";
 "Key length: %@" = "キー長: %@";
 "Restore Purchases" = "購入を復元";
 "You took your first photo! 📸 🥳" = "最初の写真を撮りました！📸 🥳";
 "No key available." = "利用可能なキーがありません。";
 "TakeSurveyButtonText" = "アンケートに答える";
 "Use %@?" = "%@を使用しますか？";
-"ImportKeyPhrase" = "キー フレーズをインポート";
 "SelectProduct" = "製品を選択";
 "IRemember" = "パスコードを覚えています";
 "MakeSureYouRememberYourPin" = "必ずPINコードを覚えておいてください！";
@@ -309,7 +301,6 @@
 "KeyTutorialText" = "非公開の公式な説明や、彼自身の自由な説明はありません。";
 "Password is too short, <%@" = "パスワードが短すぎます、<%@";
 "AddPhotosToThisAlbum" = "このアルバムに写真を追加する";
-"OverwriteKeyPhrase" = "キーフレーズを上書きしますか？";
 "SaveAmount %@ $@" = "保存 %@";
 "HideAlbumsTutorial.Subheading2" = "非表示アルバムにアクセスするには、検索バーでアルバム名を検索してください。";
 "New Password" = "新しいパスワード";
@@ -319,7 +310,6 @@
 "Settings.GiveInstantFeedback" = "即時フィードバックを送る";
 "GlobalImportProgress.ImportCompleted" = "インポートが完了しました";
 "Share" = "共有する";
-"OverwriteAreYouSure" = "現在のキーフレーズを上書きしてもよろしいですか？現在のキーフレーズで暗号化されたメディアにはアクセスできなくなります。";
 "ChangePasscode" = "パスコードを変更";
 "Done" = "完了";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "キーと関連ファイルの削除中にエラーが発生しました。もう一度お試しいただくか、ファイルアプリから手動でファイルを削除してください。";
@@ -327,7 +317,6 @@
 "PhotoPickerWrapper.SwipeDescription" = "スワイプ一回で複数の写真を選択";
 "HideAlbumsTutorial.Subheading4" = "アルバムを非表示にするには、アルバムを開いて三点メニューをタップし、「アルバムを非表示」を選択してください。";
 "ThanksForPurchasingLifetimeSubtitle" = "あなたは素晴らしいです。まもなく新しい特典がアンロックされます。";
-"EnterKeyPhraseDescription" = "インポートしたいキーフレーズを入力してください。各単語はスペースで区切ってください。";
 "PhotoPickerWrapper.FasterImportDescription" = "写真をもっと素早くインポート";
 "FaceIDOnlyAlert.Message" = "Face IDのみに切り替えると、現在のPIN/パスワードが消去されます。今後はFace IDのみでアプリのロックを解除できます。";
 "MediaSelectionTray.MoveToAlbum" = "アルバムに移動";
@@ -374,7 +363,6 @@
 "Save Key to iCloud" = "キーをiCloudに保存";
 "AddPhotos" = "写真を追加";
 "Biometrics unavailable" = "生体認証が利用できません";
-"RecoveryPhraseCopied" = "リカバリーフレーズをコピーしました！";
 "Not authenticated for this operation." = "この操作を行うための認証がされていません。";
 "OpenSettings" = "設定を開く";
 "PhotoPickerWrapper.UpgradeToFullAccess" = "フルアクセスにアップグレード";
@@ -398,7 +386,6 @@
 "Local" = "ローカル";
 "PhotoPickerWrapper.GrantAccessDescription" = "複数の写真を一度に選択できるスワイプ選択を有効にするには、写真へのフルアクセスを許可してください！";
 "Erasing in %@" = "%@ を消去中";
-"KeyPhrase.CopyButton" = "キーフレーズをコピー";
 "EmptyAlbumTakeAPictureSubtitle" = "カメラを開いて写真を撮ってください";
 "Notification.InactiveUserReminder.Title" = "あなたの画像が危険にさらされている可能性があります 🚨";
 "Paste the private key here." = "ここに秘密鍵を貼り付けてください。";
@@ -406,7 +393,6 @@
 "CustomPhotoPicker.Add" = "追加";
 "%@ must be set" = "%@ を設定する必要があります";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "6桁のPIN";
-"CopyPhrase" = "フレーズをクリップボードにコピー";
 "Settings" = "設定";
 "Upgrade Today!" = "今すぐアップグレード！";
 "Saved to Device" = "デバイスに保存しました";
@@ -578,7 +564,6 @@
 
 "BlackFridayTitle" = "ブラックフライデーがやってきた！";
 "BlackFridaySubtitle" = "お見逃しなく！セールはまもなく終了します！";
-"FeatureToggles.RecoveryPhraseDescription" = "リカバリーフレーズ機能を有効にする";
 "FeatureToggles.RevenuecatToggleTitle" = "再起動が必要です";
 "CMS.LoadingError" = "プロモーションバナーの読み込みに失敗しました";
 "FeatureToggles.EnableVideoDescription" = "ビデオ録画と再生を有効にする";
@@ -593,7 +578,6 @@
 "FeatureToggles.Title" = "機能の切り替え";
 "FeatureToggles.HideAlbumDescription" = "アルバムをメインビューから非表示にする";
 "FeatureToggles.RevenuecatToggleMessage" = "RevenueCatモードを変更するにはアプリの再起動が必要です。続行しますか？";
-"FeatureToggles.RecoveryPhrase" = "リカバリーフレーズ";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "サブスクリプションを読み込めません";
 "FeatureToggles.EnableTestRevenueCat" = "RevenueCatをテストする";
 "FeatureToggles.HideAlbum" = "アルバムを非表示";

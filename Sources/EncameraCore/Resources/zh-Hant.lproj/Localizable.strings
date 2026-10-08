@@ -229,9 +229,6 @@
 "Enable %@ to quickly and securely gain access to the app." = "啟用%@以快速且安全地存取此應用程式。";
 "Enable %@" = "啟用%@";
 "Encryption Key" = "加密金鑰";
-"KeyPhrase.Title" = "您的加密金鑰片語";
-"KeyPhrase.Subtitle" = "這是你獨一無二的加密金鑰短語。如果你遺失它並更換新手機，你將無法再次存取已加密的照片和影片。請妥善保存。";
-"KeyPhrase.CopyButton" = "複製金鑰短語";
 "KeyPhrase.ContinueButton" = "我的金鑰已儲存";
 "New Album Subheading" = "請為這個加密相簿設定名稱。";
 "AlbumName" = "相簿名稱";
@@ -368,22 +365,13 @@ Encamera！";
 "PurchaseView.BenefitModel.ComingSoon" = "即將推出";
 "ThanksForPurchasingLifetime" = "感謝您購買永久授權！";
 "ThanksForPurchasingLifetimeSubtitle" = "你太棒了，很快就會解鎖新福利。";
-"ImportKeyPhrase" = "匯入關鍵詞";
-"CopyPhrase" = "複製短語到剪貼簿";
 "CopyPhraseInstructions" = "請按正確順序寫下或複製這些單詞，並將它們保存在安全的地方。
 
 這個詞組用於生成加密您媒體的加密金鑰。
 
 請務必保存這個金鑰，以防您遺失裝置。";
-"YourRecoveryPhrase" = "金鑰備份";
-"RecoveryPhraseCopied" = "恢復詞組已複製！";
-"EnterKeyPhrase" = "輸入金鑰詞組";
-"EnterKeyPhraseDescription" = "請輸入您要匯入的金鑰詞組。每個單詞之間請用空格分隔。";
 "NotificationListTitle" = "通知";
-"OverwriteKeyPhrase" = "覆蓋金鑰詞語？";
-"OverwriteAreYouSure" = "您確定要覆蓋目前的金鑰詞語嗎？您將無法存取任何使用目前金鑰詞語加密的媒體。";
 "ImSure" = "我確定";
-"ErrorImportingKeyPhrase" = "匯入金鑰詞語時發生錯誤";
 "PostPurchaseView.ThanksForYourPurchase" = "感謝您的購買！";
 "PostPurchaseView.Subtext1" = "您是Encamera的早期支持者之一，我們非常感謝您的支持！";
 "PostPurchaseView.Subtext2" = "同時，如果您能在App Store上幫我們寫個評價，我們將非常感激";
@@ -413,8 +401,6 @@ Encamera！";
 "Settings.RevenueCatCustomerId" = "RevenueCat 客戶 ID";
 "Settings.CopiedToClipboard" = "已複製到剪貼簿";
 "Settings.Contact" = "聯絡支援";
-"Settings.BackupKeyPhrase" = "備份金鑰詞組";
-"Settings.ImportKeyPhrase" = "匯入金鑰詞組";
 "Settings.DefaultStorageOption" = "預設儲存選項";
 "Settings.BackupKeyToiCloud" = "同步金鑰到 iCloud";
 "Settings.BackupKeyToiCloudDescription" = "如果啟用，您的金鑰將自動備份到您的 iCloud 鑰匙圈。如果您遺失裝置，選擇此選項後，仍然可以存取儲存在 iCloud 上的檔案。";
@@ -575,7 +561,6 @@ Encamera！";
 
 "BlackFridayTitle" = "黑色星期五來了！";
 "BlackFridaySubtitle" = "不要錯過！優惠即將結束！";
-"FeatureToggles.RecoveryPhraseDescription" = "啟用恢復助記詞功能";
 "FeatureToggles.RevenuecatToggleTitle" = "需要重新啟動";
 "CMS.LoadingError" = "促銷橫幅載入失敗";
 "FeatureToggles.EnableVideoDescription" = "啟用錄影與回放";
@@ -590,7 +575,6 @@ Encamera！";
 "FeatureToggles.Title" = "功能切換";
 "FeatureToggles.HideAlbumDescription" = "從主視圖隱藏相簿";
 "FeatureToggles.RevenuecatToggleMessage" = "更改 RevenueCat 模式需要重新啟動應用程式。是否繼續？";
-"FeatureToggles.RecoveryPhrase" = "恢復短語";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "無法載入訂閱";
 "FeatureToggles.EnableTestRevenueCat" = "測試 RevenueCat";
 "FeatureToggles.HideAlbum" = "隱藏相簿";

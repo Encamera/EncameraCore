@@ -232,9 +232,6 @@ Aplicația se va închide după ce ștergerea este finalizată.";
 "Enable %@ to quickly and securely gain access to the app." = "Activați %@ pentru a obține acces rapid și securizat la aplicație.";
 "Enable %@" = "Activați %@";
 "Encryption Key" = "Cheie de criptare";
-"KeyPhrase.Title" = "Fraza cheii de criptare";
-"KeyPhrase.Subtitle" = "Aceasta este fraza ta unică de criptare. Dacă o pierzi și îți schimbi telefonul, nu vei mai putea accesa niciodată fotografiile și videoclipurile criptate. Te rugăm să o salvezi într-un loc sigur.";
-"KeyPhrase.CopyButton" = "Copiază fraza de criptare";
 "KeyPhrase.ContinueButton" = "Cheia mea a fost salvată";
 "New Album Subheading" = "Setează numele pentru acest album foto criptat.";
 "AlbumName" = "Nume album";
@@ -371,22 +368,13 @@ Encamera!";
 "PurchaseView.BenefitModel.ComingSoon" = "În curând";
 "ThanksForPurchasingLifetime" = "Mulțumim că ați achiziționat o licență pe viață!";
 "ThanksForPurchasingLifetimeSubtitle" = "Ești grozav și vei debloca noi beneficii în curând.";
-"ImportKeyPhrase" = "Importă expresia-cheie";
-"CopyPhrase" = "Copiază expresia în clipboard";
 "CopyPhraseInstructions" = "Scrie sau copiază aceste cuvinte în ordinea corectă și salvează-le undeva în siguranță.
 
 Această frază este folosită pentru a genera cheia de criptare care criptează fișierele tale media.
 
 Este important să salvezi această cheie în caz că îți pierzi dispozitivul.";
-"YourRecoveryPhrase" = "Backup cheie";
-"RecoveryPhraseCopied" = "Frază de recuperare copiată!";
-"EnterKeyPhrase" = "Introdu fraza cheii";
-"EnterKeyPhraseDescription" = "Introdu fraza cheii pe care vrei să o imporți. Separă fiecare cuvânt cu un spațiu.";
 "NotificationListTitle" = "Notificări";
-"OverwriteKeyPhrase" = "Suprascrieți expresia-cheie?";
-"OverwriteAreYouSure" = "Sunteți sigur că doriți să suprascrieți expresia-cheie curentă? Nu veți putea accesa niciun fișier media criptat cu expresia-cheie curentă.";
 "ImSure" = "Sunt sigur";
-"ErrorImportingKeyPhrase" = "Eroare la importarea expresiei-cheie";
 "PostPurchaseView.ThanksForYourPurchase" = "Mulțumim pentru achiziție!";
 "PostPurchaseView.Subtext1" = "Ești unul dintre susținătorii timpurii ai Encamera și îți mulțumim pentru sprijin!";
 "PostPurchaseView.Subtext2" = "Între timp, am aprecia foarte mult dacă ne-ai putea ajuta cu o recenzie în App Store";
@@ -414,8 +402,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "Notification.Scheduling.Error" = "Eroare la programarea notificării: %@";
 "Settings.Version" = "Versiune";
 "Settings.Contact" = "Contactați asistența";
-"Settings.BackupKeyPhrase" = "Fraza cheie de backup";
-"Settings.ImportKeyPhrase" = "Importă fraza cheie";
 "Settings.DefaultStorageOption" = "Opțiune de stocare implicită";
 "Settings.BackupKeyToiCloud" = "Sincronizează cheia cu iCloud";
 "Settings.BackupKeyToiCloudDescription" = "Dacă este activată, cheia ta va fi salvată automat în iCloud Keychain. Dacă îți pierzi dispozitivul, vei avea în continuare acces la fișierele stocate pe iCloud dacă alegi această opțiune.";
@@ -578,7 +564,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 
 "BlackFridayTitle" = "BLACK FRIDAY ESTE AICI!";
 "BlackFridaySubtitle" = "Nu rata! Oferta se încheie în curând!";
-"FeatureToggles.RecoveryPhraseDescription" = "Activează funcția de frază de recuperare";
 "FeatureToggles.RevenuecatToggleTitle" = "Este necesară repornirea";
 "CMS.LoadingError" = "Nu s-au putut încărca bannerele promoționale";
 "FeatureToggles.EnableVideoDescription" = "Activează înregistrarea și redarea videoclipurilor";
@@ -593,7 +578,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "FeatureToggles.Title" = "Comutatoare de funcționalități";
 "FeatureToggles.HideAlbumDescription" = "Ascunde albumul din vizualizarea principală";
 "FeatureToggles.RevenuecatToggleMessage" = "Schimbarea modului RevenueCat necesită repornirea aplicației. Continuați?";
-"FeatureToggles.RecoveryPhrase" = "Frază de recuperare";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "Nu s-au putut încărca abonamentele";
 "FeatureToggles.EnableTestRevenueCat" = "Testează RevenueCat";
 "FeatureToggles.HideAlbum" = "Ascunde albumul";

@@ -420,22 +420,15 @@
 "SettingsFaceIdOpenSettings" = "Sie haben Face ID für Encamera deaktiviert. Aktivieren Sie es in den Einstellungen, um sich mit Face ID anzumelden.";
 
 "ThanksForPurchasingLifetimeSubtitle" = "Du rockst und wirst bald neue Vorteile freischalten.";
-"OverwriteKeyPhrase" = "Schlüsselphrase überschreiben?";
-"ErrorImportingKeyPhrase" = "Fehler beim Importieren der Schlüsselphrase";
 "PostPurchaseView.ReviewButton" = "Hilf uns mit einer Bewertung";
 "BuyOnceUseForever" = "Einmal kaufen. Für immer nutzen.";
 "PostPurchaseView.MaybeLater" = "Vielleicht später";
 "PostPurchaseView.Subtext2" = "In der Zwischenzeit würden wir es sehr schätzen, wenn Sie uns mit einer Bewertung im App Store helfen könnten";
-"EnterKeyPhrase" = "Schlüsselphrase eingeben";
 "PostPurchaseView.ThanksForYourPurchase" = "Danke für Ihren Kauf!";
-"YourRecoveryPhrase" = "Ihr Wiederherstellungsphrase";
 "Error deleting key. Please try again." = "Fehler beim Löschen des Schlüssels. Bitte versuchen Sie es erneut.";
 "SaveAmount %@ $@" = "SPEICHERN %@";
-"OverwriteAreYouSure" = "Sind Sie sicher, dass Sie Ihre aktuelle Schlüsselphrase überschreiben möchten? Sie werden nicht in der Lage sein, auf Medien zuzugreifen, die mit der aktuellen Schlüsselphrase verschlüsselt wurden.";
 "ImSure" = "Ich bin sicher";
-"ImportKeyPhrase" = "Schlüsselphrase importieren";
 "PurchaseProduct" = "Kaufen";
-"EnterKeyPhraseDescription" = "Geben Sie die Schlüsselphrase ein, die Sie importieren möchten. Trennen Sie jedes Wort mit einem Leerzeichen.\nDies wird Ihre aktuelle Schlüsselphrase überschreiben.";
 "ThanksForPurchasingLifetime" = "Vielen Dank für den Kauf einer lebenslangen Lizenz!";
 "Keep your encrypted data safe by using %@." = "Halten Sie Ihre verschlüsselten Daten sicher, indem Sie %@ verwenden.";
 "SelectProduct" = "Wählen Sie ein Produkt";
@@ -476,14 +469,9 @@
 "SavePinCode" = "PIN-Code speichern";
 "OpenSystemSettings" = "Zu den Einstellungen gehen";
 
-"Settings.BackupKeyPhrase" = "Sicherungsschlüsselphrase";
-"Settings.ImportKeyPhrase" = "Schlüsselphrase importieren";
 "MediaSelectionTray.ItemSelected" = "Element ausgewählt";
 "NotificationListTitle" = "Benachrichtigungen";
 "MediaSelectionTray.SelectMedia" = "Medien auswählen";
-"CopyPhraseInstructions" = "Schreiben Sie diese Wörter in der richtigen Reihenfolge auf oder kopieren Sie sie und speichern Sie sie an einem sicheren Ort.\n\nDieser Satz wird verwendet, um den Verschlüsselungsschlüssel zu generieren, der Ihre Medien verschlüsselt.\n\nEs ist wichtig, diesen Schlüssel zu speichern, falls Sie Ihr Gerät verlieren.";
-"RecoveryPhraseCopied" = "Wiederherstellungsphrase kopiert!";
-"CopyPhrase" = "Phrase in die Zwischenablage kopieren";
 
 "AlbumDetailView.PhotoAccessAlertTitle" = "Nach dem Import löschen?";
 "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Nicht jetzt";
@@ -694,9 +682,6 @@
 "Settings.BackupKeyToiCloudDescription" = "Wenn aktiviert, wird Ihr Schlüssel automatisch in Ihrem iCloud-Schlüsselbund gesichert. Wenn Sie Ihr Gerät verlieren, haben Sie immer noch Zugriff auf Dateien, die auf iCloud gespeichert sind, wenn Sie diese Option wählen.";
 "KeyPhrase.ContinueButton" = "Mein Schlüssel wurde gespeichert";
 "MainHomeView.BackupEncryptionKey" = "Sichern Sie Ihren Verschlüsselungsschlüssel";
-"KeyPhrase.Subtitle" = "Dies ist Ihre einzigartige Verschlüsselungsschlüsselphrase. Wenn Sie diese verlieren und ein neues Telefon bekommen, werden Sie niemals wieder auf Ihre verschlüsselten Fotos und Videos zugreifen können. Bitte speichern Sie es an einem sicheren Ort.";
-"KeyPhrase.Title" = "Ihr Verschlüsselungsschlüsselphrase";
-"KeyPhrase.CopyButton" = "Schlüsselphrase kopieren";
 "MainHomeView.ViewTheKey" = "Den Schlüssel anzeigen";
 "MainHomeView.KeyBackupWarning" = "Sie können Ihre Medien ohne diesen Schlüssel nicht anzeigen.";
 "Settings.CopiedToClipboard" = "In die Zwischenablage kopiert";
@@ -713,7 +698,6 @@
 
 "BlackFridayTitle" = "BLACK FRIDAY IST DA!";
 "BlackFridaySubtitle" = "Nicht verpassen! Angebot endet bald!";
-"FeatureToggles.RecoveryPhraseDescription" = "Wiederherstellungs-Phrase aktivieren";
 "FeatureToggles.RevenuecatToggleTitle" = "Neustart erforderlich";
 "CMS.LoadingError" = "Werbebanner konnten nicht geladen werden";
 "FeatureToggles.EnableVideoDescription" = "Videoaufzeichnung und -wiedergabe aktivieren";
@@ -728,7 +712,6 @@
 "FeatureToggles.Title" = "Funktionsschalter";
 "FeatureToggles.HideAlbumDescription" = "Album aus Hauptansicht ausblenden";
 "FeatureToggles.RevenuecatToggleMessage" = "Das Ändern des RevenueCat-Modus erfordert einen Neustart der App. Fortfahren?";
-"FeatureToggles.RecoveryPhrase" = "Wiederherstellungsphrase";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "Abonnements können nicht geladen werden";
 "FeatureToggles.EnableTestRevenueCat" = "RevenueCat testen";
 "FeatureToggles.HideAlbum" = "Album ausblenden";

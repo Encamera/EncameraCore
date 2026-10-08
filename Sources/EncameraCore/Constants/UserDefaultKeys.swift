@@ -37,6 +37,7 @@ public enum UserDefaultKey {
     case loopVideos
     case hasBeenShownHideAlbumTutorial
     case keyBackupPromptLastShown
+    case recoveryKeyPromptState
     case promotionalBannerInteractions
     case dismissedBanners
     case showPaywallOnAppear
@@ -126,6 +127,7 @@ public enum UserDefaultKey {
              .showPushNotificationPrompt,
              .passcodeType,
              .keyBackupPromptLastShown,
+             .recoveryKeyPromptState,
              .promotionalBannerInteractions,
              .dismissedBanners,
              .showPaywallOnAppear,

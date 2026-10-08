@@ -24,14 +24,12 @@
 "Deletion Error" = "خطأ في الحذف";
 "iCloudStorageFeatureRowTitle" = "تخزين iCloud والنسخ الاحتياطي";
 "AuthenticationMethod.TapToDisableBanner" = "اضغط لتعطيل الطريقة المحددة";
-"YourRecoveryPhrase" = "نسخ احتياطي للمفاتيح";
 "AuthenticationMethod.TextDescription.PinCode" = "رمز التعريف الشخصي";
 "ProtectionLevel.Strong" = "حماية قوية";
 "Enter Promo Code" = "أدخل رمز العرض";
 "Tap to Upgrade" = "اضغط للترقية";
 "Touch ID" = "بصمة الإصبع";
 "GetPremium" = "احصل على البريميوم";
-"Settings.ImportKeyPhrase" = "استيراد العبارة الرئيسية";
 "CustomPhotoPicker.SwipeInstruction" = "اضغط مطولاً واسحب لتحديد عدة صور";
 "AuthenticationMethod.SecurityLevel.FaceID" = "حماية منخفضة";
 "TaskDetailCard.StatusPaused" = "متوقف مؤقتًا";
@@ -93,7 +91,6 @@
 "PurchaseView.BenefitModel.ComingSoon" = "قريبًا";
 "Congratulations!" = "تهانينا!";
 "Error.Alert.Title" = "خطأ";
-"Settings.BackupKeyPhrase" = "عبارة النسخ الاحتياطي";
 "TakeSurveyTitle" = "تريد 3 أشهر مجانًا؟";
 "FinishedOnboardingSubtitle" = "لنؤمّن بعض الوسائط";
 "Notification.ImageSecurityReminder.Body" = "يمكنك أيضًا حفظ مقاطع الفيديو في ألبوماتك، وليس الصور فقط. جرّب ذلك الآن واحتفظ ببعضها!";
@@ -114,7 +111,6 @@
 "Select a place to keep media for this key." = "اختر مكانًا للاحتفاظ بالوسائط لهذا المفتاح.";
 "AlbumDetailView.PhotoAccessRequired" = "مطلوب إذن الوصول إلى الصور";
 "CreateFirstAlbum" = "إنشاء الألبوم الأول";
-"ErrorImportingKeyPhrase" = "خطأ في استيراد العبارة الرئيسية";
 "AuthenticationMethod.ConfirmDisableFaceID" = "هل تريد فعلاً تعطيل %@؟";
 "Error saving key" = "خطأ في حفظ المفتاح";
 "Notification.WidgetReminder.Title" = "التقط صورًا مشفرة مباشرةً 4f8";
@@ -140,7 +136,6 @@
 "Close" = "إغلاق";
 "MainHomeView.KeyBackupWarning" = "لن تتمكن من عرض وسائطك بدون هذا المفتاح.";
 "AuthenticationMethod.TextDescription.FaceID" = "معرّف الوجه";
-"EnterKeyPhrase" = "أدخل عبارة المرور";
 "SetAPasswordWarning" = "قم بتعيين كلمة مرور للوصول إلى التطبيق. تأكد من حفظها في مكان آمن – لا يمكنك استعادتها لاحقًا.";
 "Back to album" = "العودة إلى الألبوم";
 "Share Image" = "مشاركة الصورة";
@@ -191,7 +186,6 @@
 "Subscribed" = "مشترك";
 "VIDEO" = "فيديو";
 "Where do you want to save this key's media?" = "أين تريد حفظ وسائط هذا المفتاح؟";
-"KeyPhrase.Subtitle" = "هذه هي عبارة التشفير الفريدة الخاصة بك. إذا فقدتها وحصلت على هاتف جديد، فلن تتمكن أبدًا من الوصول إلى صورك ومقاطع الفيديو المشفرة مرة أخرى. يرجى حفظها في مكان آمن.";
 "AuthenticationView.RetryIn" = "يمكنك إعادة محاولة كلمة المرور الخاصة بك خلال %@";
 "SaveLocally" = "احفظ على هذا الجهاز";
 "PhotoPickerWrapper.FasterImport" = "استيراد أسرع";
@@ -252,14 +246,12 @@
 "Create an unlimited number of keys." = "أنشئ عددًا غير محدود من المفاتيح.";
 "CustomPhotoPicker.GrantAccessMessage" = "يرجى منح حق الوصول الكامل إلى مكتبة الصور الخاصة بك لاستخدام ميزة اختيار السحب. يمكنك تغيير ذلك في الإعدادات.";
 "**Purchased: %@**" = "**تم الشراء: %@**";
-"KeyPhrase.Title" = "عبارة مفتاح التشفير الخاصة بك";
 "Key length: %@" = "طول المفتاح: %@";
 "Restore Purchases" = "استعادة المشتريات";
 "You took your first photo! 📸 🥳" = "لقد التقطت أول صورة لك! 📸 🥳";
 "No key available." = "لا يوجد مفتاح متاح.";
 "TakeSurveyButtonText" = "شارك في الاستطلاع";
 "Use %@?" = "استخدام %@؟";
-"ImportKeyPhrase" = "استيراد عبارة المفتاح";
 "SelectProduct" = "اختر منتجًا";
 "IRemember" = "أتذكر رمز المرور الخاص بي";
 "MakeSureYouRememberYourPin" = "تأكد من أنك تتذكر رمزك السري!";
@@ -295,7 +287,6 @@
 "KeyTutorialText" = "غير موضح رسميًا أو تم تجاهله من قبله نفسه بحرية.";
 "Password is too short, <%@" = "كلمة المرور قصيرة جدًا، <%@";
 "AddPhotosToThisAlbum" = "أضف صورًا إلى هذا الألبوم";
-"OverwriteKeyPhrase" = "هل تريد الكتابة فوق العبارة الرئيسية؟";
 "SaveAmount %@ $@" = "حفظ %@";
 "HideAlbumsTutorial.Subheading2" = "للوصول إلى ألبوم مخفي، ما عليك سوى البحث عن اسمه في شريط البحث.";
 "New Password" = "كلمة مرور جديدة";
@@ -305,7 +296,6 @@
 "Settings.GiveInstantFeedback" = "قدّم ملاحظات فورية";
 "GlobalImportProgress.ImportCompleted" = "اكتمل الاستيراد";
 "Share" = "مشاركة";
-"OverwriteAreYouSure" = "هل أنت متأكد أنك تريد استبدال عبارة المفتاح الحالية؟ لن تتمكن من الوصول إلى أي وسائط مشفرة باستخدام عبارة المفتاح الحالية.";
 "ChangePasscode" = "تغيير رمز المرور";
 "Done" = "تم";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "حدث خطأ أثناء حذف المفتاح والملفات المرتبطة به. يرجى المحاولة مرة أخرى أو محاولة حذف الملفات يدويًا عبر تطبيق الملفات.";
@@ -313,7 +303,6 @@
 "PhotoPickerWrapper.SwipeDescription" = "حدد عدة صور بتمرير واحد";
 "HideAlbumsTutorial.Subheading4" = "لإخفاء ألبوم، افتحه واضغط على قائمة النقاط الثلاث، ثم اختر 'إخفاء الألبوم'.";
 "ThanksForPurchasingLifetimeSubtitle" = "أنت رائع وسوف تحصل على مزايا جديدة قريباً.";
-"EnterKeyPhraseDescription" = "أدخل العبارة الرئيسية التي تريد استيرادها. افصل كل كلمة بمسافة.";
 "PhotoPickerWrapper.FasterImportDescription" = "استورد الصور بسرعة أكبر بكثير";
 "FaceIDOnlyAlert.Message" = "سيؤدي التبديل إلى بصمة الوجه فقط إلى مسح رمز PIN/كلمة المرور الحالية الخاصة بك. ستتمكن فقط من فتح التطبيق باستخدام بصمة الوجه.";
 "MediaSelectionTray.MoveToAlbum" = "نقل إلى الألبوم";
@@ -358,7 +347,6 @@
 "Save Key to iCloud" = "احفظ المفتاح في iCloud";
 "AddPhotos" = "إضافة صور";
 "Biometrics unavailable" = "القياسات الحيوية غير متوفرة";
-"RecoveryPhraseCopied" = "تم نسخ عبارة الاسترداد!";
 "Not authenticated for this operation." = "لم يتم التحقق من الهوية لهذه العملية.";
 "OpenSettings" = "افتح الإعدادات";
 "PhotoPickerWrapper.UpgradeToFullAccess" = "قم بالترقية للوصول الكامل";
@@ -382,7 +370,6 @@
 "Local" = "محلي";
 "PhotoPickerWrapper.GrantAccessDescription" = "امنح التطبيق حق الوصول الكامل إلى صورك لتمكين ميزة التحديد المتعدد للصور بالسحب!";
 "Erasing in %@" = "جارٍ المسح في %@";
-"KeyPhrase.CopyButton" = "نسخ العبارة الرئيسية";
 "EmptyAlbumTakeAPictureSubtitle" = "افتح الكاميرا والتقط صورة";
 "Notification.InactiveUserReminder.Title" = "قد تكون صورك في خطر 6a8";
 "Paste the private key here." = "ألصق المفتاح الخاص هنا.";
@@ -390,7 +377,6 @@
 "CustomPhotoPicker.Add" = "إضافة";
 "%@ must be set" = "يجب تعيين %@";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "رمز PIN مكون من 6 أرقام";
-"CopyPhrase" = "نسخ العبارة إلى الحافظة";
 "Settings" = "الإعدادات";
 "Upgrade Today!" = "قم بالترقية اليوم!";
 "Saved to Device" = "تم الحفظ على الجهاز";
@@ -563,7 +549,6 @@
 
 "BlackFridayTitle" = "الجمعة السوداء هنا!";
 "BlackFridaySubtitle" = "لا تفوت الفرصة! العرض ينتهي قريبًا!";
-"FeatureToggles.RecoveryPhraseDescription" = "تفعيل ميزة عبارة الاسترداد";
 "FeatureToggles.RevenuecatToggleTitle" = "إعادة التشغيل مطلوبة";
 "CMS.LoadingError" = "فشل تحميل اللافتات الترويجية";
 "FeatureToggles.EnableVideoDescription" = "تفعيل تسجيل وتشغيل الفيديو";
@@ -578,7 +563,6 @@
 "FeatureToggles.Title" = "تبديل الميزات";
 "FeatureToggles.HideAlbumDescription" = "إخفاء الألبوم من العرض الرئيسي";
 "FeatureToggles.RevenuecatToggleMessage" = "تغيير وضع RevenueCat يتطلب إعادة تشغيل التطبيق. هل تريد المتابعة؟";
-"FeatureToggles.RecoveryPhrase" = "عبارة الاسترداد";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "غير قادر على تحميل الاشتراكات";
 "FeatureToggles.EnableTestRevenueCat" = "اختبار RevenueCat";
 "FeatureToggles.HideAlbum" = "إخفاء الألبوم";

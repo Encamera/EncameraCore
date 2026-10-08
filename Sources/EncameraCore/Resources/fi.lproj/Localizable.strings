@@ -3,7 +3,6 @@
 
 "AlbumDetailView.HideAlbumAlertTitle" = "Piilotetaanko tämä albumi?";
 "Saved to iCloud" = "Tallennettu iCloudiin";
-"KeyPhrase.CopyButton" = "Kopioi avainlause";
 "Notification.ImportImages.Prompt" = "Kehotetaan käyttäjää tuomaan lisää kuvia turvallisuussyistä.";
 "AuthenticationMethod.TextDescription.Password" = "Salasana";
 "CustomPhotoPicker.SelectPhotos" = "Valitse valokuvat";
@@ -23,7 +22,6 @@
 "PhotoPickerWrapper.GrantAccessDescription" = "Anna täysi pääsy valokuviisi ottaaksesi käyttöön pyyhkäisyn monen kuvan valitsemiseksi kerralla!";
 "PromoPremiumUnlockTheseBenefits" = "Rajattomasti albumeita ja iCloud-tallennustilaa
  ja KAKSI KUUKAUTTA ILMAISEKSI";
-"KeyPhrase.Title" = "Salauksen avainlauseesi";
 "ImportTaskDetailsView.Done" = "Valmis";
 "CoolPicture" = "Tuo on hieno kuva!";
 "Erase" = "Poista";
@@ -100,7 +98,6 @@
 "ErrorSavingPassword" = "Virhe tallennettaessa salasanaa";
 "Notification.InactiveUserReminder.Title" = "Kuvasi saattavat olla vaarassa 🚨";
 "Notification.WidgetSetup.Guidance" = "Opastetaan käyttäjää lisäämään widget lukitusnäyttöön.";
-"YourRecoveryPhrase" = "Avainten varmuuskopiointi";
 "TakeAnotherPhoto" = "Ota toinen kuva";
 "OnboardingPermissionsMicrophoneAccessSubheading" = "Tarvitaan vain videoille";
 "Notification.WidgetReminder.Title" = "Ota suoraan salattuja kuvia 📸";
@@ -198,7 +195,6 @@
 "PhotoPickerWrapper.ContinueLimited" = "Jatka rajoitetulla käyttöoikeudella";
 "ProtectionLevel.Low" = "Alhainen suojaus";
 "Saved to Device" = "Tallennettu laitteeseen";
-"OverwriteKeyPhrase" = "Korvataanko avainlause?";
 "Delete All Associated Data?" = "Poistetaanko kaikki siihen liittyvät tiedot?";
 "FinishedReadyToUseEncamera" = "Olet valmis käyttämään\nEncameraa!";
 "Take a Photo!" = "Ota kuva!";
@@ -206,7 +202,6 @@
 "View unlimited photos for each key." = "Katsele rajattomasti kuvia jokaiselle avaimelle.";
 "PurchaseView.BenefitModel.iCloudStorage" = "iCloud-tallennus ja varmuuskopiointi";
 "AlbumDetailView.AlbumCoverMenuTitle" = "Albumin kansi";
-"KeyPhrase.Subtitle" = "Tämä on ainutlaatuinen salausavainlauseesi. Jos kadotat tämän ja hankit uuden puhelimen, et koskaan enää pääse käsiksi salattuihin valokuviisi ja videoihisi. Tallenna tämä turvalliseen paikkaan.";
 "EmptyAlbumImportPhotosActionTitle" = "Tuo kuvia";
 "IncorrectPinCode" = "Väärä PIN-koodi. Yritä uudelleen.";
 "NotificationBanner.LeaveAReview.Title" = "Tarvitsemme apuasi!";
@@ -277,7 +272,6 @@
 "InstallWidgetTitle" = "Asenna lukitusnäytön widget";
 "Key length: %@" = "Avaimen pituus: %@";
 "LoginMethodDescription" = "Valitse, miten haluat käyttää yksityisiä albumejasi.";
-"ImportKeyPhrase" = "Tuo avainlause";
 "PurchaseView.BenefitModel.UnlimitedAlbums" = "Rajattomasti albumeita muistoillesi";
 "ImSure" = "Olen varma";
 "SaveToiCloudDrive" = "Tallenna iCloud Driveen";
@@ -294,7 +288,6 @@ Kun jaat sen heidän kanssaan, he voivat purkaa minkä tahansa median salauksen,
 "AlbumDetailView.HideAlbumMenuItem" = "Piilota albumi";
 "AuthenticationMethod.OK" = "OK";
 "Notification.PremiumReminder.Title" = "20 % alennus - Rajoitettu aika 📅";
-"OverwriteAreYouSure" = "Haluatko varmasti korvata nykyisen avainlauseesi? Et voi enää käyttää mitään nykyisellä avainlauseella salattua mediaa.";
 "FeedbackView.WeAppreciateIt" = "Arvostamme palautettasi";
 "PinCodeDoesNotMatch" = "PIN-koodi ei täsmää. Yritä uudelleen.";
 "SavePinCode" = "Tallenna PIN-koodi";
@@ -327,7 +320,6 @@ Kun jaat sen heidän kanssaan, he voivat purkaa minkä tahansa median salauksen,
 "Error deleting all files" = "Virhe poistettaessa kaikkia tiedostoja";
 "Terms of Use" = "Käyttöehdot";
 "Scan with Encamera app" = "Skannaa Encamera-sovelluksella";
-"CopyPhrase" = "Kopioi lause leikepöydälle";
 "PhotoPickerWrapper.UpgradeToFullAccess" = "Päivitä täyteen käyttöoikeuteen";
 "KeyTutorialTitle" = "Kaikki tiedostosi on salattu";
 "PurchaseView.BenefitModel.UnlimitedStorage" = "Rajoittamaton tallennustila valokuville ja videoille";
@@ -340,7 +332,6 @@ Kun jaat sen heidän kanssaan, he voivat purkaa minkä tahansa median salauksen,
 "Settings.Contact" = "Ota yhteyttä tukeen";
 "Error deleting key and associated files. Please try again or try to delete files manually via the Files app." = "Virhe avaimen ja siihen liittyvien tiedostojen poistossa. Yritä uudelleen tai poista tiedostot manuaalisesti Tiedostot-sovelluksen kautta.";
 "SaveLocally" = "Tallenna tälle laitteelle";
-"EnterKeyPhrase" = "Syötä avainlause";
 "Keep your encrypted data safe by using %@." = "Pidä salatut tietosi turvassa käyttämällä %@.";
 "OpenSystemSettings" = "Siirry asetuksiin";
 "SplashScreen.Subline" = "Suojaa muistosi";
@@ -372,7 +363,6 @@ Tätä lausetta käytetään luomaan salausavain, joka salaa mediasi.
 On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "Back to album" = "Takaisin albumiin";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "6-numeroinen PIN";
-"ErrorImportingKeyPhrase" = "Virhe avainlauseen tuonnissa";
 "NoAlbum" = "Ei albumia";
 "PurchaseView.BenefitModel.BackupKeychain" = "Varmuuskopioi avainketju iCloudiin";
 "Settings" = "Asetukset";
@@ -398,7 +388,6 @@ On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "Or" = "Tai";
 "UnlockUnlimitedForFree" = "Avaa rajattomat ominaisuudet ilmaiseksi!";
 "AskForReview.EnjoyingTheApp" = "Nautitko sovelluksesta?";
-"EnterKeyPhraseDescription" = "Syötä avainlause, jonka haluat tuoda. Erottele jokainen sana välilyönnillä.";
 "HideAlbumsTutorial.Heading1" = "Pidä albumisi yksityisinä";
 "FinishedSubtitle" = "Luodaan ensimmäinen albumisi";
 "HideAlbumsTutorial.Heading3" = "Muista albumien nimet";
@@ -464,7 +453,6 @@ On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "Key copied to clipboard. Store this in a password manager or other secure place." = "Avain kopioitu leikepöydälle. Säilytä tämä salasanojen hallinnassa tai muussa turvallisessa paikassa.";
 "Select Storage" = "Valitse tallennuspaikka";
 "Use Password" = "Käytä salasanaa";
-"Settings.BackupKeyPhrase" = "Varmuuskopioi avainlause";
 "HideAlbumsTutorial.Subheading3" = "Muista piilottamiesi albumien nimet, sillä ne eivät näy albumilistassasi.";
 "GlobalImportProgress.ImportCompleted" = "Tuonti valmis";
 "ConfirmPinCode" = "Vahvista PIN-koodi";
@@ -518,7 +506,6 @@ On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "AuthenticationMethod.TextDescription.FaceID" = "Face ID";
 "Current Password" = "Nykyinen salasana";
 "SetAPasswordWarning" = "Aseta salasana sovelluksen käyttöä varten. Muista säilyttää se turvallisessa paikassa – et voi palauttaa sitä myöhemmin.";
-"Settings.ImportKeyPhrase" = "Tuo avainlause";
 "AlbumDetailView.PhotoAccessRequired" = "Valokuvien käyttöoikeus vaaditaan";
 "Notification.Permission.Granted" = "Paikallisen ilmoituksen luvat myönnetty.";
 "PhotoPickerWrapper.UpgradeMessage" = "Sinulla on tällä hetkellä rajoitettu pääsy valokuviin. Myönnä täysi pääsy ottaaksesi käyttöön pyyhkäisyvalinnan useiden valokuvien tuomiseksi kerralla – näin tuonti on paljon nopeampaa!";
@@ -526,7 +513,6 @@ On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "TelegramGroupJoinButtonText" = "Liity ryhmään";
 "SaveAmount %@ $@" = "TALLENNA %@";
 "Rename" = "Nimeä uudelleen";
-"RecoveryPhraseCopied" = "Palautuslause kopioitu!";
 "OnboardingCarousel.SubheadingText2" = "Albumisi on lukittu ainutlaatuisella avaimellasi ja tallennettu turvallisesti laitteellesi tai iCloudiin.";
 "Save Key" = "Tallenna avain";
 "AuthenticationMethod.MultipleMethodsInfo" = "Voit valita useita todennustapoja";
@@ -577,7 +563,6 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 
 "BlackFridayTitle" = "BLACK FRIDAY ON TÄÄLLÄ!";
 "BlackFridaySubtitle" = "Älä jää paitsi! Tarjous päättyy pian!";
-"FeatureToggles.RecoveryPhraseDescription" = "Ota palautuslausekeominaisuus käyttöön";
 "FeatureToggles.RevenuecatToggleTitle" = "Uudelleenkäynnistys vaaditaan";
 "CMS.LoadingError" = "Mainosbannerien lataus epäonnistui";
 "FeatureToggles.EnableVideoDescription" = "Ota videon tallennus ja toisto käyttöön";
@@ -592,7 +577,6 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "FeatureToggles.Title" = "Ominaisuuksien kytkimet";
 "FeatureToggles.HideAlbumDescription" = "Piilota albumi pää näkymästä";
 "FeatureToggles.RevenuecatToggleMessage" = "RevenueCat-tilan vaihtaminen vaatii sovelluksen uudelleenkäynnistyksen. Jatketaanko?";
-"FeatureToggles.RecoveryPhrase" = "Palautuslause";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "Tilausten lataaminen epäonnistui";
 "FeatureToggles.EnableTestRevenueCat" = "Testaa RevenueCat";
 "FeatureToggles.HideAlbum" = "Piilota albumi";
