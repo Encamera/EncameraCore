@@ -24,19 +24,30 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
     public var keyFingerprint: String?
     /// Set while a local change has not yet been saved to the album record.
     public var dirty: Bool
+    /// The fields the pending local change touched. Nil on a dirty marker means
+    /// every field, as for a marker written dirty whole (a new or moved-in album).
+    /// A remote change to any other field is still applied while the marker is dirty.
+    public var dirtyFields: Set<Field>?
+
+    /// The record fields `album.json` mirrors.
+    public enum Field: String, Codable, CaseIterable, Sendable {
+        case name, hidden, cover
+    }
 
     public init(encName: String,
                 createdAt: Date,
                 isHidden: Bool = false,
                 coverMediaID: String? = nil,
                 keyFingerprint: String? = nil,
-                dirty: Bool = false) {
+                dirty: Bool = false,
+                dirtyFields: Set<Field>? = nil) {
         self.encName = encName
         self.createdAt = createdAt
         self.isHidden = isHidden
         self.coverMediaID = coverMediaID
         self.keyFingerprint = keyFingerprint
         self.dirty = dirty
+        self.dirtyFields = dirtyFields
     }
 
     /// The marker for a CloudKit album as this device currently knows it.
@@ -54,6 +65,22 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
     /// The `coverMediaID` of an album whose cover the user turned off, as opposed to
     /// nil, which means the album picks its own cover.
     public static let disabledCoverID = "none"
+
+    /// The fields a local change has not yet saved to the record: none on a clean
+    /// marker, every field on a dirty marker that does not say which.
+    public var pendingFields: Set<Field> {
+        guard dirty else { return [] }
+        return dirtyFields ?? Set(Field.allCases)
+    }
+
+    /// The fields whose values differ between `self` and `other`.
+    public func fields(differingFrom other: CloudKitAlbumMarker) -> Set<Field> {
+        var fields: Set<Field> = []
+        if encName != other.encName || keyFingerprint != other.keyFingerprint { fields.insert(.name) }
+        if isHidden != other.isHidden { fields.insert(.hidden) }
+        if coverMediaID != other.coverMediaID { fields.insert(.cover) }
+        return fields
+    }
 
     /// The cover the album record carries. The record references a media record, so
     /// a disabled cover goes as no cover; it stays disabled on this device only.
@@ -130,6 +157,7 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
         guard pushed.dirty, read(albumID: albumID) == pushed else { return }
         var clean = pushed
         clean.dirty = false
+        clean.dirtyFields = nil
         try clean.write(albumID: albumID)
     }
 

@@ -489,6 +489,8 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         XCTAssertTrue(marker.dirty, "the reconciler retries a change the record never got")
         XCTAssertTrue(marker.isHidden)
         XCTAssertEqual(marker.coverMediaID, "cover-9")
+        XCTAssertEqual(marker.dirtyFields, [.hidden, .cover],
+                       "only the fields the user changed are pending, so another device's rename still applies")
         XCTAssertTrue(harness.store.savedAlbumCalls.isEmpty)
     }
 

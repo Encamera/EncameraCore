@@ -1,8 +1,10 @@
 import Foundation
 import CryptoKit
 
-/// Per-album synced cover image ID, captured from CloudKit's `EncAlbum.coverMediaRef`
-/// during reconciliation so the thumbnail loading chain can resolve it offline.
+/// Per-album cover image ID that earlier builds cached from CloudKit's
+/// `EncAlbum.coverMediaRef`. Nothing reads it any more: a CloudKit album's cover
+/// lives in its `album.json`, and a cached copy outliving a cover reset showed the
+/// old cover. Album deletion and cover resets still remove the file.
 ///
 /// A derived cache, like the size sidecar it sits beside: it lives in the local,
 /// never-synced `MediaIndex` directory, is excluded from backup, and a loss costs

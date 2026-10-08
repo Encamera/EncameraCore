@@ -81,13 +81,6 @@ public actor InteractableMediaFileAccess: FileAccess {
             return try await requireBackend().loadLeadingThumbnail(coverImageId: coverImageId)
         }
 
-        if album.storageOption == .cloudKit {
-            let sidecar = AlbumCoverSidecar(album: album)
-            if let syncedCoverID = await sidecar.coverMediaID() {
-                return try await requireBackend().loadLeadingThumbnail(coverImageId: syncedCoverID)
-            }
-        }
-
         let media: [InteractableMedia<EncryptedMedia>] = await enumerateMedia()
         guard !media.isEmpty else {
             return nil

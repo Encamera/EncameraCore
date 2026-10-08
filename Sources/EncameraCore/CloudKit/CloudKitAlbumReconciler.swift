@@ -204,12 +204,6 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             }
             printDebug("reconcileAlbums pull adopt albumID=\(record.albumID) isHidden=\(record.isHidden) createdAt=\(record.createdAt)")
             albumManager.adoptCloudKitAlbum(record: record, key: match.key)
-            if let coverID = record.coverMediaID {
-                let adoptedAlbum = Album(encryptedName: record.encName, storageOption: .cloudKit,
-                                         creationDate: record.createdAt, key: match.key, albumID: record.albumID)
-                let sidecar = AlbumCoverSidecar(album: adoptedAlbum)
-                Task { try? await sidecar.setCoverMediaID(coverID) }
-            }
             adopted += 1
         }
 
@@ -361,8 +355,8 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     ///
     /// A changed album record rewrites the album's `album.json` in place when its
     /// name, hidden flag or cover differ — a remote rename changes no id, so nothing
-    /// is deleted, adopted or evicted. A dirty marker is left alone: it holds a local
-    /// change the push step saves over the record.
+    /// is deleted, adopted or evicted. A dirty marker keeps only the fields its local
+    /// change touched; the push step saves those over the record.
     private func applyRemoteDeletions() async -> Set<String> {
         var removed: Set<String> = []
         var metadataApplied = 0
@@ -393,21 +387,11 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             }
             for albumMeta in changeSet.changedAlbums {
                 publishRegistry.markPublished(albumMeta.albumID)
-                let localAlbum = localByID[albumMeta.albumID]
-                var coverApplied = false
-                if let coverChanged = applyRemoteMetadata(albumMeta) {
-                    metadataApplied += 1
-                    if coverChanged, let localAlbum {
-                        let sidecar = AlbumCoverSidecar(album: localAlbum)
-                        Task { try? await sidecar.setCoverMediaID(albumMeta.coverMediaID) }
-                        coverApplied = true
-                    }
-                }
-                if let localAlbum {
-                    if !coverApplied, albumManager.getAlbumCoverImageId(album: localAlbum) == nil {
-                        let sidecar = AlbumCoverSidecar(album: localAlbum)
-                        Task { try? await sidecar.setCoverMediaID(albumMeta.coverMediaID) }
-                    }
+                guard let coverChanged = applyRemoteMetadata(albumMeta) else { continue }
+                metadataApplied += 1
+                // album.json already holds the new cover, so a grid reload on this
+                // event reads it.
+                if coverChanged, localByID[albumMeta.albumID] != nil {
                     FileOperationBus.shared.albumCoverChanged()
                 }
             }
@@ -425,35 +409,43 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
 
     /// Rewrites the album's `album.json` from `record` when the record's name,
     /// hidden flag or cover differ from it, and returns whether the cover changed.
-    /// Returns nil when nothing was written: no marker on this device, a dirty
-    /// marker, or nothing changed. A record without a cover leaves a cover this
-    /// device turned off as it is, since the record cannot carry that state.
+    /// Returns nil when nothing was written: no marker on this device, or nothing
+    /// changed. A dirty marker keeps the fields its pending local change touched,
+    /// which the push step saves over the record, and takes the record's value for
+    /// every other field, so that push does not revert another device's change. A
+    /// record without a cover leaves a cover this device turned off as it is, since
+    /// the record cannot carry that state.
     private func applyRemoteMetadata(_ record: CloudKitAlbumMetadata) -> Bool? {
         guard let marker = CloudKitAlbumMarker.read(albumID: record.albumID) else { return nil }
-        if marker.dirty {
+        let pending = marker.pendingFields
+        if pending.count == CloudKitAlbumMarker.Field.allCases.count {
             printDebug("applyRemoteMetadata skip albumID=\(record.albumID) reason=dirty")
             return nil
         }
-        let nameChanged = marker.encName != record.encName
-        let hiddenChanged = marker.isHidden != record.isHidden
+        let nameChanged = !pending.contains(.name) && marker.encName != record.encName
+        let hiddenChanged = !pending.contains(.hidden) && marker.isHidden != record.isHidden
         let remoteCover = (record.coverMediaID == nil && marker.coverMediaID == CloudKitAlbumMarker.disabledCoverID)
             ? marker.coverMediaID
             : record.coverMediaID
-        let coverChanged = marker.coverMediaID != remoteCover
+        let coverChanged = !pending.contains(.cover) && marker.coverMediaID != remoteCover
         guard nameChanged || hiddenChanged || coverChanged else { return nil }
-        let updated = CloudKitAlbumMarker(encName: record.encName,
-                                          createdAt: record.createdAt,
-                                          isHidden: record.isHidden,
-                                          coverMediaID: remoteCover,
-                                          keyFingerprint: record.keyFingerprint ?? marker.keyFingerprint,
-                                          dirty: false)
+        var updated = marker
+        if nameChanged || !marker.dirty {
+            updated.encName = pending.contains(.name) ? marker.encName : record.encName
+            updated.keyFingerprint = pending.contains(.name)
+                ? marker.keyFingerprint
+                : (record.keyFingerprint ?? marker.keyFingerprint)
+        }
+        if !marker.dirty { updated.createdAt = record.createdAt }
+        if hiddenChanged { updated.isHidden = record.isHidden }
+        if coverChanged { updated.coverMediaID = remoteCover }
         do {
             try updated.write(albumID: record.albumID)
         } catch {
             printDebug("applyRemoteMetadata write FAILED albumID=\(record.albumID) error=\(error)")
             return nil
         }
-        printDebug("applyRemoteMetadata ok albumID=\(record.albumID) name=\(nameChanged) hidden=\(hiddenChanged) cover=\(coverChanged)")
+        printDebug("applyRemoteMetadata ok albumID=\(record.albumID) name=\(nameChanged) hidden=\(hiddenChanged) cover=\(coverChanged) keptPending=\(pending.map(\.rawValue).sorted())")
         return coverChanged
     }
 

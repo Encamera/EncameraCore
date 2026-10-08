@@ -473,8 +473,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         album.albumID.flatMap { CloudKitAlbumMarker.read(albumID: $0) }
     }
 
-    /// Applies `change` to a CloudKit album's `album.json`, marks it dirty and saves
-    /// the album record from it. The marker stays dirty until a save succeeds, and
+    /// Applies `change` to a CloudKit album's `album.json`, marks the fields it
+    /// changed dirty and saves the album record from it. The marker stays dirty until a save succeeds, and
     /// `CloudKitAlbumReconciler` retries dirty markers on every pass. An album with no
     /// marker is not on this device, so nothing is written.
     ///
@@ -487,7 +487,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             printDebug("updateCloudKitAlbumMarker skip album=\(album.id) reason=noMarker")
             return false
         }
+        let before = marker
         change(&marker)
+        let touched = marker.fields(differingFrom: before)
+        if !before.dirty {
+            marker.dirtyFields = touched
+        } else if let pending = before.dirtyFields {
+            marker.dirtyFields = pending.union(touched)
+        }
         marker.dirty = true
         do {
             try marker.write(albumID: albumID)

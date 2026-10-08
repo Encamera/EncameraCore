@@ -9,6 +9,7 @@
 //
 
 import XCTest
+import Combine
 import CloudKit
 @testable import EncameraCore
 
@@ -33,14 +34,16 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
     /// `album.json`, as enumeration would find it.
     private func materializedAlbum(_ name: String, key: PrivateKey,
                                    isHidden: Bool = false, coverMediaID: String? = nil,
-                                   dirty: Bool = false) throws -> Album {
+                                   dirty: Bool = false,
+                                   dirtyFields: Set<CloudKitAlbumMarker.Field>? = nil) throws -> Album {
         let albumID = UUID().uuidString
         let album = Album(name: name, storageOption: .cloudKit,
                           creationDate: Date(timeIntervalSinceReferenceDate: 790_000_000),
                           key: key, albumID: albumID)
         markerIDs.append(albumID)
-        try CloudKitAlbumMarker(album: album, isHidden: isHidden, coverMediaID: coverMediaID, dirty: dirty)
-            .write(albumID: albumID)
+        var marker = CloudKitAlbumMarker(album: album, isHidden: isHidden, coverMediaID: coverMediaID, dirty: dirty)
+        marker.dirtyFields = dirtyFields
+        try marker.write(albumID: albumID)
         return album
     }
 
@@ -1095,6 +1098,13 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.changeSet = changeFeed(changedAlbums: [changed])
         store.seedAlbum(changed)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [album])
+        var coverSeenAtEvent: [String?] = []
+        let subscription = FileOperationBus.shared.operations.sink { operation in
+            if case .albumCoverChanged = operation {
+                coverSeenAtEvent.append(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID)
+            }
+        }
+        defer { subscription.cancel() }
 
         _ = await reconciler.reconcileAlbums()
 
@@ -1103,14 +1113,74 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertEqual(marker.coverMediaID, "new-cover")
         XCTAssertEqual(marker.encName, album.encryptedPathComponent, "an unchanged name is kept")
         XCTAssertEqual(albumManager.notifyAlbumsChangedCount, 1)
-        // Each sidecar instance caches the file at init, so re-read through a new one.
-        var sidecarCover = await AlbumCoverSidecar(album: album).coverMediaID()
-        for _ in 0..<100 where sidecarCover != "new-cover" {
-            try await Task.sleep(nanoseconds: 10_000_000)
-            sidecarCover = await AlbumCoverSidecar(album: album).coverMediaID()
-        }
-        XCTAssertEqual(sidecarCover, "new-cover", "the cover sidecar follows the record")
-        try? FileManager.default.removeItem(at: AlbumCoverSidecar.sidecarURL(for: album))
+        XCTAssertEqual(coverSeenAtEvent, ["new-cover"],
+                       "the grid is told once, after album.json already holds the new cover")
+    }
+
+    /// Another device resets the cover: album.json goes back to picking its own
+    /// cover, and nothing cached from the old record stands in for it.
+    func testARemoteCoverResetClearsTheCover() async throws {
+        let key = makeKey(5)
+        let album = try materializedAlbum("Reset", key: key, coverMediaID: "old-cover")
+        try await AlbumCoverSidecar(album: album).setCoverMediaID("old-cover")
+        defer { try? FileManager.default.removeItem(at: AlbumCoverSidecar.sidecarURL(for: album)) }
+        let store = MockCloudKitMediaStore()
+        let reset = record(for: album, coverMediaID: nil)
+        store.changeSet = changeFeed(changedAlbums: [reset])
+        store.seedAlbum(reset)
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [album])
+
+        _ = await reconciler.reconcileAlbums()
+
+        XCTAssertNil(albumManager.getAlbumCoverImageId(album: album))
+        XCTAssertNil(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID)
+    }
+
+    /// A pending local rename must not cost the album another device's new cover:
+    /// the cover is applied, the rename stays pending, and the push that saves the
+    /// rename carries the other device's cover rather than reverting it.
+    func testARemoteCoverIsAppliedUnderAPendingLocalRenameAndSurvivesThePush() async throws {
+        let key = makeKey(5)
+        let album = try materializedAlbum("LocalName", key: key, coverMediaID: "old-cover",
+                                          dirty: true, dirtyFields: [.name])
+        let localEncName = album.encryptedPathComponent
+        let store = MockCloudKitMediaStore()
+        let changed = record(for: album, encName: encName("ServerName", key: key), coverMediaID: "new-cover")
+        store.changeSet = changeFeed(changedAlbums: [changed])
+        store.seedAlbum(changed)
+        let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
+
+        _ = await reconciler.reconcileAlbums()
+
+        let marker = try XCTUnwrap(CloudKitAlbumMarker.read(albumID: album.albumID!))
+        XCTAssertEqual(marker.coverMediaID, "new-cover")
+        XCTAssertEqual(marker.encName, localEncName, "the pending local rename is kept")
+        let saved = try XCTUnwrap(store.savedAlbumCalls.last)
+        XCTAssertEqual(saved.encName, localEncName)
+        XCTAssertEqual(saved.coverMediaID, "new-cover", "the push does not revert the other device's cover")
+        XCTAssertFalse(marker.dirty)
+    }
+
+    /// A pending local cover change wins over the record's cover, while the
+    /// record's other fields still apply.
+    func testAPendingLocalCoverIsKeptWhileOtherRemoteFieldsApply() async throws {
+        let key = makeKey(5)
+        let album = try materializedAlbum("Mine", key: key, isHidden: false, coverMediaID: "my-cover",
+                                          dirty: true, dirtyFields: [.cover])
+        let store = MockCloudKitMediaStore()
+        let changed = record(for: album, isHidden: true, coverMediaID: "their-cover")
+        store.changeSet = changeFeed(changedAlbums: [changed])
+        store.seedAlbum(changed)
+        store.saveAlbumError = CloudKitMediaStoreError.retry(after: 1)
+        let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
+
+        _ = await reconciler.reconcileAlbums()
+
+        let marker = try XCTUnwrap(CloudKitAlbumMarker.read(albumID: album.albumID!))
+        XCTAssertEqual(marker.coverMediaID, "my-cover")
+        XCTAssertTrue(marker.isHidden, "the remote hidden flag is applied")
+        XCTAssertTrue(marker.dirty)
+        XCTAssertEqual(marker.dirtyFields, [.cover])
     }
 
     func testAnUnchangedRecordLeavesAlbumJSONAlone() async throws {
