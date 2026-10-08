@@ -88,7 +88,6 @@
 "Erase" = "Erase";
 "Erase keychain data" = "Erase keychain data";
 "Erase All Data" = "Erase All Data";
-"appDataExplanation" = "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n";
 
 "Erase" = "Erase";
 "Change Password" = "Change Password";
@@ -99,7 +98,6 @@
 "Roadmap" = "Roadmap & Feature Requests";
 /* ./Encamera/Settings/PromptToErase.swift */
 "Hold to erase" = "Hold to erase";
-"Erase App Data" = "Erase App Data";
 "Erasing in %@" = "Erasing in %@";
 
 /* ./Encamera/Settings/PromptToErase.swift — prompt */
@@ -111,6 +109,16 @@
 "PromptToErase.Item.Media" = "Media stored on this device or in iCloud";
 "PromptToErase.BackupReminder" = "You can back up your keys from the key management screen before erasing.";
 "PromptToErase.RestartNote" = "Every step is checked as it runs. Encamera restarts when the erase is finished.";
+
+/* ./Encamera/Settings/PromptToErase.swift — reset prompt, reachable before unlock */
+"PromptToErase.Reset.Title" = "Reset Passcode";
+"PromptToErase.Reset.Question" = "Reset your passcode and keys?";
+"PromptToErase.Reset.Explanation" = "This removes your passcode, encryption keys and app settings from this device and every other device on your iCloud account.";
+"PromptToErase.Reset.MediaKept" = "Your photos and videos are not deleted. To see them again, you will need the key phrase for each key.";
+"PromptToErase.Reset.RestartNote" = "Every step is checked as it runs. Encamera restarts when the reset is finished.";
+"PromptToErase.Reset.Hold" = "Hold to reset";
+"PromptToErase.Reset.Countdown" = "Resetting in %@";
+"PromptToErase.Reset.Link" = "Forgot your passcode? Reset it";
 
 /* ./Encamera/Settings/EraseProgressView.swift */
 "EraseProgress.Title" = "Erasing All Data";
@@ -149,6 +157,13 @@
 "EraseProgress.Step.KeysKeychain" = "Delete keys and passcode";
 "EraseProgress.Step.SettingsDefaults" = "Reset settings";
 "EraseProgress.Step.FinalVerify" = "Verify the device is empty";
+"EraseProgress.Reset.Title" = "Resetting";
+"EraseProgress.Reset.Running" = "Resetting…";
+"EraseProgress.Reset.Complete" = "Reset complete";
+"EraseProgress.Reset.CompleteMessage" = "Your passcode, keys and settings were removed and verified. Your encrypted photos and videos were kept. Tap Finish to restart Encamera.";
+"EraseProgress.Reset.CompleteWithProblems" = "Reset finished with problems";
+"EraseProgress.Reset.Finish" = "Finish Reset (Restart)";
+"EraseProgress.Reset.FinalVerify" = "Verify the reset";
 "EraseProgress.Hint.CloudUnreachable" = "Encamera couldn't reach iCloud. Connect to the internet and open Encamera again; it will finish deleting your iCloud data automatically.";
 "EraseProgress.Hint.Keychain" = "Some keys could not be removed. Erase again; if this keeps happening, delete Encamera from your device and reinstall it.";
 "EraseProgress.Hint.Files" = "Some files could not be removed. Delete Encamera from your device to remove them.";
@@ -397,7 +412,6 @@
 
 "You have an existing password for this device." = "You have an existing password for this device.";
 
-"Erase Device Data" = "Erase Device Data";
 "Set Password" = "Set Password";
 "SetAPasswordWarning" = "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later.";
 "Storage location onboarding" = "Where do you want to store your media? Each key will store data in its own directory once encrypted.";
@@ -1092,7 +1106,7 @@
 "AuthenticationView.CannotUnlock" = "Encamera can't be unlocked";
 "AuthenticationView.BiometricsOnly.Title" = "Turn on %@ to unlock Encamera";
 "AuthenticationView.BiometricsOnly.Explanation" = "This account has no passcode, so %@ is the only way in.";
-"AuthenticationView.EraseAndStartOver" = "Can't turn it on? Erase and start over";
+"AuthenticationView.ResetAndStartOver" = "Can't turn it on? Reset and start over";
 
 /* Shown when biometrics is the only way into the app and it cannot run. */
 "BiometricAvailability.GenericName" = "Biometric unlock";

@@ -68,7 +68,6 @@
 "Erase keychain data" = "Borrar datos del llavero";
 "Erase All Data" = "Borrar todos los datos";
 "allDataExplanation" = "¿Estás seguro de que quieres borrar TODOS LOS DATOS DE ENCAMERA?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Ajustes de la app 🎛\n• MULTIMEDIA ALMACENADA LOCALMENTE O EN iCLOUD\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de gestión de claves.\n\nLa app se cerrará después de que se complete el borrado.";
-"appDataExplanation" = "¿Estás seguro de que quieres borrar TODOS los datos de la app?\n\nESTO BORRARÁ:\n\n• TODAS tus claves almacenadas 🔑\n• Tu contraseña 🔐\n• Ajustes de la app 🎛\n\nESTO NO BORRARÁ:\n\n• Multimedia que has almacenado localmente o en iCloud\n\nPuedes crear una copia de seguridad de tus claves desde la pantalla de gestión de claves.\n\nLa app se cerrará después de que se complete el borrado.\n\n";
 "Erase" = "Borrar";
 "Change Password" = "Cambiar Contraseña";
 "Current Password" = "Contraseña Actual";
@@ -80,7 +79,6 @@
 
 /* ./Encamera/Settings/PromptToErase.swift */
 "Hold to erase" = "Mantener presionado para borrar";
-"Erase App Data" = "Borrar datos de la app";
 "Erasing in %@" = "Borrando en %@"; 
 
 /* ./Encamera/Tutorial/ChooseStorageModal.swift */
@@ -277,7 +275,6 @@
 "OpenSourceExplanation" = "La funcionalidad principal de Encamera es de código abierto, lo que significa que puedes ver el código que mantiene seguras tus fotos.";
 "Enter Password" = "Ingresa la Contraseña";
 "You have an existing password for this device." = "Ya tienes una contraseña para este dispositivo.";
-"Erase Device Data" = "Borrar Datos del Dispositivo";
 "Set Password" = "Establecer Contraseña";
 "SetAPasswordWarning" = "Establece una contraseña para acceder a la aplicación. Asegúrate de guardarla en un lugar seguro – no podrás recuperarla más tarde.";
 "Storage location onboarding" = "¿Dónde quieres almacenar tus medios? Cada clave almacenará datos en su propio directorio una vez encriptados.";

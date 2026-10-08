@@ -68,7 +68,6 @@
 "Erase keychain data" = "Schlüsselbunddaten löschen";
 "Erase All Data" = "Alle Daten löschen";
 "allDataExplanation" = "Sind Sie sicher, dass Sie ALLE ENCAMERA-DATEN löschen möchten?\n\nDAS WIRD GELÖSCHT:\n\n• Alle Ihre gespeicherten Schlüssel 🔑\n• Ihr Passwort 🔐\n• App-Einstellungen 🎛\n• VON IHNEN LOKAL ODER AUF iCLOUD GESPEICHERTE MEDIEN\n\nSie können ein Backup Ihrer Schlüssel über den Schlüsselverwaltungsbildschirm erstellen.\n\nDie App wird nach dem Löschen beendet.";
-"appDataExplanation" = "Sind Sie sicher, dass Sie ALLE App-Daten löschen möchten?\n\nDAS WIRD GELÖSCHT:\n\n• Alle Ihre gespeicherten Schlüssel 🔑\n• Ihr Passwort 🔐\n• App-Einstellungen 🎛\n\nDAS WIRD NICHT GELÖSCHT:\n\n• Medien, die Sie lokal oder auf iCloud gespeichert haben\n\nSie können ein Backup Ihrer Schlüssel über den Schlüsselverwaltungsbildschirm erstellen.\n\nDie App wird nach dem Löschen beendet.\n\n";
 "Erase" = "Löschen";
 "Change Password" = "Passwort ändern";
 "Current Password" = "Aktuelles Passwort";
@@ -80,7 +79,6 @@
 
 /* ./Encamera/Settings/PromptToErase.swift */
 "Hold to erase" = "Halten zum Löschen";
-"Erase App Data" = "App-Daten löschen";
 "Erasing in %@" = "Löschen in %@"; 
 
 /* ./Encamera/Tutorial/ChooseStorageModal.swift */
@@ -276,7 +274,6 @@
 "OpenSourceExplanation" = "Die Kernfunktionalitäten von Encamera sind Open Source, sodass Sie den Code, der Ihre Fotos sicher macht, einsehen können.";
 "Enter Password" = "Passwort eingeben";
 "You have an existing password for this device." = "Sie haben bereits ein Passwort für dieses Gerät.";
-"Erase Device Data" = "Gerätedaten löschen";
 "Set Password" = "Passwort festlegen";
 "SetAPasswordWarning" = "Legen Sie ein Passwort fest, um auf die App zuzugreifen. Bewahren Sie es an einem sicheren Ort auf – Sie können es später nicht wiederherstellen.";
 "Storage location onboarding" = "Wo möchten Sie Ihre Medien speichern? Jeder Schlüssel speichert die Daten in seinem eigenen Verzeichnis, sobald sie verschlüsselt sind.";

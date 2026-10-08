@@ -16,7 +16,8 @@
 
 import Foundation
 
-/// What survived an erase. Every field empty is the contract for `.allData`.
+/// What survived an erase. Every field empty is the contract for both scopes;
+/// `.reset` simply checks fewer surfaces.
 public struct ErasureResidue: Equatable, Sendable {
     /// `"<class>|<name>"` per surviving keychain item.
     public var keychainItems: [String] = []
@@ -57,7 +58,8 @@ public struct ErasureResidue: Equatable, Sendable {
 }
 
 public protocol ErasureVerifying {
-    /// Re-reads every surface the scope claims to have cleared.
+    /// Re-reads every surface the scope claims to have cleared, and nothing it
+    /// keeps: the encrypted media a `.reset` leaves behind is not residue.
     func verify(scope: ErasureScope) async -> ErasureResidue
 }
 
@@ -78,12 +80,10 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
     public func verify(scope: ErasureScope) async -> ErasureResidue {
         var residue = ErasureResidue()
 
-        if scope == .allData {
-            residue.keychainItems = keyManager.residualKeychainItemNames()
-                .filter { item in
-                    !Self.thirdPartyKeychainAccounts.contains(where: { item.hasSuffix("|\($0)") })
-                }
-        }
+        residue.keychainItems = keyManager.residualKeychainItemNames()
+            .filter { item in
+                !Self.thirdPartyKeychainAccounts.contains(where: { item.hasSuffix("|\($0)") })
+            }
 
         residue.files = survivingFiles(scope: scope)
         residue.defaultsKeys = survivingDefaultsKeys()
@@ -111,7 +111,7 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
             ("sharedImports", AppGroupFileAccess.shared.importDirectoryURL)
         ]
 
-        if scope == .allData {
+        if scope.includes(.ciphertext) {
             directories.append(("cloudKitBlobs", CloudKitBlobCache.defaultBaseDir))
             directories.append(("cloudKitAlbumMarkers", CloudKitAlbumMarker.rootDirectoryURL))
             directories.append(("localAlbums", LocalStorageModel.albumsURL))
@@ -124,7 +124,7 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
             }
         }
 
-        if scope == .allData {
+        if scope.includes(.ciphertext) {
             offenders.append(contentsOf: survivingContainerPaths(limit: containerPathLimit))
         }
         return offenders
@@ -268,9 +268,9 @@ public protocol LocalDataVerifying {
     func verifyResidualContainerFiles() -> ErasureVerdict
     func verifyKeychain() -> ErasureVerdict
     func verifyUserDefaults() -> ErasureVerdict
-    /// The whole-device sweep, run last: `DefaultErasureVerifier` plus the legacy
-    /// iCloud Drive probe.
-    func verifyDeviceClean() async -> ErasureVerdict
+    /// The whole-device sweep, run last: `DefaultErasureVerifier` for `scope`,
+    /// plus the legacy iCloud Drive probe when the scope deletes media.
+    func verifyDeviceClean(scope: ErasureScope) async -> ErasureVerdict
 }
 
 /// Production per-step verifier: queries the real keychain, filesystem, defaults
@@ -395,12 +395,13 @@ public struct DefaultLocalDataVerifier: LocalDataVerifying, DebugPrintable {
     /// delete answers `zoneNotFound`, and the store reacts by rewriting the
     /// zone-created flag into the defaults the previous step just emptied. The
     /// zone and subscription were re-read by their own steps, before the sweep.
-    public func verifyDeviceClean() async -> ErasureVerdict {
-        let residue = await DefaultErasureVerifier(keyManager: keyManager).verify(scope: .allData)
+    public func verifyDeviceClean(scope: ErasureScope) async -> ErasureVerdict {
+        let residue = await DefaultErasureVerifier(keyManager: keyManager).verify(scope: scope)
         var names = residue.keychainItems.map { "keychain:\($0)" }
             + residue.files.map { "file:\($0)" }
             + residue.defaultsKeys.map { "defaults:\($0)" }
-        if let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil) {
+        if scope.includes(.ciphertext),
+           let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil) {
             names += Self.files(under: ubiquity.appendingPathComponent("Documents")).map { "iCloudDrive:\($0)" }
         }
         let hint: ErasureRecoveryHint = residue.keychainItems.isEmpty ? .files : .keychain

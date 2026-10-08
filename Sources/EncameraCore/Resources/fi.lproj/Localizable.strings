@@ -95,7 +95,6 @@
 "No file access available." = "Tiedostojen käyttö ei ole saatavilla.";
 "Notification.PremiumReminder.Body" = "Käytä koodia 'ENCAMERA20' saadaksesi 20 % alennuksen mistä tahansa suunnitelmasta. Toimi nopeasti!";
 "PurchaseProduct" = "Osta";
-"Erase Device Data" = "Poista laitteen tiedot";
 "Settings.BackupKeyToiCloud" = "Synkronoi avain iCloudiin";
 "Change Key Album" = "Haluan valita toisen kohdealbumin";
 "ErrorSavingPassword" = "Virhe tallennettaessa salasanaa";
@@ -225,7 +224,6 @@
 "PurchaseView.BenefitModel.ChangeAppIcon" = "Vaihda sovelluskuvaketta";
 "PinCodeMismatch" = "PIN-koodit eivät ole samat";
 "StorageExplanationHeader" = "Missä valokuvani tallennetaan?";
-"Erase App Data" = "Poista sovelluksen tiedot";
 "Share Key" = "Jaa avain";
 "Notification.ImageSaveReminder.Title" = "Haluaisimme tukeasi 64f";
 "AuthenticationMethod.DisableTitle" = "Poista pääsykoodi käytöstä";
@@ -438,23 +436,6 @@ On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "Where do you want to save this key's media?" = "Mihin haluat tallentaa tämän avaimen median?";
 "Choose your login method" = "Valitse kirjautumistapa";
 "Settings.PurchasesRestoredMessage" = "Kaikki voimassa olevat ostoksesi on palautettu.";
-"appDataExplanation" = "Haluatko varmasti poistaa KAIKKI sovelluksen tiedot?
-
-TÄMÄ POISTAA:
-
-• KAIKKI tallennetut avaimesi 🔑
-• Salasanasi 🔐
-• Sovelluksen asetukset 🎛
-
-TÄMÄ EI POISTA:
-
-• Paikallisesti tai iCloudiin tallentamiasi medioita
-
-Voit luoda varmuuskopion avaimistasi avainhallinnanäkymästä.
-
-Sovellus sulkeutuu, kun poisto on valmis.
-
-";
 "TaskDetailCard.Current" = "Nykyinen: %@";
 "No private key or media found." = "Yksityistä avainta tai mediaa ei löytynyt.";
 "AuthenticationMethod.Disable" = "Poista käytöstä";

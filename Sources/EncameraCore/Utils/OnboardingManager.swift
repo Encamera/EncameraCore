@@ -175,6 +175,9 @@ public class OnboardingManager: OnboardingManaging {
         switch state {
         case .completed:
             try keyManager.setAuthenticationConfiguration(config: authenticationConfiguration)
+            // From here on new data can exist, so a cloud wipe still owed by an
+            // earlier erase must never run.
+            UserDefaultUtils.removeObject(forKey: .pendingCloudDataWipe)
 
         case .notStarted,
              .hasPasswordAndNotOnboarded,

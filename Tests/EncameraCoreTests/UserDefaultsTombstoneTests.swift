@@ -73,6 +73,17 @@ final class UserDefaultsTombstoneTests: XCTestCase {
         XCTAssertTrue(UserDefaultUtils.bool(forKey: .pendingCloudDataWipe))
     }
 
+    func testRemoveAllKeepsAnOwedCloudWipe() {
+        groupDefaults.set("x", forKey: "someSetting")
+        groupDefaults.set(true, forKey: UserDefaultKey.pendingCloudDataWipe.rawValue)
+
+        UserDefaultUtils.removeAll(setTombstone: true)
+
+        XCTAssertNil(groupDefaults.object(forKey: "someSetting"))
+        XCTAssertTrue(groupDefaults.bool(forKey: UserDefaultKey.pendingCloudDataWipe.rawValue),
+                      "a cloud wipe an earlier erase could not finish is still owed after this one")
+    }
+
     func testRemoveAllWritesTheTombstoneLast() {
         groupDefaults.set("x", forKey: "someSetting")
 

@@ -7,38 +7,22 @@
 
 import Foundation
 
+/// What an erase removes. Both scopes wipe the keychain account-wide: a synced
+/// passcode hash left in iCloud Keychain sends onboarding straight back to
+/// "enter existing passcode", so nothing short of that gets a user past it.
 public enum ErasureScope {
-    case appData
+    /// Pre-auth reset from the lock screen and onboarding: everything except the
+    /// encrypted media (`ErasureTier.reset`). The user gets the media back by
+    /// entering their key phrases in onboarding.
+    case reset
+    /// Settings "Erase All Data", behind an unlock: the reset plus the encrypted
+    /// media, locally and in iCloud (`ErasureTier.ciphertext`).
     case allData
-
-    /// How far this scope's keychain sweep reaches.
-    ///
-    /// `.allData` is ACCOUNT-WIDE, and that is the point of it. The screen promises
-    /// "ALL your stored keys 🔑 / Your password 🔐 / MEDIA YOU HAVE STORED LOCALLY OR
-    /// ON iCLOUD", and `deleteAllCloudData()` already removes the CloudKit zone for
-    /// every device on the Apple ID. Keeping the keychain device-local made the two
-    /// halves contradict each other: the user's media was destroyed everywhere while
-    /// the key and passcode that opened it survived everywhere — and with
-    /// Multi-Device Mode on, every item is synchronizable, so a device-local sweep
-    /// matched nothing at all.
-    ///
-    /// `.appData` stays device-local. It is the forgot-passcode / start-over reset,
-    /// which deliberately KEEPS the encrypted originals and the CloudKit zone, so
-    /// tombstoning the account's keys would strand exactly the data it just promised
-    /// to leave alone.
-    public var keyDeletionScope: KeyDeletionScope {
-        switch self {
-        case .appData:
-            return .deviceLocal
-        case .allData:
-            return .accountWide
-        }
-    }
 
     public var screenName: String {
         switch self {
-        case .appData:
-            return "app_data"
+        case .reset:
+            return "reset"
         case .allData:
             return "all_data"
         }
@@ -120,10 +104,6 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
 
     let keyManager: KeyManager
     let fileAccess: FileAccess
-    /// How far the keychain wipe reaches. Defaults to `.deviceLocal`: "erase this
-    /// device" must never tombstone the account's keys on devices the user still
-    /// owns. `.accountWide` is a separate, explicitly-labelled action.
-    let keyDeletionScope: KeyDeletionScope
 
     func shutdownCloudKitSync() async {
         await CloudKitUploader.shared.shutdown()
@@ -289,7 +269,7 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
     }
 
     func eraseKeychain() {
-        keyManager.clearKeychainData(scope: keyDeletionScope)
+        keyManager.clearKeychainData(scope: .accountWide)
         KeychainPasscodeAttemptStore().clear()
     }
 
@@ -360,10 +340,6 @@ public struct EraserUtils {
     public var keyManager: KeyManager
     public var fileAccess: FileAccess
     public var erasureScope: ErasureScope
-    /// How far the keychain wipe reaches. Derived from `erasureScope` unless a
-    /// caller overrides it — see `ErasureScope.keyDeletionScope` for why `.allData`
-    /// resolves to `.accountWide`.
-    public var keyDeletionScope: KeyDeletionScope
     private let cloudKitEraser: CloudDataErasing
     private let localEraser: LocalDataErasing
     private let localVerifier: LocalDataVerifying
@@ -371,68 +347,60 @@ public struct EraserUtils {
     /// residual sweep, keychain and defaults wipes so nothing they write survives.
     private let appLayerSteps: [ErasureStep]
 
-    /// - Parameter keyDeletionScope: pass only to deviate from the scope's own
-    ///   answer. `nil` — the default — takes `erasureScope.keyDeletionScope`, so a
-    ///   caller cannot get the wrong blast radius by forgetting the argument.
     public init(keyManager: KeyManager,
                 fileAccess: FileAccess,
                 erasureScope: ErasureScope,
-                keyDeletionScope: KeyDeletionScope? = nil,
                 cloudKitEraser: CloudDataErasing = CloudKitContainer.shared,
                 localEraser: LocalDataErasing? = nil,
                 localVerifier: LocalDataVerifying? = nil,
                 appLayerSteps: [ErasureStep] = []) {
-        let resolvedKeyScope = keyDeletionScope ?? erasureScope.keyDeletionScope
         self.keyManager = keyManager
         self.fileAccess = fileAccess
         self.erasureScope = erasureScope
-        self.keyDeletionScope = resolvedKeyScope
         self.cloudKitEraser = cloudKitEraser
-        self.localEraser = localEraser ?? DefaultLocalDataEraser(keyManager: keyManager, fileAccess: fileAccess, keyDeletionScope: resolvedKeyScope)
+        self.localEraser = localEraser ?? DefaultLocalDataEraser(keyManager: keyManager, fileAccess: fileAccess)
         self.localVerifier = localVerifier ?? DefaultLocalDataVerifier(keyManager: keyManager, fileAccess: fileAccess)
         self.appLayerSteps = appLayerSteps
     }
 
-    /// Every step an `.allData` run reports, in run order: the core catalog with
-    /// the app-layer steps inserted into their section. Rendered by the progress
+    /// Every step this scope reports, in run order: the scope's catalog with the
+    /// app-layer steps inserted into their section. Rendered by the progress
     /// screen before the run starts.
     public var stepDescriptors: [ErasureStepDescriptor] {
-        let catalog = ErasureStepDescriptor.allDataCatalog
+        let catalog = ErasureStepDescriptor.catalog(for: erasureScope)
         let appSectionIndex = ErasureStepSection.allCases.firstIndex(of: .app)!
         let before = catalog.filter { ErasureStepSection.allCases.firstIndex(of: $0.section)! < appSectionIndex }
         let after = catalog.filter { ErasureStepSection.allCases.firstIndex(of: $0.section)! > appSectionIndex }
-        return before + appLayerSteps.map(\.descriptor) + after
+        return before + appLayerSteps.filter { erasureScope.includes($0.descriptor.tier) }.map(\.descriptor) + after
     }
 
     @discardableResult
     public func erase() async throws -> ErasureResult {
-        switch erasureScope {
-        case .appData:
-            await eraseAppData()
-            return ErasureResult(cloudKitDeletionFailed: false)
-        case .allData:
-            let report = await eraseAllData(progress: { _ in })
-            return ErasureResult(cloudKitDeletionFailed: report.cloudKitDeletionFailed)
-        }
+        let report = await erase(progress: { _ in })
+        return ErasureResult(cloudKitDeletionFailed: report.cloudKitDeletionFailed)
     }
 
-    /// Full reset: removes everything the user generated — their CloudKit data
-    /// (across all devices), every local album regardless of which one is active,
-    /// the media index, on-disk caches/thumbnails, cleartext temp dirs, migration
-    /// checkpoints, the encryption keys, and all UserDefaults / iCloud key-value
-    /// state.
-    ///
     /// Runs `stepDescriptors` in order and reports each through `progress` twice:
     /// `.running`, then the terminal outcome its verification decided. A failure
-    /// never stops the run. In-flight migrations are halted FIRST so nothing keeps
-    /// writing checkpoints or issuing CloudKit operations after the zone delete;
-    /// the CloudKit checks run before the residual sweep, which removes
-    /// `Library/Caches/CloudKit` and breaks every later CloudKit read; the
-    /// keychain wipe runs after the media so deleting the keys orphans nothing.
-    public func eraseAllData(progress: @escaping @Sendable (ErasureStepReport) -> Void) async -> ErasureReport {
+    /// never stops the run.
+    ///
+    /// `.reset` removes the keys (on this device and in iCloud), settings and
+    /// key-value store, decrypted thumbnails, cleartext temp files, shared
+    /// imports, migration checkpoints and app-layer state, and keeps the
+    /// encrypted media, its indexes, the blob cache, the upload queue and the
+    /// CloudKit zone. `.allData` adds all of those.
+    ///
+    /// In-flight migrations are halted FIRST so nothing keeps writing checkpoints
+    /// or issuing CloudKit operations; the CloudKit checks run before the
+    /// residual sweep, which removes `Library/Caches/CloudKit` and breaks every
+    /// later CloudKit read; the keychain wipe runs after the media so deleting the
+    /// keys orphans nothing. A `pendingCloudDataWipe` marker from an earlier run
+    /// survives both scopes.
+    public func erase(progress: @escaping @Sendable (ErasureStepReport) -> Void) async -> ErasureReport {
         var steps: [ErasureStepReport] = []
         var cloudKitDeletionFailed = false
         var cloudWipeOwed = false
+        let scope = erasureScope
 
         func record(_ report: ErasureStepReport) {
             steps.append(report)
@@ -463,60 +431,63 @@ public struct EraserUtils {
                       erase: { await localEraser.shutdownCloudKitSync() },
                       verify: { await localVerifier.verifyCloudKitSyncShutdown() })
 
-        progress(.running("cloud.zones"))
-        do {
-            try await cloudKitEraser.deleteAllCloudData()
-            record(await cloudVerdict("cloud.zones", label: "iCloud zones") {
-                try await cloudKitEraser.remainingZoneNames()
-            })
-        } catch {
-            print("EraserUtils: CloudKit deletion failed: \(error)")
-            cloudWipeOwed = true
-            if await cloudKitEraser.mayHaveCloudKitData() {
-                cloudKitDeletionFailed = true
-                // The server may have committed the delete even though the client
-                // saw an error; only a re-read can say.
-                record(await cloudVerdict("cloud.zones", label: "iCloud zones", eraseError: error) {
+        if scope.includes(.ciphertext) {
+            progress(.running("cloud.zones"))
+            do {
+                try await cloudKitEraser.deleteAllCloudData()
+                record(await cloudVerdict("cloud.zones", label: "iCloud zones") {
                     try await cloudKitEraser.remainingZoneNames()
                 })
-            } else {
-                record(.skipped("cloud.zones", "No iCloud account on this device"))
+            } catch {
+                print("EraserUtils: CloudKit deletion failed: \(error)")
+                if await cloudKitEraser.mayHaveCloudKitData() {
+                    cloudWipeOwed = true
+                    cloudKitDeletionFailed = true
+                    // The server may have committed the delete even though the client
+                    // saw an error; only a re-read can say.
+                    record(await cloudVerdict("cloud.zones", label: "iCloud zones", eraseError: error) {
+                        try await cloudKitEraser.remainingZoneNames()
+                    })
+                } else {
+                    record(.skipped("cloud.zones", "No iCloud account on this device"))
+                }
             }
+
+            progress(.running("cloud.subscriptions"))
+            do {
+                try await cloudKitEraser.deleteAllSubscriptions()
+                record(await cloudVerdict("cloud.subscriptions", label: "iCloud subscriptions") {
+                    try await cloudKitEraser.remainingSubscriptionIDs()
+                })
+            } catch {
+                print("EraserUtils: CloudKit subscription deletion failed: \(error)")
+                if await cloudKitEraser.mayHaveCloudKitData() {
+                    cloudWipeOwed = true
+                    record(.terminal("cloud.subscriptions",
+                                     verdict: .fail("Could not reach iCloud", hint: .cloudUnreachable),
+                                     eraseError: error))
+                } else {
+                    record(.skipped("cloud.subscriptions", "No iCloud account on this device"))
+                }
+            }
+
+            await perform("media.activeBackend",
+                          erase: { await localEraser.eraseActiveBackendMedia() },
+                          verify: { await localVerifier.verifyActiveBackendMedia() })
+            await perform("media.localAlbums",
+                          erase: { localEraser.eraseAllLocalMediaFiles() },
+                          verify: { localVerifier.verifyLocalMediaFiles() })
+            await perform("media.iCloudDrive",
+                          erase: { localEraser.eraseICloudDriveMedia() },
+                          verify: { localVerifier.verifyICloudDriveMedia() })
+            await perform("media.indexes",
+                          erase: { localEraser.eraseMediaIndexes() },
+                          verify: { localVerifier.verifyMediaIndexes() })
+            await perform("media.blobCache",
+                          erase: { await localEraser.eraseBlobCache() },
+                          verify: { localVerifier.verifyBlobCache() })
         }
 
-        progress(.running("cloud.subscriptions"))
-        do {
-            try await cloudKitEraser.deleteAllSubscriptions()
-            record(await cloudVerdict("cloud.subscriptions", label: "iCloud subscriptions") {
-                try await cloudKitEraser.remainingSubscriptionIDs()
-            })
-        } catch {
-            print("EraserUtils: CloudKit subscription deletion failed: \(error)")
-            if await cloudKitEraser.mayHaveCloudKitData() {
-                cloudWipeOwed = true
-                record(.terminal("cloud.subscriptions",
-                                 verdict: .fail("Could not reach iCloud", hint: .cloudUnreachable),
-                                 eraseError: error))
-            } else {
-                record(.skipped("cloud.subscriptions", "No iCloud account on this device"))
-            }
-        }
-
-        await perform("media.activeBackend",
-                      erase: { await localEraser.eraseActiveBackendMedia() },
-                      verify: { await localVerifier.verifyActiveBackendMedia() })
-        await perform("media.localAlbums",
-                      erase: { localEraser.eraseAllLocalMediaFiles() },
-                      verify: { localVerifier.verifyLocalMediaFiles() })
-        await perform("media.iCloudDrive",
-                      erase: { localEraser.eraseICloudDriveMedia() },
-                      verify: { localVerifier.verifyICloudDriveMedia() })
-        await perform("media.indexes",
-                      erase: { localEraser.eraseMediaIndexes() },
-                      verify: { localVerifier.verifyMediaIndexes() })
-        await perform("media.blobCache",
-                      erase: { await localEraser.eraseBlobCache() },
-                      verify: { localVerifier.verifyBlobCache() })
         await perform("media.thumbnails",
                       erase: { localEraser.eraseThumbnails() },
                       verify: { localVerifier.verifyThumbnails() })
@@ -527,13 +498,15 @@ public struct EraserUtils {
                       erase: { await localEraser.eraseSharedContainerImports() },
                       verify: { localVerifier.verifySharedContainerImports() })
 
-        for step in appLayerSteps {
+        for step in appLayerSteps where scope.includes(step.descriptor.tier) {
             await perform(step.descriptor.id, erase: step.erase, verify: step.verify)
         }
 
-        await perform("sweep.residual",
-                      erase: { localEraser.eraseResidualContainerFiles() },
-                      verify: { localVerifier.verifyResidualContainerFiles() })
+        if scope.includes(.ciphertext) {
+            await perform("sweep.residual",
+                          erase: { localEraser.eraseResidualContainerFiles() },
+                          verify: { localVerifier.verifyResidualContainerFiles() })
+        }
         await perform("keys.keychain",
                       erase: { localEraser.eraseKeychain() },
                       verify: { localVerifier.verifyKeychain() })
@@ -549,13 +522,30 @@ public struct EraserUtils {
 
         await perform("final.verify",
                       erase: {},
-                      verify: { await localVerifier.verifyDeviceClean() })
+                      verify: { await localVerifier.verifyDeviceClean(scope: scope) })
 
         let report = ErasureReport(descriptors: stepDescriptors,
                                    steps: steps,
-                                   cloudKitDeletionFailed: cloudKitDeletionFailed)
+                                   cloudKitDeletionFailed: cloudKitDeletionFailed,
+                                   scope: scope)
         print(report.fullText)
         return report
+    }
+
+    /// Retries a cloud wipe an earlier erase could not finish. The marker is only
+    /// armed when the device may have CloudKit data and is cleared when onboarding
+    /// completes, so this never deletes data created after the erase.
+    /// - Returns: whether a retry was attempted.
+    @discardableResult
+    public static func retryPendingCloudWipe(using cloudKitEraser: CloudDataErasing = CloudKitContainer.shared) async -> Bool {
+        guard UserDefaultUtils.bool(forKey: .pendingCloudDataWipe) else { return false }
+        do {
+            try await cloudKitEraser.deleteAllCloudData()
+            UserDefaultUtils.set(nil, forKey: .pendingCloudDataWipe)
+        } catch {
+            print("EraserUtils: pending cloud wipe retry failed: \(error)")
+        }
+        return true
     }
 
     /// Re-reads a cloud surface. A read that itself fails means iCloud is
@@ -574,26 +564,5 @@ public struct EraserUtils {
                              verdict: .fail("Could not reach iCloud", detail: "\(error)", hint: .cloudUnreachable),
                              eraseError: eraseError)
         }
-    }
-
-    /// Forgot-passcode / start-over reset: destroys the keys and app state, plus
-    /// every DERIVED cache of the now-undecryptable data (decrypted thumbnails,
-    /// media indexes, blob cache, cleartext temp files, migration checkpoints) so
-    /// no readable artifacts survive into the new install.
-    ///
-    /// Intentionally KEEPS the encrypted originals and the CloudKit zone: the same
-    /// album keys may still exist on the user's other devices (iCloud Keychain),
-    /// so the remote records — and local ciphertext re-paired with a recovered
-    /// key — can remain usable there. Destroying them is exclusively the
-    /// `.allData` scope's contract.
-    private func eraseAppData() async {
-        await localEraser.eraseMigrationState()
-        localEraser.eraseMediaIndexes()
-        await localEraser.eraseBlobCache()
-        localEraser.eraseThumbnails()
-        localEraser.eraseTempDirectories()
-        await localEraser.eraseSharedContainerImports()
-        localEraser.eraseKeychain()
-        localEraser.eraseUserDefaults()
     }
 }

@@ -61,7 +61,6 @@
 "Open Source" = "オープンソース";
 "HideAlbumsTutorial.Subheading1" = "Encameraは、追加のプライバシーのためにアルバムをメインビューから非表示にすることができます。";
 "OnboardingCarousel.HeadingText2" = "暗号化キーを持っているのはあなただけです";
-"Erase Device Data" = "デバイスデータを消去";
 "Clear Password" = "パスワードをクリア";
 "PostPurchaseView.ReviewButton" = "レビューにご協力ください";
 "TakeAnotherPhoto" = "もう一枚写真を撮る";
@@ -272,23 +271,6 @@
 "Restore Purchases" = "購入を復元";
 "You took your first photo! 📸 🥳" = "最初の写真を撮りました！📸 🥳";
 "No key available." = "利用可能なキーがありません。";
-"appDataExplanation" = "本当にすべてのアプリデータを消去しますか？
-
-これにより消去されるもの：
-
-・保存されているすべての鍵 🔑
-・パスワード 🔒
-・アプリの設定 🎛
-
-これにより消去されないもの：
-
-・ローカルまたはiCloudに保存しているメディア
-
-鍵管理画面から鍵のバックアップを作成できます。
-
-消去が完了するとアプリは終了します。
-
-";
 "TakeSurveyButtonText" = "アンケートに答える";
 "Use %@?" = "%@を使用しますか？";
 "ImportKeyPhrase" = "キー フレーズをインポート";
@@ -514,7 +496,6 @@
 "Notification.ReviewPage.Navigation" = "レビュー投稿ページへ移動します。";
 "AuthenticationMethod.IncompatibleDetail" = "%@は現在選択されている方法と併用できません。PINとパスワードは同時に使用できません。";
 "TelegramGroupJoinBody" = "ベータ機能をいち早く体験し、フィードバックをお寄せください";
-"Erase App Data" = "アプリのデータを消去";
 "Key Entry" = "キー入力";
 "HideAlbumsTutorial.Subheading3" = "非表示アルバムの名前はアルバム一覧に表示されないため、必ず覚えておいてください。";
 "EmptyAlbumTakeAPictureActionTitle" = "写真を撮る";

@@ -61,7 +61,6 @@
 "Open Source" = "مفتوح المصدر";
 "HideAlbumsTutorial.Subheading1" = "يتيح لك Encamera إخفاء الألبومات من العرض الرئيسي لمزيد من الخصوصية.";
 "OnboardingCarousel.HeadingText2" = "أنت فقط من يحتفظ بمفتاح التشفير";
-"Erase Device Data" = "مسح بيانات الجهاز";
 "Clear Password" = "مسح كلمة المرور";
 "PostPurchaseView.ReviewButton" = "ساعدنا في كتابة مراجعة";
 "TakeAnotherPhoto" = "التقط صورة أخرى";
@@ -258,7 +257,6 @@
 "Restore Purchases" = "استعادة المشتريات";
 "You took your first photo! 📸 🥳" = "لقد التقطت أول صورة لك! 📸 🥳";
 "No key available." = "لا يوجد مفتاح متاح.";
-"appDataExplanation" = "هل أنت متأكد أنك تريد مسح جميع بيانات التطبيق؟\n\nسيتم مسح ما يلي:\n\n• جميع المفاتيح المخزنة لديك 🔑\n• كلمة المرور الخاصة بك 🔐\n• إعدادات التطبيق 🎛\n\nلن يتم مسح ما يلي:\n\n• الوسائط المخزنة محليًا أو على iCloud\n\nيمكنك إنشاء نسخة احتياطية من مفاتيحك من شاشة إدارة المفاتيح.\n\nسيتم إغلاق التطبيق بعد الانتهاء من المسح.";
 "TakeSurveyButtonText" = "شارك في الاستطلاع";
 "Use %@?" = "استخدام %@؟";
 "ImportKeyPhrase" = "استيراد عبارة المفتاح";
@@ -482,7 +480,6 @@
 "Notification.ReviewPage.Navigation" = "الانتقال إلى صفحة إرسال المراجعة.";
 "AuthenticationMethod.IncompatibleDetail" = "لا يمكن استخدام %@ مع الطرق المحددة حالياً. لا يمكن استخدام رقم التعريف الشخصي وكلمة المرور معاً.";
 "TelegramGroupJoinBody" = "احصل على وصول مبكر إلى الميزات التجريبية وقدم ملاحظاتك";
-"Erase App Data" = "مسح بيانات التطبيق";
 "Key Entry" = "إدخال المفتاح";
 "HideAlbumsTutorial.Subheading3" = "تأكد من تذكر أسماء ألبوماتك المخفية، لأنها لن تظهر في قائمة الألبومات الخاصة بك.";
 "EmptyAlbumTakeAPictureActionTitle" = "التقط صورة";

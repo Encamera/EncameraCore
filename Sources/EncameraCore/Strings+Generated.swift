@@ -66,24 +66,6 @@ public enum L10n {
   public static let albumNotFoundAtSourceLocation = L10n.tr("Localizable", "AlbumNotFoundAtSourceLocation", fallback: "Could not find the album at the source location. Use the Files app to ensure that it exists.")
   /// AlbumGrid
   public static let albumsTitle = L10n.tr("Localizable", "AlbumsTitle", fallback: "Albums")
-  /// Are you sure you want to erase ALL app data?
-  /// 
-  /// THIS WILL ERASE:
-  /// 
-  /// • ALL your stored keys 🔑
-  /// • Your password 🔐
-  /// • App settings 🎛
-  /// 
-  /// THIS WILL NOT ERASE:
-  /// 
-  /// • Media you have stored locally or on iCloud
-  /// 
-  /// You can create a backup of your keys from the key management screen.
-  /// 
-  /// The app will quit after erase is finished.
-  /// 
-  /// 
-  public static let appDataExplanation = L10n.tr("Localizable", "appDataExplanation", fallback: "Are you sure you want to erase ALL app data?\n\nTHIS WILL ERASE:\n\n• ALL your stored keys 🔑\n• Your password 🔐\n• App settings 🎛\n\nTHIS WILL NOT ERASE:\n\n• Media you have stored locally or on iCloud\n\nYou can create a backup of your keys from the key management screen.\n\nThe app will quit after erase is finished.\n\n")
   /// Passcode Options
   public static let authenticationMethod = L10n.tr("Localizable", "AuthenticationMethod", fallback: "Passcode Options")
   /// Back to album
@@ -262,10 +244,6 @@ public enum L10n {
   public static let erase = L10n.tr("Localizable", "Erase", fallback: "Erase")
   /// Erase All Data
   public static let eraseAllData = L10n.tr("Localizable", "Erase All Data", fallback: "Erase All Data")
-  /// Erase App Data
-  public static let eraseAppData = L10n.tr("Localizable", "Erase App Data", fallback: "Erase App Data")
-  /// Erase Device Data
-  public static let eraseDeviceData = L10n.tr("Localizable", "Erase Device Data", fallback: "Erase Device Data")
   /// Erase keychain data
   public static let eraseKeychainData = L10n.tr("Localizable", "Erase keychain data", fallback: "Erase keychain data")
   /// Erasing in %@
@@ -1133,10 +1111,10 @@ public enum L10n {
   public enum AuthenticationView {
     /// Encamera can't be unlocked
     public static let cannotUnlock = L10n.tr("Localizable", "AuthenticationView.CannotUnlock", fallback: "Encamera can't be unlocked")
-    /// Can't turn it on? Erase and start over
-    public static let eraseAndStartOver = L10n.tr("Localizable", "AuthenticationView.EraseAndStartOver", fallback: "Can't turn it on? Erase and start over")
     /// Forgot Password? Reset App
     public static let forgotPassword = L10n.tr("Localizable", "AuthenticationView.ForgotPassword", fallback: "Forgot Password? Reset App")
+    /// Can't turn it on? Reset and start over
+    public static let resetAndStartOver = L10n.tr("Localizable", "AuthenticationView.ResetAndStartOver", fallback: "Can't turn it on? Reset and start over")
     /// You can retry your password in %@
     public static func retryIn(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AuthenticationView.RetryIn", String(describing: p1), fallback: "You can retry your password in %@")
@@ -1674,6 +1652,22 @@ public enum L10n {
       public static let retry = L10n.tr("Localizable", "EraseProgress.Hint.Retry", fallback: "Try erasing again. If the problem persists, delete and reinstall Encamera.")
       /// Some settings could not be reset. Erase again, or delete and reinstall Encamera.
       public static let settings = L10n.tr("Localizable", "EraseProgress.Hint.Settings", fallback: "Some settings could not be reset. Erase again, or delete and reinstall Encamera.")
+    }
+    public enum Reset {
+      /// Reset complete
+      public static let complete = L10n.tr("Localizable", "EraseProgress.Reset.Complete", fallback: "Reset complete")
+      /// Your passcode, keys and settings were removed and verified. Your encrypted photos and videos were kept. Tap Finish to restart Encamera.
+      public static let completeMessage = L10n.tr("Localizable", "EraseProgress.Reset.CompleteMessage", fallback: "Your passcode, keys and settings were removed and verified. Your encrypted photos and videos were kept. Tap Finish to restart Encamera.")
+      /// Reset finished with problems
+      public static let completeWithProblems = L10n.tr("Localizable", "EraseProgress.Reset.CompleteWithProblems", fallback: "Reset finished with problems")
+      /// Verify the reset
+      public static let finalVerify = L10n.tr("Localizable", "EraseProgress.Reset.FinalVerify", fallback: "Verify the reset")
+      /// Finish Reset (Restart)
+      public static let finish = L10n.tr("Localizable", "EraseProgress.Reset.Finish", fallback: "Finish Reset (Restart)")
+      /// Resetting…
+      public static let running = L10n.tr("Localizable", "EraseProgress.Reset.Running", fallback: "Resetting…")
+      /// Resetting
+      public static let title = L10n.tr("Localizable", "EraseProgress.Reset.Title", fallback: "Resetting")
     }
     public enum Section {
       /// Stopping activity
@@ -2735,6 +2729,26 @@ public enum L10n {
       public static let password = L10n.tr("Localizable", "PromptToErase.Item.Password", fallback: "Your passcode")
       /// App settings
       public static let settings = L10n.tr("Localizable", "PromptToErase.Item.Settings", fallback: "App settings")
+    }
+    public enum Reset {
+      /// Resetting in %@
+      public static func countdown(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "PromptToErase.Reset.Countdown", String(describing: p1), fallback: "Resetting in %@")
+      }
+      /// This removes your passcode, encryption keys and app settings from this device and every other device on your iCloud account.
+      public static let explanation = L10n.tr("Localizable", "PromptToErase.Reset.Explanation", fallback: "This removes your passcode, encryption keys and app settings from this device and every other device on your iCloud account.")
+      /// Hold to reset
+      public static let hold = L10n.tr("Localizable", "PromptToErase.Reset.Hold", fallback: "Hold to reset")
+      /// Forgot your passcode? Reset it
+      public static let link = L10n.tr("Localizable", "PromptToErase.Reset.Link", fallback: "Forgot your passcode? Reset it")
+      /// Your photos and videos are not deleted. To see them again, you will need the key phrase for each key.
+      public static let mediaKept = L10n.tr("Localizable", "PromptToErase.Reset.MediaKept", fallback: "Your photos and videos are not deleted. To see them again, you will need the key phrase for each key.")
+      /// Reset your passcode and keys?
+      public static let question = L10n.tr("Localizable", "PromptToErase.Reset.Question", fallback: "Reset your passcode and keys?")
+      /// Every step is checked as it runs. Encamera restarts when the reset is finished.
+      public static let restartNote = L10n.tr("Localizable", "PromptToErase.Reset.RestartNote", fallback: "Every step is checked as it runs. Encamera restarts when the reset is finished.")
+      /// ./Encamera/Settings/PromptToErase.swift — reset prompt, reachable before unlock
+      public static let title = L10n.tr("Localizable", "PromptToErase.Reset.Title", fallback: "Reset Passcode")
     }
   }
   public enum ProtectionLevel {

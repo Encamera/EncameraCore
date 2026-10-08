@@ -68,29 +68,11 @@
   Vous pouvez créer une sauvegarde de vos clés depuis l'écran de gestion des clés.
 
   L'application se fermera une fois l'effacement terminé.";
-  "appDataExplanation" = "Êtes-vous sûr de vouloir effacer TOUTES les données de l’application ?
-
-  Ceci EFFACERA :
-
-  • TOUTES vos clés enregistrées 🔑
-  • Votre mot de passe 🔐
-  • Les paramètres de l’application 🎛
-
-  Ceci N’EFFACERA PAS :
-
-  • Les médias que vous avez stockés localement ou sur iCloud
-
-  Vous pouvez créer une sauvegarde de vos clés depuis l’écran de gestion des clés.
-
-  L’application se fermera après la fin de l’effacement.
-
-  ";
   "Change Password" = "Changer le mot de passe";
   "Current Password" = "Mot de passe actuel";
   "New Password" = "Nouveau mot de passe";
   "Roadmap" = "Feuille de route & Suggestions de fonctionnalités";
   "Hold to erase" = "Maintenez pour effacer";
-  "Erase App Data" = "Effacer les données de l'application";
   "Erasing in %@" = "Effacement dans %@";
   "Congratulations!" = "Félicitations !";
   "ChooseYourStorage" = "Choisissez votre stockage";
@@ -239,7 +221,6 @@
   "OnboardingCarousel.SubheadingText3" = "Encamera ne collecte jamais vos données. Vos moments privés restent entièrement les vôtres.";
   "GetStartedButtonText" = "Commençons";
   "You have an existing password for this device." = "Vous avez déjà un mot de passe pour cet appareil.";
-  "Erase Device Data" = "Effacer les données de l'appareil";
   "Set Password" = "Définir un mot de passe";
   "SetAPasswordWarning" = "Définissez un mot de passe pour accéder à l'application. Veillez à le conserver dans un endroit sûr – vous ne pourrez pas le récupérer plus tard.";
   "Storage location onboarding" = "Où souhaitez-vous stocker vos médias ? Chaque clé stockera les données dans son propre répertoire une fois chiffrées.";

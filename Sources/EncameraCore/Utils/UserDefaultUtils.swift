@@ -180,10 +180,14 @@ public final class UserDefaultUtils: DebugPrintable {
         defaults.data(forKey: key.rawValue)
     }
 
+    /// Keeps `pendingCloudDataWipe`: a cloud wipe owed by an earlier erase is
+    /// still owed after this one.
     public func _removeAll(setTombstone: Bool) {
-        defaults.dictionaryRepresentation().keys.forEach { key in
-            defaults.removeObject(forKey: key)
-        }
+        defaults.dictionaryRepresentation().keys
+            .filter { $0 != UserDefaultKey.pendingCloudDataWipe.rawValue }
+            .forEach { key in
+                defaults.removeObject(forKey: key)
+            }
 
         let cloudDict = Self.cloudStore.dictionaryRepresentation
         cloudDict.keys.forEach { key in

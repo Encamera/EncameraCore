@@ -18,8 +18,7 @@ final class ResidualContainerSweepTests: XCTestCase {
 
     private var root: URL!
     private let eraser = DefaultLocalDataEraser(keyManager: DemoKeyManager(),
-                                                fileAccess: InteractableMediaFileAccess(),
-                                                keyDeletionScope: .deviceLocal)
+                                                fileAccess: InteractableMediaFileAccess())
 
     override func setUpWithError() throws {
         root = FileManager.default.temporaryDirectory

@@ -7,9 +7,10 @@
 //  recording seam, not inferred from "did not throw"), gate the "iCloud data may
 //  remain" warning on plausible cloud usage, persist the pending-wipe marker,
 //  report every step running-then-terminal, and let a step's verification —
-//  never its erase call — decide the outcome. `.appData` must sweep derived
-//  caches without touching CloudKit or media files. Every seam is a mock, so no
-//  real defaults, keychain, or filesystem are wiped in the test process.
+//  never its erase call — decide the outcome. `.reset` must run exactly the
+//  reset tier: keys, settings and cleartext, never CloudKit or the encrypted
+//  media. Every seam is a mock, so no real defaults, keychain, or filesystem are
+//  wiped in the test process.
 //
 
 import XCTest
@@ -89,7 +90,11 @@ final class EraserUtilsTests: XCTestCase {
         func verifyResidualContainerFiles() -> ErasureVerdict { verdict("sweep.residual") }
         func verifyKeychain() -> ErasureVerdict { verdict("keys.keychain") }
         func verifyUserDefaults() -> ErasureVerdict { verdict("settings.defaults") }
-        func verifyDeviceClean() async -> ErasureVerdict { verdict("final.verify") }
+        private(set) var deviceCleanScopes: [ErasureScope] = []
+        func verifyDeviceClean(scope: ErasureScope) async -> ErasureVerdict {
+            deviceCleanScopes.append(scope)
+            return verdict("final.verify")
+        }
     }
 
     private static let allDataSteps = [
@@ -147,7 +152,7 @@ final class EraserUtilsTests: XCTestCase {
                        "a cloud failure must not skip any local step, and the owed cloud wipe is persisted AFTER the defaults wipe")
     }
 
-    func testEraseAllDataCloudFailureWithoutCloudUsageSuppressesWarningButKeepsRetryMarker() async throws {
+    func testEraseAllDataCloudFailureWithoutCloudUsageArmsNoRetryMarker() async throws {
         let cloud = MockCloudDataEraser()
         cloud.error = NSError(domain: "test", code: 1)
         cloud.mayHaveData = false
@@ -155,37 +160,86 @@ final class EraserUtilsTests: XCTestCase {
         let log = ProgressLog()
 
         let report = await makeUtils(scope: .allData, cloud: cloud, local: local)
-            .eraseAllData(progress: { log.record($0) })
+            .erase(progress: { log.record($0) })
 
         XCTAssertFalse(report.cloudKitDeletionFailed,
                        "no plausible cloud data means no false-positive warning")
         XCTAssertEqual(report.report(for: "cloud.zones")?.outcome, .skipped,
                        "a device with no account has nothing in iCloud to fail on")
-        XCTAssertEqual(local.steps, Self.allDataSteps + ["pendingCloudWipe"],
-                       "the owed cloud wipe is persisted even when the warning is suppressed")
+        XCTAssertEqual(local.steps, Self.allDataSteps,
+                       "a device that cannot have CloudKit data owes no cloud wipe, so a later retry cannot delete data made after the erase")
     }
 
-    func testEraseAppDataSweepsDerivedCachesWithoutTouchingCloudKitOrMediaFiles() async throws {
+    private static let resetSteps = [
+        "migrationState", "shutdownCloudKitSync", "thumbnails", "tempDirectories",
+        "sharedContainerImports", "keychain", "userDefaults"
+    ]
+
+    func testResetRunsExactlyTheResetTier() async throws {
         let cloud = MockCloudDataEraser()
         let local = RecordingLocalEraser()
+        let verifier = ScriptedVerifier()
+        let log = ProgressLog()
+        let utils = makeUtils(scope: .reset, cloud: cloud, local: local, verifier: verifier)
 
-        let result = try await makeUtils(scope: .appData, cloud: cloud, local: local).erase()
+        let report = await utils.erase(progress: { log.record($0) })
 
-        XCTAssertEqual(cloud.callCount, 0, "appData never touches CloudKit — keys may survive on other devices")
-        XCTAssertFalse(result.cloudKitDeletionFailed)
-        XCTAssertEqual(local.steps,
-                       ["migrationState", "mediaIndexes", "blobCache", "thumbnails",
-                        "tempDirectories", "sharedContainerImports", "keychain", "userDefaults"],
-                       "appData sweeps every DERIVED cache but keeps encrypted originals")
-        XCTAssertFalse(local.steps.contains("activeBackendMedia"))
-        XCTAssertFalse(local.steps.contains("allLocalMediaFiles"))
+        XCTAssertEqual(cloud.callCount, 0, "a pre-auth reset never deletes the CloudKit zone")
+        XCTAssertEqual(cloud.subscriptionDeleteCount, 0)
+        XCTAssertFalse(report.cloudKitDeletionFailed)
+        XCTAssertEqual(local.steps, Self.resetSteps,
+                       "the reset keeps the encrypted media, its indexes, the blob cache and upload queue, and skips the residual sweep that would take them")
+        let expectedIDs = ["migration.state", "sync.shutdown", "media.thumbnails", "media.temp",
+                           "media.sharedImports", "keys.keychain", "settings.defaults", "final.verify"]
+        XCTAssertEqual(utils.stepDescriptors.map(\.id), expectedIDs)
+        XCTAssertEqual(report.steps.map(\.id), expectedIDs)
+        XCTAssertEqual(log.reports.filter { $0.outcome == .running }.map(\.id), expectedIDs)
+        XCTAssertEqual(verifier.deviceCleanScopes, [.reset], "the final check verifies only what the reset promised")
+        XCTAssertEqual(report.scope, .reset)
+    }
+
+    func testResetCatalogHoldsNoCiphertextStep() {
+        let ciphertextIDs: Set<String> = ["cloud.zones", "cloud.subscriptions", "media.activeBackend",
+                                          "media.localAlbums", "media.iCloudDrive", "media.indexes",
+                                          "media.blobCache", "sweep.residual"]
+        XCTAssertEqual(Set(ErasureStepDescriptor.allDataCatalog.filter { $0.tier == .ciphertext }.map(\.id)), ciphertextIDs)
+        XCTAssertTrue(ErasureStepDescriptor.catalog(for: .reset).allSatisfy { $0.tier == .reset })
+        XCTAssertEqual(ErasureStepDescriptor.catalog(for: .allData), ErasureStepDescriptor.allDataCatalog)
+    }
+
+    /// A marker left by an earlier failed erase is still owed: neither scope may
+    /// write over it or drop it. The real defaults wipe keeps it
+    /// (`UserDefaultsTombstoneTests`); here neither scope records a new one.
+    func testResetNeverRecordsAPendingCloudWipe() async {
+        let cloud = MockCloudDataEraser()
+        cloud.error = NSError(domain: "test", code: 1)
+        let local = RecordingLocalEraser()
+
+        _ = await makeUtils(scope: .reset, cloud: cloud, local: local).erase(progress: { _ in })
+
+        XCTAssertFalse(local.steps.contains("pendingCloudWipe"))
+    }
+
+    func testResetAppLayerStepsRunBeforeTheKeychain() async {
+        let local = RecordingLocalEraser()
+        let order = ProgressLog()
+        let step = ErasureStep(
+            descriptor: .init(id: "app.purchases", title: "Sign out of purchases", section: .app),
+            erase: { order.record(.running("app.purchases:erase:\(local.steps.count)")) },
+            verify: { .pass("signed out") }
+        )
+        let utils = makeUtils(scope: .reset, cloud: MockCloudDataEraser(), local: local, appLayerSteps: [step])
+
+        _ = await utils.erase(progress: { _ in })
+
+        XCTAssertEqual(order.reports.first?.id, "app.purchases:erase:\(Self.resetSteps.firstIndex(of: "keychain")!)")
+        XCTAssertTrue(utils.stepDescriptors.contains { $0.id == "app.purchases" })
     }
 
     /// The Share Extension hands over DECRYPTED media, so the App Group import
-    /// directory is cleartext on disk. It is swept by both scopes — `.appData`
-    /// preserves encrypted originals, and this is not one of them.
+    /// directory is cleartext on disk. Both scopes sweep it.
     func testBothScopesClearTheCleartextSharedContainerImports() async throws {
-        for scope in [ErasureScope.allData, .appData] {
+        for scope in [ErasureScope.allData, .reset] {
             let local = RecordingLocalEraser()
             _ = try await makeUtils(scope: scope, cloud: MockCloudDataEraser(), local: local).erase()
             XCTAssertTrue(local.steps.contains("sharedContainerImports"),
@@ -199,7 +253,7 @@ final class EraserUtilsTests: XCTestCase {
         let utils = makeUtils(scope: .allData, cloud: MockCloudDataEraser(), local: RecordingLocalEraser())
         let log = ProgressLog()
 
-        let report = await utils.eraseAllData(progress: { log.record($0) })
+        let report = await utils.erase(progress: { log.record($0) })
 
         let expectedIDs = utils.stepDescriptors.map(\.id)
         XCTAssertEqual(expectedIDs, ErasureStepDescriptor.allDataCatalog.map(\.id))
@@ -218,7 +272,7 @@ final class EraserUtilsTests: XCTestCase {
         let local = RecordingLocalEraser()
         let utils = makeUtils(scope: .allData, cloud: MockCloudDataEraser(), local: local, verifier: verifier)
 
-        let report = await utils.eraseAllData(progress: { _ in })
+        let report = await utils.erase(progress: { _ in })
 
         XCTAssertEqual(report.failures.map(\.id), ["keys.keychain"])
         XCTAssertEqual(report.report(for: "keys.keychain")?.hint, .keychain)
@@ -237,7 +291,7 @@ final class EraserUtilsTests: XCTestCase {
         cloud.error = NSError(domain: "test", code: 1)
         cloud.zonesAfterDelete = []
         let report = await makeUtils(scope: .allData, cloud: cloud, local: RecordingLocalEraser())
-            .eraseAllData(progress: { _ in })
+            .erase(progress: { _ in })
 
         let zones = report.report(for: "cloud.zones")
         XCTAssertEqual(zones?.outcome, .pass, "the server committed the delete despite the client error")
@@ -246,7 +300,7 @@ final class EraserUtilsTests: XCTestCase {
         let stubborn = MockCloudDataEraser()
         stubborn.zonesAfterDelete = ["EncameraZone"]
         let dirty = await makeUtils(scope: .allData, cloud: stubborn, local: RecordingLocalEraser())
-            .eraseAllData(progress: { _ in })
+            .erase(progress: { _ in })
         XCTAssertEqual(dirty.report(for: "cloud.zones")?.outcome, .fail, "a zone that is still there is a failure however the delete returned")
         XCTAssertEqual(dirty.report(for: "cloud.zones")?.hint, .cloudUnreachable)
     }
@@ -256,7 +310,7 @@ final class EraserUtilsTests: XCTestCase {
         cloud.error = NSError(domain: "test", code: 1)
         cloud.readError = NSError(domain: "test", code: 2)
         let report = await makeUtils(scope: .allData, cloud: cloud, local: RecordingLocalEraser())
-            .eraseAllData(progress: { _ in })
+            .erase(progress: { _ in })
 
         XCTAssertEqual(report.report(for: "cloud.zones")?.outcome, .fail)
         XCTAssertEqual(report.report(for: "cloud.zones")?.hint, .cloudUnreachable)
@@ -267,7 +321,7 @@ final class EraserUtilsTests: XCTestCase {
         let cloud = MockCloudDataEraser()
         cloud.subscriptionsAfterDelete = ["EncameraZoneSubscription"]
         let report = await makeUtils(scope: .allData, cloud: cloud, local: RecordingLocalEraser())
-            .eraseAllData(progress: { _ in })
+            .erase(progress: { _ in })
 
         XCTAssertEqual(report.report(for: "cloud.subscriptions")?.outcome, .fail)
         XCTAssertEqual(report.report(for: "cloud.zones")?.outcome, .pass)
@@ -285,7 +339,7 @@ final class EraserUtilsTests: XCTestCase {
         )
         let utils = makeUtils(scope: .allData, cloud: MockCloudDataEraser(), local: local, appLayerSteps: [step])
 
-        let report = await utils.eraseAllData(progress: { _ in })
+        let report = await utils.erase(progress: { _ in })
 
         let mediaSteps = Self.allDataSteps.firstIndex(of: "residualContainerFiles")!
         XCTAssertEqual(order.reports.first?.id, "app.purchases:erase:\(mediaSteps)",
@@ -306,7 +360,7 @@ final class EraserUtilsTests: XCTestCase {
         )
         let report = await makeUtils(scope: .allData, cloud: MockCloudDataEraser(), local: RecordingLocalEraser(),
                                      appLayerSteps: [throwing])
-            .eraseAllData(progress: { _ in })
+            .erase(progress: { _ in })
 
         XCTAssertEqual(report.report(for: "app.analytics")?.outcome, .fail)
         XCTAssertEqual(report.report(for: "app.analytics")?.hint, .retry)

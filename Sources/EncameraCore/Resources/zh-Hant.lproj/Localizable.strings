@@ -68,29 +68,11 @@
 您可以在金鑰管理畫面備份您的金鑰。
 
 清除完成後，應用程式將會結束。";
-"appDataExplanation" = "您確定要刪除所有應用程式資料嗎？
-
-這將刪除：
-
-• 您所有儲存的金鑰 🔑
-• 您的密碼 🔐
-• 應用程式設定 🎛️
-
-這不會刪除：
-
-• 您本機或iCloud上儲存的媒體檔案
-
-您可以在金鑰管理畫面備份您的金鑰。
-
-刪除完成後，應用程式將自動關閉。
-
-";
 "Change Password" = "更改密碼";
 "Current Password" = "目前密碼";
 "New Password" = "新密碼";
 "Roadmap" = "開發藍圖與功能建議";
 "Hold to erase" = "長按以清除";
-"Erase App Data" = "清除應用程式資料";
 "Erasing in %@" = "正在於 %@ 清除";
 "Congratulations!" = "恭喜！";
 "ChooseYourStorage" = "選擇您的儲存空間";
@@ -235,7 +217,6 @@
 "OnboardingCarousel.SubheadingText3" = "Encamera 絕不收集你的資料。你的私人時刻完全屬於你自己。";
 "GetStartedButtonText" = "開始使用";
 "You have an existing password for this device." = "您已為此裝置設定密碼。";
-"Erase Device Data" = "清除裝置資料";
 "Set Password" = "設定密碼";
 "SetAPasswordWarning" = "請設定一組密碼以存取此應用程式。請務必將密碼妥善保管——日後無法找回。";
 "Storage location onboarding" = "您想將媒體儲存在哪裡？每個金鑰加密後，資料將儲存在其專屬目錄中。";

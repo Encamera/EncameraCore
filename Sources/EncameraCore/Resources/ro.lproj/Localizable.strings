@@ -69,13 +69,11 @@ ACEASTA VA ȘTERGE:
 Poți crea o copie de rezervă a cheilor tale din ecranul de gestionare a cheilor.
 
 Aplicația se va închide după ce ștergerea este finalizată.";
-"appDataExplanation" = "Sigur vrei să ștergi TOATE datele aplicației?\n\nSE VOR ȘTERGE:\n\n TOATE cheile tale stocate \n Parola ta \n Setările aplicației \n\nNU SE VOR ȘTERGE:\n\n Media stocată local sau pe iCloud\n\nPoți crea o copie de rezervă a cheilor tale din ecranul de administrare a cheilor.\n\nAplicația se va închide după finalizarea ștergerii.\n\n";
 "Change Password" = "Schimbă parola";
 "Current Password" = "Parola curentă";
 "New Password" = "Parolă nouă";
 "Roadmap" = "Plan de dezvoltare & Cereri de funcționalități";
 "Hold to erase" = "Țineți apăsat pentru a șterge";
-"Erase App Data" = "Șterge datele aplicației";
 "Erasing in %@" = "Se șterge în %@";
 "Congratulations!" = "Felicitări!";
 "ChooseYourStorage" = "Alegeți spațiul de stocare";
@@ -222,7 +220,6 @@ Aplicația se va închide după ce ștergerea este finalizată.";
 "OnboardingCarousel.SubheadingText3" = "Encamera nu colectează niciodată datele tale. Momentele tale private rămân complet ale tale.";
 "GetStartedButtonText" = "Să începem";
 "You have an existing password for this device." = "Aveți deja o parolă pentru acest dispozitiv.";
-"Erase Device Data" = "Șterge datele dispozitivului";
 "Set Password" = "Setează parolă";
 "SetAPasswordWarning" = "Setați o parolă pentru a accesa aplicația. Asigurați-vă că o păstrați într-un loc sigur – nu o veți putea recupera mai târziu.";
 "Storage location onboarding" = "Unde doriți să stocați fișierele media? Fiecare cheie va stoca datele într-un director propriu, odată ce sunt criptate.";

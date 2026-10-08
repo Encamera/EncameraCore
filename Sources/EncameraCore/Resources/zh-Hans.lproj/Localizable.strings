@@ -57,13 +57,11 @@
 "Erase keychain data" = "擦除钥匙串数据";
 "Erase All Data" = "擦除所有数据";
 "allDataExplanation" = "您确定要擦除所有ENCAMERA数据吗？\n\n这将擦除：\n\n• 您所有存储的密钥 🔑\n• 您的密码 🔐\n• 应用设置 🎛️\n• 您本地或iCloud上存储的媒体\n\n您可以从密钥管理屏幕创建密钥备份。\n\n擦除完成后，应用程序将退出。";
-"appDataExplanation" = "您确定要擦除所有应用数据吗？\n\n这将擦除：\n\n• 您所有存储的密钥 🔑\n• 您的密码 🔒\n• 应用设置 🎛️\n\n这不会擦除：\n\n• 您本地或在 iCloud 上存储的媒体\n\n您可以从密钥管理屏幕创建密钥的备份。\n\n擦除完成后应用将退出。\n\n";
 "Change Password" = "更改密码";
 "Current Password" = "当前密码";
 "New Password" = "新密码";
 "Roadmap" = "路线图和功能请求";
 "Hold to erase" = "按住以擦除";
-"Erase App Data" = "擦除应用数据";
 "Erasing in %@" = "正在擦除%@";
 "Congratulations!" = "恭喜！";
 "ChooseYourStorage" = "选择您的存储";
@@ -208,7 +206,6 @@
 "OnboardingCarousel.SubheadingText3" = "Encamera从不收集您的数据。您的私人时刻完全属于您自己。";
 "GetStartedButtonText" = "开始吧";
 "You have an existing password for this device." = "您已经为此设备设置了密码。";
-"Erase Device Data" = "擦除设备数据";
 "Set Password" = "设置密码";
 "SetAPasswordWarning" = "设置密码以访问该应用程序。请确保将其存放在安全的地方——您以后无法恢复它。";
 "Storage location onboarding" = "您希望将媒体存储在哪里？每个密钥都会在加密后将数据存储在自己的目录中。";

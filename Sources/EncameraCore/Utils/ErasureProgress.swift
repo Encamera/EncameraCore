@@ -2,7 +2,7 @@
 //  ErasureProgress.swift
 //  EncameraCore
 //
-//  The step catalog and per-step reporting for "Erase All Data".
+//  The step catalog and per-step reporting for the reset and "Erase All Data".
 //
 //  `EraserUtils` runs the catalog in order and reports every step twice: once
 //  as `.running` and once with its terminal outcome. A step's outcome is decided
@@ -45,6 +45,27 @@ public enum ErasureStepSection: String, CaseIterable, Sendable {
     case finalCheck = "Final check"
 }
 
+// MARK: - Tiers
+
+/// The two stacked erase tiers. `.reset` runs only the reset tier; `.allData`
+/// runs both.
+public enum ErasureTier: Sendable {
+    /// Keys, settings, app state and every cleartext or decrypted artifact.
+    case reset
+    /// The encrypted media and everything that holds or indexes it, local and in
+    /// iCloud. Kept by a reset so the user's key phrases can open it again.
+    case ciphertext
+}
+
+extension ErasureScope {
+    public func includes(_ tier: ErasureTier) -> Bool {
+        switch self {
+        case .reset:   return tier == .reset
+        case .allData: return true
+        }
+    }
+}
+
 // MARK: - Recovery hints
 
 /// What the user can do about a failed step. The screen maps these to copy; the
@@ -71,33 +92,42 @@ public struct ErasureStepDescriptor: Identifiable, Equatable, Sendable {
     public let id: String
     public let title: String
     public let section: ErasureStepSection
+    public let tier: ErasureTier
 
-    public init(id: String, title: String, section: ErasureStepSection) {
+    public init(id: String, title: String, section: ErasureStepSection, tier: ErasureTier = .reset) {
         self.id = id
         self.title = title
         self.section = section
+        self.tier = tier
     }
 
-    /// The steps `EraserUtils` itself performs for `.allData`, in run order.
+    /// The steps `EraserUtils` itself performs for `scope`, in run order.
     /// App-layer steps (`ErasureStep`) are inserted into the `.app` section by
     /// the caller that owns them.
+    public static func catalog(for scope: ErasureScope) -> [ErasureStepDescriptor] {
+        allDataCatalog.filter { scope.includes($0.tier) }
+    }
+
+    /// Every step, both tiers, in run order. The keychain and defaults wipes stay
+    /// last so deleting the keys orphans nothing mid-run, and the CloudKit checks
+    /// run before the residual sweep, which breaks CloudKit reads until relaunch.
     public static let allDataCatalog: [ErasureStepDescriptor] = [
         .init(id: "migration.state",      title: "Cancel migrations",                           section: .activity),
         .init(id: "sync.shutdown",        title: "Stop iCloud sync",                            section: .activity),
 
-        .init(id: "cloud.zones",          title: "Delete iCloud data",                          section: .cloud),
-        .init(id: "cloud.subscriptions",  title: "Remove iCloud notifications",                 section: .cloud),
+        .init(id: "cloud.zones",          title: "Delete iCloud data",                          section: .cloud, tier: .ciphertext),
+        .init(id: "cloud.subscriptions",  title: "Remove iCloud notifications",                 section: .cloud, tier: .ciphertext),
 
-        .init(id: "media.activeBackend",  title: "Delete current album media",                  section: .media),
-        .init(id: "media.localAlbums",    title: "Delete local albums",                         section: .media),
-        .init(id: "media.iCloudDrive",    title: "Delete iCloud Drive media",                   section: .media),
-        .init(id: "media.indexes",        title: "Delete media indexes",                        section: .media),
-        .init(id: "media.blobCache",      title: "Delete downloaded copies and pending uploads", section: .media),
+        .init(id: "media.activeBackend",  title: "Delete current album media",                  section: .media, tier: .ciphertext),
+        .init(id: "media.localAlbums",    title: "Delete local albums",                         section: .media, tier: .ciphertext),
+        .init(id: "media.iCloudDrive",    title: "Delete iCloud Drive media",                   section: .media, tier: .ciphertext),
+        .init(id: "media.indexes",        title: "Delete media indexes",                        section: .media, tier: .ciphertext),
+        .init(id: "media.blobCache",      title: "Delete downloaded copies and pending uploads", section: .media, tier: .ciphertext),
         .init(id: "media.thumbnails",     title: "Delete thumbnails",                           section: .media),
         .init(id: "media.temp",           title: "Delete temporary files",                      section: .media),
         .init(id: "media.sharedImports",  title: "Delete shared imports",                       section: .media),
 
-        .init(id: "sweep.residual",       title: "Remove remaining files",                      section: .keys),
+        .init(id: "sweep.residual",       title: "Remove remaining files",                      section: .keys, tier: .ciphertext),
         .init(id: "keys.keychain",        title: "Delete keys and passcode",                    section: .keys),
         .init(id: "settings.defaults",    title: "Reset settings",                              section: .keys),
 
@@ -218,13 +248,16 @@ public struct ErasureReport: Sendable {
     public let descriptors: [ErasureStepDescriptor]
     public let steps: [ErasureStepReport]
     public let cloudKitDeletionFailed: Bool
+    public let scope: ErasureScope
 
     public init(descriptors: [ErasureStepDescriptor],
                 steps: [ErasureStepReport],
-                cloudKitDeletionFailed: Bool) {
+                cloudKitDeletionFailed: Bool,
+                scope: ErasureScope = .allData) {
         self.descriptors = descriptors
         self.steps = steps
         self.cloudKitDeletionFailed = cloudKitDeletionFailed
+        self.scope = scope
     }
 
     public var failures: [ErasureStepReport] { steps.filter { $0.outcome == .fail } }
@@ -250,7 +283,7 @@ public struct ErasureReport: Sendable {
     /// Full multi-line report for the copy button and the device suite's
     /// xcresult attachment.
     public var fullText: String {
-        var lines: [String] = ["===== Erase All Data ====="]
+        var lines: [String] = [scope == .reset ? "===== Reset =====" : "===== Erase All Data ====="]
         for section in ErasureStepSection.allCases {
             let ids = descriptors.filter { $0.section == section }.map(\.id)
             guard !ids.isEmpty else { continue }
@@ -272,7 +305,8 @@ public struct ErasureReport: Sendable {
         }
         lines.append("")
         lines.append("--------------------------")
-        lines.append("VERDICT: \(isClean ? "device is empty" : "\(failures.count) step(s) left residue")")
+        let cleanVerdict = scope == .reset ? "reset complete, encrypted media kept" : "device is empty"
+        lines.append("VERDICT: \(isClean ? cleanVerdict : "\(failures.count) step(s) left residue")")
         if cloudKitDeletionFailed {
             lines.append("CLOUDKIT: deletion failed; retried on next launch")
         }

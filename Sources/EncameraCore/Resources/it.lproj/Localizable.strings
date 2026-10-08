@@ -61,7 +61,6 @@
 "Open Source" = "Open Source";
 "HideAlbumsTutorial.Subheading1" = "Encamera ti permette di nascondere gli album dalla vista principale per una privacy extra.";
 "OnboardingCarousel.HeadingText2" = "Solo tu possiedi la chiave di crittografia";
-"Erase Device Data" = "Cancella dati dispositivo";
 "Clear Password" = "Cancella password";
 "PostPurchaseView.ReviewButton" = "Aiutaci con una recensione";
 "TakeAnotherPhoto" = "Scatta un'altra foto";
@@ -261,7 +260,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "Restore Purchases" = "Ripristina acquisti";
 "You took your first photo! 📸 🥳" = "Hai scattato la tua prima foto! 📸 🥳";
 "No key available." = "Nessuna chiave disponibile.";
-"appDataExplanation" = "Sei sicuro di voler cancellare TUTTI i dati dell'app?\n\nQUESTO CANCELLERÀ:\n\n TUTTE le tue chiavi salvate \n La tua password \n Le impostazioni dell'app \n\nQUESTO NON CANCELLERÀ:\n\n I media che hai salvato localmente o su iCloud\n\nPuoi creare un backup delle tue chiavi dalla schermata di gestione delle chiavi.\n\nL'app si chiuderà dopo che la cancellazione è stata completata.\n\n";
 "TakeSurveyButtonText" = "Partecipa al sondaggio";
 "Use %@?" = "Usare %@?";
 "ImportKeyPhrase" = "Importa frase chiave";
@@ -488,7 +486,6 @@ Encamera!";
 "Notification.ReviewPage.Navigation" = "Navigazione alla pagina di invio recensione.";
 "AuthenticationMethod.IncompatibleDetail" = "%@ non può essere utilizzato con i metodi attualmente selezionati. PIN e Password non possono essere usati insieme.";
 "TelegramGroupJoinBody" = "Ottieni accesso anticipato alle funzionalità beta e lascia un feedback";
-"Erase App Data" = "Cancella dati dell'app";
 "Key Entry" = "Inserimento chiave";
 "HideAlbumsTutorial.Subheading3" = "Assicurati di ricordare i nomi dei tuoi album nascosti, perché non appariranno nell'elenco dei tuoi album.";
 "EmptyAlbumTakeAPictureActionTitle" = "Scatta una foto";

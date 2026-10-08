@@ -51,7 +51,6 @@
 "Subscribe" = "구독하기";
 "Select All" = "모두 선택";
 "Repeat Password" = "비밀번호 반복";
-"Erase Device Data" = "기기 데이터 삭제";
 "SetAPasswordWarning" = "앱에 액세스하기 위해 비밀번호를 설정하세요. 안전한 장소에 보관하세요 \\u2013 나중에 복구할 수 없습니다.";
 "TakeYourFirstPicture" = "첫 사진 찍기";
 "Delete this image?" = "이 이미지를 삭제하시겠습니까?";
@@ -90,7 +89,6 @@
 "The media you tried to open could not be decrypted." = "열려고 시도한 미디어를 해독할 수 없습니다.";
 "FeedbackView.Thanks" = "감사합니다!";
 "Accept" = "수락";
-"Erase App Data" = "앱 데이터 지우기";
 "Shared Media" = "공유 미디어";
 "Erase All Data" = "모든 데이터 지우기";
 "PinCodeDoesNotMatch" = "PIN이 일치하지 않습니다. 다시 시도해 주세요.";
@@ -205,7 +203,6 @@
 "AlbumDetailView.HideAlbumMenuItem" = "앨범 숨기기";
 "OnboardingPermissionsMicrophoneAccessSubheading" = "동영상에만 필요";
 "Settings" = "설정";
-"appDataExplanation" = "앱의 모든 데이터를 지우시겠습니까?\n\n이것은 지워집니다:\n\n• 저장된 모든 키 \\ud83d\\udd11\n• 비밀번호 \\ud83d\\udd10\n• 앱 설정 \\ud83c\\udf9b\n\n이것은 지워지지 않습니다:\n\n• 로컬 또는 iCloud에 저장된 미디어\n\n키 관리 화면에서 키의 백업을 생성할 수 있습니다.\n\n지우기가 완료되면 앱이 종료됩니다.\n\n";
 "Touch ID" = "터치 ID";
 "Start trial offer" = "무료 체험 시작";
 "OnboardingIntroSubheadingText" = "Encamera는 모든 것을 암호화하여 원치 않는 시선으로부터 미디어를 안전하게 보호합니다.";
