@@ -804,13 +804,19 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
         if storageOption == .cloudKit, let albumID = album.albumID {
             try CloudKitAlbumMarker(album: album, isHidden: false, dirty: true).write(albumID: albumID)
-            pushCloudKitAlbumRecord(album)
+            // Proving the key fingerprint reads the keychain. The caller opens the album as
+            // soon as this returns, and the dirty marker already makes the album usable.
+            Task.detached(priority: .utility) { [self] in
+                self.pushCloudKitAlbumRecord(album)
+            }
         }
 
         printDebug("Directory created successfully")
         printDebug("Broadcasting album creation")
+        // Every album-list observer refreshes on `.albumCreated`, so no `.albumsUpdated`
+        // follows it: that would rescan every album and key on the caller's thread, then
+        // again in each observer, before the new album can open.
         albumOperationSubject.send(.albumCreated(album: album))
-        broadcastAlbumsUpdated()
         return album
     }
 
