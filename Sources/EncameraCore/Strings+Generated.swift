@@ -2987,6 +2987,18 @@ public enum L10n {
       public static let title = L10n.tr("Localizable", "Settings.HiddenAlbumsModal.Title", fallback: "Your hidden albums")
     }
     public enum ICloudBackupAndSync {
+      /// Enable it
+      public static let confirmationEnable = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.ConfirmationEnable", fallback: "Enable it")
+      /// Do this later
+      public static let confirmationLater = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.ConfirmationLater", fallback: "Do this later")
+      /// Enjoy Encamera seamlessly across all your devices using this iCloud account
+      public static let confirmationRow1 = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.ConfirmationRow1", fallback: "Enjoy Encamera seamlessly across all your devices using this iCloud account")
+      /// Use the same login method across all your devices
+      public static let confirmationRow2 = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.ConfirmationRow2", fallback: "Use the same login method across all your devices")
+      /// Back up and sync your recovery key and passcodes with iCloud
+      public static let confirmationRow3 = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.ConfirmationRow3", fallback: "Back up and sync your recovery key and passcodes with iCloud")
+      /// Back up & sync your security credentials with iCloud
+      public static let confirmationTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.ConfirmationTitle", fallback: "Back up & sync your security credentials with iCloud")
       /// Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.
       public static func disableDevicesWarning(_ p1: Any) -> String {
         return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableDevicesWarning", String(describing: p1), fallback: "Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.")

@@ -743,6 +743,12 @@
 "Settings.ICloudBackupAndSync.EnableDrawerTitle" = "Turn on iCloud sync?";
 "Settings.ICloudBackupAndSync.EnableDrawerSubtitle" = "Your credentials and encryption keys will be securely synced via iCloud Keychain.\n\nOther devices will use this device’s passcode or password to unlock Encamera.";
 "Settings.ICloudBackupAndSync.EnableDrawerConfirm" = "Turn On";
+"Settings.ICloudBackupAndSync.ConfirmationTitle" = "Back up & sync your security credentials with iCloud";
+"Settings.ICloudBackupAndSync.ConfirmationRow1" = "Enjoy Encamera seamlessly across all your devices using this iCloud account";
+"Settings.ICloudBackupAndSync.ConfirmationRow2" = "Use the same login method across all your devices";
+"Settings.ICloudBackupAndSync.ConfirmationRow3" = "Back up and sync your recovery key and passcodes with iCloud";
+"Settings.ICloudBackupAndSync.ConfirmationEnable" = "Enable it";
+"Settings.ICloudBackupAndSync.ConfirmationLater" = "Do this later";
 "Settings.ICloudBackupAndSync.HoldToEnable" = "Hold to Turn On";
 "Settings.ICloudBackupAndSync.EnablingIn" = "Turning on in %d";
 "Settings.ICloudBackupAndSync.FlipFailed" = "iCloud Backup & Sync could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.";
